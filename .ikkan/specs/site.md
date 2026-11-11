@@ -58,3 +58,8 @@
 | 各行の図は、その設定を初めて書いた段で止めて描く | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figure-stops-at-use`が通る | #3616 |
 | 各行の図のどれも、`dragon check --layout`と同じ確かめで崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figures-have-no-breaks`が通る | #3616 |
 | 部品の頁は今までどおり、図の種類ごとの部品の図を、部品を描ける図の種類の数だけ並べる | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-page-keeps-kind-figures`が通る | #3616 |
+| 11種類のどれも、カタログの種類の頁に見本が4枚以上載る | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts --reporter=verbose`の検査`every-kind-has-four-examples`が通る | #3615 |
+| 足した21枚の見本のどれも、日本語の`.dragon`と英語の`.en.dragon`を持ち、英語版の箱と区画と段と線の数が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts --reporter=verbose`の検査`added-examples-have-both-langs`が通る | #3615 |
+| 足した21枚の見本のどれも、日本語と英語の両方で`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts --reporter=verbose`の検査`added-examples-have-no-breaks`が通る | #3615 |
+| 足した見本の題材に、一般の題材とWeb3の題材の両方が在り、見本を足した種類はGitの図を除いて一般とWeb3の両方の見本を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts --reporter=verbose`の検査`added-examples-cover-general-and-web3`が通る | #3615 |
+| 今ある27枚の見本は、名前と図の種類を変えずに残る | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts --reporter=verbose`の検査`existing-examples-stay`が通る | #3615 |

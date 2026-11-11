@@ -1,0 +1,64 @@
+// An uploaded video goes through a queue to transcoding and thumbnail work, is stored, and reaches viewers through a CDN.
+// Outside the regions, the uploader is at the top and the viewer at the bottom. The two regions in between prepare the video and deliver it.
+architecture From upload to the viewer's screen
+
+box uploader as Uploader [note: uploads a video, color: slate, icon: user]
+
+group prepare as Transcoding [note: prepares the upload, color: blue, icon: refresh]
+  box intake as Upload API [note: takes the video, icon: server]
+  box raw as Original store [note: as uploaded, icon: db]
+  box queue as Transcode queue [note: hands out jobs, color: amber, icon: layers]
+  box transcode as Transcode job [note: one per quality, icon: refresh]
+  box thumbs as Thumbnail job [note: pictures for lists, icon: paint]
+end
+
+group deliver as Delivery [note: stores and serves, color: green, icon: globe]
+  box store as Delivery store [note: transcoded video, icon: db]
+  box cdn as CDN [note: serves from nearby, icon: globe]
+end
+
+box viewer as Viewer [note: watches the video, color: slate, icon: user]
+
+strip Video: Name, Length, Quality, Thumbnails, Status
+
+step Upload the video
+  say The uploader sends the recorded video to the upload API. The API puts it as uploaded into the original store, so any later job can start again from the original.
+  code PUT /uploads/v-318
+  uploader -> intake: upload
+  intake -> raw: keep [side: left]
+  set Name: trip-diary.mov
+  set Length: 12 min
+  set Status: received
+
+step Queue the jobs
+  say Transcoding takes minutes, so the upload API does not wait and puts two jobs on the queue, one to transcode and one for thumbnails. The uploader hears back right away.
+  intake -> queue: queue jobs [tag: v-318]
+  note queue: 2 jobs waiting
+  set Status: waiting to transcode
+
+step Transcode by quality
+  say The transcode job takes one job from the queue, rebuilds the original in three qualities, 1080p, 720p and 480p, and puts them in the delivery store. Each viewer can then get the quality that suits their connection.
+  queue -> transcode: take
+  act transcode: make 3 qualities
+  transcode -> store: put
+  set Quality: 1080p, 720p, 480p
+
+step Make thumbnails
+  say The thumbnail job takes the other job, cuts pictures from three points in the video and puts them in the store. These pictures fill the list pages.
+  queue -> thumbs: take [side: left]
+  act thumbs: cut 3 frames
+  thumbs -> store: put pictures
+  note queue: now empty
+  set Thumbnails: 3
+
+step Load onto the CDN
+  say The stored video is handed to the CDN. The CDN keeps copies in many places and serves each viewer from nearby.
+  store -> cdn: serve
+  note cdn: copied out
+  set Status: public [tag: done]
+
+step Deliver to the viewer
+  say When the viewer presses play, the nearest CDN sends the video in small pieces. If the connection slows, it switches to a lower quality partway.
+  viewer -> cdn: play [side: right]
+  cdn -> viewer: send in pieces [side: left]
+  note viewer: watching in 720p

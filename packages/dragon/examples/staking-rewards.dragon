@@ -1,0 +1,34 @@
+// ステーキングの1か月の報酬の内訳が、1月から4月までにどう移ったかをドーナツで比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart ステーキングの報酬の内訳 [shape: donut]
+
+item vote as 投票の報酬 [color: blue]
+item propose as 提案の報酬 [color: green]
+item tip as 手数料の上乗せ [color: amber]
+item sync as 同期委員会 [color: violet]
+
+step 1月
+  say 報酬の8割は、毎回の投票で受け取る報酬が占める。ブロックの提案に選ばれる回は少ない。
+  set vote: 82
+  set propose: 10
+  set tip: 8
+
+step 2月
+  say ブロックの提案に2回選ばれ、提案の報酬と手数料の上乗せが膨らむ。
+  set vote: 80
+  set propose: 26
+  set tip: 30
+
+step 3月
+  say 同期委員会に選ばれ、その期間は委員会の報酬が加わる。投票の報酬は毎月ほぼ変わらない。
+  set vote: 79
+  set propose: 9
+  set tip: 7
+  set sync: 45
+
+step 4月
+  say 委員会の期間が終わり、1月と同じ形に戻る。報酬の土台は毎回の投票にある。
+  set vote: 81
+  set propose: 11
+  set tip: 9
+  set sync: 0

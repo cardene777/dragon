@@ -1,0 +1,37 @@
+// How the gas fee estimate moves through a day from late night to night, compared on bars for each speed.
+// The values are sample numbers to show the shape, not measured figures.
+chart Gas fee estimate by hour [shape: bar]
+
+item slow as Slow [color: green]
+item normal as Normal [color: blue]
+item fast as Fast [color: amber]
+
+step 3:00
+  say Late at night there are few transactions, so gas is cheapest. Values are in gwei, and the faster you want it, the more you add on top.
+  set slow: 8
+  set normal: 10
+  set fast: 13
+
+step 9:00
+  say Transactions pick up in the morning, and gas starts to rise at every speed.
+  set slow: 15
+  set normal: 18
+  set fast: 24
+
+step 13:00
+  say Midday calms down a little, and gas falls with it.
+  set slow: 12
+  set normal: 14
+  set fast: 18
+
+step 18:00
+  say Traffic from another region overlaps, and the extra for fast transactions widens.
+  set slow: 22
+  set normal: 27
+  set fast: 36
+
+step 22:00
+  say The busiest hour of the day. A transaction that can wait until late night costs about a quarter.
+  set slow: 30
+  set normal: 38
+  set fast: 52

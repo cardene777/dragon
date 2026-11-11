@@ -1,0 +1,62 @@
+// ECサイトで利用者が出した注文が、配信網とWebの層とAPIの層を通り、在庫と決済を経て待ち行列へ積まれるまで。
+// 上の区画が店の外で、利用者と借りているサービスを置く。下の区画が自社で動かす店の中。
+architecture ECサイトで注文が流れる道
+
+group 外 as 店の外 [note: 利用者と借りるサービス, color: slate, icon: globe]
+  box 画面 as 利用者の画面 [note: 品物を選ぶ, icon: user]
+  box CDN as 配信網 [note: 近くから頁を返す, icon: globe]
+  box 決済 as 決済のサービス [note: カードで払う, color: violet, icon: card]
+end
+
+group 中 as 店の中 [note: 自社で動かす, color: blue, icon: cart]
+  box Web as Webの層 [note: 頁を組む, icon: server]
+  box API as APIの層 [note: 注文を受ける, icon: code]
+  box 在庫 as 在庫の仕組み [note: 残りを数える, icon: box]
+  box DB as データベース [note: 注文を残す, icon: db]
+  box 待ち as 注文の待ち行列 [note: 後で片付ける仕事, color: amber, icon: layers]
+end
+
+strip 注文: 番号, 品物, 代金, 在庫, 状態
+
+step 頁を開く
+  say 利用者が品物の頁を開く。画像や決まった頁は配信網が近くの置き場から返し、置き場に無い頁だけをWebの層へ取りに行く。
+  画面 -> CDN: 頁を開く [side: right]
+  CDN -> Web: 無い頁だけ
+  note CDN: 画像は置き場から返す
+
+step 注文を送る
+  say 利用者が注文のボタンを押す。注文は配信網を素通りしてWebの層に届き、Webの層がAPIの層へ渡す。
+  code POST /api/orders
+  Web -> API: 注文する
+  set 番号: #2087
+  set 品物: 靴1足
+  set 代金: 8800円
+  set 状態: 受付
+
+step 在庫を押さえる
+  say APIの層が在庫の仕組みに残りを聞いて1足を押さえ、注文をデータベースに残す。払う前に押さえるので、同じ靴を2人に売らない。
+  API -> 在庫: 押さえる
+  note 在庫: 残り3足 → 2足
+  API -> DB: 注文を残す [side: left]
+  set 在庫: 押さえた
+  set 状態: 支払い待ち
+
+step 代金を払う
+  say APIの層が外の決済のサービスに代金を頼み、カードの承認を受け取る。カードの番号は店の中に残さない。
+  API -> 決済: 8800円を請求 [carry: coin]
+  決済 -> API: 承認 [carry: none]
+  set 代金: 8800円 [tag: 払った]
+  set 状態: 支払い済
+
+step 待ち行列に積む
+  say 時間の掛かる出荷の手配と知らせのメールは、注文の待ち行列に積んで後で片付ける。APIの層は積んだらすぐに利用者の画面へ受付を返す。
+  API -> 待ち: 積む [tag: #2087, side: below]
+  note 画面: 注文#2087を受け付けた
+  set 状態: 出荷待ち
+
+step 後ろで片付ける
+  say 待ち行列から仕事を取り出した処理が、押さえた在庫を引き当てて出荷へ回す。利用者は待たずに次の頁へ進める。
+  待ち -> 在庫: 引き当てる [side: right]
+  note 在庫: 残り2足
+  set 在庫: 引き当てた [tag: 済]
+  set 状態: 出荷の手配

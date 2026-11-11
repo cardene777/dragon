@@ -1,0 +1,49 @@
+// 届いた返品を、期限内か、未使用か、返金か交換かの3つの判断で確かめ、返金、交換、断るに分ける手順。
+// 最初の段より前の線は今回は通らない道で、点線で残る。期限か未使用のどちらかが「いいえ」なら断り、交換を望めば同じ品を送る。
+flow 返品を受けるかの判断
+
+box arrive as 返品が届く [note: 届いて開ける, icon: box]
+choice term as 30日以内？
+choice unused as 未使用？
+box form as 申し込みを読む [note: 選んだ望みを見る, icon: doc]
+choice refund as 返金か交換か？
+box pay as 返金する [note: 代金を戻す, color: green, icon: yen]
+box swap as 交換の品を送る [note: 同じ品を送る, color: violet, icon: truck]
+box reject as 断って送り返す [note: 理由を添える, color: rose, icon: x]
+
+strip 返品 #R-52: 日数, 状態, 結果
+
+term -> reject: いいえ
+unused -> reject: いいえ
+refund -> swap: 交換
+
+step 返品が届く
+  say 買った人が送り返した品が倉庫に届き、手順が始まる。
+  start -> arrive
+  set 日数: 数える前
+  set 状態: 見る前
+  set 結果: まだ
+
+step 期限を確かめる
+  say 届けた日から数え、30日以内に返されたかを判断する。
+  arrive -> term: 日付を見る
+  set 日数: 12日
+
+step 状態を確かめる
+  say 12日なので期限内。次に、箱と品を開けて使った跡が無いかを確かめる。
+  term -> unused: はい
+  set 状態: 未使用
+
+step 申し込みを読む
+  say 使った跡は無いので、受けられる返品と分かる。次に、申し込みの時に選んだ望みを読む。
+  unused -> form: はい
+
+step 望みで分ける
+  say 申し込みに書かれた望みで、返金か交換かに分ける。
+  form -> refund: 調べる
+
+step 返金する
+  say 返金を望んでいたので、代金を戻して手順が終わる。交換を望んでいれば、点線の道で同じ品を送る。
+  refund -> pay: 返金
+  pay -> finish
+  set 結果: 返金した

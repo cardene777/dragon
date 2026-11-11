@@ -1,0 +1,52 @@
+// An 8-team tournament bracket, following the winners from the first round to the final until the champion becomes the root.
+// A match box is where its winner climbs to, and the tag on each line carries the winning team's name.
+tree Office futsal cup
+
+box Trophy [note: Not awarded yet, color: amber, icon: flag]
+
+strip Progress: To the semis, To the final, Champion
+
+step Eight teams enter
+  say Eight teams enter, one per department. Neighbours are lined up to meet in the first round.
+  leaf Sales
+  leaf Dev
+  leaf Finance
+  leaf Admin
+  leaf HR
+  leaf PR
+  leaf Legal
+  leaf Planning
+
+step Draw the first round
+  say Put each pair of neighbours into one match. The first round has four matches.
+  node Game1 of Sales, Dev
+  node Game2 of Finance, Admin
+  node Game3 of HR, PR
+  node Game4 of Legal, Planning
+
+step Play the first round
+  say The winner of each of the four matches climbs to its match box. The losing teams stop here.
+  Dev -> Game1 [tag: Dev]
+  Finance -> Game2 [tag: Finance]
+  PR -> Game3 [tag: PR]
+  Legal -> Game4 [tag: Legal]
+  set To the semis: Dev, Finance, PR, Legal
+
+step Play the semifinals
+  say The first-round winners meet each other. The two teams that win go on to the final.
+  node Semi1 of Game1, Game2
+  node Semi2 of Game3, Game4
+  Game1 -> Semi1 [tag: Dev]
+  Game4 -> Semi2 [tag: Legal]
+  set To the final: Dev, Legal
+
+step The final decides the champion
+  say The last two teams meet in the final. The winner reaches the root, and the tree comes together as one.
+  node Champion of Semi1, Semi2
+  Semi2 -> Champion [tag: Legal]
+  set Champion: Legal
+
+step Award the trophy
+  say The trophy goes to Legal, the champion. Three wins put a team on top of all eight.
+  Champion -> Trophy: Award [tag: Legal]
+  note Trophy: Legal holds it

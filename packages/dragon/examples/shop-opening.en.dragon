@@ -1,0 +1,60 @@
+// A 4-week schedule from renting a new shop to opening it.
+// One tick is one day, and the fit-out, hiring, stocking, training and trial run are thick bars. The tasks overlap across days.
+// As the needle moves, the part of each bar it has passed fills in, and the status of the two points, the handover and the opening, changes.
+time Getting a new shop ready to open
+
+scale day 1d 31 [from: 1]
+task interior as Fit-out 0-11 [color: violet]
+task hire as Hiring 3-10 [color: blue]
+task stock as Stocking 12-20 [color: amber]
+task train as Training 14-21 [color: blue]
+task trial as Trial run 21-24 [color: rose]
+point Handover at 11
+point Opening at 27
+
+strip Road to opening: Elapsed, Staff, Days left
+
+step Start the fit-out
+  say The fit-out starts the day the shop is rented. It takes 12 days, and nothing can be stocked until it is done.
+  note Handover: Building [color: amber]
+  note Opening: Preparing [color: blue]
+  now -> 2
+  set Elapsed: 3 d
+  set Staff: 0
+  set Days left: 25 d
+
+step Hire alongside the fit-out
+  say Hiring starts on day 4 without waiting for the fit-out to end. Running both at once brings the opening closer.
+  now -> 10
+  set Elapsed: 11 d
+  set Staff: 6
+  set Days left: 17 d
+
+step Take over the finished shop
+  say The fit-out is done on day 12 and the shop is handed over. From here the shelves can be stocked.
+  note Handover: Done [color: green]
+  now -> 11
+  set Elapsed: 12 d
+  set Days left: 16 d
+
+step Stock and train at once
+  say While the goods come in and fill the shelves, the staff train on the till and with customers, using the stocked shelves.
+  span 14-20: 7 days of stocking and training [color: slate]
+  now -> 20
+  set Elapsed: 21 d
+  set Days left: 7 d
+
+step Check with a trial run
+  say The shop opens for 4 days to invited friends to check the till and spot gaps on the shelves. Fixes go into the 2 days before opening.
+  span 25-26: 2 days to fix [color: rose]
+  now -> 24
+  set Elapsed: 25 d
+  set Days left: 3 d
+
+step Open the shop
+  say The shop opens on day 28, 16 days after the handover, and every task bar is filled.
+  Handover -> Opening: 16 days [carry: none]
+  note Opening: Open [color: green]
+  now -> 27
+  set Elapsed: 28 d
+  set Days left: 0 d

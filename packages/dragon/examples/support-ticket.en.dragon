@@ -1,0 +1,55 @@
+// The states of support request #318, from intake and an assigned owner to a fix, then a reopen on the same issue before it closes.
+// The lines before the first step are the path where it closes on its own with no reply, which it does not take this time.
+state States of a support request until it closes
+
+box new as New [note: Gets a number, color: blue, icon: doc]
+box working as In progress [note: Owner looks into it, color: violet, icon: user]
+box waiting as Awaiting reply [note: Waits for the user, color: amber, icon: clock]
+box resolved as Resolved [note: Confirmed fixed, color: green, icon: check]
+box reopened as Reopened [note: Same issue came back, color: violet, icon: refresh]
+box closed as Closed [note: Kept on record, color: green, icon: lock]
+box autoclosed as Auto-closed [note: No reply came, color: rose, icon: x]
+
+strip Request #318: Owner, Reply, Elapsed
+
+waiting -> autoclosed: 14 days pass
+autoclosed -> finish
+
+step Take the request
+  say A request arrives from the help form and starts at New. It gets the number #318, and every exchange is recorded.
+  start -> new: Request arrives [tag: #318]
+  set Owner: none yet
+  set Reply: none yet
+  set Elapsed: 0 h
+
+step Assign an owner
+  say Someone reads it and assigns an owner, and it moves to In progress. The owner starts looking for the cause.
+  new -> working: Assign owner [tag: #318]
+  set Owner: Team 2
+  set Elapsed: 1 h
+
+step Wait for a reply
+  say The fix steps are sent, and it moves to Awaiting reply. If no reply comes in 14 days, it closes on its own from here.
+  working -> waiting: Send steps [tag: #318]
+  set Reply: waiting
+  set Elapsed: 3 h
+
+step Resolve
+  say A reply says the steps fixed it, and it moves to Resolved. It does not close right away, and waits 7 days for news on the same issue.
+  waiting -> resolved: Reply says fixed [tag: #318]
+  set Reply: fixed
+  set Elapsed: 1 day
+
+step Reopen
+  say Another request comes in on the same issue, and it moves to Reopened. It keeps the number #318, and the same owner picks it up as a follow-up.
+  resolved -> reopened: Asks again [tag: #318]
+  set Reply: happened again
+  set Elapsed: 3 days
+
+step Close
+  say The owner fixes a setting, and it moves to Closed. Closed is a final state, and the path it took stays on record.
+  reopened -> closed: Fix setting [tag: #318]
+  closed -> finish: Close [tag: #318]
+  note closed: Fixed on 2nd try
+  set Reply: fixed
+  set Elapsed: 4 days

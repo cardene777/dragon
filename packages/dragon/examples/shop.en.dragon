@@ -1,0 +1,62 @@
+// How an order placed on an online shop passes the CDN, the web tier and the API tier, holds stock, gets paid and lands in the queue.
+// The top region is outside the shop, with the user and the rented services. The lower region is inside the shop, run by the company itself.
+architecture How an order flows through an online shop
+
+group outside as Outside the shop [note: user and rented services, color: slate, icon: globe]
+  box screen as User's screen [note: picks an item, icon: user]
+  box cdn as CDN [note: serves pages nearby, icon: globe]
+  box pay as Payment service [note: takes the card, color: violet, icon: card]
+end
+
+group inside as Inside the shop [note: run in-house, color: blue, icon: cart]
+  box web as Web tier [note: builds pages, icon: server]
+  box api as API tier [note: takes orders, icon: code]
+  box stock as Stock service [note: counts what is left, icon: box]
+  box db as Database [note: keeps orders, icon: db]
+  box queue as Order queue [note: work for later, color: amber, icon: layers]
+end
+
+strip Order: No., Item, Price, Stock, Status
+
+step Open the page
+  say The user opens an item page. The CDN serves images and fixed pages from a nearby cache, and only fetches pages it does not have from the web tier.
+  screen -> cdn: open page [side: right]
+  cdn -> web: missing pages
+  note cdn: images from the cache
+
+step Send the order
+  say The user presses the order button. The order passes straight through the CDN to the web tier, which hands it to the API tier.
+  code POST /api/orders
+  web -> api: place order
+  set No.: #2087
+  set Item: 1 pair of shoes
+  set Price: 8,800 yen
+  set Status: received
+
+step Hold the stock
+  say The API tier asks the stock service what is left, holds one pair, and keeps the order in the database. Holding it before payment stops the same pair being sold twice.
+  api -> stock: hold
+  note stock: 3 left → 2 left
+  api -> db: keep order [side: left]
+  set Stock: held
+  set Status: awaiting payment
+
+step Take the payment
+  say The API tier asks the outside payment service for the money and gets the card approval back. The card number is never kept inside the shop.
+  api -> pay: charge 8,800 yen [carry: coin]
+  pay -> api: approved [carry: none]
+  set Price: 8,800 yen [tag: paid]
+  set Status: paid
+
+step Queue the work
+  say Slow work such as arranging the shipment and sending the mail goes into the order queue for later. The API tier tells the user's screen the order is in as soon as it is queued.
+  api -> queue: queue [tag: #2087, side: below]
+  note screen: order #2087 received
+  set Status: awaiting shipment
+
+step Finish in the back
+  say A worker takes the job from the queue, commits the held stock and passes the order on to shipping. The user does not wait and can move on to the next page.
+  queue -> stock: commit [side: right]
+  note stock: 2 left
+  set Stock: committed [tag: done]
+  set Status: arranging shipment

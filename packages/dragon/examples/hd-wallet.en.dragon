@@ -1,0 +1,50 @@
+// How an HD wallet branches one seed into keys, through the master key, purpose, coin type and account down to receiving addresses.
+// The first 3 steps build the key tree from the addresses up to the seed. The last 3 make the seed from the recovery phrase and derive keys down to addr1.
+tree Key derivation in an HD wallet
+
+box phrase as Recovery phrase [note: 12 words kept on paper, color: amber, icon: key]
+
+strip Derivation: Path, Derived key, Address
+
+step Line up the receiving addresses
+  say The wallet uses four receiving addresses. Each one comes from a key derived from a single seed, not from a key made on its own.
+  leaf addr1 [hash: 7c2e]
+  leaf addr2 [hash: 41b9]
+  leaf addr3 [hash: d05a]
+  leaf addr4 [hash: 9e73]
+
+step Split by account and coin type
+  say Addresses group under accounts, and accounts split by coin type. ETH holds a daily and a trading account, and BTC holds a holding account.
+  node Daily of addr1, addr2 [hash: 3a8f]
+  node Trading of addr3 [hash: c612]
+  node Holding of addr4 [hash: 58d4]
+  node ETH of Daily, Trading [hash: b27e]
+  node BTC of Holding [hash: 6f01]
+
+step Gather everything into the seed
+  say The coin types sit under the purpose 44' key, the purpose sits under the master key, and the master key sits under the seed. Every key gathers into one seed.
+  node purpose44' of ETH, BTC [hash: e94c]
+  node master of purpose44' [hash: 12fd]
+  node seed of master [hash: a5c3]
+
+step Make the seed and master key
+  say Turn the 12 saved words into the seed, and derive the master key from the seed. As long as the words survive, every key can be made again.
+  phrase -> seed: Make
+  seed -> master [tag: 12fd]
+  set Path: m
+  set Derived key: 12fd
+
+step Follow purpose, coin type and account
+  say From the master key, derive child keys for purpose 44', ETH's 60' and account 0' in turn. The ' mark is a way of deriving that keeps a child key from leading back to its parent.
+  master -> purpose44' [tag: e94c]
+  purpose44' -> ETH [tag: b27e]
+  ETH -> Daily [tag: 3a8f]
+  set Path: m/44'/60'/0'
+  set Derived key: 3a8f
+
+step Reach the receiving address
+  say Deriving receiving key number 0 from the account key fixes addr1. Following the same path gives the same address in any other wallet.
+  Daily -> addr1 [tag: 7c2e]
+  set Path: m/44'/60'/0'/0/0
+  set Derived key: 7c2e
+  set Address: addr1

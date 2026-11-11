@@ -1,0 +1,51 @@
+// The states of a transaction sent from a wallet, as it waits in the mempool, is replaced with a higher fee, and lands in a block until it is final.
+// The lines before the first step are the path where it expires and drops out of the mempool, which it does not take this time.
+state States of a sent transaction until it is final
+
+box signed as Signed [note: Nonce 7 set, color: blue, icon: sign]
+box pending as Pending [note: In the mempool, color: amber, icon: clock]
+box included as In a block [note: Awaiting confirms, color: violet, icon: block]
+box final as Final [note: Cannot be undone, color: green, icon: check]
+box dropped as Dropped [note: Must be resent, color: rose, icon: x]
+
+strip Tx nonce 7: Hash, Fee, Confirms, Elapsed
+
+pending -> dropped: Expire
+dropped -> finish
+
+step Sign
+  say The wallet signs the transaction with nonce 7, and it starts at Signed. It has not been sent to anyone yet.
+  start -> signed: Sign [tag: nonce 7]
+  set Hash: 0x3fa2…
+  set Fee: 1 gwei
+  set Confirms: 0
+  set Elapsed: 0 s
+
+step Send to the mempool
+  say Sending it to a node moves it to Pending. The fee is low, so block builders do not pick it right away.
+  signed -> pending: Send to node [tag: nonce 7]
+  set Elapsed: 1 s
+
+step Replace with a higher fee
+  say A transaction with the same nonce and a higher fee replaces the earlier one. The state stays Pending, so the arrow goes back to the same state.
+  pending -> pending: Raise fee [tag: nonce 7]
+  note pending: Replaced
+  set Hash: 0x9c1e…
+  set Fee: 3 gwei
+  set Elapsed: 2 min
+
+step Land in a block
+  say With the higher fee it is picked and lands in a block. It has 1 confirmation and is not final yet.
+  pending -> included: Get included [tag: nonce 7]
+  set Confirms: 1
+  set Elapsed: 2 min 12 s
+
+step Become final
+  say More blocks are built on top, and it moves to Final. From here the transaction cannot be reversed.
+  included -> final: Finalize [tag: nonce 7]
+  set Confirms: 64
+  set Elapsed: 15 min
+
+step Close the record
+  say Final is an end state, and nothing moves on from it. The wallet keeps it in its history as a settled transaction.
+  final -> finish: Keep in history [tag: nonce 7]

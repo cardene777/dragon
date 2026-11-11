@@ -1,0 +1,50 @@
+// 公開の枝releaseで見つかった不具合を直しの枝hotfixで直し、releaseへ取り込んで版の印を付け、同じ直しをcherry-pickでmainへ戻すまで。
+// 上の帯がmain、真ん中がhotfix、下がrelease。mainには直しのcommitだけを写し、releaseにだけある変更は持ち込まない。
+git 公開版の不具合を直してmainへ戻す
+
+branch main [note: 次の版を作る]
+branch hotfix [note: 直しの枝]
+branch release [note: 公開している版]
+
+box 印 as 版の印 [note: v2.4.0はR, color: green, icon: flag]
+
+strip 参照: main, release, hotfix, 公開中
+
+step 公開の枝がある
+  say mainのAからreleaseを切り、Rをv2.4.0として公開した。その後もmainには次の版に向けたBが積まれている。
+  commit A on main [hash: 3fa0c19, note: 一覧を足す]
+  release from A
+  commit R on release [hash: 6c1e2b8, note: 版をv2.4.0にする]
+  commit B on main [hash: 8b04f71, note: 検索を足す]
+  set main: B 8b04f71
+  set release: R 6c1e2b8
+  set 公開中: v2.4.0
+
+step 直しの枝を切る
+  say 公開中のv2.4.0で合計の金額がずれる不具合が見つかる。releaseの先端Rからhotfixを切り、直しのHを積む。
+  code git switch -c hotfix release → git commit
+  hotfix from R
+  commit H on hotfix [hash: 5b2e7a1, note: 合計の丸めを直す]
+  set hotfix: H 5b2e7a1
+
+step 公開の枝へ取り込む
+  say releaseでhotfixをmerge commitで取り込む。M1の親はreleaseの先端Rとhotfixの先端Hの2つで、releaseだけがM1へ進む。
+  code git switch release → git merge --no-ff hotfix
+  commit M1 on release merge hotfix [hash: 9a1c3e4, note: hotfixを取り込む]
+  set release: M1 9a1c3e4
+
+step 版の印を付ける
+  say M1にv2.4.1の印を付けて公開する。印は動かない札なので、後からどのcommitを配ったかを辿れる。
+  code git tag v2.4.1 → git push origin v2.4.1
+  note 印: v2.4.1はM1
+  set 公開中: v2.4.1 [tag: 新しい]
+
+step mainへ戻す
+  say mainでcherry-pickを使い、Hの変更だけをBの上に写してH'を作る。releaseにだけある版の変更Rは持ち込まず、mainがH'へ進む。
+  code git switch main → git cherry-pick 5b2e7a1
+  commit H' on main [hash: d72b9a3, note: Hの直しを写す]
+  set main: H' d72b9a3
+
+step 両方に直しが入る
+  say releaseのv2.4.1とmainの次の版の両方に、同じ直しが入った。H'は親がBなので、Hと同じ変更でもhashは別になる。
+  code git log --graph --oneline main release

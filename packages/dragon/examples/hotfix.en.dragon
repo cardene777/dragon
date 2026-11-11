@@ -1,0 +1,50 @@
+// A bug found on the release branch is fixed on the hotfix branch, merged into release and tagged, and the same fix goes back to main with cherry-pick.
+// The top lane is main, the middle is hotfix and the bottom is release. Only the fix commit is copied to main, and nothing that lives only on release comes along.
+git Fix a released bug and bring it back to main
+
+branch main [note: Next version]
+branch hotfix [note: Fix branch]
+branch release [note: Released version]
+
+box tag as Version tag [note: v2.4.0 is R, color: green, icon: flag]
+
+strip Refs: main, release, hotfix, Live
+
+step The release branch
+  say release was cut from A on main, and R went out as v2.4.0. Since then main has gained B for the next version.
+  commit A on main [hash: 3fa0c19, note: Add the list]
+  release from A
+  commit R on release [hash: 6c1e2b8, note: Set version 2.4.0]
+  commit B on main [hash: 8b04f71, note: Add search]
+  set main: B 8b04f71
+  set release: R 6c1e2b8
+  set Live: v2.4.0
+
+step Cut a fix branch
+  say A bug in the live v2.4.0 makes the total come out wrong. Cut hotfix from R at the tip of release, and add the fix H.
+  code git switch -c hotfix release → git commit
+  hotfix from R
+  commit H on hotfix [hash: 5b2e7a1, note: Fix total rounding]
+  set hotfix: H 5b2e7a1
+
+step Merge into release
+  say On release, merge hotfix with a merge commit. M1 has two parents, R at the tip of release and H at the tip of hotfix, and only release moves to M1.
+  code git switch release → git merge --no-ff hotfix
+  commit M1 on release merge hotfix [hash: 9a1c3e4, note: Merge hotfix]
+  set release: M1 9a1c3e4
+
+step Tag the version
+  say Tag M1 as v2.4.1 and ship it. A tag is a ref that never moves, so you can always trace which commit went out.
+  code git tag v2.4.1 → git push origin v2.4.1
+  note tag: v2.4.1 is M1
+  set Live: v2.4.1 [tag: new]
+
+step Bring it back to main
+  say On main, cherry-pick copies only the change in H onto B as H'. The version change R that lives only on release stays out, and main moves to H'.
+  code git switch main → git cherry-pick 5b2e7a1
+  commit H' on main [hash: d72b9a3, note: Copy the fix in H]
+  set main: H' d72b9a3
+
+step The fix is in both
+  say The same fix is now in v2.4.1 on release and in the next version on main. H' has B as its parent, so its hash differs from H even though the change is the same.
+  code git log --graph --oneline main release
