@@ -1,0 +1,17 @@
+mind A new menu for the cafe
+
+step Put the title
+  say Put the topic to think about in the middle.
+  idea menu as New menu
+
+step Drinks branch
+  say Put drink ideas on a branch and list them as leaves.
+  idea drink as Drinks of menu [color: blue]
+  idea tea as Seasonal tea of drink
+  idea soda as Fruit soda of drink
+
+step Food branch
+  say Do the same for food.
+  idea food as Food of menu
+  idea toast as Thick toast of food
+  idea cake as Fresh-baked cake of food

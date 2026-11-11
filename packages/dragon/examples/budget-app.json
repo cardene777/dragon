@@ -1,0 +1,115 @@
+{
+  "version": 2,
+  "kind": "mind",
+  "title": "家計簿のアプリの機能",
+  "blocks": {},
+  "steps": [
+    {
+      "title": "題を置く",
+      "body": "毎月のお金の出入りを続けて付けられる、家計簿のアプリを真ん中に置く。",
+      "events": [
+        {
+          "type": "idea",
+          "id": "app",
+          "name": "家計簿のアプリ"
+        }
+      ]
+    },
+    {
+      "title": "入力の枝",
+      "body": "付ける手間を減らす機能を考える。手で打つ数が減るほど続く。",
+      "events": [
+        {
+          "type": "idea",
+          "id": "input",
+          "name": "入力",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "receipt",
+          "name": "レシートを撮って読む",
+          "parent": "input"
+        },
+        {
+          "type": "idea",
+          "id": "bank",
+          "name": "口座の明細を取り込む",
+          "parent": "input"
+        }
+      ]
+    },
+    {
+      "title": "集計の枝",
+      "body": "付けた記録から、どこにいくら使ったかを見せる機能を考える。",
+      "events": [
+        {
+          "type": "idea",
+          "id": "sum",
+          "name": "集計",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "category",
+          "name": "費目ごとの円グラフ",
+          "parent": "sum"
+        },
+        {
+          "type": "idea",
+          "id": "month",
+          "name": "前の月と比べる",
+          "parent": "sum"
+        }
+      ]
+    },
+    {
+      "title": "通知の枝",
+      "body": "使いすぎに気付ける知らせを考える。",
+      "events": [
+        {
+          "type": "idea",
+          "id": "alert",
+          "name": "通知",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "over",
+          "name": "予算を超えそうな時",
+          "parent": "alert"
+        },
+        {
+          "type": "idea",
+          "id": "payday",
+          "name": "引き落としの前の日",
+          "parent": "alert"
+        }
+      ]
+    },
+    {
+      "title": "共有の枝",
+      "body": "家族と同じ家計簿を見る機能を考える。",
+      "events": [
+        {
+          "type": "idea",
+          "id": "share",
+          "name": "共有",
+          "parent": "app"
+        },
+        {
+          "type": "idea",
+          "id": "family",
+          "name": "家族と同じ帳簿を見る",
+          "parent": "share"
+        },
+        {
+          "type": "idea",
+          "id": "split",
+          "name": "立て替えを分ける",
+          "parent": "share"
+        }
+      ]
+    }
+  ]
+}

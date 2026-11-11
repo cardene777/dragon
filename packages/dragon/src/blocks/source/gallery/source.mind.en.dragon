@@ -1,0 +1,12 @@
+mind Sources
+
+step Put the title
+  say source writes a source name and url on a step. A step can hold any number of them.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  idea app as App idea
+
+step Grow a branch
+  say Sources stay out of the figure and the narration, and appear as named links in the step list of the reader.
+  source How to write the notation [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  idea use as Users of app

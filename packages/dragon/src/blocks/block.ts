@@ -87,6 +87,8 @@ export interface FigureDraft {
   time: { scale?: TimeScale; period?: TimePeriod; rows: TimeRow[]; tasks: TimeTask[]; points: TimePoint[]; zoom?: { from: number; to: number }; pending: (() => void)[]; settled: boolean; needle: number };
   /** 木の図で書いた木の箱と、書いた行と名札の位置 (`boxes`) と、子の箱から親の名札 (`parents`)。葉と組んだ親のブロックが組む (#3348) */
   tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
+  /** 考えを広げる地図で書いた考えの名札と段 (真ん中の題が 0、枝が 1、葉が 2) と、真ん中の題の名札。考えのブロックが組む (#3619) */
+  mind: { levels: Map<string, number>; centre?: string };
   /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
   lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
   /**

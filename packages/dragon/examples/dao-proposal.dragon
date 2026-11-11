@@ -1,0 +1,31 @@
+// DAOに出す提案を、目的、予算、投票、実行の4つの枝に分けて練る。
+// 段ごとに1つの枝を伸ばし、提案に書くことを葉に書き出す。
+mind 開発者への助成の提案
+
+step 題を置く
+  say DAOの金庫から、道具を作る開発者に助成する提案を真ん中に置く。
+  idea grant as 開発者への助成
+
+step 目的の枝
+  say なぜ助成するかを書く。
+  idea goal as 目的 of grant
+  idea tools as 使う人の道具を増やす of goal
+  idea devs as 新しい開発者を呼ぶ of goal
+
+step 予算の枝
+  say どれだけ出すかを書く。
+  idea budget as 予算 of grant
+  idea amount as 金庫から5万USDC of budget
+  idea milestone as 節目ごとに分けて払う of budget
+
+step 投票の枝
+  say どう決めるかを書く。
+  idea vote as 投票 of grant
+  idea period as 7日間の投票 of vote
+  idea quorum as 定足数は4% of vote
+
+step 実行の枝
+  say 決まった後にどう動かすかを書く。
+  idea run as 実行 of grant
+  idea timelock as 2日のタイムロック of run
+  idea multisig as 3人のマルチシグで払う of run

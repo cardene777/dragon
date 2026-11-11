@@ -58,6 +58,10 @@
  * 前に書いた葉か親を子にして親を組む。箱は書いた段で現れ、親は 1 つだけ持てる。最後の段を終えた時に親を持たない木の箱は根の 1 つだけ。
  * 線の端には木の箱も `box` の箱も書ける。木の図に区画 (`group`) は書けず、`leaf` と `node` の行は木の図でだけ書ける。
  *
+ * 考えを広げる地図 (`mind`、#3619) は、段の中に `idea <名札> as <名前> of <親> [color: <色>]` で考えを出す。`of` の無い考えが真ん中の題で、
+ * 1 つの図にちょうど 1 つ置く。親は前に書いた考えに限り、題、枝、葉の 3 段まで書ける。考えを広げる地図に箱と線と中身の帯は書けず、
+ * `idea` の行は考えを広げる地図でだけ書ける。
+ *
  * 列の図 (`lineup`、#3239) は、`box` の行が列になり、最初の `step` より前に `item <名札>, <名札> [color: <色>, label: <字>]` でチップを宣言する。
  * 段の中で `line <列>: <チップ>, <チップ>` と書くと列の並びが替わり、`seal <列>` で封をし、`open <列>` で開け、`pick <列>` で列を選び、
  * `stamp <列>: <字>` で札を押す。列の図に区画 (`group`) と線と `act` の行は書けない。封をした列の並びは、開けるまで書けない。
@@ -194,7 +198,7 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
  */
 const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
-const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow"];
+const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
@@ -242,6 +246,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     git: { commits: new Set(), tips: new Map(), head: { at: null, on: null }, deleted: new Set() },
     time: { rows: [], tasks: [], points: [], pending: [], settled: false, needle: 0 },
     tree: { boxes: new Map(), parents: new Map() },
+    mind: { levels: new Map() },
     lineup: { items: [], roles: [], sealed: new Set() },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
@@ -349,7 +354,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");

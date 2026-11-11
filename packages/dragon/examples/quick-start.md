@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -86,6 +86,7 @@ step ログインを押す
 | 拡大の帯の線 | `<名札> -> <名札> [at: <目盛り>, into: <目盛り>]`。`at` の列の箱から出て、`into` の列の箱が受ける | `提案者 -> ブロック [at: 0]` |
 | 葉 | `leaf <名札> [hash: <値>]`。書いた順に左から並び、値を書くと箱に値を、葉の下の札に名札を出す。木の図だけで書ける | `leaf 取引1 [hash: 3fa0]` |
 | 親 | `node <名札> of <子>, <子> [hash: <値>]`。子の真ん中の上に置かれ、どの親にも組まれなかった箱が根になる。木の図だけで書ける | `node 根 of 1と2, 3と4 [hash: e71c]` |
+| 考え | `idea <名札> as <名前> of <親> [color: <色>]`。段の中に書き、`of` の無い考えが真ん中の題になる。題に繋げると枝、枝に繋げると葉で、3 段まで書ける。考えを広げる地図だけで書ける | `idea input as 入力 of app` |
 
 `fixed` は全体を止めて中だけ動かし、`follow` は今動いている所へ寄って動かし、隅の全体図で今どこかを示す。
 見せ方を書かない時は、全体を枠に収めた字が 10.5px 以上なら `fixed`、下回るなら `follow` になる。
@@ -421,6 +422,31 @@ step 次の週へ
   set 曜日: 月曜
 ```
 
+考えを広げる地図 (`mind <題>`) では、段の中の `idea` の行で考えを書き、書いた段で考えが濃くなって親からの線が引かれる。
+`of` の無い考えが真ん中の題で、1 つだけ書ける。`idea <名札> as <名前> of <親>` で題に繋げると枝、枝に繋げると葉になり、4 段目は書けない。
+枝は書いた順に左上から右回りに伸び (4 つなら左上、右上、右下、左下)、葉は枝の外側に縦に並ぶ。
+枝に `[color: <色>]` を書くと線と葉がその色を引き継ぐ。`box` と `strip` と箱どうしの線は書けない。
+
+```dragon
+mind 家計簿のアプリの機能
+
+step 題を置く
+  say 毎月のお金の出入りを続けて付けられる、家計簿のアプリを真ん中に置く。
+  idea app as 家計簿のアプリ
+
+step 入力の枝
+  say 付ける手間を減らす機能を考える。
+  idea input as 入力 of app [color: blue]
+  idea receipt as レシートを撮って読む of input
+  idea bank as 口座の明細を取り込む of input
+
+step 通知の枝
+  say 使いすぎに気付ける知らせを考える。
+  idea alert as 通知 of app
+  idea over as 予算を超えそうな時 of alert
+  idea payday as 引き落としの前の日 of alert
+```
+
 ## 属性
 
 行の終わりの `[ ]` の中に `<鍵>: <値>` を `,` で区切って並べ、見た目と運ぶ物を指定する。
@@ -432,6 +458,7 @@ step 次の週へ
 | 区画と箱 | `note` | 区画の添え書きか、箱の下の小さな字 |
 | 区画と箱 | `color` | 色の役。`blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` のどれか |
 | 区画と箱 | `icon` | 名前の横に置く印 |
+| 考え | `color` | 考えを広げる地図の考えの色。書ける色は区画と箱と同じ。枝に書くと線と葉が引き継ぎ、色を書かない枝には、ほかの枝が使っていない色が付く |
 | 箱 | `link` | 飛び先。描いた図で箱が飛び先への link になる。`/` で始まる path か、`http://` か `https://` で始まる URL |
 | 段の出典 | `url` | 出典の在り処。書ける形は `link` と同じ |
 | 線 | `carry` | 線の上を走る物。`coin` か `none`。書かなければ封筒が走る |

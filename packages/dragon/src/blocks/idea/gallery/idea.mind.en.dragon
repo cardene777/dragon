@@ -1,0 +1,15 @@
+mind Ideas
+
+step Put the title
+  say An idea line without of becomes the centre.
+  idea title as The topic
+
+step Grow branches
+  say An idea with of <parent> appears in its step with a branch line from its parent.
+  idea left as Left branch of title [color: blue]
+  idea right as Right branch of title
+
+step Add leaves
+  say Leaves sit outside their branch and take its color.
+  idea leaf1 as Left leaf of left
+  idea leaf2 as Right leaf of right

@@ -1,0 +1,13 @@
+mind 段 [view: fixed]
+
+step 題を置く
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code mkdir app-idea
+  idea app as アプリの案
+
+step 枝を伸ばす
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code touch app-idea/users.md
+  idea use as 使う人 of app

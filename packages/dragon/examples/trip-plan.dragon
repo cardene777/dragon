@@ -1,0 +1,31 @@
+// 3泊4日の旅行の計画を、行き先、移動、宿、予算の4つの枝に分けて立てる。
+// 段ごとに1つの枝を伸ばし、決めることを葉に書き出す。
+mind 夏の旅行の計画
+
+step 題を置く
+  say 家族4人で行く3泊4日の旅行を真ん中に置く。
+  idea trip as 夏の旅行
+
+step 行き先の枝
+  say どこで何をするかを決める。
+  idea place as 行き先 of trip
+  idea kyoto as 京都で寺を回る of place
+  idea nara as 奈良で鹿を見る of place
+
+step 移動の枝
+  say 家から行き先までと、行き先の中の移動を決める。
+  idea move as 移動 of trip
+  idea train as 新幹線の指定席 of move
+  idea bus as 市バスの1日券 of move
+
+step 宿の枝
+  say 泊まる所を決める。
+  idea stay as 宿 of trip
+  idea inn as 駅に近い旅館 of stay
+  idea breakfast as 朝ごはん付き of stay
+
+step 予算の枝
+  say 使えるお金を決め、枝ごとに割り振る。
+  idea budget as 予算 of trip
+  idea total as 全部で20万円 of budget
+  idea reserve as 1割は残しておく of budget

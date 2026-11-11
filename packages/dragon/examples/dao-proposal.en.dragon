@@ -1,0 +1,31 @@
+// Shape a proposal for a DAO in four branches: goal, budget, vote and execution.
+// Each step grows one branch and lists what the proposal must say as leaves.
+mind A developer grant proposal
+
+step Put the title
+  say Put in the middle a proposal to fund, from the DAO treasury, developers who build tools.
+  idea grant as Developer grant
+
+step Goal branch
+  say Write why the DAO should fund it.
+  idea goal as Goal of grant
+  idea tools as More tools for users of goal
+  idea devs as Bring in new developers of goal
+
+step Budget branch
+  say Write how much to give.
+  idea budget as Budget of grant
+  idea amount as 50,000 USDC from treasury of budget
+  idea milestone as Paid out by milestone of budget
+
+step Vote branch
+  say Write how the DAO decides.
+  idea vote as Vote of grant
+  idea period as Seven-day vote of vote
+  idea quorum as Quorum at 4% of vote
+
+step Execution branch
+  say Write how it runs once passed.
+  idea run as Execution of grant
+  idea timelock as Two-day timelock of run
+  idea multisig as Paid by a 3-person multisig of run

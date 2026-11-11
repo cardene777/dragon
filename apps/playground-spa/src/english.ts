@@ -107,7 +107,7 @@ export const EN_TEXT = {
     filter: "Filter…",
     filterLabel: "Filter the list",
     nothing: "Nothing matches",
-    kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram" },
+    kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram", mind: "Mind map" },
     partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
     notationHint: "Line shapes, in the words of the notation you are writing",
     parts: shelfTexts("en"),

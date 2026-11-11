@@ -26,6 +26,7 @@ import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
 import type { LineupItem } from "./blocks/item/block";
+import type { MindIdea } from "./blocks/idea/block";
 import type { TreeLeaf } from "./blocks/leaf/block";
 import type { LineupOrder } from "./blocks/line/block";
 import type { TreeNode } from "./blocks/node/block";
@@ -110,7 +111,8 @@ export type DiagramEvent =
   | PipeCheck
   | PipeEmit
   | PipeCalc
-  | ChartSet;
+  | ChartSet
+  | MindIdea;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -142,6 +144,9 @@ export type { GitCommit, GitDelete };
 
 /** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
 export type { TreeLeaf, TreeNode };
+
+/** 考えを広げる地図 (#3619) の考えを出す出来事の型は、考えのブロックが持つ */
+export type { MindIdea };
 
 /**
  * 列の図 (#3239) の、列の並びを書き換える出来事と札を押す出来事と役が動く出来事と、チップと役の型は、
@@ -262,7 +267,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle";
+export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -456,6 +461,10 @@ export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check"
 const CHART_EVENT = "#/definitions/notChartEvent/not";
 /** 量の図だけが書ける出来事 */
 const CHART_EVENTS = ["set"] as const satisfies readonly DiagramEvent["type"][];
+/** 考えを広げる地図でない図に、考えを広げる地図だけの出来事を書いた時の決まりの場所 (#3619) */
+const MIND_EVENT = "#/definitions/notMindEvent/not";
+/** 考えを広げる地図だけが書ける出来事 */
+const MIND_EVENTS = ["idea"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -526,6 +535,7 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
       if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
       if (error.schemaPath === CHART_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CHART_EVENTS, "chart") };
+      if (error.schemaPath === MIND_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(MIND_EVENTS, "mind") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };

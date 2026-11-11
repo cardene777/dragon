@@ -80,6 +80,7 @@ const LATER_SAMPLES: Record<string, string> = {
   flow: "login-check.dragon",
   git: "rebase.dragon",
   lineup: "auction.dragon",
+  mind: "budget-app.dragon",
   pipe: "swap.dragon",
   state: "order.dragon",
   time: "finality.dragon",
@@ -582,7 +583,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         const fs = await import("node:fs");
         // 記法を読むには個別ブロックの読み方が要るので (#3349)、描く部品だけを確かめるよう原本を読む
         const read = (file) => JSON.parse(fs.readFileSync(new URL("./examples/" + file, "file://${ROOT}/"), "utf8"));
-        const later = { chart: "os-share.json", cycle: "eth-slot.json", flow: "login-check.json", git: "rebase.json", lineup: "auction.json", pipe: "swap.json", state: "order.json", time: "finality.json", tree: "merkle.json", try: "tx-block.json" };
+        const later = { chart: "os-share.json", cycle: "eth-slot.json", flow: "login-check.json", git: "rebase.json", lineup: "auction.json", mind: "budget-app.json", pipe: "swap.json", state: "order.json", time: "finality.json", tree: "merkle.json", try: "tx-block.json" };
         const kept = { sequence: "api.json", architecture: "ccip.json" };
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };

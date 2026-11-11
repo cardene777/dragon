@@ -24,6 +24,7 @@ import { shape as gistShape } from "./gist/shape";
 import { shape as groupShape } from "./group/shape";
 import { shape as holdShape } from "./hold/shape";
 import { shape as iconShape } from "./icon/shape";
+import { shape as ideaShape } from "./idea/shape";
 import { shape as itemShape } from "./item/shape";
 import { shape as leafShape } from "./leaf/shape";
 import { shape as legendShape } from "./legend/shape";
@@ -86,6 +87,7 @@ export const SHAPES = {
   "group": groupShape,
   "hold": holdShape,
   "icon": iconShape,
+  "idea": ideaShape,
   "item": itemShape,
   "leaf": leafShape,
   "legend": legendShape,

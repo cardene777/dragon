@@ -33,6 +33,7 @@ export {
   type LineupOrder,
   type LineupRole,
   type LineupStamp,
+  type MindIdea,
   type PipeCalc,
   type PipeCall,
   type PipeCallKind,

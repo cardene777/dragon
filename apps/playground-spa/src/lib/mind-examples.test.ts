@@ -86,7 +86,7 @@ describe("考えを広げる地図の見本 (#3619)", () => {
       expect(branchesOf(ja), `${key} の真ん中の題から伸ばす枝の数`).toBe(info.branches);
     }
     // カタログの考えを広げる地図の頁に 4 枚とも載る
-    const listed: readonly string[] = samplesOf("mind" as Parameters<typeof samplesOf>[0]);
+    const listed: readonly string[] = samplesOf("mind");
     expect(listed, "カタログの考えを広げる地図の頁に載る見本").toEqual(Object.keys(MIND));
   });
 

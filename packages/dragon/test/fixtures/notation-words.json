@@ -11,7 +11,8 @@
     "pipe",
     "chart",
     "flow",
-    "cycle"
+    "cycle",
+    "mind"
   ],
   "HEADS": [
     "group",
@@ -62,7 +63,8 @@
     "calc",
     "revert",
     "gist",
-    "choice"
+    "choice",
+    "idea"
   ],
   "ATTRS": {
     "diagram": [
@@ -115,6 +117,9 @@
     ],
     "node": [
       "hash"
+    ],
+    "idea": [
+      "color"
     ],
     "item": [
       "color",

@@ -1,0 +1,31 @@
+// 家計簿のアプリに入れる機能を、入力、集計、通知、共有の4つの枝に分けて考える。
+// 段ごとに1つの枝を伸ばし、その枝で作る機能を葉に書き出す。
+mind 家計簿のアプリの機能
+
+step 題を置く
+  say 毎月のお金の出入りを続けて付けられる、家計簿のアプリを真ん中に置く。
+  idea app as 家計簿のアプリ
+
+step 入力の枝
+  say 付ける手間を減らす機能を考える。手で打つ数が減るほど続く。
+  idea input as 入力 of app
+  idea receipt as レシートを撮って読む of input
+  idea bank as 口座の明細を取り込む of input
+
+step 集計の枝
+  say 付けた記録から、どこにいくら使ったかを見せる機能を考える。
+  idea sum as 集計 of app
+  idea category as 費目ごとの円グラフ of sum
+  idea month as 前の月と比べる of sum
+
+step 通知の枝
+  say 使いすぎに気付ける知らせを考える。
+  idea alert as 通知 of app
+  idea over as 予算を超えそうな時 of alert
+  idea payday as 引き落としの前の日 of alert
+
+step 共有の枝
+  say 家族と同じ家計簿を見る機能を考える。
+  idea share as 共有 of app
+  idea family as 家族と同じ帳簿を見る of share
+  idea split as 立て替えを分ける of share

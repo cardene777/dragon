@@ -8,6 +8,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **A mind map (`mind`) spreads ideas out from one topic in the middle** (#3619)
+
+  There was no diagram kind for writing ideas out from one topic, such as the features of an app or the parts of a plan, and they had to be squeezed into a tree or an architecture diagram. Start the first line with `mind <title>` and write `idea <id> as <name> of <parent>` lines inside steps. The idea without `of` is the topic in the middle, an idea of the topic is a branch and an idea of a branch is a leaf. Branches go round clockwise from the upper left in the order written, and the leaves of a branch sit in a column outside it. Ideas start faint and turn solid at the step that writes them, and the curved line from the parent is drawn from the parent's side. `[color: <color>]` on a branch passes its color to its lines and leaves, and a branch without a color gets one no other branch has taken. A parent that has not been written yet, a second topic, no topic at all and a fourth level are refused in Japanese and English. The catalog has four examples in Japanese and English: the features of a budget app, a summer trip plan, a DAO grant proposal for developers and what makes a wallet easy to use. The light entry loads the mind map renderer only when a mind map is read, so the first-load size stays within its budget.
+
 - **A git graph can delete a branch with `delete <branch>`** (#3632)
 
   A step in a git graph takes `delete <branch>`. From that step on, the branch ref is no longer drawn while its band stays, and a commit that no branch can reach any more turns into a dotted circle. Reading the notation stops with an error for a branch that was never declared, for the branch `HEAD` points at, and for a commit added to a deleted branch. In other diagram kinds `delete` still reads as an ordinary box id. The `squash` example now deletes `feature` with `delete feature` after moving `HEAD` back to main, instead of writing `feature: deleted` in the strip. The usage page, the catalog parts and the package README describe the new line.

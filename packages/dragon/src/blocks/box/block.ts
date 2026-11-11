@@ -8,12 +8,13 @@
  * 列の図の箱の `[order: none]` は、箱を順番の無い置き場にする (#3351)。
  * 区画と箱の宣言は書き戻す時に 1 つの塊に混ざるので、宣言の塊はこのブロックが区画のブロックの `declareRegion` で区画の行も含めて書く。
  * 量の図 (#3560) は箱を持たず、項目を `item` の行で宣言するので、箱のブロックを描かない図の種類に書く。
+ * 考えを広げる地図 (#3619) も箱を持たず、考えを段の中の `idea` の行で出すので、箱のブロックを描かない図の種類に書く。
  */
 import type { Block } from "../block";
 
 export const block: Block = {
   name: "box",
   rank: 20,
-  attach: { how: "place", except: ["try", "chart"] },
+  attach: { how: "place", except: ["try", "chart", "mind"] },
   words: { heads: ["box"], attrs: { box: ["note"] } },
 };
