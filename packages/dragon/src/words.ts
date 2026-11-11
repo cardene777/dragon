@@ -84,6 +84,13 @@ export const HEADS: readonly string[] = RANKED.flatMap((block) => (block.words.h
   .map(([, head]) => head);
 
 /**
+ * 記法の語の一覧 (#3613)。図の種類の名前と、最初の行より後の行の頭の語を持つ。
+ * 編集画面が書く欄の字を語の役ごとに色付けする時に、ここから引く。
+ * 色付けの側で語を並べると、ブロックを足した時に片方だけ増えて、足した語に色が付かなくなるため
+ */
+export const NOTATION_WORDS: { readonly kinds: readonly string[]; readonly heads: readonly string[] } = { kinds: KINDS, heads: HEADS };
+
+/**
  * 枝分かれの図 (#3164) の `commit` の行で、積む枝、当て直しの元、取り込む枝を続ける語 (`commit <名札> on <枝> copy <commit>`)、
  * 枝を切る行の `from` と、今いる場所を指す札の名前 `HEAD`。commit と当て直しと merge commit と枝のブロックが持つ (#3347)
  */

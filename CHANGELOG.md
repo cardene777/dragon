@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **The playground editor colours the notation and the JSON by the role of each word** (#3613)
+
+  Every character in the editor was the same colour, so the diagram kind, the `->` of a line and the settings all looked alike. A colour layer now sits under the text area. In the notation it draws eight roles in different colours: the diagram kind, the word that starts a line, `as`, the `->` of a line, a setting's key, a setting's value, comments, and the command after `code`. In the JSON it colours keys, strings, numbers, and `true`, `false` and `null`. The colours come from the light and dark values of the site's five palettes, and a colour is moved toward the text colour only when its contrast with the editor background is below 4.5. The words that start a line and the diagram kinds come from `NOTATION_WORDS`, a new export of the package, so adding a block adds its colour too. The colour layer holds exactly the text in the editor and stays aligned while you type and scroll. While you compose Japanese text with an input method, the text being composed is shown by the text area itself.
+
 ### Changed
 
 - **The catalog opens with the diagram kinds, each with a picture** (#3614)

@@ -451,19 +451,115 @@
   font-weight: 700;
 }
 
+/* 書く欄と、その下に敷く色の層 (#3613)。2 つは同じ字の形と余白で重ね、書く欄の字は透かして色の層の字を見せる */
+.pg-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.pg-paint {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 12px 14px 12px 10px;
+  overflow: hidden;
+  color: var(--d-text-primary);
+  font: inherit;
+  white-space: pre;
+  tab-size: 2;
+  pointer-events: none;
+}
+
+/* 書く欄は字が改行で終わっても空の行を 1 つ持つので、色の層にも同じ行を足して送れる量を揃える */
+.pg-paint::after {
+  content: " ";
+}
+
+.pg-paint [data-syn="kind"] {
+  color: var(--d-syn-kind);
+  font-weight: 700;
+}
+
+.pg-paint [data-syn="head"] {
+  color: var(--d-syn-head);
+  font-weight: 600;
+}
+
+.pg-paint [data-syn="as"] {
+  color: var(--d-syn-as);
+}
+
+.pg-paint [data-syn="arrow"] {
+  color: var(--d-syn-arrow);
+  font-weight: 700;
+}
+
+.pg-paint [data-syn="key"] {
+  color: var(--d-syn-key);
+}
+
+.pg-paint [data-syn="value"] {
+  color: var(--d-syn-value);
+}
+
+.pg-paint [data-syn="comment"] {
+  color: var(--d-syn-comment);
+  font-style: italic;
+}
+
+.pg-paint [data-syn="code"] {
+  color: var(--d-syn-code);
+}
+
+.pg-paint [data-syn="punct"],
+.pg-paint [data-syn="json-punct"] {
+  color: var(--d-syn-punct);
+}
+
+.pg-paint [data-syn="json-key"] {
+  color: var(--d-syn-json-key);
+}
+
+.pg-paint [data-syn="json-string"] {
+  color: var(--d-syn-json-string);
+}
+
+.pg-paint [data-syn="json-number"] {
+  color: var(--d-syn-json-number);
+}
+
+.pg-paint [data-syn="json-literal"] {
+  color: var(--d-syn-json-literal);
+}
+
 .pg-text {
+  position: relative;
   flex: 1;
   min-width: 0;
   margin: 0;
   padding: 12px 14px 12px 10px;
   border: 0;
   background: transparent;
-  color: var(--d-text-primary);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--d-text-primary);
   font: inherit;
   white-space: pre;
   overflow: auto;
   resize: none;
   tab-size: 2;
+}
+
+/* 日本語の入力で字を組んでいる間は、組んでいる字と下線を書く欄の字で見せる */
+.pg-code-body[data-composing] .pg-text {
+  color: var(--d-text-primary);
+  -webkit-text-fill-color: var(--d-text-primary);
+}
+
+.pg-code-body[data-composing] .pg-paint {
+  visibility: hidden;
 }
 
 .pg-text:focus,

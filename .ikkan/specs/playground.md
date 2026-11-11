@@ -29,3 +29,13 @@
 | 見本帳の今ある検査 (`apps/playground-spa`の検査) が全て通る | `pnpm exec vitest run apps/ --reporter=verbose`が終了0 | #3531 |
 | 最初に読むscriptとCSSのgzipの合計が上限186,368バイトに収まり、上限の値は変えない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3565 |
 | 部品の説明の字と、カタログの見本の記法は、今どおり最初に読むscriptに入らない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-part-desc`と`first-load-carries-no-catalog-notation`が通る | #3565 |
+| 記法の欄で、`box`の行の頭の語、線の`->`、`[carry: …]`の鍵と値、`//`の注釈を、それぞれ別の役の要素で描く | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-notation-roles`が通る | #3613 |
+| 記法の8つの役 (図の種類の名前、行の頭の語、`as`、線の`->`、設定の鍵、設定の値、注釈、`code`の命令) の色が、サイトの5つの意匠の明暗の10通りの全てで互いに違う | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-notation-colors-differ`が通る | #3613 |
+| JSONの欄で、鍵と字の列と数と真偽と`null`を別の役の要素で描き、鍵と字の列と数の色が10通りの全てで互いに違う | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-json-roles`が通る | #3613 |
+| 色を付ける行の頭の語と図の種類の名前を記法の読み取りが持つ語の一覧から引き、編集画面の色付けのcodeは語の一覧の字を持たない | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-words-from-reader`が通る | #3613 |
+| 見本の全ての記法 (日本語と英語) とそのJSONで、色の層の字を繋ぐと書く欄の字と一字も違わない | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-paint-keeps-text`が通る | #3613 |
+| 書く欄の字を打ち替えると色の層も同じ字になり、書く欄を送ると色の層も同じ量だけ送られる。色の層は読み上げに出さない | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-paint-follows-typing-and-scroll`が通る | #3613 |
+| 日本語の入力で字を組んでいる間は書く欄の字を見せ、組み終えると色の層に戻す | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-paint-steps-aside-while-composing`が通る | #3613 |
+| 色を付けた字と書く欄の地の濃さの比が、10通りの全てで4.5以上 | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`syntax-colors-readable`が通る | #3613 |
+| 棚の部品を押すと、今までどおり書く欄に部品の行が足される | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`editor-shelf-part-inserts-lines`が通る | #3613 |
+| 知らせの欄の行番号を押すと、今までどおり書く欄でその行が選ばれる | `pnpm exec vitest run apps/playground-spa/src/lib/syntax-color.test.tsx`の検査`editor-notice-line-selects-line`が通る | #3613 |
