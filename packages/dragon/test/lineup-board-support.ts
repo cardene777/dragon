@@ -193,10 +193,10 @@ export function timeOf(rendered: BoardRendered, step: number, event: number): { 
   return time as { start: number; drawn: number };
 }
 
-/** 札 `id` が帯 `lane` に居る部品の、時刻 `t` の真ん中。部品の四角に動きのずれを足す */
-export function centerAt(motion: Motion, id: string, lane: string, t: number): Point {
-  const el = motion.doc.querySelector(`[data-lineup-chip="${id}"][data-lineup-on="${lane}"]`);
-  expect(el, `札 ${id} の ${lane} の部品が無い`).not.toBeNull();
+/** 札 `id` が段 `step` から帯 `lane` に居る部品の、時刻 `t` の真ん中。部品の四角に動きのずれを足す。札は席に居る間ごとに 1 つの部品なので、段で選ぶ */
+export function centerAt(motion: Motion, id: string, lane: string, step: number, t: number): Point {
+  const el = motion.doc.querySelector(`[data-lineup-chip="${id}"][data-lineup-on="${lane}"][data-lineup-step="${step}"]`);
+  expect(el, `段 ${step + 1} から ${lane} に居る札 ${id} の部品が無い`).not.toBeNull();
   const rect = el?.querySelector("rect");
   const [dx = 0, dy = 0] = (el ? motion.value(el, "transform", t) : undefined) ?? [];
   return [Number(rect?.getAttribute("x")) + Number(rect?.getAttribute("width")) / 2 + dx, Number(rect?.getAttribute("y")) + Number(rect?.getAttribute("height")) / 2 + dy];
@@ -207,7 +207,7 @@ export function centersDuring(rendered: BoardRendered, motion: Motion, id: strin
   const seat = rendered.layout.chips.find((c) => c.id === id && c.lane === lane && c.step === step);
   expect(seat, `段 ${step + 1} の ${lane} の ${id} の席`).toBeDefined();
   const { start, drawn } = timeOf(rendered, step, seat?.event ?? -1);
-  return Array.from({ length: 21 }, (_, k) => centerAt(motion, id, lane, start + ((drawn - start) * k) / 20));
+  return Array.from({ length: 21 }, (_, k) => centerAt(motion, id, lane, step, start + ((drawn - start) * k) / 20));
 }
 
 /** 四角どうしが重なるか */

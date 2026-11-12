@@ -32,6 +32,7 @@ import { uses as itemUses } from "../../../../packages/dragon/src/blocks/item/ga
 import { uses as leafUses } from "../../../../packages/dragon/src/blocks/leaf/gallery/uses";
 import { uses as legendUses } from "../../../../packages/dragon/src/blocks/legend/gallery/uses";
 import { uses as lifelineUses } from "../../../../packages/dragon/src/blocks/lifeline/gallery/uses";
+import { uses as limitUses } from "../../../../packages/dragon/src/blocks/limit/gallery/uses";
 import { uses as lineUses } from "../../../../packages/dragon/src/blocks/line/gallery/uses";
 import { uses as linkUses } from "../../../../packages/dragon/src/blocks/link/gallery/uses";
 import { uses as logUses } from "../../../../packages/dragon/src/blocks/log/gallery/uses";
@@ -100,6 +101,7 @@ export const BLOCK_USES = {
   "leaf": leafUses,
   "legend": legendUses,
   "lifeline": lifelineUses,
+  "limit": limitUses,
   "line": lineUses,
   "link": linkUses,
   "log": logUses,

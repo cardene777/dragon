@@ -19,10 +19,16 @@ export interface LineMessages {
   itemTwice: (id: string) => string;
   /** `line` の行のチップが、1 列の上限を超えた */
   laneFull: (lane: string, limit: number) => string;
+  /** `line` の行のチップが、箱の行の `limit` に書いた上限を超えた (#3624) */
+  overLimit: (lane: string, limit: number) => string;
   lineOnSealed: (lane: string) => string;
 }
 
-/** 列の図の `line <列>: <チップ>, <チップ>` の行。チップは宣言したチップで、列に 1 枚ずつ、上限まで。封をした列には書けない */
+/**
+ * 列の図の `line <列>: <チップ>, <チップ>` の行。チップは宣言したチップで、列に 1 枚ずつ、上限まで。封をした列には書けない。
+ * 上限は箱の行の `limit` (#3624) か、書かない箱は 1 列に並べられる札の数 (`LANE_MOST`)。
+ * `:` の後ろに何も書かない `line <列>:` は列を空にする (#3624)
+ */
 function readOrder(source: SourceLine, state: ParseState): LineupOrder {
   const { m } = state;
   const { items, sealed } = state.figure.lineup;
@@ -32,11 +38,13 @@ function readOrder(source: SourceLine, state: ParseState): LineupOrder {
   const at = found.indices?.[1]?.[0] ?? 0;
   const box = state.boxAt(source, lane, at);
   if (sealed.has(box)) throw fail(source, at, m.lineOnSealed(box));
-  const chips = namesAt(source, found[0].length, source.text.length, m.lineShape, state);
+  const limit = state.figure.boxes.find((b) => b.id === box)?.limit;
+  const chips = source.text.slice(found[0].length).trim() === "" ? [] : namesAt(source, found[0].length, source.text.length, m.lineShape, state);
   const seen = new Set<string>();
   chips.forEach(({ value, at: chipAt }, k) => {
     if (!items.some((item) => item.id === value)) throw fail(source, chipAt, m.noSuchItem(value));
     if (seen.has(value)) throw fail(source, chipAt, m.itemTwice(value));
+    if (limit !== undefined && k >= limit) throw fail(source, chipAt, m.overLimit(box, limit));
     if (k >= LANE_MOST) throw fail(source, chipAt, m.laneFull(box, LANE_MOST));
     seen.add(value);
   });
@@ -53,7 +61,8 @@ export const reading: BlockReading<LineMessages> = {
   print: {
     events: {
       // 試す図の line は待ち行列のブロックが書き戻す (#3349)。出来事の形は列と部品の 2 つを持つので、両方を読む
-      line: (e) => `line ${"part" in e ? e.part : e.box}: ${e.items.join(", ")}`,
+      // 列を空にする列の図の line (#3624) は `:` の後ろに何も書かない
+      line: (e) => `line ${"part" in e ? e.part : e.box}:${e.items.length > 0 ? ` ${e.items.join(", ")}` : ""}`,
     },
   },
   messages: {
@@ -62,6 +71,7 @@ export const reading: BlockReading<LineMessages> = {
       noSuchItem: (id) => `${id} というチップは宣言していない`,
       itemTwice: (id) => `${id} はこの行に 2 度書いている。同じ列に同じチップは 1 枚だけ`,
       laneFull: (lane, limit) => `${lane} の列に並べられるチップは ${limit} 枚まで`,
+      overLimit: (lane, limit) => `${lane} の列は limit: ${limit} なので、並べられるチップは ${limit} 枚まで。上限を超える分は別の列に並べる`,
       lineOnSealed: (lane) => `${lane} の列は封をしているので並びを書けない。先に open で開ける`,
     },
     en: {
@@ -69,6 +79,7 @@ export const reading: BlockReading<LineMessages> = {
       noSuchItem: (id) => `The chip ${id} is not declared`,
       itemTwice: (id) => `${id} is written twice on this line. A lane holds one of each chip`,
       laneFull: (lane, limit) => `The lane ${lane} holds at most ${limit} chips`,
+      overLimit: (lane, limit) => `The lane ${lane} has limit: ${limit}, so it holds at most ${limit === 1 ? "1 chip" : `${limit} chips`}. Put the rest in another lane`,
       lineOnSealed: (lane) => `The lane ${lane} is sealed, so its order cannot be written. Open it first`,
     },
   },

@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と役と、封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -231,6 +231,9 @@
                   "properties": {
                     "order": {
                       "$ref": "#/definitions/absent"
+                    },
+                    "limit": {
+                      "$ref": "#/definitions/absent"
                     }
                   }
                 }
@@ -279,6 +282,40 @@
                 "events": {
                   "items": {
                     "$ref": "#/definitions/notLayersEvent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "lineup"
+        ],
+        "properties": {
+          "lineup": {
+            "required": [
+              "shape"
+            ],
+            "properties": {
+              "shape": {
+                "const": "stations"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "steps": {
+            "items": {
+              "properties": {
+                "events": {
+                  "items": {
+                    "$ref": "#/definitions/notStationsEvent"
                   }
                 }
               }
@@ -2508,7 +2545,7 @@
           }
         },
         {
-          "description": "列の図では列 box の並びを items に書き換える。チップは前に居た列から滑り、どの列にも居なかったチップは弾んで現れ、列から外れたチップは消える。試す図では、待ち行列 part の中身を items の並びにするか、機械の列 part に items を入れた新しいブロックを足す。列の図と試す図だけが書ける",
+          "description": "列の図では列 box の並びを items に書き換える。チップは前に居た列から滑り、どの列にも居なかったチップは弾んで現れ、列から外れたチップは消える。items を空にした列の図の line は列を空にする。試す図では、待ち行列 part の中身を items の並びにするか、機械の列 part に items を入れた新しいブロックを足し、items を 1 つ以上書く。列の図と試す図だけが書ける",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -2527,10 +2564,21 @@
             },
             "items": {
               "type": "array",
-              "minItems": 1,
               "maxItems": 12,
               "items": {
                 "$ref": "#/definitions/id"
+              }
+            }
+          },
+          "if": {
+            "required": [
+              "part"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "minItems": 1
               }
             }
           }
@@ -3790,6 +3838,12 @@
           "enum": [
             "none"
           ]
+        },
+        "limit": {
+          "description": "列の図の箱に並べられる札の数の上限。1 から 12 までの整数で、line がこの数を超える札を並べられない。層の見た目 (layers) の箱には書けない",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
         }
       }
     },
@@ -4236,7 +4290,7 @@
       }
     },
     "lineupLook": {
-      "description": "列の図の見た目。layers は箱を書いた順に上から横の帯に重ね、札が段ごとに帯を下りて、帯ごとの note を印に残す",
+      "description": "列の図の見た目。layers は箱を書いた順に上から横の帯に重ね、札が段ごとに帯を下りて、帯ごとの note を印に残す。stations は箱を書いた順に 1 本の流れの線の上の駅にし、札を駅の下に積んで、札が線の上を次の駅へ走る",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -4246,17 +4300,21 @@
         "shape": {
           "description": "列の図の見た目の名前",
           "enum": [
-            "layers"
+            "layers",
+            "stations"
           ]
         }
       }
     },
     "layersBoxes": {
-      "description": "層の見た目の列の図の箱。8 つまでで、順番の無い置き場にできない",
+      "description": "層の見た目の列の図の箱。8 つまでで、順番の無い置き場にできず、上限 (limit) を持たない",
       "maxItems": 8,
       "items": {
         "properties": {
           "order": {
+            "$ref": "#/definitions/absent"
+          },
+          "limit": {
             "$ref": "#/definitions/absent"
           }
         }
@@ -4276,6 +4334,24 @@
               "pick",
               "stamp",
               "role"
+            ]
+          }
+        }
+      }
+    },
+    "notStationsEvent": {
+      "description": "列の図の流れの線の見た目で描かない出来事 (封、開ける、選ぶ、札) を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "seal",
+              "open",
+              "pick",
+              "stamp"
             ]
           }
         }

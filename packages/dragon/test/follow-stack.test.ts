@@ -107,12 +107,13 @@ describe("縦に組んだ列の図を寄って追う窓 (#3365)", () => {
       const win = placed.windowAt(step);
       const lanes = layout.lanes.filter((l) => changedLanes(diagram, step).has(l.id));
       expect(lanes.length, `段 ${step + 1} で変わる列が図に無い`).toBeGreaterThan(0);
-      // 変わる列は全部、真ん中が窓に入る
-      for (const lane of lanes)
-        expect(
-          inside(lane.x + lane.w / 2, lane.y + lane.h / 2, win),
-          `段 ${step + 1} の窓 (${Math.round(win.x)}, ${Math.round(win.y)}) に ${lane.id} の真ん中が入らない`,
-        ).toBe(true);
+      // 変わる列を全部囲んだ所の高さが窓に収まる段は、変わる列の真ん中が全部窓に入る。
+      // 収まらない段は、真ん中が窓に入る列が少なくとも 1 本在る。携帯の幅のボードは帯を上から積むので (#3624)、
+      // 入札の図の段 2 で変わる 3 本の帯は、高さ 320 の窓に全部は入らない
+      const centered = lanes.filter((lane) => inside(lane.x + lane.w / 2, lane.y + lane.h / 2, win)).map((lane) => lane.id);
+      const where = `段 ${step + 1} の窓 (${Math.round(win.x)}, ${Math.round(win.y)}) に真ん中が入る列`;
+      if (union(lanes).h <= win.h) expect(centered, where).toEqual(lanes.map((lane) => lane.id));
+      else expect(centered.length, where).toBeGreaterThan(0);
       // 変わる列を全部囲んだ所を、窓が映せるだけ映す
       expect(
         Math.round(unshown(union(lanes), win)),
@@ -126,7 +127,12 @@ describe("縦に組んだ列の図を寄って追う窓 (#3365)", () => {
     expect(pool, "メモリプールの列が無い").toBeDefined();
     expect(mine, "段 1 に自分のチップが無い").toBeDefined();
     expect(Math.round(unshown(pool as Rect, first)), "段 1 の窓がメモリプールの列を映し切れない長さ").toBe(0);
-    expect(Math.round(overflow(mine as Rect, first)), "段 1 の窓から自分のチップがはみ出す長さ").toBe(0);
+    // 携帯の幅のボードの札は帯の幅いっぱいに 2 枚ずつ並ぶので (#3624)、帯が窓より広い分だけ、札も左右の端が窓の外に出うる。
+    // 縦は全部入り、横は帯が窓からはみ出す幅 (左右の片側) を超えてはみ出さない
+    const chip = mine as Rect;
+    const lane = pool as Rect;
+    expect(Math.round(overflow({ ...chip, x: first.x, w: first.w }, first)), "段 1 の窓から自分のチップが上か下にはみ出す長さ").toBe(0);
+    expect(Math.round(overflow({ ...chip, y: first.y, h: first.h }, first)), "段 1 の窓から自分のチップが左か右にはみ出す長さ").toBeLessThanOrEqual(Math.ceil(Math.max(0, (lane.w - first.w) / 2)));
   });
 
   it("follow-lineup-hides-heading", () => {

@@ -33,7 +33,6 @@ import {
   overlaps,
   parsed,
   partsOf,
-  type Point,
   REVIEW,
   render,
   ROOT,
@@ -45,7 +44,7 @@ import {
   TODO,
 } from "./lineup-board-support";
 import { motionFrom } from "./motion-support";
-import { draw, type Rect, type Rendered } from "./render-support";
+import { draw, type Rendered } from "./render-support";
 
 // 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
 const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
@@ -255,8 +254,10 @@ describe("流れの線の描き方 (#3624)", () => {
     expect(shown.length, "段 2 の止め絵の通った区間").toBe(1);
     expect(shown[0]?.getAttribute("style") ?? "", "段 2 の通った区間の色").toContain("--c-violet");
     expect(shownAt(motion, "[data-lineup-run]", stillOf(rendered, 0), 0.1).length, "段 1 に通った区間が見える").toBe(0);
-    // 差し戻しの段は通った区間を描かない
-    expect((layout.stations?.runs ?? []).filter((r) => r.step === 3 && r.from === REVIEW), "差し戻しの段の通った区間").toEqual([]);
+    // 差し戻しは通った区間を描かない。同じ段に後ろの駅へ進む札 (確認待ちから済みへ進む検索) の区間は描く
+    const back = (layout.stations?.runs ?? []).filter((r) => r.step === 3);
+    expect(back.filter((r) => r.from === REVIEW && r.to === DOING), "差し戻しの通った区間").toEqual([]);
+    expect(back.map((r) => [r.from, r.to]), "段 4 の通った区間").toEqual([[REVIEW, DONE]]);
   });
 
   it("lineup-stations-send-back-runs-under-the-line", () => {
@@ -318,7 +319,7 @@ describe("流れの線の描き方 (#3624)", () => {
     // label を持つ札は label を札の字にする
     const labeled = JSON.parse(JSON.stringify(stationsLineup())) as { blocks: { item: { id: string; label?: string }[] } };
     (labeled.blocks.item[0] as { label?: string }).label = "検";
-    const motion = motionFrom(render(labeled as unknown as Json) as unknown as Rendered);
+    const motion = motionFrom(render(labeled) as unknown as Rendered);
     expect(partsOf(motion, '[data-lineup-chip="検索"] text').map((el) => el.textContent), "label を持つ札の字").toContain("検");
   });
 });

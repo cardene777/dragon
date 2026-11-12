@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と役と、封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -118,6 +118,9 @@
                   "properties": {
                     "order": {
                       "$ref": "#/definitions/absent"
+                    },
+                    "limit": {
+                      "$ref": "#/definitions/absent"
                     }
                   }
                 }
@@ -166,6 +169,40 @@
                 "events": {
                   "items": {
                     "$ref": "#/definitions/notLayersEvent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "lineup"
+        ],
+        "properties": {
+          "lineup": {
+            "required": [
+              "shape"
+            ],
+            "properties": {
+              "shape": {
+                "const": "stations"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "steps": {
+            "items": {
+              "properties": {
+                "events": {
+                  "items": {
+                    "$ref": "#/definitions/notStationsEvent"
                   }
                 }
               }

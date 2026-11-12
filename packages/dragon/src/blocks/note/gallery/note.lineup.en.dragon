@@ -6,7 +6,7 @@ box bidB as Bid B [note: 0 ETH]
 item one, two, three
 
 step Line up
-  say note adds small text at the top right of a lane.
+  say note adds a value chip under the lane name.
   line bidA: one, two
   line bidB: three, one
 

@@ -1,12 +1,12 @@
 // How tasks on a kanban board move through the To do, Doing, Review and Done columns.
-// Each chip is one task. Doing is limited to 3 tasks, and the number at the bottom of the card shows how many are in it. Even an urgent task waits until a slot frees up.
+// Each chip is one task. Doing is limited to 3 tasks, and the count and ticks at the top of the column show how many are in it. Even an urgent task waits until a slot frees up. A task that needs fixing after review is sent back to Doing.
 lineup Limit work in progress to 3 on a kanban board
 
 role Developer [note: Works Doing from the top]
 role Reviewer [note: Checks the result]
 
 box Todo as To do
-box Doing [color: violet, note: 0/3]
+box Doing [color: violet, limit: 3]
 box Review [color: amber]
 box Done [color: green, order: none]
 
@@ -22,7 +22,6 @@ step Take the top 3
   role Developer
   line Doing: search, notify, checkout
   line Todo: wording, images
-  note Doing: 3/3
 
 step Take nothing while Doing is full
   say An urgent bug lands at the top of To do. Doing is full, so it is not taken yet, and the current work is finished first.
@@ -34,14 +33,12 @@ step Send finished work to review
   role Developer
   line Review: search
   line Doing: notify, checkout
-  note Doing: 2/3
 
 step Fill the free slot with the next task
   say The free slot takes the bug at the top of To do. With the limit in place, even urgent work flows without a long wait.
   role Developer
   line Doing: bug, notify, checkout
   line Todo: wording, images
-  note Doing: 3/3
 
 step Check it and mark it done
   say The reviewer checks the search task and moves it to Done. The finished notify task takes its place in Review.
@@ -49,4 +46,9 @@ step Check it and mark it done
   line Done: search
   line Review: notify
   line Doing: bug, checkout
-  note Doing: 2/3
+
+step Send it back to Doing if it needs a fix
+  say The reviewer finds something to fix in notify and sends it back to Doing. A task sent back takes a slot too, so Doing is full with 3 again.
+  role Reviewer
+  line Doing: bug, checkout, notify
+  line Review:

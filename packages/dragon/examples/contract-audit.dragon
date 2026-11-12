@@ -1,0 +1,51 @@
+// スマートコントラクトが自動検査と監査人の確認を通って監査済みになるまでの流れ。
+// チップ1枚が1本のコントラクト。監査人は1本ずつ読む。重い指摘が出たコントラクトは提出へ差し戻し、直してから自動検査に流し直す。
+lineup コントラクトの監査の流れ [shape: stations]
+
+role 開発者 [note: コントラクトを書いて直す]
+role 監査人 [note: 1本ずつ読んで指摘を出す]
+
+box submitted as 提出
+box checks as 自動検査 [color: amber]
+box audit as 監査 [color: violet, limit: 1]
+box done as 監査済み [color: green, order: none]
+
+item Vault, Token, Router [note: コントラクト]
+
+step 監査に出す
+  say 開発者が3本のコントラクトを監査に出す。
+  role 開発者
+  line submitted: Vault, Token, Router
+
+step 自動検査にかける
+  say 3本を自動検査にかける。よくある誤りを先に機械で拾う。
+  line checks: Vault, Token, Router
+  line submitted:
+
+step 1本ずつ監査する
+  say 監査人は1本ずつ読む。まずVaultを読み、残りは自動検査の後で待つ。
+  role 監査人
+  line audit: Vault
+  line checks: Token, Router
+
+step 重い指摘が出たら差し戻す
+  say Vaultに資金を引き出せる穴が見つかり、提出へ差し戻す。監査は次のTokenへ移る。
+  role 監査人
+  line submitted: Vault
+  line audit: Token
+  line checks: Router
+  note submitted: 指摘2件
+
+step 通ったコントラクトを監査済みにする
+  say 指摘の無かったTokenを監査済みにし、Routerを読み始める。
+  role 監査人
+  line done: Token
+  line audit: Router
+  line checks:
+
+step 直したコントラクトを流し直す
+  say 開発者が指摘を直したVaultを、もう一度自動検査にかける。
+  role 開発者
+  line checks: Vault
+  line submitted:
+  note submitted: 指摘0件

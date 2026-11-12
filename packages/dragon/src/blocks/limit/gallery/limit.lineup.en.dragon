@@ -1,0 +1,15 @@
+lineup Limit
+
+box Todo
+box Doing [color: violet, limit: 2]
+
+item search, notify, pay
+
+step Queue
+  say Three chips wait in Todo.
+  line Todo: search, notify, pay
+
+step Take
+  say A box with limit: 2 holds at most two chips.
+  line Doing: search, notify
+  line Todo: pay

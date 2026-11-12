@@ -317,11 +317,14 @@ describe("ボードの札の見た目 (#3624)", () => {
       expect(shownAt(motion, tag, stillOf(rendered, 5)).length, `${lang} の段 6 に足した札が残る`).toBe(0);
       // 色の無い札が初めて現れても印を付けない
       expect(layout.chips.filter((c) => c.step === 0).every((c) => c.tag === undefined), `${lang} の段 1 の札が印を持つ`).toBe(true);
-      // どの帯からも外れた札は、外れた段だけ元の席に点線の跡と「外れた」の札を残す
+      // どの帯からも外れた札は、外れた段だけ帯の札の後の席に点線の跡と「外れた」の札を残す。元の席は詰めた札が使う
       const gone = (layout.ghosts ?? []).filter((g) => g.kind === "gone");
       expect(gone.map((g) => [g.id, g.lane, g.step]), `${lang} の外れた札の跡 (layout.ghosts)`).toEqual([["決済", DOING, 5]]);
-      const last = layout.chips.filter((c) => c.id === "決済" && c.lane === DOING && c.step <= 4).sort((a, b) => b.step - a.step)[0];
-      expect([gone[0]?.x, gone[0]?.y], `${lang} の外れた跡が決済の最後の席に無い`).toEqual([last?.x, last?.y]);
+      const live = seatsAt(layout, DOING, 5);
+      const below = live.at(-1);
+      expect(gone[0]?.x, `${lang} の外れた跡が作業中の札と同じ左端に無い`).toBeCloseTo(below?.x ?? Number.NaN, 6);
+      expect(gone[0]?.y ?? 0, `${lang} の外れた跡が段 6 の作業中の札の下に無い`).toBeGreaterThanOrEqual((below?.y ?? 0) + (below?.h ?? 0));
+      for (const seat of live) expect(overlaps(seat, gone[0] as Rect), `${lang} の外れた跡が ${seat.id} に重なる`).toBe(false);
       const ghost = `[data-lineup-ghost="決済"][data-lineup-ghost-kind="gone"]`;
       expect(shownAt(motion, ghost, stillOf(rendered, 5)).map((el) => (el.textContent ?? "").includes(lang === "ja" ? "外れた" : "Gone")), `${lang} の段 6 の外れた跡`).toEqual([true]);
       expect(shownAt(motion, ghost, stillOf(rendered, 4)).length, `${lang} の段 5 に外れた跡が見える`).toBe(0);
@@ -416,9 +419,11 @@ describe("ボードの差し戻し (#3624)", () => {
     const mark = `[data-lineup-chip="通知"][data-lineup-on="${DOING}"] [data-lineup-tag="back"]`;
     expect(shownAt(motion, mark, stillOf(rendered, 3)).length, "段 4 の通知の戻る印").toBe(1);
     expect(shownAt(motion, mark, stillOf(rendered, 4)).length, "段 5 に通知の戻る印が残る").toBe(0);
+    // 抜けた跡は、その段の確認待ちの札の後の席 (段 4 の確認待ちは空なので一番上の席) に置く
     const from = (layout.ghosts ?? []).filter((g) => g.kind === "from");
     expect(from.map((g) => [g.id, g.lane, g.step]), "抜けた跡 (layout.ghosts)").toEqual([["通知", REVIEW, 3]]);
-    expect([from[0]?.x, from[0]?.y], "抜けた跡が通知の元の席に無い").toEqual([before?.x, before?.y]);
+    const first = layout.chips.find((c) => c.id === "検索" && c.lane === REVIEW && c.step === 2);
+    expect([from[0]?.x, from[0]?.y], "抜けた跡が確認待ちの一番上の席に無い").toEqual([first?.x, first?.y]);
     expect(shownAt(motion, '[data-lineup-ghost="通知"][data-lineup-ghost-kind="from"]', stillOf(rendered, 3)).length, "段 4 の抜けた跡").toBe(1);
   });
 
@@ -581,7 +586,7 @@ describe("列の図の上限の記法 (#3624)", () => {
     (sequence.blocks.box[0] as { limit?: unknown }).limit = 2;
     expect(pointers(validate(sequence as unknown as Json)), "時系列図の箱の上限の誤りの場所").toContain("/blocks/box/0/limit");
     // 英語の誤りの文は仮名と漢字を含まない
-    const en = validate(sequence as unknown as Json, { lang: "en" });
+    const en = validate(sequence, { lang: "en" });
     expect(en.ok, "英語で検査した時系列図の箱の上限が通る").toBe(false);
     if (!en.ok) for (const e of en.errors) expect(KANA.test(e.message), `英語の誤りの文 ${e.message}`).toBe(false);
   });

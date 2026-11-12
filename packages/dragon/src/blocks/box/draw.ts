@@ -8,7 +8,6 @@
  * 配管の図の値の表 (`look/pipe.ts`) は後から読む塊にあるので、この 2 つは寸法と字の形を呼ぶ側から受け取り、表を読まない。
  */
 import type { PipeParty } from "../../kinds/pipe/layout";
-import { textWidth } from "../../layout/measure";
 import type { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import { contentCenter, type Rect, type SceneBox } from "../../layout/scene";
 import { LOOK, MOTION, TYPE } from "../../look/values";
@@ -44,7 +43,6 @@ export type SubChange = [number, string, string];
 
 /**
  * 箱の下の小さな字。基準線を `y` に置き、起きたことに合わせて書き換わる。
- * `right` を渡すと、箱の真ん中でなく字の右端を `right` に揃える (列の図の列の右上の字、#3239)。
  * `x` は字の真ん中の x で、形を持つ箱は中身を並べる真ん中 (`content`) を渡す (#3520)
  */
 export function subLines(
@@ -53,7 +51,6 @@ export function subLines(
   changes: SubChange[],
   y: number,
   ink?: Ink[],
-  right?: number,
   x: number = box.cx,
 ): string {
   const seq: SubChange[] = [[0, box.sub ?? "", "dg-ss"], ...changes];
@@ -73,10 +70,7 @@ export function subLines(
         [k === 0 ? 0 : t, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade],
       ];
       const style = cls === "dg-ss" ? TYPE.boxSub : TYPE.boxSubStrong;
-      const drawn =
-        right === undefined
-          ? write(ink, cls, x, y, text, style, shown, "middle")
-          : write(ink, cls, right - textWidth(text, style), y, text, style, shown);
+      const drawn = write(ink, cls, x, y, text, style, shown, "middle");
       return `<g${anim ? ` class="dg-a" style="${anim}"` : ""}>${drawn}</g>`;
     })
     .join("");
@@ -113,7 +107,7 @@ export function card(
   const inked = ctx.ink.length;
   // 形を持つ箱は、名前と下の字と絵柄の行を形の内側に収めた真ん中に並べる (#3520)
   const [tx, ty] = contentCenter(box);
-  const subs = subLines(box, ctx.m, changes, ty + ctx.boxText.sub, ctx.ink, undefined, tx);
+  const subs = subLines(box, ctx.m, changes, ty + ctx.boxText.sub, ctx.ink, tx);
   const act = lit
     ? lit.length > 0
       ? rangeKf(

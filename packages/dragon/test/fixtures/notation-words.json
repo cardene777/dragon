@@ -88,7 +88,8 @@
       "color",
       "icon",
       "link",
-      "order"
+      "order",
+      "limit"
     ],
     "source": [
       "url"

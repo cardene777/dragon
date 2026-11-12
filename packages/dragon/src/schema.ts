@@ -77,6 +77,8 @@ export interface Box {
   link?: string;
   /** 列の図の箱の並べ方 (#3351)。`none` は順番の無い置き場で、書かない箱は上から実行する札 */
   order?: "none";
+  /** 列の図の箱に並べられる札の数の上限 (#3624)。1 から 12 までの整数で、書かない箱は 1 列に並べられる札の数まで並べられる */
+  limit?: number;
   /** 使う人が足した、箱を元にしたブロックの名前 (#3399)。形と色はその定義から読む */
   block?: string;
 }
@@ -457,6 +459,7 @@ const ABSENT_KINDS: Record<string, string> = {
   hold: "pipe",
   box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / matrix / sankey",
   order: "lineup",
+  limit: "lineup",
   at: "time",
   into: "time",
   color: "time",
@@ -633,6 +636,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: at, message: m.maxItems(Number(params.limit)) };
     case "minimum":
       return { pointer: at, message: m.minimum(Number(params.limit)) };
+    case "maximum":
+      return { pointer: at, message: m.maximum(Number(params.limit)) };
     case "const":
       return { pointer: at, message: m.const(String(params.allowedValue)) };
     case "oneOf":

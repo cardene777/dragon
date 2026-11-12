@@ -1,0 +1,50 @@
+// How a change goes through review and staging before it reaches production.
+// Each chip is one change. Staging holds up to 2 changes. A change that fails on staging is sent back to Dev, fixed and sent through again.
+lineup Ship a change to production [shape: stations]
+
+role Developer [note: Makes and fixes changes]
+role Reviewer [note: Reads and approves changes]
+role Operator [note: Checks on staging and ships]
+
+box dev as Dev
+box review as Review [color: violet]
+box staging as Staging [color: amber, limit: 2]
+box live as Production [color: green, order: none, note: v1.4]
+
+item login, search, notify [note: Change (named for the part it touches)]
+
+step Make the changes
+  say Three changes are made in Dev. The chips line up at the Dev stop.
+  role Developer
+  line dev: login, search, notify
+
+step Send 2 to review
+  say The finished login and search changes go to Review. notify stays in Dev.
+  role Developer
+  line review: login, search
+  line dev: notify
+
+step Approve them onto staging
+  say The reviewer reads both changes, approves them and puts them on Staging. Staging is now full with 2.
+  role Reviewer
+  line staging: login, search
+  line review:
+
+step Send it back to Dev if it fails
+  say The operator finds search too slow on Staging and sends it back to Dev. One slot on Staging frees up.
+  role Operator
+  line dev: search, notify
+  line staging: login
+
+step Ship what passed
+  say login passed, so it ships to production. The production version goes up by one.
+  role Operator
+  line live: login
+  line staging:
+  note live: v1.5
+
+step Send the fix through again
+  say The fixed search goes to Review again. A change sent back passes the same stops in the same order.
+  role Developer
+  line review: search
+  line dev: notify

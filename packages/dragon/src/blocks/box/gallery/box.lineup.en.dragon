@@ -10,7 +10,7 @@ step Line up
   line waiting: a, b, c
 
 step Move
-  say A note line inside a step rewrites the text at the top right of a lane.
+  say A note line inside a step rewrites the value chip under the lane name.
   line packed: a, b
   line waiting: c
   note waiting: 1 item

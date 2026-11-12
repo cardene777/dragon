@@ -1,0 +1,15 @@
+lineup 上限
+
+box やること
+box 作業中 [color: violet, limit: 2]
+
+item 検索, 通知, 決済
+
+step 並べる
+  say やることに 3 件を並べる。
+  line やること: 検索, 通知, 決済
+
+step 取る
+  say limit: 2 の箱には、札を 2 件まで並べられる。
+  line 作業中: 検索, 通知
+  line やること: 決済

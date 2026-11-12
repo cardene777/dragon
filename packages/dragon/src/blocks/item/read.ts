@@ -8,7 +8,7 @@ import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { type Color, COLORS } from "../color/block";
 import { LABEL_MOST, type LineupItem } from "./block";
-import { checkLayersHead, LAYERS_MESSAGES, type LayersMessages, settleShape } from "./layers";
+import { checkShapeHead, LAYERS_MESSAGES, type LayersMessages, settleShape } from "./layers";
 
 export interface ItemMessages extends LayersMessages {
   noItems: string;
@@ -73,9 +73,9 @@ function itemLines(items: readonly LineupItem[]): string {
 }
 
 export const reading: BlockReading<ItemMessages> = {
-  // 列の図の見た目 (#3625) の値と、層の見た目で描かない行は、層の見た目の決まり (`layers.ts`) が確かめる
+  // 列の図の見た目 (#3625、#3624) の値と、層の見た目と流れの線で描かない行は、見た目の決まり (`layers.ts`) が確かめる
   settle: settleShape,
-  checkHead: checkLayersHead,
+  checkHead: checkShapeHead,
   finish: (state, head) => {
     if (state.figure.lineup.items.length === 0) throw fail(head, 0, state.m.noItems);
   },

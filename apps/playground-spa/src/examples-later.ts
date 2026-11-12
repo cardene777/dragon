@@ -78,6 +78,10 @@ import clinicJa from "../../../packages/dragon/examples/clinic.dragon?raw";
 import clinicEn from "../../../packages/dragon/examples/clinic.en.dragon?raw";
 import kanbanJa from "../../../packages/dragon/examples/kanban.dragon?raw";
 import kanbanEn from "../../../packages/dragon/examples/kanban.en.dragon?raw";
+import releaseFlowJa from "../../../packages/dragon/examples/release-flow.dragon?raw";
+import releaseFlowEn from "../../../packages/dragon/examples/release-flow.en.dragon?raw";
+import contractAuditJa from "../../../packages/dragon/examples/contract-audit.dragon?raw";
+import contractAuditEn from "../../../packages/dragon/examples/contract-audit.en.dragon?raw";
 import rollupBatchJa from "../../../packages/dragon/examples/rollup-batch.dragon?raw";
 import rollupBatchEn from "../../../packages/dragon/examples/rollup-batch.en.dragon?raw";
 import l2FinalityJa from "../../../packages/dragon/examples/l2-finality.dragon?raw";
@@ -192,6 +196,8 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "hd-wallet": { ja: hdWalletJa, en: hdWalletEn },
   clinic: { ja: clinicJa, en: clinicEn },
   kanban: { ja: kanbanJa, en: kanbanEn },
+  "release-flow": { ja: releaseFlowJa, en: releaseFlowEn },
+  "contract-audit": { ja: contractAuditJa, en: contractAuditEn },
   "rollup-batch": { ja: rollupBatchJa, en: rollupBatchEn },
   "l2-finality": { ja: l2FinalityJa, en: l2FinalityEn },
   "web-request": { ja: webRequestJa, en: webRequestEn },
