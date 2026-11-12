@@ -2,7 +2,7 @@
  * 編集画面の図の側 (#3031)。前の編集画面の舞台の配置を、今の再生の部品で戻す。
  *
  * 上の段に色味と道具 (語りの字の大きさ、格子、全画面、全体に合わせる、縮小、拡大、書き出す) を置く。
- * 書き出すの釦は右端に置き、押すと今の図を PNG、SVG、GIF、MP4 に書き出す形を選ばせる (`ExportMenu.tsx`、#3644)。
+ * 書き出すの釦は右端に置き、押すと今の図を PNG、SVG、GIF、MP4、HTML に書き出す形を選ばせる (`ExportMenu.tsx`、#3644、#3667)。
  * 命令で書き出す人のために、図の下の `dragon export` の案内は残す。
  * 携帯の幅では道具を指で押せる大きさ (44px) にして 1 列に収めるため、全体に合わせるの釦を出さず、
  * 倍率を縮小と拡大の間の釦にして、押すと全体に合わせる (#3065)。
@@ -12,7 +12,7 @@
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  * 字の重なりがある時は、今の段で重なる字を再生の部品に点線で囲ませ、知らせの欄の段の札で頼まれた段へ移って止める (#3178)。
  */
-import { type Diagram, type Overlap, PALETTES, type Player, renderDiagram, type Theme, type Timeline } from "@cardenelabs/dragon/light";
+import { type Diagram, type Overlap, PALETTES, type Player, printNotation, renderDiagram, type Theme, type Timeline } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import { FigureWaiting } from "../site/KindState";
@@ -183,9 +183,18 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
             {level}
           </span>
         )}
-        {/* 今の図を PNG、SVG、GIF、MP4 に書き出す (#3644)。道具の列の右端に置き、携帯の幅では区切りを省いて列を短く保つ */}
+        {/* 今の図を PNG、SVG、GIF、MP4、HTML に書き出す (#3644、#3667)。道具の列の右端に置き、携帯の幅では区切りを省いて列を短く保つ。HTML には描けた図を記法に戻して渡す */}
         {!phone && <span className="pg-tool-sep" aria-hidden="true" />}
-        <ExportMenu t={t.stage} lang={lang} figure={figure} timeline={figureTimeline} name={fileName.replace(/\.dragon$/u, "")} />
+        <ExportMenu
+          t={t.stage}
+          lang={lang}
+          figure={figure}
+          timeline={figureTimeline}
+          source={() => (diagram ? printNotation(diagram) : null)}
+          palette={palette}
+          theme={theme}
+          name={fileName.replace(/\.dragon$/u, "")}
+        />
       </div>
 
       <div className="pg-figure" data-playground="figure" data-grid={grid ? "on" : undefined} data-phased={phased ? "on" : undefined} style={figureStyle}>

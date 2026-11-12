@@ -17,3 +17,14 @@
 | エディタの頁が最初に読む量は、書き出す入口を足しても上限の中に収まる。書き出す入口は書き出すの釦を押した時に読む | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3644 |
 | `dragon export`の命令は、今と同じく4つの形を1度ずつ書き出す | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`four-formats-written-once-from-json`が通る | #3644 |
 | 配った後の確かめは、npmの最新の版が包んだ版と違う時に落とす | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts`の検査`release-after-judges-npm-and-pages`が通る | #3644 |
+| Chromiumの頁で書き出す入口の`captureHtml`に記法を渡すと、同じ記法を`exportDiagram`で書いたHTMLと、字の`@font-face`の中身を除いて同じ文字列を返す | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-matches-export`が通る | #3667 |
+| `captureHtml`が返したHTMLを、外を読めない別のChromiumの文脈で開くと、図と再生の帯が描かれ、頁の外へ1度も読みに行かない | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-opens-offline`が通る | #3667 |
+| 頁が字のfileを読めない時、`captureHtml`は読めない字の名前と範囲を名指して断り、字の無いHTMLを返さない | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-refuses-unreadable-font`が通る | #3667 |
+| 書き出す入口を読んだだけでは再生の部品のfileを読まず、`captureHtml`を呼んだ時に1度だけ読む | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-loads-player-on-call`が通る | #3667 |
+| 常に、書き出す入口はpackageの`exports`に在り、Nodeの組み込みのmoduleを読まない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`capture-entry-browser-safe`が通る | #3667 |
+| 常に、`dragon export`の命令は4つの形を1度ずつ書き出す | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`four-formats-written-once-from-json`が通る | #3667 |
+| エディタの「書き出す」の窓は、PNG、SVG、GIF、MP4、HTMLを選べる | `pnpm exec vitest run apps/playground-spa/src/editor/export-menu.test.tsx`の検査`editor-export-menu-lists-formats`が通る | #3667 |
+| エディタの書き出す窓でHTMLを選ぶと、`captureHtml`を呼んで`.html`のfileを保存する | `pnpm exec vitest run apps/playground-spa/src/editor/export-menu.test.tsx`の検査`editor-export-saves-chosen-format`が通る | #3667 |
+| 常に、エディタの頁が最初に読む量は上限の中に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3667 |
+| 常に、scriptの1行の入口が最初に読む量は上限の中に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3667 |
+| 常に、配った後の確かめは、npmの最新の版が包んだ版と違う時に落とす | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts`の検査`release-after-judges-npm-and-pages`が通る | #3667 |

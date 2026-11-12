@@ -1,14 +1,15 @@
 /**
  * 編集画面の図を書き出す釦と、書き出す形を選ぶ小さな窓 (#3644)。
  *
- * 図の上の道具の列の右端に置く。押すと PNG、SVG、GIF、MP4 を選ぶ窓を開き、Esc か窓の外を押すと閉じる。
+ * 図の上の道具の列の右端に置く。押すと PNG、SVG、GIF、MP4、HTML を選ぶ窓を開き、Esc か窓の外を押すと閉じる。
  * 道具の列は狭い幅で横に送るため、はみ出した物を切る。窓は列に切られないよう、釦の下の画面の位置に置く (`position: fixed`)。
  * 形を選ぶと、書き出す入口 (`@cardenelabs/dragon/capture`) の関数に今の図の SVG を渡し、返った物を書類名の file に保存させる。
+ * HTML は頁が図を描き直すので、SVG でなく今の図の記法と色味を渡し、返った頁の文字列を保存させる (#3667)。
  * 書き出す入口は詰める道具を持ち重いので、最初に読む script に入れず、釦を押した時に読む。
  * mp4 は WebCodecs の H.264 が無いブラウザでは作れないので、窓を開いた時に確かめ、作れない時は MP4 を並べない。
  * 書き出している間は釦を押せない。書き出せなかった時は、釦の下に訳を出す。
  */
-import type { Timeline } from "@cardenelabs/dragon/light";
+import type { Theme, Timeline } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import type { Lang, Text } from "../text";
@@ -16,13 +17,14 @@ import type { Lang, Text } from "../text";
 /** 書き出す入口を読む。釦を押した時に初めて読み、2 度目からは同じ物を使う */
 const loadCapture = (): Promise<typeof import("@cardenelabs/dragon/capture")> => import("@cardenelabs/dragon/capture");
 
-type Format = "png" | "svg" | "gif" | "mp4";
+type Format = "png" | "svg" | "gif" | "mp4" | "html";
 /** 窓に並べる形。名前は形の名前をそのまま出し、言葉で替えない */
 const FORMATS: readonly { id: Format; label: string }[] = [
   { id: "png", label: "PNG" },
   { id: "svg", label: "SVG" },
   { id: "gif", label: "GIF" },
   { id: "mp4", label: "MP4" },
+  { id: "html", label: "HTML" },
 ];
 
 interface Props {
@@ -33,6 +35,11 @@ interface Props {
   figure: () => SVGSVGElement | null;
   /** 今の図の 1 周の秒と段ごとの止め絵の時刻。GIF の色の表を `dragon export` と同じ絵から作る */
   timeline: () => Pick<Timeline, "total" | "stills"> | undefined;
+  /** 今の図の記法。HTML の頁に埋める。図を置いていない時は null */
+  source: () => string | null;
+  /** 今の図の色味と明るさ。HTML の頁を同じ色で描く */
+  palette: string;
+  theme: Theme;
   /** 保存させる file の名前 (拡張子を除く) */
   name: string;
 }
@@ -48,7 +55,7 @@ function save(blob: Blob, name: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export function ExportMenu({ t, lang, figure, timeline, name }: Props): ReactElement {
+export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, name }: Props): ReactElement {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mp4, setMp4] = useState<boolean | undefined>(undefined);
@@ -111,13 +118,16 @@ export function ExportMenu({ t, lang, figure, timeline, name }: Props): ReactEle
   const choose = async (format: Format): Promise<void> => {
     setOpen(false);
     const svg = figure();
-    if (!svg) return;
+    const notation = source();
+    if (!svg || notation === null) return;
     setBusy(true);
     try {
       const capture = await loadCapture();
       const film = { lang, timeline: timeline() };
       const made =
-        format === "png"
+        format === "html"
+          ? new Blob([await capture.captureHtml(notation, { lang, palette, theme })], { type: "text/html" })
+          : format === "png"
           ? await capture.capturePng(svg, { lang })
           : format === "svg"
             ? new Blob([await capture.captureSvg(svg, { lang })], { type: "image/svg+xml" })

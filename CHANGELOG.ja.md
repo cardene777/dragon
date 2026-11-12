@@ -6,6 +6,12 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **ブラウザの書き出す入口 (`@cardenelabs/dragon/capture`) で1 fileのHTMLの頁も作れるようにし (`captureHtml`)、エディタの書き出す窓にHTMLを足した** (#3667)
+
+  書き出す入口はPNG、SVG、GIF、MP4を作れたが、`dragon export --format html`が書くHTMLの頁はNodeでしか作れなかった。`captureHtml(source, { lang?, palette?, theme?, blocks? })`は記法を受けてHTMLの文字列を返す。頁は`dragon export`の処理を2つで分け合う形に分けて (`export/page.ts`と`export/html.ts`) 組むので、同じ記法なら字の`@font-face`のほかは同じ頁になる。ブラウザは字を削る道具を持たないので、頁が読み込んだ`@font-face`から、頁と再生の帯で描かれうる字の範囲に当たる字のfileを丸ごと埋め、読めない字のfileは字の名前と範囲を名指して断る。再生のscript (`player.global.js`) は入口に束ねず、入口の隣から初めて呼んだ時にだけ読み、入口を読んだだけでは読まない。頁を組むために入口が描く処理を持つので、入口は約37KBから約3MBに増えた。入口は今どおり書き出すの釦を押した時にだけ読む。見本帳のエディタの書き出す窓はMP4の後にHTMLを並べ、エディタの色味と言葉で描いた`<書類名>.html`を保存させる。
+
 ## [0.72.0] - 2026-11-12
 
 ### Added

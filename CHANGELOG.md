@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **The browser entry (`@cardenelabs/dragon/capture`) also makes the single-file HTML page with `captureHtml`, and the editor's export menu has HTML** (#3667)
+
+  The browser entry could make PNG, SVG, GIF and MP4, but the HTML page that `dragon export --format html` writes could only be made in Node. `captureHtml(source, { lang?, palette?, theme?, blocks? })` takes the notation and returns the HTML text. The page is built by the code `dragon export` uses, now shared between the two (`export/page.ts` and `export/html.ts`), so the same notation gives the same page except for the `@font-face` rules. The fonts are the whole font files from the page's `@font-face` rules whose range covers the characters the page and the player bar can draw, because the browser has no tool to cut fonts down; a font file that cannot be read is refused with its family and range named. The player script (`player.global.js`) is not bundled into the entry: it is fetched from next to the entry on the first call only, and loading the entry does not fetch it. The entry now carries the renderer to build the page, so it grows from about 37 KB to about 3 MB; it is still loaded only when the export button is pressed. The playground editor's export menu lists HTML after MP4 and saves `<name>.html`, drawn with the editor's palette and language.
+
 ## [0.72.0] - 2026-11-12
 
 ### Added

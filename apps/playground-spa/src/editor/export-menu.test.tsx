@@ -2,8 +2,9 @@
 /**
  * 編集画面の図を書き出す釦と窓 (#3644)。
  *
- * 図の上の道具の列の右端に「書き出す」の釦を置き、押すと PNG、SVG、GIF、MP4 を選ぶ小さな窓を開く。Esc で閉じる。
+ * 図の上の道具の列の右端に「書き出す」の釦を置き、押すと PNG、SVG、GIF、MP4、HTML を選ぶ小さな窓を開く。Esc で閉じる。
  * 形を選ぶと、書き出す入口 (`@cardenelabs/dragon/capture`) の関数に今の図の SVG を渡し、返った物を書類名の file に保存させる。
+ * HTML は図の SVG でなく今の記法を渡し、返った頁の文字列を保存させる (#3667)。
  * 書き出している間は同じ釦を押せない。図の下の `dragon export` の案内は残す。
  *
  * jsdom は画像を描けないので、書き出す入口は代わりの物に替え、渡された物と保存させた file を確かめる。
@@ -11,6 +12,7 @@
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { parseNotation } from "@cardenelabs/dragon";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Playground } from "../Playground";
@@ -23,6 +25,7 @@ const capture = vi.hoisted(() => ({
   captureSvg: vi.fn<(svg: SVGSVGElement) => Promise<string>>(),
   captureGif: vi.fn<(svg: SVGSVGElement) => Promise<Blob>>(),
   captureMp4: vi.fn<(svg: SVGSVGElement) => Promise<Blob>>(),
+  captureHtml: vi.fn<(source: string) => Promise<string>>(),
   captureFilm: vi.fn(),
   canCaptureMp4: vi.fn(() => Promise.resolve(true)),
 }));
@@ -143,7 +146,7 @@ beforeEach(() => {
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
     saved.push({ name: this.download, blob: blobs.get(this.href) });
   });
-  for (const fn of [capture.capturePng, capture.captureSvg, capture.captureGif, capture.captureMp4]) fn.mockReset();
+  for (const fn of [capture.capturePng, capture.captureSvg, capture.captureGif, capture.captureMp4, capture.captureHtml]) fn.mockReset();
 });
 
 afterEach(() => {
@@ -161,7 +164,7 @@ describe("編集画面の図を書き出す (#3644)", () => {
     expect(menu(), "書き出すの釦を押しても窓が開かない").not.toBeNull();
     expect(menu()?.getAttribute("role"), "書き出す窓の役").toBe("menu");
     expect(button.getAttribute("aria-expanded"), "窓を開いた釦の印").toBe("true");
-    expect(choices(), "書き出す窓に並ぶ形").toEqual(["PNG", "SVG", "GIF", "MP4"]);
+    expect(choices(), "書き出す窓に並ぶ形").toEqual(["PNG", "SVG", "GIF", "MP4", "HTML"]);
     act(() => {
       document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     });
@@ -180,6 +183,7 @@ describe("編集画面の図を書き出す (#3644)", () => {
       { format: "SVG", fn: capture.captureSvg, made: "<svg></svg>", ext: "svg" },
       { format: "GIF", fn: capture.captureGif, made: new Blob(["gif"], { type: "image/gif" }), ext: "gif" },
       { format: "MP4", fn: capture.captureMp4, made: new Blob(["mp4"], { type: "video/mp4" }), ext: "mp4" },
+      { format: "HTML", fn: capture.captureHtml, made: "<!doctype html><title>図</title>", ext: "html" },
     ] as const;
     for (const { format, fn, made, ext } of cases) {
       const pending = deferred<Blob | string>();
@@ -188,7 +192,15 @@ describe("編集画面の図を書き出す (#3644)", () => {
       await press(exportButton());
       await choose(format);
       expect(fn, `${format} を選んでも書き出す入口の関数を呼ばない`).toHaveBeenCalledTimes(1);
-      expect(fn.mock.calls[0]?.[0], `${format} の書き出しに今の図の SVG を渡さない`).toBe(svg);
+      const given = fn.mock.calls[0]?.[0];
+      if (format === "HTML") {
+        // HTML の頁は図を描き直すので、図の SVG でなく今の記法を渡す。渡した記法は読める記法で、題を持つ
+        const read = typeof given === "string" ? parseNotation(given) : undefined;
+        expect(read?.ok, "HTML の書き出しに今の記法を渡さない").toBe(true);
+        expect(read?.ok ? read.diagram.title : "", "HTML の書き出しに渡した記法の題").not.toBe("");
+      } else {
+        expect(given, `${format} の書き出しに今の図の SVG を渡さない`).toBe(svg);
+      }
       expect(exportButton().disabled, `${format} を書き出している間に書き出すの釦を押せる`).toBe(true);
       expect(saved.length, `${format} を書き出し終える前に保存させた`).toBe(before);
       await act(async () => {
@@ -199,7 +211,8 @@ describe("編集画面の図を書き出す (#3644)", () => {
       const file = saved[before];
       expect(file?.name, `${format} を保存させた file の名前`).toBe(`${name}.${ext}`);
       if (typeof made === "string") {
-        expect({ type: file?.blob?.type, text: await file?.blob?.text() }, "SVG を保存させた中身").toEqual({ type: "image/svg+xml", text: made });
+        const type = format === "HTML" ? "text/html" : "image/svg+xml";
+        expect({ type: file?.blob?.type, text: await file?.blob?.text() }, `${format} を保存させた中身`).toEqual({ type, text: made });
       } else {
         expect(file?.blob, `${format} を保存させた中身が書き出す入口の返した Blob でない`).toBe(made);
       }
