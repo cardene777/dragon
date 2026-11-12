@@ -52,3 +52,8 @@
 | 見本`squash`の日本語と英語で、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`added-examples-have-no-breaks`が通る | #3632 |
 | 見本帳の部品の図は崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3632 |
 | `squash`のほかの見本の描いた結果の指紋は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3632 |
+| 見本`squash`の4段目と部品の見本`delete`の2段目で、HEADを動かす線の端が、HEADが戻った枝のmainの札の四角に接する | `pnpm exec vitest run packages/dragon/test/git-head-line.test.ts`の検査`git-head-line-ends-at-the-joined-branch-ref`が通る | #3648 |
+| 部品の見本`copy`の2段目で、HEADを動かす線の端が、段の終わりにHEADが居るC'のHEADの札の四角に接する | `pnpm exec vitest run packages/dragon/test/git-head-line.test.ts`の検査`git-head-line-ends-at-the-final-head-ref`が通る | #3648 |
+| どの枝分かれの図の見本と部品の図でも、札を動かす線の端は、その段の終わりに出ている札の四角に接し、何も無い所で終わらない | `pnpm exec vitest run packages/dragon/test/git-head-line.test.ts`の検査`git-move-lines-end-on-a-shown-ref`が通る | #3648 |
+| 見本`squash`と部品の見本`copy`と`delete`を日本語と英語で`dragon check --layout`と同じ形にかけると、崩れの知らせが0件 | `pnpm exec vitest run packages/dragon/test/git-head-line.test.ts`の検査`git-head-line-samples-have-no-breaks`が通る | #3648 |
+| 札が段の終わりまで留まる線の描き方は変えず、線の端が変わる3つの見本 (`squash`と部品の見本`copy`と`delete`) のほかの見本の描いた結果の指紋は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3648 |
