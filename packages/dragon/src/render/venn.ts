@@ -9,6 +9,7 @@
 import { drawChips, drawCircles, drawLits, drawNone, drawRegions } from "../blocks/circle/draw";
 import type { VennLayout } from "../kinds/venn/layout";
 import { VENN_LOOK, VENN_TYPE } from "../look/venn";
+import { DOTS_CSS, drawDots } from "./dots";
 import { type Ctx, cssFont as font } from "./parts";
 
 const C = VENN_LOOK.circle;
@@ -28,9 +29,10 @@ const VENN_CSS = [
   `.dg-vn-frame{fill:var(--c);fill-opacity:${F.fill};stroke:var(--c);stroke-width:${F.stroke}}`,
 ].join("");
 
-/** 集合の重なりの図を描く。段の番号の丸は描く所が描く */
+/** 集合の重なりの図を描く。段の番号の丸は描く所が描く。点で数える見た目 (#3635) は点で数える見た目の部品 (`render/dots.ts`) が描く */
 export function drawVenn(layout: VennLayout, ctx: Ctx): { base: string; css: string } {
   const plan = layout.venn;
+  if (plan.dots) return { base: `<g class="dg-vn">${drawDots(plan.dots, ctx)}</g>`, css: DOTS_CSS };
   const { defs, circles, labels } = drawCircles(plan, ctx);
   const body = `${defs}${drawNone(plan, ctx)}${circles}${drawLits(plan, ctx)}${drawRegions(plan, ctx)}${labels}${drawChips(plan, ctx)}`;
   return { base: `<g class="dg-vn">${body}</g>`, css: VENN_CSS };

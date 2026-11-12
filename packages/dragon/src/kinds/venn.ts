@@ -4,6 +4,7 @@ import type { KindParts } from "./parts";
 import { layoutVenn, type VennLayout } from "./venn/layout";
 
 export const parts: KindParts<VennLayout> = {
-  layout: layoutVenn,
+  // 点で数える見た目 (#3635) は、群れと箱を横に並べられない幅で箱を上に置く
+  layout: (diagram, lang, options) => layoutVenn(diagram, lang, options.width),
   draw: (layout, _diagram, ctx) => drawVenn(layout, ctx),
 };

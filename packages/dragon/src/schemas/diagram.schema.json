@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -63,6 +63,10 @@
     "lineup": {
       "description": "列の図の見た目。列の図だけが書け、箱とチップと役は blocks に書く",
       "$ref": "#/definitions/lineupLook"
+    },
+    "venn": {
+      "description": "集合の重なりの図の見た目。集合の重なりの図だけが書け、集まりは blocks.circle に書く",
+      "$ref": "#/definitions/vennLook"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -436,6 +440,9 @@
                 }
               }
             }
+          },
+          "venn": {
+            "$ref": "#/definitions/absent"
           }
         }
       }
@@ -4497,12 +4504,37 @@
       }
     },
     "chartShape": {
-      "description": "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で描く",
+      "description": "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で、dots は項目ごとの件数を点の数で描く",
       "enum": [
         "donut",
         "bar",
-        "funnel"
+        "funnel",
+        "dots"
       ]
+    },
+    "dotUnit": {
+      "description": "点で数える見た目 (dots) の 1 点の件数。0 より大きい数で、書かなければ全体が最も大きい段で点が 100 個に近くなる 1 か 2 か 5 に 10 の累乗を掛けた数を選ぶ",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "vennLook": {
+      "description": "集合の重なりの図の見た目。dots は区画ごとの件数を点の数で数え、全体の箱から区画の群れへ点を寄せる",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape"
+      ],
+      "properties": {
+        "shape": {
+          "description": "集合の重なりの図の見た目の名前",
+          "enum": [
+            "dots"
+          ]
+        },
+        "unit": {
+          "$ref": "#/definitions/dotUnit"
+        }
+      }
     },
     "chart": {
       "type": "object",
@@ -4511,9 +4543,28 @@
         "shape",
         "items"
       ],
+      "if": {
+        "not": {
+          "properties": {
+            "shape": {
+              "const": "dots"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "unit": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      },
       "properties": {
         "shape": {
           "$ref": "#/definitions/chartShape"
+        },
+        "unit": {
+          "$ref": "#/definitions/dotUnit"
         },
         "items": {
           "description": "比べる項目。宣言した順に、ドーナツは 12 時の向きから時計回りに、横棒は上から並べる",

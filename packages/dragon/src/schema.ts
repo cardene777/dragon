@@ -17,7 +17,7 @@ import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
 import type { ChartItem } from "./blocks/chart-item/block";
 import type { ChartSet } from "./blocks/chart-set/block";
-import type { ChartShape } from "./blocks/chart-shape/block";
+import type { ChartShape, VennShape } from "./blocks/chart-shape/block";
 import type { Carry } from "./blocks/carry/block";
 import { type Color, COLORS } from "./blocks/color/block";
 import type { GitCommit } from "./blocks/commit/block";
@@ -183,12 +183,20 @@ export interface LineupLook {
 }
 
 /** 量の図 (#3560) の項目と見た目と、項目の値を変える出来事の型は、項目と見た目と値のブロックが持つ */
-export type { ChartItem, ChartSet, ChartShape };
+export type { ChartItem, ChartSet, ChartShape, VennShape };
 
 /** 量の図の種類の欄 (#3560)。見た目と、宣言した順の項目 */
 export interface ChartSpec {
   shape: ChartShape;
+  /** 点で数える見た目 (#3635) の 1 点の件数。書かなければ全体が最も大きい段で点が 100 個に近くなる数を選ぶ */
+  unit?: number;
   items: ChartItem[];
+}
+
+/** 集合の重なりの図 (#3635) の見た目。`dots` は区画ごとの件数を点の数で数え、`unit` はその 1 点の件数 */
+export interface VennLook {
+  shape: VennShape;
+  unit?: number;
 }
 
 /** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
@@ -355,6 +363,8 @@ export interface Diagram {
   matrix?: MatrixSpec;
   /** 列の図 (#3625) の見た目。列の図だけが書き、箱とチップと役は `blocks` に持つ */
   lineup?: LineupLook;
+  /** 集合の重なりの図 (#3635) の見た目。集合の重なりの図だけが書き、集まりは `blocks` の `circle` に持つ */
+  venn?: VennLook;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -396,8 +406,8 @@ export interface DiagramModel {
   er?: { tables: ErTable[] };
   /** 2つの軸で置く図 (#3622) の軸と課題。版1の原本に無かった種類なので、版2の原本の根の `matrix` をそのまま持つ */
   matrix?: MatrixSpec;
-  /** 集合の重なりの図 (#3620) の集まり。版1の原本に無かった種類なので、版2の原本の `circle` をそのまま持つ */
-  venn?: { sets: VennSet[] };
+  /** 集合の重なりの図 (#3620) の集まりと見た目 (#3635)。版1の原本に無かった種類なので、版2の原本の `circle` と根の `venn` の欄をそのまま持つ */
+  venn?: { sets: VennSet[]; shape?: VennShape; unit?: number };
 }
 
 /**

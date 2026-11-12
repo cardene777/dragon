@@ -143,8 +143,10 @@ Going to the next step moves the arcs and bars from the previous values to the n
 | `chart <title> [shape: donut]` | A donut. Each arc's angle is the item's share, and the legend shows the rounded percentages |
 | `chart <title> [shape: bar]` | Horizontal bars. The largest value gets the longest bar, and each value shows at the end of its bar |
 | `chart <title> [shape: funnel]` | A funnel. Each stage's bar appears in the step that sets it, the gap to the stage above stays as a pale bar with the number who left, and the last step shows the share that made it to the last stage |
+| `chart <title> [shape: dots]` | Dots. Empty dots wait in the box of the whole, and in the step that sets an item that many dots move into its cluster. The diagram picks how many each dot stands for so that the dots come to about 100, and `[shape: dots, unit: <count>]` chooses it |
 | `item <id> as <name> [color: <color>]` | An item, before the first step. A chart takes from 1 to 8 items |
 | `set <id>: <value>` | The value of an item inside a step, a number of 0 or more without a unit. An item without `set` keeps its previous value |
+| `set none: <value>` | The count in none of the items. A donut or a bar draws it as a grey arc or bar after the items, dots leave it grey in the box, and a funnel refuses it |
 
 A lineup diagram can also stack its boxes as layers, for one request or transaction going down through them.
 Write `lineup <title> [shape: layers]`, and the boxes become horizontal bands from top to bottom in the order declared, with each layer's name, `note`, and number on the left.
@@ -216,6 +218,7 @@ A circle appears in the step that first writes its count, a written overlap ligh
 | `set <id>: <count>` | The total of a set. Its circle appears in that step, with the name and the total outside it |
 | `set <id> & <id>: <count>` | The count in an overlap. Its region lights in that step. An overlap larger than one of its sets is refused |
 | `set none: <count>` | The count in none of the sets, shown in the frame outside the circles |
+| `venn <title> [shape: dots]` | Counts with dots instead of circles. Dots move into a cluster for each set and each overlap, and a dot in two or more sets is painted in slices of their colors |
 
 A Sankey diagram (`sankey <title>`) follows where one amount goes and how much, with bands as wide as the amounts.
 Boxes no line goes into sit in the left column, and each target sits in a column to the right of its source. In a step the band grows from the source bar to the target bar, and an amount chip crosses it.

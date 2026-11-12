@@ -3,7 +3,8 @@
  * 軽い入口は、後から読む図の種類の個別ブロックの読み方を、書いた図が使う時に読む。
  *
  * 量の図の `item <名札> as <名前> [color: <色>]` の行を、行の形 (`take`) で読む。量の図に書ける行は項目と値と段の行だけで、
- * ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める。項目が 1 つも無い図は読み終えた時 (`finish`) に止める
+ * ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める。項目が 1 つも無い図は読み終えた時 (`finish`) に止める。
+ * `none` (#3635) は漏斗のほかの見た目でどの項目にも入らない数を書く語 (`set none: <値>`) なので、その見た目では項目の名札に使えない
  */
 import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
@@ -22,6 +23,9 @@ const CHART_LINES: readonly string[] = [
   ...["item", "set", "step", "say", "code", "source"],
 ];
 
+/** どの項目にも入らない数を書く語 (#3635)。漏斗のほかの見た目の量の図では項目の名札に使えない */
+export const CHART_NONE = "none";
+
 export interface ChartItemMessages {
   /** `item` の行が 1 つも無い量の図 */
   chartNoItems: string;
@@ -31,6 +35,8 @@ export interface ChartItemMessages {
   chartNoLine: (word: string) => string;
   /** 量の図に線の行を書いた */
   chartNoEdge: string;
+  /** 漏斗のほかの見た目の量の図で、項目の名札に `none` を書いた (#3635) */
+  chartNoneId: string;
 }
 
 /**
@@ -66,6 +72,9 @@ export const reading: BlockReading<ChartItemMessages> = {
   checkHead: (source, word, state) => {
     if (!CHART_LINES.includes(word)) throw fail(source, 0, state.m.chartNoLine(word));
   },
+  reserved: (source, id, at, state) => {
+    if (id === CHART_NONE && state.figure.chart.shape?.value !== "funnel") throw fail(source, at, state.m.chartNoneId);
+  },
   finish: (state, head) => {
     if (state.figure.chart.items.length === 0) throw fail(head, 0, state.m.chartNoItems);
   },
@@ -80,12 +89,14 @@ export const reading: BlockReading<ChartItemMessages> = {
       chartTooManyItems: (most) => `chart (量の図) の項目は ${most} 個までにする`,
       chartNoLine: (word) => `chart (量の図) には ${word} の行を書けない。項目は item の行で、値は段の中の set の行で書く`,
       chartNoEdge: "chart (量の図) には線の行を書けない。値は段の中の set の行で書く",
+      chartNoneId: "none は項目の名札にできない。none はどの項目にも入らない数を set none: <値> で書く語",
     },
     en: {
       chartNoItems: "Declare at least one item with an item line",
       chartTooManyItems: (most) => `A chart takes at most ${most} items`,
       chartNoLine: (word) => `A chart takes no ${word} lines. Declare items with item lines and write values with set lines inside steps`,
       chartNoEdge: "A chart takes no edge lines. Write values with set lines inside steps",
+      chartNoneId: "none cannot be an item id. none is the word for the count in no item, written as set none: <value>",
     },
   },
 };

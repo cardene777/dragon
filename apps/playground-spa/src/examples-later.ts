@@ -146,6 +146,10 @@ import hobbiesJa from "../../../packages/dragon/examples/hobbies.dragon?raw";
 import hobbiesEn from "../../../packages/dragon/examples/hobbies.en.dragon?raw";
 import skillsJa from "../../../packages/dragon/examples/skills.dragon?raw";
 import skillsEn from "../../../packages/dragon/examples/skills.en.dragon?raw";
+import deviceDotsJa from "../../../packages/dragon/examples/device-dots.dragon?raw";
+import deviceDotsEn from "../../../packages/dragon/examples/device-dots.en.dragon?raw";
+import walletDotsJa from "../../../packages/dragon/examples/wallet-dots.dragon?raw";
+import walletDotsEn from "../../../packages/dragon/examples/wallet-dots.en.dragon?raw";
 import tokenAllocationJa from "../../../packages/dragon/examples/token-allocation.dragon?raw";
 import tokenAllocationEn from "../../../packages/dragon/examples/token-allocation.en.dragon?raw";
 import feeSplitJa from "../../../packages/dragon/examples/fee-split.dragon?raw";
@@ -234,6 +238,8 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "fee-split": { ja: feeSplitJa, en: feeSplitEn },
   salary: { ja: salaryJa, en: salaryEn },
   revenue: { ja: revenueJa, en: revenueEn },
+  "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
+  "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
 };
 
 /**

@@ -731,6 +731,42 @@ step Buy
   set buy: 380
 ```
 
+`chart <title> [shape: dots]` counts with dots.
+The box of the whole holds empty dots from before the first step, and in the step that sets an item, that many dots move from the box to the item's cluster.
+The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
+Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
+Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel refuses `set none`.
+
+```dragon
+chart Devices of 1,000 people [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say 412 people use an iPhone most, which makes 41 dots.
+  set i: 412
+
+step Android
+  say 287 people use Android, the second most after iPhone.
+  set a: 287
+
+step Windows
+  say 158 people use a Windows computer.
+  set w: 158
+
+step Mac
+  say 93 people use a Mac, which makes 9 dots.
+  set m: 93
+
+step None of them
+  say The 50 people who use none of them stay grey in the box of the whole.
+  set none: 50
+```
+
 ```dragon
 chart Support requests by channel [shape: bar]
 
@@ -955,6 +991,7 @@ Two sets sit left and right, and three sets sit top left, top right and below.
 - `set <id> & <id>: <count>` writes the count in an overlap, and lights its region with a count chip in that step. An overlap larger than one of its sets is refused
 - Each region shows the count that is only in it, worked out from the totals and the overlaps. A region shows nothing until every count it needs is written
 - `set none: <count>` writes the count in none of the sets, and shows it in a frame around the circles from that step on. In other diagram kinds `none` still reads as an ordinary box id
+- Add `[shape: dots]` to the first line to count with dots instead of circles. The dots move into a cluster for each set and each overlap, a dot in two or more sets is painted in slices of their colors, and `[shape: dots, unit: <count>]` chooses how many each dot stands for.
 - The step number sits beside the name of the circle that appears in that step, or under the count of the region that step lights
 
 ```dragon

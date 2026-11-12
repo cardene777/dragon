@@ -128,7 +128,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { ChartShape, Diagram, DiagramModel, LineupShape, Step } from "./schema";
+import type { ChartShape, Diagram, DiagramModel, LineupShape, Step, VennShape } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -227,10 +227,13 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const title = titled.value === "" ? kind : titled.value;
   const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
   const view = viewOf(head, headAttrs.get("view"), m);
-  // 図の種類の行の `shape` は量の図 (#3560) と列の図 (#3625) の見た目で、ほかの種類の図には書けない。
-  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが確かめる
+  // 図の種類の行の `shape` は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) の見た目で、ほかの種類の図には書けない。
+  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが、集合の重なりの図の見た目は集まりの円のブロックが確かめる
   const shape = headAttrs.get("shape");
-  if (shape && kind !== "chart" && kind !== "lineup") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
+  if (shape && kind !== "chart" && kind !== "lineup" && kind !== "venn") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
+  // `unit` は点で数える見た目 (#3635) の 1 点の件数で、量の図と集合の重なりの図だけに書ける。点で数える見た目かと値は同じブロックが確かめる
+  const unit = headAttrs.get("unit");
+  if (unit && kind !== "chart" && kind !== "venn") throw fail(head, unit.at, m.dotsOnlyAttr("unit"));
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -260,10 +263,10 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     lineup: { items: [], roles: [], sealed: new Set(), ...(shape && kind === "lineup" ? { shape } : {}) },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
-    chart: { items: [], ...(shape && kind === "chart" ? { shape } : {}) },
+    chart: { items: [], ...(shape && kind === "chart" ? { shape } : {}), ...(unit && kind === "chart" ? { unit } : {}) },
     flow: { choices: [], paths: [], lines: [], main: [], side: [], forked: [] },
     er: { tables: [], refs: [], lines: [] },
-    venn: { sets: [], now: new Map(), writes: [], step: -1 },
+    venn: { sets: [], now: new Map(), writes: [], nones: [], step: -1, ...(shape && kind === "venn" ? { shape } : {}), ...(unit && kind === "venn" ? { unit } : {}) },
   };
   const { regions, boxes, paths, branches, time } = figure;
   const steps: Step[] = [];
@@ -522,11 +525,22 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
         }
       : {}),
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
-    // 量の図の見た目は見た目のブロックが `donut` か `bar` と確かめた
-    ...(kind === "chart" ? { chart: { shape: figure.chart.shape?.value as ChartShape, items: figure.chart.items } } : {}),
+    // 量の図の見た目は見た目のブロックが `donut` か `bar` か `funnel` か `dots` と、1 点の件数は 0 より大きい数と確かめた
+    ...(kind === "chart"
+      ? { chart: { shape: figure.chart.shape?.value as ChartShape, ...(figure.chart.unit ? { unit: Number(figure.chart.unit.value) } : {}), items: figure.chart.items } }
+      : {}),
     ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
     ...(kind === "matrix" ? { matrix: { axes: figure.matrix.axes, items: figure.matrix.items } } : {}),
-    ...(kind === "venn" ? { venn: { sets: figure.venn.sets } } : {}),
+    // 集合の重なりの図の見た目 (#3635) は集まりの円のブロックが `dots` と確かめた
+    ...(kind === "venn"
+      ? {
+          venn: {
+            sets: figure.venn.sets,
+            ...(figure.venn.shape ? { shape: figure.venn.shape.value as VennShape } : {}),
+            ...(figure.venn.unit ? { unit: Number(figure.venn.unit.value) } : {}),
+          },
+        }
+      : {}),
     ...(isTime && time.scale
       ? {
           time: {

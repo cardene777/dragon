@@ -79,6 +79,8 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.matrix !== undefined ? { matrix: model.matrix } : {}),
     // 列の図の見た目 (#3625) は版1に無かった欄なので、`HOMES` を通さず根の欄 (`lineup`) に移す
     ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
+    // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
+    ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
     blocks,
     steps: model.steps,
   };
@@ -93,7 +95,7 @@ export const isVersion1 = (input: unknown): input is Obj =>
  * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、配管の図の始めの値、時間軸の図の欄)。
  * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップと関門 (#3476) を試す図の欄 (`try`) に持つ。
  * 手順の図 (#3561) は判断と今回は通らない道を手順の図の欄 (`flow`) に持つ。表どうしの関係の図 (#3618) は表を表どうしの関係の図の欄 (`er`) に持つ。
- * 集合の重なりの図 (#3620) は集まりを集合の重なりの図の欄 (`venn`) に持つ
+ * 集合の重なりの図 (#3620) は集まりと見た目 (#3635) を集合の重なりの図の欄 (`venn`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const b = diagram.blocks;
@@ -147,7 +149,7 @@ export function toModel(diagram: Diagram): DiagramModel {
       : {}),
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
     ...(b.table !== undefined ? { er: { tables: b.table } } : {}),
-    ...(b.circle !== undefined ? { venn: { sets: b.circle } } : {}),
+    ...(b.circle !== undefined || diagram.venn !== undefined ? { venn: { sets: b.circle ?? [], ...(diagram.venn ?? {}) } } : {}),
     ...(b.scale !== undefined || b.row !== undefined || b.task !== undefined
       ? {
           time: {

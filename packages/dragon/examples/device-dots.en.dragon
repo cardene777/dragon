@@ -1,0 +1,28 @@
+// Compare the devices 1,000 people use most, counting them in dots of 10 people each.
+// The values are sample numbers to show the shape, not numbers from a real survey.
+chart Devices of 1,000 people [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say 412 people use an iPhone most, which makes 41 dots.
+  set i: 412
+
+step Android
+  say 287 people use Android, the second most after iPhone.
+  set a: 287
+
+step Windows
+  say 158 people use a Windows computer.
+  set w: 158
+
+step Mac
+  say 93 people use a Mac, which makes 9 dots.
+  set m: 93
+
+step None of them
+  say The 50 people who use none of them stay grey in the box of the whole.
+  set none: 50

@@ -14,8 +14,12 @@ export const shape: BlockShape = {
       type: "object",
       additionalProperties: false,
       required: ["shape", "items"],
+      // 1 点の件数 (#3635) は点で数える見た目の量の図だけが持つ
+      if: { not: { properties: { shape: { const: "dots" } } } },
+      then: { properties: { unit: { $ref: "#/definitions/absent" } } },
       properties: {
         shape: { $ref: "#/definitions/chartShape" },
+        unit: { $ref: "#/definitions/dotUnit" },
         items: {
           description: "比べる項目。宣言した順に、ドーナツは 12 時の向きから時計回りに、横棒は上から並べる",
           type: "array",

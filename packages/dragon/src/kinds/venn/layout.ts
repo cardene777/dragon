@@ -7,11 +7,15 @@
  * 重なりの数の札は、重なりを書いた段の間だけ、並びの真ん中から重なりの向きの円の外に出し、区画の数の所と点線で結ぶ。3 つ全ての重なりの札は右に出す。
  * どれにも入らない数の札は、全ての部品を囲む枠の左下に置く。段の番号は、その段で現れた名前か札の外の側に置く。
  * 段ごとの数は、段の中の `count` が書いた数で、書かない段は前の段の数を保つ。それぞれだけの数は `blocks/circle/regions.ts` の決まりで出し、決まらない段は出さない。
+ * 点で数える見た目 (`[shape: dots]`、#3635) は円を描かず、区画ごとに点の群れを置き、全体の箱から群れへ点を寄せる (`layoutVennDots`、共通の部品は `layout/dots.ts`)。
  * 見本帳を開いた時に読まない図の種類なので、後から読む塊に入れる
  */
-import { exclusiveOf, regionKey, regionsOf, vennNumber } from "../../blocks/circle/regions";
+import { exclusiveOf, provisionalOf, regionKey, regionsOf, vennNumber } from "../../blocks/circle/regions";
+import { unitOf } from "../../dot-count";
+import { above, arrangeDots, below, clusterSpots, type DotArea, type DotGroup, type DotPlan, type DotSize, type DotText, dotCounts, dotTextRect, NONE_KEY, widest } from "../../layout/dots";
 import { textWidth } from "../../layout/measure";
 import { besideSameSpot, type Layout, type Point, type Rect, type SceneBadge } from "../../layout/scene";
+import { DOTS_LOOK, DOTS_TYPE } from "../../look/dots";
 import { COLOR_ORDER, type ColorKey, LOOK } from "../../look/values";
 import { VENN_LOOK, VENN_TYPE } from "../../look/venn";
 import type { DiagramModel } from "../../schema";
@@ -75,6 +79,8 @@ export interface VennPlan {
   counts: (number | undefined)[][];
   lits: VennLit[];
   none?: VennNonePlan;
+  /** 点で数える見た目 (#3635) の点と箱と字。この見た目の図は円と区画と札を持たない */
+  dots?: DotPlan;
 }
 
 export interface VennLayout extends Layout {
@@ -164,8 +170,12 @@ function stepValues(diagram: DiagramModel, order: readonly string[]): { values: 
   return { values, none: nones, written };
 }
 
-/** 集合の重なりの図を並べる。`lang` は札の頭に付ける字の言葉 */
-export function layoutVenn(diagram: DiagramModel, lang: NotationLang = DEFAULT_LANG): VennLayout {
+/** 集まりの色。`color` を書かない集まりは宣言した順に色の役を配る */
+const colorsOf = (sets: readonly { color?: ColorKey }[]): ColorKey[] => sets.map((set, i) => set.color ?? (COLOR_ORDER[i % COLOR_ORDER.length] as ColorKey));
+
+/** 集合の重なりの図を並べる。`lang` は札の頭に付ける字の言葉、`width` は点で数える見た目で箱を上に置くかを決める枠の幅 */
+export function layoutVenn(diagram: DiagramModel, lang: NotationLang = DEFAULT_LANG, width?: number): VennLayout {
+  if (diagram.venn?.shape === "dots") return layoutVennDots(diagram, lang, width);
   const words = CHIP_WORDS[lang];
   const sets = diagram.venn?.sets ?? [];
   const order = sets.map((set) => set.id);
@@ -190,7 +200,7 @@ export function layoutVenn(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     : [unit([-0.5, -0.866]), unit([0.5, -0.866])];
   const { values, none, written } = stepValues(diagram, order);
   const used = new Set(sets.flatMap((set) => (set.color ? [set.color] : [])));
-  const colors: ColorKey[] = sets.map((set, i) => set.color ?? (COLOR_ORDER[i % COLOR_ORDER.length] as ColorKey));
+  const colors = colorsOf(sets);
   for (const c of colors) used.add(c);
   /** 3 つ全ての重なりの色。集まりが使っていない最初の色の役 */
   const allColor = (COLOR_ORDER.find((c) => !used.has(c)) ?? "slate") as ColorKey;
@@ -334,5 +344,162 @@ export function layoutVenn(diagram: DiagramModel, lang: NotationLang = DEFAULT_L
     ends: [],
     badges,
     venn: plan,
+  };
+}
+
+/** 段の番号を置かない場所の四角 */
+const square = ([x, y]: Point, r: number): Rect => ({ x: x - r, y: y - r, w: r * 2, h: r * 2 });
+
+/**
+ * 点で数える見た目 (#3635)。区画ごとに点の群れを置き、群れの下に区画の件数を、集まりだけの区画の群れの外に集まりの名前と全体の件数を書く。
+ * 群れは 3 行に並べる。1 行目は 1 つ目の集まりだけ、2 つの重なり、2 つ目の集まりだけの区画で、2 行目は 1 つ目と 3 つ目の重なり、3 つ全ての重なり、
+ * 2 つ目と 3 つ目の重なりの区画、3 行目は 3 つ目の集まりだけの区画。2 つの集まりの図は 1 行目だけを持つ。
+ * 区画の点の数は、今の段までに書いた数だけで出したそれぞれだけの数 (`provisionalOf`) を 1 点の件数で数えた数で、後の段で書く重なりは書いた段で点が寄る。
+ * 区画の件数は重なりの区画と、集まりだけの数が集まりの全体の数と違う段に出す。1 つ目と 3 つ目の集まりの名前は群れの左上と下、2 つ目は右上に置き、段の番号を名前の外の側に置く
+ */
+function layoutVennDots(diagram: DiagramModel, lang: NotationLang, width: number | undefined): VennLayout {
+  const sets = diagram.venn?.sets ?? [];
+  const order = sets.map((set) => set.id);
+  const colors = colorsOf(sets);
+  const colorOf = new Map(order.map((id, i) => [id, colors[i] as ColorKey]));
+  const regionSets = regionsOf(order);
+  const keys = regionSets.map((members) => members.join("&"));
+  const { values: written, none } = stepValues(diagram, order);
+  const provisional = written.map((v) => provisionalOf(order, (key) => v.get(key)));
+  const groups: DotGroup[] = regionSets.map((members, g) => ({ key: keys[g] as string, members, colors: members.map((id) => colorOf.get(id) as ColorKey) }));
+  const hasNone = none.some((v) => v !== undefined);
+  if (hasNone) groups.push({ key: NONE_KEY, members: [], colors: ["slate"] });
+  const values = provisional.map((map, s) => [...keys.map((key) => map.get(key) ?? 0), ...(hasNone ? [none[s] ?? 0] : [])]);
+  const unit = unitOf(
+    values.map((row) => row.reduce((a, b) => a + b, 0)),
+    diagram.venn?.unit,
+  );
+  const totals = order.map((id) => written.map((v) => v.get(id)));
+  const firsts = totals.map((row) => row.findIndex((v) => v !== undefined));
+  const regionTexts = regionSets.map((members, g) =>
+    provisional.map((map, s) => {
+      const value = map.get(keys[g] as string);
+      if (value === undefined || Math.round(value / unit) === 0) return undefined;
+      return members.length >= 2 || value !== totals[order.indexOf(members[0] as string)]?.[s] ? vennNumber(value) : undefined;
+    }),
+  );
+
+  const area = (size: DotSize, caps: number[]): DotArea => {
+    const C = DOTS_LOOK.cluster;
+    const R = LOOK.badge.r;
+    const blobs = caps.slice(0, keys.length).map((cap) => clusterSpots(cap, size));
+    const has = (g: number): boolean => g >= 0 && (caps[g] ?? 0) > 0;
+    const radius = (g: number): number => (has(g) ? (blobs[g]?.radius ?? 0) : 0);
+    const textW = regionTexts.map((texts) => widest(texts, "region"));
+    const textH = (g: number): number => (has(g) && (textW[g] ?? 0) > 0 ? C.textGap + DOTS_TYPE.region.size : 0);
+    const half = (g: number): number => (has(g) ? Math.max(radius(g), (textW[g] ?? 0) / 2) : 0);
+    // 区画の件数の字は、段ごとの群れの一番下の点のすぐ下に書く
+    const counts = dotCounts(values, unit);
+    const radiusAt = (g: number, s: number): number => clusterSpots(counts[s]?.[g] ?? 0, size).radius;
+    const lowAt = (g: number, s: number): number => Math.max(0, ...clusterSpots(counts[s]?.[g] ?? 0, size).spots.map(([, y]) => y + size.r));
+    const at = (...ids: string[]): number => keys.indexOf(order.filter((id) => ids.includes(id)).join("&"));
+    const totalTexts = totals.map((row) => row.map((v) => (v === undefined ? undefined : vennNumber(v))));
+    const labelW = sets.map((set, i) => Math.max(textWidth(set.name, DOTS_TYPE.name), widest(totalTexts[i] ?? [], "count")));
+    const labelH = above("name") + DOTS_LOOK.rows.countRow + below("count");
+    const [a, b, c] = [at(order[0] as string), at(order[1] as string), order[2] === undefined ? -1 : at(order[2])];
+    const ab = at(order[0] as string, order[1] as string);
+    const [ac, bc, abc] = order[2] === undefined ? [-1, -1, -1] : [at(order[0] as string, order[2]), at(order[1] as string, order[2]), at(...order)];
+    const centre = new Map<number, Point>();
+    // 1 行目。間は群れと区画の件数の字の広い方の半分どうしに群れの間を足し、2 つの名前も重ならないよう離す
+    const gapOf = (g: number, h: number): number => half(g) + C.gap + half(h);
+    const xA = 0;
+    const xAB = has(ab) ? xA + gapOf(a, ab) : xA + half(a) + C.gap / 2;
+    const xB = Math.max(has(ab) ? xAB + gapOf(ab, b) : xA + gapOf(a, b), xA + ((labelW[0] ?? 0) + (labelW[1] ?? 0)) / 2 + C.gap);
+    const top0 = labelH + C.labelGap;
+    const row0 = [a, ab, b].filter(has);
+    const cy0 = top0 + Math.max(0, ...row0.map(radius));
+    centre.set(a, [xA, cy0]).set(ab, [has(ab) ? xAB : (xA + xB) / 2, cy0]).set(b, [xB, cy0]);
+    let bottom = cy0 + Math.max(0, ...row0.map((g) => radius(g) + textH(g)));
+    const mid = has(ab) ? xAB : (xA + xB) / 2;
+    if (c >= 0) {
+      const row1 = [ac, abc, bc].filter(has);
+      if (row1.length > 0) {
+        const cy1 = bottom + C.gap + Math.max(...row1.map(radius));
+        const inner = has(abc) ? half(abc) + C.gap : C.gap / 2;
+        centre.set(abc, [mid, cy1]);
+        centre.set(ac, [Math.min((xA + mid) / 2, mid - inner - half(ac)), cy1]);
+        centre.set(bc, [Math.max((mid + xB) / 2, mid + inner + half(bc)), cy1]);
+        bottom = cy1 + Math.max(...row1.map((g) => radius(g) + textH(g)));
+      }
+      const cy2 = bottom + C.gap + radius(c);
+      centre.set(c, [mid, cy2]);
+      bottom = cy2 + radius(c) + textH(c);
+    }
+    // 集まりの名前と全体の件数。1 つ目と 2 つ目は 1 行目の上、3 つ目は 3 つ目の集まりだけの群れの下に置く
+    const labels = sets.map((_, i) => {
+      const g = [a, b, c][i] as number;
+      const [x] = centre.get(g) ?? [0, 0];
+      const topY = i < 2 ? 0 : bottom + C.labelGap;
+      return { x, nameY: topY + above("name"), countY: topY + above("name") + DOTS_LOOK.rows.countRow, w: labelW[i] ?? 0 };
+    });
+    if (c >= 0) bottom += C.labelGap + labelH;
+    const regionY = (g: number, s: number): number => (centre.get(g)?.[1] ?? 0) + lowAt(g, s) + C.textGap + above("region");
+    // 段の番号は、その段で初めて数を書いた集まりの名前の外の側に置く。集まりの名前の無い段は、初めて点を持った区画の件数の左に置く
+    const badgeOf = (s: number): Point | undefined => {
+      const i = firsts.indexOf(s);
+      const label = labels[i];
+      if (label) {
+        const right = i === 1;
+        const x = right ? label.x + label.w / 2 + DOTS_LOOK.badge.gap + R : label.x - label.w / 2 - DOTS_LOOK.badge.gap - R;
+        return [x, label.nameY - DOTS_TYPE.name.size * 0.3];
+      }
+      const g = keys.findIndex((_, k) => has(k) && (counts[s]?.[k] ?? 0) > 0 && !counts.slice(0, s).some((row) => (row[k] ?? 0) > 0));
+      const p = centre.get(g);
+      if (g < 0 || !p) return undefined;
+      const text = regionTexts[g]?.[s];
+      if (text === undefined) return [p[0] - radiusAt(g, s) - DOTS_LOOK.badge.gap - R, p[1]];
+      return [p[0] - textWidth(text, DOTS_TYPE.region) / 2 - DOTS_LOOK.badge.gap - R, regionY(g, s) - DOTS_TYPE.region.size * 0.3];
+    };
+    const badgeSpots = values.map((_, s) => badgeOf(s));
+    const left = Math.min(...[...centre.entries()].filter(([g]) => has(g)).map(([g, [x]]) => x - half(g)), ...labels.map((l) => l.x - l.w / 2), ...badgeSpots.flatMap((p) => (p ? [p[0] - R] : [])));
+    const right = Math.max(...[...centre.entries()].filter(([g]) => has(g)).map(([g, [x]]) => x + half(g)), ...labels.map((l) => l.x + l.w / 2), ...badgeSpots.flatMap((p) => (p ? [p[0] + R] : [])));
+    const dx = -left;
+    const texts: DotText[] = [];
+    sets.forEach((set, i) => {
+      const label = labels[i];
+      if (!label) return;
+      const from = firsts[i] ?? -1;
+      texts.push({ role: "name", key: set.id, x: label.x + dx, y: label.nameY, anchor: "middle", texts: values.map((_, s) => (from >= 0 && s >= from ? set.name : undefined)), color: colors[i] });
+      texts.push({ role: "count", key: set.id, x: label.x + dx, y: label.countY, anchor: "middle", texts: totalTexts[i] ?? [] });
+    });
+    keys.forEach((key, g) => {
+      const p = centre.get(g);
+      if (!has(g) || !p || (textW[g] ?? 0) === 0) return;
+      texts.push({ role: "region", key, x: p[0] + dx, y: p[1] + radius(g) + C.textGap + above("region"), ys: values.map((_, s) => regionY(g, s)), anchor: "middle", texts: regionTexts[g] ?? [] });
+    });
+    const spot = (g: number, k: number): Point => {
+      const [x, y] = centre.get(g) ?? [0, 0];
+      const [ox, oy] = blobs[g]?.spots[k] ?? [0, 0];
+      return [x + dx + ox, y + oy];
+    };
+    const blocked = [
+      ...texts.flatMap((t) => {
+        const text = t.texts.find((x) => x !== undefined);
+        return text === undefined ? [] : [dotTextRect(t, text)];
+      }),
+      ...[...centre.entries()].filter(([g]) => has(g)).map(([g, [x, y]]) => square([x + dx, y], radius(g))),
+    ];
+    return { w: right - left, h: bottom, spot, texts, badges: badgeSpots.map((p) => (p ? ([p[0] + dx, p[1]] as Point) : undefined)), blocked };
+  };
+  const placed = arrangeDots({ groups, values, unit, ...(width === undefined ? {} : { width }), lang }, area);
+  return {
+    kind: "venn",
+    width: placed.width,
+    height: placed.height,
+    regions: [],
+    boxes: [],
+    lifelines: [],
+    edges: [],
+    labels: [],
+    actions: [],
+    paths: [],
+    ends: [],
+    badges: besideSameSpot(placed.badges, () => false, () => true),
+    venn: { circles: [], regions: [], totals, counts: [], lits: [], dots: placed.plan },
   };
 }

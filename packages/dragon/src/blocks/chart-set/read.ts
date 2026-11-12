@@ -7,12 +7,18 @@
  *
  * 漏斗の見た目 (#3621) は段を進むほど値が減る図なので、段を閉じるたびに、値を書いた項目の値が前の項目の値より大きくないかを確かめる (`blocks/chart-shape/funnel.ts`)。
  * 同じ段の中では書く順を問わないよう、段の値を全て読んでから確かめ、大きくなった項目の値の字を指して止める。
- * 読み終えた時に、どの段にも値を書かなかった項目は漏斗の段に出ないので、宣言の行の名札を指して止める
+ * 読み終えた時に、どの段にも値を書かなかった項目は漏斗の段に出ないので、宣言の行の名札を指して止める。
+ *
+ * `set none: <値>` (#3635) はどの項目にも入らない数で、漏斗のほかの見た目で書ける。値の出来事の項目の名札を `none` にして持ち、
+ * 描く時に項目の後ろの灰色の弧か棒か点にする。漏斗の見た目では今までどおり宣言していない項目の誤りで止める。
+ * 点で数える見た目 (#3635) は段ごとの全体 (項目の値と `none` の和) を積み、読み終えた時に、点の数が上限を超える段があれば頭の行を指して止める
  */
 import { fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
-import { ITEM_LINES } from "../chart-item/read";
+import { CHART_NONE, ITEM_LINES } from "../chart-item/read";
+import { tooManyDots, unitOf } from "../../dot-count";
+import { DOTS_TEXT } from "../chart-shape/dots";
 import { FUNNEL_TEXT, risesAt } from "../chart-shape/funnel";
 
 /** `set <項目>: <値>` の行。項目と値の位置を取る */
@@ -31,6 +37,8 @@ export interface ChartSetMessages {
   chartFunnelRises: (item: string, value: number, before: string, beforeValue: number) => string;
   /** 漏斗の見た目で、項目 `item` の値をどの段にも書いていない (#3621) */
   chartFunnelUnset: (item: string) => string;
+  /** 点で数える見た目で、点が `count` 個になる段がある (#3635)。`unit` は使った 1 点の件数 */
+  chartDotsTooMany: (count: number, unit: number) => string;
 }
 
 /** 漏斗の見た目の、読んだ段までの項目の値と、書いている段の値の行 */
@@ -51,6 +59,35 @@ function funnelOf(state: ParseState): FunnelDraft | undefined {
   const draft: FunnelDraft = { values: new Map(), sets: [] };
   FUNNELS.set(chart, draft);
   return draft;
+}
+
+/** 点で数える見た目 (#3635) の、今の項目ごとの値と、閉じた段ごとの全体の値。`open` は値を積む段を始めたか */
+interface DotsDraft {
+  now: Map<string, number>;
+  totals: number[];
+  open: boolean;
+}
+
+/** 読んでいる量の図ごとの点で数える見た目の値。鍵は読んでいる記法の量の図の欄 */
+const DOTS = new WeakMap<object, DotsDraft>();
+
+/** 点で数える見た目の量の図なら、その図の値。ほかの見た目では `undefined` */
+function dotsDraftOf(state: ParseState): DotsDraft | undefined {
+  const { chart } = state.figure;
+  if (chart.shape?.value !== "dots") return undefined;
+  const found = DOTS.get(chart);
+  if (found) return found;
+  const draft: DotsDraft = { now: new Map(), totals: [], open: false };
+  DOTS.set(chart, draft);
+  return draft;
+}
+
+/** 書いていた段の全体の値を積む。最初の段を始める前は積まない */
+function closeDotsStep(state: ParseState): void {
+  const draft = dotsDraftOf(state);
+  if (!draft) return;
+  if (draft.open) draft.totals.push([...draft.now.values()].reduce((a, b) => a + b, 0));
+  draft.open = true;
 }
 
 /** 書いていた段の値を足し、前の項目より大きい値を持った項目が在れば、その項目か前の項目をその段で書いた値の字を指して止める */
@@ -80,19 +117,32 @@ export const reading: BlockReading<ChartSetMessages> = {
     const raw = (found?.[2] ?? "").trim();
     const rawAt = found?.indices?.[2]?.[0];
     if (!found || id === undefined || idAt === undefined || rawAt === undefined || raw === "") throw fail(source, 0, m.chartSetShape);
-    if (!state.figure.chart.items.some((item) => item.id === id)) throw fail(source, idAt, m.chartUndeclaredItem(id));
+    // どの項目にも入らない数は漏斗のほかの見た目で書ける。漏斗の見た目では宣言していない項目として断る
+    const isNone = id === CHART_NONE && state.figure.chart.shape?.value !== "funnel";
+    if (!isNone && !state.figure.chart.items.some((item) => item.id === id)) throw fail(source, idAt, m.chartUndeclaredItem(id));
     if (!AMOUNT.test(raw)) throw fail(source, rawAt, m.chartSetAmount(raw));
     step.events.push({ type: "set", item: id, value: Number(raw) });
     funnelOf(state)?.sets.push({ id, value: Number(raw), source, at: rawAt });
+    dotsDraftOf(state)?.now.set(id, Number(raw));
     return true;
   },
-  beginStep: closeFunnelStep,
-  finish: (state) => {
+  beginStep: (state) => {
+    closeFunnelStep(state);
+    closeDotsStep(state);
+  },
+  finish: (state, head) => {
     closeFunnelStep(state);
     const draft = funnelOf(state);
     const unset = draft && state.figure.chart.items.find((item) => !draft.values.has(item.id));
     const line = unset && ITEM_LINES.get(unset);
     if (unset && line) throw fail(line.source, line.at, state.m.chartFunnelUnset(unset.id));
+    closeDotsStep(state);
+    const dots = dotsDraftOf(state);
+    if (!dots) return;
+    const given = state.figure.chart.unit;
+    const unit = unitOf(dots.totals, given ? Number(given.value) : undefined);
+    const count = tooManyDots(dots.totals, unit);
+    if (count !== undefined) throw fail(head, given?.at ?? 0, state.m.chartDotsTooMany(count, unit));
   },
   read: none("量の図の set の行は、中身の帯の欄の値の語なので行の形 (take) で読む"),
   print: { events: { set: (e) => `set ${e.item}: ${e.value}` } },
@@ -103,6 +153,7 @@ export const reading: BlockReading<ChartSetMessages> = {
       chartSetAmount: (value) => `${value} は量の図の値に書けない。値は 0 以上の数で、単位を付けずに書く`,
       chartFunnelRises: FUNNEL_TEXT.ja.rises,
       chartFunnelUnset: FUNNEL_TEXT.ja.unset,
+      chartDotsTooMany: DOTS_TEXT.ja.tooMany,
     },
     en: {
       chartSetShape: "Write a chart value inside a step as set <item>: <value>",
@@ -110,6 +161,7 @@ export const reading: BlockReading<ChartSetMessages> = {
       chartSetAmount: (value) => `${value} cannot be a chart value. Write a number of 0 or more, without a unit`,
       chartFunnelRises: FUNNEL_TEXT.en.rises,
       chartFunnelUnset: FUNNEL_TEXT.en.unset,
+      chartDotsTooMany: DOTS_TEXT.en.tooMany,
     },
   },
 };

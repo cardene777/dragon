@@ -1,0 +1,28 @@
+// 1,000人に聞いた、いちばんよく使う端末を、1点を10人の点で数えて比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart 1,000人に聞いた端末 [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say いちばんよく使う端末がiPhoneの人は412人で、点41個になる。
+  set i: 412
+
+step Android
+  say Androidの人は287人で、iPhoneの次に多い。
+  set a: 287
+
+step Windows
+  say Windowsのパソコンの人は158人だった。
+  set w: 158
+
+step Mac
+  say Macの人は93人で、点9個になる。
+  set m: 93
+
+step どれも使わない
+  say どれも使わない50人は、点が灰色のまま全体の箱に残る。
+  set none: 50

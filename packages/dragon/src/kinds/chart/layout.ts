@@ -10,11 +10,17 @@
  * 枠の幅 `width` を渡すと、凡例を輪の右に置けない幅では輪の下に置き、横棒は一番大きい値の棒を枠に入る長さまで縮める。
  * 漏斗の見た目 (#3621) は、宣言した順に上から段の行を並べ、左端を揃えた棒を最初の段の値に比べた長さにし、前の段との差を薄い棒にして去った数を書く。
  * 段の番号は段の中で最初に値を書いた項目の行の左に置き、最後の段で、最初の段のうち最後の段まで残った割合の行を足す (`funnelPlan`)。
+ * `set none` (#3635) を書いた図は、ドーナツと横棒ではどれにも入らない数を最後の項目の後ろに灰色の項目として足す。
+ * 点で数える見た目 (#3635) は、項目ごとに点を 1 行に並べて折り返し、全体の箱から項目の行へ点を寄せる (`dotsPlan`、共通の部品は `layout/dots.ts`)。
  * 見本帳を開いた時に読まない図の種類なので、後から読む塊に入れる (#3248)
  */
+import { CHART_NONE } from "../../blocks/chart-item/read";
+import { unitOf } from "../../dot-count";
+import { above, arrangeDots, type DotArea, type DotGroup, type DotPlan, type DotText, dotTextRect, NONE_KEY, rowSpot, widest } from "../../layout/dots";
 import { textBox, textWidth } from "../../layout/measure";
 import { besideSameSpot, type Layout, type Rect, type SceneBadge } from "../../layout/scene";
 import { CHART_LOOK, CHART_TYPE } from "../../look/chart";
+import { DOTS_LOOK, DOTS_TYPE } from "../../look/dots";
 import { COLOR_ORDER, type ColorKey, LOOK } from "../../look/values";
 import type { ChartShape, DiagramModel } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
@@ -127,6 +133,8 @@ export interface ChartPlan {
   lengths?: number[][];
   /** 漏斗の見た目 (#3621) の段の行と薄い棒と残った割合の行 */
   funnel?: FunnelPlan;
+  /** 点で数える見た目 (#3635) の点と箱と字 */
+  dots?: DotPlan;
 }
 
 export interface ChartLayout extends Layout {
@@ -146,6 +154,28 @@ const FUNNEL_WORDS: Readonly<Record<NotationLang, { left: (count: string) => str
   ja: { left: (count) => `${count}が去った`, total: "最後まで残った" },
   en: { left: (count) => `${count} left`, total: "Made it to the end" },
 };
+
+/** どれにも入らない数 (#3635) の項目の名前。ドーナツの凡例と横棒の左に出す */
+const NONE_NAME: Readonly<Record<NotationLang, string>> = { ja: "どれにも入らない", en: "In none" };
+
+/**
+ * 段ごとのどれにも入らない数 (#3635)。`set none` を書かない段は前の段の値を保ち、書く前の段は 0。
+ * どの段にも書かない図と漏斗の見た目は `undefined`
+ */
+function noneValues(diagram: DiagramModel): number[] | undefined {
+  if (diagram.chart?.shape === "funnel") return undefined;
+  let now = 0;
+  let written = false;
+  const values = diagram.steps.map((step) => {
+    for (const event of step.events) {
+      if (event.type !== "set" || event.item !== CHART_NONE) continue;
+      now = event.value;
+      written = true;
+    }
+    return now;
+  });
+  return written ? values : undefined;
+}
 
 /** 段ごと項目ごとの値。`set` を書かない項目は前の段の値を保ち、まだ値の無い項目は 0 */
 export function chartValues(diagram: DiagramModel): number[][] {
@@ -179,8 +209,76 @@ export function layoutChart(diagram: DiagramModel, options: ChartLayoutOptions =
     const placed = funnelPlan(items, values, diagram, options);
     return { kind: "chart", ...base, badges: funnelBadges(diagram, placed.plan.funnel as FunnelPlan), width: placed.width, height: placed.height, chart: placed.plan };
   }
-  const placed = shape === "bar" ? barPlan(items, values, options) : donutPlan(items, values, options);
+  const nones = noneValues(diagram);
+  if (shape === "dots") {
+    const placed = dotsPlan(items, values, nones, diagram, options);
+    return { kind: "chart", ...base, badges: placed.badges, width: placed.width, height: placed.height, chart: placed.plan };
+  }
+  // どれにも入らない数は、最後の項目の後ろの灰色の項目にする
+  const rows = nones ? [...items, { id: CHART_NONE, name: NONE_NAME[options.lang ?? DEFAULT_LANG], color: "slate" as ColorKey }] : items;
+  const all = nones ? values.map((row, s) => [...row, nones[s] ?? 0]) : values;
+  const placed = shape === "bar" ? barPlan(rows, all, options) : donutPlan(rows, all, options);
   return { kind: "chart", ...base, badges: badgesOf(diagram), width: placed.width, height: placed.height, chart: placed.plan };
+}
+
+/**
+ * 点で数える見た目 (#3635)。項目を宣言した順に上から並べ、項目ごとに左に段の番号と名前と正確な件数を、右に点の行を置く。
+ * 点の行は折り返す点の数を全ての項目で揃え、枠の幅を書かない図は `DOTS_LOOK.rows.cols` 個で、書いた図は群れに使える幅に収まる数で折り返す。
+ * 名前と件数は項目の値を初めて書いた段から出し、段の番号はその段に初めて値を書いた項目の名前の左に置く。どれにも入らない数は全体の箱に残す
+ */
+function dotsPlan(items: ChartRow[], values: number[][], nones: number[] | undefined, diagram: DiagramModel, options: ChartLayoutOptions): { plan: ChartPlan; width: number; height: number; badges: SceneBadge[] } {
+  const groups: DotGroup[] = items.map((item) => ({ key: item.id, members: [item.id], colors: [item.color] }));
+  if (nones) groups.push({ key: NONE_KEY, members: [], colors: ["slate"] });
+  const all = nones ? values.map((row, s) => [...row, nones[s] ?? 0]) : values;
+  const unit = unitOf(
+    all.map((row) => row.reduce((a, b) => a + b, 0)),
+    diagram.chart?.unit,
+  );
+  const firsts = items.map((item) => diagram.steps.findIndex((step) => step.events.some((e) => e.type === "set" && e.item === item.id)));
+  const R = LOOK.badge.r;
+  const W = DOTS_LOOK.rows;
+  const nameX = R * 2 + DOTS_LOOK.badge.gap;
+  const counts = items.map((_, i) => values.map((row, s) => ((firsts[i] ?? -1) >= 0 && s >= (firsts[i] ?? 0) ? grouped(row[i] ?? 0) : undefined)));
+  const nameW = Math.max(0, ...items.map((item) => textWidth(item.name, DOTS_TYPE.name)), ...counts.map((texts) => widest(texts, "count")));
+  const area = (size: { pitch: number; r: number }, caps: number[], room: number | undefined): DotArea => {
+    const x0 = nameX + nameW + W.nameGap;
+    const most = Math.max(1, ...caps.slice(0, items.length));
+    const fit = room === undefined ? W.cols : Math.floor((room - x0 - size.r * 2) / size.pitch) + 1;
+    const cols = Math.max(1, Math.min(most, room === undefined ? fit : Math.min(W.most, fit)));
+    const texts: DotText[] = [];
+    const tops: number[] = [];
+    let y = 0;
+    items.forEach((item, i) => {
+      const rows = Math.max(1, Math.ceil((caps[i] ?? 0) / cols));
+      const nameY = y + above("name");
+      const countY = nameY + W.countRow;
+      tops.push(y);
+      const shown = values.map((_, s) => ((firsts[i] ?? -1) >= 0 && s >= (firsts[i] ?? 0) ? item.name : undefined));
+      texts.push({ role: "name", key: item.id, x: nameX, y: nameY, anchor: "start", texts: shown, color: item.color });
+      texts.push({ role: "count", key: item.id, x: nameX, y: countY, anchor: "start", texts: counts[i] ?? [] });
+      y += Math.max(countY - y + DOTS_TYPE.count.size * 0.2, (rows - 1) * size.pitch + size.r * 2) + W.gap;
+    });
+    const spot = (g: number, k: number): [number, number] => {
+      const [dx, dy] = rowSpot(k, cols, size);
+      return [x0 + size.r + dx, (tops[g] ?? 0) + size.r + dy];
+    };
+    const badges = values.map((_, s) => {
+      const i = firsts.indexOf(s);
+      return i < 0 ? undefined : ([R, (tops[i] ?? 0) + above("name") - DOTS_TYPE.name.size * 0.3] as [number, number]);
+    });
+    const blocked = texts.flatMap((t) => {
+      const widest = t.texts.find((text) => text !== undefined);
+      return widest === undefined ? [] : [dotTextRect(t, widest)];
+    });
+    return { w: x0 + (cols - 1) * size.pitch + size.r * 2, h: y - W.gap, spot, texts, badges, blocked };
+  };
+  const placed = arrangeDots({ groups, values: all, unit, ...(options.width === undefined ? {} : { width: options.width }), ...(options.lang ? { lang: options.lang } : {}) }, area);
+  return {
+    plan: { shape: "dots", items, values, title: { x: DOTS_LOOK.pad, y: DOTS_LOOK.pad, anchor: "start" }, dots: placed.plan },
+    width: placed.width,
+    height: placed.height,
+    badges: besideSameSpot(placed.badges, () => false, () => true),
+  };
 }
 
 /** 3 桁ごとに `,` で区切った数。小数は書いたまま続ける */

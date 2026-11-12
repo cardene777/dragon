@@ -7,16 +7,23 @@
  * 重なりの数が、その重なりの集まりか、その重なりを含む組の数より大きくなった行は、その行の数を指して止める。
  * 集まりの数は 2 つか 3 つで、4 つ目の集まりの行か、読み終えた時 (`finish`) に頭の行を指して止める。
  * 読み終えた時は段ごとにそれぞれだけの区画の数を出し、0 より小さくなる区画があれば、その区画の数を決めた最後の行を指して止める。
- * 集合の重なりの図に書ける行は集まりと数と段の行だけで、ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める
+ * 集合の重なりの図に書ける行は集まりと数と段の行だけで、ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める。
+ *
+ * 図の種類の行の `[shape: dots]` (#3635) は区画ごとの数を点の数で数える見た目で、`shape` にはほかの値を書けない。
+ * 1 点の件数の `[unit: <数>]` は点で数える見た目だけに書け、0 より大きい数かを最初の段を始める時 (`settle`) に確かめる。
+ * 読み終えた時は段ごとの全体 (区画のそれぞれだけの数とどれにも入らない数の和) を数え、点の数が上限を超える段があれば頭の行を指して止める
  */
 import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
+import { VENN_SHAPES } from "../chart-shape/block";
+import { isUnit, tooManyDots, unitOf } from "../../dot-count";
+import { DOTS_TEXT } from "../chart-shape/dots";
 import { type Color, COLORS } from "../color/block";
 import type { VennSet } from "./block";
 import { NONE, VENN_SETS } from "./limits";
-import { exclusiveOf, regionKey, regionName, regionsOf } from "./regions";
+import { exclusiveOf, provisionalOf, regionKey, regionName, regionsOf } from "./regions";
 
 /** 集合の重なりの図の `item` の行に書ける属性の鍵 */
 const VENN_ITEM_ATTRS: readonly string[] = ["color"];
@@ -58,6 +65,14 @@ export interface CircleMessages {
   vennOverlapTooLarge: (overlap: string, value: number, of: string, most: number) => string;
   /** 区画 `region` だけの数が 0 より小さい `value` になる */
   vennRegionNegative: (region: string, value: number) => string;
+  /** `shape` に `dots` のほかの値を書いた (#3635) */
+  vennBadShape: (shapes: readonly string[]) => string;
+  /** 点で数える見た目でない集合の重なりの図に `unit` を書いた (#3635) */
+  vennUnitNeedsDots: string;
+  /** `unit` の値が 0 より大きい数でない (#3635) */
+  vennUnitAmount: (value: string) => string;
+  /** 点で数える見た目で、点が `count` 個になる段がある (#3635)。`unit` は使った 1 点の件数 */
+  vennDotsTooMany: (count: number, unit: number) => string;
 }
 
 /** 集合の重なりの図の `item <名札> as <名前> [color: <色>]` の行。名前を書かない集まりは名札を名前にする */
@@ -99,6 +114,7 @@ function readCount(source: SourceLine, state: ParseState): void {
   const venn = state.figure.venn;
   if (names.length === 1 && names[0]?.id === NONE) {
     step.events.push({ type: "none", value });
+    venn.nones.push({ value, step: venn.step });
     return;
   }
   const order = venn.sets.map((set) => set.id);
@@ -143,6 +159,21 @@ function checkRegions(state: ParseState): void {
   }
 }
 
+/** 点で数える見た目の、段ごとの全体の数。区画のそれぞれだけの数は今の段までに書いた数だけで出す (`provisionalOf`) */
+function dotTotals(state: ParseState): number[] {
+  const { sets, writes, nones, step: last } = state.figure.venn;
+  const order = sets.map((set) => set.id);
+  const now = new Map<string, number>();
+  let rest = 0;
+  const totals: number[] = [];
+  for (let s = 0; s <= last; s++) {
+    for (const w of writes) if (w.step === s) now.set(w.key, w.value);
+    for (const n of nones) if (n.step === s) rest = n.value;
+    totals.push([...provisionalOf(order, (key) => now.get(key)).values()].reduce((a, b) => a + b, rest));
+  }
+  return totals;
+}
+
 /** 集まりの宣言の行。名前が名札と同じ集まりは `as` を書かない */
 const itemLine = (set: VennSet): string => `item ${set.id}${shown(set.id, set.name)}${attrs([["color", set.color]])}`;
 
@@ -159,13 +190,24 @@ export const reading: BlockReading<CircleMessages> = {
   reserved: (source, id, at, state) => {
     if (id === NONE) throw fail(source, at, state.m.vennNoneId);
   },
+  settle: (state, head) => {
+    const { shape, unit } = state.figure.venn;
+    if (shape && !isOneOf(VENN_SHAPES, shape.value)) throw fail(head, shape.at, state.m.vennBadShape(VENN_SHAPES));
+    if (unit && !shape) throw fail(head, unit.at, state.m.vennUnitNeedsDots);
+    if (unit && !isUnit(unit.value)) throw fail(head, unit.at, state.m.vennUnitAmount(unit.value));
+  },
   beginStep: (state) => {
     state.figure.venn.step += 1;
   },
   finish: (state, head) => {
-    const count = state.figure.venn.sets.length;
-    if (count < VENN_SETS.least) throw fail(head, 0, state.m.vennSetCount(VENN_SETS.least, VENN_SETS.most, count));
+    const { sets, shape, unit: given } = state.figure.venn;
+    if (sets.length < VENN_SETS.least) throw fail(head, 0, state.m.vennSetCount(VENN_SETS.least, VENN_SETS.most, sets.length));
     checkRegions(state);
+    if (!shape) return;
+    const totals = dotTotals(state);
+    const unit = unitOf(totals, given ? Number(given.value) : undefined);
+    const count = tooManyDots(totals, unit);
+    if (count !== undefined) throw fail(head, given?.at ?? 0, state.m.vennDotsTooMany(count, unit));
   },
   read: none("集合の重なりの図の item と set の行は、列の図のチップと中身の帯の語なので行の形 (take) で読む"),
   print: {
@@ -190,6 +232,10 @@ export const reading: BlockReading<CircleMessages> = {
       vennNoneAlone: "none は & で繋げない。どれにも入らない数は set none: <数> の 1 行で書く",
       vennOverlapTooLarge: (overlap, value, of, most) => `${overlap} の数 ${value} が ${of} の数 ${most} より大きい。重なりの数は、重なる集まりの数より大きくできない`,
       vennRegionNegative: (region, value) => `${region} だけの区画の数が ${value} になる。重なりの数を足すと、重なる集まりの数より大きい`,
+      vennBadShape: DOTS_TEXT.ja.vennShape,
+      vennUnitNeedsDots: DOTS_TEXT.ja.unitNeedsDots,
+      vennUnitAmount: DOTS_TEXT.ja.unitAmount,
+      vennDotsTooMany: DOTS_TEXT.ja.tooMany,
     },
     en: {
       vennSetCount: (least, most, count) => `A set overlap diagram (venn) takes ${least} or ${most} sets (item lines), not ${count}`,
@@ -204,6 +250,10 @@ export const reading: BlockReading<CircleMessages> = {
       vennNoneAlone: "none cannot be joined with &. Write the count in no set on its own line as set none: <count>",
       vennOverlapTooLarge: (overlap, value, of, most) => `The count ${value} of ${overlap} is larger than the count ${most} of ${of}. An overlap cannot be larger than the sets it overlaps`,
       vennRegionNegative: (region, value) => `The region only in ${region} comes to ${value}. The overlaps add up to more than the sets they overlap`,
+      vennBadShape: DOTS_TEXT.en.vennShape,
+      vennUnitNeedsDots: DOTS_TEXT.en.unitNeedsDots,
+      vennUnitAmount: DOTS_TEXT.en.unitAmount,
+      vennDotsTooMany: DOTS_TEXT.en.tooMany,
     },
   },
 };
