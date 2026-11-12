@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-11-12
+
 ### Added
 
 - **A chart can draw a funnel with `[shape: funnel]`, where the count shrinks stage by stage** (#3621)
@@ -19,16 +21,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **A lineup diagram can stack its boxes as layers with `[shape: layers]`** (#3625)
 
   There was no way to draw one request or transaction going down through layers, such as app, wallet, L2 and L1, or browser, CDN, API and database, and lanes laid side by side hid that the boxes are stacked. Write `lineup <title> [shape: layers]`, and the boxes become horizontal bands from top to bottom in the order written, with the layer's name, its `note` and its number on the left of each band. No new words are added: `line <layer>: <chip>` in a step is the layer the chip is in, drawing that band strongest and the bands it has passed lighter, and `note <layer>: <text>` stamps the mark of that layer until the next `note` on it. A chip's `note` shows as a second line on its card. On a narrow frame the mark and the card move under the name and description of each layer. A layers lineup takes up to 8 layers and draws no arrows between them, and it refuses `[order: none]`, `role`, `seal`, `open`, `pick` and `stamp` in Japanese and English, because the layers look does not draw them. A lineup without `[shape: layers]` reads and draws as before. The catalog has two examples in Japanese and English: an L2 transaction until it is final and a web request from the page to the store. The layers layout, its reading and its error messages load only with the lineup diagram.
-
-### Changed
-
-- **The drawing core looks up each diagram kind that loads later by its name, so adding a kind no longer makes the script that the one-line entry loads first bigger** (#3656)
-
-  The drawing core picked the layout, the label timing and the drawing of each diagram kind that loads later with one branch per kind, so every new kind added a branch to the script that `dist/cdn/dragon.js` loads first. Each of those kinds now hands one set of parts to the kind registry (`parts` in `kinds/<kind>.ts`, shaped by `KindParts` in `kinds/parts.ts`), holding its layout, its label timing, its drawing and what the follow view looks at in each step. The core looks the set up by the kind name and calls it, and names none of these kinds. The cycle diagram and the table relation diagram now share one function that shows a label from the moment its line starts until its step ends. Every diagram draws exactly as before. On a page that draws only a sequence diagram, the script loaded first went from 88,355 to 87,162 bytes gzipped.
-
-## [0.72.0] - 2026-11-12
-
-### Added
 
 - **A browser entry (`@cardenelabs/dragon/capture`) turns a diagram drawn on the page into PNG, SVG, GIF and MP4, and `editorUrl` makes a link that opens the notation in the editor** (#3644)
 
@@ -79,6 +71,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   Every character in the editor was the same colour, so the diagram kind, the `->` of a line and the settings all looked alike. A colour layer now sits under the text area. In the notation it draws eight roles in different colours: the diagram kind, the word that starts a line, `as`, the `->` of a line, a setting's key, a setting's value, comments, and the command after `code`. In the JSON it colours keys, strings, numbers, and `true`, `false` and `null`. The colours come from the light and dark values of the site's five palettes, and a colour is moved toward the text colour only when its contrast with the editor background is below 4.5. The words that start a line and the diagram kinds come from `NOTATION_WORDS`, a new export of the package, so adding a block adds its colour too. The colour layer holds exactly the text in the editor and stays aligned while you type and scroll. While you compose Japanese text with an input method, the text being composed is shown by the text area itself.
 
 ### Changed
+
+- **The drawing core looks up each diagram kind that loads later by its name, so adding a kind no longer makes the script that the one-line entry loads first bigger** (#3656)
+
+  The drawing core picked the layout, the label timing and the drawing of each diagram kind that loads later with one branch per kind, so every new kind added a branch to the script that `dist/cdn/dragon.js` loads first. Each of those kinds now hands one set of parts to the kind registry (`parts` in `kinds/<kind>.ts`, shaped by `KindParts` in `kinds/parts.ts`), holding its layout, its label timing, its drawing and what the follow view looks at in each step. The core looks the set up by the kind name and calls it, and names none of these kinds. The cycle diagram and the table relation diagram now share one function that shows a label from the moment its line starts until its step ends. Every diagram draws exactly as before. On a page that draws only a sequence diagram, the script loaded first went from 88,355 to 87,162 bytes gzipped.
 
 - **The one-line script entry reads less on a page that draws only a sequence diagram** (#3657)
 
