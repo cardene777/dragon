@@ -8,7 +8,7 @@
  * 集合の重なりの図だけが書けることは骨組みが、名指した集まりが在るかと重なりの数が集まりの数を超えないかは記法を読む処理が確かめる
  */
 import type { BlockShape } from "../block";
-import { VENN_SETS } from "./block";
+import { VENN_SETS } from "./limits";
 
 /** 集まりの名札。名札に使える字のうち `&` を除き、`none` を除く */
 const vennId = { type: "string", pattern: "^(?!none$)[^\\s\\[\\]「」=:&]+$" };

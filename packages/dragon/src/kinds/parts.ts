@@ -8,6 +8,7 @@
  */
 import type { SubChange } from "../blocks/box/draw";
 import type { CarrierTime } from "../blocks/carry/timing";
+import type { FieldChange } from "../blocks/strip/draw";
 import type { Layout, Rect, SceneEdge, SceneField } from "../layout/scene";
 import type { ColorKey } from "../look/values";
 import type { RenderOptions } from "../render/draw";
@@ -61,8 +62,16 @@ export interface KindParts<L extends Layout = Layout> {
   carried?(this: void, timeline: Timeline): CarrierTime[];
   /** 描く道具に足す口 (手順の図の箱の縁と名前)。描く道具を作る時に 1 度だけ呼ぶ */
   hooks?(this: void, m: Motion, timeline: Timeline): Partial<Ctx>;
-  /** 描き方。`subs` は箱の下の字、`follow` は寄って追う窓で描くか */
-  draw?(this: void, layout: L, diagram: DiagramModel, ctx: Ctx, subs: Map<string, SubChange[]>, follow: boolean): KindDrawn;
+  /** 描き方。`subs` は箱の下の字、`follow` は寄って追う窓で描くか、`fields` は値の欄ごとの移り変わり */
+  draw?(
+    this: void,
+    layout: L,
+    diagram: DiagramModel,
+    ctx: Ctx,
+    subs: Map<string, SubChange[]>,
+    follow: boolean,
+    fields: ReadonlyMap<string, FieldChange[]>,
+  ): KindDrawn;
   /** 値の表の物差しの欄 (時間軸の図、#3165) */
   meter?(this: void, field: SceneField & { meter: NonNullable<SceneField["meter"]> }, keys: [number, number][], ctx: Ctx): string;
   /** 段で動く物。寄って追う窓が寄せる所を決める時に見る */

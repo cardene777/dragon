@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The drawing core looks up each diagram kind that loads later by its name, so adding a kind no longer makes the script that the one-line entry loads first bigger** (#3656)
+
+  The drawing core picked the layout, the label timing and the drawing of each diagram kind that loads later with one branch per kind, so every new kind added a branch to the script that `dist/cdn/dragon.js` loads first. Each of those kinds now hands one set of parts to the kind registry (`parts` in `kinds/<kind>.ts`, shaped by `KindParts` in `kinds/parts.ts`), holding its layout, its label timing, its drawing and what the follow view looks at in each step. The core looks the set up by the kind name and calls it, and names none of these kinds. The cycle diagram and the table relation diagram now share one function that shows a label from the moment its line starts until its step ends. Every diagram draws exactly as before. On a page that draws only a sequence diagram, the script loaded first went from 88,355 to 87,162 bytes gzipped.
+
+## [0.72.0] - 2026-11-12
+
 ### Added
 
 - **A browser entry (`@cardenelabs/dragon/capture`) turns a diagram drawn on the page into PNG, SVG, GIF and MP4, and `editorUrl` makes a link that opens the notation in the editor** (#3644)
@@ -34,7 +42,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - **`dragon check --layout` reports a stamp over text in a lineup diagram, and a span frame or the needle crossing text in a time diagram** (#3631)
 
-  While adding examples in #3615, three overlaps showed up in the exported PNGs that `dragon check --layout` did not report. In a lineup diagram, the stamp pressed on a card covered the remark written under the card in the same step. In a time diagram, the dotted edge of a span frame (`span ... [shape: box]`) and the needle where a step ends crossed the period text of a task bar. The check now reports a stamp that covers text as `chip-over-part`, and a span frame edge or the needle that crosses text without a tag as `line-crosses-text`, the same kinds it already used for a tag over a part and a line across text. The report names the step, the stamp, span frame or needle, and the text, for example `The stamp "Paid" covers "Alice is #3"`, `The span frame "Overlap" crosses "Day 1–12"` and `The needle crosses "Day 1–12"`. The needle is checked where it stops at the end of each step. The current examples and the catalog figures report no new break.
+  While adding examples in #3615, three overlaps showed up in the exported PNGs that `dragon check --layout` did not report. In a lineup diagram, the stamp pressed on a card covered the remark written under the card in the same step. In a time diagram, the dotted edge of a span frame (`span ... [shape: box]`) and the needle where a step ends crossed the period text of a task bar. The check now reports a stamp that covers text as `chip-over-part`, and a span frame edge or the needle that crosses text without a tag as `line-crosses-text`, the same kinds it already used for a tag over a part and a line across text. The report names the step, the stamp, span frame or needle, and the text, for example `The stamp "Paid" covers "Alice is 3rd"`, `The span frame "Overlap" crosses "Day 1–12"` and `The needle crosses "Day 1–12"`. The needle is checked where it stops at the end of each step. The current examples and the catalog figures report no new break.
 
 - **A cycle diagram (`cycle`) draws a flow that goes around the same steps again and again** (#3623)
 
@@ -58,9 +66,9 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
-- **The one-line script entry loads less script before it draws, and adding a diagram kind no longer makes that script bigger** (#3656)
+- **The one-line script entry reads less on a page that draws only a sequence diagram** (#3657)
 
-  The script that `dist/cdn/dragon.js` loads first had grown to 90,202 bytes gzipped, over its 90,000-byte limit. The drawing core picked the layout, the label timing and the drawing of each diagram kind that loads later with one branch per kind, so every new kind added a branch to the first script. Each of those kinds now hands one set of parts to the kind registry (`parts` in `kinds/<kind>.ts`, shaped by `KindParts` in `kinds/parts.ts`), holding its layout, its label timing, its drawing and what the follow view looks at in each step. The core looks the set up by the kind name and calls it, and names none of these kinds. The cycle diagram and the table relation diagram now share one function that shows a label from the moment its line starts until its step ends. Every diagram draws exactly as before. The script loaded first went from 90,202 to 89,036 bytes gzipped, under the unchanged limit.
+  The cycle, table relation, mind map, set overlap and two-axis matrix kinds each split a part of the main script into another file that every page read first, because their later-loaded code read it too: the count limits of their blocks, how a strip draws its values and how a color is read. Each file is compressed on its own, so the first load had grown to 90,202 bytes in 44 files, over its 90,000-byte limit. The later-loaded code now reads its count limits from a file of its own, the cycle diagram is handed the strip values by the drawing code, and an idea checks its color against the color list like the other later-loaded blocks. The first load is back under the limit, and the diagrams draw the same as before.
 
 - **The catalog no longer loads the English text, the English versions of the first three examples or the editor's shelf templates on its first screen** (#3646)
 

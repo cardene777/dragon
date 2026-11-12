@@ -413,13 +413,14 @@ export function drawSvg(
   const meters = new Map((timeline.meters ?? []).map((meter) => [meter.field, meter.keys]));
   const gauge = (field: SceneField): string | undefined =>
     field.meter ? parts?.meter?.({ ...field, meter: field.meter }, meters.get(field.name) ?? [[0, 0]], ctx) : undefined;
-  const drawStrip = (s: SceneStrip): string =>
-    strip(s, fieldChanges(diagram, timeline, layout), ctx, isState, arrivals, gauge);
+  // 値の移り変わりは本体が 1 度だけ出し、中身の帯と種類の描き方に渡す。種類の部品に中身の帯を描く処理を読ませない (#3657)
+  const fields = fieldChanges(diagram, timeline, layout);
+  const drawStrip = (s: SceneStrip): string => strip(s, fields, ctx, isState, arrivals, gauge);
   // 寄って追う図の表は窓の下に置くので、窓の中身には描かない (#3270)
   if (layout.strip && !follow) L.band.push(drawStrip(layout.strip));
   for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
   // 後から読む種類の物は、種類の部品の組が描いて図の層ごとに返す。見た目の規則もその種類の図の SVG にだけ書く (#3656)
-  const drawn = parts?.draw?.(layout, diagram, ctx, subs, follow !== undefined);
+  const drawn = parts?.draw?.(layout, diagram, ctx, subs, follow !== undefined, fields);
   for (const layer of ["base", "lit", "node", "top"] as const) {
     const text = drawn?.[layer];
     if (text) L[layer].push(text);

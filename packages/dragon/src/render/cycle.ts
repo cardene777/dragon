@@ -10,7 +10,7 @@
  * 見た目の規則は回り続ける図の SVG にだけ書き、回り続ける図だけが使う class に付ける
  */
 import { drawArcs } from "../blocks/ring/draw";
-import { fieldChanges } from "../blocks/strip/draw";
+import type { FieldChange } from "../blocks/strip/draw";
 import { cs } from "../blocks/color/draw";
 import { cycleValueStyle, type CycleLayout } from "../kinds/cycle/layout";
 import { hasWide, textBox } from "../layout/measure";
@@ -39,14 +39,13 @@ function litSteps(layout: CycleLayout): Map<string, number[]> {
   return on;
 }
 
-/** 輪の真ん中の字。帯の題と、欄ごとの値の移り変わり。値は欄ごとに 1 つの部品 (`data-field`) にまとめる */
-function centre(layout: CycleLayout, diagram: DiagramModel, ctx: Ctx): string {
+/** 輪の真ん中の字。帯の題と、欄ごとの値の移り変わり (`changes`)。値は欄ごとに 1 つの部品 (`data-field`) にまとめる */
+function centre(layout: CycleLayout, changes: ReadonlyMap<string, FieldChange[]>, ctx: Ctx): string {
   const { m } = ctx;
   const { cx } = layout.ring;
   const c = layout.centre;
   const parts: string[] = [];
   if (c.title) parts.push(write(ctx.ink, "dg-cy-t", cx, c.title.y, c.title.text, CYCLE_TYPE.title, undefined, "middle"));
-  const changes = fieldChanges(diagram, ctx.t, layout);
   for (const row of c.rows) {
     const list = (changes.get(row.field) ?? []).flatMap((change) => {
       const text = change.value ?? change.tag;
@@ -76,7 +75,10 @@ function centre(layout: CycleLayout, diagram: DiagramModel, ctx: Ctx): string {
   return parts.join("");
 }
 
-/** 回り続ける図の弧と輪の真ん中の字と、段ごとに光らせる箱 */
-export function drawCycle(layout: CycleLayout, diagram: DiagramModel, ctx: Ctx): { base: string; on: Map<string, number[]>; css: string } {
-  return { base: `${drawArcs(layout, ctx)}${centre(layout, diagram, ctx)}`, on: litSteps(layout), css: CYCLE_CSS };
+/**
+ * 回り続ける図の弧と輪の真ん中の字と、段ごとに光らせる箱。中身の帯の値の移り変わり (`changes`) は描く所 (`render/draw.ts`) が出して渡す。
+ * この部品が中身の帯を描く処理を読むと、1行の入口でその処理が本体から最初に読む別の file に分かれ、最初に読む量が増える (#3657)
+ */
+export function drawCycle(layout: CycleLayout, changes: ReadonlyMap<string, FieldChange[]>, ctx: Ctx): { base: string; on: Map<string, number[]>; css: string } {
+  return { base: `${drawArcs(layout, ctx)}${centre(layout, changes, ctx)}`, on: litSteps(layout), css: CYCLE_CSS };
 }

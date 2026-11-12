@@ -11,5 +11,6 @@ export const parts: KindParts<CycleLayout> = {
   layout: layoutCycle,
   times: stepCarriers,
   // 手順を結ぶ線は弧が描くので、共通の線は描かない
-  draw: (layout, diagram, ctx) => ({ ...drawCycle(layout, diagram, ctx), edge: () => undefined }),
+  // 輪の真ん中の値の移り変わりは描く本体から受け取り、中身の帯を描く処理を読まない (#3657)
+  draw: (layout, _diagram, ctx, _subs, _follow, fields) => ({ ...drawCycle(layout, fields, ctx), edge: () => undefined }),
 };
