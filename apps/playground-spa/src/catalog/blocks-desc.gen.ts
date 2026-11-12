@@ -32,6 +32,7 @@ import { desc as itemDesc } from "../../../../packages/dragon/src/blocks/item/ga
 import { desc as leafDesc } from "../../../../packages/dragon/src/blocks/leaf/gallery/desc";
 import { desc as legendDesc } from "../../../../packages/dragon/src/blocks/legend/gallery/desc";
 import { desc as lifelineDesc } from "../../../../packages/dragon/src/blocks/lifeline/gallery/desc";
+import { desc as limitDesc } from "../../../../packages/dragon/src/blocks/limit/gallery/desc";
 import { desc as lineDesc } from "../../../../packages/dragon/src/blocks/line/gallery/desc";
 import { desc as linkDesc } from "../../../../packages/dragon/src/blocks/link/gallery/desc";
 import { desc as logDesc } from "../../../../packages/dragon/src/blocks/log/gallery/desc";
@@ -100,6 +101,7 @@ export const BLOCK_DESC = {
   "leaf": leafDesc,
   "legend": legendDesc,
   "lifeline": lifelineDesc,
+  "limit": limitDesc,
   "line": lineDesc,
   "link": linkDesc,
   "log": logDesc,

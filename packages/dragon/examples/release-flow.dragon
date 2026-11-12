@@ -1,0 +1,50 @@
+// 変更がレビューとステージングを通って本番へ出るまでの流れ。
+// チップ1枚が1件の変更。ステージングには2件まで載せる。ステージングで問題が出た変更は開発へ差し戻し、直してから流し直す。
+lineup 変更を本番へ出す流れ [shape: stations]
+
+role 開発者 [note: 変更を作って直す]
+role レビュー係 [note: 変更を読んで通す]
+role 運用係 [note: ステージングで確かめて本番へ出す]
+
+box dev as 開発
+box review as レビュー [color: violet]
+box staging as ステージング [color: amber, limit: 2]
+box live as 本番 [color: green, order: none, note: v1.4]
+
+item ログイン, 検索, 通知 [note: 変更 (名前は手を入れる所)]
+
+step 変更を作る
+  say 開発で3件の変更を作る。チップは開発の駅に並ぶ。
+  role 開発者
+  line dev: ログイン, 検索, 通知
+
+step 2件をレビューに出す
+  say 出来上がったログインと検索をレビューに出す。通知はまだ開発に残る。
+  role 開発者
+  line review: ログイン, 検索
+  line dev: 通知
+
+step レビューを通してステージングへ
+  say レビュー係が2件を読んで通し、ステージングへ載せる。ステージングは2件で埋まる。
+  role レビュー係
+  line staging: ログイン, 検索
+  line review:
+
+step 問題が出たら開発へ差し戻す
+  say 運用係がステージングで検索の遅さを見つけ、開発へ差し戻す。ステージングの枠が1つ空く。
+  role 運用係
+  line dev: 検索, 通知
+  line staging: ログイン
+
+step 確かめた変更を本番へ出す
+  say 問題の出なかったログインを本番へ出す。本番の版が1つ上がる。
+  role 運用係
+  line live: ログイン
+  line staging:
+  note live: v1.5
+
+step 直した変更を流し直す
+  say 直した検索を、もう一度レビューへ出す。差し戻した変更も同じ順に駅を通る。
+  role 開発者
+  line review: 検索
+  line dev: 通知

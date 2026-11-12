@@ -32,6 +32,7 @@ import { shape as itemShape } from "./item/shape";
 import { shape as leafShape } from "./leaf/shape";
 import { shape as legendShape } from "./legend/shape";
 import { shape as lifelineShape } from "./lifeline/shape";
+import { shape as limitShape } from "./limit/shape";
 import { shape as lineShape } from "./line/shape";
 import { shape as linkShape } from "./link/shape";
 import { shape as logShape } from "./log/shape";
@@ -100,6 +101,7 @@ export const SHAPES = {
   "leaf": leafShape,
   "legend": legendShape,
   "lifeline": lifelineShape,
+  "limit": limitShape,
   "line": lineShape,
   "link": linkShape,
   "log": logShape,

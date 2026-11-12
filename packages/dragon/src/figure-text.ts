@@ -76,6 +76,10 @@ export interface FigureText {
   lineupAt: (name: string, n: number) => string;
   lineupAdded: (names: string[]) => string;
   lineupMissing: (name: string) => string;
+  /** 列の図のボードと流れの線 (#3624) の、前の列へ戻る段の札と、現れた札と外れた札の印 */
+  lineupBack: string;
+  lineupNew: string;
+  lineupGone: string;
   /** 配管の図の拡大と縮小の釦の読み上げの名前 (#3418) */
   zoomIn: string;
   zoomOut: string;
@@ -157,6 +161,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name}は${n}番目`,
     lineupAdded: (names) => `${names.join("、")}を足した`,
     lineupMissing: (name) => `${name}が無い`,
+    lineupBack: "差し戻し",
+    lineupNew: "足した",
+    lineupGone: "外れた",
     zoomIn: "拡大する",
     zoomOut: "縮小する",
     calls: "呼び出しの結果",
@@ -212,6 +219,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupAt: (name, n) => `${name} is #${n}`,
     lineupAdded: (names) => `Added ${names.join(", ")}`,
     lineupMissing: (name) => `${name} is missing`,
+    lineupBack: "Sent back",
+    lineupNew: "Added",
+    lineupGone: "Gone",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     calls: "Call results",

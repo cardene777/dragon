@@ -1,0 +1,51 @@
+// How smart contracts go through automated checks and an auditor's review before they are audited.
+// Each chip is one contract. The auditor reads one at a time. A contract with a serious finding is sent back to Submitted, fixed and put through the checks again.
+lineup Audit smart contracts [shape: stations]
+
+role Developer [note: Writes and fixes contracts]
+role Auditor [note: Reads one at a time and reports findings]
+
+box submitted as Submitted
+box checks as Auto checks [color: amber]
+box audit as Audit [color: violet, limit: 1]
+box done as Audited [color: green, order: none]
+
+item Vault, Token, Router [note: Contract]
+
+step Submit for audit
+  say The developer submits three contracts for audit.
+  role Developer
+  line submitted: Vault, Token, Router
+
+step Run the automated checks
+  say The three contracts go through automated checks, which catch common mistakes first.
+  line checks: Vault, Token, Router
+  line submitted:
+
+step Audit one at a time
+  say The auditor reads one contract at a time. Vault goes first, and the rest wait after the checks.
+  role Auditor
+  line audit: Vault
+  line checks: Token, Router
+
+step Send it back on a serious finding
+  say A hole that lets funds be drained is found in Vault, so it is sent back to Submitted. The audit moves on to Token.
+  role Auditor
+  line submitted: Vault
+  line audit: Token
+  line checks: Router
+  note submitted: 2 findings
+
+step Mark what passed as audited
+  say Token has no findings, so it is marked audited, and the auditor starts on Router.
+  role Auditor
+  line done: Token
+  line audit: Router
+  line checks:
+
+step Put the fix through again
+  say The developer fixes the findings in Vault and puts it through the automated checks again.
+  role Developer
+  line checks: Vault
+  line submitted:
+  note submitted: 0 findings

@@ -8,9 +8,19 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **A lineup diagram can cap a lane with `[limit: <n>]` and lay its lanes out as stops on one line with `[shape: stations]`** (#3624)
+
+  There was no way to say how many cards a lane may hold, so the count had to be rewritten by hand with a `note <lane>: 2/3` line in every step. Write `[limit: <n>]` on a box, and the count reads `2/3` by itself: the board draws `n` ticks under the lane head and fills one for each card, and a `line` that puts more chips than the limit in the lane is refused with the limit named. Write `lineup <title> [shape: stations]` to put the lanes on one line as stops, with the cards stacked under each stop, the stretches a card passed forward colored in that step, a send-back running under the line, and dashed slots for the free seats of a stop with a limit. The stations look refuses `seal`, `open`, `pick` and `stamp`, because it does not draw them. `line <lane>:` with nothing after the `:` empties a lane. Two samples, `release-flow` and `contract-audit`, show the stations look, and the editor's shelf lists the stations head line.
+
 - **The browser entry (`@cardenelabs/dragon/capture`) also makes the single-file HTML page with `captureHtml`, and the editor's export menu has HTML** (#3667)
 
   The browser entry could make PNG, SVG, GIF and MP4, but the HTML page that `dragon export --format html` writes could only be made in Node. `captureHtml(source, { lang?, palette?, theme?, blocks? })` takes the notation and returns the HTML text. The page is built by the code `dragon export` uses, now shared between the two (`export/page.ts` and `export/html.ts`), so the same notation gives the same page except for the `@font-face` rules. The fonts are the whole font files from the page's `@font-face` rules whose range covers the characters the page and the player bar can draw, because the browser has no tool to cut fonts down; a font file that cannot be read is refused with its family and range named. The player script (`player.global.js`) is not bundled into the entry: it is fetched from next to the entry on the first call only, and loading the entry does not fetch it. The entry now carries the renderer to build the page, so it grows from about 37 KB to about 3 MB; it is still loaded only when the export button is pressed. The playground editor's export menu lists HTML after MP4 and saves `<name>.html`, drawn with the editor's palette and language.
+
+### Changed
+
+- **A lineup diagram is drawn as a board of pale vertical columns, and a card that moves back to an earlier lane is shown as a send-back** (#3624)
+
+  Lanes were rows of small chips with the count in a corner, so it was hard to see which lane a card sat in and when work went back. Each box is now a pale vertical column from left to right, with a colored dot, the name and the card count in its head, and the chips are cards stacked from the top with their number and name. `note <lane>: <text>` shows a value chip under the name instead of the text in the corner, and a pool with `[order: none]` shows a "No order" pill. When a card moves back to a lane declared earlier, the step draws a return line with a "Sent back" label, a back mark on the card and a dashed trace in the lane it left. A colored card that appears in a step gets an "Added" tag, and a card that leaves every lane leaves a "Gone" trace. On a phone-width frame the columns stack from the top with two cards to a row. The kanban sample now uses `[limit: 3]` and ends with a send-back step.
 
 ## [0.72.0] - 2026-11-12
 

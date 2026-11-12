@@ -488,9 +488,6 @@ function chipsLineup(): Json {
   };
 }
 
-/** 2 つの四角が `gap` 以上離れるか、全く重ならないか */
-const apart = (a: Rect, b: Rect, least = 10): boolean => gap(a, b) >= least - 1e-6;
-
 /** チップの字の高さ。チップが字を持たなければ落とす */
 function chipTextH(layout: LineupLayout): number {
   const label = layout.chips.find((c) => c.label)?.label;
@@ -1460,189 +1457,6 @@ describe("列の図の記法に足す語 (#3351)", () => {
 });
 
 describe("列の図を卓の形で並べる (#3351)", () => {
-  it("lineup-layout-places-roles-and-cards", () => {
-    for (const width of [undefined, 1200]) {
-      const rendered = render(tableLineup(), undefined, width);
-      const { layout } = rendered;
-      expect(layout.arrangement, `枠の幅 ${width ?? "なし"} の並べ方`).toBe("row");
-      // 役の札は宣言した順に左から 1 列に並び、箱の列の上に置く
-      const roles = layout.roles ?? [];
-      expect(
-        roles.map((r) => r.id),
-        "役の札の並び",
-      ).toEqual(["封じ手", "選び手"]);
-      expect(
-        roles.map((r) => r.title.text),
-        "役の札の名前",
-      ).toEqual(["封じ手", "選び手"]);
-      expect(roles[0]?.note?.text, "役の札の一言").toBe("中身を隠す");
-      expect(roles[1]?.y, "役の札の高さが揃わない").toBeCloseTo(roles[0]?.y ?? Number.NaN, 6);
-      expect(apart(roles[0] as Rect, roles[1] as Rect), "役の札どうしが 10px 離れない").toBe(true);
-      expect((roles[1]?.x ?? 0) > (roles[0]?.x ?? 0), "役の札が宣言した順に左から並ばない").toBe(
-        true,
-      );
-      // 箱は宣言した順に左から札として並ぶ。置き場は順番の無い置き場になる
-      expect(
-        layout.lanes.map((l) => l.id),
-        "箱の並び",
-      ).toEqual(["池", "甲", "乙", "出口"]);
-      expect(
-        layout.lanes.map((l) => l.pool === true),
-        "置き場の箱",
-      ).toEqual([true, false, false, true]);
-      layout.lanes.forEach((lane, k) => {
-        const next = layout.lanes[k + 1];
-        if (next) {
-          expect(
-            next.x,
-            `${next.id} が ${lane.id} の右に 10px 離れて並ばない`,
-          ).toBeGreaterThanOrEqual(lane.x + lane.w + 10);
-          expect(next.y, `${next.id} と ${lane.id} の上の端が揃わない`).toBeCloseTo(lane.y, 6);
-        }
-      });
-      const roleBottom = Math.max(...roles.map((r) => r.y + r.h));
-      for (const lane of layout.lanes)
-        expect(lane.y, `${lane.id} が役の札の下に 10px 離れて無い`).toBeGreaterThanOrEqual(
-          roleBottom + 10,
-        );
-      // 置き場の枠は点線で、札の枠は実線
-      const motion = motionFrom(rendered);
-      const frame = (id: string): Element =>
-        partOf(motion, `[data-lineup-lane="${id}"] [data-lineup-frame]`);
-      expect(frame("池").getAttribute("stroke-dasharray") ?? "", "置き場の枠が点線でない").not.toBe(
-        "",
-      );
-      expect(frame("甲").getAttribute("stroke-dasharray"), "札の枠が点線").toBeNull();
-
-      // 札のチップは line に書いた順に上から縦に積み、置き場のチップは順番の無い形に散らす
-      const card = layout.chips
-        .filter((c) => c.lane === "甲" && c.step === 1)
-        .sort((a, b) => a.index - b.index);
-      expect(
-        card.map((c) => c.id),
-        "段 2 の甲の札のチップ",
-      ).toEqual(["送金", "自分", "交換"]);
-      for (const [i, c] of card.entries()) {
-        expect(c.x, `甲の札の ${c.id} が上のチップと同じ左端に無い`).toBeCloseTo(
-          card[0]?.x ?? Number.NaN,
-          6,
-        );
-        const above = card[i - 1];
-        if (above)
-          expect(c.y, `甲の札の ${c.id} が上のチップの下に無い`).toBeGreaterThanOrEqual(
-            above.y + above.h,
-          );
-      }
-      const pool = layout.chips.filter((c) => c.lane === "池" && c.step === 0);
-      expect(
-        new Set(pool.map((c) => Math.round(c.x))).size,
-        "置き場のチップが縦の 1 列に並ぶ",
-      ).toBeGreaterThan(1);
-      expect(
-        new Set(pool.map((c) => Math.round(c.y))).size,
-        "置き場のチップが横の 1 列に並ぶ",
-      ).toBeGreaterThan(1);
-
-      // どの段でも、役の札と箱は 10px 以上離れ、箱の字とチップは 10px 以上離れる
-      const boxes: [string, Rect][] = [
-        ...roles.map((r): [string, Rect] => [`役 ${r.id}`, r]),
-        ...layout.lanes.map((l): [string, Rect] => [l.id, l]),
-      ];
-      boxes.forEach(([a, ra], i) => {
-        for (const [b, rb] of boxes.slice(i + 1))
-          expect(apart(ra, rb), `${a} と ${b} が 10px 離れない`).toBe(true);
-      });
-      for (const c of layout.chips) {
-        const lane = laneOf(layout, c.lane);
-        for (const w of [lane.title, lane.hint, lane.note])
-          if (w)
-            expect(apart(c, w), `${c.lane} の ${c.id} と字の ${w.text} が 10px 離れない`).toBe(
-              true,
-            );
-      }
-    }
-  });
-
-  it("lineup-narrow-frame-stacks-places", () => {
-    for (const [name, lang] of [
-      ["auction.json", "ja"],
-      ["auction.en.json", "en"],
-    ] as const) {
-      // 横に並べた形は、幅 390 の枠に収めると箱の名前が 10.5px に届かない
-      const wide = render(exampleJson(name), lang);
-      expect(
-        draw("chooseView")(wide as unknown as Rendered, 390).textPx,
-        `${name} の横に並べた形を 390px の枠に収めた字`,
-      ).toBeLessThan(10.5);
-      for (const width of [390, 324]) {
-        const rendered = render(exampleJson(name), lang, width);
-        const { layout } = rendered;
-        expect(layout.arrangement, `${name} の ${width}px の枠の並べ方`).toBe("stack");
-        const pools = layout.lanes.filter((l) => l.pool);
-        const cards = layout.lanes.filter((l) => !l.pool);
-        expect(pools.length, `${name} の置き場の数`).toBe(2);
-        expect(cards.length, `${name} の札の数`).toBe(3);
-        const [top, bottom] = pools as [Lane, Lane];
-        // 札は宣言した順に左から 1 列に並ぶ
-        cards.forEach((card, k) => {
-          const next = cards[k + 1];
-          if (next) {
-            expect(
-              next.x,
-              `${name} の ${next.id} が ${card.id} の右に 10px 離れて並ばない`,
-            ).toBeGreaterThanOrEqual(card.x + card.w + 10);
-            expect(next.y, `${name} の ${next.id} と ${card.id} の上の端が揃わない`).toBeCloseTo(
-              card.y,
-              6,
-            );
-          }
-        });
-        // 置き場は札の列の幅の帯になり、宣言した順に札の列の上と下に積む
-        const left = Math.min(...cards.map((c) => c.x));
-        const right = Math.max(...cards.map((c) => c.x + c.w));
-        for (const pool of pools) {
-          expect(pool.x, `${name} の ${pool.id} の帯の左端が札の列の左端と揃わない`).toBeCloseTo(
-            left,
-            6,
-          );
-          expect(
-            pool.x + pool.w,
-            `${name} の ${pool.id} の帯の右端が札の列の右端と揃わない`,
-          ).toBeCloseTo(right, 6);
-        }
-        const cardTop = Math.min(...cards.map((c) => c.y));
-        const cardBottom = Math.max(
-          ...cards.map((c) => c.y + c.h),
-          ...(layout.remarks ?? []).map((r) => r.text.y + r.text.h),
-        );
-        expect(
-          top.y + top.h + 10,
-          `${name} の ${top.id} が札の列の上に 10px 離れて無い`,
-        ).toBeLessThanOrEqual(cardTop);
-        expect(
-          bottom.y,
-          `${name} の ${bottom.id} が札の列の下に 10px 離れて無い`,
-        ).toBeGreaterThanOrEqual(cardBottom + 10);
-        // 役の札は図の幅に収まる
-        for (const role of layout.roles ?? [])
-          expect(
-            role.x + role.w,
-            `${name} の役の札 ${role.id} が図の幅からはみ出す`,
-          ).toBeLessThanOrEqual(layout.width);
-        expect(
-          Math.min(...(layout.roles ?? []).map((r) => r.y)),
-          `${name} の役の札が帯より上に無い`,
-        ).toBeLessThan(top.y);
-        // 全体を出す見せ方で、枠に収めた字が 10.5px 以上ある
-        const view = draw("chooseView")(rendered, width);
-        expect(view.mode, `${name} の ${width}px の枠の見せ方`).toBe("fixed");
-        expect(view.textPx, `${name} の ${width}px の枠に収めた字の大きさ`).toBeGreaterThanOrEqual(
-          10.5,
-        );
-      }
-    }
-  });
-
   it("lineup-player-arranges-by-frame-width", () => {
     const win = window as unknown as { ResizeObserver?: unknown };
     const saved = win.ResizeObserver;
@@ -1692,69 +1506,6 @@ describe("列の図を卓の形で並べる (#3351)", () => {
     }
   });
 
-  it("lineup-cards-show-name-and-note", () => {
-    for (const lang of ["ja", "en"] as const) {
-      const rendered = render(tableLineup(), lang);
-      const { layout } = rendered;
-      const textH = chipTextH(layout);
-      for (const id of ["甲", "乙"]) {
-        const card = laneOf(layout, id);
-        expect(card.title.text, `札 ${id} の名前`).toBe(id === "甲" ? "札の甲" : "札の乙");
-        expect(card.title.y, `札 ${id} の名前が枠の頭に無い`).toBeLessThan(card.track.y);
-        expect(
-          card.hint?.y ?? Number.POSITIVE_INFINITY,
-          `札 ${id} の「上から実行」が枠の頭に無い`,
-        ).toBeLessThan(card.track.y);
-        // note の字は札の下の端に、チップの字の 1.6 倍以上の大きさで出す
-        const note = card.note;
-        expect(note?.text, `札 ${id} の note の字`).toBe(id === "甲" ? "1.5 ETH" : "0.9 ETH");
-        expect(
-          note?.h ?? 0,
-          `札 ${id} の note の字がチップの字の 1.6 倍に届かない`,
-        ).toBeGreaterThanOrEqual(textH * 1.6 - 1e-6);
-        expect(
-          note?.y ?? 0,
-          `札 ${id} の note の字がチップを置く所より下に無い`,
-        ).toBeGreaterThanOrEqual(card.track.y + card.track.h);
-        expect(
-          card.y + card.h - ((note?.y ?? 0) + (note?.h ?? 0)),
-          `札 ${id} の note の字が札の下の端に無い`,
-        ).toBeLessThan(16);
-        expect(
-          note && note.x >= card.x && note.x + note.w <= card.x + card.w,
-          `札 ${id} の note の字が札からはみ出す`,
-        ).toBe(true);
-      }
-      const pool = laneOf(layout, "池");
-      expect(pool.title.text, "置き場の名前").toBe("待ちの池");
-      const hints = layout.lanes.map((l) => l.hint?.text);
-      if (lang === "ja")
-        expect(hints, "枠の頭の名前の下の字").toEqual([
-          "順番なし",
-          "上から実行",
-          "上から実行",
-          "順番なし",
-        ]);
-      else
-        for (const hint of hints)
-          expect(KANA.test(hint ?? "漢"), `英語の枠の頭の字 ${hint} に仮名か漢字がある`).toBe(
-            false,
-          );
-      expect(
-        partOf(motionFrom(rendered), '[data-lineup-note="甲"]').textContent,
-        "描いた札の note の字",
-      ).toContain("1.5");
-    }
-  });
-
-  // 順番の無い置き場のチップは、ずらさず格子に並べる (#3408)。順番が無いことは点線の枠と「順番なし」の字で伝え、
-  // 席ごとにずらすと、同じ行のチップの上端が食い違い、チップの間が詰まる所ができて崩れて見えた
-  it("lineup-pool-chips-on-grid", () => {
-    const { layout } = render(mempoolLineup());
-    expect(layout.arrangement, "枠の幅を渡さない時の並べ方").toBe("row");
-    expectGrid(layout.chips.filter((c) => c.lane === "池" && c.step === 0));
-  });
-
   it("lineup-band-chips-on-grid", () => {
     const { layout } = render(mempoolLineup(), "ja", 390);
     expect(layout.arrangement, "390px の枠の並べ方").toBe("stack");
@@ -1802,8 +1553,9 @@ describe("列の図を卓の形で並べる (#3351)", () => {
   it("lineup-chips-show-names-in-frames", () => {
     const rendered = render(chipsLineup());
     const motion = motionFrom(rendered);
+    // 札が移った後も前の列に残る控えの行 (#3624) は枠を持たないので、札だけを見る
     const chip = (id: string, lane: string): Element =>
-      partOf(motion, `[data-lineup-chip="${id}"][data-lineup-on="${lane}"]`);
+      partOf(motion, `[data-lineup-chip="${id}"][data-lineup-on="${lane}"]:not([data-lineup-trace])`);
     for (const lane of ["池", "甲"]) {
       // label を持つチップは label を、持たないチップは名前を、枠の中に出す
       expect(
@@ -1963,11 +1715,12 @@ describe("列の図を卓の形で並べる (#3351)", () => {
     ).toEqual(source.steps.map((s) => s.body));
     const textH = chipTextH(layout);
     const firstBox = Math.min(...[...(layout.roles ?? []), ...layout.lanes].map((r) => r.y));
+    // ボード (#3624) の札の字は 15px と大きいので、段の題 (20px) は札の字の 1.3 倍で見分ける
     for (const h of headlines) {
       expect(
         h.title.h,
-        `段 ${h.step + 1} の題がチップの字の 1.6 倍に届かない`,
-      ).toBeGreaterThanOrEqual(textH * 1.6 - 1e-6);
+        `段 ${h.step + 1} の題がチップの字の 1.3 倍に届かない`,
+      ).toBeGreaterThanOrEqual(textH * 1.3 - 1e-6);
       expect(h.say?.y ?? 0, `段 ${h.step + 1} の文が題の下に無い`).toBeGreaterThanOrEqual(
         h.title.y + h.title.h,
       );
@@ -2047,77 +1800,6 @@ describe("列の図を卓の形で並べる (#3351)", () => {
     expect(en.length, "英語の入札の図の一言の数").toBe(remarks.length);
     for (const r of en)
       expect(KANA.test(r.text.text), `英語の一言 ${r.text.text} に仮名か漢字がある`).toBe(false);
-  });
-
-  it("lineup-arrows-join-pools-and-cards", () => {
-    // 横に並べた時は、置き場と札が隣り合う所に左から右へ向く矢印を出す
-    const row = render(tableLineup()).layout;
-    expect(
-      (row.arrows ?? []).map((a) => [a.from, a.to]),
-      "横に並べた図の矢印",
-    ).toEqual([
-      ["池", "甲"],
-      ["乙", "出口"],
-    ]);
-    for (const arrow of row.arrows ?? []) {
-      const [start, end] = [arrow.points[0], arrow.points.at(-1)] as [
-        [number, number],
-        [number, number],
-      ];
-      expect(end[0], `${arrow.from} から ${arrow.to} の矢印が左から右へ向かない`).toBeGreaterThan(
-        start[0],
-      );
-      expect(
-        start[0],
-        `${arrow.from} から ${arrow.to} の矢印が左の箱の右に無い`,
-      ).toBeGreaterThanOrEqual(laneOf(row, arrow.from).x + laneOf(row, arrow.from).w);
-      expect(end[0], `${arrow.from} から ${arrow.to} の矢印が右の箱の左に無い`).toBeLessThanOrEqual(
-        laneOf(row, arrow.to).x,
-      );
-    }
-    // 置き場どうしの間には矢印を出さない
-    const pools = patched(
-      tableLineup(),
-      ["boxes"],
-      [
-        { id: "池", name: "待ちの池", order: "none" },
-        { id: "出口", name: "出口", order: "none" },
-        { id: "甲", name: "札の甲" },
-        { id: "乙", name: "札の乙" },
-      ],
-    );
-    expect(
-      (render(pools).layout.arrows ?? []).map((a) => [a.from, a.to]),
-      "置き場どうしが隣り合う図の矢印",
-    ).toEqual([["出口", "甲"]]);
-    const rendered = render(tableLineup());
-    expect(
-      motionFrom(rendered).doc.querySelectorAll("[data-lineup-arrow]").length,
-      "描いた矢印の数",
-    ).toBe(2);
-
-    // 縦に組んだ時は、上から下へ向く矢印を出す
-    const stack = render(exampleJson("auction.json"), "ja", 390).layout;
-    const arrows = stack.arrows ?? [];
-    expect(arrows.length, "縦に組んだ入札の図の矢印の数").toBe(2);
-    for (const arrow of arrows) {
-      const [start, end] = [arrow.points[0], arrow.points.at(-1)] as [
-        [number, number],
-        [number, number],
-      ];
-      expect(
-        end[1],
-        `縦に組んだ図の ${arrow.from} から ${arrow.to} の矢印が上から下へ向かない`,
-      ).toBeGreaterThan(start[1]);
-      expect(
-        start[1],
-        `縦に組んだ図の ${arrow.from} から ${arrow.to} の矢印が上の箱の下に無い`,
-      ).toBeGreaterThanOrEqual(laneOf(stack, arrow.from).y + laneOf(stack, arrow.from).h);
-      expect(
-        end[1],
-        `縦に組んだ図の ${arrow.from} から ${arrow.to} の矢印が下の箱の上に無い`,
-      ).toBeLessThanOrEqual(laneOf(stack, arrow.to).y);
-    }
   });
 
   it("lineup-shows-steps-ahead", () => {

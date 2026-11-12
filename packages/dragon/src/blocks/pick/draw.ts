@@ -13,10 +13,10 @@ import { type Ctx, esc, write } from "../../render/parts";
 import { cs } from "../color/draw";
 import { lineupFrame, rect } from "../item/draw";
 
-/** 選んだ札 `lane` の縁の光。`vis` は選んでから次に別の札を選ぶまで見える動き */
+/** 選んだ帯 `lane` の縁の光。ボードの帯と同じ角の丸みで描く。`vis` は選んでから次に別の札を選ぶまで見える動き */
 export function pickRing(lane: LineupLane, vis: string, ctx: Ctx): string {
   const N = LINEUP_LOOK;
-  return `<g class="dg-a" data-lineup-ring="${esc(lane.id)}" style="${vis}">${lineupFrame(ctx.corner, "dg-halo", lane, N.radius)}${lineupFrame(ctx.corner, "dg-on", lane, N.radius)}</g>`;
+  return `<g class="dg-a" data-lineup-ring="${esc(lane.id)}" style="${vis}">${lineupFrame(ctx.corner, "dg-halo", lane, partRadius(ctx.corner, N.board.radius))}${lineupFrame(ctx.corner, "dg-on", lane, partRadius(ctx.corner, N.board.radius))}</g>`;
 }
 
 /** 選んだ札 `lane` の頭の印。`a` から `b` の間だけ見える */

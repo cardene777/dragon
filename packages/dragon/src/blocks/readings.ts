@@ -32,6 +32,7 @@ import { reading as itemReading } from "./item/read";
 import { reading as leafReading } from "./leaf/read";
 import { reading as legendReading } from "./legend/read";
 import { reading as lifelineReading } from "./lifeline/read";
+import { reading as limitReading } from "./limit/read";
 import { reading as lineReading } from "./line/read";
 import { reading as linkReading } from "./link/read";
 import { reading as logReading } from "./log/read";
@@ -100,6 +101,7 @@ export const READINGS = {
   "leaf": leafReading,
   "legend": legendReading,
   "lifeline": lifelineReading,
+  "limit": limitReading,
   "line": lineReading,
   "link": linkReading,
   "log": logReading,

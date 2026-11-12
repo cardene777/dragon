@@ -23,11 +23,11 @@ export const reading: BlockReading<ActMessages> = {
   messages: {
     ja: {
       actShape: "act は act <名札>: <処理の名前> の形で書く",
-      lineupNoAct: "lineup (列の図) には act の行を書けない。列の右上の字は note の行で書き換える",
+      lineupNoAct: "lineup (列の図) には act の行を書けない。列の値の札は note の行で書き換える",
     },
     en: {
       actShape: "Write act as act <id>: <action>",
-      lineupNoAct: "A lineup diagram takes no act lines. Rewrite the text at the top right of a lane with a note line",
+      lineupNoAct: "A lineup diagram takes no act lines. Rewrite the value chip of a lane with a note line",
     },
   },
 };

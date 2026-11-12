@@ -32,6 +32,7 @@ import { docs as itemDocs } from "../../../../packages/dragon/src/blocks/item/ga
 import { docs as leafDocs } from "../../../../packages/dragon/src/blocks/leaf/gallery/docs";
 import { docs as legendDocs } from "../../../../packages/dragon/src/blocks/legend/gallery/docs";
 import { docs as lifelineDocs } from "../../../../packages/dragon/src/blocks/lifeline/gallery/docs";
+import { docs as limitDocs } from "../../../../packages/dragon/src/blocks/limit/gallery/docs";
 import { docs as lineDocs } from "../../../../packages/dragon/src/blocks/line/gallery/docs";
 import { docs as linkDocs } from "../../../../packages/dragon/src/blocks/link/gallery/docs";
 import { docs as logDocs } from "../../../../packages/dragon/src/blocks/log/gallery/docs";
@@ -100,6 +101,7 @@ export const BLOCK_DOCS = {
   "leaf": leafDocs,
   "legend": legendDocs,
   "lifeline": lifelineDocs,
+  "limit": limitDocs,
   "line": lineDocs,
   "link": linkDocs,
   "log": logDocs,

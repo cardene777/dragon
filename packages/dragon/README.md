@@ -502,6 +502,46 @@ step Climb from tx3 to the root
   1to2 -> root [tag: 7a21]
 ```
 
+### Board and stations looks of a lineup diagram
+
+Start with `lineup` to draw a lineup diagram, which follows chips in lanes step by step.
+By default it uses the board look, and `[shape: stations]` on the first line switches to the stations look.
+
+- The board puts the boxes side by side as pale vertical columns in the order declared, and stacks the chips in each column as cards from the top. The column head shows the name and the number of cards
+- `[limit: <number>]` on a box shows the count as `2/3`. The board puts that many ticks under the head and fills one for each card, and the stations look draws a dashed slot for each free seat
+- A box with `[order: none]` shows a "No order" pill under its name, and its cards carry no numbers. `note <lane>: <text>` in a step shows a value chip under the name until the next `note` on the same lane
+- When a `line` moves a chip back to an earlier lane, it is a send-back. A return line and a "Sent back" label are drawn, the card gets a back mark, and a dashed trace stays in the lane it left
+- `line <lane>:` with nothing after the `:` empties that lane
+- The stations look puts the boxes on one line as stops and stacks the cards under each stop. It refuses `seal`, `open`, `pick`, and `stamp`, because it does not draw them
+
+On a phone-width frame, the board stacks its columns from the top with two cards to a row, and the stations line runs down the left.
+
+```dragon
+lineup Ship a change to production [shape: stations]
+
+box Dev
+box Review [color: violet]
+box Staging [color: amber, limit: 2]
+box Live as Production [color: green, order: none]
+
+item login, search
+
+step Send them to review
+  say Two changes go to review.
+  line Review: login, search
+
+step Check them on staging
+  say Both approved changes go on Staging, which is now full with 2.
+  line Staging: login, search
+  line Review:
+
+step Send it back if it fails
+  say search fails on Staging, so it is sent back to Dev, and only login ships.
+  line Dev: search
+  line Live: login
+  line Staging:
+```
+
 ### Layers look of a lineup diagram
 
 Start with `lineup` to draw a lineup diagram, which follows chips in lanes step by step.

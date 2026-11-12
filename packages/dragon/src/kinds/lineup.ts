@@ -9,8 +9,8 @@ import type { KindParts } from "./parts";
 export const parts: KindParts<LineupLayout> = {
   // 箱を横に並べると箱の名前が読めない幅では縦に組む (#3351)
   layout: (diagram, lang, options) => layoutLineup(diagram, { lang, ...(options.width === undefined ? {} : { width: options.width }) }),
-  draw: (layout, diagram, ctx, subs, follow) => {
-    const lineup = drawLineup(layout, diagram, ctx.t, ctx, subs);
+  draw: (layout, diagram, ctx, _subs, follow) => {
+    const lineup = drawLineup(layout, diagram, ctx.t, ctx);
     // 寄って追う窓は見出しの文 (図の題、段の題、説明) を描かない。図の幅で組んだ文は窓で切れ、段の題と説明は部品の帯が出すため (#3365)
     return {
       base: `${follow ? "" : lineup.heading}${lineup.lanes}`,

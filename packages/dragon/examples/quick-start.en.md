@@ -379,6 +379,38 @@ step Buy
   set buy: 380
 ```
 
+A lineup diagram (`lineup <title>`) uses the board look by default: the boxes become pale vertical columns from left to right in the written order, and the chips stack in them as cards from the top.
+Each column head shows the name and the number of cards. Write `[limit: <number>]` on a box to show the count as `2/3` and to put that many ticks under the head, filled for each card.
+When a `line` in a step moves a chip back to an earlier column, it is a send-back: a return line and a "Sent back" label are drawn, and a dashed trace stays in the column it left. `line <lane>:` with nothing after the `:` empties that lane.
+Add `[shape: stations]` to the first line for the stations look, which puts the boxes on one line as stops and stacks the cards under each stop. A stop with a limit shows its free seats as dashed slots.
+The stations look does not draw `seal`, `open`, `pick`, or `stamp`, so it refuses them. On a phone-width frame, the board stacks its columns from the top and the stations line runs down.
+
+```dragon
+lineup Ship a change to production [shape: stations]
+
+box Dev
+box Review [color: violet]
+box Staging [color: amber, limit: 2]
+box Live as Production [color: green, order: none]
+
+item login, search
+
+step Send them to review
+  say Two changes go to review.
+  line Review: login, search
+
+step Check them on staging
+  say Both approved changes go on Staging, which is now full with 2.
+  line Staging: login, search
+  line Review:
+
+step Send it back if it fails
+  say search fails on Staging, so it is sent back to Dev, and only login ships.
+  line Dev: search
+  line Live: login
+  line Staging:
+```
+
 Add `[shape: layers]` to the first line of a lineup diagram (`lineup <title>`) to stack the boxes as horizontal bands, top to bottom in the written order, and draw one request or transaction going down through the layers.
 The left of each band shows the layer's name, its `note`, and its number, and no arrows are drawn between layers. A layers lineup takes up to 8 layers.
 Inside a step, `line <layer>: <chip>` is the layer the chip is in, drawing that band strongest and the bands it has passed lighter. `note <layer>: <text>` is the mark of that layer, such as what it did and how long it took.

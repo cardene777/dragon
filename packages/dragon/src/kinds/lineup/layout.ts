@@ -34,7 +34,6 @@ import { hasWide, textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 
 const L = LINEUP_LOOK;
-const C = L.chip;
 const Y = L.layers;
 /** 1 行の字。`x` は左端、`baseline` は基準線 */
 export interface TextLine {
@@ -49,23 +48,21 @@ export interface LineupText extends Rect {
   lines: TextLine[];
 }
 
-/** 箱。置き場 (`pool`) か札。`track` はチップを置く所で、`hint` は名前の下の字 (札は「上から実行」、置き場は「順番なし」) */
+/**
+ * 箱。ボードの帯か流れの線の駅 (#3624)、層の見た目の帯。`pool` は順番の無い置き場、`track` は札を置く所。
+ * `hint` は置き場の「順番なし」の字で、`hintBox` はそれを囲む札。`limit` は書いた上限
+ */
 export interface LineupLane extends SceneBox {
   pool: boolean;
   title: LineupText;
-  hint: LineupText;
+  hint?: LineupText;
+  hintBox?: Rect;
+  limit?: number;
   track: Rect;
-  /** 札の下の端の字の最初の字と、その基準線。札だけが持ち、字を書かない札は `note` を持たない */
+  /** 最初に出る値 (`note`) の字。値を持たない帯は持たない */
   note?: LineupText;
-  noteBaseline?: number;
-  /** 札の仕切りの高さ。札だけが持つ */
-  foot?: number;
-  /** 札の空の席の枠。札だけが持つ */
+  /** 流れの線の、上限を書いた駅の受け口。札の席と同じ所に上限の数だけ並ぶ。ほかの帯は空 */
   slots: Rect[];
-  /** 名前の下の字の左の矢印の左端。札だけが持つ */
-  arrowX?: number;
-  /** 空の置き場の字。置き場だけが持つ */
-  empty?: LineupText;
 }
 
 /** 段の出来事の場所 */
@@ -84,6 +81,86 @@ export interface LineupSeat extends Rect, LineupAt {
   caption?: LineupText;
   from?: Point;
   until?: LineupAt;
+  /** 順番のある帯の札の番号 (#3624)。上から 1、2、3 と続く */
+  number?: LineupText;
+  /** 現れた段だけ付ける印。差し戻した札は `back` (戻る印の丸)、前の段にどこにも居なかった色付きの札は `added` (「足した」の札) */
+  tag?: "added" | "back";
+  tagBox?: Rect;
+  tagText?: LineupText;
+  /** 居場所でない帯に残る控えの行 */
+  trace?: true;
+  /** 帯を移ったか初めて現れた段で、その段だけ太い縁を見せる */
+  moved?: true;
+  /** 札が走る道。札の真ん中の点で、元の席の真ん中から始まり、この席の真ん中で終わる。持たない札はまっすぐ滑る */
+  path?: Point[];
+}
+
+/** 帯の札の数。帯ごと段ごとに 1 つで、上限を書いた帯は「数/上限」 */
+export interface LineupCount extends Rect {
+  lane: string;
+  step: number;
+  /** その段に帯へ書いた札の数 */
+  n: number;
+  text: LineupText;
+}
+
+/** ボードの上限の目盛り。`index` は左から何番目か */
+export interface LineupTick extends Rect {
+  lane: string;
+  index: number;
+}
+
+/** 帯の値 (`note`) の札。段ごとに 1 つで、`changed` は前の段から値が変わった段 */
+export interface LineupValue extends Rect {
+  lane: string;
+  step: number;
+  changed: boolean;
+  text: LineupText;
+}
+
+/** 跡。差し戻しで札が抜けた帯 (`from`) と、どの帯からも外れた札の帯 (`gone`) に、その段の札の後の席へ置く */
+export interface LineupGhost extends Rect, LineupAt {
+  id: string;
+  lane: string;
+  kind: "from" | "gone";
+  label: LineupText;
+  tagBox?: Rect;
+  tagText?: LineupText;
+}
+
+/** 差し戻しの戻りの線と札。`icon` は狭い枠で、札の代わりに戻る印の丸だけを描く */
+export interface LineupBack extends LineupAt {
+  id: string;
+  from: string;
+  to: string;
+  points: Point[];
+  label: Rect & { text: LineupText };
+  icon?: true;
+}
+
+/** 流れの線の駅 */
+export interface LineupStop {
+  lane: string;
+  cx: number;
+  cy: number;
+  r: number;
+}
+
+/** 流れの線の、段で札が後ろの駅へ移った区間 */
+export interface LineupRun extends LineupAt {
+  from: string;
+  to: string;
+  points: Point[];
+}
+
+/** 流れの線の線の四角。横の線は右の端に、縦の線は下の端に向きの三角を持つ */
+type LineupStationsLine = Rect;
+
+/** 流れの線 (#3624) の線と駅と、段で通った区間 */
+export interface LineupStations {
+  line: LineupStationsLine;
+  stops: LineupStop[];
+  runs: LineupRun[];
 }
 
 /** 封。`until` は開ける出来事 */
@@ -180,7 +257,9 @@ export interface LineupBandNote extends Rect, LineupAt {
 
 export interface LineupLayout extends Layout {
   kind: "lineup";
-  /** 箱を横に並べたか (`row`)、置き場を帯にして札の列の上下に積んだか (`stack`)、層の見た目で横の帯に重ねたか (`layers`、#3625) */
+  /** 見た目。既定のボード (#3624)、流れの線 (`[shape: stations]`、#3624)、層の見た目 (`[shape: layers]`、#3625) */
+  shape: "board" | "stations" | "layers";
+  /** 帯か駅を横に並べたか (`row`)、携帯の幅で上から積んだか (`stack`)、層の見た目で横の帯に重ねたか (`layers`) */
   arrangement: "row" | "stack" | "layers";
   /** 層の見た目の帯の飾りと印。層の見た目だけが持つ */
   bands?: LineupBand[];
@@ -201,24 +280,21 @@ export interface LineupLayout extends Layout {
   arrows: LineupArrow[];
   /** 封の字 */
   sealWord: string;
+  /** 帯の札の数と上限の目盛りと値の札。層の見た目は持たない */
+  counts: LineupCount[];
+  ticks: LineupTick[];
+  values: LineupValue[];
+  /** 抜けた跡と外れた跡、差し戻しの戻りの線 */
+  ghosts: LineupGhost[];
+  backs: LineupBack[];
+  /** 流れの線の線と駅。流れの線だけが持つ */
+  stations?: LineupStations;
 }
 
 export interface LineupOptions {
   /** 描く枠の幅。渡すと、横に並べると箱の名前が読めない幅で縦に組む */
   width?: number;
   lang?: NotationLang;
-}
-
-/** 札の下の端の字を、数と単位に分ける。`0.05 ETH` は `0.05` と `ETH`。数で終わらない字は分けない */
-export function splitNote(text: string): { number: string; unit?: string } {
-  const m = /^(.*\d)\s+(\D+)$/u.exec(text);
-  return m ? { number: m[1] as string, unit: m[2] } : { number: text };
-}
-
-/** 札の下の端の字の幅。数と単位を別の大きさで描く */
-export function noteWidth(text: string): number {
-  const { number, unit } = splitNote(text);
-  return textWidth(number, TYPE.laneNote) + (unit === undefined ? 0 : L.card.unitGap + textWidth(unit, TYPE.laneUnit));
 }
 
 /** 1 行の字 */
@@ -270,11 +346,6 @@ function wrapped(text: string, x: number, baseline: number, style: TextStyle, wi
   return { text, lines, x, y: top, w, h: (rows.length - 1) * pitch + style.size };
 }
 
-/** 字を `dx` と `dy` だけずらす */
-function moved(t: LineupText, dx: number, dy: number): LineupText {
-  return { ...t, x: t.x + dx, y: t.y + dy, lines: t.lines.map((l) => ({ ...l, x: l.x + dx, baseline: l.baseline + dy })) };
-}
-
 const bottomOf = (r: Rect): number => r.y + r.h;
 
 /** 段の中の `line` 1 つ。宣言したチップだけを、同じチップは最初の 1 枚だけ、上限の枚数まで持つ */
@@ -289,32 +360,6 @@ function linesOf(diagram: DiagramModel, known: Set<string>, lanes: Set<string>):
   );
 }
 
-/** 札の下の端に出る字。`sub` と段の中の `note` */
-function notesOf(diagram: DiagramModel, id: string, sub: string | undefined): string[] {
-  const written = diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "swap" && e.box === id ? [e.text] : [])));
-  return sub === undefined ? written : [sub, ...written];
-}
-
-/**
- * 置き場のチップを格子に並べた四角 (#3408)。`inner` の上端から行を積み、行ごとに `gapX` 以上空けて等しく割った枠の真ん中に置く。
- * どのチップも最も広いチップの幅にそろえ、同じ行の上端と同じ列の左端をそろえる。席ごとにずらすと、崩れたように見えて間の詰まる所ができた
- */
-function grid(widths: number[], inner: { x: number; y: number; w: number }, gapX: number): { seats: Rect[]; h: number } {
-  const n = widths.length;
-  if (n === 0) return { seats: [], h: C.h };
-  const widest = Math.max(...widths);
-  const fit = Math.max(1, Math.min(n, Math.floor((inner.w + gapX) / (widest + gapX))));
-  const rows = Math.ceil(n / fit);
-  const cols = Math.ceil(n / rows);
-  const cell = inner.w / cols;
-  const seats = widths.map((_, k) => {
-    const x = inner.x + (k % cols) * cell + (cell - widest) / 2;
-    const y = inner.y + Math.floor(k / cols) * (C.h + L.pool.gapY);
-    return { x, y, w: widest, h: C.h };
-  });
-  return { seats, h: rows * (C.h + L.pool.gapY) - L.pool.gapY };
-}
-
 /** 札の下の一言の中身。置く所は並べ方が決める */
 interface RemarkSpec extends LineupAt {
   lane: string;
@@ -323,19 +368,21 @@ interface RemarkSpec extends LineupAt {
 }
 
 /**
- * 札の下の一言。札に `line` を書いた段ごとに、段の始まりに置き場に在ったチップと比べる。
+ * 札の下の一言。札に `line` を書いた段ごとに、段の始まりに札より前の置き場に在ったチップと比べる。
+ * 札より後ろの置き場 (済みのような終わりの置き場) は札へ流れ込む元ではないので比べない (#3624)。
  * 置き場に無かったチップは色ごとに 1 つの一言にまとめ、置き場に在った色付きのチップは席の番号か、無いことを言う。
- * 一言は札の中の最初の席の順に並べ、無いことを言う一言は最後に置く。段の始まりに置き場にチップが無い段は一言を出さない
+ * 一言は札の中の最初の席の順に並べ、無いことを言う一言は最後に置く。段の始まりに前の置き場にチップが無い段は一言を出さない
  */
-function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, words: FigureText): RemarkSpec[] {
+function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, order: string[], words: FigureText): RemarkSpec[] {
   const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
   const nameOf = (id: string): string => items.get(id)?.label ?? id;
   const held = new Map<string, string[]>();
   const out: RemarkSpec[] = [];
   diagram.steps.forEach((_, s) => {
-    const pooled = [...held.entries()].filter(([lane]) => pools.has(lane)).flatMap(([, ids]) => ids);
-    const inPool = new Set(pooled);
     for (const line of lines.filter((l) => l.step === s && !pools.has(l.lane))) {
+      const before = order.indexOf(line.lane);
+      const pooled = [...held.entries()].filter(([lane]) => pools.has(lane) && order.indexOf(lane) < before).flatMap(([, ids]) => ids);
+      const inPool = new Set(pooled);
       if (inPool.size === 0) continue;
       const found: { at: number; color?: ColorKey; text: string }[] = [];
       const added = new Map<string, { at: number; color?: ColorKey; ids: string[] }>();
@@ -362,92 +409,182 @@ function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, wor
   return out;
 }
 
-/** 箱の大きさだけを決めた物。置く所は並べ方が決める */
-interface Sized {
-  id: string;
-  name: string;
-  sub?: string;
-  pool: boolean;
-  color: ColorKey;
+/** 札の形 (#3624)。高さと上下の間と角の丸み、番号の丸の半径と真ん中、名前の左端 (番号を持つ時と持たない時)、右の余白、足したの札と戻る印を置く札の右の端からの位置 */
+interface CardGeo {
+  h: number;
+  gap: number;
+  radius: number;
+  numR: number;
+  numX: number;
+  textX: number;
+  plainX: number;
+  padR: number;
+  tagInset: number;
+  backInset: number;
+  backR: number;
+}
+
+/** 帯の札を置く所。左上、1 行に並べる札の数、札の幅 */
+interface Seats {
+  x: number;
+  y: number;
+  cols: number;
   w: number;
 }
 
 export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
   const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
   const { width } = options;
-  if (diagram.lineup?.shape === "layers") {
+  const shape = diagram.lineup?.shape;
+  if (shape === "layers") {
     const wide = arrangeLayers(diagram, words, false);
     if (width === undefined || (width / wide.width) * Y.type.name.size >= READABLE_PX) return wide;
     return arrangeLayers(diagram, words, true);
   }
-  const row = arrange(diagram, words, "row");
+  const look = shape === "stations" ? "stations" : "board";
+  const row = arrange(diagram, words, look, false);
   if (width === undefined || (width / row.width) * TYPE.boxName.size >= READABLE_PX) return row;
-  return arrange(diagram, words, "stack");
+  return arrange(diagram, words, look, true);
 }
 
-function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | "stack"): LineupLayout {
-  const stacked = arrangement === "stack";
-  const margin = stacked ? L.stack.margin : L.margin;
-  const pad = L.padX;
+/** 段の中の出来事 `at` の時に選んでいる箱。それより前の最後の `pick` */
+function pickedAtOf(diagram: DiagramModel): (at: LineupAt) => string | undefined {
+  const picks: LineupPick[] = [];
+  diagram.steps.forEach((step, s) => step.events.forEach((e, k) => (e.type === "pick" && "box" in e ? picks.push({ step: s, event: k, lane: e.box }) : undefined)));
+  return (at) => picks.filter((p) => p.step < at.step || (p.step === at.step && p.event < at.event)).at(-1)?.lane;
+}
+
+/** 帯ごとの段ごとの値。箱の note (`sub`) は段 1 から、段の中の note は書いた段から出し、次の note まで残す。値の無い段は `undefined` */
+function valuesOf(diagram: DiagramModel): Map<string, (string | undefined)[]> {
+  return new Map(
+    diagram.boxes.map((b) => {
+      let now = b.sub;
+      return [
+        b.id,
+        diagram.steps.map((step) => {
+          for (const e of step.events) if (e.type === "swap" && e.box === b.id) now = e.text;
+          return now;
+        }),
+      ];
+    }),
+  );
+}
+
+/**
+ * ボード (#3624) と流れの線 (`[shape: stations]`) の置き方。`stacked` は携帯の幅で、ボードは帯を上から積み、流れの線は線を図の左に縦に引く。
+ * どちらも帯の札を段ごとの居場所 (`walkLineup`) の席に置き、差し戻しの線と抜けた跡と外れた跡を足す。
+ * ボードは帯を淡い色の縦の帯にして、見出しに名前と札の数を、2 行目に上限の目盛りと順番なしと値の札を置き、札を上から積む。
+ * 流れの線は帯を 1 本の線の上の駅にして、駅の上に名前と札の数を、その下に順番なしと値の札を置き、札を駅の下に積む。上限を書いた駅は受け口を描く
+ */
+function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "stations", stacked: boolean): LineupLayout {
+  const B = L.board;
+  const ST = L.stations;
+  const N = B.narrow;
+  const stations = shape === "stations";
+  const T = stacked ? { ...B.type, ...B.narrowType } : B.type;
+  const margin = stacked ? N.margin : L.margin;
   const items = diagram.lineup?.items ?? [];
   const itemOf = new Map(items.map((item) => [item.id, item]));
   const nameOf = (id: string): string => itemOf.get(id)?.label ?? id;
-  const chipW = (id: string): number => Math.max(C.minW, textWidth(nameOf(id), TYPE.chip) + C.padX * 2);
+  const order = diagram.boxes.map((b) => b.id);
+  const boxOf = new Map(diagram.boxes.map((b) => [b.id, b]));
   const pools = new Set(diagram.boxes.filter((b) => b.order === "none").map((b) => b.id));
-  const lines = linesOf(diagram, new Set(itemOf.keys()), new Set(diagram.boxes.map((b) => b.id)));
-  const cardMost = Math.max(1, ...lines.filter((l) => !pools.has(l.lane)).map((l) => l.items.length));
+  const lines = linesOf(diagram, new Set(itemOf.keys()), new Set(order));
   const colors = boxColors(diagram);
-  const remarkSpecs = remarksOf(diagram, lines, pools, words);
-  const hintText = (pool: boolean): string => (pool ? words.lineupNoOrder : words.lineupInOrder);
-  const hintW = (pool: boolean): number => (pool ? 0 : L.hintArrow + L.hintGap) + textWidth(hintText(pool), TYPE.laneHint);
-  const cardChips = Math.max(0, ...lines.filter((l) => !pools.has(l.lane)).flatMap((l) => l.items.map((id) => textWidth(nameOf(id), TYPE.chip) + C.padX * 2)));
-  const cards = diagram.boxes.filter((b) => !pools.has(b.id));
-  const cardNeed = Math.max(
-    hintW(false),
-    cardChips,
-    ...cards.map((b) => textWidth(b.name, TYPE.boxName)),
-    ...cards.flatMap((b) => notesOf(diagram, b.id, b.sub).map(noteWidth)),
-  );
-  /** 置き場の幅。横に並べた置き場は、2 枚以上を置くなら最も広いチップが 2 列並ぶ幅にして、チップを 1 列に積まない */
-  const poolNeed = (id: string, name: string): number => {
-    const held = lines.filter((l) => l.lane === id);
-    const widest = Math.max(0, ...held.flatMap((l) => l.items.map(chipW)));
-    const pair = !stacked && held.some((l) => l.items.length > 1) ? widest * 2 + L.pool.gapX : 0;
-    return Math.max(textWidth(name, TYPE.boxName) + (stacked ? L.band.hintGap + hintW(true) : 0), stacked ? 0 : hintW(true), textWidth(words.lineupEmpty, TYPE.laneEmpty), widest, pair);
-  };
-  const sized: Sized[] = diagram.boxes.map((b) => {
-    const pool = pools.has(b.id);
-    const w = pool ? Math.max(stacked ? 0 : L.pool.w, poolNeed(b.id, b.name) + pad * 2) : Math.max(stacked ? 0 : L.card.w, cardNeed + pad * 2);
-    return { id: b.id, name: b.name, ...(b.sub !== undefined ? { sub: b.sub } : {}), pool, color: colors.get(b.id) ?? "slate", w };
-  });
-  const gapAfter = (a: Sized, b: Sized): number => (a.pool !== b.pool ? L.arrowGap : L.gap);
+  const remarkSpecs = remarksOf(diagram, lines, pools, order, words);
+  const walk = walkLineup(diagram, lines, order, (id) => itemOf.get(id)?.color !== undefined, pickedAtOf(diagram));
+  const hasBack = walk.backs.length > 0;
+  const card: CardGeo = stations
+    ? stacked
+      ? { ...ST.narrowCard, radius: ST.narrowCard.h / 2 }
+      : { ...ST.card, h: ST.cardH, gap: ST.cardGap, radius: ST.cardH / 2 }
+    : stacked
+      ? { ...N.card, tagInset: N.tagInset, backInset: N.backInset, backR: N.backR }
+      : { ...B.card, tagInset: B.tag.inset, backInset: B.back.inset, backR: B.back.r };
+  const pitch = card.h + card.gap;
+  const limitOf = (lane: string): number | undefined => boxOf.get(lane)?.limit;
+  const mostOf = (lane: string): number => Math.max(1, walk.most.get(lane) ?? 0, stations ? (limitOf(lane) ?? 0) : 0);
 
-  // 役の札の幅は、名前と一言の長い方で決まる
+  // 字の幅
+  const widthOf = (text: string, style: TextStyle): number => layerWidth(text, style);
+  const styleOf = (text: string, style: TextStyle): TextStyle => (style.family === "mono" && hasWide(text) ? { ...style, family: "sans" } : style);
+  const pillW = (text: string, style: TextStyle, padX: number): number => widthOf(text, style) + padX * 2;
+  const countText = (lane: string, n: number): string => {
+    const limit = limitOf(lane);
+    return limit === undefined ? String(n) : `${n}/${limit}`;
+  };
+  const countW = (text: string): number => pillW(text, T.count, B.count.padX);
+  const countMost = (lane: string): number => Math.max(...(walk.counts.get(lane) ?? [0]).map((n) => countW(countText(lane, n))));
+  const values = valuesOf(diagram);
+  const valuesIn = (lane: string): string[] => (values.get(lane) ?? []).filter((v): v is string => v !== undefined);
+  const valueW = (text: string): number => pillW(text, T.value, B.value.padX);
+  const valueMost = (lane: string): number => Math.max(0, ...valuesIn(lane).map(valueW));
+  const noOrderW = pillW(words.lineupNoOrder, T.noOrder, B.noOrder.padX);
+  const ticksW = (limit: number): number => limit * (B.tick.w + B.tick.gap) - B.tick.gap;
+  const nameW = (lane: string): number => widthOf(boxOf.get(lane)?.name ?? lane, T.name);
+  /** 見出しの 2 行目に並べる物の幅。目盛りか順番なしと、値の札。`count` を立てると札の数も先頭に置く */
+  const row2W = (lane: string, count: boolean): number => {
+    const limit = limitOf(lane);
+    const parts = [...(count ? [countMost(lane)] : []), ...(!stations && limit !== undefined ? [ticksW(limit)] : []), ...(pools.has(lane) ? [noOrderW] : []), ...(valuesIn(lane).length > 0 ? [valueMost(lane)] : [])];
+    return parts.reduce((sum, w, k) => sum + w + (k > 0 ? B.count.gap : 0), 0);
+  };
+  const hasRow2 = (lane: string): boolean => row2W(lane, false) > 0;
+
+  // 札の幅。名前と、足したの札か戻る印の入る幅
+  const tagW = pillW(words.lineupNew, T.tag, B.tag.padX);
+  const goneW = pillW(words.lineupGone, T.tag, B.tag.padX);
+  const tagsOf = new Map<string, Set<string>>();
+  for (const seat of walk.seats) if (seat.tag) tagsOf.set(seat.id, new Set([...(tagsOf.get(seat.id) ?? []), seat.tag]));
+  const roomOf = (id: string): number => {
+    const tags = tagsOf.get(id) ?? new Set();
+    return Math.max(card.padR, tags.has("added") ? B.tag.gap + tagW + card.tagInset : 0, tags.has("back") ? B.tag.gap + card.backInset + card.backR : 0);
+  };
+  const cardIds = [...new Set(lines.flatMap((l) => l.items))];
+  const cardNeed = Math.max(
+    0,
+    ...cardIds.map((id) => card.textX + widthOf(nameOf(id), T.card) + roomOf(id)),
+    ...walk.ghosts.map((g) => card.plainX + widthOf(nameOf(g.id), T.card) + (g.kind === "gone" ? B.tag.gap + goneW + card.tagInset : card.padR)),
+  );
+
+  // ボードの帯の幅。名前と札の数が 1 行に収まらない帯が 1 つでもあれば、どの帯も札の数を 2 行目の左に置く
+  let laneW = Math.max(B.minW, cardNeed + B.padX * 2, ...order.map((l) => B.nameX + nameW(l) + B.dotX), ...order.map((l) => B.dotX * 2 + row2W(l, false)));
+  const countBelow = !stacked && !stations && order.some((l) => B.nameX + nameW(l) + B.count.gap + countMost(l) + B.dotX > laneW);
+  if (countBelow) laneW = Math.max(laneW, ...order.map((l) => B.dotX * 2 + row2W(l, true)));
+
+  // 流れの線の駅の間と札の幅。駅の名前と札の数、順番なしと値の札、札のどれもが隣の駅に掛からない
+  const stopCard = Math.max(ST.cardW, cardNeed);
+  const nameBlock = (lane: string): number => nameW(lane) + ST.nameGap + countMost(lane);
+  const row2Block = (lane: string): number => {
+    const parts = [...(pools.has(lane) ? [noOrderW] : []), ...(valuesIn(lane).length > 0 ? [valueMost(lane)] : [])];
+    return parts.reduce((sum, w, k) => sum + w + (k > 0 ? ST.rowGap : 0), 0);
+  };
+  const blockOf = (lane: string): number => Math.max(nameBlock(lane), row2Block(lane), stopCard);
+  const stepX = Math.max(ST.step, ...order.map((l) => blockOf(l) + ST.laneGap));
+  const first = order[0] ?? "";
+  const last = order.at(-1) ?? "";
+  const before = Math.max(ST.before, blockOf(first) / 2 + ST.laneGap / 2);
+  const after = Math.max(ST.after, blockOf(last) / 2 + ST.head);
+
+  // 図の幅。横に並べた形は帯か駅と役の札の並びで決まり、縦に組んだ形は決めた幅に収める
   const roleDecl = diagram.lineup?.roles ?? [];
   const roleNeed = Math.max(0, ...roleDecl.map((r) => Math.max(textWidth(r.id, TYPE.roleName), r.note === undefined ? 0 : textWidth(r.note, TYPE.roleNote)) + L.role.padX * 2));
-
-  // 図の幅。横に並べた形は箱と役の札の並びで決まり、縦に組んだ形は決めた幅に収める
-  const rowW = sized.reduce((sum, b, i) => sum + b.w + (i > 0 ? gapAfter(sized[i - 1] as Sized, b) : 0), 0);
   const rolesW = roleDecl.length * Math.max(L.role.w, roleNeed) + Math.max(0, roleDecl.length - 1) * L.role.gap;
-  const groups = groupsOf(sized);
-  const stackNeed = Math.max(
-    roleNeed,
-    ...groups.map((g) => (g.pool ? (g.lanes[0] as Sized).w : g.lanes.length * (cardNeed + pad * 2) + (g.lanes.length - 1) * L.gap)),
-  );
-  const width = Math.max(stacked ? Math.max(L.stack.width, stackNeed + margin * 2) : Math.max(rowW, rolesW) + margin * 2, stripNeed(diagram) + margin * 2);
+  const n = order.length;
+  const rowSpan = stations ? before + (n - 1) * stepX + after : n * laneW + (n - 1) * B.gap;
+  const width = Math.max(stacked ? Math.max(N.width, roleNeed + margin * 2) : Math.max(rowSpan, rolesW) + margin * 2, stripNeed(diagram) + margin * 2);
   const inner = width - margin * 2;
 
   // 図の上の題。段の題と文は折った行の数が段で違うので、最も低い段に合わせて役の札を置く
   const H = L.headline;
   const { heading, headlines, headBottom } = headOf(diagram, margin, inner);
 
-  // 役の札。横に並べた形は札の列の上の真ん中に、縦に組んだ形は図の幅を割って並べる
+  // 役の札。横に並べた形は帯の並びの上の真ん中に、縦に組んだ形は図の幅を割って並べる
   const roleTop = headBottom + H.below;
-  const steps = diagram.steps.map((step) => step.events.flatMap((e) => (e.type === "role" ? [e.role] : [])));
+  const roleSteps = diagram.steps.map((step) => step.events.flatMap((e) => (e.type === "role" ? [e.role] : [])));
   const roleOf = (decl: { id: string; note?: string }, x: number, y: number, w: number, h: number): LineupRoleCard => {
     const title = single(decl.id, x + L.role.padX, y + L.role.titleY, TYPE.roleName);
     const note = decl.note === undefined ? undefined : wrapped(decl.note, x + L.role.padX, y + L.role.noteY, TYPE.roleNote, w - L.role.padX * 2, H.sayLine);
-    return { id: decl.id, x, y, w, h: Math.max(h, note ? bottomOf(note) - y + L.role.padX : 0), title, ...(note ? { note } : {}), steps: steps.flatMap((ids, s) => (ids.includes(decl.id) ? [s] : [])) };
+    return { id: decl.id, x, y, w, h: Math.max(h, note ? bottomOf(note) - y + L.role.padX : 0), title, ...(note ? { note } : {}), steps: roleSteps.flatMap((ids, s) => (ids.includes(decl.id) ? [s] : [])) };
   };
   let roles: LineupRoleCard[];
   if (stacked) {
@@ -463,82 +600,296 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     }
   } else {
     const w = Math.max(L.role.w, roleNeed);
-    roles = roleDecl.map((decl, k) => roleOf(decl, k * (w + L.role.gap), roleTop, w, L.role.h));
+    const total = roleDecl.length * w + Math.max(0, roleDecl.length - 1) * L.role.gap;
+    const left = Math.max(margin, Math.min(margin + rowSpan / 2 - total / 2, width - margin - total));
+    roles = roleDecl.map((decl, k) => roleOf(decl, left + k * (w + L.role.gap), roleTop, w, L.role.h));
   }
-  const laneTop = roles.length > 0 ? Math.max(...roles.map(bottomOf)) + L.role.below : headBottom + H.below;
+  // 差し戻しの在るボードは、戻りの線と札を通す所を帯の上に空ける
+  const laneTop = (roles.length > 0 ? Math.max(...roles.map(bottomOf)) + L.role.below : headBottom + H.below) + (hasBack && !stacked && !stations ? B.return.room : 0);
 
-  // 箱の置き場所
-  const cardH = L.trackY + cardMost * (C.h + C.gap) - C.gap + L.card.foot + L.card.noteY + L.card.bottom;
-  const poolTrackY = stacked ? L.band.trackY : L.trackY;
-  const poolGapX: number = L.pool.gapX;
-  /** 置き場の幅 `w` で、置き場に書いた `line` のチップを格子に並べた中で最も高い高さ */
-  const poolRows = (id: string, w: number): number => Math.max(...[[] as string[], ...lines.filter((l) => l.lane === id).map((l) => l.items)].map((ids) => grid(ids.map(chipW), { x: 0, y: 0, w: w - pad * 2 }, poolGapX).h));
-  const placed = new Map<string, Rect>();
-  if (stacked) {
-    let y = laneTop;
-    groups.forEach((group, g) => {
-      if (g > 0) y += (groups[g - 1] as Group).pool !== group.pool ? L.stack.arrowGap : L.gap;
-      if (group.pool) {
-        const lane = group.lanes[0] as Sized;
-        placed.set(lane.id, { x: margin, y, w: inner, h: poolTrackY + poolRows(lane.id, inner) + L.pool.bottom });
-        y += (placed.get(lane.id) as Rect).h;
-        return;
-      }
-      const n = group.lanes.length;
-      const w = (inner - L.gap * (n - 1)) / n;
-      group.lanes.forEach((lane, k) => placed.set(lane.id, { x: margin + k * (w + L.gap), y, w, h: cardH }));
-      y += cardH + remarkRoom(group.lanes.map((l) => l.id), w);
-    });
-  } else {
-    const hasCard = sized.some((b) => !b.pool);
-    const h = Math.max(hasCard ? cardH : 0, ...sized.filter((b) => b.pool).map((b) => poolTrackY + poolRows(b.id, b.w) + L.pool.bottom));
-    let x = margin;
-    sized.forEach((b, i) => {
-      if (i > 0) x += gapAfter(sized[i - 1] as Sized, b);
-      placed.set(b.id, { x, y: laneTop, w: b.w, h });
-      x += b.w;
-    });
-    // 役の札を札の列の上の真ん中へ寄せる。図の幅からはみ出す時は図の左右の余白に止める
-    const cardRects = sized.filter((b) => !b.pool).map((b) => placed.get(b.id) as Rect);
-    const span = cardRects.length > 0 ? cardRects : [...placed.values()];
-    const mid = (Math.min(...span.map((r) => r.x)) + Math.max(...span.map((r) => r.x + r.w))) / 2;
-    const total = roles.length > 0 ? (roles.at(-1) as LineupRoleCard).x + (roles.at(-1) as LineupRoleCard).w : 0;
-    const left = Math.max(margin, Math.min(mid - total / 2, width - margin - total));
-    roles = roles.map((r) => ({ ...r, x: r.x + left, title: moved(r.title, left, 0), ...(r.note ? { note: moved(r.note, left, 0) } : {}) }));
-  }
-
-  /** 札の列の下に一言が要る高さ。段ごとの一言は別の段に出るので、最も高い段に合わせる */
-  function remarkRoom(ids: string[], w: number): number {
-    const tall = ids.map((id) => remarkHeight(id, w));
-    return Math.max(0, ...tall);
-  }
-  function remarkHeight(id: string, w: number): number {
+  /** 札の下の一言が、幅 `w` の帯の下に要る高さ。段ごとの一言は別の段に出るので、最も高い段に合わせる */
+  const remarkRoom = (id: string, w: number): number => {
     const mine = remarkSpecs.filter((r) => r.lane === id);
     const bySteps = [...new Set(mine.map((r) => r.step))].map((s) => mine.filter((r) => r.step === s).reduce((h, r) => h + remarkLines(r.text, w) * L.remark.line, 0));
     return bySteps.length === 0 ? 0 : L.remark.top + Math.max(...bySteps) - (L.remark.line - L.remark.barH);
-  }
+  };
 
-  const lanes: LineupLane[] = sized.map((b) => {
-    const r = placed.get(b.id) as Rect;
-    const base = { id: b.id, name: b.name, ...(b.sub !== undefined ? { sub: b.sub } : {}), color: b.color, ...r, cx: r.x + r.w / 2, cy: r.y + r.h / 2, pool: b.pool };
-    const title = single(b.name, r.x + pad, r.y + L.titleY, TYPE.boxName);
-    if (b.pool) {
-      const hint = stacked ? single(hintText(true), title.x + title.w + L.band.hintGap, r.y + L.titleY, TYPE.laneHint) : single(hintText(true), r.x + pad, r.y + L.hintY, TYPE.laneHint);
-      const track = { x: r.x + pad, y: r.y + poolTrackY, w: r.w - pad * 2, h: r.h - poolTrackY - L.pool.bottom };
-      const empty = single(words.lineupEmpty, r.x + pad, track.y + C.h / 2 + LOOK.baseline.tag, TYPE.laneEmpty);
-      return { ...base, title, hint, track, slots: [], empty };
+  const lanes: LineupLane[] = [];
+  const seatsOf = new Map<string, Seats>();
+  const counts: LineupCount[] = [];
+  const ticks: LineupTick[] = [];
+  const valueChips: LineupValue[] = [];
+  /** 帯の名前の 1 行目の真ん中の高さ */
+  const nameMid = new Map<string, number>();
+
+  /** 帯の名前と札の数と、2 行目の目盛りと順番なしと値の札。`countX` は札の数の札の右の端 (2 行目に置く時は `undefined`) */
+  const header = (id: string, rect: Rect, title: LineupText, mid: number, row2Y: number, countRight: number | undefined, row2X: number): Pick<LineupLane, "hint" | "hintBox" | "note"> => {
+    (walk.counts.get(id) ?? []).forEach((count, s) => {
+      const text = countText(id, count);
+      const w = countW(text);
+      const x = countRight === undefined ? row2X : countRight - w;
+      const cy = countRight === undefined ? row2Y : mid;
+      counts.push({ lane: id, step: s, n: count, x, y: cy - B.count.h / 2, w, h: B.count.h, text: single(text, x + B.count.padX, cy + T.count.size * 0.35, T.count) });
+    });
+    let x = row2X + (countRight === undefined && !stations ? countMost(id) + B.count.gap : 0);
+    const limit = limitOf(id);
+    if (!stations && limit !== undefined) {
+      for (let j = 0; j < limit; j++) ticks.push({ lane: id, index: j, x: x + j * (B.tick.w + B.tick.gap), y: row2Y - B.tick.h / 2, w: B.tick.w, h: B.tick.h });
+      x += ticksW(limit) + B.count.gap;
     }
-    const arrowX = r.x + pad;
-    const hint = single(hintText(false), arrowX + L.hintArrow + L.hintGap, r.y + L.hintY, TYPE.laneHint);
-    const track = { x: r.x + pad, y: r.y + L.trackY, w: r.w - pad * 2, h: cardMost * (C.h + C.gap) - C.gap };
-    const slots = Array.from({ length: cardMost }, (_, k) => ({ x: track.x, y: track.y + k * (C.h + C.gap), w: track.w, h: C.h }));
-    const foot = bottomOf(track) + L.card.foot;
-    const noteBaseline = foot + L.card.noteY;
-    const first = notesOf(diagram, b.id, b.sub)[0];
-    const note = first === undefined ? undefined : { ...single(first, r.x + r.w / 2 - noteWidth(first) / 2, noteBaseline, TYPE.laneNote), w: noteWidth(first) };
-    return { ...base, title, hint, track, slots, arrowX, foot, noteBaseline, ...(note ? { note } : {}) };
+    let hint: LineupText | undefined;
+    let hintBox: Rect | undefined;
+    if (pools.has(id)) {
+      hintBox = { x, y: row2Y - B.noOrder.h / 2, w: noOrderW, h: B.noOrder.h };
+      hint = single(words.lineupNoOrder, x + B.noOrder.padX, row2Y + T.noOrder.size * 0.35, T.noOrder);
+      x += noOrderW + (stations ? ST.rowGap : B.count.gap);
+    }
+    let note: LineupText | undefined;
+    (values.get(id) ?? []).forEach((text, s) => {
+      if (text === undefined) return;
+      const w = valueW(text);
+      const style = styleOf(text, T.value);
+      const chip = { x, y: row2Y - B.value.h / 2, w, h: B.value.h };
+      const label = single(text, x + B.value.padX, row2Y + style.size * 0.35, style);
+      note ??= label;
+      valueChips.push({ lane: id, step: s, changed: s > 0 && text !== values.get(id)?.[s - 1], ...chip, text: label });
+    });
+    void rect;
+    void title;
+    return { ...(hint ? { hint, hintBox } : {}), ...(note ? { note } : {}) };
+  };
+
+  /** 帯の箱。`rect` は帯の四角、`track` は札を置く所 */
+  const laneOf = (id: string, rect: Rect, title: LineupText, track: Rect, extra: Pick<LineupLane, "hint" | "hintBox" | "note">, slots: Rect[] = []): LineupLane => {
+    const b = boxOf.get(id);
+    const limit = limitOf(id);
+    const lane: LineupLane = {
+      id,
+      name: b?.name ?? id,
+      ...(b?.sub !== undefined ? { sub: b.sub } : {}),
+      color: colors.get(id) ?? "slate",
+      ...rect,
+      cx: rect.x + rect.w / 2,
+      cy: rect.y + rect.h / 2,
+      pool: pools.has(id),
+      title,
+      ...extra,
+      ...(limit !== undefined ? { limit } : {}),
+      track,
+      slots,
+    };
+    lanes.push(lane);
+    return lane;
+  };
+
+  let line: LineupStationsLine | undefined;
+  const stops: LineupStop[] = [];
+  /** 流れの線の高さ (横の線) か左右の位置 (縦の線) */
+  let lineAt = 0;
+  if (!stations && !stacked) {
+    // ボードの帯を左から横に並べる。どの帯も同じ高さにし、札を上から積む
+    const head = order.some(hasRow2) || countBelow ? B.head2 : B.head1;
+    const most = Math.max(...order.map(mostOf));
+    const h = head + most * pitch - card.gap + B.bottom;
+    order.forEach((id, k) => {
+      const x = margin + k * (laneW + B.gap);
+      const rect = { x, y: laneTop, w: laneW, h };
+      const title = single(boxOf.get(id)?.name ?? id, x + B.nameX, laneTop + B.nameY, T.name);
+      const mid = laneTop + B.nameY - T.name.size * 0.35;
+      nameMid.set(id, mid);
+      const extra = header(id, rect, title, mid, laneTop + B.row2Y, countBelow ? undefined : x + laneW - B.dotX, x + B.dotX);
+      const track = { x: x + B.padX, y: laneTop + head, w: laneW - B.padX * 2, h: most * pitch - card.gap };
+      laneOf(id, rect, title, track, extra);
+      seatsOf.set(id, { x: track.x, y: track.y, cols: 1, w: track.w });
+    });
+  } else if (!stations) {
+    // 狭い枠のボードは、帯を図の幅の帯にして上から積み、帯の中に札を 2 つずつ並べる。差し戻しの在る図は帯の左に戻りの線の通り道を空ける
+    const x = margin + (hasBack ? N.rail : 0);
+    const w = width - margin - x;
+    const cw = (w - B.padX * 2 - N.colGap) / 2;
+    let y = laneTop;
+    order.forEach((id, k) => {
+      if (k > 0) y += N.gap;
+      const name = boxOf.get(id)?.name ?? id;
+      const title = wrapped(name, x + B.nameX, y + B.nameY, T.name, w - B.nameX - B.count.gap - countMost(id) - B.dotX, N.nameLine);
+      const more = (title.lines.length - 1) * N.nameLine;
+      const head = (hasRow2(id) ? N.head2 : N.head1) + more;
+      const rows = Math.ceil(mostOf(id) / 2);
+      const rect = { x, y, w, h: head + rows * pitch - card.gap + B.bottom };
+      const mid = y + B.nameY - T.name.size * 0.35;
+      nameMid.set(id, mid);
+      const extra = header(id, rect, title, mid, y + B.row2Y + more - (B.head2 - N.head2), x + w - B.dotX, x + B.dotX);
+      const track = { x: x + B.padX, y: y + head, w: w - B.padX * 2, h: rows * pitch - card.gap };
+      laneOf(id, rect, title, track, extra);
+      seatsOf.set(id, { x: track.x, y: track.y, cols: 2, w: cw });
+      y += rect.h + remarkRoom(id, w);
+    });
+  } else if (!stacked) {
+    // 流れの線は帯を 1 本の横の線の上の駅にし、駅の上に名前と札の数を、その下に順番なしと値の札を置き、札を駅の下に積む
+    const x0 = margin + (inner - rowSpan) / 2 + before;
+    lineAt = laneTop + 4 + ST.nameY + T.name.size * 0.45;
+    const cardTop = lineAt + (hasBack ? ST.backTop : ST.top);
+    const most = Math.max(...order.map(mostOf));
+    const h = cardTop + most * pitch - card.gap + ST.bottom - laneTop;
+    order.forEach((id, k) => {
+      const cx = x0 + k * stepX;
+      const total = nameBlock(id);
+      const title = single(boxOf.get(id)?.name ?? id, cx - total / 2, lineAt - ST.nameY + T.name.size * 0.35, T.name);
+      const mid = lineAt - ST.nameY;
+      nameMid.set(id, mid);
+      const rect = { x: cx - (stepX - ST.laneGap) / 2, y: laneTop, w: stepX - ST.laneGap, h };
+      const extra = header(id, rect, title, mid, lineAt - ST.row2Y, cx + total / 2, cx - row2Block(id) / 2);
+      const track = { x: cx - stopCard / 2, y: cardTop, w: stopCard, h: mostOf(id) * pitch - card.gap };
+      seatsOf.set(id, { x: track.x, y: track.y, cols: 1, w: stopCard });
+      const limit = limitOf(id);
+      const slots = limit === undefined ? [] : Array.from({ length: limit }, (_, j) => ({ x: track.x, y: track.y + j * pitch, w: stopCard, h: card.h }));
+      laneOf(id, rect, title, track, extra, slots);
+      stops.push({ lane: id, cx, cy: lineAt, r: ST.r });
+    });
+    line = { x: x0 - before, y: lineAt - ST.line / 2, w: before + (n - 1) * stepX + after, h: ST.line };
+  } else {
+    // 狭い枠の流れの線は、線を図の左に縦に引き、駅を上から並べ、駅の名前の下に札を 2 つずつ並べる
+    lineAt = ST.narrowX;
+    const x = ST.narrowCards;
+    const w = width - margin - x;
+    const cw = (w - N.colGap) / 2;
+    let y = laneTop + 4;
+    order.forEach((id, k) => {
+      if (k > 0) y += ST.laneGap;
+      const name = boxOf.get(id)?.name ?? id;
+      const sy = y + ST.narrowTop;
+      const title = wrapped(name, x, sy + T.name.size * 0.35, T.name, w - ST.nameGap - countMost(id), N.nameLine);
+      const more = (title.lines.length - 1) * N.nameLine;
+      const row2 = row2Block(id) > 0;
+      const head = (row2 ? ST.narrowHead2 : ST.narrowHead1) + more;
+      const rows = Math.ceil(mostOf(id) / 2);
+      const rect = { x, y, w, h: head + rows * pitch - card.gap };
+      nameMid.set(id, sy);
+      const lastLine = title.lines.at(-1);
+      const countX = x + (lastLine ? textWidth(lastLine.text, T.name) : 0) + ST.nameGap + countMost(id);
+      const extra = header(id, rect, title, sy + more, sy + more + ST.narrowHead2 - ST.narrowHead1 - ST.narrowTop + ST.narrowR, countX, x);
+      const track = { x, y: y + head, w, h: rows * pitch - card.gap };
+      seatsOf.set(id, { x, y: track.y, cols: 2, w: cw });
+      const limit = limitOf(id);
+      const slots = limit === undefined ? [] : Array.from({ length: limit }, (_, j) => ({ x: x + (j % 2) * (cw + N.colGap), y: track.y + Math.floor(j / 2) * pitch, w: cw, h: card.h }));
+      laneOf(id, rect, title, track, extra, slots);
+      stops.push({ lane: id, cx: lineAt, cy: sy, r: ST.narrowR });
+      y += rect.h + remarkRoom(id, w);
+    });
+    const top = (stops[0]?.cy ?? laneTop) - ST.narrowTop - 2;
+    const end = Math.max(...lanes.map(bottomOf)) + 4;
+    line = { x: lineAt - ST.line / 2, y: top, w: ST.line, h: end + ST.head - top };
+  }
+  const laneById = new Map(lanes.map((lane) => [lane.id, lane]));
+
+  /** 帯 `lane` の `index` 番目の席の四角 */
+  const seatRect = (lane: string, index: number): Rect => {
+    const at = seatsOf.get(lane) as Seats;
+    const col = index % at.cols;
+    const row = Math.floor(index / at.cols);
+    return { x: at.x + col * (at.w + N.colGap), y: at.y + row * pitch, w: at.w, h: card.h };
+  };
+  const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
+  /** 札の右の端に置く「足した」と「外れた」の札 */
+  const tagOf = (r: Rect, text: string): { tagBox: Rect; tagText: LineupText } => {
+    const w = pillW(text, T.tag, B.tag.padX);
+    const tagBox = { x: r.x + r.w - card.tagInset - w, y: r.y + r.h / 2 - B.tag.h / 2, w, h: B.tag.h };
+    return { tagBox, tagText: single(text, tagBox.x + B.tag.padX, r.y + r.h / 2 + T.tag.size * 0.35, T.tag) };
+  };
+
+  // 戻りの線の横の区間の高さ (ボードは帯の上、流れの線は線の下) と、戻る札が走る道
+  const returnY = stations ? lineAt + ST.backY : laneTop - B.return.rise;
+  const backPath = (a: Point, b: Point): Point[] | undefined => {
+    if (stacked) return stations || a[0] === b[0] ? undefined : [a, [a[0], (a[1] + b[1]) / 2], [b[0], (a[1] + b[1]) / 2], b];
+    return [a, [a[0], returnY], [b[0], returnY], b];
+  };
+
+  // 札の席
+  const chips: LineupSeat[] = walk.seats.map((ws) => {
+    const r = seatRect(ws.lane, ws.index);
+    const ordered = !pools.has(ws.lane) && !ws.trace;
+    const mid = r.y + r.h / 2;
+    const style = ws.trace ? T.trace : T.card;
+    const textX = r.x + (ws.trace ? B.trace.x + B.trace.r * 2 + B.trace.gap : ordered ? card.textX : card.plainX);
+    const label = single(nameOf(ws.id), textX, mid + style.size * 0.35, style);
+    const no = String(ws.index + 1);
+    const number = ordered ? single(no, r.x + card.numX - textWidth(no, T.number) / 2, mid + T.number.size * 0.35, T.number) : undefined;
+    const src = ws.source ? seatRect(ws.source.lane, ws.source.index) : undefined;
+    let path: Point[] | undefined;
+    if (src && ws.source && ws.source.lane !== ws.lane) {
+      if (ws.tag === "back") path = backPath(centerOf(src), centerOf(r));
+      else if (stations && !stacked) path = [centerOf(src), [centerOf(src)[0], lineAt], [centerOf(r)[0], lineAt], centerOf(r)];
+    }
+    let tag: { tagBox: Rect; tagText?: LineupText } | undefined;
+    if (ws.tag === "added") tag = tagOf(r, words.lineupNew);
+    else if (ws.tag === "back") tag = { tagBox: { x: r.x + r.w - card.backInset - card.backR, y: mid - card.backR, w: card.backR * 2, h: card.backR * 2 } };
+    return {
+      step: ws.step,
+      event: ws.event,
+      id: ws.id,
+      lane: ws.lane,
+      index: ws.index,
+      ...r,
+      label,
+      ...(number ? { number } : {}),
+      ...(src ? { from: [src.x, src.y] as Point } : {}),
+      ...(ws.until ? { until: ws.until } : {}),
+      ...(ws.trace ? { trace: true as const } : {}),
+      ...(ws.moved ? { moved: true as const } : {}),
+      ...(ws.tag ? { tag: ws.tag } : {}),
+      ...(tag ?? {}),
+      ...(path ? { path } : {}),
+    };
   });
-  const laneOf = new Map(lanes.map((lane) => [lane.id, lane]));
+
+  // 抜けた跡と外れた跡は、その段の帯の札の後の席に置く
+  const ghosts: LineupGhost[] = walk.ghosts.map((g) => {
+    const r = seatRect(g.lane, g.index);
+    const label = single(nameOf(g.id), r.x + card.plainX, r.y + r.h / 2 + T.card.size * 0.35, T.card);
+    return { id: g.id, lane: g.lane, step: g.step, event: g.event, kind: g.kind, ...r, label, ...(g.kind === "gone" ? tagOf(r, words.lineupGone) : {}) };
+  });
+
+  // 差し戻しの戻りの線と札。広い枠は戻りの線の横の区間の真ん中に「差し戻し」の札を、狭い枠は縦の区間の真ん中に戻る印を置く
+  const backs: LineupBack[] = walk.backs.map((b) => {
+    const from = laneById.get(b.from) as LineupLane;
+    const to = laneById.get(b.to) as LineupLane;
+    let points: Point[];
+    if (!stacked && !stations) points = [[from.cx, from.y], [from.cx, returnY], [to.cx, returnY], [to.cx, to.y - 3]];
+    else if (!stacked) {
+      const top = (seatsOf.get(b.from) as Seats).y;
+      points = [[from.cx, top], [from.cx, returnY], [to.cx, returnY], [to.cx, top - 3]];
+    } else if (!stations) {
+      const ya = nameMid.get(b.from) ?? from.y;
+      const yb = nameMid.get(b.to) ?? to.y;
+      points = [[from.x, ya], [N.railX, ya], [N.railX, yb], [to.x - 3, yb]];
+    } else {
+      const ya = nameMid.get(b.from) ?? from.y;
+      const yb = nameMid.get(b.to) ?? to.y;
+      const left = lineAt - ST.narrowR - ST.narrowRing;
+      points = [[left, ya], [ST.narrowRail, ya], [ST.narrowRail, yb], [left - 2, yb]];
+    }
+    const text = words.lineupBack;
+    if (stacked) {
+      const x = points[1]?.[0] ?? 0;
+      const y = ((points[1]?.[1] ?? 0) + (points[2]?.[1] ?? 0)) / 2;
+      const r = N.railR;
+      return { id: b.id, from: b.from, to: b.to, step: b.step, event: b.event, points, icon: true, label: { x: x - r, y: y - r, w: r * 2, h: r * 2, text: single(text, x - r, y + T.label.size * 0.35, T.label) } };
+    }
+    const Lb = B.label;
+    const w = Lb.padX * 2 + Lb.glyph + Lb.gap + widthOf(text, T.label);
+    const x = (from.cx + to.cx) / 2 - w / 2;
+    const label = { x, y: returnY - Lb.h / 2, w, h: Lb.h, text: single(text, x + Lb.padX + Lb.glyph + Lb.gap, returnY + T.label.size * 0.35, T.label) };
+    return { id: b.id, from: b.from, to: b.to, step: b.step, event: b.event, points, label };
+  });
+
+  // 流れの線の、段で札が通った区間
+  const runs: LineupRun[] = stations
+    ? walk.runs.map((r) => {
+        const a = stops.find((s) => s.lane === r.from) as LineupStop;
+        const b = stops.find((s) => s.lane === r.to) as LineupStop;
+        return { step: r.step, event: r.event, from: r.from, to: r.to, points: stacked ? [[lineAt, a.cy], [lineAt, b.cy]] : [[a.cx, lineAt], [b.cx, lineAt]] };
+      })
+    : [];
 
   // 札の下の一言
   const remarks: LineupRemark[] = [];
@@ -554,102 +905,64 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     }
   }
 
-  // チップの席
-  const seatsOf = new Map<Line, Rect[]>();
-  for (const line of lines) {
-    const lane = laneOf.get(line.lane) as LineupLane;
-    seatsOf.set(
-      line,
-      lane.pool
-        ? grid(line.items.map(chipW), { x: lane.track.x, y: lane.track.y, w: lane.track.w }, poolGapX).seats
-        : line.items.map((_, index) => lane.slots[index] as Rect),
-    );
-  }
-  const chips: LineupSeat[] = [];
+  // 封と印と選ぶ印。流れの線は読む時に断るので、ボードだけが持つ
   const seals: LineupSeal[] = [];
   const stamps: LineupStamp[] = [];
   const picks: LineupPick[] = [];
   const marks: LineupMark[] = [];
-  const seated = new Map<string, LineupSeat[]>();
-  const open = new Map<string, LineupSeal>();
-  let picked: string | undefined;
-  diagram.steps.forEach((step, s) => {
-    // 同じ段の `line` どうしは、段の始まりの居場所から滑る
-    const before = [...seated.values()].flat();
-    step.events.forEach((e: DiagramEvent, k) => {
-      if ((e.type !== "line" && e.type !== "seal" && e.type !== "open" && e.type !== "pick" && e.type !== "stamp") || !("box" in e)) return;
-      const lane = laneOf.get(e.box);
-      if (!lane) return;
-      const at: LineupAt = { step: s, event: k };
-      if (e.type === "seal" && !open.has(lane.id)) {
-        const { over } = L.seal;
-        const seal: LineupSeal = { ...at, lane: lane.id, x: lane.track.x - over, y: lane.track.y - over, w: lane.track.w + over * 2, h: lane.track.h + over * 2 };
-        seals.push(seal);
-        open.set(lane.id, seal);
-      } else if (e.type === "open") {
-        const seal = open.get(lane.id);
-        if (seal) seal.until = at;
-        open.delete(lane.id);
-      } else if (e.type === "pick" && picked !== lane.id) {
-        picks.push({ ...at, lane: lane.id });
-        marks.push({ ...at, ...markOf(lane, words.lineupPicked) });
-        picked = lane.id;
-      } else if (e.type === "stamp") {
-        const w = textWidth(e.text, TYPE.stamp) + L.stamp.padX * 2;
-        stamps.push({ ...at, lane: lane.id, text: e.text, x: lane.x + lane.w - L.stamp.inset - w, y: bottomOf(lane) - L.stamp.drop, w, h: L.stamp.h });
-      } else if (e.type === "line") {
-        const line = lines.find((l) => l.step === s && l.event === k) as Line;
-        const rects = seatsOf.get(line) ?? [];
-        const old = seated.get(lane.id) ?? [];
-        const placedSeats = line.items.map((id, index): LineupSeat => {
-          const rect = rects[index] as Rect;
-          const same = old.find((c) => c.id === id);
-          if (same?.index === index && same.x === rect.x && same.y === rect.y && same.w === rect.w) return same;
-          const others = before.filter((c) => c.id === id);
-          const source = same ?? others.find((c) => c.lane === picked) ?? others.at(-1);
-          const text = nameOf(id);
-          const label = lane.pool ? single(text, rect.x + rect.w / 2 - textWidth(text, TYPE.chip) / 2, rect.y + rect.h / 2 + LOOK.baseline.tag, TYPE.chip) : single(text, rect.x + C.padX, rect.y + rect.h / 2 + LOOK.baseline.tag, TYPE.chip);
-          const seat: LineupSeat = { ...at, id, lane: lane.id, index, ...rect, label, ...(source ? { from: [source.x, source.y] as Point } : {}) };
-          chips.push(seat);
-          return seat;
-        });
-        for (const c of old) if (!placedSeats.includes(c)) c.until = at;
-        seated.set(lane.id, placedSeats);
-      }
-    });
-  });
+  if (!stations) {
+    const open = new Map<string, LineupSeal>();
+    let picked: string | undefined;
+    diagram.steps.forEach((step, s) =>
+      step.events.forEach((e: DiagramEvent, k) => {
+        if ((e.type !== "seal" && e.type !== "open" && e.type !== "pick" && e.type !== "stamp") || !("box" in e)) return;
+        const lane = laneById.get(e.box);
+        if (!lane) return;
+        const at: LineupAt = { step: s, event: k };
+        if (e.type === "seal" && !open.has(lane.id)) {
+          const { over } = L.seal;
+          const seal: LineupSeal = { ...at, lane: lane.id, x: lane.track.x - over, y: lane.track.y - over, w: lane.track.w + over * 2, h: lane.track.h + over * 2 };
+          seals.push(seal);
+          open.set(lane.id, seal);
+        } else if (e.type === "open") {
+          const seal = open.get(lane.id);
+          if (seal) seal.until = at;
+          open.delete(lane.id);
+        } else if (e.type === "pick" && picked !== lane.id) {
+          picks.push({ ...at, lane: lane.id });
+          marks.push({ ...at, ...markOf(lane, words.lineupPicked) });
+          picked = lane.id;
+        } else if (e.type === "stamp") {
+          const w = textWidth(e.text, TYPE.stamp) + L.stamp.padX * 2;
+          stamps.push({ ...at, lane: lane.id, text: e.text, x: lane.x + lane.w - L.stamp.inset - w, y: bottomOf(lane) - L.stamp.drop, w, h: L.stamp.h });
+        }
+      }),
+    );
+  }
 
-  // 置き場と札の間の矢印
+  // ボードの帯の間の向きの印。横に並べた帯は見出しの高さに右を向け、積んだ帯は帯の間に下を向ける
   const arrows: LineupArrow[] = [];
-  const { inset } = L.arrow;
-  if (stacked) {
-    const nearest = (g: Group): LineupLane => {
-      const list = g.lanes.map((l) => laneOf.get(l.id) as LineupLane);
-      return list.reduce((best, lane) => (Math.abs(lane.cx - width / 2) < Math.abs(best.cx - width / 2) ? lane : best), list[0] as LineupLane);
-    };
-    const groupBottom = (g: Group): number => Math.max(...g.lanes.map((l) => bottomOf(laneOf.get(l.id) as LineupLane)), ...remarks.filter((r) => g.lanes.some((l) => l.id === r.lane)).map((r) => bottomOf(r.text)));
-    groups.forEach((group, g) => {
-      const prev = groups[g - 1];
-      if (!prev || prev.pool === group.pool) return;
-      const from = nearest(prev);
-      const to = nearest(group);
-      const top = laneOf.get((group.lanes[0] as Sized).id) as LineupLane;
-      // 札の頭に印を持ち上げる所を空けて止める
-      const end = top.y - inset - (group.pool ? 0 : L.mark.lift);
-      arrows.push({ from: from.id, to: to.id, points: [[width / 2, groupBottom(prev) + inset], [width / 2, end]] });
-    });
-  } else {
-    lanes.forEach((lane, i) => {
-      const next = lanes[i + 1];
-      if (!next || next.pool === lane.pool) return;
-      const y = lane.y + lane.h / 2;
-      arrows.push({ from: lane.id, to: next.id, points: [[lane.x + lane.w + inset, y], [next.x - inset, y]] });
+  if (!stations) {
+    const half = B.chevron.len / 2;
+    lanes.forEach((lane, k) => {
+      const next = lanes[k + 1];
+      if (!next) return;
+      if (stacked) {
+        const x = lane.x + B.nameX;
+        const y = next.y - N.gap / 2;
+        arrows.push({ from: lane.id, to: next.id, points: [[x, y - half], [x, y + half]] });
+      } else {
+        const x = lane.x + lane.w + B.gap / 2;
+        const y = nameMid.get(lane.id) ?? lane.y;
+        arrows.push({ from: lane.id, to: next.id, points: [[x - half, y], [x + half, y]] });
+      }
     });
   }
 
   // 「この先」の帯。後の段の題を左から並べ、図の幅で折り返す
-  const above = Math.max(...lanes.map(bottomOf), ...remarks.map((r) => bottomOf(r.text)), ...stamps.map(bottomOf));
+  const above = Math.max(...lanes.map(bottomOf), ...remarks.map((r) => bottomOf(r.text)), ...stamps.map(bottomOf), ...(line ? [bottomOf(line)] : []));
   const A = L.ahead;
+  const { inset } = L.arrow;
   const aheadTop = above + A.top;
   const aheads: LineupAhead[] = diagram.steps.slice(0, -1).map((_, s) => {
     const label = single(words.lineupAhead, margin, aheadTop + A.h / 2 + TYPE.aheadLabel.size * 0.3, TYPE.aheadLabel);
@@ -667,8 +980,8 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
         y += A.h + A.gap;
       }
       const no = { x: x + A.padX, y: y + (A.h - A.no) / 2, w: A.no, h: A.no };
-      const n = String(s + 2 + k);
-      const number = single(n, no.x + no.w / 2 - textWidth(n, TYPE.aheadNo) / 2, no.y + no.h / 2 + LOOK.baseline.tag, TYPE.aheadNo);
+      const num = String(s + 2 + k);
+      const number = single(num, no.x + no.w / 2 - textWidth(num, TYPE.aheadNo) / 2, no.y + no.h / 2 + LOOK.baseline.tag, TYPE.aheadNo);
       const text = { ...single(step.title, no.x + no.w + A.textGap, y + A.h / 2 + TYPE.aheadText.size * 0.3, TYPE.aheadText), w: textW };
       tags.push({ step: s + 1 + k, x, y, w, h: A.h, no, number, text });
       if (k < later.length - 1) tagArrows.push([[x + w + inset, y + A.h / 2], [x + w + A.arrow - inset, y + A.h / 2]]);
@@ -678,17 +991,17 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   });
   const aheadBottom = Math.max(above, ...aheads.flatMap((a) => a.tags.map(bottomOf)));
 
-  // 凡例。説明ごとに 1 行を、チップの宣言の順に左から並べ、図の幅で折り返す
+  // 凡例。説明ごとに 1 行を、札の宣言の順に左から並べ、図の幅で折り返す
   const G = L.legend;
   const notes: { note: string; color?: ColorKey }[] = [];
-  for (const item of items) if (item.note !== undefined && !notes.some((n) => n.note === item.note)) notes.push({ note: item.note, ...(item.color ? { color: item.color } : {}) });
+  for (const item of items) if (item.note !== undefined && !notes.some((x) => x.note === item.note)) notes.push({ note: item.note, ...(item.color ? { color: item.color } : {}) });
   const legend: LineupLegendRow[] = [];
   {
     let x = margin;
     let y = aheadBottom + G.top;
     let rowH: number = G.swatch;
-    for (const n of notes) {
-      const textW = Math.min(textWidth(n.note, TYPE.legend), inner - G.swatch - G.gap);
+    for (const note of notes) {
+      const textW = Math.min(textWidth(note.note, TYPE.legend), inner - G.swatch - G.gap);
       const w = G.swatch + G.gap + textW;
       if (x > margin && x + w > width - margin) {
         x = margin;
@@ -696,8 +1009,8 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
         rowH = G.swatch;
       }
       const swatch = { x, y, w: G.swatch, h: G.swatch };
-      const text = wrapped(n.note, x + G.swatch + G.gap, y + G.swatch / 2 + TYPE.legend.size * 0.3, TYPE.legend, inner - G.swatch - G.gap, G.line);
-      legend.push({ ...(n.color ? { color: n.color } : {}), swatch, text });
+      const text = wrapped(note.note, x + G.swatch + G.gap, y + G.swatch / 2 + TYPE.legend.size * 0.3, TYPE.legend, inner - G.swatch - G.gap, G.line);
+      legend.push({ ...(note.color ? { color: note.color } : {}), swatch, text });
       rowH = Math.max(rowH, bottomOf(text) - y);
       x += w + G.colGap;
     }
@@ -706,7 +1019,8 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
 
   const layout: LineupLayout = {
     kind: "lineup",
-    arrangement,
+    shape,
+    arrangement: stacked ? "stack" : "row",
     width,
     height: 0,
     regions: [],
@@ -732,6 +1046,12 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
     legend,
     arrows,
     sealWord: words.lineupSealed,
+    counts,
+    ticks,
+    values: valueChips,
+    ghosts,
+    backs,
+    ...(line ? { stations: { line, stops, runs } } : {}),
   };
   const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
@@ -742,12 +1062,14 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   layout.badges = besideSameSpot(badges, () => true, () => true);
   return layout;
 
-  /** 札の頭の印。名前の右に入れば名前の行に、入らなければ札の上の端に掛けて右に寄せる */
+  /** 選んだ帯の頭の印。名前と札の数の間に入れば名前の行に、入らなければ帯の上の端に掛けて右に寄せる */
   function markOf(lane: LineupLane, text: string): Rect & { lane: string; text: string } {
     const w = textWidth(text, TYPE.laneMark) + L.mark.padX * 2;
     const inline = lane.title.x + lane.title.w + L.mark.gap;
-    if (inline + w <= lane.x + lane.w - pad) return { lane: lane.id, text, x: inline, y: lane.title.y + lane.title.h / 2 - L.mark.h / 2, w, h: L.mark.h };
-    return { lane: lane.id, text, x: lane.x + lane.w - pad - w, y: lane.y - L.mark.lift, w, h: L.mark.h };
+    const right = countBelow || lane.title.lines.length > 1 ? lane.x + lane.w - B.dotX : lane.x + lane.w - B.dotX - countMost(lane.id) - L.mark.gap;
+    const mid = nameMid.get(lane.id) ?? lane.y;
+    if (inline + w <= right) return { lane: lane.id, text, x: inline, y: mid - L.mark.h / 2, w, h: L.mark.h };
+    return { lane: lane.id, text, x: lane.x + lane.w - B.padX - w, y: lane.y - L.mark.lift, w, h: L.mark.h };
   }
 }
 
@@ -767,22 +1089,6 @@ function headOf(diagram: DiagramModel, margin: number, inner: number): { heading
 /** 一言が幅 `w` の札の下で何行になるか */
 function remarkLines(text: string, w: number): number {
   return wrap(text, TYPE.remark, w - L.remark.bar - L.remark.gap).length;
-}
-
-/** 縦に組んだ時の組。置き場は 1 つずつ帯になり、続いた札は 1 列にまとまる */
-interface Group {
-  pool: boolean;
-  lanes: Sized[];
-}
-
-function groupsOf(sized: Sized[]): Group[] {
-  const groups: Group[] = [];
-  for (const lane of sized) {
-    const last = groups.at(-1);
-    if (!lane.pool && last && !last.pool) last.lanes.push(lane);
-    else groups.push({ pool: lane.pool, lanes: [lane] });
-  }
-  return groups;
 }
 
 /** 層の見た目の字の幅。等幅の字で和文を含む字は、和文の字で描くので和文の字で測る */
@@ -880,7 +1186,6 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
       cy: y + h / 2,
       pool: false,
       title: name,
-      hint: { text: "", lines: [], x: textX, y: nameBase, w: 0, h: 0 },
       track: { x: row.cardX, y: row.cardY - Y.card / 2, w: cardCol, h: Y.card },
       slots: [],
     });
@@ -954,6 +1259,7 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
 
   const layout: LineupLayout = {
     kind: "lineup",
+    shape: "layers",
     arrangement: "layers",
     width,
     height: 0,
@@ -982,6 +1288,11 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
     sealWord: words.lineupSealed,
     bands,
     bandNotes,
+    counts: [],
+    ticks: [],
+    values: [],
+    ghosts: [],
+    backs: [],
   };
   const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
@@ -989,4 +1300,182 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
   const badges: SceneBadge[] = diagram.steps.map((_, s) => ({ step: s, x: width - margin - LOOK.badge.r, y: margin + L.headline.badgeY, color: "green" }));
   layout.badges = besideSameSpot(badges, () => true, () => true);
   return layout;
+}
+
+/**
+ * 列の図のボードと流れの線 (#3624) の、段ごとの札の居場所の読み。置く所は持たず、帯の何番目の席に何が居るかだけを決める。
+ *
+ * 段の中の `line` を全て書いた後の並びで、札ごとに居場所を 1 つの帯に決める。札を最も後の段に書いた帯が居場所で、
+ * 同じ段に 2 つの帯へ書いた札はどちらも居場所にする (入札の図で、同じ取引が 3 つのビルダーのブロックに入る)。
+ * 居場所でない帯に残る札は控え (`trace`) で、書き換えていない受付が診察待ちへ移った患者を控える形。
+ *
+ * 札が居場所を変えた段は、元の席から滑る。同じ帯の中で席が変わる札も、その帯の元の席から滑る。
+ * 札が箱を書いた順で前の帯へ移り、段の始まりにその帯に居なかった時は差し戻し (`back`) で、元の帯に抜けた跡 (`from`) を残す。
+ * 前の段にどの帯にも居た札が、どの帯からも消えた時は外れた跡 (`gone`) を残す。跡はその段の帯の札の後の席に置く。
+ * 前の段にどこにも居なかった色付きの札は、現れた段だけ「足した」の印を持つ。段 1 の札は印を持たない。
+ *
+ * 帯が変わる時刻は、その段でその帯に書いた `line` の出来事。書いていない帯が控えに変わる時刻は、その札に触れた最初の `line` の出来事
+ */
+
+/** 札が帯の席に居る間 1 回分。`source` は滑り始める席で、弾んで現れる札は持たない。`until` は席を離れる出来事 */
+interface WalkSeat extends LineupAt {
+  id: string;
+  lane: string;
+  index: number;
+  /** 居場所でない帯に残る控えか */
+  trace: boolean;
+  source?: WalkSeat;
+  until?: LineupAt;
+  /** 帯を移ったか、初めて現れた段か (段 1 を除く) */
+  moved: boolean;
+  /** 現れた段だけ付ける印。差し戻した札は `back`、前の段にどこにも居なかった色付きの札は `added` */
+  tag?: "added" | "back";
+}
+
+/** 抜けた跡。`from` は差し戻しで出た帯、`gone` はどの帯からも外れた札の帯。その段の終わりまで見せる */
+interface WalkGhost extends LineupAt {
+  id: string;
+  lane: string;
+  index: number;
+  kind: "from" | "gone";
+}
+
+/** 差し戻し。`seat` は戻った先の席 */
+interface WalkBack extends LineupAt {
+  id: string;
+  from: string;
+  to: string;
+  seat: WalkSeat;
+}
+
+/** 段の中で札が後ろの帯へ移った区間。同じ区間を移る札が何枚あっても 1 つにまとめ、最も早い出来事を持つ */
+interface WalkRun extends LineupAt {
+  from: string;
+  to: string;
+}
+
+interface Walk {
+  seats: WalkSeat[];
+  ghosts: WalkGhost[];
+  backs: WalkBack[];
+  runs: WalkRun[];
+  /** 帯ごとの、段ごとの札の数 (書いた並びの数で、控えも数える) */
+  counts: Map<string, number[]>;
+  /** 帯ごとの、一度に使う席の数の最も多い数。控えと跡も数える */
+  most: Map<string, number>;
+}
+
+/**
+ * 段ごとの札の居場所を読む。`order` は箱を書いた順、`colored` は札が色を持つか。
+ * `pickedAt` はその出来事の時に選んでいる箱で、同じ札が幾つもの帯から移れる時は選んだ箱から滑らせる
+ */
+function walkLineup(diagram: DiagramModel, lines: Line[], order: string[], colored: (id: string) => boolean, pickedAt: (at: LineupAt) => string | undefined): Walk {
+  const rank = new Map(order.map((id, k) => [id, k]));
+  const cont = new Map<string, string[]>(order.map((id) => [id, []]));
+  const wrote = new Map<string, number>();
+  const key = (lane: string, id: string): string => `${lane}\u0000${id}`;
+  let live = new Map<string, WalkSeat>();
+  const seats: WalkSeat[] = [];
+  const ghosts: WalkGhost[] = [];
+  const backs: WalkBack[] = [];
+  const runs: WalkRun[] = [];
+  const counts = new Map<string, number[]>(order.map((id) => [id, []]));
+  const most = new Map<string, number>(order.map((id) => [id, 0]));
+
+  /** 札ごとの居場所の帯。札を最も後の段に書いた帯で、同じ段に書いた帯はどれも居場所にする */
+  const mainOf = (): Map<string, Set<string>> => {
+    const last = new Map<string, number>();
+    for (const lane of order) for (const id of cont.get(lane) ?? []) last.set(id, Math.max(last.get(id) ?? -1, wrote.get(lane) ?? -1));
+    const main = new Map<string, Set<string>>();
+    for (const lane of order)
+      for (const id of cont.get(lane) ?? []) {
+        if (wrote.get(lane) !== last.get(id)) continue;
+        const set = main.get(id) ?? new Set<string>();
+        set.add(lane);
+        main.set(id, set);
+      }
+    return main;
+  };
+
+  diagram.steps.forEach((_, s) => {
+    const mine = lines.filter((l) => l.step === s);
+    if (mine.length > 0) {
+      const startMain = mainOf();
+      const startLive = [...live.values()];
+      const present = new Set(order.flatMap((lane) => cont.get(lane) ?? []));
+      /** 帯ごとの、その段で最後に書いた出来事と、札ごとの、その段で最初に触れた出来事 */
+      const laneEvent = new Map<string, number>();
+      const touch = new Map<string, number>();
+      for (const line of mine) {
+        for (const id of [...(cont.get(line.lane) ?? []), ...line.items]) if (!touch.has(id)) touch.set(id, line.event);
+        cont.set(line.lane, line.items);
+        wrote.set(line.lane, s);
+        laneEvent.set(line.lane, line.event);
+      }
+      const endMain = mainOf();
+      const firstEvent = (mine[0] as Line).event;
+      const eventOf = (lane: string, id: string): number => laneEvent.get(lane) ?? touch.get(id) ?? firstEvent;
+      /** 帯を移る札の滑り始める席。選んだ箱の席、居場所の席、控えの席の順に、後に座った席を選ぶ */
+      const sourceOf = (id: string, lane: string, at: LineupAt): WalkSeat | undefined => {
+        const others = startLive.filter((c) => c.id === id && c.lane !== lane);
+        const picked = pickedAt(at);
+        return others.find((c) => c.lane === picked) ?? others.filter((c) => !c.trace).at(-1) ?? others.at(-1);
+      };
+
+      const next = new Map<string, WalkSeat>();
+      for (const lane of order) {
+        (cont.get(lane) ?? []).forEach((id, index) => {
+          const trace = !endMain.get(id)?.has(lane);
+          const k = key(lane, id);
+          const prev = live.get(k);
+          if (prev && prev.index === index && prev.trace === trace) {
+            next.set(k, prev);
+            return;
+          }
+          const at: LineupAt = { step: s, event: eventOf(lane, id) };
+          if (prev) prev.until = at;
+          const source = trace ? undefined : (prev ?? sourceOf(id, lane, at));
+          const back = !trace && !prev && source !== undefined && (rank.get(lane) ?? 0) < (rank.get(source.lane) ?? 0);
+          const added = !trace && s > 0 && !present.has(id) && colored(id);
+          const seat: WalkSeat = {
+            ...at,
+            id,
+            lane,
+            index,
+            trace,
+            ...(source ? { source } : {}),
+            moved: !trace && s > 0 && (source === undefined || source.lane !== lane),
+            ...(back ? { tag: "back" as const } : added ? { tag: "added" as const } : {}),
+          };
+          seats.push(seat);
+          next.set(k, seat);
+          if (back && source) backs.push({ ...at, id, from: source.lane, to: lane, seat });
+          else if (source && source.lane !== lane && !trace) {
+            const run = runs.find((r) => r.step === s && r.from === source.lane && r.to === lane);
+            if (!run) runs.push({ ...at, from: source.lane, to: lane });
+            else if (at.event < run.event) run.event = at.event;
+          }
+        });
+      }
+      // 書き直した並びに無い札は、その帯を離れる
+      for (const [k, seat] of live) if (!next.has(k)) seat.until = { step: s, event: eventOf(seat.lane, seat.id) };
+      live = next;
+
+      // 跡は、その段の帯の札の後の席に置く
+      const extra = new Map<string, number>();
+      const ghost = (id: string, lane: string, event: number, kind: "from" | "gone"): void => {
+        const n = extra.get(lane) ?? 0;
+        ghosts.push({ step: s, event, id, lane, index: (cont.get(lane) ?? []).length + n, kind });
+        extra.set(lane, n + 1);
+      };
+      for (const b of backs.filter((x) => x.step === s)) if (!(cont.get(b.from) ?? []).includes(b.id)) ghost(b.id, b.from, b.event, "from");
+      for (const [id, lanes] of startMain) {
+        if (endMain.has(id)) continue;
+        for (const lane of order) if (lanes.has(lane)) ghost(id, lane, eventOf(lane, id), "gone");
+      }
+      for (const lane of order) most.set(lane, Math.max(most.get(lane) ?? 0, (cont.get(lane) ?? []).length + (extra.get(lane) ?? 0)));
+    }
+    for (const lane of order) counts.get(lane)?.push((cont.get(lane) ?? []).length);
+  });
+  return { seats, ghosts, backs, runs, counts, most };
 }
