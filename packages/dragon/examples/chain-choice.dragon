@@ -1,0 +1,36 @@
+// アプリを載せるチェーンの候補を、手数料の安さと速さの2つの軸で4つに分ける。
+// 段ごとに1つの区画へ候補を置き、区画ごとにどんな時に使うかを決める。
+matrix 手数料と速さでチェーンを選ぶ
+
+axis 手数料の安さ [from: 高い, to: 安い]
+axis 速さ [from: 遅い, to: 速い]
+
+box rush as 急ぐ時だけ
+box first as 最初に選ぶ
+box big as 大きな額だけ
+box idle as 待てる時に
+
+item fast as 速さを売りにするL1
+item rollup as ロールアップのL2
+item app as アプリ専用のチェーン
+item main as イーサリアムの本体
+item side as 古いサイドチェーン
+
+step 並べる
+  say 載せる先の候補を左に並べる。まだどの区画にも置いていない。
+
+step 最初に選ぶ
+  say 手数料が安く速い候補を、日々の操作の載せ先に選ぶ。
+  line first: rollup, app
+
+step 急ぐ時だけ
+  say 速いが手数料の高い候補は、待てない操作の時だけ使う。
+  line rush: fast
+
+step 待てる時に
+  say 安いが遅い候補は、急がない送金をまとめて流す時に使う。
+  line idle: side
+
+step 大きな額だけ
+  say 高く遅いが最も守りの固い本体は、大きな額を確かめる時だけ使う。
+  line big: main

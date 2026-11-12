@@ -98,7 +98,7 @@ On any HTML page, put one script line and the notation in a `<pre class="dragon"
 Nothing needs to be installed or built.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.71/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.72/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -196,7 +196,7 @@ mountDiagram(host, parsed.diagram, {
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`, and the blocks that only those kinds use.
+It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`, and the blocks that only those kinds use.
 Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
 A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
 After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
@@ -296,7 +296,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set`, and a line is written as `id -> id`.
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
@@ -804,6 +804,45 @@ step Count the order
   pick users.orders
 ```
 
+### Two-axis matrix
+
+Start with `matrix` to draw a two-axis matrix, which sorts items into four areas by two measures, step by step.
+The horizontal axis runs below the areas from left to right and the vertical axis left of them from bottom to top, and the items wait in a list left of the areas until a step places them.
+
+- `axis <name> [from: <low end>, to: <high end>]` is an axis, written before the first `step`. Write the horizontal axis first and then the vertical one; the name and both ends show outside the arrow. A matrix without exactly two axes is refused
+- `box <id> as <name>` is an area. Write exactly four; they go top left, top right, bottom left and bottom right in the order written, with the name at the top left. A matrix without exactly four areas is refused
+- `item <id> as <name>` is an item to sort, written before the first `step`. Items wait in the "Not placed yet" list in the order written
+- `line <area>: <item>, <item>` inside a step places items into an area. The cards slide from the list into the area and the area lights up in that step. A placed card stays until a later step places it in another area. An unknown area or item, or the same item twice on one line, is refused
+- `as <name>` can be left out, and the id is then shown as the name. Lines between boxes and `strip` lines are refused in a two-axis matrix
+
+```dragon
+matrix Sort the work by effort and impact
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item pay as Add payments
+item word as Fix wording
+
+step Line up
+  say Line up the work on the left.
+
+step Do now
+  say Low effort and high impact goes first.
+  line now: login
+
+step The rest
+  say Sort the rest by effort and impact.
+  line plan: pay
+  line spare: word
+```
+
 ### Set overlap diagram
 
 Start with `venn` to draw a set overlap diagram, which overlaps two or three sets as circles and counts how many fall in each region step by step.
@@ -941,6 +980,40 @@ The PNG is a still of the last step in the `fixed` view.
 When text overlaps in some step, the export still finishes and prints each overlap on its own line to standard error, with the step and the text (with `--lang en`, for example `Step 5: Step number 1 and step number 5 overlap`). The exit code stays 0.
 The HTML is a single file with fonts cut down to the characters the diagram draws, and it fetches nothing from outside.
 To call it from Node, use `exportDiagram` from `@cardenelabs/dragon/export`.
+
+### Export in the browser
+
+A diagram drawn on a page can be turned into GIF, MP4, PNG, and SVG inside the reader's browser.
+Load the entry `@cardenelabs/dragon/capture` when the export button is pressed, so pages that only draw do not carry it.
+Pass the SVG element drawn on the page, and `captureGif`, `captureMp4`, and `capturePng` return a Blob, and `captureSvg` returns a string.
+GIF and MP4 capture one cycle of the diagram's motion, with the same frame count and size as `dragon export` writes for the same diagram.
+The PNG is a still of the current moment, twice the size of the SVG.
+PNG and SVG also take SVGs that are not dragon diagrams.
+Fonts are embedded whole, taking from the page's `@font-face` rules only the font files whose range covers the characters drawn.
+When a font file cannot be read, the call refuses and names the font and its range.
+MP4 is made with H.264 in WebCodecs, so `canCaptureMp4` returns `false` in browsers that cannot make it.
+
+```ts
+import { canCaptureMp4, captureGif, captureMp4, capturePng, captureSvg } from "@cardenelabs/dragon/capture";
+
+const svg = document.querySelector('svg[data-dragon="figure"]') as SVGSVGElement;
+const png = await capturePng(svg);
+const svgText = await captureSvg(svg);
+const gif = await captureGif(svg);
+const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
+```
+
+Pass the `timeline` that `renderDiagram` returns to GIF and MP4 (`captureGif(svg, { timeline })`) to build the GIF colors from the same pictures as `dragon export`.
+
+`editorUrl` from the drawing entry makes a URL that opens the notation in the editor.
+The notation goes after `#n=` in the URL, so it is not sent to the server that serves the page.
+
+```ts
+import { editorUrl } from "@cardenelabs/dragon";
+
+const url = editorUrl(source); // https://cardene777.github.io/dragon/editor#n=...
+const local = editorUrl(source, { base: "http://localhost:5173/" });
+```
 
 ## License
 

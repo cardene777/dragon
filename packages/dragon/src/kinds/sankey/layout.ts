@@ -9,7 +9,7 @@
  * 量の札は帯の真ん中の曲線の上を、出どころの側から行き先の側の手前まで渡る。
  * 段の番号は、その段の最初の線の行き先の名前と量の右に置き、線の無い段は前の段の所に、線の無い最初の段は左の列の最初の棒の左に置く
  */
-import { amountOf } from "../../blocks/band/amount";
+import { amountOf } from "../../blocks/band/limits";
 import { textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, carrierHalf, edgesOf, type Layout, type Point, type Rect, type SceneBadge, type SceneEdge } from "../../layout/scene";
 import { SANKEY_LOOK, SANKEY_TYPE } from "../../look/sankey";

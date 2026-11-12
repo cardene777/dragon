@@ -10,12 +10,6 @@
 import type { Color } from "../color/block";
 import type { Block } from "../block";
 
-/** 親を指す語 */
-export const OF = "of";
-
-/** 考えを広げる地図に書ける段の数。真ん中の題、枝、葉 */
-export const MIND_LEVELS = 3;
-
 /** 考えを広げる地図の考え。書いた段で現れ、親 (`parent`) から考えへの枝の線が引かれる。親の無い考えが真ん中の題 */
 export interface MindIdea {
   type: "idea";

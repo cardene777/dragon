@@ -1,7 +1,7 @@
 /**
  * dragon の軽い入口 (`@cardenelabs/dragon/light`、#3248、#3349)。
  *
- * 既定の入口と同じ部品を出すが、chart、cycle、er、flow、git、lineup、mind、pipe、sankey、state、time、tree、try、venn の描く部品と、その図の種類だけの個別ブロックの読み方を持たない。
+ * 既定の入口と同じ部品を出すが、chart、cycle、er、flow、git、lineup、matrix、mind、pipe、sankey、state、time、tree、try、venn の描く部品と、その図の種類だけの個別ブロックの読み方を持たない。
  * コアブロックと、時系列図と構成図の個別ブロックの読み方は初めから持つ。
  *
  * - `loadFor(<記法か原本>)` を待つと、書いた図の種類の描く部品と、書いた図が使う個別ブロックの読み方だけを読む。原本の JSON を渡した時だけ、原本の形の検査も読む (#3400)
@@ -38,6 +38,7 @@ const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
   flow: () => import("./kinds/flow"),
   git: () => import("./kinds/git"),
   lineup: () => import("./kinds/lineup"),
+  matrix: () => import("./kinds/matrix"),
   mind: () => import("./kinds/mind"),
   pipe: () => import("./kinds/pipe"),
   sankey: () => import("./kinds/sankey"),

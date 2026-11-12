@@ -199,6 +199,17 @@ async function kindChunks(): Promise<Map<string, string[]>> {
   return chunks;
 }
 
+/** 回り続ける図、表どうしの関係の図、考えを広げる地図、集合の重なりの図、2つの軸で置く図だけが使うブロック (#3657) */
+const KIND_ONLY_BLOCKS = ["ring", "table", "idea", "circle", "axis", "matrix-item", "band"] as const;
+
+/** `dist/cdn` の file のうち、source map が `source` で終わる source を名指す file の名前 */
+function filesHolding(source: string): string[] {
+  return readdirSync(CDN)
+    .filter((name) => name.endsWith(".js") && existsSync(join(CDN, `${name}.map`)))
+    .filter((name) => (JSON.parse(readFileSync(join(CDN, `${name}.map`), "utf8")) as { sources: string[] }).sources.some((s) => s.endsWith(source)))
+    .sort();
+}
+
 describe("script の1行の入口 (#3343)", () => {
   it("script-entry-replaces-block-with-figure", async () => {
     if (!entryBuilt()) return;
@@ -342,6 +353,24 @@ describe("script の1行の入口 (#3343)", () => {
       const total = Object.values(sizes).reduce((sum, size) => sum + size, 0);
       expect(total, `最初に読む script の gzip 後の合計 (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(FIRST_LOAD_BUDGET);
     });
+  });
+
+  it("script-entry-kind-blocks-share-one-file", () => {
+    // 種類だけが使うブロックの定義の file から、後から読む読み方と形の欠片が数の決まりを読むと、esbuild はその定義を最初に読む file に
+    // 1 つずつ分ける。分けた file は別々に圧縮されて最初に読む量が増えるので、定義は box のブロックの定義と同じ file に入る (#3657)
+    if (!entryBuilt()) return;
+    const box = filesHolding("src/blocks/box/block.ts");
+    expect(box.length, "box のブロックの定義を持つ file の数").toBe(1);
+    const apart = KIND_ONLY_BLOCKS.filter((name) => filesHolding(`src/blocks/${name}/block.ts`).join() !== box.join());
+    expect(apart, `box のブロックの定義 (${box.join()}) と別の file に入った、種類だけが使うブロックの定義`).toEqual([]);
+  });
+
+  it("script-entry-shared-parts-stay-in-main", () => {
+    // 回り続ける図の描く部品が中身の帯を描く処理を読み、考えの読み方が色を読む処理を読むと、どちらも本体から最初に読む別の file へ分かれる (#3657)。
+    // どちらも本体だけが読み、本体に入る
+    if (!entryBuilt()) return;
+    const missing = ["src/blocks/strip/draw.ts", "src/blocks/color/read.ts"].filter((source) => !filesHolding(source).includes("dragon-main.js"));
+    expect(missing, "本体 (dragon-main.js) の外の file に入った処理").toEqual([]);
   });
 
   it("script-entry-adds-font-link-once", async () => {

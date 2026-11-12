@@ -100,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.71/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.72/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -200,7 +200,7 @@ mountDiagram(host, parsed.diagram, {
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn`、`sankey` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`matrix`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn`、`sankey` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -300,7 +300,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -808,6 +808,45 @@ step 数を増やす
   pick users.注文の数
 ```
 
+### 2つの軸で置く図
+
+`matrix` で始めると、2つの物差しで課題を4つの区画に段ごとに分ける2つの軸で置く図になる。
+横の軸は区画の下を左から右へ、縦の軸は区画の左を下から上へ引き、課題は段で置かれるまで区画の左の一覧に並ぶ。
+
+- `axis <名前> [from: <小さい側>, to: <大きい側>]` は軸で、最初の `step` より前に横の軸、縦の軸の順に書く。軸の名前と両端の字は矢印の外に出る。軸が 2 本でない図は誤りで止まる
+- `box <名札> as <名前>` は区画で、ちょうど 4 つ書く。書いた順に左上、右上、左下、右下に並び、名前は区画の左上に出る。区画が 4 つでない図は誤りで止まる
+- `item <名札> as <名前>` は分ける課題で、最初の `step` より前に書く。課題は「まだ置いていない」の一覧に書いた順に並ぶ
+- 段の中の `line <区画>: <課題>, <課題>` は課題を区画へ置く。その段で札が一覧から区画へ滑り、区画が光る。置いた札は後の段で別の区画へ置き直すまで残る。無い区画か課題と、1 行に同じ課題を 2 度書いた行は誤りで止まる
+- `as <名前>` を省くと名札がそのまま名前になる。箱どうしの線と `strip` の行は書けない
+
+```dragon
+matrix 仕事を手間と効き目で分ける
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item login as ログインを速く
+item pay as 決済を足す
+item word as 文言の直し
+
+step 並べる
+  say 仕事を左に並べる。
+
+step 今やる
+  say 手間が小さく効き目の大きい仕事を先にやる。
+  line now: login
+
+step 残りを分ける
+  say 残りを手間と効き目で分ける。
+  line plan: pay
+  line spare: word
+```
+
 ### 集合の重なりの図
 
 `venn` で始めると、2 つか 3 つの集まりを円で重ね、どの区画に何件入るかを段ごとに数える集合の重なりの図になる。
@@ -945,6 +984,40 @@ PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
 図の中で字が重なる段がある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出す (例 `段 5: 段の番号 1 と段の番号 5 が重なる`)。終わり方は 0 のまま変えない。
 HTML は図で描く字だけに削った字の file を埋めた 1 file で、外へ何も取りに行かない。
 node から呼ぶ時は `@cardenelabs/dragon/export` の `exportDiagram` を使う。
+
+### ブラウザで書き出す
+
+頁に描いた図は、読み手のブラウザの中で GIF と mp4 と PNG と SVG にできる。
+入口 `@cardenelabs/dragon/capture` は書き出す釦を押した時に読み、描くだけの頁には載せない。
+頁に描いた SVG の要素を渡すと、`captureGif` と `captureMp4` と `capturePng` は Blob を、`captureSvg` は文字列を返す。
+GIF と mp4 は図の動きを 1 周撮り、コマの数と縦横は同じ図を `dragon export` で書き出した物と同じになる。
+PNG は今の時刻の止め絵で、縦横は SVG の 2 倍になる。
+PNG と SVG は dragon の図でない SVG も受ける。
+字は頁が読み込んだ `@font-face` から、描いた字の範囲に当たる字の file だけを丸ごと埋める。
+字の file を読めない時は、読めない字の名前と範囲を名指して断る。
+mp4 は WebCodecs の H.264 で作るので、作れないブラウザでは `canCaptureMp4` が `false` を返す。
+
+```ts
+import { canCaptureMp4, captureGif, captureMp4, capturePng, captureSvg } from "@cardenelabs/dragon/capture";
+
+const svg = document.querySelector('svg[data-dragon="figure"]') as SVGSVGElement;
+const png = await capturePng(svg);
+const svgText = await captureSvg(svg);
+const gif = await captureGif(svg);
+const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
+```
+
+GIF と mp4 に `renderDiagram` が返す `timeline` を渡すと (`captureGif(svg, { timeline })`)、GIF の色の表を `dragon export` と同じ絵から作る。
+
+記法をエディタで開く URL は、描く入口の `editorUrl` が作る。
+記法を URL の `#n=` の後ろに詰めるので、記法は頁を配るサーバーに送られない。
+
+```ts
+import { editorUrl } from "@cardenelabs/dragon";
+
+const url = editorUrl(source); // https://cardene777.github.io/dragon/editor#n=...
+const local = editorUrl(source, { base: "http://localhost:5173/" });
+```
 
 ## license
 

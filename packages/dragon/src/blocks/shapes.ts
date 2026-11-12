@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { shape as actShape } from "./act/shape";
 import { shape as askShape } from "./ask/shape";
+import { shape as axisShape } from "./axis/shape";
 import { shape as bandShape } from "./band/shape";
 import { shape as boxShape } from "./box/shape";
 import { shape as branchShape } from "./branch/shape";
@@ -34,6 +35,7 @@ import { shape as lifelineShape } from "./lifeline/shape";
 import { shape as lineShape } from "./line/shape";
 import { shape as linkShape } from "./link/shape";
 import { shape as logShape } from "./log/shape";
+import { shape as matrixItemShape } from "./matrix-item/shape";
 import { shape as mergeShape } from "./merge/shape";
 import { shape as nodeShape } from "./node/shape";
 import { shape as noteShape } from "./note/shape";
@@ -67,6 +69,7 @@ import { shape as zoomShape } from "./zoom/shape";
 export const SHAPES = {
   "act": actShape,
   "ask": askShape,
+  "axis": axisShape,
   "band": bandShape,
   "box": boxShape,
   "branch": branchShape,
@@ -100,6 +103,7 @@ export const SHAPES = {
   "line": lineShape,
   "link": linkShape,
   "log": logShape,
+  "matrix-item": matrixItemShape,
   "merge": mergeShape,
   "node": nodeShape,
   "note": noteShape,

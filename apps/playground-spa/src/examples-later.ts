@@ -118,6 +118,14 @@ import nftSaleJa from "../../../packages/dragon/examples/nft-sale.dragon?raw";
 import nftSaleEn from "../../../packages/dragon/examples/nft-sale.en.dragon?raw";
 import tokenTransferJa from "../../../packages/dragon/examples/token-transfer.dragon?raw";
 import tokenTransferEn from "../../../packages/dragon/examples/token-transfer.en.dragon?raw";
+import taskPriorityJa from "../../../packages/dragon/examples/task-priority.dragon?raw";
+import taskPriorityEn from "../../../packages/dragon/examples/task-priority.en.dragon?raw";
+import riskMatrixJa from "../../../packages/dragon/examples/risk-matrix.dragon?raw";
+import riskMatrixEn from "../../../packages/dragon/examples/risk-matrix.en.dragon?raw";
+import tokenListingJa from "../../../packages/dragon/examples/token-listing.dragon?raw";
+import tokenListingEn from "../../../packages/dragon/examples/token-listing.en.dragon?raw";
+import chainChoiceJa from "../../../packages/dragon/examples/chain-choice.dragon?raw";
+import chainChoiceEn from "../../../packages/dragon/examples/chain-choice.en.dragon?raw";
 import walletUsageJa from "../../../packages/dragon/examples/wallet-usage.dragon?raw";
 import walletUsageEn from "../../../packages/dragon/examples/wallet-usage.en.dragon?raw";
 import l2ChainsJa from "../../../packages/dragon/examples/l2-chains.dragon?raw";
@@ -196,6 +204,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "library-loan": { ja: libraryLoanJa, en: libraryLoanEn },
   "nft-sale": { ja: nftSaleJa, en: nftSaleEn },
   "token-transfer": { ja: tokenTransferJa, en: tokenTransferEn },
+  "task-priority": { ja: taskPriorityJa, en: taskPriorityEn },
+  "risk-matrix": { ja: riskMatrixJa, en: riskMatrixEn },
+  "token-listing": { ja: tokenListingJa, en: tokenListingEn },
+  "chain-choice": { ja: chainChoiceJa, en: chainChoiceEn },
   "wallet-usage": { ja: walletUsageJa, en: walletUsageEn },
   "l2-chains": { ja: l2ChainsJa, en: l2ChainsEn },
   hobbies: { ja: hobbiesJa, en: hobbiesEn },

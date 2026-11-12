@@ -595,6 +595,26 @@
     "dg-pp-glass dg-pp-glass-on rx=18": 4,
     "dg-pp-chip dg-pp-chip-final rx=4": 2
   },
+  "task-priority.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-mx-area rx=14": 4,
+    "dg-mx-card rx=10": 7,
+    "dg-mx-cl rx=10": 7,
+    "dg-mx-cn dg-a rx=10": 7,
+    "dg-mx-co rx=10": 7,
+    "dg-mx-glow dg-a rx=14": 4,
+    "dg-mx-list rx=14": 1
+  },
+  "task-priority.json": {
+    "dg-bg rx=14": 1,
+    "dg-mx-area rx=14": 4,
+    "dg-mx-card rx=10": 7,
+    "dg-mx-cl rx=10": 7,
+    "dg-mx-cn dg-a rx=10": 7,
+    "dg-mx-co rx=10": 7,
+    "dg-mx-glow dg-a rx=14": 4,
+    "dg-mx-list rx=14": 1
+  },
   "tickets.en.json": {
     "dg-bg rx=14": 1,
     "dg-ch-bt rx=3": 3,

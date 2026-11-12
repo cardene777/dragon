@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "kind": "matrix",
+  "title": "今週の仕事を急ぎと大事さで分ける",
+  "matrix": {
+    "axes": [
+      {
+        "name": "急ぎ",
+        "from": "低い",
+        "to": "高い"
+      },
+      {
+        "name": "大事さ",
+        "from": "低い",
+        "to": "高い"
+      }
+    ],
+    "items": [
+      {
+        "id": "report",
+        "name": "明日締めの報告書"
+      },
+      {
+        "id": "trouble",
+        "name": "客先の不具合"
+      },
+      {
+        "id": "study",
+        "name": "資格の勉強"
+      },
+      {
+        "id": "health",
+        "name": "健康診断の予約"
+      },
+      {
+        "id": "call",
+        "name": "急ぎの取り次ぎ"
+      },
+      {
+        "id": "room",
+        "name": "定例会の会場取り"
+      },
+      {
+        "id": "feed",
+        "name": "何となく見るSNS"
+      }
+    ]
+  },
+  "blocks": {
+    "box": [
+      {
+        "id": "plan",
+        "name": "予定を立てる"
+      },
+      {
+        "id": "now",
+        "name": "すぐやる"
+      },
+      {
+        "id": "drop",
+        "name": "やめる"
+      },
+      {
+        "id": "ask",
+        "name": "人に任せる"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "並べる",
+      "body": "今週の仕事を左に並べる。まだどの区画にも置いていない。",
+      "events": []
+    },
+    {
+      "title": "すぐやる",
+      "body": "急ぎで大事な仕事は、ほかより先に今日のうちに片付ける。",
+      "events": [
+        {
+          "type": "line",
+          "box": "now",
+          "items": [
+            "report",
+            "trouble"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "予定を立てる",
+      "body": "大事だが急がない仕事は、後回しにならないよう先に日を決める。",
+      "events": [
+        {
+          "type": "line",
+          "box": "plan",
+          "items": [
+            "study",
+            "health"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "人に任せる",
+      "body": "急ぐが大事さの低い仕事は、ほかの人に頼んで手を空ける。",
+      "events": [
+        {
+          "type": "line",
+          "box": "ask",
+          "items": [
+            "call",
+            "room"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "やめる",
+      "body": "急ぎでも大事でもない仕事は、今週はやめる。",
+      "events": [
+        {
+          "type": "line",
+          "box": "drop",
+          "items": [
+            "feed"
+          ]
+        }
+      ]
+    }
+  ]
+}

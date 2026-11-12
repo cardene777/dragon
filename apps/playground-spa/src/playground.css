@@ -880,6 +880,55 @@
   min-height: 0;
 }
 
+/*
+ * 図を書き出す形を選ぶ窓と、書き出せなかった時の文 (#3644)。道具の列は横に送るのではみ出した物を切るので、
+ * 列の中に置いたまま画面の位置 (`position: fixed`) で釦の下に出す。位置は釦を押した時に script が書く
+ */
+.pg-export-menu,
+.pg-export-failed {
+  position: fixed;
+  z-index: 20;
+  border: 1px solid var(--d-border-strong);
+  border-radius: var(--d-r-1);
+  background: var(--d-surface);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--d-text-primary) 18%, transparent);
+}
+
+.pg-export-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+  padding: 4px;
+}
+
+.pg-export-item {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--d-r-1);
+  background: transparent;
+  color: var(--d-text-primary);
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pg-export-item:hover,
+.pg-export-item:focus-visible {
+  background: var(--d-accent-soft);
+  color: var(--d-accent);
+}
+
+.pg-export-failed {
+  max-width: min(360px, calc(100vw - 16px));
+  margin: 0;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  color: var(--d-text-primary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 /* 格子は罫ではなく点で出す。図の中身 (生存線や線) が線なので、罫だと同じ種類の物が競り合う */
 .pg-figure[data-grid] {
   background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--d-border-strong) 70%, transparent) 1px, transparent 0);
@@ -1143,6 +1192,11 @@
 
   .pg-filter {
     height: 44px;
+  }
+
+  /* 図を書き出す形も、指で押す的の目安の 44px の高さにする (#3644) */
+  .pg-export-item {
+    min-height: 44px;
   }
 
   .pg-item {

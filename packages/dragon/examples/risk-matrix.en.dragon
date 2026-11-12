@@ -1,0 +1,37 @@
+// Before opening a shop, sort the things that could go wrong by two axes: likelihood and impact.
+// Each step places risks into one area and decides how to handle that area.
+matrix Sort the risks before opening a shop
+
+axis Likelihood [from: low, to: high]
+axis Impact [from: small, to: large]
+
+box plan as Plan ahead
+box act as Act now
+box accept as Accept it
+box watch as Keep watch
+
+item staff as Short of staff
+item quake as Shelves fall in a quake
+item fire as Kitchen fire
+item rain as Rain keeps people away
+item stock as Out of stock
+item wifi as Shop Wi-Fi goes down
+
+step Line up
+  say Line up every risk that comes to mind on the left. None of them sits in an area yet.
+
+step Act now
+  say Risks that are likely and have a large impact get handled before opening.
+  line act: staff
+
+step Plan ahead
+  say Unlikely risks with a large impact get a plan ready for when they happen.
+  line plan: quake, fire
+
+step Keep watch
+  say Likely risks with a small impact are watched in the numbers to catch them early.
+  line watch: rain, stock
+
+step Accept it
+  say Unlikely risks with a small impact can be fixed when they happen.
+  line accept: wifi

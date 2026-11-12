@@ -1,0 +1,22 @@
+matrix 軸
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item login as ログインを速く
+item old as 古い画面を作り直す
+
+step 横の軸
+  say axis の 1 行目が横の軸で、区画の下を左から右へ引く。
+    from に左の端の字、to に右の端の字を書く。
+  line now: login
+
+step 縦の軸
+  say axis の 2 行目が縦の軸で、区画の左を下から上へ引く。
+    名前と両端の字は軸の外に出る。
+  line drop: old

@@ -1,7 +1,6 @@
 /**
- * 量の行き先の図 (`sankey`、#3626) の時刻と見た目の規則を描く部品。見た目の元は step 2 で本人が選んだ動く試作の案A。
+ * 量の行き先の図 (`sankey`、#3626) の見た目の規則を描く部品。見た目の元は step 2 で本人が選んだ動く試作の案A。
  *
- * 量の札は、走り出す前に棒の脇で待たず、帯を伸ばし始める時に帯の上に出て、その段の終わりに消える。伸びた帯は残るので、札は残さない。
  * 重なりの順は、帯、棒と名前と量、量の札の順にし、札を帯と棒の上に出す。段の番号と量の札は描く所 (`render/draw.ts`) がほかの図の種類と同じく描く。
  * 帯と棒と字の動きは、量の帯のブロックの描き方 (`blocks/band/draw.ts`) が段の時刻から組む。
  * 見た目の規則も量の行き先の図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない。
@@ -10,8 +9,6 @@
 import { drawBands, drawNodes } from "../blocks/band/draw";
 import type { SankeyLayout } from "../kinds/sankey/layout";
 import { SANKEY_TYPE } from "../look/sankey";
-import type { DiagramModel } from "../schema";
-import type { Timeline } from "../timeline";
 import { type Ctx, cssFont as font } from "./parts";
 
 /** 量の行き先の図の見た目の規則。帯、棒、名前、棒の右の量、棒の上の量 */
@@ -23,21 +20,7 @@ const SANKEY_CSS = [
   `.dg-sk-lead{${font(SANKEY_TYPE.lead)};fill:var(--ct)}`,
 ].join("");
 
-/**
- * 量の行き先の図の時刻の表。図の種類を問わず組んだ表 (`buildTimeline`) を受け取り、量の札の見えている間を直す。
- * 札は帯を伸ばし始める時に出て (走り出しを待たない)、その段の終わりに消える
- */
-export function sankeyTimes(diagram: DiagramModel, t: Timeline): Timeline {
-  return {
-    ...t,
-    carriers: t.carriers.map((c) => {
-      const span = t.steps[c.step];
-      return { ...c, start: c.depart, end: Math.max(c.arrive, span?.end ?? c.end) };
-    }),
-  };
-}
-
-/** 量の行き先の図の帯と、その上に重ねる棒と字。段の番号と量の札は描く所が描く */
+/** 量の行き先の図の帯と、その上に重ねる棒と字。帯の上に棒と字を重ね、ほかの層は空なので、帯と棒と字を 1 つの層に入れる。段の番号と量の札は描く所が描く */
 export function drawSankey(layout: SankeyLayout, ctx: Ctx): { base: string; css: string } {
   return { base: `<g class="dg-sk">${drawBands(layout, ctx)}</g>${drawNodes(layout, ctx)}`, css: SANKEY_CSS };
 }

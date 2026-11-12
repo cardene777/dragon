@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { reading as actReading } from "./act/read";
 import { reading as askReading } from "./ask/read";
+import { reading as axisReading } from "./axis/read";
 import { reading as bandReading } from "./band/read";
 import { reading as boxReading } from "./box/read";
 import { reading as branchReading } from "./branch/read";
@@ -34,6 +35,7 @@ import { reading as lifelineReading } from "./lifeline/read";
 import { reading as lineReading } from "./line/read";
 import { reading as linkReading } from "./link/read";
 import { reading as logReading } from "./log/read";
+import { reading as matrixItemReading } from "./matrix-item/read";
 import { reading as mergeReading } from "./merge/read";
 import { reading as nodeReading } from "./node/read";
 import { reading as noteReading } from "./note/read";
@@ -67,6 +69,7 @@ import { reading as zoomReading } from "./zoom/read";
 export const READINGS = {
   "act": actReading,
   "ask": askReading,
+  "axis": axisReading,
   "band": bandReading,
   "box": boxReading,
   "branch": branchReading,
@@ -100,6 +103,7 @@ export const READINGS = {
   "line": lineReading,
   "link": linkReading,
   "log": logReading,
+  "matrix-item": matrixItemReading,
   "merge": mergeReading,
   "node": nodeReading,
   "note": noteReading,

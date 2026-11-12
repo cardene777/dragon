@@ -223,9 +223,26 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-72-0-lists-capture", () => {
+    // ブラウザで書き出す入口とエディタで開く URL (#3644) と、図の種類を足した 5 件 (#3623、#3618、#3619、#3620、#3622) を 0.72.0 で出す (#3657)
+    expect(version(), "package の版が 0.72.0 でない").toBe("0.72.0");
+    const issues = ["(#3644)", "(#3622)", "(#3620)", "(#3619)", "(#3618)", "(#3623)"];
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.72\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.72.0"), "0.72.0");
+      expect(released, `${file} に日付付きの ## [0.72.0] の節が無い`).not.toBe("");
+      for (const issue of issues) expect(released, `${file} の 0.72.0 の節に ${issue} の項が無い`).toContain(issue);
+      const entry = released.split("\n- ").find((item) => item.includes("(#3644)")) ?? "";
+      expect(entry, `${file} の 0.72.0 の節の #3644 の項が書き出す入口を名指さない`).toContain("`@cardenelabs/dragon/capture`");
+      // 次の版の項は Unreleased に積まれるので、0.72.0 で出した項が残っていないことだけを見る
+      for (const issue of issues) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+    }
+  });
+
   it("changelog-0-71-0-lists-export-blocks", () => {
     // 書き出しの --blocks (#3606) と、線が箱の上を通る崩れと見本帳の崩れの直し (#3607) と、配管の図の速さの直し (#3603) を 0.71.0 で出す (#3610)
-    expect(version(), "package の版が 0.71.0 でない").toBe("0.71.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 71, `package の版 ${version()} が 0.71.0 より前`).toBe(true);
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");
       const released = section(text.replace(/^## \[0\.71\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.71.0"), "0.71.0");

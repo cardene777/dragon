@@ -2,6 +2,8 @@
  * 既定の入口 (`index.ts`) と軽い入口 (`light.ts`) が共に出す部品 (#3248)。
  * 図の種類の部品を読むかだけが 2 つの入口で違うので、ここでは種類の部品を読まない。
  */
+// 記法をエディタで開く URL (#3644)。依存を持たないので、描く入口と軽い入口の両方が出す
+export { editorUrl, type EditorUrlOptions } from "./editor-url";
 export { extractDiagrams, type Fence } from "./markdown";
 export { type LineError, type ParseOptions, type Parsed, parseNotation } from "./parser";
 export { type PrintOptions, printNotation } from "./printer";
@@ -38,6 +40,9 @@ export {
   type LineupOrder,
   type LineupRole,
   type LineupStamp,
+  type MatrixAxis,
+  type MatrixItem,
+  type MatrixSpec,
   type MindIdea,
   type PipeCalc,
   type PipeCall,

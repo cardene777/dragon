@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になる。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,6 +33,7 @@
         "cycle",
         "mind",
         "er",
+        "matrix",
         "venn",
         "sankey"
       ]
@@ -54,6 +55,10 @@
     "chart": {
       "description": "量の図の見た目と項目。量の図だけが書け、ブロックの宣言の欄 (blocks) を使わない",
       "$ref": "#/definitions/chart"
+    },
+    "matrix": {
+      "description": "2つの軸で置く図の軸と課題。2つの軸で置く図だけが書け、区画は blocks の box に書く",
+      "$ref": "#/definitions/matrix"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -285,6 +290,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "matrix"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "matrix"
+        ]
+      },
+      "else": {
+        "properties": {
+          "matrix": {
+            "$ref": "#/definitions/absent"
           }
         }
       }
@@ -1462,7 +1491,7 @@
                                 ],
                                 "properties": {
                                   "kind": {
-                                    "const": "sankey"
+                                    "const": "matrix"
                                   }
                                 }
                               },
@@ -1474,11 +1503,11 @@
                                     ],
                                     "properties": {
                                       "box": {
-                                        "description": "量の出どころと行き先。2 つ以上で、線の名前の量で幅を決めた棒にする。添え書きと絵と飛び先は持たない",
-                                        "minItems": 2,
+                                        "minItems": 4,
+                                        "maxItems": 4,
                                         "items": {
                                           "properties": {
-                                            "sub": {
+                                            "color": {
                                               "$ref": "#/definitions/absent"
                                             },
                                             "icon": {
@@ -1487,7 +1516,10 @@
                                             "link": {
                                               "$ref": "#/definitions/absent"
                                             },
-                                            "region": {
+                                            "order": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "block": {
                                               "$ref": "#/definitions/absent"
                                             }
                                           }
@@ -1502,9 +1534,6 @@
                                       "path": {
                                         "$ref": "#/definitions/absent"
                                       },
-                                      "choice": {
-                                        "$ref": "#/definitions/absent"
-                                      },
                                       "branch": {
                                         "$ref": "#/definitions/absent"
                                       },
@@ -1543,76 +1572,176 @@
                                       },
                                       "check": {
                                         "$ref": "#/definitions/absent"
+                                      },
+                                      "choice": {
+                                        "$ref": "#/definitions/absent"
                                       }
                                     }
                                   },
                                   "steps": {
-                                    "$ref": "#/definitions/plainSteps"
+                                    "$ref": "#/definitions/matrixSteps"
                                   }
                                 }
                               },
                               "else": {
-                                "properties": {
-                                  "blocks": {
-                                    "required": [
-                                      "box"
-                                    ],
-                                    "properties": {
-                                      "box": {
-                                        "minItems": 1
-                                      },
-                                      "strip": {
-                                        "$ref": "#/definitions/plainStrip"
-                                      },
-                                      "path": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "branch": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "scale": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "period": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "row": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "task": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "point": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "zoom": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "item": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "role": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "part": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "hold": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "side": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "check": {
-                                        "$ref": "#/definitions/absent"
-                                      },
-                                      "choice": {
-                                        "$ref": "#/definitions/absent"
-                                      }
+                                "if": {
+                                  "required": [
+                                    "kind"
+                                  ],
+                                  "properties": {
+                                    "kind": {
+                                      "const": "sankey"
                                     }
-                                  },
-                                  "steps": {
-                                    "$ref": "#/definitions/plainSteps"
+                                  }
+                                },
+                                "then": {
+                                  "properties": {
+                                    "blocks": {
+                                      "required": [
+                                        "box"
+                                      ],
+                                      "properties": {
+                                        "box": {
+                                          "description": "量の出どころと行き先。2 つ以上で、線の名前の量で幅を決めた棒にする。添え書きと絵と飛び先は持たない",
+                                          "minItems": 2,
+                                          "items": {
+                                            "properties": {
+                                              "sub": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "icon": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "link": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "region": {
+                                                "$ref": "#/definitions/absent"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "group": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "strip": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "path": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "choice": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "branch": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "scale": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "period": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "row": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "task": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "point": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "zoom": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "item": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "role": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "part": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "hold": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "side": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "check": {
+                                          "$ref": "#/definitions/absent"
+                                        }
+                                      }
+                                    },
+                                    "steps": {
+                                      "$ref": "#/definitions/plainSteps"
+                                    }
+                                  }
+                                },
+                                "else": {
+                                  "properties": {
+                                    "blocks": {
+                                      "required": [
+                                        "box"
+                                      ],
+                                      "properties": {
+                                        "box": {
+                                          "minItems": 1
+                                        },
+                                        "strip": {
+                                          "$ref": "#/definitions/plainStrip"
+                                        },
+                                        "path": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "branch": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "scale": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "period": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "row": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "task": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "point": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "zoom": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "item": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "role": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "part": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "hold": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "side": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "check": {
+                                          "$ref": "#/definitions/absent"
+                                        },
+                                        "choice": {
+                                          "$ref": "#/definitions/absent"
+                                        }
+                                      }
+                                    },
+                                    "steps": {
+                                      "$ref": "#/definitions/plainSteps"
+                                    }
                                   }
                                 }
                               }
@@ -3324,6 +3453,33 @@
         }
       }
     },
+    "matrixSteps": {
+      "description": "2つの軸で置く図の段。区画へ課題を置く出来事 (line) だけを書け、line は部品 (part) でなく区画 (box) を名指す。配管の図だけの段の要点 (gist) を書けない",
+      "items": {
+        "properties": {
+          "gist": {
+            "$ref": "#/definitions/absent"
+          },
+          "events": {
+            "items": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "line"
+                  ]
+                },
+                "part": {
+                  "$ref": "#/definitions/absent"
+                }
+              },
+              "required": [
+                "box"
+              ]
+            }
+          }
+        }
+      }
+    },
     "userBlockName": {
       "description": "使う人が足すブロックの名前。+ で始め、英小文字で始まり、英小文字と数字と - で書く",
       "type": "string",
@@ -4292,6 +4448,68 @@
         },
         "color": {
           "$ref": "#/definitions/color"
+        }
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axes",
+        "items"
+      ],
+      "properties": {
+        "axes": {
+          "description": "横の軸と縦の軸の順の 2 つの軸",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/definitions/matrixAxis"
+          }
+        },
+        "items": {
+          "description": "課題。書いた順に置く前の一覧へ上から並べ、段の中の line の出来事で区画へ置く",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/matrixItem"
+          }
+        }
+      }
+    },
+    "matrixAxis": {
+      "description": "2つの軸で置く図の軸。from は軸の始まりの小さい側の字、to は矢印の先の大きい側の字",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "from": {
+          "$ref": "#/definitions/text"
+        },
+        "to": {
+          "$ref": "#/definitions/text"
+        }
+      }
+    },
+    "matrixItem": {
+      "description": "2つの軸で置く図の課題。name は札に書く名前",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
         }
       }
     }

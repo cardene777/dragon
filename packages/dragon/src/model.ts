@@ -46,7 +46,7 @@ const blank = (value: unknown): boolean => value === undefined || (Array.isArray
 /**
  * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
  * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) と並べる組 (`side`) と関門 (`check`、#3476) をこの順に置く。
- * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す
+ * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す。2つの軸で置く図 (#3622) の軸と課題も根の欄 (`matrix`) のまま移す
  * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
@@ -76,6 +76,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.view !== undefined ? { view: model.view } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
     ...(model.chart !== undefined ? { chart: model.chart } : {}),
+    ...(model.matrix !== undefined ? { matrix: model.matrix } : {}),
     blocks,
     steps: model.steps,
   };
@@ -135,6 +136,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     steps: diagram.steps,
     ...(diagram.kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
     ...(diagram.chart !== undefined ? { chart: diagram.chart } : {}),
+    ...(diagram.matrix !== undefined ? { matrix: diagram.matrix } : {}),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
     ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),

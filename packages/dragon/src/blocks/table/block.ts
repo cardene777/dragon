@@ -49,9 +49,6 @@ export interface ErFormula {
   text: string;
 }
 
-/** 1 つの図に書ける表の数 */
-export const ER_TABLES = { least: 1, most: 6 } as const;
-
 export const block: Block = {
   name: "table",
   rank: 146,

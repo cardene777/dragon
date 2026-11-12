@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { uses as actUses } from "../../../../packages/dragon/src/blocks/act/gallery/uses";
 import { uses as askUses } from "../../../../packages/dragon/src/blocks/ask/gallery/uses";
+import { uses as axisUses } from "../../../../packages/dragon/src/blocks/axis/gallery/uses";
 import { uses as bandUses } from "../../../../packages/dragon/src/blocks/band/gallery/uses";
 import { uses as boxUses } from "../../../../packages/dragon/src/blocks/box/gallery/uses";
 import { uses as branchUses } from "../../../../packages/dragon/src/blocks/branch/gallery/uses";
@@ -34,6 +35,7 @@ import { uses as lifelineUses } from "../../../../packages/dragon/src/blocks/lif
 import { uses as lineUses } from "../../../../packages/dragon/src/blocks/line/gallery/uses";
 import { uses as linkUses } from "../../../../packages/dragon/src/blocks/link/gallery/uses";
 import { uses as logUses } from "../../../../packages/dragon/src/blocks/log/gallery/uses";
+import { uses as matrixItemUses } from "../../../../packages/dragon/src/blocks/matrix-item/gallery/uses";
 import { uses as mergeUses } from "../../../../packages/dragon/src/blocks/merge/gallery/uses";
 import { uses as nodeUses } from "../../../../packages/dragon/src/blocks/node/gallery/uses";
 import { uses as noteUses } from "../../../../packages/dragon/src/blocks/note/gallery/uses";
@@ -67,6 +69,7 @@ import { uses as zoomUses } from "../../../../packages/dragon/src/blocks/zoom/ga
 export const BLOCK_USES = {
   "act": actUses,
   "ask": askUses,
+  "axis": axisUses,
   "band": bandUses,
   "box": boxUses,
   "branch": branchUses,
@@ -100,6 +103,7 @@ export const BLOCK_USES = {
   "line": lineUses,
   "link": linkUses,
   "log": logUses,
+  "matrix-item": matrixItemUses,
   "merge": mergeUses,
   "node": nodeUses,
   "note": noteUses,

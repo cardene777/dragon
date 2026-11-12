@@ -1,0 +1,36 @@
+// Sort the candidate chains for an app by two axes: how cheap the fees are and how fast it is.
+// Each step places candidates into one area and decides when to use that area.
+matrix Choose a chain by fees and speed
+
+axis Low fees [from: costly, to: cheap]
+axis Speed [from: slow, to: fast]
+
+box rush as Only when rushed
+box first as First choice
+box big as Large sums only
+box idle as When it can wait
+
+item fast as Speed-first L1
+item rollup as Rollup L2
+item app as App-only chain
+item main as Ethereum mainnet
+item side as Old sidechain
+
+step Line up
+  say Line up the candidate chains on the left. None of them sits in an area yet.
+
+step First choice
+  say Cheap and fast candidates carry the everyday actions.
+  line first: rollup, app
+
+step Only when rushed
+  say Fast candidates with high fees are used only for actions that cannot wait.
+  line rush: fast
+
+step When it can wait
+  say Cheap but slow candidates carry batched transfers that are in no hurry.
+  line idle: side
+
+step Large sums only
+  say The mainnet is costly and slow but the most secure, so it settles large sums only.
+  line big: main

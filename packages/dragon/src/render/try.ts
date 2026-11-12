@@ -12,7 +12,7 @@ import { logRows } from "../blocks/log/draw";
 import { queueFrames } from "../blocks/queue/draw";
 import { routeNet } from "../blocks/route/draw";
 import { hasWide, textBox } from "../layout/measure";
-import type { Point } from "../layout/scene";
+import { type Point, type Rect, unionRect } from "../layout/scene";
 import type { TryLayout, TryMoment } from "../kinds/try/layout";
 import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";
@@ -326,4 +326,21 @@ export function drawTry(
     top: top.join(""),
     css: (layout.logs ? TRY_CSS + LOG_CSS : TRY_CSS) + ((diagram.try?.checks ?? []).length > 0 ? GATE_CSS : ""),
   };
+}
+
+/**
+ * 寄って追う窓が寄せる所 (#3337)。動く物を全部囲んだ所の真ん中で、囲んだ所が窓 (`vw` × `vh`) より大きい時は、最初の物が窓から外れない所までに留める。
+ * 網は図の幅いっぱいに広がるので、全部を囲んだ所の真ん中へ寄せると、狭い窓では送った先の待ち行列が窓から外れる。動く物が無ければ `undefined`
+ */
+export function anchoredCenter(parts: Rect[], vw: number, vh: number): [number, number] | undefined {
+  const first = parts[0];
+  if (!first) return undefined;
+  const all = unionRect(parts);
+  // 窓の幅 `size` で `[lo, lo + len]` を外さない真ん中の範囲に、全部を囲んだ所の真ん中 `c` を収める。窓より大きい物は真ん中に置く
+  const keep = (c: number, lo: number, len: number, size: number): number =>
+    len > size ? lo + len / 2 : Math.min(lo + size / 2, Math.max(lo + len - size / 2, c));
+  return [
+    keep(all.x + all.w / 2, first.x, first.w, vw),
+    keep(all.y + all.h / 2, first.y, first.h, vh),
+  ];
 }

@@ -1,0 +1,37 @@
+// 店を開く前に、起こりうる困りごとを起きやすさと影響の2つの軸で4つに分ける。
+// 段ごとに1つの区画へ困りごとを置き、区画ごとに打つ手を決める。
+matrix 店を開く前の困りごとを分ける
+
+axis 起きやすさ [from: 低い, to: 高い]
+axis 影響 [from: 小さい, to: 大きい]
+
+box plan as 備えを決める
+box act as すぐ手を打つ
+box accept as 受け入れる
+box watch as 見張る
+
+item staff as 人手が足りない
+item quake as 地震で棚が倒れる
+item fire as 厨房の火事
+item rain as 雨で客が減る
+item stock as 品切れ
+item wifi as 店のWi-Fiが切れる
+
+step 並べる
+  say 思い付く困りごとを左に並べる。まだどの区画にも置いていない。
+
+step すぐ手を打つ
+  say 起きやすく影響も大きい困りごとは、開く前に手を打つ。
+  line act: staff
+
+step 備えを決める
+  say 起きにくいが影響の大きい困りごとは、起きた時の備えを決めておく。
+  line plan: quake, fire
+
+step 見張る
+  say 起きやすいが影響の小さい困りごとは、数を見張って早めに気付く。
+  line watch: rain, stock
+
+step 受け入れる
+  say 起きにくく影響も小さい困りごとは、起きた時に直せばよい。
+  line accept: wifi

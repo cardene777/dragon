@@ -1,0 +1,27 @@
+matrix 店の新しいメニューを分ける
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 売れ行き [from: 小さい, to: 大きい]
+
+box now as すぐ出す
+box plan as 仕込みを決める
+box spare as 手が空いたら
+box drop as 見送る
+
+item tea as 季節のお茶
+item cake as 焼きたてのケーキ
+item soda as 果物のソーダ
+item curry as 煮込みのカレー
+
+step 並べる
+  say 出したいメニューを左に並べる。
+
+step すぐ出す
+  say 手間が小さく売れそうなメニューは、すぐ出す。
+  line now: tea
+
+step 残りを分ける
+  say 残りのメニューも手間と売れ行きで分ける。
+  line plan: cake
+  line spare: soda
+  line drop: curry

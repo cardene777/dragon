@@ -10,9 +10,6 @@
  */
 import type { Block } from "../block";
 
-/** 輪に置ける手順の数 */
-export const RING_STEPS = { least: 2, most: 8 } as const;
-
 export const block: Block = {
   name: "ring",
   rank: 145,

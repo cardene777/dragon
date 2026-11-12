@@ -130,7 +130,7 @@ const JA = {
     filter: "絞り込む…",
     filterLabel: "一覧を絞り込む",
     nothing: "当てはまる物が無い",
-    kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図", venn: "集合の重なりの図", sankey: "量の行き先の図" },
+    kinds: { sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図", matrix: "2つの軸で置く図", venn: "集合の重なりの図", sankey: "量の行き先の図" },
     partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
     notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
     parts: shelfTexts("ja"),
@@ -152,6 +152,10 @@ const JA = {
     zoomIn: "拡大する",
     zoom: "表示の倍率",
     phase: (n: number, total: number, title: string) => `段 ${n} / ${total} · ${title}`,
+    /** 今の図を書き出す釦と、書き出す形を選ぶ窓と、書き出せなかった時の文 (#3644) */
+    export: "書き出す",
+    exportMenu: "書き出す形",
+    exportFailed: (reason: string) => `書き出せない: ${reason}`,
   },
   notices: {
     line: (line: number) => `${line} 行目`,

@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -87,6 +87,9 @@ Inside a step, indent these lines in the order things happen.
 | Leaf | `leaf <id> [hash: <value>]`. Leaves line up from the left in written order. With a value, the box shows it and a card below the leaf shows the id. Only in a tree diagram | `leaf tx1 [hash: 3fa0]` |
 | Parent | `node <id> of <child>, <child> [hash: <value>]`. Sits above the middle of its children, and the box that no parent takes becomes the root. Only in a tree diagram | `node root of 1to2, 3to4 [hash: e71c]` |
 | Idea | `idea <id> as <name> of <parent> [color: <color>]`. Written in a step, and the idea without `of` is the topic in the middle. An idea of the topic is a branch and an idea of a branch is a leaf, three levels deep at most. Only in a mind map | `idea input as Input of app` |
+| Axis | `axis <name> [from: <low end>, to: <high end>]`. Written exactly twice before the first `step`, the horizontal axis first and then the vertical one. Only in a two-axis matrix | `axis Effort [from: low, to: high]` |
+| Placed item | `item <id> as <name>`. Written before the first `step`, and the items wait in the list left of the areas in the order written. Only in a two-axis matrix | `item login as Faster login` |
+| Place in an area | `line <area>: <item>, <item>`. Written in a step, and the cards slide from the list into the area. Only in a two-axis matrix | `line now: login` |
 
 `fixed` keeps the whole diagram still and moves only what is inside; `follow` moves to where things are happening and shows the current place in a small overview in the corner.
 Without a view, the view is `fixed` when the text of the whole diagram in the frame is 10.5px or larger, and `follow` when it is smaller.
@@ -482,6 +485,40 @@ step Count the order
   pick users.orders
 ```
 
+In a two-axis matrix (`matrix <title>`), write `axis <name> [from: <low end>, to: <high end>]` twice before the first `step` line, the horizontal axis first and then the vertical one.
+The horizontal arrow runs below the areas from left to right and the vertical arrow left of them from bottom to top, with the axis name and both ends outside the axis.
+Write exactly four areas with `box <id> as <name>`; they go top left, top right, bottom left and bottom right in the order written. Write the items to sort with `item <id> as <name>`; they wait in the list left of the areas in the order written.
+`line <area>: <item>, <item>` inside a step places items into an area: the cards slide from the list into the area and the area lights up. A placed card stays until a later step places it in another area.
+A matrix without exactly two axes or four areas, and a `line` that names an unknown area or item, are refused. Lines between boxes and `strip` are not allowed.
+
+```dragon
+matrix Sort the work by effort and impact
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item pay as Add payments
+item word as Fix wording
+
+step Line up
+  say Line up the work on the left.
+
+step Do now
+  say Low effort and high impact goes first.
+  line now: login
+
+step The rest
+  say Sort the rest by effort and impact.
+  line plan: pay
+  line spare: word
+```
+
 In a set overlap diagram (`venn <title>`), write 2 or 3 sets with `item <id> as <name>` before the first `step` line.
 `set <id>: <count>` inside a step writes the total of a set; its circle appears in that step, with the name and the total outside it.
 `set <id> & <id>: <count>` writes the count in an overlap and lights its region in that step. Each region shows the count that is only in it, worked out from the totals and the overlaps.
@@ -545,6 +582,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |
 | Idea | `color` | The colour of an idea in a mind map, from the same roles as regions and boxes. On a branch, its lines and leaves take the colour, and a branch without one gets a colour no other branch has taken |
+| Axis | `from`, `to` | The two ends of an axis in a two-axis matrix. `from` is the low end (left on the horizontal axis, bottom on the vertical one) and `to` the high end. Leave them out and no end text shows |
 | Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/` or a URL that starts with `http://` or `https://` |
 | Source of a step | `url` | Where the source is. Takes the same forms as `link` |
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |

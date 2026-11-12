@@ -7,7 +7,7 @@
 import { fail, readAttrs, skipSpaces } from "../../read-kit";
 import { type BlockReading, none } from "../block";
 import { EDGE, type EdgeEvent } from "../edge/block";
-import { amountOf } from "./amount";
+import { amountOf } from "./limits";
 
 export interface BandMessages {
   /** 線の名前の無い線 */

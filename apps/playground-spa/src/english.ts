@@ -107,7 +107,7 @@ export const EN_TEXT = {
     filter: "Filter…",
     filterLabel: "Filter the list",
     nothing: "Nothing matches",
-    kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram", mind: "Mind map", er: "Table relation diagram", venn: "Set overlap diagram", sankey: "Sankey diagram" },
+    kinds: { sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram", mind: "Mind map", er: "Table relation diagram", matrix: "Two-axis matrix", venn: "Set overlap diagram", sankey: "Sankey diagram" },
     partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
     notationHint: "Line shapes, in the words of the notation you are writing",
     parts: shelfTexts("en"),
@@ -129,6 +129,9 @@ export const EN_TEXT = {
     zoomIn: "Zoom in",
     zoom: "Zoom level",
     phase: (n: number, total: number, title: string) => `Step ${n} / ${total} · ${title}`,
+    export: "Export",
+    exportMenu: "Export format",
+    exportFailed: (reason: string) => `Could not export: ${reason}`,
   },
   notices: {
     line: (line: number) => `Line ${line}`,
