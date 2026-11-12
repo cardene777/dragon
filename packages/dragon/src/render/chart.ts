@@ -16,6 +16,7 @@ import type { ChartLayout, ChartPlan } from "../kinds/chart/layout";
 import type { Rect } from "../layout/scene";
 import { textWidth } from "../layout/measure";
 import { CHART_LOOK, CHART_TYPE } from "../look/chart";
+import { DOTS_CSS, drawDots } from "./dots";
 import { MOTION, type TextStyle } from "../look/values";
 import type { DiagramModel } from "../schema";
 import { partRadius } from "./corner";
@@ -200,9 +201,13 @@ function funnel(plan: ChartPlan, ctx: Ctx): string {
   return out.join("");
 }
 
-/** 量の図を描く。段の番号の丸は描く所が描く。漏斗の見た目は段の名前を図に書かず、再生の部品の段の題が出す */
+/**
+ * 量の図を描く。段の番号の丸は描く所が描く。漏斗の見た目と点で数える見た目 (#3635) は段の名前を図に書かず、再生の部品の段の題が出す。
+ * 点で数える見た目は点で数える見た目の部品 (`render/dots.ts`) が描く
+ */
 export function drawChart(layout: ChartLayout, diagram: DiagramModel, ctx: Ctx): { base: string; css: string } {
   const plan = layout.chart;
+  if (plan.dots) return { base: `<g class="dg-ch">${drawDots(plan.dots, ctx)}</g>`, css: DOTS_CSS };
   const body = plan.shape === "funnel" ? funnel(plan, ctx) : plan.shape === "bar" ? bars(plan, ctx) : donut(plan, ctx);
   const titles = plan.shape === "funnel" ? "" : stepTitles(plan, diagram, ctx);
   return { base: `<g class="dg-ch">${body}${titles}</g>`, css: plan.shape === "funnel" ? CHART_CSS + FUNNEL_CSS : CHART_CSS };

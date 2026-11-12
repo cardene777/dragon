@@ -1,0 +1,30 @@
+// 調べたウォレットの住所10,000件を、NFTとDeFiとDAOのどれに使ったかで、1点を100件の点で数えて分ける。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+venn 調べた住所 [shape: dots]
+
+item n as NFT
+item d as DeFi
+item v as DAO
+
+step NFT
+  say NFTを持つ住所は4,220件で、点42個になる。
+  set n: 4220
+
+step DeFi
+  say DeFiを使う住所は5,120件で、そのうち1,520件はNFTも持つ。
+  set d: 5120
+  set n & d: 1520
+
+step DAO
+  say DAOで投票した住所は2,020件で、NFTと重なる住所とDeFiと重なる住所へ点が分かれる。
+  set v: 2020
+  set n & v: 620
+  set d & v: 820
+
+step 3つ全て
+  say 3つ全てに入る住所は320件で、点を3色の扇形で塗る。
+  set n & d & v: 320
+
+step どれにも
+  say どれにも入らない1,280件は、点が灰色のまま全体の箱に残る。
+  set none: 1280

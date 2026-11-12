@@ -14,6 +14,7 @@ Pick `chart` instead when the items do not overlap and only their sizes are comp
 | Line | Meaning |
 |---|---|
 | `venn <title>` | The first line. A set overlap diagram |
+| `venn <title> [shape: dots]` | The first line, counting with dots instead of circles. `[shape: dots, unit: <count>]` sets how many each dot stands for; without `unit` the diagram picks 1, 2 or 5 times a power of 10 so that the dots come to about 100 |
 | `item <id> as <name> [color: ...]` | A set, written before the first `step`. Two sets sit left and right, three sit top left, top right and below. A diagram takes 2 or 3 sets, and the id cannot be `none` or hold a `&` |
 | `set <id>: <count>` | The total of a set. Its circle appears in the step that first writes it, with the name and the total outside the circle. A later step can rewrite it |
 | `set <id> & <id>: <count>` | The count in an overlap of two sets, or `set <id> & <id> & <id>: <count>` for all three. The region lights in that step and a count chip shows the overlap count |
@@ -27,6 +28,7 @@ Pick `chart` instead when the items do not overlap and only their sizes are comp
 - Introduce one set per step with its total, and write its overlaps with the sets already shown in the same step.
 - `box`, `group`, `act`, `strip` and `->` lines are refused. In other diagram kinds `venn` and `none` still read as ordinary box ids.
 - Write counts as plain numbers (`8200`); the diagram shows them with thousands separators.
+- With `[shape: dots]`, empty dots wait in the box of the whole, and each step moves dots into a cluster for each set and each overlap. A dot in two or more sets is painted in slices of their colors, and the dots of `set none` turn grey and stay in the box. A step with more than 200 dots is an error when the notation is read, so raise `unit` when the counts are large.
 
 ## Example
 
@@ -48,4 +50,35 @@ step Night and both
 step Neither
   say 12 people run at neither time.
   set none: 12
+```
+
+```dragon
+venn Checked addresses [shape: dots, unit: 100]
+
+item n as NFT
+item d as DeFi
+item v as DAO
+
+step NFT
+  say 4,220 addresses hold NFTs, which makes 42 dots.
+  set n: 4220
+
+step DeFi
+  say 5,120 addresses use DeFi, and 1,520 of them also hold NFTs.
+  set d: 5120
+  set n & d: 1520
+
+step DAO
+  say 2,020 addresses voted in a DAO, and the dots split into the overlaps with NFT and DeFi.
+  set v: 2020
+  set n & v: 620
+  set d & v: 820
+
+step All three
+  say 320 addresses are in all three, painted as slices in three colors.
+  set n & d & v: 320
+
+step None
+  say The 1,280 addresses in none stay grey in the box of the whole.
+  set none: 1280
 ```

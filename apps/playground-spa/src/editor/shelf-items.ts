@@ -355,7 +355,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   const inTry = (base: Diagram, events: object[]): Diagram => draw({ ...base, steps: [{ ...step, events }] });
   const askBase = tryWith({ type: "ask", id: "ask", fields: [h.name, h.field], into: h.queue, via: h.route });
   const pressBase = tryWith({ type: "press", id: h.id, from: h.queue, into: h.chain, take: h.count, at: h.part });
-  // 項目と項目の値は量の図だけが書ける (#3560)。見た目は頭の行の [shape: ] で選ぶ
+  // 項目と項目の値は量の図だけが書ける (#3560)。見た目は頭の行の [shape: ] で選び、点で数える見た目 (#3635) は集合の重なりの図も選べる
   const chartOf = (shape: string, items: object[] = []): Diagram => draw({ ...empty("chart"), chart: { shape, items } });
   const chartBase = draw({ ...chartOf("donut"), steps: [step] });
   const chartItemBase = draw({ ...chartOf("donut", [{ id: h.id, name: h.name }]), steps: [step] });
@@ -364,7 +364,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(draw({ ...empty("lineup"), lineup: { shape: "stations" } })), head(draw({ ...empty("lineup"), lineup: { shape: "layers" } })), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(chartOf("funnel")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn")), head(empty("sankey"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(draw({ ...empty("lineup"), lineup: { shape: "stations" } })), head(draw({ ...empty("lineup"), lineup: { shape: "layers" } })), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(chartOf("funnel")), head(chartOf("dots")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn")), head(draw({ ...empty("venn"), venn: { shape: "dots" } })), head(empty("sankey"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {

@@ -43,6 +43,19 @@ export function exclusiveOf(order: readonly string[], members: readonly string[]
   return sum;
 }
 
+/**
+ * 点で数える見た目 (#3635) の、区画ごとの今の段までに書いた数だけで出したそれぞれだけの数。後の段で書く重なりもまだ書かない間は 0 とし、
+ * 0 より小さくなる区画は 0 にする。集まりの数をまだ書かない区画は持たない。点は段ごとにこの数で群れへ寄るので、後の段で書く重なりを待たない
+ */
+export function provisionalOf(order: readonly string[], valueOf: (key: string) => number | undefined): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const members of regionsOf(order)) {
+    const value = exclusiveOf(order, members, valueOf, () => false);
+    if (value !== undefined) out.set(members.join("&"), Math.max(0, value));
+  }
+  return out;
+}
+
 /** 数の字。整数の部分を 3 桁ごとに `,` で区切り、小数の部分はそのまま書く */
 export function vennNumber(value: number): string {
   const [whole = "", part] = String(value).split(".");

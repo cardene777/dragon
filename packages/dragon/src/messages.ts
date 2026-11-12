@@ -62,8 +62,10 @@ export interface CoreMessages {
   lineupOrTryOnly: (word: string) => string;
   /** 列の図と試す図と量の図だけの `item` の行を、別の種類の図に書いた (#3560) */
   itemOnly: string;
-  /** 量の図と列の図 (#3625) の図の種類の行だけの属性 (`shape`) を、別の種類の図の行に書いた (#3560) */
+  /** 量の図と列の図 (#3625) と集合の重なりの図 (#3635) の図の種類の行だけの属性 (`shape`) を、別の種類の図の行に書いた (#3560) */
   chartOnlyAttr: (key: string) => string;
+  /** 点で数える見た目 (#3635) の図の種類の行だけの属性 (`unit`) を、量の図と集合の重なりの図でない図の行に書いた */
+  dotsOnlyAttr: (key: string) => string;
   /** 試す図だけの行を、別の種類の図に書いた (#3349) */
   tryOnly: (word: string) => string;
   /** 配管の図だけの行を、別の種類の図に書いた (#3389) */
@@ -131,7 +133,8 @@ const ja = (): Messages => {
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
     itemOnly: "item の行は lineup (列の図) と try (試す図) と chart (量の図) と venn (集合の重なりの図) でだけ書ける",
-    chartOnlyAttr: (key) => `最初の行の ${key} は chart (量の図) と lineup (列の図) にだけ書ける`,
+    chartOnlyAttr: (key) => `最初の行の ${key} は chart (量の図) と lineup (列の図) と venn (集合の重なりの図) にだけ書ける`,
+    dotsOnlyAttr: (key) => `最初の行の ${key} は [shape: dots] の chart (量の図) と venn (集合の重なりの図) にだけ書ける`,
     tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
     pipeOnly: (word) => `${word} の行は pipe (配管の図) でだけ書ける`,
     flowOnly: (word) => `${word} の行は flow (手順の図) でだけ書ける`,
@@ -187,7 +190,8 @@ const en = (): Messages => {
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
     itemOnly: "item lines can be written only in lineup, try, chart and venn diagrams",
-    chartOnlyAttr: (key) => `${key} on the first line can be written only in charts and lineup diagrams`,
+    chartOnlyAttr: (key) => `${key} on the first line can be written only in charts, lineup diagrams and set overlap diagrams`,
+    dotsOnlyAttr: (key) => `${key} on the first line can be written only in charts and set overlap diagrams with [shape: dots]`,
     tryOnly: (word) => `${word} lines can be written only in try diagrams`,
     pipeOnly: (word) => `${word} lines can be written only in pipe diagrams`,
     flowOnly: (word) => `${word} lines can be written only in flow diagrams`,

@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]` or `[shape: funnel]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -379,6 +379,42 @@ step Buy
   set buy: 380
 ```
 
+`chart <title> [shape: dots]` counts with dots.
+The box of the whole holds empty dots from before the first step, and in the step that sets an item, that many dots move from the box to the item's cluster.
+The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
+Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
+Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel refuses `set none`.
+
+```dragon
+chart Devices of 1,000 people [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say 412 people use an iPhone most, which makes 41 dots.
+  set i: 412
+
+step Android
+  say 287 people use Android, the second most after iPhone.
+  set a: 287
+
+step Windows
+  say 158 people use a Windows computer.
+  set w: 158
+
+step Mac
+  say 93 people use a Mac, which makes 9 dots.
+  set m: 93
+
+step None of them
+  say The 50 people who use none of them stay grey in the box of the whole.
+  set none: 50
+```
+
 A lineup diagram (`lineup <title>`) uses the board look by default: the boxes become pale vertical columns from left to right in the written order, and the chips stack in them as cards from the top.
 Each column head shows the name and the number of cards. Write `[limit: <number>]` on a box to show the count as `2/3` and to put that many ticks under the head, filled for each card.
 When a `line` in a step moves a chip back to an earlier column, it is a send-back: a return line and a "Sent back" label are drawn, and a dashed trace stays in the column it left. `line <lane>:` with nothing after the `:` empties that lane.
@@ -604,6 +640,7 @@ In a set overlap diagram (`venn <title>`), write 2 or 3 sets with `item <id> as 
 `set <id>: <count>` inside a step writes the total of a set; its circle appears in that step, with the name and the total outside it.
 `set <id> & <id>: <count>` writes the count in an overlap and lights its region in that step. Each region shows the count that is only in it, worked out from the totals and the overlaps.
 `set none: <count>` shows the count in none of the sets in the frame outside the circles. An overlap larger than one of its sets is refused.
+Add `[shape: dots]` to the first line to count with dots instead of circles. The dots move into a cluster for each set and each overlap, a dot in two or more sets is painted in slices of their colors, and `[shape: dots, unit: <count>]` chooses how many each dot stands for.
 
 ```dragon
 venn People who run in the morning and at night

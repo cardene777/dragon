@@ -76,7 +76,8 @@
   "ATTRS": {
     "diagram": [
       "view",
-      "shape"
+      "shape",
+      "unit"
     ],
     "group": [
       "note",

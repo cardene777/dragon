@@ -39,7 +39,7 @@ import { blocksUsedBy, eventOwners } from "./blocks/used";
 import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { messagesFor } from "./messages";
-import { attrs, name } from "./print-kit";
+import { attrs, name, num } from "./print-kit";
 import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
 import { parseNotation } from "./parser";
@@ -199,9 +199,10 @@ function sameJson(a: unknown, b: unknown): boolean {
 /** 描く処理の形の図を、`omit` の物を省いて記法に書く */
 function printModel(diagram: DiagramModel, omit: Omissions): string {
   const blocks = [
-    // 量の図 (#3560) と列の図 (#3625) の見た目は図の種類の行の属性なので、見た目のブロックでなくここで書く
+    // 量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) の見た目と、点で数える見た目の 1 点の件数は図の種類の行の属性なので、見た目のブロックでなくここで書く
     `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([
-      ["shape", diagram.chart?.shape ?? diagram.lineup?.shape],
+      ["shape", diagram.chart?.shape ?? diagram.lineup?.shape ?? diagram.venn?.shape],
+      ["unit", num(diagram.chart?.unit ?? diagram.venn?.unit)],
       ["view", diagram.view],
     ])}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)

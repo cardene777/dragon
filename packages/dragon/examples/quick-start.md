@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -379,6 +379,42 @@ step 買う
   set buy: 380
 ```
 
+`chart <題> [shape: dots]` は件数を点の数で数えて見せる。
+最初の段の前から全体の箱に空の点を並べ、項目に件数を書いた段で、その件数の分の点が箱から項目の群れへ寄る。
+1点が何件かは、点が100個ほどになる数 (1か2か5に10の累乗を掛けた数) を図が選び、箱の上に全体の件数と並べて出す。
+最初の行を `chart <題> [shape: dots, unit: <数>]` と書くと1点の件数を決められ、1つの段で点が200個を超える値は記法を読む時に誤りになる。
+ドーナツと横棒と点で数える見た目は、段の中の `set none: <数>` でどの項目にも入らない数を書ける。
+点で数える見た目ではその点が灰色のまま箱に残り、ドーナツと横棒では項目の後ろに灰色の弧か棒で描く。漏斗は `set none` を断る。
+
+```dragon
+chart 1,000人に聞いた端末 [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say いちばんよく使う端末がiPhoneの人は412人で、点41個になる。
+  set i: 412
+
+step Android
+  say Androidの人は287人で、iPhoneの次に多い。
+  set a: 287
+
+step Windows
+  say Windowsのパソコンの人は158人だった。
+  set w: 158
+
+step Mac
+  say Macの人は93人で、点9個になる。
+  set m: 93
+
+step どれも使わない
+  say どれも使わない50人は、点が灰色のまま全体の箱に残る。
+  set none: 50
+```
+
 列の図 (`lineup <題>`) は既定でボードの見た目になり、箱を書いた順に左から淡い色の縦の帯として並べ、帯の中にチップを札として上から積む。
 帯の見出しには名前と札の数が並ぶ。箱に `[limit: <数>]` を書くと、札の数を `2/3` の形で出し、見出しの下に上限の数の目盛りを並べて札の数だけ塗る。
 段の中の `line` でチップが前の帯へ戻ると差し戻しになり、戻りの線と「差し戻し」の札を引き、元の帯に抜けた跡を点線で残す。`:` の後ろに何も書かない `line <列>:` は、その列を空にする。
@@ -604,6 +640,7 @@ step 残りを分ける
 段の中の `set <名札>: <数>` で集まりの全体の数を書くと、その段で円が現れ、円の外に名前と全体の数が出る。
 `set <名札> & <名札>: <数>` で重なりの数を書くと、その段で重なりの区画が光る。区画の中には、全体と重なりの数から出したそれぞれだけの数が出る。
 `set none: <数>` は、どれにも入らない数を円の外の枠に出す。重なりの数が重なる集まりのどれかの数より大きい図は誤りで止まる。
+最初の行に `[shape: dots]` を足すと、円の代わりに点で数える見た目になる。集まりごとの群れと重なりの群れへ点が寄り、2つ以上に入る点は入る集まりの色の扇形で塗る。`[shape: dots, unit: <数>]` と書くと1点の件数を決められる。
 
 ```dragon
 venn 朝と夜に走る人

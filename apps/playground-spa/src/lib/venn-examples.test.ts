@@ -27,6 +27,8 @@ const VENN: Readonly<Record<string, { field: Field; sets: number }>> = {
   "l2-chains": { field: "web3", sets: 2 },
   hobbies: { field: "general", sets: 3 },
   skills: { field: "general", sets: 2 },
+  // 点で数える見た目の見本 (#3635)
+  "wallet-dots": { field: "web3", sets: 3 },
 };
 
 const LANGS: readonly Lang[] = ["ja", "en"];
@@ -84,7 +86,7 @@ describe("集合の重なりの図の見本 (#3620)", () => {
       expect(shapeOf(en), `${key} の英語版の形が日本語版と違う`).toEqual(shapeOf(ja));
       expect(exampleInfo(key as ExampleKey, "ja")?.kind, `${key} の図の種類`).toBe("venn");
     }
-    // カタログの集合の重なりの図の頁に 4 枚とも載る
+    // カタログの集合の重なりの図の頁に 5 枚とも載る
     const listed: readonly string[] = samplesOf("venn");
     expect(listed, "カタログの集合の重なりの図の頁に載る見本").toEqual(Object.keys(VENN));
   });
@@ -95,7 +97,7 @@ describe("集合の重なりの図の見本 (#3620)", () => {
     const general = listed.filter(([, info]) => info.field === "general").map(([key]) => key);
     const web3 = listed.filter(([, info]) => info.field === "web3").map(([key]) => key);
     expect(general, "一般の題の見本").toEqual(["hobbies", "skills"]);
-    expect(web3, "Web3 の題の見本").toEqual(["wallet-usage", "l2-chains"]);
+    expect(web3, "Web3 の題の見本").toEqual(["wallet-usage", "l2-chains", "wallet-dots"]);
   });
 
   it("venn-examples-cover-two-and-three-sets", () => {

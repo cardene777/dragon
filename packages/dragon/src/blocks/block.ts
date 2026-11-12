@@ -113,9 +113,10 @@ export interface FigureDraft {
   pipe: { holds: PipeHold[]; run?: PipeRun; opened: SourceLine[] };
   /**
    * 量の図の項目と、図の種類の行に書いた見た目 (#3560)。項目のブロックが `item` の行で項目を足し、
-   * 見た目は読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` を置き、見た目のブロックが最初の段を始める時に確かめる
+   * 見た目は読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` を置き、見た目のブロックが最初の段を始める時に確かめる。
+   * 点で数える見た目 (#3635) の 1 点の件数は図の種類の行の `[unit: ]` を同じく置く
    */
-  chart: { items: ChartItem[]; shape?: Attr };
+  chart: { items: ChartItem[]; shape?: Attr; unit?: Attr };
   /**
    * 手順の図の判断と、今回は通らない道と、読んだ線と、本筋の順 (#3561)。判断のブロックが `choice` の行で判断を足し、最初の段より前の線を道にする。
    * 読んだ線は判断から出る線の数と、記法の終わりの前へ戻る道の確かめに使い、本筋は段の線が初めて辿り着く順の箱と判断
@@ -128,9 +129,19 @@ export interface FigureDraft {
   er: { tables: ErTable[]; lines: SourceLine[]; refs: { source: SourceLine; at: number; from: string; ref: string }[] };
   /**
    * 集合の重なりの図の集まりと、区画の名札ごとの今の数と、数を書いた行と、読んでいる段の番号 (#3620)。集まりの円のブロックが `item` と `set` の行で組む。
-   * 区画の数が 0 より小さくならないかは全ての段を読んでから確かめるので、数を書いた行と数の字の位置 (`at`) を段の番号と積む。段の番号は最初の段を始めるまで -1
+   * 区画の数が 0 より小さくならないかは全ての段を読んでから確かめるので、数を書いた行と数の字の位置 (`at`) を段の番号と積む。段の番号は最初の段を始めるまで -1。
+   * 点で数える見た目 (#3635) の点の数を全ての段を読んでから数えるので、どれにも入らない数も段の番号と積む (`nones`)。
+   * 見た目と 1 点の件数は、読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` と `[unit: ]` を置く
    */
-  venn: { sets: VennSet[]; now: Map<string, number>; writes: { key: string; value: number; source: SourceLine; at: number; step: number }[]; step: number };
+  venn: {
+    sets: VennSet[];
+    now: Map<string, number>;
+    writes: { key: string; value: number; source: SourceLine; at: number; step: number }[];
+    nones: { value: number; step: number }[];
+    step: number;
+    shape?: Attr;
+    unit?: Attr;
+  };
   /**
    * 量の行き先の図の線と、線の名前から読んだ量 (#3626)。量の帯のブロックが段の中の線から積み、最初の線を読んだ時に作る。
    * 入る量より出る量の和が大きい箱は全ての線を読んでから確かめるので、線を書いた行と量の字の位置 (`at`) を積む。
