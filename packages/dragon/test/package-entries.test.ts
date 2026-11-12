@@ -142,6 +142,20 @@ describe("package の入口 (#3021)", () => {
     expect({ require: kinds(required), import: kinds(imported) }, "書き出す入口が出す部品").toEqual({ require: all, import: all });
   });
 
+  it("capture-entry-imports-in-node", () => {
+    // 包んだ物を入れて入口を読む確かめ (`check:pack`) は Node の ESM で書き出す入口を読む。`gifenc` を Node は CommonJS の build で読み、
+    // 部品を名前で見せないので、名前で読んだ入口は読んだ所で止まった (#3659)。vitest の読み込みは CommonJS の部品を名前で見せるため、別の Node で読む
+    const names = ["captureFilm", "captureGif", "captureMp4", "capturePng", "captureSvg", "canCaptureMp4"];
+    const script = `const m = await import(${JSON.stringify(`${manifest().name}/capture`)}); console.log(JSON.stringify(Object.fromEntries(${JSON.stringify(names)}.map((name) => [name, typeof m[name]]))));`;
+    let out = "";
+    try {
+      out = execFileSync(process.execPath, ["--input-type=module", "-e", script], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    } catch (error) {
+      out = String((error as { stderr?: string }).stderr ?? error).split("\n").find((line) => /Error/.test(line)) ?? String(error);
+    }
+    expect(out.trim(), "Node の ESM で読んだ書き出す入口が出す部品").toBe(JSON.stringify(Object.fromEntries(names.map((name) => [name, "function"]))));
+  });
+
   it("main-entry-skips-encoders", () => {
     // 描く入口は書き出さない頁も読むので、コマを詰める道具 (gifenc と mediabunny) を読まない (#3644)。道具を読むのは書き出す入口だけ
     const encoders = (file: string): string[] => {

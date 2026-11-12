@@ -13,16 +13,22 @@
  * 作れない時は mp4 の釦を出さない。この入口は詰める道具 (`gifenc`、`mediabunny`) を読むので、描く入口とは分け、
  * 書き出す時にだけ読む。Node の組み込みの module は読まない。
  */
-import { GIFEncoder, nearestColorIndex, quantize } from "gifenc";
+import * as gifencModule from "gifenc";
 import { BufferTarget, CanvasSource, canEncodeVideo, Mp4OutputFormat, Output, QUALITY_MEDIUM } from "mediabunny";
 import { FILM_SCALE, makeFilm, planFilm } from "../export/film";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { cycleOf, picture, shownAt } from "./picture";
 
-/** 詰める道具。使う部品だけを渡し、束ねる道具が使わない部品を外せるようにする */
+/**
+ * `gifenc` の部品。束ねる道具とブラウザが読む ESM の build は部品を名前で出すが、Node が読む CommonJS の build は
+ * 部品を `default` の下にだけ見せる。名前で読むと Node の `import` が止まるので、名前が無い時は `default` の下から取る (#3659)
+ */
+const gifenc: typeof gifencModule = "GIFEncoder" in gifencModule ? gifencModule : (gifencModule as unknown as { default: typeof gifencModule }).default;
+
+/** 詰める道具。使う部品だけを渡す */
 const TOOLS = {
   mb: { BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_MEDIUM },
-  gif: { GIFEncoder, nearestColorIndex, quantize },
+  gif: { GIFEncoder: gifenc.GIFEncoder, nearestColorIndex: gifenc.nearestColorIndex, quantize: gifenc.quantize },
 };
 
 /** 断りの文 */
