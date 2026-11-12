@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The drawing core looks up each diagram kind that loads later by its name, so adding a kind no longer makes the script that the one-line entry loads first bigger** (#3656)
+
+  The drawing core picked the layout, the label timing and the drawing of each diagram kind that loads later with one branch per kind, so every new kind added a branch to the script that `dist/cdn/dragon.js` loads first. Each of those kinds now hands one set of parts to the kind registry (`parts` in `kinds/<kind>.ts`, shaped by `KindParts` in `kinds/parts.ts`), holding its layout, its label timing, its drawing and what the follow view looks at in each step. The core looks the set up by the kind name and calls it, and names none of these kinds. The cycle diagram and the table relation diagram now share one function that shows a label from the moment its line starts until its step ends. Every diagram draws exactly as before. On a page that draws only a sequence diagram, the script loaded first went from 88,355 to 87,162 bytes gzipped.
+
 ## [0.72.0] - 2026-11-12
 
 ### Added
