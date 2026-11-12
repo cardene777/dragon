@@ -44,12 +44,13 @@ const SHARED_BLOCKS = {
 export default defineConfig([
   {
     // 字を読み込む入口 (fonts) は CSS を読むだけなので型を出さない。
-    // 書き出し (export) と命令 (cli) は node で動き、画面なしのブラウザを動かす。原本の file を移す入口 (node) も node で動く
-    entry: { index: "src/index.ts", fonts: "src/load-fonts.ts", export: "src/export/index.ts", node: "src/node.ts", cli: "src/cli.ts" },
+    // 書き出し (export) と命令 (cli) は node で動き、画面なしのブラウザを動かす。原本の file を移す入口 (node) も node で動く。
+    // ブラウザで描いた図を画像にする入口 (capture) は頁で動き、詰める道具 (gifenc、mediabunny) を束ねずに読む (#3644)
+    entry: { index: "src/index.ts", fonts: "src/load-fonts.ts", export: "src/export/index.ts", node: "src/node.ts", cli: "src/cli.ts", capture: "src/capture/index.ts" },
     format: ["esm", "cjs"],
     dts: {
       resolve: true,
-      entry: { index: "src/index.ts", export: "src/export/index.ts", node: "src/node.ts" },
+      entry: { index: "src/index.ts", export: "src/export/index.ts", node: "src/node.ts", capture: "src/capture/index.ts" },
       compilerOptions: { composite: false },
     },
     splitting: false,

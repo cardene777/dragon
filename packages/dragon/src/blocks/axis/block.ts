@@ -10,12 +10,6 @@
 import type { Block } from "../block";
 import type { MatrixItem } from "../matrix-item/block";
 
-/** 2つの軸で置く図の軸の数。横の軸と縦の軸 */
-export const MATRIX_AXES = 2;
-
-/** 2つの軸で置く図の区画の数。左上、右上、左下、右下 */
-export const MATRIX_AREAS = 4;
-
 /** 2つの軸で置く図の軸。`from` は軸の始まりの小さい側の字、`to` は矢印の先の大きい側の字 */
 export interface MatrixAxis {
   name: string;

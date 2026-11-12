@@ -260,6 +260,24 @@ describe("考えを広げる地図の記法 (#3619)", () => {
     expectRefused([...head, "  idea deep as 深い of scan"].join("\n"), "4 段目の考え", { line: head.length + 1, column: 3 });
   });
 
+  it("mind-rejects-an-unknown-color", () => {
+    // 考えの色は箱と同じ色の一覧から選ぶ。一覧に無い色は色の鍵を指し、箱に知らない色を書いた時と同じ誤りの文で止める (#3657)
+    const head = ["mind 題", "step 置く", "  say 置く。", "  idea app as 題"];
+    const bad = "  idea input as 入力 of app [color: gold]";
+    expectRefused([...head, bad].join("\n"), "知らない色の考え", { line: head.length + 1, column: bad.indexOf("color") + 1 });
+    const parse = api("parseNotation");
+    for (const lang of ["ja", "en"] as const) {
+      const idea = parse([...head, bad].join("\n"), { lang });
+      const box = parse(["architecture 題", "box a as 箱 [color: gold]", "step 置く", "  say 置く。"].join("\n"), { lang });
+      const said = (read: typeof idea): string => (read.ok ? "" : (read.errors[0]?.message ?? ""));
+      expect(said(box), `箱に知らない色を書いた図が読めてしまう (${lang})`).not.toBe("");
+      expect(said(idea), `考えの知らない色の誤りの文が箱の時と違う (${lang})`).toBe(said(box));
+    }
+    // 一覧に在る色は読める
+    const read = parse([...head, "  idea input as 入力 of app [color: green]"].join("\n"));
+    expect(read.ok, `一覧に在る色の考えが読めない: ${read.ok ? "" : JSON.stringify(read.errors)}`).toBe(true);
+  });
+
   it("notation-keeps-mind-words-plain-outside-mind", () => {
     const parse = api("parseNotation");
     for (const kind of ["sequence", "architecture", "state"] as const) {

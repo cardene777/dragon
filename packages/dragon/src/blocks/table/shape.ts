@@ -7,7 +7,7 @@
  * 項目を `<表>.<項目>` の字で名指す。表どうしの関係の図だけが書けることと、結びの先が在る項目かは骨組みと記法を読む処理が確かめる
  */
 import type { BlockShape } from "../block";
-import { ER_TABLES } from "./block";
+import { ER_TABLES } from "./limits";
 
 export const shape: BlockShape = {
   field: {

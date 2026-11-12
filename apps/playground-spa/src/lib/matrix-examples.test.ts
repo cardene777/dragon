@@ -85,7 +85,7 @@ describe("2つの軸で置く図の見本 (#3622)", () => {
       expect(areasOf(ja), `${key} の区画の数`).toBe(4);
     }
     // カタログの 2つの軸で置く図の頁に 4 枚とも載る
-    const listed: readonly string[] = samplesOf("matrix" as Parameters<typeof samplesOf>[0]);
+    const listed: readonly string[] = samplesOf("matrix");
     expect(listed, "カタログの 2つの軸で置く図の頁に載る見本").toEqual(Object.keys(MATRIX));
   });
 

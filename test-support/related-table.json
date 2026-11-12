@@ -10,7 +10,8 @@
         "./light": "src/light.ts",
         "./fonts": "src/load-fonts.ts",
         "./export": "src/export/index.ts",
-        "./node": "src/node.ts"
+        "./node": "src/node.ts",
+        "./capture": "src/capture/index.ts"
       }
     }
   ],
@@ -24,6 +25,7 @@
         "packages/dragon/src/export/index.ts",
         "packages/dragon/src/node.ts",
         "packages/dragon/src/cli.ts",
+        "packages/dragon/src/capture/index.ts",
         "packages/dragon/src/light.ts",
         "packages/dragon/src/player-global.ts",
         "packages/dragon/src/script.ts",

@@ -61,6 +61,9 @@ describe("確かめる入口 (#3023)", () => {
         "require @cardenelabs/dragon/export",
         "import @cardenelabs/dragon/node",
         "require @cardenelabs/dragon/node",
+        // ブラウザで描いた図を画像にする入口 (#3644)
+        "import @cardenelabs/dragon/capture",
+        "require @cardenelabs/dragon/capture",
       ].sort(),
     );
   });
@@ -74,7 +77,7 @@ describe("確かめる入口 (#3023)", () => {
   });
 
   it("typed-entries", () => {
-    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export", "@cardenelabs/dragon/light", "@cardenelabs/dragon/node"]);
+    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/capture", "@cardenelabs/dragon/export", "@cardenelabs/dragon/light", "@cardenelabs/dragon/node"]);
     expect(型を持つ入口(released0350).sort(), "条件のどれかに型があれば型を持つ入口").toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export"]);
   });
 

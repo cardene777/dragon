@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.71.0",
+  "version": "0.72.0",
   "description": "Animated diagrams that people and AI write in a plain notation. Plays on a page and exports MP4, GIF, HTML, and PNG.",
   "license": "MIT",
   "author": "cardene777",
@@ -71,6 +71,16 @@
       "require": {
         "types": "./dist/node.d.cts",
         "default": "./dist/node.cjs"
+      }
+    },
+    "./capture": {
+      "import": {
+        "types": "./dist/capture.d.ts",
+        "default": "./dist/capture.js"
+      },
+      "require": {
+        "types": "./dist/capture.d.cts",
+        "default": "./dist/capture.cjs"
       }
     }
   },

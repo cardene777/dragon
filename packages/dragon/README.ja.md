@@ -100,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.71/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.72/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -973,6 +973,40 @@ PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
 図の中で字が重なる段がある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出す (例 `段 5: 段の番号 1 と段の番号 5 が重なる`)。終わり方は 0 のまま変えない。
 HTML は図で描く字だけに削った字の file を埋めた 1 file で、外へ何も取りに行かない。
 node から呼ぶ時は `@cardenelabs/dragon/export` の `exportDiagram` を使う。
+
+### ブラウザで書き出す
+
+頁に描いた図は、読み手のブラウザの中で GIF と mp4 と PNG と SVG にできる。
+入口 `@cardenelabs/dragon/capture` は書き出す釦を押した時に読み、描くだけの頁には載せない。
+頁に描いた SVG の要素を渡すと、`captureGif` と `captureMp4` と `capturePng` は Blob を、`captureSvg` は文字列を返す。
+GIF と mp4 は図の動きを 1 周撮り、コマの数と縦横は同じ図を `dragon export` で書き出した物と同じになる。
+PNG は今の時刻の止め絵で、縦横は SVG の 2 倍になる。
+PNG と SVG は dragon の図でない SVG も受ける。
+字は頁が読み込んだ `@font-face` から、描いた字の範囲に当たる字の file だけを丸ごと埋める。
+字の file を読めない時は、読めない字の名前と範囲を名指して断る。
+mp4 は WebCodecs の H.264 で作るので、作れないブラウザでは `canCaptureMp4` が `false` を返す。
+
+```ts
+import { canCaptureMp4, captureGif, captureMp4, capturePng, captureSvg } from "@cardenelabs/dragon/capture";
+
+const svg = document.querySelector('svg[data-dragon="figure"]') as SVGSVGElement;
+const png = await capturePng(svg);
+const svgText = await captureSvg(svg);
+const gif = await captureGif(svg);
+const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
+```
+
+GIF と mp4 に `renderDiagram` が返す `timeline` を渡すと (`captureGif(svg, { timeline })`)、GIF の色の表を `dragon export` と同じ絵から作る。
+
+記法をエディタで開く URL は、描く入口の `editorUrl` が作る。
+記法を URL の `#n=` の後ろに詰めるので、記法は頁を配るサーバーに送られない。
+
+```ts
+import { editorUrl } from "@cardenelabs/dragon";
+
+const url = editorUrl(source); // https://cardene777.github.io/dragon/editor#n=...
+const local = editorUrl(source, { base: "http://localhost:5173/" });
+```
 
 ## license
 
