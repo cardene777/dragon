@@ -16,7 +16,6 @@ import { cycleValueStyle, type CycleLayout } from "../kinds/cycle/layout";
 import { hasWide, textBox } from "../layout/measure";
 import { CYCLE_LOOK, CYCLE_TYPE } from "../look/cycle";
 import { MOTION } from "../look/values";
-import type { DiagramModel } from "../schema";
 import { type Ctx, cssFont as font, esc, r1, write } from "./parts";
 
 const S = CYCLE_LOOK.stroke;
