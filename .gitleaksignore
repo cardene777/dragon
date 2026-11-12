@@ -1,0 +1,4 @@
+# 配る前のセキュリティ (`node scripts/release-checks.mjs security`) の gitleaks が、確かめた上で外す誤検知 (#3664)。
+# 1 行が commit と file と規則と行の指紋を 1 つ持ち、同じ file のほかの行と、後から足す行は今と同じに探す。
+# 見本 `token-allocation.json` の描いた SVG の指紋 (sha256 の 64 字の 16 進) を、鍵の名前に `token` を含むので汎用の API の鍵と読んだ (#3626)。秘密の値ではない
+9f115506f3f441f9ace51d7945086e26104adfe5:packages/dragon/test/fixtures/bends-before-arcade.json:generic-api-key:28

@@ -77,7 +77,7 @@ describe("量の行き先の図の見本 (#3626)", () => {
       expect(exampleInfo(key as ExampleKey, "ja")?.kind, `${key} の図の種類`).toBe("sankey");
     }
     // カタログの量の行き先の図の頁に 4 枚とも載る
-    const listed: readonly string[] = samplesOf("sankey" as Parameters<typeof samplesOf>[0]);
+    const listed: readonly string[] = samplesOf("sankey");
     expect(listed, "カタログの量の行き先の図の頁に載る見本").toEqual(Object.keys(SANKEY));
   });
 

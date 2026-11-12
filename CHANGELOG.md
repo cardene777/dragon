@@ -6,15 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.72.0] - 2026-11-12
+
 ### Added
 
 - **A chart can draw a funnel with `[shape: funnel]`, where the count shrinks stage by stage** (#3621)
 
   A bar chart could list the counts of stages, such as visitors on the way to a purchase, but could not show how many left between one stage and the next. Start the first line with `chart <title> [shape: funnel]`, declare the stages from the top with the same `item` lines and write each count with `set` inside a step; no new word is added. A stage's bar appears in the step that sets it, left-aligned and as long as its value compared with the first stage. The gap to the stage above stays as a pale bar with the number who left, and the rate kept from the stage above shows beside the count. The last step adds a row with the share of the first stage that made it to the last one. A value larger than the stage above is refused in Japanese and English both when the notation is read and when a JSON source is checked, and a stage that never gets a value is refused when the notation is read. The catalog has two examples in Japanese and English: visitors of an online shop on the way to buying, and new wallet users on the way to their first send. The editor shelf has the funnel head line.
-
-## [0.72.0] - 2026-11-12
-
-### Added
 
 - **A Sankey diagram (`sankey`) follows where one amount goes and how much** (#3626)
 
