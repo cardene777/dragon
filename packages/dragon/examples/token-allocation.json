@@ -1,0 +1,129 @@
+{
+  "version": 2,
+  "kind": "sankey",
+  "title": "トークンの配り先",
+  "blocks": {
+    "box": [
+      {
+        "id": "total",
+        "name": "全量1億トークン",
+        "color": "slate"
+      },
+      {
+        "id": "comm",
+        "name": "仲間に配る",
+        "color": "green"
+      },
+      {
+        "id": "team",
+        "name": "作った人",
+        "color": "blue"
+      },
+      {
+        "id": "inv",
+        "name": "出資した人",
+        "color": "violet"
+      },
+      {
+        "id": "treas",
+        "name": "運営の蓄え",
+        "color": "amber"
+      },
+      {
+        "id": "rew",
+        "name": "使った人への報酬",
+        "color": "green"
+      },
+      {
+        "id": "don",
+        "name": "寄付",
+        "color": "rose"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "作る",
+      "body": "1億トークンを作る。",
+      "events": []
+    },
+    {
+      "title": "仲間に配る",
+      "body": "全量の40%を、仲間に配る枠へ回す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "comm",
+          "label": "40%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "作った人と出資した人へ",
+      "body": "20%を作った人へ、18%を出資した人へ回す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "team",
+          "label": "20%",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "inv",
+          "label": "18%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "運営の蓄えへ",
+      "body": "残りの22%を運営の蓄えへ回す。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "total",
+          "to": "treas",
+          "label": "22%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    },
+    {
+      "title": "仲間の分を分ける",
+      "body": "仲間の40%を、使った人への報酬の25%と寄付の15%に分ける。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "comm",
+          "to": "rew",
+          "label": "25%",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "comm",
+          "to": "don",
+          "label": "15%",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

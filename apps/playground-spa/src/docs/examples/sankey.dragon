@@ -1,0 +1,18 @@
+sankey お小遣いの使い道
+
+box pay as お小遣い1万円 [color: slate]
+box food as 食べる [color: amber]
+box save as 貯める [color: green]
+box fun as 遊ぶ [color: rose]
+
+step 受け取る
+  say 1か月のお小遣いは1万円。
+
+step 食べる分
+  say 半分の5,000円を食べる分に回す。
+  pay -> food: 5,000円
+
+step 残り
+  say 3,000円を貯めて、2,000円で遊ぶ。
+  pay -> save: 3,000円
+  pay -> fun: 2,000円

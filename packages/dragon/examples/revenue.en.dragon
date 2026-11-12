@@ -1,0 +1,32 @@
+// Follow how a year of sales at a shop splits into stock, staff, rent and profit, and where the profit goes.
+// The amounts are sample values to show the shape, not numbers from a real shop.
+sankey Where the sales go
+
+box sales as Sales in a year 50M yen [color: slate]
+box cost as Stock [color: amber]
+box staff as Staff [color: blue]
+box rent as Rent [color: violet]
+box profit as Profit [color: green]
+box tax as Tax [color: rose]
+box keep as Kept [color: green]
+
+step Sell
+  say A year of sales comes to 50M yen.
+
+step Stock
+  say 40% of the sales, 20M yen, goes out on stock.
+  sales -> cost: 20M yen
+
+step Staff and rent
+  say Pay 15M yen for staff and 6M yen in rent.
+  sales -> staff: 15M yen
+  sales -> rent: 6M yen
+
+step Profit
+  say The remaining 9M yen is the profit.
+  sales -> profit: 9M yen
+
+step Where the profit goes
+  say Pay 2.7M yen of the profit in tax and keep 6.3M yen.
+  profit -> tax: 2.7M yen
+  profit -> keep: 6.3M yen

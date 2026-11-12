@@ -142,6 +142,14 @@ import hobbiesJa from "../../../packages/dragon/examples/hobbies.dragon?raw";
 import hobbiesEn from "../../../packages/dragon/examples/hobbies.en.dragon?raw";
 import skillsJa from "../../../packages/dragon/examples/skills.dragon?raw";
 import skillsEn from "../../../packages/dragon/examples/skills.en.dragon?raw";
+import tokenAllocationJa from "../../../packages/dragon/examples/token-allocation.dragon?raw";
+import tokenAllocationEn from "../../../packages/dragon/examples/token-allocation.en.dragon?raw";
+import feeSplitJa from "../../../packages/dragon/examples/fee-split.dragon?raw";
+import feeSplitEn from "../../../packages/dragon/examples/fee-split.en.dragon?raw";
+import salaryJa from "../../../packages/dragon/examples/salary.dragon?raw";
+import salaryEn from "../../../packages/dragon/examples/salary.en.dragon?raw";
+import revenueJa from "../../../packages/dragon/examples/revenue.dragon?raw";
+import revenueEn from "../../../packages/dragon/examples/revenue.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -216,6 +224,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "l2-chains": { ja: l2ChainsJa, en: l2ChainsEn },
   hobbies: { ja: hobbiesJa, en: hobbiesEn },
   skills: { ja: skillsJa, en: skillsEn },
+  "token-allocation": { ja: tokenAllocationJa, en: tokenAllocationEn },
+  "fee-split": { ja: feeSplitJa, en: feeSplitEn },
+  salary: { ja: salaryJa, en: salaryEn },
+  revenue: { ja: revenueJa, en: revenueEn },
 };
 
 /**

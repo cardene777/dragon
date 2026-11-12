@@ -2,6 +2,7 @@
 import { desc as actDesc } from "../../../../packages/dragon/src/blocks/act/gallery/desc";
 import { desc as askDesc } from "../../../../packages/dragon/src/blocks/ask/gallery/desc";
 import { desc as axisDesc } from "../../../../packages/dragon/src/blocks/axis/gallery/desc";
+import { desc as bandDesc } from "../../../../packages/dragon/src/blocks/band/gallery/desc";
 import { desc as boxDesc } from "../../../../packages/dragon/src/blocks/box/gallery/desc";
 import { desc as branchDesc } from "../../../../packages/dragon/src/blocks/branch/gallery/desc";
 import { desc as calcDesc } from "../../../../packages/dragon/src/blocks/calc/gallery/desc";
@@ -69,6 +70,7 @@ export const BLOCK_DESC = {
   "act": actDesc,
   "ask": askDesc,
   "axis": axisDesc,
+  "band": bandDesc,
   "box": boxDesc,
   "branch": branchDesc,
   "calc": calcDesc,

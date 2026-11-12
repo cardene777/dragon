@@ -1,0 +1,23 @@
+sankey 量の帯
+
+box total as 全量
+box comm as 仲間
+box team as 作った人
+box rew as 報酬
+box don as 寄付
+
+step 作る
+  say 出どころの無い箱の棒は初めから出ている。
+
+step 仲間へ
+  say 線の名前の初めの数が量で、その段で量に比べた幅の帯が伸びる。
+  total -> comm: 60%
+
+step 作った人へ
+  say 帯は出どころの棒の上から、書いた順に積む。
+  total -> team: 40%
+
+step 分ける
+  say 行き先から出る量の和は、入る量の内に収める。
+  comm -> rew: 45%
+  comm -> don: 15%

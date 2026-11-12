@@ -98,7 +98,7 @@ To draw it from code, parse it with `parseNotation` and pass the result to `moun
 | Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation
@@ -216,6 +216,14 @@ A circle appears in the step that first writes its count, a written overlap ligh
 | `set <id>: <count>` | The total of a set. Its circle appears in that step, with the name and the total outside it |
 | `set <id> & <id>: <count>` | The count in an overlap. Its region lights in that step. An overlap larger than one of its sets is refused |
 | `set none: <count>` | The count in none of the sets, shown in the frame outside the circles |
+
+A Sankey diagram (`sankey <title>`) follows where one amount goes and how much, with bands as wide as the amounts.
+Boxes no line goes into sit in the left column, and each target sits in a column to the right of its source. In a step the band grows from the source bar to the target bar, and an amount chip crosses it.
+
+| Line | What it writes |
+|---|---|
+| `box <id> as <name>` | A source or a target, before the first step. `[color: <color>]` colors its bar and the bands going into it |
+| `<source> -> <target>: <amount>` | A band in a step. The number at the start of the label is the amount (`40%` reads as 40, `1,200 yen` as 1200), and the band takes that share of the source bar. A label without a number, a line whose flow leads back to a box it came from, and a box sending out more than comes in are refused |
 
 ## Documentation
 

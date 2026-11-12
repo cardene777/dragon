@@ -2,6 +2,7 @@
 import { uses as actUses } from "../../../../packages/dragon/src/blocks/act/gallery/uses";
 import { uses as askUses } from "../../../../packages/dragon/src/blocks/ask/gallery/uses";
 import { uses as axisUses } from "../../../../packages/dragon/src/blocks/axis/gallery/uses";
+import { uses as bandUses } from "../../../../packages/dragon/src/blocks/band/gallery/uses";
 import { uses as boxUses } from "../../../../packages/dragon/src/blocks/box/gallery/uses";
 import { uses as branchUses } from "../../../../packages/dragon/src/blocks/branch/gallery/uses";
 import { uses as calcUses } from "../../../../packages/dragon/src/blocks/calc/gallery/uses";
@@ -69,6 +70,7 @@ export const BLOCK_USES = {
   "act": actUses,
   "ask": askUses,
   "axis": axisUses,
+  "band": bandUses,
   "box": boxUses,
   "branch": branchUses,
   "calc": calcUses,

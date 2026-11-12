@@ -1,0 +1,32 @@
+// Follow how a month of take-home pay splits into fixed costs, food, fun and savings.
+// The amounts are sample values to show the shape, not numbers from a real household.
+sankey Where the pay goes
+
+box pay as Take-home pay 300k yen [color: slate]
+box fixed as Fixed costs [color: blue]
+box food as Food [color: amber]
+box fun as Fun [color: rose]
+box save as Savings [color: green]
+box rent as Rent [color: blue]
+box bills as Utilities and phone [color: violet]
+
+step Get paid
+  say A month of take-home pay is 300k yen.
+
+step Fixed costs
+  say Set aside 130k yen for the costs that come every month.
+  pay -> fixed: 130k yen
+
+step Food and fun
+  say Spend 60k yen on food and 30k yen on fun.
+  pay -> food: 60k yen
+  pay -> fun: 30k yen
+
+step Savings
+  say Put the remaining 80k yen into savings.
+  pay -> save: 80k yen
+
+step Inside the fixed costs
+  say The 130k yen of fixed costs splits into 100k yen of rent and 30k yen for utilities and the phone.
+  fixed -> rent: 100k yen
+  fixed -> bills: 30k yen

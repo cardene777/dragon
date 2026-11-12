@@ -2,6 +2,7 @@
 import { shape as actShape } from "./act/shape";
 import { shape as askShape } from "./ask/shape";
 import { shape as axisShape } from "./axis/shape";
+import { shape as bandShape } from "./band/shape";
 import { shape as boxShape } from "./box/shape";
 import { shape as branchShape } from "./branch/shape";
 import { shape as calcShape } from "./calc/shape";
@@ -69,6 +70,7 @@ export const SHAPES = {
   "act": actShape,
   "ask": askShape,
   "axis": axisShape,
+  "band": bandShape,
   "box": boxShape,
   "branch": branchShape,
   "calc": calcShape,

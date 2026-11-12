@@ -1,0 +1,13 @@
+sankey Boxes
+
+box sales as Sales
+box cost as Cost
+box profit as Profit
+
+step Sell
+  say A box line places a source or a target. The name to show goes after as.
+
+step Split
+  say Boxes no line goes into sit in the left column, and targets sit to their right.
+  sales -> cost: 60%
+  sales -> profit: 40%

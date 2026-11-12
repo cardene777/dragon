@@ -1,0 +1,13 @@
+sankey 色の役
+
+box pay as 給料 [color: slate]
+box live as 暮らし [color: blue]
+box save as 貯金 [color: green]
+
+step 受け取る
+  say color で、棒に 7 つの役から色を選ぶ。
+
+step 分ける
+  say 帯は、行き先の箱の色で塗る。
+  pay -> live: 70%
+  pay -> save: 30%

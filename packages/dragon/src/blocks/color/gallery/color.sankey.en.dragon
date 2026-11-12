@@ -1,0 +1,13 @@
+sankey Color roles
+
+box pay as Pay [color: slate]
+box live as Living [color: blue]
+box save as Savings [color: green]
+
+step Get paid
+  say color picks one of 7 roles for a bar.
+
+step Split
+  say A band takes the color of the box it goes into.
+  pay -> live: 70%
+  pay -> save: 30%

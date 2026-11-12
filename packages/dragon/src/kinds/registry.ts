@@ -19,6 +19,7 @@ import type * as lineup from "./lineup";
 import type * as matrix from "./matrix";
 import type * as mind from "./mind";
 import type * as pipe from "./pipe";
+import type * as sankey from "./sankey";
 import type * as state from "./state";
 import type * as time from "./time";
 import type * as tree from "./tree";
@@ -26,7 +27,7 @@ import type * as tryKind from "./try";
 import type * as venn from "./venn";
 
 /** 後から読む種類の名前。部品の型から導くと、部品の型が軽い入口の型の file へ漏れるので字で書く */
-export type LaterKind = "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "state" | "time" | "tree" | "try" | "venn";
+export type LaterKind = "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
 
 export interface LaterKinds {
   chart: typeof chart;
@@ -38,6 +39,7 @@ export interface LaterKinds {
   matrix: typeof matrix;
   mind: typeof mind;
   pipe: typeof pipe;
+  sankey: typeof sankey;
   state: typeof state;
   time: typeof time;
   tree: typeof tree;
@@ -46,7 +48,7 @@ export interface LaterKinds {
 }
 
 /** 後から読む種類 */
-export const LATER_KINDS: readonly LaterKind[] = ["chart", "cycle", "er", "flow", "git", "lineup", "matrix", "mind", "pipe", "state", "time", "tree", "try", "venn"];
+export const LATER_KINDS: readonly LaterKind[] = ["chart", "cycle", "er", "flow", "git", "lineup", "matrix", "mind", "pipe", "sankey", "state", "time", "tree", "try", "venn"];
 
 const registered: Partial<LaterKinds> = {};
 

@@ -1,0 +1,16 @@
+sankey 出典
+
+box sales as 売上
+box cost as 原価
+box rest as 残り
+
+step 売る
+  say source で段に出典の名前と url を書く。1 つの段に何行でも書ける。
+  source dragon の README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  sales -> cost: 60%
+
+step 残す
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前の link で出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragon の repo [url: https://github.com/cardene777/dragon]
+  sales -> rest: 40%
