@@ -1,0 +1,32 @@
+// 財布の道具を入れた人が、財布を作って初めて送るまでに、段ごとに何人去るかを漏斗で比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart 財布を作ってから初めて送るまで [shape: funnel]
+
+item install as 道具を入れた [color: blue]
+item create as 財布を作った [color: violet]
+item backup as 復元の語を控えた [color: amber]
+item fund as 初めて受け取った [color: slate]
+item send as 初めて送った [color: green]
+
+step 入れる
+  say 財布の道具を8,000人が入れた。
+  set install: 8000
+
+step 作る
+  say 財布を作ったのは6,400人で、1,600人は作らずに去った。
+  set create: 6400
+
+step 控える
+  say 復元の語を控えたのは4,200人で、控えずに去った人が2,200人いた。
+  set backup: 4200
+
+step 受け取る
+  say 初めて資産を受け取ったのは2,600人で、控えた人の62%だった。
+  set fund: 2600
+
+step 送る
+  say 初めて送ったのは1,500人で、受け取った人のうち1,100人は送らずに去った。
+  set send: 1500
+
+step 振り返る
+  say 道具を入れた8,000人のうち、初めて送るまで進んだのは19%だった。

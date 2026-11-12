@@ -33,6 +33,12 @@ export interface ChartItemMessages {
   chartNoEdge: string;
 }
 
+/**
+ * 宣言した項目と、宣言した行と名札の位置。漏斗の見た目 (#3621) で値を書かないまま終わった項目を、値の行を読む所 (`blocks/chart-set/read.ts`) が
+ * 読み終えた時に宣言の行の名札を指して断るのに使う
+ */
+export const ITEM_LINES = new WeakMap<ChartItem, { source: SourceLine; at: number }>();
+
 /** 量の図の `item <名札> as <名前> [color: <色>]` の行。名前を書かない項目は名札を名前にする */
 function readChartItem(source: SourceLine, state: ParseState): void {
   const { m } = state;
@@ -43,7 +49,9 @@ function readChartItem(source: SourceLine, state: ParseState): void {
   state.claim(source, declared.id, declared.idAt);
   const { items } = state.figure.chart;
   if (items.length >= CHART_ITEMS_MOST) throw fail(source, 0, m.chartTooManyItems(CHART_ITEMS_MOST));
-  items.push({ id: declared.id, name: declared.name ?? declared.id, ...(color ? { color: color.value as Color } : {}) });
+  const item: ChartItem = { id: declared.id, name: declared.name ?? declared.id, ...(color ? { color: color.value as Color } : {}) };
+  ITEM_LINES.set(item, { source, at: declared.idAt });
+  items.push(item);
 }
 
 /** 項目の宣言の行。名前が名札と同じ項目は `as` を書かない */

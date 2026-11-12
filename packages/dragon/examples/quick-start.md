@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -353,6 +353,30 @@ step 2024年
   say Androidが4割近くまで伸びる。
   set ios: 60
   set android: 39
+```
+
+`chart <題> [shape: funnel]` は段を進むほど数が減る漏斗を描く。段を上から `item` で宣言し、段の数を `set` で書く。
+段の棒は値を書いた段で現れ、前の段との差は薄い棒で残して去った数を書き、最後の段で最初の段のうち最後の段まで残った割合を出す。
+前の段より大きい値は記法を読む時に誤りになる。
+
+```dragon
+chart 店で買うまでの人数 [shape: funnel]
+
+item visit as 店を訪れた [color: blue]
+item view as 商品を見た [color: violet]
+item buy as 買った [color: green]
+
+step 訪れる
+  say 店のサイトを10,000人が訪れた。
+  set visit: 10000
+
+step 商品を見る
+  say 商品の頁まで進んだのは4,200人だった。
+  set view: 4200
+
+step 買う
+  say 買ったのは380人だった。
+  set buy: 380
 ```
 
 列の図 (`lineup <題>`) の最初の行に `[shape: layers]` を足すと、箱を書いた順に上から横の帯として重ね、1件の頼みや取引が層を下りていく流れを描く。

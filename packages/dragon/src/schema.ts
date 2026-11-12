@@ -667,10 +667,11 @@ interface Validate {
   errors?: readonly object[] | null;
 }
 
-/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) */
+/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、漏斗の見た目の値の検査 (#3621) */
 interface Validator {
   shape: Validate;
   tablerErrors: (input: unknown, m: TablerMessages) => FieldError[];
+  funnelErrors: (input: unknown, lang: NotationLang) => FieldError[];
 }
 
 /**
@@ -694,12 +695,14 @@ export const validatorLoaded = (): boolean => validator !== undefined;
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
   if (validator === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
-  const { shape: validate, tablerErrors } = validator;
+  const { shape: validate, tablerErrors, funnelErrors } = validator;
   const version1 = isVersion1(input);
-  const m = FIELD_MESSAGES[options.lang ?? DEFAULT_LANG];
+  const lang = options.lang ?? DEFAULT_LANG;
+  const m = FIELD_MESSAGES[lang];
   // 絵柄集の絵柄は、形が名前の書き方だけを決めるので、絵柄集に在るかをここで確かめる (#3493)。
-  // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる
-  const sets = tablerErrors(input, m);
+  // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる。
+  // 量の図の漏斗の見た目の値が段を進むほど減るかも、形に書けないのでここで確かめる (#3621)
+  const sets = [...tablerErrors(input, m), ...funnelErrors(input, lang)];
   if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return sets.length === 0 ? { ok: true } : { ok: false, errors: sets };
   const all = ((validate.errors ?? []) as ErrorObject[]).map((error) => (version1 ? toVersion1Error(error) : error));
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
