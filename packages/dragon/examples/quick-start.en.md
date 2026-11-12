@@ -379,6 +379,31 @@ step Buy
   set buy: 380
 ```
 
+Add `[shape: layers]` to the first line of a lineup diagram (`lineup <title>`) to stack the boxes as horizontal bands, top to bottom in the written order, and draw one request or transaction going down through the layers.
+The left of each band shows the layer's name, its `note`, and its number, and no arrows are drawn between layers. A layers lineup takes up to 8 layers.
+Inside a step, `line <layer>: <chip>` is the layer the chip is in, drawing that band strongest and the bands it has passed lighter. `note <layer>: <text>` is the mark of that layer, such as what it did and how long it took.
+The layers look does not draw `[order: none]`, `role`, `seal`, `open`, `pick`, or `stamp`, so it refuses them.
+
+```dragon
+lineup A save request on its way to the store [shape: layers]
+
+box browser as Page [note: Turns the save tap into a request, color: blue]
+box api as Server [note: Checks the login and the content, color: amber]
+box db as Data store [note: Writes the row and keeps it, color: green]
+
+item Request [color: blue, note: POST /notes]
+
+step Tap save on the page
+  say Tapping save makes the browser send the content as a request.
+  line browser: Request
+  note browser: Made the request
+
+step Write it to the store
+  say The server checks the request, and it steps down to the data store to be written.
+  line db: Request
+  note db: Written in 30 ms
+```
+
 In a flow diagram (`flow <title>`), write the steps of the procedure with `box` and each choice with `choice <id> as <question>`.
 The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
 Each line out of a choice carries the answer as its label, and a choice has at most two ways out.

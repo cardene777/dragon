@@ -8,8 +8,9 @@ import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { type Color, COLORS } from "../color/block";
 import { LABEL_MOST, type LineupItem } from "./block";
+import { checkLayersHead, LAYERS_MESSAGES, type LayersMessages, settleShape } from "./layers";
 
-export interface ItemMessages {
+export interface ItemMessages extends LayersMessages {
   noItems: string;
   itemShape: string;
   /** チップの字が上限の字数を超えた */
@@ -72,6 +73,9 @@ function itemLines(items: readonly LineupItem[]): string {
 }
 
 export const reading: BlockReading<ItemMessages> = {
+  // 列の図の見た目 (#3625) の値と、層の見た目で描かない行は、層の見た目の決まり (`layers.ts`) が確かめる
+  settle: settleShape,
+  checkHead: checkLayersHead,
   finish: (state, head) => {
     if (state.figure.lineup.items.length === 0) throw fail(head, 0, state.m.noItems);
   },
@@ -85,11 +89,13 @@ export const reading: BlockReading<ItemMessages> = {
       noItems: "item の行でチップを 1 つ以上宣言する",
       itemShape: "item は item <名札>, <名札> [color: <色>, label: <字>, note: <説明>] の形で書く",
       labelTooLong: (limit) => `label は ${limit} 字までにする`,
+      ...LAYERS_MESSAGES.ja,
     },
     en: {
       noItems: "Declare at least one chip with an item line",
       itemShape: "Write an item as item <id>, <id> [color: <color>, label: <text>, note: <text>]",
       labelTooLong: (limit) => `A label is at most ${limit} characters`,
+      ...LAYERS_MESSAGES.en,
     },
   },
 };

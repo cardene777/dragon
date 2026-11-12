@@ -502,6 +502,44 @@ step Climb from tx3 to the root
   1to2 -> root [tag: 7a21]
 ```
 
+### Layers look of a lineup diagram
+
+Start with `lineup` to draw a lineup diagram, which follows chips in lanes step by step.
+Add `[shape: layers]` to the first line to stack the boxes as horizontal layers instead, for one request or transaction going down through them.
+
+- The boxes stack from the top in the order declared. The left of each band shows the layer's name, its `note`, and its number. A layers lineup takes up to 8 layers and draws no arrows between them
+- `line <layer>: <chip>` inside a step is the layer the chip is in. The band the chip is in is drawn strongest, and the bands it has passed stay lit
+- `note <layer>: <text>` is the mark of the layer, such as what it did and how long it took. It stays until the next `note` on the same layer
+- A chip with `note` shows it as a second line on its card
+- The layers look refuses `[order: none]`, `role`, `seal`, `open`, `pick`, and `stamp`, because it does not draw them
+
+On a narrow frame, the mark and the card move under the name and description of each layer.
+
+```dragon
+lineup An L2 transaction until it is final [shape: layers]
+
+box wallet as Wallet [note: Signs with the private key, color: violet]
+box l2 as L2 (rollup) [note: Bundles transactions into one, color: amber]
+box l1 as L1 (Ethereum) [note: Waits until it cannot be undone, color: green]
+
+item Transaction [color: blue, note: Swap 100 USDC]
+
+step The wallet signs
+  say The wallet signs the transaction with the owner's key.
+  line wallet: Transaction
+  note wallet: Signed in 1 s
+
+step The L2 bundles it
+  say The L2 bundles it with other transactions and answers within seconds.
+  line l2: Transaction
+  note l2: Bundled in 2 s
+
+step L1 makes it final
+  say Once the L1 block is final, the transaction can no longer be undone.
+  line l1: Transaction
+  note l1: Final in 13 min
+```
+
 ### Try diagram
 
 Start with `try` to draw a try diagram, which readers move themselves by typing values and pressing buttons. Write the part lines before the first step, from top to bottom, and the parts are stacked in that order.

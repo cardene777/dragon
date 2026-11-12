@@ -37,8 +37,10 @@ export {
   type LabelSide,
   type LineupAct,
   type LineupItem,
+  type LineupLook,
   type LineupOrder,
   type LineupRole,
+  type LineupShape,
   type LineupStamp,
   type MatrixAxis,
   type MatrixItem,
@@ -147,7 +149,8 @@ export type {
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
 export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow, ChartSpot, FunnelGap, FunnelPlan, FunnelRow, FunnelTotal } from "./kinds/chart/layout";
-export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
+export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupBand, LineupBandNote, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
+
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";

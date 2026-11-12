@@ -1,0 +1,30 @@
+// Webの画面で押した保存の頼みが、ブラウザからデータの置き場まで届くまでに通る4つの層。
+// 札は1件の頼みで、段ごとに1つ下の層へ下り、層の印にその層でした事と掛かった時間を残す。
+lineup Webの頼みが画面から置き場に届くまで [shape: layers]
+
+box browser as 画面 (ブラウザ) [note: 押した保存を頼みにして送る, color: blue]
+box cdn as 配信の網 (CDN) [note: 近くの拠点で受けて先へ渡す, color: violet]
+box api as サーバー (API) [note: ログインと中身を確かめる, color: amber]
+box db as データの置き場 (DB) [note: 行を書いて控える, color: green]
+
+item 頼み [color: blue, note: POST /notes]
+
+step 画面で保存を押す
+  say メモの画面で保存を押すと、ブラウザが中身を頼みにして送る。
+  line browser: 頼み
+  note browser: 頼みを作った
+
+step 近くの拠点が受ける
+  say 頼みは配信の網へ下り、使う人に近い拠点が受けてサーバーへ渡す。
+  line cdn: 頼み
+  note cdn: 20ミリ秒で受けた
+
+step サーバーが確かめる
+  say サーバーはログインしている人かと、メモの中身の形を確かめる。
+  line api: 頼み
+  note api: 80ミリ秒で確かめた
+
+step 置き場に書く
+  say 確かめた頼みはデータの置き場へ下り、メモの行として書かれる。
+  line db: 頼み
+  note db: 30ミリ秒で書いた

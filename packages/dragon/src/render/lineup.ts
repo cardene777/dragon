@@ -11,6 +11,7 @@
  * 役の札は役が動く段にだけ光る。段の題と文、札の下の一言、「この先」の帯は、その段にだけ出る。
  */
 import { hasWide, textWidth } from "../layout/measure";
+import type { Rect } from "../layout/scene";
 import {
   type LineupAt,
   type LineupLane,
@@ -96,6 +97,124 @@ const LINEUP_CSS = [
   `.dg-ln-sw0{fill:none;stroke:var(--mute);stroke-width:${S.slot}}`,
   `.dg-ln-lg{${font(TYPE.legend)};fill:var(--mute)}`,
 ].join("");
+
+const Y = LINEUP_LOOK.layers;
+const LT = Y.type;
+
+/**
+ * 層の見た目 (#3625) の部品の見た目。帯の地と縁、札が通った帯と札の居る帯の地、左の色の棒、層の名前と説明、層の番号の丸、帯の印、札。
+ * どの値も値の表から読む。層の見た目の SVG にだけ書き、ほかの列の図の SVG に入れない
+ */
+const LAYERS_CSS = [
+  `.dg-ly-band{fill:color-mix(in srgb,var(--c) ${Y.tint.base}%,transparent);stroke:color-mix(in srgb,var(--c) ${Y.tint.edge}%,transparent);stroke-width:${S.mark}}`,
+  `.dg-ly-lit{fill:color-mix(in srgb,var(--c) ${Y.tint.lit - Y.tint.base}%,transparent)}`,
+  `.dg-ly-now{fill:color-mix(in srgb,var(--c) ${Y.tint.now - Y.tint.lit}%,transparent);stroke:var(--c);stroke-width:${Y.nowEdge}}`,
+  ".dg-ly-bar{fill:var(--c)}",
+  `.dg-ly-name{${font(LT.name)};fill:var(--ink)}`,
+  `.dg-ly-desc{${font(LT.desc)};fill:var(--mute)}`,
+  `.dg-ly-no{fill:var(--surf);stroke:var(--c);stroke-width:${S.badgeRing}}`,
+  `.dg-ly-non{fill:${mix(Y.tint.now)};stroke:var(--c);stroke-width:${Y.nowEdge}}`,
+  `.dg-ly-nt{${font(LT.no)};fill:var(--ct)}`,
+  `.dg-ly-stamp{fill:var(--surf);stroke:var(--c);stroke-width:${S.badgeRing}}`,
+  `.dg-ly-st{${font(LT.stamp)};fill:var(--ct)}`,
+  `.dg-ly-card{fill:var(--surf);stroke:var(--c);stroke-width:${Y.cardEdge}}`,
+  `.dg-ly-cap{${font(LT.caption)};fill:var(--mute)}`,
+  `.dg-ly-ct{${font(LT.card)};fill:var(--ink)}`,
+  `.dg-ly-ctj{${font(sansOf(LT.card))}}`,
+].join("");
+
+/**
+ * 帯の左の色の棒。帯の角の丸みの内側に収め、棒の右の端は丸みの弧と交わる所から始める。角を落とさない色味 (丸みが棒の幅以下) は四角で描く
+ */
+function barOf(bar: Rect, radius: number): string {
+  if (radius <= bar.w) return rect("dg-ly-bar", bar, 0);
+  const { x, y, w, h } = bar;
+  const r = Math.min(radius, h / 2);
+  const inset = r - Math.sqrt(r * r - (r - w) * (r - w));
+  return `<path class="dg-ly-bar" d="M${r1(x + w)} ${r1(y + inset)}A${r1(r)} ${r1(r)} 0 0 0 ${r1(x)} ${r1(y + r)}L${r1(x)} ${r1(y + h - r)}A${r1(r)} ${r1(r)} 0 0 0 ${r1(x + w)} ${r1(y + h - inset)}Z"/>`;
+}
+
+/**
+ * 層の見た目の帯と印と札 (#3625)。帯は札が初めて着いた時から地を濃くし、札が居る間は縁に色を付けて番号の丸を塗る。
+ * 印は note を書いた段で、その層に札が着いてから現れ、同じ層の次の note まで残る。札は列の図のチップと同じ動きで、前の層の席から滑って下りる
+ */
+function drawLayers(
+  layout: LineupLayout,
+  diagram: DiagramModel,
+  timeline: Timeline,
+  parts: {
+    timeOf: (at: LineupAt) => { start: number; drawn: number };
+    chipKf: (c: LineupSeat) => string;
+    leaving: (c: LineupSeat) => { at: number; moved: boolean } | undefined;
+    during: (ranges: Shown[]) => string;
+  },
+  ctx: Ctx,
+): { lanes: string; chips: string } {
+  const { m } = ctx;
+  const { timeOf, chipKf, leaving, during } = parts;
+  const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
+  const arrived = (c: LineupSeat): number => timeOf(c).start + MOTION.lineup.slide;
+  /** 札が層 `lane` の帯に居る間。滑り終えてから離れるまで */
+  const staysOn = (lane: string): Shown[] => layout.chips.filter((c) => c.lane === lane).map((c) => [arrived(c), leaving(c)?.at ?? m.last]);
+  /** 印が現れる時刻。note の時刻か、同じ段にその層へ札が着く時刻の遅い方 */
+  const noteAt = (at: LineupAt & { lane: string }): number =>
+    Math.max(
+      timeline.events.find((t) => t.step === at.step && t.event === at.event)?.at ?? 0,
+      ...layout.chips.filter((c) => c.lane === at.lane && c.step === at.step).map(arrived),
+    );
+  const bands = layout.lanes
+    .map((lane) => {
+      const band = (layout.bands ?? []).find((b) => b.lane === lane.id);
+      if (!band) return "";
+      const stays = staysOn(lane.id);
+      const radius = partRadius(ctx.corner, Y.radius);
+      const first = stays.length === 0 ? undefined : Math.min(...stays.map(([a]) => a));
+      const lit = first === undefined ? "" : rect("dg-ly-lit dg-a", lane, radius, ` style="${during([[first, m.last]])}"`);
+      const now = stays.length === 0 ? "" : rect("dg-ly-now dg-a", lane, radius, ` style="${during(stays)}"`);
+      const bar = barOf(band.bar, radius);
+      const { cx, cy, r } = band.no;
+      const circle = (cls: string, extra = ""): string => `<circle class="${cls}" cx="${r1(cx)}" cy="${r1(cy)}" r="${r}"${extra}/>`;
+      const no = `${circle("dg-ly-no")}${stays.length === 0 ? "" : circle("dg-ly-non dg-a", ` style="${during(stays)}"`)}${lines(ctx, "dg-ly-nt", band.no.number, LT.no)}`;
+      const texts = `${lines(ctx, "dg-ly-name", band.name, LT.name)}${band.desc ? lines(ctx, "dg-ly-desc", band.desc, LT.desc) : ""}`;
+      return `<g data-lineup-layer="${esc(lane.id)}" style="${cs(lane.color)}">${rect("dg-ly-band", lane, radius)}${lit}${now}${bar}${texts}${no}</g>`;
+    })
+    .join("");
+  const notes = (layout.bandNotes ?? [])
+    .map((note) => {
+      const lane = layout.lanes.find((l) => l.id === note.lane);
+      const start = noteAt(note);
+      const end = note.until ? noteAt({ ...note.until, lane: note.lane }) : undefined;
+      const frames: Frame[] = [
+        [0, { opacity: 0 }],
+        [start, { opacity: 0 }, EASE.out],
+        [start + MOTION.popFade, { opacity: 1 }],
+        ...(end === undefined
+          ? ([
+              [m.last, { opacity: 1 }, EASE.inOut],
+              [m.total, { opacity: 0 }],
+            ] as Frame[])
+          : ([
+              [end, { opacity: 1 }],
+              [end + MOTION.lineup.cut, { opacity: 0 }],
+              [m.total, { opacity: 0 }],
+            ] as Frame[])),
+      ];
+      const shown: Shown[] = [[start + MOTION.popFade, end ?? Number.POSITIVE_INFINITY]];
+      const body = `${rect("dg-ly-stamp", note, partRadius(ctx.corner, Y.stamp / 2))}${lines(ctx, "dg-ly-st", note.text, LT.stamp, shown)}`;
+      return `<g class="dg-a" data-lineup-band-note="${esc(note.lane)}" style="${cs(lane?.color ?? "slate")};${m.kf(frames)}">${body}</g>`;
+    })
+    .join("");
+  const cards = layout.chips
+    .map((c) => {
+      const shown: Shown[] = [[arrived(c), leaving(c)?.at ?? Number.POSITIVE_INFINITY]];
+      const frame = rect("dg-ly-card", c, partRadius(ctx.corner, Y.cardRadius));
+      const caption = c.caption ? lines(ctx, "dg-ly-cap", c.caption, LT.caption, shown) : "";
+      const text = lines(ctx, "dg-ly-ct", c.label, LT.card, shown, "dg-ly-ctj");
+      return `<g class="dg-popc dg-a" data-lineup-card="${esc(c.id)}" data-lineup-on="${esc(c.lane)}" style="${cs(items.get(c.id)?.color ?? "slate")};${chipKf(c)}">${frame}${caption}${text}</g>`;
+    })
+    .join("");
+  return { lanes: `${bands}${notes}`, chips: cards };
+}
 
 /** 席から `(dx, dy)` ずらして大きさを `scale` 倍にした時の `transform` */
 const place = (dx: number, dy: number, scale = 1): string =>
@@ -293,6 +412,22 @@ export function drawLineup(
     return chipOf(c, color, dim, shown, () => chipKf(c), ctx);
   };
 
+  /** 図の題と、段ごとの題と文。段の題と文はその段にだけ出る */
+  const headingOf = (): string => {
+    const heading = lines(ctx, "dg-ln-ft", layout.heading, TYPE.lineupTitle);
+    const headlines = layout.headlines
+      .map((h) => {
+        const span = spanOf(h.step);
+        const shown: Shown[] = [[span.start, span.end]];
+        return `<g class="dg-a" data-lineup-headline="${h.step}" style="${m.vis(span.start, span.end)}">${lines(ctx, "dg-ln-hd", h.title, TYPE.lineupHead, shown)}${h.say ? lines(ctx, "dg-ln-say", h.say, TYPE.lineupSay, shown) : ""}</g>`;
+      })
+      .join("");
+    return `${heading}${headlines}`;
+  };
+
+  // 層の見た目 (#3625) は帯と印と札を別の部品で描く。見た目の規則も層の見た目の SVG にだけ書く
+  if (layout.arrangement === "layers") return { heading: headingOf(), ...drawLayers(layout, diagram, timeline, { timeOf, chipKf, leaving, during }, ctx), css: `${LINEUP_CSS}${LAYERS_CSS}` };
+
   /** 選んだ箱の縁の色が見える間。次に別の箱を選ぶまで */
   const pickSpan = (pick: LineupPick): [number, number] => {
     const next = layout.picks[layout.picks.indexOf(pick) + 1];
@@ -406,15 +541,8 @@ export function drawLineup(
   // 役の札。役が動く段にだけ縁と地に色を付ける。札は役のブロックが描く (#3348)
   const roles = layout.roles.map((role) => roleCard(role, role.steps.length === 0 ? undefined : during(rangesOf(role.steps)), ctx)).join("");
 
-  // 図の題と、段ごとの題と文
-  const heading = lines(ctx, "dg-ln-ft", layout.heading, TYPE.lineupTitle);
-  const headlines = layout.headlines
-    .map((h) => {
-      const span = spanOf(h.step);
-      const shown: Shown[] = [[span.start, span.end]];
-      return `<g class="dg-a" data-lineup-headline="${h.step}" style="${m.vis(span.start, span.end)}">${lines(ctx, "dg-ln-hd", h.title, TYPE.lineupHead, shown)}${h.say ? lines(ctx, "dg-ln-say", h.say, TYPE.lineupSay, shown) : ""}</g>`;
-    })
-    .join("");
+  // 図の題と、段ごとの題と文。動きの表は書いた順に名前を振るので、今までどおりこの位置で描き、層の見た目を書かない図の SVG を変えない
+  const headed = headingOf();
 
   // 置き場と札の間の矢印。置き場のブロックが描く (#3348)
   const arrows = layout.arrows.map(poolArrow).join("");
@@ -493,7 +621,7 @@ export function drawLineup(
     .join("");
 
   return {
-    heading: `${heading}${headlines}`,
+    heading: headed,
     lanes: `${roles}${arrows}${lanes}${remarks}${aheads}${legend}`,
     chips: `${pattern}${chips}`,
     css: LINEUP_CSS,

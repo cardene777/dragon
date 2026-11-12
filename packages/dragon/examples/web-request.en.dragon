@@ -1,0 +1,30 @@
+// The four layers a save request from a web page passes through, from the browser down to the data store.
+// The card is one request. It steps down one layer per step, and each layer's mark keeps what that layer did and how long it took.
+lineup A web request from the page to the store [shape: layers]
+
+box browser as Page (browser) [note: Turns the save tap into a request, color: blue]
+box cdn as Edge network (CDN) [note: Takes it at a nearby point and passes it on, color: violet]
+box api as Server (API) [note: Checks the login and the content, color: amber]
+box db as Data store (DB) [note: Writes the row and keeps it, color: green]
+
+item Request [color: blue, note: POST /notes]
+
+step Tap save on the page
+  say Tapping save on the notes page makes the browser send the content as a request.
+  line browser: Request
+  note browser: Made the request
+
+step A nearby point takes it
+  say The request steps down to the edge network, where a point near the user takes it and passes it to the server.
+  line cdn: Request
+  note cdn: Taken in 20 ms
+
+step The server checks it
+  say The server checks that the user is logged in and that the note has the right form.
+  line api: Request
+  note api: Checked in 80 ms
+
+step Write it to the store
+  say The checked request steps down to the data store and is written as a row of notes.
+  line db: Request
+  note db: Written in 30 ms

@@ -146,6 +146,10 @@ Going to the next step moves the arcs and bars from the previous values to the n
 | `item <id> as <name> [color: <color>]` | An item, before the first step. A chart takes from 1 to 8 items |
 | `set <id>: <value>` | The value of an item inside a step, a number of 0 or more without a unit. An item without `set` keeps its previous value |
 
+A lineup diagram can also stack its boxes as layers, for one request or transaction going down through them.
+Write `lineup <title> [shape: layers]`, and the boxes become horizontal bands from top to bottom in the order declared, with each layer's name, `note`, and number on the left.
+Inside a step, `line <layer>: <chip>` is the layer the chip is in, and `note <layer>: <text>` is the mark of that layer, such as what it did and how long it took. A layers lineup takes up to 8 layers and draws no arrows between them.
+
 A flow diagram (`flow <title>`) follows a procedure from top to bottom.
 The boxes and choices on the main path stack in one column, and a path that a choice sends elsewhere leaves to the right of the choice.
 The line that moves in a step turns blue and a dot runs along it, a passed line stays dark, and a choice the dot reached is filled with light amber.

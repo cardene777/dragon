@@ -26,7 +26,7 @@ Lines starting with `//` and blank lines are not read.
 `<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn` and `matrix`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
-- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]` or `chart <title> [shape: funnel]`. Only `chart` takes `shape` here.
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]` or `chart <title> [shape: funnel]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers ([lineup](kinds/lineup.md)). Only `chart` and `lineup` take `shape` here.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups
@@ -91,6 +91,7 @@ A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <
 | `side` | `above`, `below`, `left`, `right` |
 | `view` | `fixed`, `follow` |
 | `shape` on the `chart` head line | `donut`, `bar` |
+| `shape` on the `lineup` head line | `layers` |
 
 Pick colors by meaning and keep them consistent in one diagram: for example `slate` for people and clients, `blue` for your system, `green` for success, `rose` for failure, `amber` for waiting or money.
 `lineup` takes no icons.
