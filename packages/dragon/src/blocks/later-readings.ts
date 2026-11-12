@@ -5,6 +5,7 @@ import type { BlockReading } from "./block";
 export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = {
   "ask": () => import("./ask/read").then((m): BlockReading => m.reading),
   "axis": () => import("./axis/read").then((m): BlockReading => m.reading),
+  "band": () => import("./band/read").then((m): BlockReading => m.reading),
   "branch": () => import("./branch/read").then((m): BlockReading => m.reading),
   "calc": () => import("./calc/read").then((m): BlockReading => m.reading),
   "call": () => import("./call/read").then((m): BlockReading => m.reading),

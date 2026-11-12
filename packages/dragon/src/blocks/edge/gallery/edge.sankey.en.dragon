@@ -1,0 +1,13 @@
+sankey Lines
+
+box fee as Fees
+box pool as Depositors
+box team as Team
+
+step Collect
+  say Each trade pays a fee.
+
+step Split
+  say A line goes from the source id to the target id with ->, and the amount goes after the :.
+  fee -> pool: 80%
+  fee -> team: 20%

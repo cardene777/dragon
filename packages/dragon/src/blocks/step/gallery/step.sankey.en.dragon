@@ -1,0 +1,17 @@
+sankey Steps [view: fixed]
+
+box supply as Supply
+box stake as Staked
+box free as Circulating
+
+step Stake
+  say step starts a step and say writes its body.
+    A command run in that step goes in code.
+  code npm run stake
+  supply -> stake: 60%
+
+step Release
+  say Steps are shown one at a time.
+    view picks whether the frame follows the step or holds the whole figure still.
+  code npm run release
+  supply -> free: 40%

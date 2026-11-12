@@ -1,0 +1,25 @@
+// 交換所の取引の手数料が、流動性を預けた人と運営の蓄えと買い戻しへどれだけ分かれるかを追う。
+// 額は形を見せるための見本の値で、実際の交換所の数ではない。
+sankey 取引の手数料の分け先
+
+box fee as 1日の手数料1,000 USDC [color: slate]
+box lp as 流動性を預けた人 [color: blue]
+box protocol as 交換所の取り分 [color: violet]
+box treasury as 運営の蓄え [color: amber]
+box burn as 買い戻して燃やす [color: rose]
+
+step 集める
+  say 1日の取引で、手数料が1,000 USDC集まる。
+
+step 預けた人へ
+  say 手数料の8割の800 USDCを、流動性を預けた人へ配る。
+  fee -> lp: 800 USDC
+
+step 交換所の取り分
+  say 残りの200 USDCが交換所の取り分になる。
+  fee -> protocol: 200 USDC
+
+step 取り分を分ける
+  say 取り分のうち120 USDCを運営の蓄えへ回し、80 USDCで交換所のトークンを買い戻して燃やす。
+  protocol -> treasury: 120 USDC
+  protocol -> burn: 80 USDC

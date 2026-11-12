@@ -200,7 +200,7 @@ async function kindChunks(): Promise<Map<string, string[]>> {
 }
 
 /** 回り続ける図、表どうしの関係の図、考えを広げる地図、集合の重なりの図、2つの軸で置く図だけが使うブロック (#3657) */
-const KIND_ONLY_BLOCKS = ["ring", "table", "idea", "circle", "axis", "matrix-item"] as const;
+const KIND_ONLY_BLOCKS = ["ring", "table", "idea", "circle", "axis", "matrix-item", "band"] as const;
 
 /** `dist/cdn` の file のうち、source map が `source` で終わる source を名指す file の名前 */
 function filesHolding(source: string): string[] {

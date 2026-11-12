@@ -1,0 +1,25 @@
+// Follow how the trading fees of an exchange split between the liquidity providers, the treasury and buybacks.
+// The amounts are sample values to show the shape, not numbers from a real exchange.
+sankey Where the trading fees go
+
+box fee as Fees in a day 1,000 USDC [color: slate]
+box lp as Liquidity providers [color: blue]
+box protocol as Exchange share [color: violet]
+box treasury as Treasury [color: amber]
+box burn as Buy back and burn [color: rose]
+
+step Collect
+  say A day of trading collects 1,000 USDC in fees.
+
+step Liquidity providers
+  say Pay 80% of the fees, 800 USDC, to the liquidity providers.
+  fee -> lp: 800 USDC
+
+step Exchange share
+  say The remaining 200 USDC is the share of the exchange.
+  fee -> protocol: 200 USDC
+
+step Split the share
+  say Send 120 USDC of the share to the treasury and use 80 USDC to buy back the exchange token and burn it.
+  protocol -> treasury: 120 USDC
+  protocol -> burn: 80 USDC
