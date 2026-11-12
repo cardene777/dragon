@@ -33,6 +33,44 @@ Pick `try` instead when the reader should add items and press buttons themselves
 
 Lineup takes no icons and no `->` lines.
 
+## Layers look
+
+Write `[shape: layers]` on the head line (`lineup <title> [shape: layers]`) when one item goes down through layers, such as app, wallet, L2 and L1, or browser, CDN, API and database.
+Each box becomes a horizontal band, stacked top to bottom in the order declared. The left of the band shows the layer's name, its `note` and its number. No arrows are drawn between layers.
+
+| Line | Meaning in the layers look |
+|---|---|
+| `line <layer>: <chip>, ...` | The layer the chips are in now. The chips slide to that layer, the band they are in is drawn strongest, and the bands they have passed stay lit |
+| `note <layer>: <text>` | The mark of the layer, such as what it did and how long it took. It stays until the next `note` on the same layer |
+
+A layers lineup takes up to 8 layers. It refuses `[order: none]`, `role`, `seal`, `open`, `pick` and `stamp`, because the layers look does not draw them.
+Give the chip a `note` to show it as a second line on the card.
+
+```dragon
+lineup A web request from the page to the store [shape: layers]
+
+box browser as Page (browser) [note: Turns the save tap into a request, color: blue]
+box api as Server (API) [note: Checks the login and the content, color: amber]
+box db as Data store (DB) [note: Writes the row and keeps it, color: green]
+
+item Request [color: blue, note: POST /notes]
+
+step Tap save on the page
+  say Tapping save makes the browser send the content as a request.
+  line browser: Request
+  note browser: Made the request
+
+step The server checks it
+  say The server checks the login and the form of the note.
+  line api: Request
+  note api: Checked in 80 ms
+
+step Write it to the store
+  say The checked request is written as a row of notes.
+  line db: Request
+  note db: Written in 30 ms
+```
+
 ## How to write it well
 
 - Give the chip the reader cares about its own color (`item mine [color: amber, note: Your transaction]`) and keep the others plain.

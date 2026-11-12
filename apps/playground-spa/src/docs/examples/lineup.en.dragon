@@ -1,0 +1,22 @@
+lineup A save request on its way to the store [shape: layers]
+
+box browser as Page (browser) [note: Turns the save tap into a request, color: blue]
+box api as Server (API) [note: Checks the login and the content, color: amber]
+box db as Data store (DB) [note: Writes the row and keeps it, color: green]
+
+item Request [color: blue, note: POST /notes]
+
+step Tap save on the page
+  say Tapping save makes the browser send the content as a request.
+  line browser: Request
+  note browser: Made the request
+
+step The server checks it
+  say The request steps down to the server, which checks the login and the form of the note.
+  line api: Request
+  note api: Checked in 80 ms
+
+step Write it to the store
+  say The checked request steps down to the data store and is written as a row of notes.
+  line db: Request
+  note db: Written in 30 ms

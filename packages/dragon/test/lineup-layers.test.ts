@@ -135,12 +135,12 @@ const noteEvent = (box: string, text: string): Json => ({ type: "swap", box, tex
  * 3 つの層を上から重ね、取引の札 1 枚が段ごとに 1 つずつ下りる最小の層の図。段 1 と段 2 で、札が下りた層に印を出す。
  * `shape` を外すと、同じ箱とチップと段の今の列の図になる
  */
-function smallLayers(shape: string | undefined = "layers"): Json {
+function smallLayers(shape: string | null = "layers"): Json {
   return {
     version: 2,
     kind: "lineup",
     title: "小さな層",
-    ...(shape === undefined ? {} : { lineup: { shape } }),
+    ...(shape === null ? {} : { lineup: { shape } }),
     blocks: {
       box: [
         { id: "app", name: "アプリ", sub: "画面で頼む", color: "blue" },
@@ -355,7 +355,7 @@ describe("層の見た目の描き方 (#3625)", () => {
       expect((seat?.y ?? 0) > (before?.y ?? 0), `段 ${s + 1} の札が前の層より下に下りない`).toBe(true);
     }
     // 列の図の見た目を書かない同じ図は、今どおり札を横に並べ、層の見た目で並べない
-    const plain = render(smallLayers(undefined)).layout;
+    const plain = render(smallLayers(null)).layout;
     expect(plain.arrangement, "見た目を書かない列の図の並べ方").toBe("row");
     expect(plain.bands ?? [], "見た目を書かない列の図の帯").toEqual([]);
   });
