@@ -23,8 +23,8 @@
 | `packages/dragon/src/timeline.ts` | 段ごとの時刻の表 | 動きを持つ種類は、段の長さをここで決める |
 | `packages/dragon/src/layout/<種類>.ts` | 置き方 | 字の幅は英語の見本でも確かめる |
 | `packages/dragon/src/render/<種類>.ts` | 描き方 | 色と字の大きさを直に書かない。`renderers-read-values-from-one-table` が落ちる |
-| `packages/dragon/src/render/draw.ts` | 種類ごとの描き分けの本体 | 新しい種類の分かれ道を足す。種類の部品は `kindParts` で登録簿から引き、直に読まない |
-| `packages/dragon/src/kinds/<種類>.ts` | その種類の描く部品をまとめて出す | 種類ごとに 1 つ置く |
+| `packages/dragon/src/render/draw.ts` | 種類ごとの描き分けの本体 | 新しい種類の分かれ道を足さない。本体は種類の名前で登録簿から引いた部品の組 (`partsOf`) だけを呼ぶ。本体に後から読む種類の名前の字を書くと `draw-names-no-later-kind` が落ちる (#3656) |
+| `packages/dragon/src/kinds/<種類>.ts` | その種類の並べ方と札の時刻の直しと描き方と段で動く物を、部品の組 (`parts`) にまとめて出す | 種類ごとに 1 つ置き、組の形は `packages/dragon/src/kinds/parts.ts` の `KindParts` に合わせる。描き方は図の層ごとの字を返し、本体が持たない処理は組の側に置く |
 | `packages/dragon/src/kinds/<種類>/` | 図の種類の置き場。並べ方 (`layout.ts`) と受け付ける付け方 (`kind.ts`) | この 2 つの file だけを置き、並べ方は描き方を読まない。置き場を足したら `node packages/dragon/scripts/build-blocks.mjs` で一覧 (`packages/dragon/src/kinds/index.ts`) を書き出し直す。食い違うと `blocks.test.ts` が落ちる |
 | `packages/dragon/src/kinds/registry.ts` と `packages/dragon/src/kinds/all.ts` と `packages/dragon/src/light.ts` | 種類の登録簿と全部入りの登録と後から読む入口 | 3 つとも新しい種類を足す。足さないと軽い入口で読めない |
 | `packages/dragon/src/render/parts.ts` | 種類をまたいで使う描き方の部品 | 使い回す時だけ触る |

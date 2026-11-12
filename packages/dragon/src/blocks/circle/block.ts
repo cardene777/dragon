@@ -11,12 +11,6 @@
 import type { Block } from "../block";
 import type { Color } from "../color/block";
 
-/** 1 つの集合の重なりの図に書ける集まりの数 */
-export const VENN_SETS = { least: 2, most: 3 } as const;
-
-/** どれにも入らない数を書く語 (`set none: <数>`)。集合の重なりの図では名札に使えず、ほかの図では普通の名札のまま */
-export const NONE = "none";
-
 /** 集合の重なりの図の集まり。`name` は円の外に出す名前で、`color` を書かない集まりは宣言した順に色の役を配る */
 export interface VennSet {
   id: string;

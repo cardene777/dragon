@@ -100,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.71/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.72/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む

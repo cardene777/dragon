@@ -6,7 +6,7 @@
  * 2つの軸で置く図の根の `matrix` の欄の形 (軸と課題) を持つ。課題の 1 つの形は課題のブロック (`matrix-item`) の欠片が持つ。
  */
 import type { BlockShape } from "../block";
-import { MATRIX_AXES } from "./block";
+import { MATRIX_AXES } from "./limits";
 
 export const shape: BlockShape = {
   definitions: {

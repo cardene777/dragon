@@ -7,7 +7,7 @@
 import { fail } from "../../read-kit";
 import { type BlockReading, none } from "../block";
 import { EDGE, type EdgeEvent } from "../edge/block";
-import { RING_STEPS } from "./block";
+import { RING_STEPS } from "./limits";
 
 export interface RingMessages {
   /** 手順の数が輪に置ける数の外 */
