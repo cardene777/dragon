@@ -1,8 +1,8 @@
 /**
- * 表どうしの関係の図 (#3618) の時刻と、見た目の規則と、描く部品の束ね。見た目の元は step 2 で本人が選んだ動く試作の案A。
+ * 表どうしの関係の図 (#3618) の見た目の規則と、描く部品の束ね。見た目の元は step 2 で本人が選んだ動く試作の案A。
  *
  * 段の中の線の札は、走り出す前に表の脇で待たず、線を引き始める時に結びの線の上に出て、線の真ん中で止まり、その段の終わりに消える。
- * 光った結びの線は後の段にも残るので、札は残さない。
+ * 光った結びの線は後の段にも残るので、札は残さない。札の時刻の直しは、回り続ける図と同じ処理 (`blocks/carry/timing.ts` の `stepCarriers`、#3656) を使う。
  * 結びの線は表の下に、表と式の札は線の上に描く。段の番号と札は描く本体 (`render/draw.ts`) がほかの図の種類と同じく描く。
  * この file は表どうしの関係の図の描く部品 (`kinds/er.ts`) が出し、見本帳を開いた時に読む塊に入れない。
  * 見た目の規則は表どうしの関係の図の SVG にだけ書き、表どうしの関係の図だけが使う class に付ける
@@ -11,7 +11,6 @@ import { drawLinks, drawNotes, drawTables } from "../blocks/table/draw";
 import type { ErLayout } from "../kinds/er/layout";
 import { ER_LOOK, ER_TYPE } from "../look/er";
 import type { DiagramModel } from "../schema";
-import type { Timeline } from "../timeline";
 import { type Ctx, cssFont as font } from "./parts";
 
 const S = ER_LOOK.stroke;
@@ -42,20 +41,6 @@ export const ER_CSS = [
   `.dg-er-nt{${font(ER_TYPE.note)};fill:var(--ct)}`,
   `.dg-er-ntj{${font(ER_TYPE.noteJa)}}`,
 ].join("");
-
-/**
- * 表どうしの関係の図の時刻の表。図の種類を問わず組んだ表 (`buildTimeline`) を受け取り、札の見えている間を直す。
- * 札は線を引き始める時に出て (走り出しを待たない)、その段の終わりに消える
- */
-export function erTimes(_diagram: DiagramModel, t: Timeline): Timeline {
-  return {
-    ...t,
-    carriers: t.carriers.map((c) => {
-      const span = t.steps[c.step];
-      return { ...c, start: c.depart, end: Math.max(c.arrive, span?.end ?? c.end) };
-    }),
-  };
-}
 
 /** 表どうしの関係の図の結びの線 (表の下に描く物) と、表と式の札 (線の上に描く物) と、見た目の規則 */
 export function drawEr(layout: ErLayout, diagram: DiagramModel, ctx: Ctx): { base: string; node: string; css: string } {

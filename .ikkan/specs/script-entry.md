@@ -32,3 +32,11 @@
 | 集合の重なりの図は、集まりが2つより少ないか3つより多い図を拒む | `pnpm exec vitest run packages/dragon/test/venn-diagram.test.ts`の検査`venn-rejects-other-than-two-or-three-sets`が通る | #3657 |
 | 2つの軸で置く図は、区画が4つでない図を拒む | `pnpm exec vitest run packages/dragon/test/matrix-diagram.test.ts`の検査`matrix-rejects-other-than-four-areas`が通る | #3657 |
 | 2つの軸で置く図は、軸が2つでない図を拒む | `pnpm exec vitest run packages/dragon/test/matrix-diagram.test.ts`の検査`matrix-rejects-other-than-two-axes`が通る | #3657 |
+| 後から読む種類を持たない頁で、scriptの1行の入口が最初に読むscriptのgzipした後の合計が、上限90,000バイト以下になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3656 |
+| 種類の登録簿に並べ方と札の時刻の直しと描き方を登録した種類は、描き分けの本体 (`render/draw.ts`) に分かれ道を足さずに描ける | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`registered-kind-draws-without-a-branch`が通る | #3656 |
+| 描き分けの本体は、後から読む種類の並べ方と札の時刻の直しと描き方を、種類の名前を並べた分かれ道で選べない | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`draw-names-no-later-kind`が通る | #3656 |
+| 回り続ける図と表どうしの関係の図は、札が線を引き始める時に出てその段の終わりに消える時刻の直しを、1つの処理から使う | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`cycle-and-er-share-one-carrier-timing`が通る | #3656 |
+| 今ある見本の描いた結果の指紋は1行も変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3656 |
+| scriptの1行の入口は、頁に書いた図の種類だけを後から読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3656 |
+| 軽い入口の`loadFor`は、後から読む全ての見本の種類を読んでから描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3656 |
+| 見本帳が最初に読むscriptとCSSはgzipで184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3656 |
