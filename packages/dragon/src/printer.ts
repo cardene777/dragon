@@ -199,9 +199,9 @@ function sameJson(a: unknown, b: unknown): boolean {
 /** 描く処理の形の図を、`omit` の物を省いて記法に書く */
 function printModel(diagram: DiagramModel, omit: Omissions): string {
   const blocks = [
-    // 量の図の見た目 (#3560) は図の種類の行の属性なので、見た目のブロックでなくここで書く
+    // 量の図 (#3560) と列の図 (#3625) の見た目は図の種類の行の属性なので、見た目のブロックでなくここで書く
     `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([
-      ["shape", diagram.chart?.shape],
+      ["shape", diagram.chart?.shape ?? diagram.lineup?.shape],
       ["view", diagram.view],
     ])}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)

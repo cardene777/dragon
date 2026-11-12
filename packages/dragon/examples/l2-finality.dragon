@@ -1,0 +1,36 @@
+// L2で送った交換の取引が、アプリからL1で戻せなくなるまでに通る5つの層。
+// 札は1件の取引で、段ごとに1つ下の層へ下り、層の印にその層でした事と掛かった時間を残す。
+lineup L2の取引が確定するまで [shape: layers]
+
+box app as アプリ [note: 画面で交換を頼む, color: blue]
+box wallet as ウォレット [note: 鍵で署名する, color: violet]
+box l2 as L2 (ロールアップ) [note: 2000件の取引をまとめて縮める, color: amber]
+box da as データの置き場 [note: まとめたデータをL1に置く, color: slate]
+box l1 as L1 (Ethereum) [note: 戻せなくなるまで待つ, color: green]
+
+item 取引 [color: blue, note: 100 USDCを替える]
+
+step アプリで交換を頼む
+  say 画面で100 USDCを別のトークンに替える取引を作る。
+  line app: 取引
+  note app: 頼んだ
+
+step ウォレットが鍵で署名する
+  say 取引はウォレットへ下り、持ち主の鍵で署名される。
+  line wallet: 取引
+  note wallet: 1秒で署名した
+
+step L2が取引をまとめる
+  say L2のシーケンサーが2000件の取引を1つのまとまりにし、数秒で結果を返す。
+  line l2: 取引
+  note l2: 2秒でまとめた
+
+step まとめたデータをL1に置く
+  say まとめた取引のデータは、誰でも確かめられるようにL1に置かれる。
+  line da: 取引
+  note da: 1分でL1に置いた
+
+step L1で確定する
+  say L1のブロックが確定すると、取引はL1と同じ強さで戻せなくなる。
+  line l1: 取引
+  note l1: 13分で確定した

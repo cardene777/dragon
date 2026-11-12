@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A lineup diagram can stack its boxes as layers with `[shape: layers]`** (#3625)
+
+  There was no way to draw one request or transaction going down through layers, such as app, wallet, L2 and L1, or browser, CDN, API and database, and lanes laid side by side hid that the boxes are stacked. Write `lineup <title> [shape: layers]`, and the boxes become horizontal bands from top to bottom in the order written, with the layer's name, its `note` and its number on the left of each band. No new words are added: `line <layer>: <chip>` in a step is the layer the chip is in, drawing that band strongest and the bands it has passed lighter, and `note <layer>: <text>` stamps the mark of that layer until the next `note` on it. A chip's `note` shows as a second line on its card. On a narrow frame the mark and the card move under the name and description of each layer. A layers lineup takes up to 8 layers and draws no arrows between them, and it refuses `[order: none]`, `role`, `seal`, `open`, `pick` and `stamp` in Japanese and English, because the layers look does not draw them. A lineup without `[shape: layers]` reads and draws as before. The catalog has two examples in Japanese and English: an L2 transaction until it is final and a web request from the page to the store. The layers layout, its reading and its error messages load only with the lineup diagram.
+
 ### Changed
 
 - **The drawing core looks up each diagram kind that loads later by its name, so adding a kind no longer makes the script that the one-line entry loads first bigger** (#3656)
