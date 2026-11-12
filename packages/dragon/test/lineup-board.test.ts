@@ -624,6 +624,14 @@ describe("ボードの見本と書き方 (#3624)", () => {
     }
   });
 
+  it("lineup-board-remarks-compare-earlier-pools", () => {
+    // 札の下の一言は、札より前に宣言した置き場とだけ比べる。札より後ろの置き場 (かんばんの済み) に移した札を「足した」と言わない
+    const of = (file: string): BoardLayout => boardOf(render(parsed(fileText(file) ?? "", "ja", file), "ja"), file);
+    expect((of("kanban.dragon").remarks ?? []).map((r) => r.text.text), "かんばんの見本の札の下の一言").toEqual([]);
+    // 札より前の置き場 (病院の見本の受付) と比べる一言は今どおり出す
+    expect((of("clinic.dragon").remarks ?? []).map((r) => r.text.text), "病院の見本の札の下の一言").toContain("胸痛を足した");
+  });
+
   it("lineup-board-docs-describe-limit-and-stations", () => {
     const extract = api("extractDiagrams");
     const parse = api("parseNotation");

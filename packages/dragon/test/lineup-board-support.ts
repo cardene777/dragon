@@ -62,6 +62,7 @@ export interface BoardLayout {
   backs?: { id: string; from: string; to: string; step: number; event: number; points: Point[]; label: Rect & { text: Writing } }[];
   arrows?: { from: string; to: string; points: Point[] }[];
   legend?: { color?: string; swatch: Rect; text: Writing }[];
+  remarks?: { step: number; lane: string; text: Writing }[];
   headlines?: { step: number; title: Writing; say?: Writing }[];
   stations?: { line: Rect; stops: { lane: string; cx: number; cy: number; r: number }[]; runs: { step: number; from: string; to: string; points: Point[] }[] };
 }
