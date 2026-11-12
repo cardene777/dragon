@@ -9,6 +9,8 @@
  * 字は頁が読み込んだ `@font-face` から、描いた字の範囲に当たる字の file だけを丸ごと埋める (`fonts.ts`)。
  * 字の file を読めない時は、読めない字の名前と範囲を名指して断り、字の無い画像を返さない。
  *
+ * 記法を受けて、1 file で開ける HTML の頁の文字列も返す (`captureHtml`、#3667)。頁の組み方は `dragon export --format html` と同じ物を使う (`html.ts`)。
+ *
  * mp4 は WebCodecs の H.264 で詰めるので、WebCodecs を持たないブラウザでは作れない。呼ぶ前に `canCaptureMp4` で確かめ、
  * 作れない時は mp4 の釦を出さない。この入口は詰める道具 (`gifenc`、`mediabunny`) を読むので、描く入口とは分け、
  * 書き出す時にだけ読む。Node の組み込みの module は読まない。
@@ -18,6 +20,8 @@ import { BufferTarget, CanvasSource, canEncodeVideo, Mp4OutputFormat, Output, QU
 import { FILM_SCALE, makeFilm, planFilm } from "../export/film";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { cycleOf, picture, shownAt } from "./picture";
+
+export { captureHtml, type HtmlOptions } from "./html";
 
 /**
  * `gifenc` の部品。束ねる道具とブラウザが読む ESM の build は部品を名前で出すが、Node が読む CommonJS の build は

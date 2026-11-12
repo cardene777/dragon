@@ -1067,6 +1067,19 @@ const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
 
 Pass the `timeline` that `renderDiagram` returns to GIF and MP4 (`captureGif(svg, { timeline })`) to build the GIF colors from the same pictures as `dragon export`.
 
+`captureHtml` takes the notation instead of the SVG and returns a single HTML file that opens without fetching anything, like `dragon export --format html`.
+The page is built by the same code as `dragon export`, so it is the same text except for the `@font-face` rules.
+Fonts are embedded whole from the page's `@font-face` rules for the characters the page and the player bar can draw, and a font file that cannot be read is refused with its family and range named.
+The player script (`player.global.js`, over 1 MB) sits next to the entry and is fetched only on the first call.
+`palette` and `theme` pick the colors, and `lang` picks the language of the text in the diagram and of the refusals.
+
+```ts
+import { captureHtml } from "@cardenelabs/dragon/capture";
+
+const html = await captureHtml(source, { lang: "en", palette: "paper", theme: "light" });
+const file = new Blob([html], { type: "text/html" });
+```
+
 `editorUrl` from the drawing entry makes a URL that opens the notation in the editor.
 The notation goes after `#n=` in the URL, so it is not sent to the server that serves the page.
 

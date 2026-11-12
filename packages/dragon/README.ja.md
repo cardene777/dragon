@@ -1071,6 +1071,19 @@ const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
 
 GIF と mp4 に `renderDiagram` が返す `timeline` を渡すと (`captureGif(svg, { timeline })`)、GIF の色の表を `dragon export` と同じ絵から作る。
 
+`captureHtml` は SVG の代わりに記法を受け、`dragon export --format html` と同じく外を読まずに開ける 1 file の HTML を返す。
+頁は `dragon export` と同じ処理で組むので、字の `@font-face` のほかは同じ文字列になる。
+字は頁が読み込んだ `@font-face` から、頁と再生の帯で描かれうる字の範囲に当たる字の file を丸ごと埋め、字の file を読めない時は読めない字の名前と範囲を名指して断る。
+再生の script (`player.global.js`、1MB を超える) は入口の隣に置き、初めて呼んだ時にだけ読む。
+`palette` と `theme` で色を選び、`lang` で図の中の字と断りの文の言葉を選ぶ。
+
+```ts
+import { captureHtml } from "@cardenelabs/dragon/capture";
+
+const html = await captureHtml(source, { lang: "ja", palette: "paper", theme: "light" });
+const file = new Blob([html], { type: "text/html" });
+```
+
 記法をエディタで開く URL は、描く入口の `editorUrl` が作る。
 記法を URL の `#n=` の後ろに詰めるので、記法は頁を配るサーバーに送られない。
 

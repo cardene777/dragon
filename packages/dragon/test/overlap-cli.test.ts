@@ -21,7 +21,7 @@ vi.mock("../src/render/ink", async (importOriginal) => {
 });
 
 /*
- * 元の code の頁の組み立て (`src/export/html.ts`) は、組み上げた再生の部品 (`player.global.js`) を自分と同じ dir から読む。
+ * 元の code の書き出し (`src/export/index.ts`) は、組み上げた再生の部品 (`player.global.js`) を自分と同じ dir から読む。
  * 部品は build が `dist` にだけ置くので、その 1 つの file を読む所だけを `dist` の物に向ける (#3599)。頁の中身は本物の部品で組む
  */
 vi.mock("node:fs", async (importOriginal) => {
