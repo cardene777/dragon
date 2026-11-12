@@ -14,6 +14,8 @@
  * merge commit (`merge`) は取り込む先の先端と取り込む枝の先端の 2 つを親に持ち、取り込む先の札だけが進む。
  * 札を動かす線 (`<札> -> <commit>`) は、枝の札ならその枝を、HEAD なら HEAD を枝から離して動かす。
  * 枝から離れた HEAD が指す commit へ枝の札が来ると、HEAD はその枝に戻る。HEAD の札は枝から離れた間だけ出す。
+ * 札を動かす線は、動いた札の段から着いた札の段まで引く。着いた札が同じ段のうちに枝へ戻って消えるか先へ進む時は、
+ * 段の終わりにその札が居る所 (枝に戻った HEAD は戻った枝の札) まで引き、端に何も無い所を残さない (#3648)。
  * 枝を消す (`delete`) と、その枝の札は図から消え、帯は残る (#3632)。
  * どの札からも辿れなくなった commit は、その段で点線の丸に変わる。
  *
@@ -545,6 +547,18 @@ export function layoutGit(diagram: DiagramModel): GitLayout {
     return { x: c.cx - w / 2, y: c.cy - base - slot.row * G.row - C.tagH / 2, w, h: C.tagH };
   };
   const center = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
+  /**
+   * 札を動かす線の端の四角。着いた札が段の終わりまでその段に留まる時はその四角。
+   * 同じ段のうちに消えるか先へ進む時は、段の終わりにその札が出ている四角で、枝に戻った HEAD は戻った枝の札の四角 (#3648)。
+   * 段の終わりに札が出ていない時 (同じ段で枝を消した時) は着いた段の四角のまま
+   */
+  const lineEnd = (m: Walked["moves"][number], to: Rect): Rect => {
+    const slot = m.to;
+    if (!slot || walked.tags.some((t) => t.ref === m.ref && t.step === m.step && t.slot.commit === slot.commit && t.slot.row === slot.row)) return to;
+    const name = m.ref === HEAD ? (walked.refs.find((r) => r.name === HEAD)?.attached?.[m.step] ?? HEAD) : m.ref;
+    const end = walked.tags.find((t) => t.ref === name && t.step === m.step);
+    return end ? tagRect(name, end.slot) : to;
+  };
   // 札を動かす線は札と同じ墨の灰で引く。札は枝の色を持たず、同じ札の通り道に重なる線どうしを 1 本に見せるため
   const moves: GitMove[] = walked.moves.map((m) => {
     const from = m.from ? tagRect(m.ref, m.from) : undefined;
@@ -559,7 +573,7 @@ export function layoutGit(diagram: DiagramModel): GitLayout {
       ...(to ? { to } : {}),
       ...(m.to ? { target: m.to.commit } : {}),
       ...(carried ? { carried: true } : {}),
-      ...(m.line && from && to ? { line: elbow(center(from), center(to)) } : {}),
+      ...(m.line && from && to ? { line: elbow(center(from), center(lineEnd(m, to))) } : {}),
       color: "slate",
     };
   });
