@@ -95,8 +95,11 @@ export interface FigureDraft {
   mind: { levels: Map<string, number>; centre?: string };
   /** 2つの軸で置く図で宣言した軸と課題。軸のブロックと課題のブロックが組む (#3622) */
   matrix: { axes: MatrixAxis[]; items: MatrixItem[] };
-  /** 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348) */
-  lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string> };
+  /**
+   * 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348)。
+   * `shape` は図の種類の行の見た目 (#3625) で、読む処理が置き、チップのブロックが確かめる
+   */
+  lineup: { items: LineupItem[]; roles: LineupRole[]; sealed: Set<string>; shape?: Attr };
   /**
    * 試す図の部品とチップと網の節の関門。部品のブロックと入力の帯のブロックが宣言の行で組み、関門は網のブロックが `check` の行で足す (#3337、#3348、#3476)。
    * 部品を名指す属性と欄を名指す鍵は全ての宣言を読んでから確かめるので `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる。

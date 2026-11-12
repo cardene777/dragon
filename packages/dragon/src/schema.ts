@@ -25,7 +25,7 @@ import type { GitDelete } from "./blocks/delete/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
-import type { LineupItem } from "./blocks/item/block";
+import type { LineupItem, LineupShape } from "./blocks/item/block";
 import type { MindIdea } from "./blocks/idea/block";
 import type { MatrixAxis, MatrixSpec } from "./blocks/axis/block";
 import type { MatrixItem } from "./blocks/matrix-item/block";
@@ -171,6 +171,14 @@ export type { MatrixAxis, MatrixItem, MatrixSpec };
  * 列の並びと札と役とチップのブロックが持つ (#3348)
  */
 export type { LineupAct, LineupItem, LineupOrder, LineupRole, LineupStamp };
+
+/** 列の図の見た目 (#3625) の型は、チップのブロックが持つ。列の図の決まりはチップのブロックが持つため */
+export type { LineupShape };
+
+/** 列の図 (#3625) の見た目。列の図だけが書き、書かない列の図は箱を札にして横に並べる */
+export interface LineupLook {
+  shape: LineupShape;
+}
 
 /** 量の図 (#3560) の項目と見た目と、項目の値を変える出来事の型は、項目と見た目と値のブロックが持つ */
 export type { ChartItem, ChartSet, ChartShape };
@@ -343,6 +351,8 @@ export interface Diagram {
   chart?: ChartSpec;
   /** 2つの軸で置く図 (#3622) の軸と課題。2つの軸で置く図だけが書き、区画は `blocks` の箱 (`box`) に持つ */
   matrix?: MatrixSpec;
+  /** 列の図 (#3625) の見た目。列の図だけが書き、箱とチップと役は `blocks` に持つ */
+  lineup?: LineupLook;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -367,7 +377,8 @@ export interface DiagramModel {
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
-  lineup?: { items: LineupItem[]; roles?: LineupRole[] };
+  /** 列の図のチップと役と、見た目 (#3625)。見た目は版2の原本の根の `lineup` の欄から移す */
+  lineup?: { items: LineupItem[]; roles?: LineupRole[]; shape?: LineupShape };
   /** 試す図 (#3337) の部品とチップと関門 (#3476)。版1の原本に無かった種類なので、版2の原本の `part` と `item` と `check` をそのまま持つ */
   try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][]; checks?: TryCheck[] };
   /**

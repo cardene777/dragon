@@ -16,7 +16,7 @@ import type { Lang } from "../text";
  * 節の並び。最初の図の後に宣言と段を省いた短い書き方 (#3438) を置き、記法の決まりの後に記法の要素を書く順に並べ、
  * 図を外で使う 2 つの形 (頁に置く、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
+export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -31,7 +31,7 @@ function blockParagraphs(section: SectionId, lang: Lang): string[] {
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -44,6 +44,7 @@ export const EXITS: Record<SectionId, Exit> = {
   git: { kind: "git" },
   time: { kind: "time" },
   tree: { kind: "tree" },
+  lineup: { kind: "lineup" },
   try: { kind: "try" },
   chart: { kind: "chart" },
   flow: { kind: "flow" },
@@ -143,7 +144,7 @@ interface DocsText {
 export const DOCS: Record<Lang, DocsText> = {
   ja: {
     eyebrow: (version) => `使い方の案内 · ${version}`,
-    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、宣言と段を省いた短い書き方を見て、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、試す図、量の図、手順の図、回り続ける図、考えを広げる地図、表どうしの関係の図、2つの軸で置く図、集合の重なりの図、量の行き先の図、配管の図、段、帯、運ぶ物の順に記法の要素を掴み、使う人が手元でブロックを足す書き方も載せる。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
+    lead: "dragon記法の書き方を 1 枚にまとめた読み物。最初の 5 分で図を動かし、宣言と段を省いた短い書き方を見て、決まり 4 つを押さえてから、箱、線、区画、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図、量の図、手順の図、回り続ける図、考えを広げる地図、表どうしの関係の図、2つの軸で置く図、集合の重なりの図、量の行き先の図、配管の図、段、帯、運ぶ物の順に記法の要素を掴み、使う人が手元でブロックを足す書き方も載せる。JSON との行き来と、mp4 や GIF への書き出しと、前の形から書き直す対応表もここで扱う。",
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
@@ -225,6 +226,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "親子の箱どうしに `<子> -> <親> [tag: <値>]` の線を書くと、運ぶ物は木の線の上を走り、通った木の線はその色で残る。木の線を運ぶ物が通った段から後は、運ぶ物を送るか受けた箱だけを濃く出す。木の図では `group` を書けず、`box` で宣言した箱は木の右に並ぶ。",
         ],
         exit: "木の図の見本を見る →",
+      },
+      lineup: {
+        title: "列の図",
+        text: [
+          ...blockParagraphs("lineup", "ja"),
+          "列に並ぶチップが段ごとに入れ替わる様子を追う時は、最初の行を `lineup <題>` にする。`box <名札> as <名前>` の行が上から順に列になり、`item <名札>, <名札> [color: <色>, note: <説明>]` でチップを宣言する。段の中の `line <列>: <チップ>, <チップ>` はその列のチップを書いた順に並べ、ほかの列に居たチップは滑って移る。`note <列>: <字>` は列の右上の字を書き換え、`pick` と `seal` と `open` と `stamp` は列を選び、封をし、封を外し、札を押す。",
+          "1件の頼みや取引が層を下りていく流れは、最初の行に `[shape: layers]` を足して `lineup <題> [shape: layers]` にする。箱は書いた順に上から横の帯になり、帯の左に層の名前と `note` の説明と層の番号が並ぶ。段の中の `line <層>: <チップ>` はチップの居る層を書き、チップの居る帯を最も濃く、通った帯を薄く光らせる。`note <層>: <字>` はその層の印で、層でした事や掛かった時間を書く。層は8つまで書け、層の間に矢印は描かない。層の見た目は `[order: none]` と `role` と `seal` と `open` と `pick` と `stamp` を描かないので、書くと断る。",
+        ],
+        exit: "列の図の見本を見る →",
       },
       try: {
         title: "試す図",
@@ -403,7 +413,7 @@ export const DOCS: Record<Lang, DocsText> = {
   en: {
     // 英語の側の区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
     eyebrow: (version) => `guide • ${version}`,
-    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, see the short form that leaves out declarations and steps, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, try diagrams, charts, flow diagrams, cycle diagrams, mind maps, table relation diagrams, two-axis matrices, set overlap diagrams, Sankey diagrams, pipe diagrams, steps, the strip and what travels, and how to add your own blocks. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
+    lead: "One page that lays out how to write dragon notation. Get a diagram moving in the first five minutes, see the short form that leaves out declarations and steps, learn the four rules, then take in the parts of the notation in order: boxes, lines, regions, state diagrams, git graphs, time diagrams, tree diagrams, lineup diagrams, try diagrams, charts, flow diagrams, cycle diagrams, mind maps, table relation diagrams, two-axis matrices, set overlap diagrams, Sankey diagrams, pipe diagrams, steps, the strip and what travels, and how to add your own blocks. Going between the notation and JSON, exporting to mp4 or GIF, and a table for rewriting the old form are covered here too.",
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
@@ -485,6 +495,15 @@ export const DOCS: Record<Lang, DocsText> = {
           "A line `<child> -> <parent> [tag: <value>]` between a parent and a child sends its carrier along the tree line, and the tree line keeps that color once passed. From the step where a carrier first runs a tree line, only the boxes that have sent or received a carrier stay strong. A tree diagram takes no `group`, and boxes declared with `box` sit to the right of the tree.",
         ],
         exit: "See the tree diagram samples →",
+      },
+      lineup: {
+        title: "Lineup diagrams",
+        text: [
+          ...blockParagraphs("lineup", "en"),
+          "To follow chips that line up in lanes and change places step by step, start the first line with `lineup <title>`. Each `box <id> as <name>` line becomes a lane, from top to bottom, and `item <id>, <id> [color: <color>, note: <note>]` declares chips. Inside a step, `line <lane>: <chip>, <chip>` sets the chips of that lane in the written order, and a chip that was in another lane slides over. `note <lane>: <text>` rewrites the text at the top right of the lane, and `pick`, `seal`, `open`, and `stamp` pick a lane, seal it, take the seal off, and land a stamp on it.",
+          "For one request or transaction going down through layers, add `[shape: layers]` to the first line: `lineup <title> [shape: layers]`. The boxes become horizontal bands from top to bottom in the written order, and the left of each band shows the layer's name, its `note`, and its number. Inside a step, `line <layer>: <chip>` writes the layer the chip is in, drawing that band strongest and the bands it has passed lighter. `note <layer>: <text>` is the mark of that layer, such as what it did and how long it took. A layers lineup takes up to 8 layers and draws no arrows between them. It refuses `[order: none]`, `role`, `seal`, `open`, `pick`, and `stamp`, because the layers look does not draw them.",
+        ],
+        exit: "See the lineup samples →",
       },
       try: {
         title: "Try diagrams",

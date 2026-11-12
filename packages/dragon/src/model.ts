@@ -77,6 +77,8 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.define !== undefined ? { define: model.define } : {}),
     ...(model.chart !== undefined ? { chart: model.chart } : {}),
     ...(model.matrix !== undefined ? { matrix: model.matrix } : {}),
+    // 列の図の見た目 (#3625) は版1に無かった欄なので、`HOMES` を通さず根の欄 (`lineup`) に移す
+    ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
     blocks,
     steps: model.steps,
   };
@@ -139,7 +141,10 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(diagram.matrix !== undefined ? { matrix: diagram.matrix } : {}),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
-    ...(b.item !== undefined ? { lineup: { items: b.item, ...(b.role !== undefined ? { roles: b.role } : {}) } } : {}),
+    // 見た目 (#3625) だけを持ちチップを持たない列の図も、見た目を落とさないよう列の図の欄を置く。空のチップの並びは `fromModel` が書き戻さない
+    ...(b.item !== undefined || diagram.lineup !== undefined
+      ? { lineup: { items: b.item ?? [], ...(b.role !== undefined ? { roles: b.role } : {}), ...(diagram.lineup !== undefined ? { shape: diagram.lineup.shape } : {}) } }
+      : {}),
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
     ...(b.table !== undefined ? { er: { tables: b.table } } : {}),
     ...(b.circle !== undefined ? { venn: { sets: b.circle } } : {}),

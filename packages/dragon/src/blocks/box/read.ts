@@ -8,9 +8,9 @@ import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { Box, DiagramModel } from "../../schema";
 import { readLook } from "../color/read";
 import { declareRegion } from "../group/read";
+import { LANE_ATTRS } from "../item/block";
 import { urlOf } from "../link/read";
 
-export const LANE_ATTRS = ["note", "color", "order"] as const;
 /** 配管の図 (#3389) の箱は関係者で、種類は行から導くので、書ける属性は形を替える `icon` だけ */
 export const PARTY_ATTRS = ["icon"] as const;
 

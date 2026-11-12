@@ -345,7 +345,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   // 葉と親は木の図だけが書ける (#3233)
   const treeBase = draw({ ...empty("tree"), steps: [step] });
   const inTree = (events: object[]): Diagram => draw({ ...treeBase, steps: [{ ...step, events }] });
-  // チップと列の並びと封と選ぶと札は列の図だけが書ける (#3239)
+  // チップと列の並びと封と選ぶと札は列の図だけが書ける (#3239)。層の見た目は頭の行の [shape: layers] で選ぶ (#3625)
   const lineupBase = draw({ ...add(empty("lineup"), { item: [] }), steps: [step] });
   const inLineup = (events: object[]): Diagram => draw({ ...lineupBase, steps: [{ ...step, events }] });
   // 網と待ち行列と機械の列と入力の帯と釦は試す図だけが書ける (#3337)。入力の帯と釦は段の中にも書け、書き手の例として送って押す。
@@ -364,7 +364,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn")), head(empty("sankey"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(draw({ ...empty("lineup"), lineup: { shape: "layers" } })), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn")), head(empty("sankey"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {

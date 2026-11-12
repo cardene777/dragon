@@ -1,0 +1,36 @@
+// The five layers a swap sent on an L2 passes through, from the app until it can no longer be undone on L1.
+// The card is one transaction. It steps down one layer per step, and each layer's mark keeps what that layer did and how long it took.
+lineup An L2 transaction until it is final [shape: layers]
+
+box app as App [note: Asks for a swap on screen, color: blue]
+box wallet as Wallet [note: Signs with the private key, color: violet]
+box l2 as L2 (rollup) [note: Bundles 2000 transactions into one, color: amber]
+box da as Data availability [note: Posts the bundled data to L1, color: slate]
+box l1 as L1 (Ethereum) [note: Waits until it cannot be undone, color: green]
+
+item Transaction [color: blue, note: Swap 100 USDC]
+
+step Ask for a swap in the app
+  say The screen makes a transaction that swaps 100 USDC for another token.
+  line app: Transaction
+  note app: Asked
+
+step The wallet signs with the private key
+  say The transaction steps down to the wallet and is signed with the owner's key.
+  line wallet: Transaction
+  note wallet: Signed in 1 s
+
+step The L2 bundles the transactions
+  say The L2 sequencer bundles 2000 transactions into one and answers within seconds.
+  line l2: Transaction
+  note l2: Bundled in 2 s
+
+step Post the bundled data to L1
+  say The data of the bundled transactions is posted to L1 so that anyone can check it.
+  line da: Transaction
+  note da: Posted in 1 min
+
+step L1 makes it final
+  say Once the L1 block is final, the transaction can no longer be undone, as firmly as on L1.
+  line l1: Transaction
+  note l1: Final in 13 min

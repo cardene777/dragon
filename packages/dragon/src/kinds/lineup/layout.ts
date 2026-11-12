@@ -20,6 +20,10 @@
  * 開いている箱への `open` と、封をした箱への `seal` は描かない。
  *
  * 段の番号は図の右上の同じ所に置き、次の段の番号と入れ替える。
+ *
+ * 層の見た目 (`[shape: layers]`、#3625) は箱を宣言した順に上から横の帯に重ね、帯の左に色の棒と層の名前と説明 (`sub`) を、その右に層の番号と印と札の列を置く。
+ * 札 (チップ) は `line` を書いた段にその層の帯へ下り、`note` は書いた段からその層の帯に印を出して、次の `note` まで残す。層の間に矢印を置かない。
+ * 横に並べると層の名前が `READABLE_PX` に届かない枠の幅では、帯の中で名前と説明の下に印と札の行を置いて縦に組む。
  */
 import { type FigureText, FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../look/values";
@@ -31,6 +35,7 @@ import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type R
 
 const L = LINEUP_LOOK;
 const C = L.chip;
+const Y = L.layers;
 /** 1 行の字。`x` は左端、`baseline` は基準線 */
 export interface TextLine {
   text: string;
@@ -75,6 +80,8 @@ export interface LineupSeat extends Rect, LineupAt {
   lane: string;
   index: number;
   label: LineupText;
+  /** 層の見た目 (#3625) の札の上の行の字。説明 (`note`) を持つチップは、名前をこの行に、説明を `label` に出す */
+  caption?: LineupText;
   from?: Point;
   until?: LineupAt;
 }
@@ -155,10 +162,29 @@ export interface LineupArrow {
   points: Point[];
 }
 
+/** 層の見た目 (#3625) の帯の飾り。帯そのものの四角は `lanes` の箱が持つ。`bar` は左の色の棒、`no` は層の番号の丸 */
+export interface LineupBand {
+  lane: string;
+  bar: Rect;
+  name: LineupText;
+  desc?: LineupText;
+  no: { cx: number; cy: number; r: number; number: LineupText };
+}
+
+/** 層の見た目の帯の印。段の中の `note` の行 1 つ分で、`until` は同じ層の次の `note` */
+export interface LineupBandNote extends Rect, LineupAt {
+  lane: string;
+  text: LineupText;
+  until?: LineupAt;
+}
+
 export interface LineupLayout extends Layout {
   kind: "lineup";
-  /** 箱を横に並べたか (`row`)、置き場を帯にして札の列の上下に積んだか (`stack`) */
-  arrangement: "row" | "stack";
+  /** 箱を横に並べたか (`row`)、置き場を帯にして札の列の上下に積んだか (`stack`)、層の見た目で横の帯に重ねたか (`layers`、#3625) */
+  arrangement: "row" | "stack" | "layers";
+  /** 層の見た目の帯の飾りと印。層の見た目だけが持つ */
+  bands?: LineupBand[];
+  bandNotes?: LineupBandNote[];
   lanes: LineupLane[];
   chips: LineupSeat[];
   seals: LineupSeal[];
@@ -348,8 +374,13 @@ interface Sized {
 
 export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
   const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
-  const row = arrange(diagram, words, "row");
   const { width } = options;
+  if (diagram.lineup?.shape === "layers") {
+    const wide = arrangeLayers(diagram, words, false);
+    if (width === undefined || (width / wide.width) * Y.type.name.size >= READABLE_PX) return wide;
+    return arrangeLayers(diagram, words, true);
+  }
+  const row = arrange(diagram, words, "row");
   if (width === undefined || (width / row.width) * TYPE.boxName.size >= READABLE_PX) return row;
   return arrange(diagram, words, "stack");
 }
@@ -408,14 +439,7 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
 
   // 図の上の題。段の題と文は折った行の数が段で違うので、最も低い段に合わせて役の札を置く
   const H = L.headline;
-  const heading = single(diagram.title, margin, margin + H.titleY, TYPE.lineupTitle);
-  const headlines: LineupHeadline[] = diagram.steps.map((step, s) => {
-    const title = wrapped(step.title, margin, margin + H.headY, TYPE.lineupHead, inner, H.headLine);
-    const last = title.lines.at(-1)?.baseline ?? margin + H.headY;
-    const body = step.body ?? "";
-    return { step: s, title, ...(body === "" ? {} : { say: wrapped(body, margin, last + H.sayY, TYPE.lineupSay, inner, H.sayLine) }) };
-  });
-  const headBottom = Math.max(...headlines.map((h) => bottomOf(h.say ?? h.title)));
+  const { heading, headlines, headBottom } = headOf(diagram, margin, inner);
 
   // 役の札。横に並べた形は札の列の上の真ん中に、縦に組んだ形は図の幅を割って並べる
   const roleTop = headBottom + H.below;
@@ -727,6 +751,19 @@ function arrange(diagram: DiagramModel, words: FigureText, arrangement: "row" | 
   }
 }
 
+/** 図の上の題と、段ごとの題と文 (`say`)。`headBottom` は最も低い段の文の下の端 */
+function headOf(diagram: DiagramModel, margin: number, inner: number): { heading: LineupText; headlines: LineupHeadline[]; headBottom: number } {
+  const H = L.headline;
+  const heading = single(diagram.title, margin, margin + H.titleY, TYPE.lineupTitle);
+  const headlines: LineupHeadline[] = diagram.steps.map((step, s) => {
+    const title = wrapped(step.title, margin, margin + H.headY, TYPE.lineupHead, inner, H.headLine);
+    const last = title.lines.at(-1)?.baseline ?? margin + H.headY;
+    const body = step.body ?? "";
+    return { step: s, title, ...(body === "" ? {} : { say: wrapped(body, margin, last + H.sayY, TYPE.lineupSay, inner, H.sayLine) }) };
+  });
+  return { heading, headlines, headBottom: Math.max(...headlines.map((h) => bottomOf(h.say ?? h.title))) };
+}
+
 /** 一言が幅 `w` の札の下で何行になるか */
 function remarkLines(text: string, w: number): number {
   return wrap(text, TYPE.remark, w - L.remark.bar - L.remark.gap).length;
@@ -746,4 +783,210 @@ function groupsOf(sized: Sized[]): Group[] {
     else groups.push({ pool: lane.pool, lanes: [lane] });
   }
   return groups;
+}
+
+/** 層の見た目の字の幅。等幅の字で和文を含む字は、和文の字で描くので和文の字で測る */
+const layerWidth = (text: string, style: TextStyle): number => textWidth(text, style.family === "mono" && hasWide(text) ? { ...style, family: "sans" } : style);
+
+/**
+ * 層の見た目 (#3625) の置き方。`narrow` は携帯の幅で、帯の中で名前と説明の下に印と札の行を置く。
+ * 横に並べた帯は左から、色の棒と名前と説明、層の番号、印、札の列を置き、帯の中の幅が下限より広い時は、余りを番号の前と札の前に半分ずつ空ける
+ */
+function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean): LineupLayout {
+  const T = Y.type;
+  const margin = narrow ? L.stack.margin : L.margin;
+  const items = diagram.lineup?.items ?? [];
+  const itemOf = new Map(items.map((item) => [item.id, item]));
+  const lines = linesOf(diagram, new Set(itemOf.keys()), new Set(diagram.boxes.map((b) => b.id)));
+  const colors = boxColors(diagram);
+  /** 札の字。説明を持つチップは名前を上の行に、説明を下の行に出す */
+  const cardOf = (id: string): { caption?: string; text: string } => {
+    const item = itemOf.get(id);
+    const name = item?.label ?? id;
+    return item?.note === undefined ? { text: name } : { caption: name, text: item.note };
+  };
+  const cardW = (id: string): number => {
+    const { caption, text } = cardOf(id);
+    return Math.max(layerWidth(text, T.card), caption === undefined ? 0 : layerWidth(caption, T.caption)) + Y.cardPadX * 2;
+  };
+  const cardsW = (ids: string[]): number => ids.reduce((sum, id, k) => sum + cardW(id) + (k > 0 ? Y.cardGap : 0), 0);
+  const cardCol = Math.max(0, ...lines.map((l) => cardsW(l.items)));
+  const notes = diagram.steps.flatMap((step, s) => step.events.flatMap((e, k) => (e.type === "swap" && diagram.boxes.some((b) => b.id === e.box) ? [{ step: s, event: k, lane: e.box, text: e.text }] : [])));
+  const stampW = (text: string): number => layerWidth(text, T.stamp) + Y.stampPadX * 2;
+  const stampCol = Math.max(0, ...notes.map((n) => stampW(n.text)));
+  const nameW = Math.max(0, ...diagram.boxes.map((b) => layerWidth(b.name, T.name)));
+  const descW = Math.max(0, ...diagram.boxes.map((b) => (b.sub === undefined ? 0 : layerWidth(b.sub, T.desc))));
+  const noW = Y.no * 2;
+
+  // 帯の中の幅。横に並べた帯は列を全て並べた幅、縦に組んだ帯は名前と番号の行と、印と札の行の広い方
+  const rowNeed = stampCol + (stampCol > 0 && cardCol > 0 ? Y.colGap : 0) + cardCol;
+  const wideNeed = Y.textX + Math.max(nameW, descW) + Y.colGap + noW + Y.colGap + rowNeed + Y.padR;
+  const narrowNeed = Y.textX + Math.max(nameW + Y.colGap + noW, stampCol, cardCol) + Y.padR;
+  const inner = Math.max(narrow ? L.stack.width - margin * 2 : Y.width, narrow ? narrowNeed : wideNeed, stripNeed(diagram));
+  const width = inner + margin * 2;
+  /** 層に出る印の幅と札の列の幅。縦に組んだ帯は層ごとにこれで行の数を決め、印の短い層まで長い印の層に合わせて間延びさせない */
+  const stampIn = (lane: string): number => Math.max(0, ...notes.filter((n) => n.lane === lane).map((n) => stampW(n.text)));
+  const cardsIn = (lane: string): number => Math.max(0, ...lines.filter((l) => l.lane === lane).map((l) => cardsW(l.items)));
+
+  const { heading, headlines, headBottom } = headOf(diagram, margin, inner);
+  const lanes: LineupLane[] = [];
+  const bands: LineupBand[] = [];
+  /** 帯ごとの、印と札の行の真ん中の高さと、札の列の左端 */
+  const rowOf = new Map<string, { stampY: number; cardY: number; stampX: number; cardX: number }>();
+  const extra = narrow ? 0 : (inner - wideNeed) / 2;
+  let y = headBottom + L.headline.below;
+  diagram.boxes.forEach((b, k) => {
+    if (k > 0) y += Y.gap;
+    const x = margin;
+    const textX = x + Y.textX;
+    const textW = narrow ? inner - Y.textX - Y.padR - Y.colGap - noW : Math.max(nameW, descW);
+    const nameBase = y + Y.nameY;
+    const desc = b.sub === undefined ? undefined : narrow ? wrapped(b.sub, textX, nameBase + Y.descY, T.desc, inner - Y.textX - Y.padR, Y.descLine) : single(b.sub, textX, nameBase + Y.descY, T.desc);
+    const textBottom = bottomOf(desc ?? single(b.name, textX, nameBase, T.name));
+    let h: number;
+    let row: { stampY: number; cardY: number; stampX: number; cardX: number };
+    let no: { cx: number; cy: number };
+    if (narrow) {
+      // 印と札が 1 つの行に収まらない層は、札を印の下の行に置く。印も札も出ない層は行を空けない
+      const stamp = stampIn(b.id);
+      const cards = cardsIn(b.id);
+      const oneRow = stamp === 0 || cards === 0 || Y.textX + stamp + Y.cardGap + cards + Y.padR <= inner;
+      const rowTop = textBottom + Y.rowGap;
+      const tall = oneRow ? Math.max(stamp > 0 ? Y.stamp : 0, cards > 0 ? Y.card : 0) : Y.stamp;
+      const stampY = rowTop + tall / 2;
+      const cardY = oneRow ? stampY : rowTop + tall + Y.rowGap + Y.card / 2;
+      row = { stampY, cardY, stampX: textX, cardX: oneRow && stamp > 0 ? textX + stamp + Y.cardGap : textX };
+      h = (stamp === 0 && cards === 0 ? textBottom : oneRow ? rowTop + tall : cardY + Y.card / 2) + Y.padY - y;
+      no = { cx: x + inner - Y.padR - Y.no, cy: nameBase - T.name.size * 0.35 };
+    } else {
+      h = Math.max(Y.minH, textBottom + Y.padY - y, Y.card + Y.padY * 2);
+      const mid = y + h / 2;
+      const noCx = textX + textW + Y.colGap + extra + Y.no;
+      const stampX = noCx + Y.no + Y.colGap;
+      row = { stampY: mid, cardY: mid, stampX, cardX: stampX + stampCol + (stampCol > 0 ? Y.colGap : 0) + extra };
+      no = { cx: noCx, cy: mid };
+    }
+    // 説明を持たない層は、名前を帯の真ん中の高さに置く
+    const name = single(b.name, textX, desc === undefined && !narrow ? y + h / 2 + T.name.size * 0.35 : nameBase, T.name);
+    const rect = { x, y, w: inner, h };
+    const number = String(k + 1);
+    lanes.push({
+      id: b.id,
+      name: b.name,
+      ...(b.sub !== undefined ? { sub: b.sub } : {}),
+      color: colors.get(b.id) ?? "slate",
+      ...rect,
+      cx: x + inner / 2,
+      cy: y + h / 2,
+      pool: false,
+      title: name,
+      hint: { text: "", lines: [], x: textX, y: nameBase, w: 0, h: 0 },
+      track: { x: row.cardX, y: row.cardY - Y.card / 2, w: cardCol, h: Y.card },
+      slots: [],
+    });
+    bands.push({
+      lane: b.id,
+      bar: { x, y, w: Y.bar, h },
+      name,
+      ...(desc ? { desc } : {}),
+      no: { ...no, r: Y.no, number: single(number, no.cx - layerWidth(number, T.no) / 2, no.cy + T.no.size * 0.35, T.no) },
+    });
+    rowOf.set(b.id, row);
+    y += h;
+  });
+  const bottom = Math.max(headBottom, ...lanes.map(bottomOf));
+
+  // 帯の印。同じ層の次の note まで残す
+  const bandNotes: LineupBandNote[] = notes.map((n) => {
+    const row = rowOf.get(n.lane) as { stampY: number; stampX: number };
+    const w = stampW(n.text);
+    const text = single(n.text, row.stampX + Y.stampPadX, row.stampY + T.stamp.size * 0.35, T.stamp);
+    return { step: n.step, event: n.event, lane: n.lane, x: row.stampX, y: row.stampY - Y.stamp / 2, w, h: Y.stamp, text };
+  });
+  bandNotes.forEach((note, k) => {
+    const next = bandNotes.slice(k + 1).find((n) => n.lane === note.lane);
+    if (next) note.until = { step: next.step, event: next.event };
+  });
+
+  // 札の席。line を書いた段に、その層の札の列へ書いた順に左から置き、ほかの層に居た札はその層を離れる
+  const chips: LineupSeat[] = [];
+  const seated = new Map<string, LineupSeat>();
+  diagram.steps.forEach((step, s) => {
+    // 同じ段の line どうしは、段の始まりの居場所から滑る
+    const before = new Map(seated);
+    step.events.forEach((_, k) => {
+      const line = lines.find((l) => l.step === s && l.event === k);
+      if (!line) return;
+      const at: LineupAt = { step: s, event: k };
+      const row = rowOf.get(line.lane) as { cardY: number; cardX: number };
+      let x = row.cardX;
+      const placed = line.items.map((id, index): LineupSeat => {
+        const w = cardW(id);
+        const rect = { x, y: row.cardY - Y.card / 2, w, h: Y.card };
+        x += w + Y.cardGap;
+        const old = seated.get(id);
+        if (old && old.lane === line.lane && old.x === rect.x && old.y === rect.y) return old;
+        const source = before.get(id) ?? old;
+        const { caption, text } = cardOf(id);
+        const textX = rect.x + Y.cardPadX;
+        const mid = row.cardY;
+        const label = single(text, textX, caption === undefined ? mid + T.card.size * 0.35 : mid + Y.textY + T.card.size * 0.35, T.card);
+        const seat: LineupSeat = {
+          ...at,
+          id,
+          lane: line.lane,
+          index,
+          ...rect,
+          label: { ...label, w: layerWidth(text, T.card) },
+          ...(caption === undefined ? {} : { caption: single(caption, textX, mid + Y.captionY + T.caption.size * 0.35, T.caption) }),
+          ...(source ? { from: [source.x, source.y] as Point } : {}),
+        };
+        if (old) old.until = at;
+        chips.push(seat);
+        return seat;
+      });
+      // 書き換えた層に居て、書き直した並びに無い札は、その層を離れる
+      for (const [id, seat] of seated) if (seat.lane === line.lane && !line.items.includes(id) && seat.until === undefined) seat.until = at;
+      for (const [id, seat] of [...seated]) if (seat.until !== undefined) seated.delete(id);
+      for (const seat of placed) seated.set(seat.id, seat);
+    });
+  });
+
+  const layout: LineupLayout = {
+    kind: "lineup",
+    arrangement: "layers",
+    width,
+    height: 0,
+    regions: [],
+    boxes: lanes,
+    lifelines: [],
+    edges: [],
+    labels: [],
+    actions: [],
+    badges: [],
+    paths: [],
+    ends: [],
+    lanes,
+    chips,
+    seals: [],
+    stamps: [],
+    picks: [],
+    marks: [],
+    roles: [],
+    heading,
+    headlines,
+    remarks: [],
+    aheads: [],
+    legend: [],
+    arrows: [],
+    sealWord: words.lineupSealed,
+    bands,
+    bandNotes,
+  };
+  const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
+  layout.height = (strip ? strip.y + strip.h : bottom) + margin;
+  if (strip) layout.strip = strip;
+  const badges: SceneBadge[] = diagram.steps.map((_, s) => ({ step: s, x: width - margin - LOOK.badge.r, y: margin + L.headline.badgeY, color: "green" }));
+  layout.badges = besideSameSpot(badges, () => true, () => true);
+  return layout;
 }
