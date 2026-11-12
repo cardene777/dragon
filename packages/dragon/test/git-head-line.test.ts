@@ -9,7 +9,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
-import { api, type Json } from "./diagram-support";
+import { api } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
 
 const ROOT = process.cwd();
@@ -62,7 +62,7 @@ function gitSources(): { file: string; text: string; lang: Lang }[] {
         .map((f) => ({ file: `parts/${f}`, path: join(dir, f) })),
     );
   return [...examples, ...parts]
-    .map(({ file, path }) => ({ file, text: readFileSync(path, "utf8"), lang: (file.endsWith(".en.dragon") ? "en" : "ja") as Lang }))
+    .map(({ file, path }): { file: string; text: string; lang: Lang } => ({ file, text: readFileSync(path, "utf8"), lang: file.endsWith(".en.dragon") ? "en" : "ja" }))
     .filter(({ text }) => /^git /mu.test(text));
 }
 
@@ -73,7 +73,7 @@ function rendered(file: string, text: string, lang: Lang): GitRendered {
   let out: Rendered | undefined;
   let refusal = "";
   try {
-    out = draw("renderDiagram")((read.ok ? read.diagram : {}) as Json, {});
+    out = draw("renderDiagram")(read.ok ? read.diagram : {}, {});
   } catch (error) {
     refusal = String(error);
   }
