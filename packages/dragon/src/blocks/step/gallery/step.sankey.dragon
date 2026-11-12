@@ -1,0 +1,17 @@
+sankey 段 [view: fixed]
+
+box supply as 供給
+box stake as 預け入れ
+box free as 出回る分
+
+step 預ける
+  say step で段を区切り、say で段の本文を書く。
+    その段で打つ命令は code で書く。
+  code npm run stake
+  supply -> stake: 60%
+
+step 出回る
+  say 段は 1 つずつ送って見る。
+    view で、枠が段を追うか全体を止めて見せるかを選ぶ。
+  code npm run release
+  supply -> free: 40%

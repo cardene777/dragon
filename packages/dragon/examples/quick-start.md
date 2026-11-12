@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -567,6 +567,32 @@ step 夜と両方
 step どちらでもない
   say どちらにも走らない人は12人いる。
   set none: 12
+```
+
+量の行き先の図 (`sankey <題>`) は、最初の `step` の行より前に `box <名札> as <名前>` で出どころと行き先を書く。
+段の中の `<出どころ> -> <行き先>: <量>` で、その段で出どころの棒から行き先の棒へ帯が伸び、量の札が帯を渡る。
+線の名前の初めの数が量で、`40%` は 40、`1,200円` は 1200 と読み、帯の幅は出どころの棒のうちその量が占める割合の分になる。
+数で始まらない名前、流れを辿ると元の箱へ戻る線、入る量より出る量の和が大きい箱は誤りで止まる。
+
+```dragon
+sankey お小遣いの使い道
+
+box pay as お小遣い1万円 [color: slate]
+box food as 食べる [color: amber]
+box save as 貯める [color: green]
+box fun as 遊ぶ [color: rose]
+
+step 受け取る
+  say 1か月のお小遣いは1万円。
+
+step 食べる分
+  say 半分の5,000円を食べる分に回す。
+  pay -> food: 5,000円
+
+step 残り
+  say 3,000円を貯めて、2,000円で遊ぶ。
+  pay -> save: 3,000円
+  pay -> fun: 2,000円
 ```
 
 ## 属性

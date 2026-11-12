@@ -364,7 +364,7 @@ export function syntaxLines(lang: NotationLang): { id: SyntaxId; lines: string[]
   return [
     {
       id: "kind",
-      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(draw({ ...empty("lineup"), lineup: { shape: "layers" } })), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn"))],
+      lines: [head(base), head(empty("architecture")), head(empty("state")), head(empty("git")), head(empty("time")), head(empty("tree")), head(empty("lineup")), head(draw({ ...empty("lineup"), lineup: { shape: "layers" } })), head(empty("try")), head(empty("pipe")), head(chartOf("donut")), head(chartOf("bar")), head(empty("flow")), ...diff([[flowBase, add(flowBase, { choice: [{ id: h.id, name: h.question }] })]]), head(empty("cycle")), head(empty("mind")), head(empty("er")), head(empty("matrix")), head(empty("venn")), head(empty("sankey"))],
     },
     { id: "view", lines: diff([[base, draw({ ...base, view: "fixed" })], [base, draw({ ...base, view: "follow" })]]) },
     {

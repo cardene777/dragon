@@ -1,0 +1,23 @@
+sankey Amount bands
+
+box total as Total
+box comm as Community
+box team as Team
+box rew as Rewards
+box don as Donations
+
+step Mint
+  say The bar of a box with no source shows from the start.
+
+step To the community
+  say The number at the start of the label is the amount, and a band that wide grows in that step.
+  total -> comm: 60%
+
+step To the team
+  say Bands stack down the source bar in the order written.
+  total -> team: 40%
+
+step Split
+  say What leaves a target stays within what comes in.
+  comm -> rew: 45%
+  comm -> don: 15%

@@ -2,6 +2,7 @@
 import { reading as actReading } from "./act/read";
 import { reading as askReading } from "./ask/read";
 import { reading as axisReading } from "./axis/read";
+import { reading as bandReading } from "./band/read";
 import { reading as boxReading } from "./box/read";
 import { reading as branchReading } from "./branch/read";
 import { reading as calcReading } from "./calc/read";
@@ -69,6 +70,7 @@ export const READINGS = {
   "act": actReading,
   "ask": askReading,
   "axis": axisReading,
+  "band": bandReading,
   "box": boxReading,
   "branch": branchReading,
   "calc": calcReading,

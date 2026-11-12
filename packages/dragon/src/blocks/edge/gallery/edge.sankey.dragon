@@ -1,0 +1,13 @@
+sankey 線
+
+box fee as 手数料
+box pool as 預けた人
+box team as 運営
+
+step 集める
+  say 取引ごとに手数料を集める。
+
+step 分ける
+  say 線は出どころの名札から行き先の名札へ -> で引き、: の後ろに量を書く。
+  fee -> pool: 80%
+  fee -> team: 20%
