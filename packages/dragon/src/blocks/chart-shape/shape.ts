@@ -11,7 +11,7 @@ import { CHART_SHAPES } from "./block";
 export const shape: BlockShape = {
   definitions: {
     chartShape: {
-      description: "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで描く",
+      description: "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で描く",
       enum: [...CHART_SHAPES],
     },
   },

@@ -1,0 +1,32 @@
+// How many people who install a wallet app leave at each stage on the way to their first send, compared as a funnel.
+// The values are sample numbers to show the shape, not real measurements.
+chart From a new wallet to the first send [shape: funnel]
+
+item install as Installed the app [color: blue]
+item create as Created a wallet [color: violet]
+item backup as Saved the recovery phrase [color: amber]
+item fund as First received funds [color: slate]
+item send as Sent for the first time [color: green]
+
+step Install
+  say 8,000 people installed the wallet app.
+  set install: 8000
+
+step Create
+  say 6,400 people created a wallet, and 1,600 left without one.
+  set create: 6400
+
+step Save the phrase
+  say 4,200 people saved the recovery phrase, and 2,200 left without saving it.
+  set backup: 4200
+
+step Receive
+  say 2,600 people received funds for the first time, 62% of those who saved the phrase.
+  set fund: 2600
+
+step Send
+  say 1,500 people sent for the first time, and 1,100 of those who received funds left without sending.
+  set send: 1500
+
+step Look back
+  say Of the 8,000 people who installed the app, 19% went on to their first send.

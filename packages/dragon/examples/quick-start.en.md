@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]` or `[shape: funnel]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -353,6 +353,30 @@ step 2024
   say Android grows to almost 40 percent.
   set ios: 60
   set android: 39
+```
+
+`chart <title> [shape: funnel]` draws a funnel, where the count shrinks stage by stage. Declare the stages from the top with `item` and write each count with `set`.
+A stage's bar appears in the step that sets it, the gap to the stage above stays as a pale bar with the number who left, and the last step shows the share of the first stage that made it to the last one.
+A value larger than the stage above is an error when the notation is read.
+
+```dragon
+chart People on the way to buying [shape: funnel]
+
+item visit as Visited the shop [color: blue]
+item view as Viewed a product [color: violet]
+item buy as Bought [color: green]
+
+step Visit
+  say 10,000 people visited the shop site.
+  set visit: 10000
+
+step View a product
+  say 4,200 people went on to a product page.
+  set view: 4200
+
+step Buy
+  say 380 people bought.
+  set buy: 380
 ```
 
 Add `[shape: layers]` to the first line of a lineup diagram (`lineup <title>`) to stack the boxes as horizontal bands, top to bottom in the written order, and draw one request or transaction going down through the layers.
