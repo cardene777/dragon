@@ -527,7 +527,7 @@ describe("点で数える見た目の描き方 (#3635)", () => {
     /** 扇形の 1 切れの角度 (度)。`M0 0L<x0> <y0>A<r> <r> 0 0 1 <x1> <y1>Z` の 2 つの端から求める */
     const angle = (d: string): number => {
       const n = [...d.matchAll(/-?[\d.]+/g)].map((m) => Number(m[0]));
-      const [x0, y0, x1, y1] = [n[2], n[3], n[9], n[10]] as number[];
+      const [x0, y0, x1, y1] = [n[2], n[3], n[9], n[10]] as [number, number, number, number];
       const a = (Math.atan2(y1, x1) - Math.atan2(y0, x0)) * (180 / Math.PI);
       return a <= 0 ? a + 360 : a;
     };
