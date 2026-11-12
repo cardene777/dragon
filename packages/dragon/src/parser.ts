@@ -73,6 +73,7 @@
  * `item`、`line`、`seal`、`open`、`pick`、`stamp`、`role` の行は列の図でだけ書ける。
  * 卓の形 (#3351) で、`box` の行の `[order: none]` は箱を順番の無い置き場にし、`item` の行の `[note: <説明>]` は凡例の説明を持たせる。
  * 最初の `step` より前の `role <名札> [note: <一言>]` は役を宣言し、段の中の `role <名札>` はその段で動く役を名指す。
+ * 図の種類の行の `[shape: layers]` (#3625) は箱を上から横の帯に重ねる層の見た目にし、層の見た目で描かない行はチップのブロックが断る。
  *
  * 試す図 (`try`、#3337) は、最初の `step` より前に部品の行を上から積む順に書く。
  *
@@ -125,7 +126,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { ChartShape, Diagram, DiagramModel, Step } from "./schema";
+import type { ChartShape, Diagram, DiagramModel, LineupShape, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -224,9 +225,10 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const title = titled.value === "" ? kind : titled.value;
   const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
   const view = viewOf(head, headAttrs.get("view"), m);
-  // 図の種類の行の `shape` は量の図の見た目で、ほかの種類の図には書けない (#3560)。量の図の見た目は見た目のブロックが確かめる
+  // 図の種類の行の `shape` は量の図 (#3560) と列の図 (#3625) の見た目で、ほかの種類の図には書けない。
+  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが確かめる
   const shape = headAttrs.get("shape");
-  if (shape && kind !== "chart") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
+  if (shape && kind !== "chart" && kind !== "lineup") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -253,10 +255,10 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     tree: { boxes: new Map(), parents: new Map() },
     mind: { levels: new Map() },
     matrix: { axes: [], items: [] },
-    lineup: { items: [], roles: [], sealed: new Set() },
+    lineup: { items: [], roles: [], sealed: new Set(), ...(shape && kind === "lineup" ? { shape } : {}) },
     try: { parts: [], items: [], sides: [], checks: [], pending: [] },
     pipe: { holds: [], opened: [] },
-    chart: { items: [], ...(shape ? { shape } : {}) },
+    chart: { items: [], ...(shape && kind === "chart" ? { shape } : {}) },
     flow: { choices: [], paths: [], lines: [], main: [], side: [], forked: [] },
     er: { tables: [], refs: [], lines: [] },
     venn: { sets: [], now: new Map(), writes: [], step: -1 },
@@ -505,7 +507,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(kind === "flow" ? { flow: { choices: figure.flow.choices, paths: figure.flow.paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),
-    ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}) } } : {}),
+    // 列の図の見た目 (#3625) はチップのブロックが `layers` と確かめた
+    ...(isLineup ? { lineup: { items: figure.lineup.items, ...(figure.lineup.roles.length > 0 ? { roles: figure.lineup.roles } : {}), ...(figure.lineup.shape ? { shape: figure.lineup.shape.value as LineupShape } : {}) } } : {}),
     ...(isTry
       ? {
           try: {

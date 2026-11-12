@@ -58,3 +58,18 @@
 | 携帯の幅で縦に組んだ列の図で、置き場の帯に 7 枚のチップを置いた時も、同じ行のチップの上端が同じ値で、同じ列のチップの左端と幅が同じ値で、上下の間と左右の間がそれぞれ全て同じ値である | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-band-chips-on-grid`が通る | #3408 |
 | 常に、順番の無い置き場の枠は点線で、置き場のチップは縦の 1 列にも横の 1 列にもならず、札のチップは`line`に書いた順に同じ左端で上から積む | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-layout-places-roles-and-cards`が通る | #3408 |
 | 常に、携帯の幅では置き場を帯にして札の列の上下に積み、置き場に 12 枚のチップを置いても置き場の中に収まる | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-narrow-frame-stacks-places`と`lineup-holds-12-chips-in-places`が通る | #3408 |
+| 列の図の原本の JSON が`shape: layers`を受け付ける | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`schema-accepts-lineup-layers`が通る | #3625 |
+| `[shape: layers]`の列の図の記法を読んで書き戻すと、同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-roundtrip-keeps-notation`が通る | #3625 |
+| 層の見た目は`box`を書いた順に上から横の帯に重ね、帯の左に層の名前と説明を出す | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-stack-boxes-top-to-bottom`が通る | #3625 |
+| 段の中に`line <層>: <札>`を書くと、その段で札がその層の帯へ下りる | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-item-moves-down`が通る | #3625 |
+| 段の中に`note <層>: <文>`を書くと、その段でその層の帯に印を出し、後の段でも印を残す | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-note-stamps-the-layer`が通る | #3625 |
+| 層の見た目は層と層の間に矢印を描かない | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-draws-no-arrows-between-layers`が通る | #3625 |
+| 9つ以上の層を書いた層の見た目の列の図は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-rejects-more-than-eight-layers`が通る | #3625 |
+| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、層の見た目の書き方が在る | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-docs-describe-the-shape`が通る | #3625 |
+| 層の見た目の見本2枚 (Web3の`l2-finality`と一般の`web-request`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じで、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-examples-in-both-langs-have-no-breaks`が通る | #3625 |
+| 編集画面の棚に層の見た目の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-shelf-template-reads`が通る | #3625 |
+| 今の列の図の原本を読んで書き戻すと、今と同じ JSON に戻る | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-roundtrip-keeps-json-identical`が通る | #3625 |
+| カタログのどの種類も見本を4枚以上載せ、種類の数は変わらない | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3625 |
+| 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3625 |
+| 描き方の file は色と字の大きさを値の表から読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`renderers-read-values-from-one-table`が通る | #3625 |
+| 今ある見本の描いた結果の指紋は変わらず、足した見本の行だけが増える | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3625 |

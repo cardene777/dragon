@@ -1,0 +1,22 @@
+lineup 保存の頼みが置き場に届くまで [shape: layers]
+
+box browser as 画面 (ブラウザ) [note: 押した保存を頼みにして送る, color: blue]
+box api as サーバー (API) [note: ログインと中身を確かめる, color: amber]
+box db as データの置き場 (DB) [note: 行を書いて控える, color: green]
+
+item 頼み [color: blue, note: POST /notes]
+
+step 画面で保存を押す
+  say 保存を押すと、ブラウザが中身を頼みにして送る。
+  line browser: 頼み
+  note browser: 頼みを作った
+
+step サーバーが確かめる
+  say 頼みはサーバーへ下り、ログインと中身の形を確かめる。
+  line api: 頼み
+  note api: 80ミリ秒で確かめた
+
+step 置き場に書く
+  say 確かめた頼みはデータの置き場へ下り、メモの行として書かれる。
+  line db: 頼み
+  note db: 30ミリ秒で書いた

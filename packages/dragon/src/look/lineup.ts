@@ -25,6 +25,14 @@
  * `legend` は凡例で、上の物から `top`、見本の一辺 `swatch`、見本と説明の間 `gap`、行の中の間 `colGap`、行の送り `line`。
  * `arrow` は箱の間の矢印で、箱から `inset` 離し、矢じりの長さ `head`。
  * `stack` は縦に組んだ形で、図の幅の下限 `width`、外周の余白 `margin`、帯と札の列の間に矢印を挟む時の間 `arrowGap`
+ *
+ * `layers` は層の見た目 (#3625) で、見た目の元は step 2 で本人が選んだ動く試作の案A (横の帯を重ねる)。帯の中の幅の下限 `width`、帯の高さの下限 `minH`、帯どうしの間 `gap`、角の丸み `radius`、
+ * 左の色の棒の幅 `bar`、帯の左から名前と説明の左端まで `textX`、帯の上端から名前の基準線まで `nameY`、名前から説明の基準線まで `descY`、説明の行の送り `descLine`、
+ * 字の下の余白 `padY`、帯の右の余白 `padR`、名前と説明、層の番号、印、札の列の間 `colGap`。層の番号の丸の半径 `no`、印の高さ `stamp` と字の左右の余白 `stampPadX`、
+ * 札の高さ `card` と字の左右の余白 `cardPadX`、札どうしの間 `cardGap`、札の角の丸み `cardRadius`、札の 2 行の字の真ん中を札の真ん中から `captionY` と `textY` ずらす。
+ * 帯の地の濃さ `tint` (帯の地 `base`、札が通った帯 `lit`、札の居る帯 `now`、帯の縁 `edge`)、札の縁の太さ `cardEdge`、札の居る帯の縁の太さ `nowEdge`。
+ * 携帯の幅で縦に組む時は、名前と説明の下に印と札の行を置き、名前と説明から行まで `rowGap` 空け、印と札の間は札どうしの間 `cardGap` にする。
+ * 印と札が 1 つの行に入らない層だけ、札を印の下の行に置く。字の大きさと太さは `type` が持つ
  */
 export const LINEUP_LOOK = {
   margin: 20,
@@ -60,4 +68,39 @@ export const LINEUP_LOOK = {
   legend: { top: 22, swatch: 12, gap: 8, colGap: 24, line: 22 },
   arrow: { inset: 4, head: 5 },
   stack: { width: 372, margin: 12, arrowGap: 38 },
+  layers: {
+    width: 880,
+    minH: 78,
+    gap: 14,
+    radius: 14,
+    bar: 6,
+    textX: 30,
+    nameY: 30,
+    descY: 25,
+    descLine: 19,
+    padY: 18,
+    padR: 24,
+    colGap: 32,
+    no: 13,
+    stamp: 26,
+    stampPadX: 12,
+    card: 44,
+    cardPadX: 14,
+    cardGap: 10,
+    cardRadius: 12,
+    captionY: -6,
+    textY: 11,
+    tint: { base: 10, lit: 16, now: 24, edge: 50 },
+    cardEdge: 2.4,
+    nowEdge: 2.6,
+    rowGap: 12,
+    type: {
+      name: { size: 16, weight: 700, family: "sans" },
+      desc: { size: 13, weight: 500, family: "sans" },
+      stamp: { size: 13, weight: 600, family: "sans" },
+      no: { size: 13, weight: 700, family: "mono" },
+      caption: { size: 12.5, weight: 700, family: "sans" },
+      card: { size: 13, weight: 700, family: "mono" },
+    },
+  },
 } as const;
