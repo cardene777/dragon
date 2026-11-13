@@ -181,6 +181,12 @@
 .pg-icon[data-icon="list"] {
   mask-image: url("./editor/icons/list.svg");
 }
+.pg-icon[data-icon="line-ruler"] {
+  mask-image: url("./editor/icons/line-ruler.svg");
+}
+.pg-icon[data-icon="line-pen"] {
+  mask-image: url("./editor/icons/line-pen.svg");
+}
 
 /* ── 左の棚 ── */
 
@@ -853,6 +859,13 @@
     0 0 0 4px var(--d-text-primary);
 }
 
+/* 線の描き方の 2 つの釦 (#3643)。色味の丸の隣に、道具の釦と同じ形で並べる */
+.pg-lines {
+  display: flex;
+  gap: 2px;
+  margin-left: 10px;
+}
+
 .pg-tool-sep {
   width: 1px;
   height: 18px;
@@ -1245,6 +1258,13 @@
       display: none;
     }
   }
+
+  /* 線の描き方の 2 つの釦 (#3643) は 44px が 2 つと隙間で 100px 要る。帯の幅が 830px より狭い時は外し、選んでいた描き方のまま描く */
+  @container pg-stage (width < 830px) {
+    .pg-stage-bar .pg-lines {
+      display: none;
+    }
+  }
 }
 
 /*
@@ -1268,9 +1288,9 @@
 @media (max-width: 439px) {
   /*
    * 道具の帯は並べるのに 487px 要り、拡大の釦と倍率が画面の外に出ていた (#3063)。
-   * 実況表示の札と色味の丸を出さず、残りを 1 列に収める。図の色味はサイトの上の帯の切替で替える
+   * 実況表示の札と色味の丸と線の描き方の釦 (#3643) を出さず、残りを 1 列に収める。図の色味はサイトの上の帯の切替で替える
    */
-  .pg-stage-bar :is(.pg-live, .pg-swatches) {
+  .pg-stage-bar :is(.pg-live, .pg-swatches, .pg-lines) {
     display: none;
   }
 

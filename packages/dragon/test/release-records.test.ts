@@ -223,9 +223,26 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-73-0-lists-four-changes", () => {
+    // ブラウザで HTML の頁を作る captureHtml (#3667) と、列の図の作り直し (#3624)、点の見た目 (#3635)、手描きの線 (#3643) を 0.73.0 で出す (#3669)
+    expect(version(), "package の版が 0.73.0 でない").toBe("0.73.0");
+    const issues = ["(#3667)", "(#3624)", "(#3635)", "(#3643)"];
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.73\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.73.0"), "0.73.0");
+      expect(released, `${file} に日付付きの ## [0.73.0] の節が無い`).not.toBe("");
+      for (const issue of issues) expect(released, `${file} の 0.73.0 の節に ${issue} の項が無い`).toContain(issue);
+      const entry = released.split("\n- ").find((item) => item.includes("(#3667)")) ?? "";
+      expect(entry, `${file} の 0.73.0 の節の #3667 の項が captureHtml を名指さない`).toContain("`captureHtml");
+      // 次の版の項は Unreleased に積まれるので、0.73.0 で出した項が残っていないことだけを見る
+      for (const issue of issues) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+    }
+  });
+
   it("changelog-0-72-0-lists-capture", () => {
     // ブラウザで書き出す入口とエディタで開く URL (#3644) と、図の種類を足した 5 件 (#3623、#3618、#3619、#3620、#3622) を 0.72.0 で出す (#3657)
-    expect(version(), "package の版が 0.72.0 でない").toBe("0.72.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 72, `package の版 ${version()} が 0.72.0 より前`).toBe(true);
     const issues = ["(#3644)", "(#3622)", "(#3620)", "(#3619)", "(#3618)", "(#3623)"];
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");

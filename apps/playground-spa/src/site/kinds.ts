@@ -6,7 +6,7 @@
  * 読み込みの状態は見本の塊と同じ形で持ち (`later.ts`)、読めなかった時は失敗のまま持つ。
  * 時系列図と構成図の部品は最初に読む script に在るので、待たずに描ける。
  */
-import { definesBlocks, LATER_KINDS, loadKind, loadReadings, loadValidator } from "@cardenelabs/dragon/light";
+import { definesBlocks, LATER_KINDS, type LineStyle, loadKind, loadLine, loadReadings, loadValidator } from "@cardenelabs/dragon/light";
 
 import { useSyncExternalStore } from "react";
 
@@ -43,6 +43,12 @@ export const definitionsFailed = (text: string): boolean => definesBlocks(text) 
 
 /** 定義を読む処理の塊が届くか読めなかった時に `listener` を呼ぶ。呼ぶと塊を読み始める。返した関数で外す */
 export const onDefinitionsSettled = (listener: () => void): (() => void) => DEFINITIONS.subscribe(listener);
+
+/** 手描きの線 (#3643) に描き替える処理の塊。手描きの線を選んだ図だけが待つ */
+const PEN = laterChunk(() => loadLine("pen"));
+
+/** 線の描き方 `line` で描くのに要る塊の状態。定規の線は待たずに届いた扱いにし、塊を読み始めない */
+export const useLine = (line: LineStyle | undefined): Later<void> => useLater(line === "pen" ? PEN : KEPT);
 
 /** 原本の形の検査の塊の状態。`want` が偽の時は待たずに届いた扱いにし、塊を読み始めない */
 export const useValidator = (want: boolean): Later<void> => useLater(want ? VALIDATOR : KEPT);

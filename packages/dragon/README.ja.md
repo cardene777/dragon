@@ -100,7 +100,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.72/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.73/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -185,6 +185,11 @@ mountDiagram(host, parsed.diagram, {
 ```
 
 色味に無い名前と、`;`、`"`、`<` などを含む色として読めない値を渡すと、その名前を挙げて描かずに断る。
+
+`line: "pen"` を渡すと、箱の縁と線と矢印と輪をゆるく揺れる手描きのペンの線で描く。
+絵柄と字と図の地の枠はそのまま描き、線の端と折れ目と尖った角は元の位置に残す。
+同じ図は何度描いても同じ形に揺れる。
+既定の `line: "ruler"` はまっすぐな定規の線で描き、`renderDiagram` と `captureHtml` も同じ `line` を受ける。
 
 配管の図を頁の側の語で描くには、`words.pipe` を渡す。
 `tags` は槽の下の数に添える語 (`provisional` が暫定、`final` が確定、`rolled` が取り消し)、`io` は始めた人と受け取った人の槽の札 (`in` と `out`)、`fold` と `open` と `foldTitle` は内側の段をまとめた枠の文と押すと開くの語とまとめた段の題を替える。
@@ -1112,6 +1117,7 @@ dragon export ccip.json --out out
 | `--out <dir>` | 書き出す先。無ければ作る (既定は今の dir) |
 | `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
 | `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade` / `sea`、既定は `paper` で、配管の図は `sea`)。`arcade` は図の箱の右上と左下を落として描く |
+| `--line <名前>` | 線の描き方 (`ruler` / `pen`、既定は `ruler`)。`pen` は箱の縁と線と矢印と輪をゆるく揺れる手描きのペンの線で描き、絵柄と字と図の地の枠はそのまま描く |
 | `--theme <明暗>` | `light` か `dark` |
 | `--lang <言葉>` | 図の中の字 (dragonが図に足す字、全体図の札、HTML の読み上げの名前) と、命令が出す文 (使い方の文、誤りの文、描けない時の断りの文) の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に仮名か漢字があれば `ja`、無ければ `en` で、命令が出す文は `en`。記法の file でも JSON の原本でも同じ |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |
@@ -1152,7 +1158,7 @@ GIF と mp4 に `renderDiagram` が返す `timeline` を渡すと (`captureGif(s
 頁は `dragon export` と同じ処理で組むので、字の `@font-face` のほかは同じ文字列になる。
 字は頁が読み込んだ `@font-face` から、頁と再生の帯で描かれうる字の範囲に当たる字の file を丸ごと埋め、字の file を読めない時は読めない字の名前と範囲を名指して断る。
 再生の script (`player.global.js`、1MB を超える) は入口の隣に置き、初めて呼んだ時にだけ読む。
-`palette` と `theme` で色を選び、`lang` で図の中の字と断りの文の言葉を選ぶ。
+`palette` と `theme` で色を選び、`line` で線の描き方を選び、`lang` で図の中の字と断りの文の言葉を選ぶ。
 
 ```ts
 import { captureHtml } from "@cardenelabs/dragon/capture";

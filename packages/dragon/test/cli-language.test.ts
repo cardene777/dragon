@@ -27,6 +27,7 @@ const JA_USAGE = [
   "  --out <dir>        書き出す先 (既定は今の dir)",
   "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
   "  --palette <名前>   色味 (clear / paper / night / arcade / sea)",
+  "  --line <名前>      線の描き方 (ruler / pen)。pen は手描きのペンの線、既定は ruler",
   "  --theme <明暗>     light か dark",
   "  --lang <言葉>      図の中の字の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
   "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
@@ -36,7 +37,7 @@ const JA_USAGE = [
   "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
 ];
 const EN_USAGE_HEAD = "Usage: dragon export <diagram file (.json or .dragon)> [options]";
-const OPTIONS = ["--out", "--width", "--palette", "--theme", "--lang", "--fps", "--gif-fps", "--format", "--step", "--blocks"];
+const OPTIONS = ["--out", "--width", "--palette", "--line", "--theme", "--lang", "--fps", "--gif-fps", "--format", "--step", "--blocks"];
 
 const INSTALL_ADD = "pnpm add -D playwright-core";
 const INSTALL_CHROMIUM = "pnpm exec playwright-core install chromium";

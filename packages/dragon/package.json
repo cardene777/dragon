@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.72.0",
+  "version": "0.73.0",
   "description": "Animated diagrams that people and AI write in a plain notation. Plays on a page and exports MP4, GIF, HTML, and PNG.",
   "license": "MIT",
   "author": "cardene777",
@@ -113,6 +113,7 @@
     "./dist/fonts.cjs",
     "./src/kinds/all.ts",
     "./src/blocks/icon/sets-all.ts",
+    "./src/render/pen-all.ts",
     "./src/render/svg.ts"
   ],
   "scripts": {

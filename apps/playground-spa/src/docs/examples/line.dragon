@@ -1,0 +1,13 @@
+architecture 注文を残す
+
+box 画面 as 利用者の画面 [note: 注文を送る, color: blue, icon: app]
+box 店 as 店のサーバー [note: 注文を受ける, color: amber, icon: server]
+box 帳簿 [note: 注文を残す, color: green, icon: db]
+
+step 注文を送る
+  say 利用者の画面が店のサーバーへ注文を送る。
+  画面 -> 店: 注文
+
+step 帳簿に書く
+  say 店のサーバーが注文を帳簿に書く。
+  店 -> 帳簿: 書く

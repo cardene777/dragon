@@ -6,7 +6,13 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-11-13
+
 ### Added
+
+- **Diagrams can be drawn with hand-drawn pen lines (`--line pen`, `line: "pen"`)** (#3643)
+
+  Every line was drawn with a ruler, so there was no way to give a diagram a hand-drawn look. Pick how lines are drawn when drawing, as with the palette: `dragon export --line pen`, `line: "pen"` for `renderDiagram`, `mountDiagram` and `captureHtml`, or the line picker next to the palette swatches in the editor. Box edges, lines, arrows, step number rings, commit marks, small labels, branch bands and group frames become one gently wobbling pen line each. Icons, text and the diagram frame stay as they are, the layout and text positions do not move, line ends, bends and sharp corners stay where they were, so arrow tips still touch their boxes, and the same diagram wobbles the same way every time it is drawn. The notation does not say how lines are drawn. `--line` takes `ruler` (default) or `pen` and refuses any other value with exit code 2 before writing anything. The HTML page draws the diagram again with the same line style, and the docs page has a section on how lines are drawn with a pen sample.
 
 - **Charts and set overlap diagrams can count with dots (`[shape: dots]`), and donut and bar charts take `set none`** (#3635)
 

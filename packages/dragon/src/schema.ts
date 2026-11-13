@@ -650,6 +650,8 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       return { pointer: at, message: m.maxItems(Number(params.limit)) };
     case "minimum":
       return { pointer: at, message: m.minimum(Number(params.limit)) };
+    case "exclusiveMinimum":
+      return { pointer: at, message: m.exclusiveMinimum(Number(params.limit)) };
     case "maximum":
       return { pointer: at, message: m.maximum(Number(params.limit)) };
     case "const":

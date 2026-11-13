@@ -54,6 +54,9 @@ const FRAMES = [
   "dg-er-note",
   // 集合の重なりの図のどれにも入らない数の枠 (#3620)
   "dg-vn-frame",
+  // 列の図の列の帯と、段で光る帯の縁 (#3624)
+  "dg-lb-band",
+  "dg-lb-lit",
 ];
 
 /**

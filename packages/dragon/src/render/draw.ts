@@ -64,6 +64,7 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
+import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
 import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
@@ -106,6 +107,11 @@ export interface RenderOptions {
    * `pipe` は配管の図の槽の下の語と、入力と出力の札と、内側の段をまとめた枠の文。一部だけ渡せ、渡さない語は `lang` の語で描く
    */
   words?: DiagramWords;
+  /**
+   * 線の描き方 (#3643)。`ruler` (既定) は定規の線、`pen` は箱の縁と線と矢印と輪をゆるく揺れる手描きのペンの線で描く。
+   * 絵柄の線と字と図の地の枠は変えず、図の形と字の位置も変えない。揺れは線の形から決めるので、同じ図は何度描いても同じ形になる
+   */
+  line?: LineStyle;
 }
 
 /** 図の種類ごとの、呼ぶ側が渡す語 (#3584) */
@@ -921,7 +927,9 @@ export function renderLayout(
   const framed: Framed[] = [];
   const pieces: PipePiece[] = [];
   const strokes: Stroke[] = [];
-  const svg = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
+  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
+  // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない
+  const svg = drawLines(drawn, options.line, options.lang ?? DEFAULT_LANG);
   // 箱の札を種類の部品の組が描く図の種類 (時間軸の図と列の図) は、崩れの確かめも共通の描き方が箱の札を描いた図の種類の箱だけを見る
   const carded = partsOf(layout.kind)?.ownBoxes ? [] : layout.boxes.filter((box) => !box.ghost);
   const breaks = options.findBreaks?.({

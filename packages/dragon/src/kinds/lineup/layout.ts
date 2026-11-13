@@ -154,7 +154,7 @@ export interface LineupRun extends LineupAt {
 }
 
 /** 流れの線の線の四角。横の線は右の端に、縦の線は下の端に向きの三角を持つ */
-type LineupStationsLine = Rect;
+export type LineupStationsLine = Rect;
 
 /** 流れの線 (#3624) の線と駅と、段で通った区間 */
 export interface LineupStations {
