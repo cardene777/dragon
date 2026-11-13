@@ -64,8 +64,8 @@
 | 編集画面の棚に層の見た目の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts`の検査`lineup-layers-shelf-template-reads`が通る | #3625 |
 | 今の列の図の原本を読んで書き戻すと、今と同じ JSON に戻る | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts`の検査`lineup-roundtrip-keeps-json-identical`が通る | #3625 |
 | カタログのどの種類も見本を4枚以上載せ、種類の数は変わらない | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3625 |
-| 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3625 |
-| 描き方の file は色と字の大きさを値の表から読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`renderers-read-values-from-one-table`が通る | #3625 |
+| 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts --reporter=verbose`の検査`page-bundle-within-budget`が通る | #3625 #3640 |
+| 描き方の file は色と字の大きさを値の表から読む | `pnpm exec vitest run packages/dragon/test/look.test.ts --reporter=verbose`の検査`renderers-read-values-from-one-table`が通る | #3625 #3640 |
 | 今ある見本の描いた結果の指紋は変わらず、足した見本の行だけが増える | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3625 |
 | 見た目を書かない列の図を枠の幅を渡さずに描いた時、箱を書いた順に左から同じ高さの縦の帯を10px以上離して並べ、帯の見出しに箱の名前と今の段の札の数を出す | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-lanes-are-bands`が通る | #3624 |
 | ボードは役の札を宣言した順に左から並べて帯より上に置き、どの段でも役の札と帯と帯の見出しの字が10px以上離れる | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-roles-sit-above-lanes`が通る | #3624 |
@@ -117,3 +117,20 @@
 | scriptの1行の入口が最初に読む量はgzipで90,000バイト以下のまま (既定の枝で87,354バイト、余り2,646バイト) | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3624 |
 | 見本帳が最初に読む script と CSS は gzip で184KB以下のまま (既定の枝で184,097バイト、余り4,319バイト) | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3624 |
 | 列の図でない見本と層の見た目の見本の描いた結果の指紋は変わらず、ボードに変わる列の図の見本と足した見本の行だけが変わる | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3624 |
+| 列の図の`shape: "stairs"`と、層の箱の`time` (`0s`を含む) を持つ原本の JSON を、形の検査が受け付ける。一部の箱にだけ書いた`time`と、階段の見た目でない列の図の箱の`time`は断る | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`schema-accepts-lineup-stairs`が通る | #3640 |
+| `lineup <題> [shape: stairs]`の行と、`box <id> as <名前> [time: <長さ>]`の行を持つ記法を読んで書き戻すと、同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-roundtrip-keeps-notation`が通る | #3640 |
+| `[shape: stairs]`の列の図を描くと、層を`box`を書いた順に上から置き、下の層ほど同じ幅だけ右へずらした階段にする | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-step-down-to-the-right`が通る | #3640 |
+| 段の中に`line <層>: <札>`を書くと、その段で札がその層の段へ下り、層と層の間に札が歩く線を描かない | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-item-moves-down`が通る | #3640 |
+| 段の中に`note <層>: <文>`を書くと、その段でその層の段に印を出し、後の段でも印を残す | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-note-stamps-the-layer`が通る | #3640 |
+| 全部の箱に`time`を書いた階段の見た目は、階段の右に経った時間の縦の目盛りを置き、数字を1、2、5に10の累乗を掛けた間隔で0から置き、単位を箱に書いた中で一番大きい単位にする。`time`の無い階段の見た目は目盛りを出さない | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-scale-at-nice-steps`が通る | #3640 |
+| 目盛りの針は、段ごとに札の居る層までに経った時間 (その層の時間を含む) の所へ進み、経った時間を`1分3秒`の形で書いた札を添える | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-needle-shows-elapsed-time`が通る | #3640 |
+| 階段の見た目ではない列の図の箱の`time`、一部の箱にだけ書いた`time`、数でないか単位の無い`time`、9つ以上の層は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-rejects-misused-words`が通る | #3640 |
+| 携帯の幅 (390) では、階段の層を幅に収め、経った時間の目盛りを図の下に横向きで置く | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-scale-below-at-phone-width`が通る | #3640 |
+| 見本帳に`[shape: stairs]`の見本`video-publish`が日本語と英語で1枚ずつ在り、英語版の形が日本語版と同じで、`dragon check --layout`の崩れが既定の幅と幅390で0件 | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-examples-in-both-langs-have-no-breaks`が通る | #3640 |
+| 編集画面の棚に`[shape: stairs]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-shelf-template-reads`が通る | #3640 |
+| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: stairs]`の列の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-light-entry-draws-after-load-for`が通る | #3640 |
+| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: stairs]`の書き方が在る | `pnpm exec vitest run packages/dragon/test/lineup-stairs.test.ts --reporter=verbose`の検査`lineup-stairs-docs-describe-the-shape`が通る | #3640 |
+| 層の見た目 (`[shape: layers]`) は、今どおり層を上から横の帯に重ねる | `pnpm exec vitest run packages/dragon/test/lineup-layers.test.ts --reporter=verbose`の検査`lineup-layers-stack-boxes-top-to-bottom`が通る | #3640 |
+| 列の図の`shape`に知らない値を書いた時は、今どおり書ける見た目を挙げた誤りで拒む | `pnpm exec vitest run packages/dragon/test/lineup-stations.test.ts --reporter=verbose`の検査`lineup-shape-rejects-unknown-looks`が通る | #3640 |
+| 回り続ける図の帯の見た目の目盛りは、今どおり手順の始まる時刻に置く | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-ticks-mark-step-starts`が通る | #3640 |
+| `examples/`の今ある見本の描いた結果の指紋は変わらず、足した見本の行だけが増える | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts --reporter=verbose`の検査`examples-svg-unchanged`が通る | #3640 |
