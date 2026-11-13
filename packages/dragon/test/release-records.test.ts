@@ -949,7 +949,7 @@ describe("Release の本文 (#3335)", () => {
    * 一度に起こすのは 8 つまでにする
    */
   const allNotes = async (versions: string[]): Promise<Map<string, string>> => {
-    const { releaseNotes } = await import(/* @vite-ignore */ SCRIPT) as { releaseNotes(text: string, version: string): string | undefined };
+    const { releaseNotes } = await import(/* @vite-ignore */ SCRIPT) as { releaseNotes(this: void, text: string, version: string): string | undefined };
     const changelog = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8");
     return new Map(versions.map(version => [version, releaseNotes(changelog, `v${version}`) ?? ""]));
   };
