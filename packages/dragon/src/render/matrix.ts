@@ -3,6 +3,7 @@
  *
  * 区画は区画の色を薄く敷いた角の丸い四角で、左上に名前を書く。札を受けた段の間だけ、色を濃くして太い縁を重ねて光らせる。
  * 軸の描き方は軸のブロック (`blocks/axis/draw.ts`)、課題の札と置く前の一覧の描き方は課題のブロック (`blocks/matrix-item/draw.ts`) が持つ。
+ * 点数で点を打つ見た目 (#3637) の描き方は `render/matrix-scatter.ts` が持ち、区画を光らせる間はこの file と同じ数え方を使う。
  * この file は 2つの軸で置く図の描く部品 (`kinds/matrix.ts`) が出し、見本帳を開いた時に読む塊に入れない。
  * 見た目の規則は 2つの軸で置く図の SVG にだけ書き、2つの軸で置く図だけが使う class に付ける
  */
@@ -13,6 +14,7 @@ import type { MatrixArea, MatrixLayout } from "../kinds/matrix/layout";
 import { MATRIX_LOOK, MATRIX_TYPE } from "../look/matrix";
 import { EASE, MOTION } from "../look/values";
 import { partRadius } from "./corner";
+import { type AreaGlow, drawScatter } from "./matrix-scatter";
 import { ALWAYS } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, cssFont as font, esc, r1, write } from "./parts";
@@ -39,16 +41,22 @@ export const MATRIX_CSS = [
   `.dg-mx-t{${font(MATRIX_TYPE.card)};fill:var(--ink)}`,
 ].join("");
 
-/** 区画が札を受けた段ごとの、光る間。その段で最初に札が滑り始める時刻から、段の終わりまで */
-function glowRanges(layout: MatrixLayout, area: string, ctx: Ctx): [number, number][] {
+/** 区画へ課題を置く出来事。札を置く見た目は札の動き、点数で点を打つ見た目は打った点から集める */
+type Place = { step: number; event: number; area: string };
+
+/** 図の全ての、区画へ課題を置く出来事 */
+const placesOf = (layout: MatrixLayout): Place[] =>
+  layout.shape === "scatter" ? (layout.dots ?? []).flatMap((dot) => dot.plots.map((p) => ({ ...p, area: dot.area }))) : layout.cards.flatMap((card) => card.moves);
+
+/** 区画が課題を受けた段ごとの、光る間。その段で最初に課題を置き始める時刻から、段の終わりまで */
+function glowRanges(places: readonly Place[], area: string, ctx: Ctx): [number, number][] {
   const out = new Map<number, [number, number]>();
-  for (const card of layout.cards)
-    for (const move of card.moves) {
-      if (move.area !== area) continue;
-      const { start, span } = placeTime(ctx, move.step, move.event);
-      const [a = start] = out.get(move.step) ?? [];
-      out.set(move.step, [Math.min(a, start), span.end]);
-    }
+  for (const place of places) {
+    if (place.area !== area) continue;
+    const { start, span } = placeTime(ctx, place.step, place.event);
+    const [a = start] = out.get(place.step) ?? [];
+    out.set(place.step, [Math.min(a, start), span.end]);
+  }
   return [...out.values()].sort((x, y) => x[0] - y[0]);
 }
 
@@ -60,11 +68,18 @@ function glowFrames(ranges: [number, number][], ctx: Ctx): string {
   return ctx.m.kf(frames);
 }
 
+/** 課題を受けた段の間だけ区画に重ねる濃い地。課題を受けない区画は描かない */
+const glowOf =
+  (places: readonly Place[], ctx: Ctx): AreaGlow =>
+  (area, cls, rect) => {
+    const ranges = glowRanges(places, area.id, ctx);
+    return ranges.length > 0 ? `<rect class="${cls} dg-a" data-matrix-glow="${esc(area.id)}" ${rect} style="${glowFrames(ranges, ctx)}"/>` : "";
+  };
+
 /** 区画 1 つ。薄い地と縁、札を受けた段の間だけ重ねる濃い地と太い縁、左上の名前と下の字 */
-function areaOf(area: MatrixArea, layout: MatrixLayout, ctx: Ctx): string {
+function areaOf(area: MatrixArea, glowAt: AreaGlow, ctx: Ctx): string {
   const rect = `x="${r1(area.x)}" y="${r1(area.y)}" width="${r1(area.w)}" height="${r1(area.h)}" rx="${r1(partRadius(ctx.corner, A.radius))}"`;
-  const ranges = glowRanges(layout, area.id, ctx);
-  const glow = ranges.length > 0 ? `<rect class="dg-mx-glow dg-a" data-matrix-glow="${esc(area.id)}" ${rect} style="${glowFrames(ranges, ctx)}"/>` : "";
+  const glow = glowAt(area, "dg-mx-glow", rect);
   // 下の字が在る区画は、名前の行を少し上げて下の字の行を空ける
   const nameY = area.y + (area.sub !== undefined ? A.head / 2 - 2 : A.head / 2) + MATRIX_TYPE.area.size * MATRIX_LOOK.baseline;
   const sub = area.sub !== undefined ? write(ctx.ink, "dg-mx-sub", area.x + A.padX, area.y + A.head - 2 + A.subH / 2 + MATRIX_TYPE.sub.size * MATRIX_LOOK.baseline, area.sub, MATRIX_TYPE.sub) : "";
@@ -74,10 +89,15 @@ function areaOf(area: MatrixArea, layout: MatrixLayout, ctx: Ctx): string {
   );
 }
 
-/** 2つの軸で置く図の区画と軸と一覧 (`base`) と、課題の札 (`node`) と、見た目の規則。札は区画の上に描く */
+/**
+ * 2つの軸で置く図の区画と軸と一覧 (`base`) と、課題の札 (`node`) と、見た目の規則。札は区画の上に描く。
+ * 点数で点を打つ見た目は `render/matrix-scatter.ts` が描く
+ */
 export function drawMatrix(layout: MatrixLayout, ctx: Ctx): { base: string; node: string; css: string } {
+  const glow = glowOf(placesOf(layout), ctx);
+  if (layout.shape === "scatter") return drawScatter(layout, ctx, MATRIX_CSS, glow);
   return {
-    base: `${drawList(layout.list, ctx)}${layout.areas.map((area) => areaOf(area, layout, ctx)).join("")}${drawAxes(layout.axes, ctx)}`,
+    base: `${layout.list ? drawList(layout.list, ctx) : ""}${layout.areas.map((area) => areaOf(area, glow, ctx)).join("")}${drawAxes(layout.axes, ctx)}`,
     node: drawCards(layout.cards, ctx),
     css: MATRIX_CSS,
   };

@@ -1,0 +1,40 @@
+// Plot the next features as dots by their effort and impact scores.
+// Each step plots one feature, and the area it lands in decides when to build it.
+matrix Plot the next features by effort and impact [shape: scatter]
+
+axis Effort [from: small, to: large]
+axis Impact [from: small, to: large]
+
+box now as Do it now
+box plan as Plan it
+box spare as When free
+box drop as Skip it
+
+item search as Faster search [x: 2, y: 8.5]
+item pay as Add payments [x: 8, y: 7]
+item copy as Fix the wording [x: 1.5, y: 3]
+item export as Add export [x: 5, y: 5]
+item legacy as Rebuild old UI [x: 9, y: 1.5]
+
+step Line up
+  say Line up the next features and their scores in the table on the left. No dot is plotted yet.
+
+step Search
+  say A feature with small effort and large impact gets built this week.
+  line: search
+
+step Payments
+  say A feature with large impact and large effort gets a date in the plan.
+  line: pay
+
+step Wording
+  say A feature with small effort and small impact waits until someone is free.
+  line: copy
+
+step Export
+  say A score of 5 counts as the large side, so export lands in Plan it.
+  line: export
+
+step Old screens
+  say A feature with large effort and small impact is not built for now.
+  line: legacy

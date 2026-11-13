@@ -1,0 +1,40 @@
+// 次に作る機能を、手間と効き目の点数で点に打つ。
+// 段ごとに1つの機能を打ち、点が入った区画で着手の順を決める。
+matrix 次に作る機能を手間と効き目の点数で打つ [shape: scatter]
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item search as 検索を速く [x: 2, y: 8.5]
+item pay as 決済を足す [x: 8, y: 7]
+item copy as 文言の直し [x: 1.5, y: 3]
+item export as 書き出しを足す [x: 5, y: 5]
+item legacy as 古い画面を作り直す [x: 9, y: 1.5]
+
+step 並べる
+  say 次に作る機能と点数を左の表に並べる。まだ点を打っていない。
+
+step 検索
+  say 手間が小さく効き目の大きい機能は、今週のうちに作る。
+  line: search
+
+step 決済
+  say 効き目も手間も大きい機能は、期日を決めて計画に入れる。
+  line: pay
+
+step 文言
+  say 手間も効き目も小さい機能は、手が空いた時に片付ける。
+  line: copy
+
+step 書き出し
+  say 真ん中の5点は大きい側に数えるので、書き出しは計画する区画に入る。
+  line: export
+
+step 古い画面
+  say 手間が大きく効き目の小さい機能は、今は作らない。
+  line: legacy

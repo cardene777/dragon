@@ -64,6 +64,8 @@ interface Area extends Rect {
   id: string;
   name: string;
   spot: number;
+  /** 区画の名前を置く所。`end` の名前は `x` を右の端にする */
+  label?: { x: number; y: number; anchor: "start" | "end" };
 }
 
 type Point = [number, number];
@@ -335,6 +337,11 @@ describe("点数で点を打つ見た目の原本の JSON (#3637)", () => {
     const wrongTable = json(base) as { matrix: { table: string } };
     wrongTable.matrix.table = "left";
     expect(pointers(validate(wrongTable as unknown as Json)), "none でない表の欄の誤りの場所").toContain("/matrix/table");
+    // 表の欄は点数で点を打つ見た目だけが持ち、見た目を書かない図の表の欄はその欄を指して断る
+    const chipsTable = json(base) as { matrix: { shape?: string; table?: string } };
+    delete chipsTable.matrix.shape;
+    chipsTable.matrix.table = "none";
+    expect(pointers(validate(chipsTable as unknown as Json)), "見た目を書かない図の表の欄の誤りの場所").toContain("/matrix/table");
   });
 });
 
@@ -604,6 +611,19 @@ describe("点数で点を打つ見た目の描き方 (#3637)", () => {
     // 表の分の幅を点の図に回し、点の図を表の在る図より広く描く
     expect(alone.plot.w, "table: none の図の点の図が表の在る図より広くない").toBeGreaterThan(withTable.plot.w);
     expect(alone.plot.x, "table: none の図の点の図が表の在る図より左から始まらない").toBeLessThan(withTable.plot.x);
+    // 段の番号は打った点の区画に置き、区画の名前と同じ行に置く時は名前と反対の半分に置く。右の区画の名前は右上に在る
+    const areas = alone.rendered.layout.areas ?? [];
+    const badges = alone.rendered.layout.badges ?? [];
+    expect(badges.length, "table: none の図の段の番号の数").toBe(alone.rendered.timeline.steps.length);
+    for (const badge of badges) {
+      const area = areas.find((a) => badge.x >= a.x && badge.x <= a.x + a.w && badge.y >= a.y && badge.y <= a.y + a.h);
+      expect(area, `段 ${badge.step + 1} の番号が区画の中に無い`).toBeDefined();
+      const label = area?.label;
+      expect(label, `区画 ${area?.id} の名前を置く所 (label) が無い`).toBeDefined();
+      if (!area || !label || Math.abs(badge.y - label.y) > 24) continue;
+      const left = badge.x < area.x + area.w / 2;
+      expect(left, `段 ${badge.step + 1} の番号が区画 ${area.id} の名前 (${label.anchor}) と同じ側に在る`).toBe(label.anchor === "end");
+    }
   });
 
   it("scatter-stacks-table-above-plot-at-phone-width", () => {
@@ -644,7 +664,7 @@ describe("点数で点を打つ見た目の見本と雛形 (#3637)", () => {
       for (const width of [undefined, 390]) renderScatter(text, lang, width);
     }
     if (sources.ja && sources.en) {
-      const shape = (d: Source): Json => ({ items: (d.matrix?.items ?? []).map((i) => [i.id, i.x ?? null, i.y ?? null]), steps: d.steps.map((s) => s.events.length) }) as Json;
+      const shape = (d: Source): Json => ({ items: (d.matrix?.items ?? []).map((i) => [i.id, i.x ?? null, i.y ?? null]), steps: d.steps.map((s) => s.events.length) });
       expect(shape(sources.en), `${SAMPLE} の英語版の項目と点数と段ごとの行の数が日本語版と違う`).toEqual(shape(sources.ja));
     }
     // 見本帳の見本の一覧に載り、2つの軸で置く図の頁に並ぶ

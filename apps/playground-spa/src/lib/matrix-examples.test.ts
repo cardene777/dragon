@@ -1,8 +1,8 @@
 /**
  * 2つの軸で置く図の見本と棚 (#3622)。
  *
- * 見本は 4 枚 (`task-priority`、`risk-matrix`、`token-listing`、`chain-choice`) で、どれも日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
- * 題材は一般 (`task-priority`、`risk-matrix`) と Web3 (`token-listing`、`chain-choice`) を 2 枚ずつ持つ。題材の分野は記法から読めないので、この file の表が持つ。表は #3622 の「決まっていること」の写し。
+ * 見本は 5 枚 (`task-priority`、`risk-matrix`、`feature-scores`、`token-listing`、`chain-choice`) で、どれも日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
+ * 題材は一般 (`task-priority`、`risk-matrix`、点数で点を打つ見た目の `feature-scores`) と Web3 (`token-listing`、`chain-choice`) を持つ。題材の分野は記法から読めないので、この file の表が持つ。表は #3622 と #3637 の「決まっていること」の写し。
  * 編集画面の棚は、見本の束と記法の早見の頭の行から 2つの軸で置く図を書き始められる。
  */
 import { existsSync } from "node:fs";
@@ -24,6 +24,7 @@ type Field = "general" | "web3";
 const MATRIX: Readonly<Record<string, { field: Field }>> = {
   "task-priority": { field: "general" },
   "risk-matrix": { field: "general" },
+  "feature-scores": { field: "general" },
   "token-listing": { field: "web3" },
   "chain-choice": { field: "web3" },
 };
@@ -70,7 +71,7 @@ beforeAll(async () => {
 });
 
 describe("2つの軸で置く図の見本 (#3622)", () => {
-  it("matrix-has-four-examples-in-both-langs", () => {
+  it("matrix-has-five-examples-in-both-langs", () => {
     for (const key of Object.keys(MATRIX)) {
       for (const file of [`${key}.dragon`, `${key}.en.dragon`]) {
         expect(existsSync(join(EXAMPLES_DIR, file)), `packages/dragon/examples/${file} が無い`).toBe(true);
@@ -84,7 +85,7 @@ describe("2つの軸で置く図の見本 (#3622)", () => {
       expect(exampleInfo(key as ExampleKey, "ja")?.kind, `${key} の図の種類`).toBe("matrix");
       expect(areasOf(ja), `${key} の区画の数`).toBe(4);
     }
-    // カタログの 2つの軸で置く図の頁に 4 枚とも載る
+    // カタログの 2つの軸で置く図の頁に 5 枚とも載る
     const listed: readonly string[] = samplesOf("matrix");
     expect(listed, "カタログの 2つの軸で置く図の頁に載る見本").toEqual(Object.keys(MATRIX));
   });
@@ -94,7 +95,7 @@ describe("2つの軸で置く図の見本 (#3622)", () => {
     expect(listed.map(([key]) => key), "見本の一覧に載った 2つの軸で置く図の見本").toEqual(Object.keys(MATRIX));
     const general = listed.filter(([, info]) => info.field === "general").map(([key]) => key);
     const web3 = listed.filter(([, info]) => info.field === "web3").map(([key]) => key);
-    expect(general, "一般の題の見本").toEqual(["task-priority", "risk-matrix"]);
+    expect(general, "一般の題の見本").toEqual(["task-priority", "risk-matrix", "feature-scores"]);
     expect(web3, "Web3 の題の見本").toEqual(["token-listing", "chain-choice"]);
   });
 

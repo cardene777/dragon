@@ -1239,7 +1239,7 @@
       }
     },
     "matrixSteps": {
-      "description": "2つの軸で置く図の段。区画へ課題を置く出来事 (line) だけを書け、line は部品 (part) でなく区画 (box) を名指す。配管の図だけの段の要点 (gist) を書けない",
+      "description": "2つの軸で置く図の段。区画へ課題を置く出来事 (line) だけを書け、line は部品 (part) でなく区画 (box) を名指すか、区画を書かずに点数を持つ課題を打つ (#3637)。配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -1256,10 +1256,7 @@
                 "part": {
                   "$ref": "#/definitions/absent"
                 }
-              },
-              "required": [
-                "box"
-              ]
+              }
             }
           }
         }

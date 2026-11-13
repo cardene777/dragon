@@ -15,8 +15,8 @@
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、2つの軸で置く図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/matrix-diagram.test.ts`の検査`matrix-docs-describe-the-notation`が通る | #3622 |
 | ほかの種類の図では、`matrix`と`axis`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/matrix-diagram.test.ts`の検査`notation-keeps-matrix-words-plain-outside-matrix`が通る | #3622 |
 | カタログの種類が2つの軸で置く図の分だけ1つ増え、どの種類も見本を4枚以上載せる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3622 |
-| 2つの軸で置く図の見本4枚 (`task-priority`、`risk-matrix`、`token-listing`、`chain-choice`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-has-four-examples-in-both-langs`が通る | #3622 |
-| 2つの軸で置く図の見本は一般の題 (`task-priority`、`risk-matrix`) とWeb3の題 (`token-listing`、`chain-choice`) を2枚ずつ持つ | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-examples-cover-general-and-web3`が通る | #3622 |
+| 2つの軸で置く図の見本5枚 (`task-priority`、`risk-matrix`、`feature-scores`、`token-listing`、`chain-choice`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-has-five-examples-in-both-langs`が通る | #3622、#3637 |
+| 2つの軸で置く図の見本は一般の題 (`task-priority`、`risk-matrix`、`feature-scores`) とWeb3の題 (`token-listing`、`chain-choice`) を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-examples-cover-general-and-web3`が通る | #3622、#3637 |
 | 2つの軸で置く図の見本4枚の日本語と英語で、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-examples-have-no-breaks`が通る | #3622 |
 | 編集画面の棚に2つの軸で置く図の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run apps/playground-spa/src/lib/matrix-examples.test.ts`の検査`matrix-shelf-template-reads`が通る | #3622 |
 | 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3622 |

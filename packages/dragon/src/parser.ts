@@ -209,6 +209,9 @@ const LINEUP_OR_TRY = ["item", "line"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
+/** 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637)、1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635) */
+const HEAD_KINDS: Readonly<Record<"shape" | "unit" | "table", readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix"], unit: ["chart", "venn"], table: ["matrix"] };
+
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
   const head = lines[headAt];
@@ -227,13 +230,14 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const title = titled.value === "" ? kind : titled.value;
   const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
   const view = viewOf(head, headAttrs.get("view"), m);
-  // 図の種類の行の `shape` は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) の見た目で、ほかの種類の図には書けない。
-  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが、集合の重なりの図の見た目は集まりの円のブロックが確かめる
+  // 図の種類の行の `shape` (見た目) と `unit` (点で数える見た目の 1 点の件数) は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
+  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが、集合の重なりの図の見た目は集まりの円のブロックが、2つの軸で置く図の見た目は軸のブロックが確かめる
   const shape = headAttrs.get("shape");
-  if (shape && kind !== "chart" && kind !== "lineup" && kind !== "venn") throw fail(head, shape.at, m.chartOnlyAttr("shape"));
-  // `unit` は点で数える見た目 (#3635) の 1 点の件数で、量の図と集合の重なりの図だけに書ける。点で数える見た目かと値は同じブロックが確かめる
+  if (shape && !HEAD_KINDS.shape.includes(kind)) throw fail(head, shape.at, m.headOnlyAttr("shape", HEAD_KINDS.shape));
   const unit = headAttrs.get("unit");
-  if (unit && kind !== "chart" && kind !== "venn") throw fail(head, unit.at, m.dotsOnlyAttr("unit"));
+  if (unit && !HEAD_KINDS.unit.includes(kind)) throw fail(head, unit.at, m.headOnlyAttr("unit", HEAD_KINDS.unit));
+  const table = headAttrs.get("table");
+  if (table && !HEAD_KINDS.table.includes(kind)) throw fail(head, table.at, m.headOnlyAttr("table", HEAD_KINDS.table));
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -381,7 +385,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (given) throw fail(source, given.attr.at, m.timeOnly(given.name));
     return {};
   };
-  const state: ParseState = { m, kind, attrs: ATTRS, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
+  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
   /** 行が使うブロックの読み方を持っているか確かめる。持っていなければ、ブロックの名前を名指して止める */
   const needed = (source: SourceLine, line: LineView): void => {
     const missing = lineNeeds(line, kind).find((name) => !readingLoaded(name));
@@ -530,7 +534,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       ? { chart: { shape: figure.chart.shape?.value as ChartShape, ...(figure.chart.unit ? { unit: Number(figure.chart.unit.value) } : {}), items: figure.chart.items } }
       : {}),
     ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
-    ...(kind === "matrix" ? { matrix: { axes: figure.matrix.axes, items: figure.matrix.items } } : {}),
+    // 2つの軸で置く図の欄は軸のブロックと課題のブロックが組み、見た目 (#3637) は軸のブロックが確かめてから置いた
+    ...(kind === "matrix" ? { matrix: figure.matrix } : {}),
     // 集合の重なりの図の見た目 (#3635) は集まりの円のブロックが `dots` と確かめた
     ...(kind === "venn"
       ? {

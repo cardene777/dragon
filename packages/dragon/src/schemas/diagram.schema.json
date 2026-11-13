@@ -2249,7 +2249,7 @@
       }
     },
     "matrixSteps": {
-      "description": "2つの軸で置く図の段。区画へ課題を置く出来事 (line) だけを書け、line は部品 (part) でなく区画 (box) を名指す。配管の図だけの段の要点 (gist) を書けない",
+      "description": "2つの軸で置く図の段。区画へ課題を置く出来事 (line) だけを書け、line は部品 (part) でなく区画 (box) を名指すか、区画を書かずに点数を持つ課題を打つ (#3637)。配管の図だけの段の要点 (gist) を書けない",
       "items": {
         "properties": {
           "gist": {
@@ -2266,10 +2266,7 @@
                 "part": {
                   "$ref": "#/definitions/absent"
                 }
-              },
-              "required": [
-                "box"
-              ]
+              }
             }
           }
         }
@@ -3404,7 +3401,33 @@
         "axes",
         "items"
       ],
+      "if": {
+        "not": {
+          "required": [
+            "shape"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "table": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      },
       "properties": {
+        "shape": {
+          "description": "見た目。scatter は課題を点数どおりの点で打つ (#3637)。書かない図は札を区画へ置く",
+          "enum": [
+            "scatter"
+          ]
+        },
+        "table": {
+          "description": "none は点数で点を打つ見た目の置く前の課題の表を出さない",
+          "enum": [
+            "none"
+          ]
+        },
         "axes": {
           "description": "横の軸と縦の軸の順の 2 つの軸",
           "type": "array",
@@ -3424,7 +3447,7 @@
       }
     },
     "matrixAxis": {
-      "description": "2つの軸で置く図の軸。from は軸の始まりの小さい側の字、to は矢印の先の大きい側の字",
+      "description": "2つの軸で置く図の軸。from は軸の始まりの小さい側の字、to は矢印の先の大きい側の字。reverse の軸は大きい値の側を左か下にする",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -3439,11 +3462,14 @@
         },
         "to": {
           "$ref": "#/definitions/text"
+        },
+        "reverse": {
+          "type": "boolean"
         }
       }
     },
     "matrixItem": {
-      "description": "2つの軸で置く図の課題。name は札に書く名前",
+      "description": "2つの軸で置く図の課題。name は札に書く名前。x と y は横と縦の軸の 0 から 10 の点数で、2 つを揃えて書く (#3637)",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -3456,8 +3482,44 @@
         },
         "name": {
           "$ref": "#/definitions/text"
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "x"
+            ]
+          },
+          "then": {
+            "required": [
+              "y"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "y"
+            ]
+          },
+          "then": {
+            "required": [
+              "x"
+            ]
+          }
+        }
+      ]
     }
   },
   "if": {

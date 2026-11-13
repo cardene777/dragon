@@ -27,7 +27,7 @@ export function placeTime(ctx: Ctx, step: number, event: number): { start: numbe
 }
 
 /** 置く前の一覧の枠と題 */
-export function drawList(list: MatrixLayout["list"], ctx: Ctx): string {
+export function drawList(list: NonNullable<MatrixLayout["list"]>, ctx: Ctx): string {
   const L = MATRIX_LOOK.list;
   const y = list.y + L.head / 2 + MATRIX_TYPE.list.size * MATRIX_LOOK.baseline;
   return (

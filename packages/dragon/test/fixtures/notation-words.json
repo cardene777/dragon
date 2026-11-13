@@ -78,7 +78,8 @@
     "diagram": [
       "view",
       "shape",
-      "unit"
+      "unit",
+      "table"
     ],
     "group": [
       "note",
@@ -197,7 +198,8 @@
     ],
     "axis": [
       "from",
-      "to"
+      "to",
+      "reverse"
     ]
   },
   "CARRIES": [

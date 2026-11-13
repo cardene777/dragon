@@ -14,7 +14,12 @@ export const shape: BlockShape = {
       type: "object",
       additionalProperties: false,
       required: ["axes", "items"],
+      // 表 (#3637) は点数で点を打つ見た目だけが持つ。見た目の値は scatter だけなので、見た目を書かない図で表の欄を断る
+      if: { not: { required: ["shape"] } },
+      then: { properties: { table: { $ref: "#/definitions/absent" } } },
       properties: {
+        shape: { description: "見た目。scatter は課題を点数どおりの点で打つ (#3637)。書かない図は札を区画へ置く", enum: ["scatter"] },
+        table: { description: "none は点数で点を打つ見た目の置く前の課題の表を出さない", enum: ["none"] },
         axes: {
           description: "横の軸と縦の軸の順の 2 つの軸",
           type: "array",
@@ -30,7 +35,7 @@ export const shape: BlockShape = {
       },
     },
     matrixAxis: {
-      description: "2つの軸で置く図の軸。from は軸の始まりの小さい側の字、to は矢印の先の大きい側の字",
+      description: "2つの軸で置く図の軸。from は軸の始まりの小さい側の字、to は矢印の先の大きい側の字。reverse の軸は大きい値の側を左か下にする",
       type: "object",
       additionalProperties: false,
       required: ["name"],
@@ -38,6 +43,7 @@ export const shape: BlockShape = {
         name: { $ref: "#/definitions/text" },
         from: { $ref: "#/definitions/text" },
         to: { $ref: "#/definitions/text" },
+        reverse: { type: "boolean" },
       },
     },
   },

@@ -28,8 +28,8 @@ import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
 import type { LineupItem, LineupShape } from "./blocks/item/block";
 import type { MindIdea } from "./blocks/idea/block";
-import type { MatrixAxis, MatrixSpec } from "./blocks/axis/block";
-import type { MatrixItem } from "./blocks/matrix-item/block";
+import type { MatrixAxis, MatrixShape, MatrixSpec } from "./blocks/axis/block";
+import type { MatrixItem, MatrixPlot } from "./blocks/matrix-item/block";
 import type { TreeLeaf } from "./blocks/leaf/block";
 import type { LineupOrder } from "./blocks/line/block";
 import type { TreeNode } from "./blocks/node/block";
@@ -101,6 +101,7 @@ export type DiagramEvent =
   | TreeLeaf
   | TreeNode
   | LineupOrder
+  | MatrixPlot
   | { type: "seal"; box: string }
   | { type: "open"; box: string }
   | { type: "pick"; box: string }
@@ -167,7 +168,7 @@ export type { TreeLeaf, TreeNode };
 export type { MindIdea };
 
 /** 2つの軸で置く図 (#3622) の軸と課題の型は、軸のブロックと課題のブロックが持つ。区画へ置く出来事は列の図と同じ `line` の出来事 */
-export type { MatrixAxis, MatrixItem, MatrixSpec };
+export type { MatrixAxis, MatrixItem, MatrixPlot, MatrixShape, MatrixSpec };
 
 /**
  * 列の図 (#3239) の、列の並びを書き換える出来事と札を押す出来事と役が動く出来事と、チップと役の型は、

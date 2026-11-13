@@ -6,17 +6,21 @@
  * 2つの軸で置く図に書ける行は軸と区画と課題と段の行だけで、ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める
  */
 import { attrs, name } from "../../print-kit";
-import { type Attr, fail, readAttrs, readName } from "../../read-kit";
+import { type Attr, fail, isOneOf, readAttrs, readName } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, type ParseState, ranked } from "../block";
 import { BLOCKS } from "../index";
-import type { MatrixAxis } from "./block";
+import type { MatrixAxis, MatrixShape } from "./block";
 import { MATRIX_AREAS, MATRIX_AXES } from "./limits";
+
+/** 2つの軸で置く図の見た目の一覧。最初に読む塊に入れないよう、定義 (`block.ts`) でなく読み方に置く */
+const MATRIX_SHAPES: readonly MatrixShape[] = ["scatter"];
 
 /** 2つの軸で置く図に書ける行の頭の語。2つの軸で置く図だけのブロックの語と、区画と課題と置く行と、段の行 */
 const MATRIX_LINES: readonly string[] = [
   ...ranked(BLOCKS).flatMap((block) => (block.attach.only === "matrix" ? (block.words.heads ?? []) : [])),
-  ...["box", "item", "line", "step", "say", "code", "source"],
+  // 区画を書かずに課題を打つ行 (#3637) の頭の語は `line:` になる
+  ...["box", "item", "line", "line:", "step", "say", "code", "source"],
 ];
 
 export interface AxisMessages {
@@ -30,6 +34,14 @@ export interface AxisMessages {
   matrixNoLine: (word: string) => string;
   /** 2つの軸で置く図に線の行を書いた */
   matrixNoEdge: string;
+  /** 図の種類の行の `shape` が 2つの軸で置く図の見た目の一覧 `shapes` に無い (#3637) */
+  matrixBadShape: (shapes: readonly string[]) => string;
+  /** 図の種類の行の `table` を、点数で点を打つ見た目でない図に書いた */
+  matrixTableNeedsScatter: string;
+  /** 図の種類の行の `table` が `none` でない */
+  matrixBadTable: string;
+  /** 軸の行の `reverse` が `yes` でない */
+  matrixReverseYes: string;
 }
 
 /** 区画の箱の行に書ける属性。添え書きは区画の名前の下の字になる。色は置き場所で決まり、絵と飛び先は描かない */
@@ -57,7 +69,10 @@ function readAxis(source: SourceLine, state: ParseState): void {
   const read = named.rest < source.text.length ? readAttrs(source, named.rest, state.attrs.axis ?? [], m) : new Map<string, Attr>();
   const from = read.get("from")?.value;
   const to = read.get("to")?.value;
-  axes.push({ name: named.value, ...(from !== undefined ? { from } : {}), ...(to !== undefined ? { to } : {}) });
+  // `reverse` は軸の大きい値の側を左か下にする (#3637)。書ける値は `yes` だけで、書かない軸は大きい値の側を右か上にする
+  const reverse = read.get("reverse");
+  if (reverse && reverse.value !== "yes") throw fail(source, reverse.at, m.matrixReverseYes);
+  axes.push({ name: named.value, ...(from !== undefined ? { from } : {}), ...(to !== undefined ? { to } : {}), ...(reverse ? { reverse: true } : {}) });
 }
 
 /** 軸の行。両端の字を書かない軸は名前だけを書く */
@@ -65,6 +80,7 @@ const axisLine = (axis: MatrixAxis): string =>
   `axis ${name(axis.name)}${attrs([
     ["from", axis.from],
     ["to", axis.to],
+    ["reverse", axis.reverse ? "yes" : undefined],
   ])}`;
 
 export const reading: BlockReading<AxisMessages> = {
@@ -80,8 +96,17 @@ export const reading: BlockReading<AxisMessages> = {
     if (!MATRIX_LINES.includes(word)) throw fail(source, 0, state.m.matrixNoLine(word));
   },
   settle: (state, head) => {
-    if (state.figure.matrix.axes.length !== MATRIX_AXES) throw fail(head, 0, state.m.matrixAxes(MATRIX_AXES));
-    if (state.figure.boxes.length !== MATRIX_AREAS) throw fail(head, 0, state.m.matrixAreas(MATRIX_AREAS));
+    const { m } = state;
+    // 図の種類の行の見た目は `scatter` だけで、表の欄は点数で点を打つ見た目の `none` だけ (#3637)。確かめた値を原本の欄に置く
+    const shape = state.head.get("shape");
+    const table = state.head.get("table");
+    if (shape && !isOneOf(MATRIX_SHAPES, shape.value)) throw fail(head, shape.at, m.matrixBadShape(MATRIX_SHAPES));
+    if (table && !shape) throw fail(head, table.at, m.matrixTableNeedsScatter);
+    if (table && table.value !== "none") throw fail(head, table.at, m.matrixBadTable);
+    if (shape) state.figure.matrix.shape = shape.value as MatrixShape;
+    if (table) state.figure.matrix.table = "none";
+    if (state.figure.matrix.axes.length !== MATRIX_AXES) throw fail(head, 0, m.matrixAxes(MATRIX_AXES));
+    if (state.figure.boxes.length !== MATRIX_AREAS) throw fail(head, 0, m.matrixAreas(MATRIX_AREAS));
   },
   read: { axis: readAxis },
   print: {
@@ -94,12 +119,22 @@ export const reading: BlockReading<AxisMessages> = {
       matrixAxes: (most) => `matrix (2つの軸で置く図) の axis の行は、横の軸と縦の軸の順に ${most} 行だけ書く`,
       matrixAreas: (most) => `matrix (2つの軸で置く図) の区画は box の行でちょうど ${most} つ書く。書いた順に左上、右上、左下、右下に置く`,
       matrixNoLine: (word) => `matrix (2つの軸で置く図) には ${word} の行を書けない。軸は axis、区画は box、課題は item の行で書き、段の中の line の行で区画へ置く`,
-      matrixNoEdge: "matrix (2つの軸で置く図) には線の行を書けない。課題は段の中の line <区画>: <課題> の行で区画へ置く",    },
+      matrixNoEdge: "matrix (2つの軸で置く図) には線の行を書けない。課題は段の中の line <区画>: <課題> の行で区画へ置く",
+      matrixBadShape: (shapes) => `matrix (2つの軸で置く図) の shape には ${shapes.join(" か ")} を書く`,
+      matrixTableNeedsScatter: "table は [shape: scatter] の matrix (2つの軸で置く図) にだけ書ける",
+      matrixBadTable: "table には none を書く。置く前の課題の表を出さない",
+      matrixReverseYes: "reverse には yes を書く。大きい値の側を左か下にする",
+    },
     en: {
       matrixAxisShape: "Write an axis as axis <name> [from: <low end>, to: <high end>]",
       matrixAxes: (most) => `A two-axis matrix takes exactly ${most} axis lines: the horizontal axis, then the vertical axis`,
       matrixAreas: (most) => `A two-axis matrix takes exactly ${most} areas as box lines, placed top left, top right, bottom left and bottom right in written order`,
       matrixNoLine: (word) => `A two-axis matrix takes no ${word} lines. Write axes with axis, areas with box and tasks with item, and place tasks with line inside steps`,
-      matrixNoEdge: "A two-axis matrix takes no edge lines. Put tasks into areas with line <area>: <task> inside steps",    },
+      matrixNoEdge: "A two-axis matrix takes no edge lines. Put tasks into areas with line <area>: <task> inside steps",
+      matrixBadShape: (shapes) => `Write ${shapes.join(" or ")} for shape in a two-axis matrix`,
+      matrixTableNeedsScatter: "table can be written only in a two-axis matrix with [shape: scatter]",
+      matrixBadTable: "Write none for table to leave out the table of tasks to place",
+      matrixReverseYes: "Write yes for reverse to put the high end on the left or at the bottom",
+    },
   },
 };
