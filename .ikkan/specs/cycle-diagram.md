@@ -13,8 +13,8 @@
 | 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、回り続ける図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-docs-describe-the-notation`が通る | #3623 |
 | ほかの種類の図では、`cycle`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`notation-keeps-cycle-words-plain-outside-cycle`が通る | #3623 |
 | カタログの12種類のどれも見本を4枚以上載せる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3623 |
-| 回り続ける図の見本5枚 (`eth-slot`、`sprint`、`pdca`、`restake`、`focus-clock`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts --reporter=verbose`の検査`cycle-has-five-examples-in-both-langs`が通る | #3623 #3638 |
-| 回り続ける図の見本は一般の題 (`sprint`、`pdca`、`focus-clock`) を3枚とWeb3の題 (`eth-slot`、`restake`) を2枚持つ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts`の検査`cycle-examples-cover-general-and-web3`が通る | #3623 #3638 |
+| 回り続ける図の見本6枚 (`eth-slot`、`sprint`、`pdca`、`restake`、`focus-clock`、`farm-year`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts --reporter=verbose`の検査`cycle-has-six-examples-in-both-langs`が通る | #3623 #3638 #3639 |
+| 回り続ける図の見本は一般の題 (`sprint`、`pdca`、`focus-clock`、`farm-year`) を4枚とWeb3の題 (`eth-slot`、`restake`) を2枚持つ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts`の検査`cycle-examples-cover-general-and-web3`が通る | #3623 #3638 #3639 |
 | 回り続ける図の見本4枚の日本語と英語で、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts`の検査`cycle-examples-have-no-breaks`が通る | #3623 |
 | 編集画面の棚に回り続ける図の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts`の検査`cycle-shelf-template-reads`が通る | #3623 |
 | 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts --reporter=verbose`の検査`page-bundle-within-budget`が通る | #3623 #3638 |

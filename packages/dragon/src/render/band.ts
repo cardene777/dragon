@@ -2,7 +2,7 @@
  * 回り続ける図の、輪を開いた帯の見た目 (#3639) を描く部品。置き場所は並べ方 (`kinds/cycle/layout.ts` の `layoutBand`) が持つ。
  *
  * 回の帯ごとに、山形を灰の地で描き、その回でその段の手順になった山形を手順の色で光らせて、光ったまま残す。山形の部品は `data-segment` と `data-round` を持つ。
- * まだ来ていない回の帯は、その回へ戻る矢印の札が着くまで薄く出す。帯の部品は `data-band` を持つ。
+ * まだ来ていない回の帯は、その回へ戻る矢印の札が着くまで薄く出す。帯の部品は `data-band-round` を持つ (量の行き先の図の帯の部品 `data-band` と分ける)。
  * 帯の頭に中身の帯の題と、その回に `set` で書いた欄の値を書き、値は次の値が来るまで出す。回が終わった帯の頭はその回の最後の値を出し続ける。
  * 全ての箱に長さを書いた図は、手順の境目に目盛りの印と数字を描く。戻る矢印は字を持たない線と矢じりで描き、札は描く本体が線の道に沿って走らせる。
  * 既定の幅では山形の下に手順の名前を書き、携帯の幅では山形の中に手順の番号を書いて、番号と名前と長さの一覧を帯の下に描く。
@@ -253,7 +253,7 @@ export function drawBand(
     ];
     const faint = r === 0 ? "" : ` class="dg-a" style="${m.kf(frames)}"`;
     return (
-      `<g data-band="${String(r)}"${faint}>${head.get(r) ?? ""}${marks === "" ? "" : `<path class="dg-bd-mark" d="${marks}"/>`}${numbers.join("")}` +
+      `<g data-band-round="${String(r)}"${faint}>${head.get(r) ?? ""}${marks === "" ? "" : `<path class="dg-bd-mark" d="${marks}"/>`}${numbers.join("")}` +
       `${segments.join("")}${names.join("")}</g>`
     );
   });

@@ -12,7 +12,7 @@
  * 置き場所 (`layout`) は描く部品が返す値で確かめ、帯の薄さと山形の光り方と帯の頭の値と札の場所は SVG の keyframes を jsdom で読んで確かめる。
  * 回ごとの山形の行は `layout.bands`、山形は `layout.segments` (`round` はその山形が在る回)、目盛りは `layout.ticks` と `layout.unit`、
  * 山形の下の名前は `layout.names`、戻る矢印は `layout.returns`、携帯の幅の一覧は `layout.list` に返る。
- * 回の帯の部品は `data-band="<回>"`、山形の部品は `data-segment="<名札>"` と `data-round="<回>"` で、光らせる部品は class `dg-bd-lit` を持つ。
+ * 回の帯の部品は `data-band-round="<回>"`、山形の部品は `data-segment="<名札>"` と `data-round="<回>"` で、光らせる部品は class `dg-bd-lit` を持つ。
  * 帯の頭は `data-band-head="<回>"` で、欄の値の部品は `data-field` を持つ。戻る矢印は `data-band-return="<回>"`、一覧は `data-band-list` を持つ。
  * 回の番号は 0 から数え、最後の手順から最初の手順への線で 1 つ進む。
  * 見本と見た目の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
@@ -649,8 +649,8 @@ describe("輪を開いた帯の見た目の並べ方と動き (#3639)", () => {
     steps.forEach((at, s) => {
       const t = (rendered.timeline.steps[s] as Span).end - 0.05;
       for (let r = 0; r < rounds; r++) {
-        const el = motion.doc.querySelector(`[data-band="${r}"]`);
-        expect(el, `回 ${r} の帯の部品 ([data-band]) が描いた図に無い`).not.toBeNull();
+        const el = motion.doc.querySelector(`[data-band-round="${r}"]`);
+        expect(el, `回 ${r} の帯の部品 ([data-band-round]) が描いた図に無い`).not.toBeNull();
         if (!el) continue;
         const o = motion.opacity(el, t);
         if (r <= at.round)
