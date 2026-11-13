@@ -1,4 +1,4 @@
-/** 使い方の頁の「回り続ける図」の節の、輪と弧と輪の真ん中の段落 (#3623) */
+/** 使い方の頁の「回り続ける図」の節の、輪と弧と輪の真ん中の段落 (#3623) と、時計の文字盤 (#3638) と輪を開いた帯 (#3639) の見た目の段落 */
 import type { BlockDocs } from "../../gallery";
 
 export const docs: BlockDocs = {
@@ -10,6 +10,8 @@ export const docs: BlockDocs = {
     "`strip <題>: <欄>, <欄>` を書くと、図の下でなく輪の真ん中に帯の題と欄の値を出す。段の中の `set <欄>: <値>` で値が入れ替わり、最初の欄の値は大きく、2 つ目からの欄の値は小さく出る。欄の名前は出さないので、値だけで読める字にする。最初に書いた後で変わった値は、変わった段の間だけその段の手順の色で出る。`set <欄> [tag: <札>]` の札の字は、値と同じ所に出る。",
     "最初の行を `cycle <題> [shape: clock]` にすると、手順を輪の代わりに時計の文字盤に置く。手順の `box` の行には `[time: 25min]` の形で手順の長さを書き、長さは 0 でない数と単位 (`ms`、`s`、`min`、`h`、`d`) の組にする。どの手順にも長さを書き、手順は 12 時から右回りに、長さに合わせた弧で並ぶ。目盛りの数字は書いた中で一番大きい単位で 0 から切りのよい間隔で出る。",
     "文字盤の針は 1 本で、段ごとにその段の手順の弧の始まりを指し、線の札は針の先に乗って走る。その回 (針が 12 時を越えるまで) に入った手順の弧は手順の色で光ったまま残る。`[shape: clock, turn: left]` と書くと文字盤が左回りになり、`turn` は `[shape: clock]` の図にだけ書ける。携帯の幅では手順の名前の代わりに番号を文字盤の外に出し、番号と名前と長さの一覧を文字盤の下に並べる。",
+    "最初の行を `cycle <題> [shape: band]` にすると、輪を開いた帯に手順を書いた順に左から右へ、等しい幅の山形で並べる。名前は山形の下に、段の番号は山形の上に出る。どの `box` にも `[time: <長さ>]` を書くと、帯の上に手順の始まる時刻の目盛りが 0 から出て、字はどの時刻も整数か小数 1 桁で書ける一番大きい単位で書く。長さはどの手順にも書くか、どの手順にも書かない。",
+    "帯は回ごとに 1 本ずつ上から下へ積まれ、まだ来ていない回の帯は薄く出る。帯の頭には中身の帯の題とその回の欄の値が出る。線の札は帯の真ん中を山形から次の山形へ走り、着いた山形は光ったまま残る。最後の手順から最初の手順への線の札は、右の端から下の回の帯の左の端へ戻る矢印を辿る。`turn` は書けない。携帯の幅では山形が縮んで中に手順の番号が出て、番号と名前と長さの一覧が帯の下に並ぶ。",
   ],
   en: [
     "To follow, step by step, a flow that goes around the same steps again and again, start the first line with `cycle <title>`. Declare the steps with `box <id> as <name>` lines before the first `step` line; they sit on a ring clockwise from the top in the order written. A ring takes 2 to 8 steps. `[note: <text>]` goes under the box name and `[color: <color>]` sets the box color.",
@@ -18,5 +20,7 @@ export const docs: BlockDocs = {
     "With `strip <title>: <field>, <field>`, the strip title and the field values go in the middle of the ring instead of under the diagram. `set <field>: <value>` in a step changes a value; the first field shows large and the others show smaller. Field names are not shown, so write values that read on their own. A value that changes after it was first written shows in the color of that step's box while the step lasts. The text of a `set <field> [tag: <tag>]` shows where the value goes.",
     "Start the first line with `cycle <title> [shape: clock]` to set the steps on a clock dial instead of a ring. Each step `box` line takes the length of the step, such as `[time: 25min]`, written as a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`). Every step needs a length, and the steps sit clockwise from 12 o'clock as arcs as long as they take. The numbers around the dial count from 0 at round steps in the largest unit written.",
     "The dial has one hand. In each step it points at the start of that step's arc, and the chip of a line rides the tip of the hand. The arcs entered in the current round, until the hand passes 12 o'clock, stay lit in their step colors. `[shape: clock, turn: left]` turns the dial counterclockwise, and `turn` can be written only with `[shape: clock]`. At a phone width the step numbers sit outside the dial in place of the names, and a list of numbers, names and lengths sits below the dial.",
+    "Start the first line with `cycle <title> [shape: band]` to unroll the ring into a band, with the steps left to right in the order written as chevrons of equal width. Names sit below the chevrons and step numbers above. With `[time: <length>]` on every `box`, a scale over the band marks when each step starts, counted from 0 in the largest unit that writes every mark as a whole number or with one decimal. Write a length on every step or on none.",
+    "Each round gets its own band, stacked top to bottom, and a round that has not started yet stays faint. The head of each band shows the strip title and the field values of that round. The chip of a line runs along the middle of the band from chevron to chevron, and the chevron it reaches stays lit. The line from the last step to the first one follows a return arrow from the right end down to the left end of the next band. `turn` cannot be written. At a phone width the chevrons shrink with the step numbers inside, and a list of numbers, names and lengths sits below the bands.",
   ],
 };

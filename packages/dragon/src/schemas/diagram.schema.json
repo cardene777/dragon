@@ -70,7 +70,7 @@
       "$ref": "#/definitions/vennLook"
     },
     "cycle": {
-      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く",
+      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く。clock は全ての箱に、band は全ての箱かどの箱にも書かない",
       "$ref": "#/definitions/cycleLook"
     },
     "blocks": {
@@ -377,7 +377,12 @@
           "cycle": {
             "required": [
               "shape"
-            ]
+            ],
+            "properties": {
+              "shape": {
+                "const": "clock"
+              }
+            }
           }
         }
       },
@@ -397,14 +402,61 @@
         }
       },
       "else": {
-        "properties": {
-          "blocks": {
-            "properties": {
-              "box": {
-                "items": {
-                  "properties": {
-                    "time": {
-                      "$ref": "#/definitions/absent"
+        "if": {
+          "required": [
+            "cycle"
+          ],
+          "properties": {
+            "cycle": {
+              "required": [
+                "shape"
+              ],
+              "properties": {
+                "shape": {
+                  "const": "band"
+                }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "blocks": {
+              "properties": {
+                "box": {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "time"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "properties": {
+                          "time": {
+                            "$ref": "#/definitions/absent"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "blocks": {
+              "properties": {
+                "box": {
+                  "items": {
+                    "properties": {
+                      "time": {
+                        "$ref": "#/definitions/absent"
+                      }
                     }
                   }
                 }
@@ -2640,7 +2692,7 @@
           "maximum": 12
         },
         "time": {
-          "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) の、手順の長さ",
+          "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) と輪を開いた帯の見た目 (shape: band) の、手順の長さ",
           "$ref": "#/definitions/clockTime"
         }
       }
@@ -3389,14 +3441,15 @@
       }
     },
     "cycleLook": {
-      "description": "回り続ける図の見た目。clock は手順を 12 時から書いた順に、長さを 1 周の長さ (長さの合計) で割った角度の弧で置く時計の文字盤",
+      "description": "回り続ける図の見た目。clock は手順を 12 時から書いた順に、長さを 1 周の長さ (長さの合計) で割った角度の弧で置く時計の文字盤。band は手順を左から右へ等しい幅の山形で並べ、回ごとに帯を積む輪を開いた帯",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "shape": {
           "description": "回り続ける図の見た目の名前",
           "enum": [
-            "clock"
+            "clock",
+            "band"
           ]
         },
         "turn": {
@@ -3410,7 +3463,12 @@
         "not": {
           "required": [
             "shape"
-          ]
+          ],
+          "properties": {
+            "shape": {
+              "const": "clock"
+            }
+          }
         }
       },
       "then": {
@@ -3422,7 +3480,7 @@
       }
     },
     "clockTime": {
-      "description": "時計の文字盤の見た目の手順の長さ。0 でない数と単位 (ms / s / min / h / d) の組で書く (25min など)",
+      "description": "時計の文字盤の見た目と輪を開いた帯の見た目の手順の長さ。0 でない数と単位 (ms / s / min / h / d) の組で書く (25min など)",
       "type": "string",
       "pattern": "^(?=[0-9.]*[1-9])[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
     },

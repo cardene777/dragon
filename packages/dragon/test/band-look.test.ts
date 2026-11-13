@@ -360,6 +360,13 @@ const edgesOf = (source: Source) =>
 const segmentOf = (motion: Motion, id: string, round: number): Element | null =>
   motion.doc.querySelector(`[data-segment="${id}"][data-round="${round}"]`);
 
+/** 字が `text` の札のうち、時刻 `t` に見えている札の部品。同じ字の札がほかの段にも在るので、見えている札で選ぶ */
+const chipOf = (motion: Motion, text: string, t: number): Element | undefined =>
+  [...motion.doc.querySelectorAll("text.dg-car-t")]
+    .filter((x) => x.textContent === text)
+    .map((x) => x.parentElement)
+    .find((g): g is Element => g !== null && motion.opacity(g, t) > 0.5);
+
 /** 箱に書いた長さの単位を、言語ごとに目盛りの数字に添える字 */
 const UNIT_WORD: Record<Lang, Record<string, string>> = {
   ja: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
@@ -744,9 +751,7 @@ describe("輪を開いた帯の見た目の並べ方と動き (#3639)", () => {
       const carrier = timeline.carriers.find((c) => c.step === e.step && c.event === e.event);
       expect(carrier, `${what} の札が走らない`).toBeDefined();
       if (!carrier) continue;
-      const chip = [...motion.doc.querySelectorAll("text.dg-car-t")].find(
-        (t) => t.textContent === e.carry?.text,
-      )?.parentElement;
+      const chip = chipOf(motion, e.carry.text, (carrier.depart + carrier.arrive) / 2);
       expect(chip, `${what} の札の字が描いた図に無い`).toBeDefined();
       if (!chip) continue;
       for (const k of [0.25, 0.5, 0.75]) {
@@ -839,9 +844,8 @@ describe("輪を開いた帯の見た目の並べ方と動き (#3639)", () => {
       const carrier = rendered.timeline.carriers.find(
         (c) => c.step === e.step && c.event === e.event,
       );
-      const chip = [...motion.doc.querySelectorAll("text.dg-car-t")].find(
-        (t) => t.textContent === e.carry?.text,
-      )?.parentElement;
+      const chip =
+        carrier && chipOf(motion, e.carry?.text ?? "", (carrier.depart + carrier.arrive) / 2);
       expect(carrier && chip, `${what} の札が走らない`).toBeTruthy();
       if (!carrier || !chip) continue;
       const at = motion.value(chip, "transform", (carrier.depart + carrier.arrive) / 2);

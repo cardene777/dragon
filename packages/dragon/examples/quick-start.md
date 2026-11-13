@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -579,6 +579,53 @@ step 次の回へ
   long -> focus
   set 回: 2回目
 ```
+
+図の種類の行を `cycle <題> [shape: band]` と書くと、回ごとの帯に手順を左から右へ並べる。
+どの手順の `box` にも `[time: <長さ>]` を書くと、帯の上に手順の始まる時刻の目盛りが出る。長さはどの手順にも書くか、どの手順にも書かない。
+線の札は山形から次の山形へ走り、最後の手順から最初の手順への線は下の回の帯へ戻る矢印を辿る。
+
+```dragon
+cycle 畑の1年 [shape: band]
+
+box sow as 種をまく [time: 60d, color: green]
+box grow as 育てる [time: 120d, color: blue]
+box harvest as 収穫する [time: 60d, color: amber]
+box rest as 土を休める [time: 120d, color: slate]
+
+strip 畑: 年, 季節
+
+step 種をまく
+  say 春に土を耕し、畑へ種をまく。
+  set 年: 1年目
+  set 季節: 春
+
+step 育てる
+  say 芽が出たら、夏の間は水をやって苗を育てる。
+  sow -> grow [tag: 苗]
+  set 季節: 夏
+
+step 収穫する
+  say 秋に実った作物を収穫する。
+  grow -> harvest [tag: 実]
+  set 季節: 秋
+
+step 土を休める
+  say 収穫を終えた畑に堆肥をまき、冬の間は土を休める。
+  harvest -> rest [tag: 堆肥]
+  set 季節: 冬
+
+step 2年目へ
+  say 春が来たら、休めた土にまた種をまく。
+  rest -> sow [tag: 種]
+  set 年: 2年目
+  set 季節: 春
+
+step 2年目も育てる
+  say 2年目も、芽が出た苗を夏の間に育てる。
+  sow -> grow [tag: 苗]
+  set 季節: 夏
+```
+
 
 考えを広げる地図 (`mind <題>`) では、段の中の `idea` の行で考えを書き、書いた段で考えが濃くなって親からの線が引かれる。
 `of` の無い考えが真ん中の題で、1 つだけ書ける。`idea <名札> as <名前> of <親>` で題に繋げると枝、枝に繋げると葉になり、4 段目は書けない。

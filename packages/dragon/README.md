@@ -915,6 +915,58 @@ step On to the next round
   set round: Round 2
 ```
 
+`cycle <title> [shape: band]` unrolls the ring into a band and runs the steps left to right.
+
+- The steps sit in the order written as chevrons of equal width. Each name sits below its chevron and the step numbers sit above
+- `[time: <length>]` on every `box` puts a scale over the band that marks when each step starts, counted from 0 in the largest unit that writes every mark as a whole number or with one decimal. Write a length on every step or on none
+- Each round gets its own band, stacked top to bottom. A round that has not started yet stays faint, and the head of each band shows the strip title and the field values of that round
+- The chip of a line runs along the middle of the band from chevron to chevron, and the chevron it reaches stays lit. The line from the last step to the first one follows a return arrow from the right end down to the left end of the next band
+- `turn` cannot be written with `[shape: band]`
+- At a phone width the chevrons shrink with the step numbers inside, and a list of numbers, names and lengths sits below the bands
+
+```dragon
+cycle A year on the field [shape: band]
+
+box sow as Sow [time: 60d, color: green]
+box grow as Grow [time: 120d, color: blue]
+box harvest as Harvest [time: 60d, color: amber]
+box rest as Rest the soil [time: 120d, color: slate]
+
+strip Field: year, season
+
+step Sow
+  say In spring the soil is tilled and seeds go into the field.
+  set year: Year 1
+  set season: Spring
+
+step Grow
+  say Once the shoots are up, they get water and grow all summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+
+step Harvest
+  say In autumn the ripe crop is harvested.
+  grow -> harvest [tag: crop]
+  set season: Autumn
+
+step Rest the soil
+  say After the harvest, compost goes on the field and the soil rests through winter.
+  harvest -> rest [tag: compost]
+  set season: Winter
+
+step Into year 2
+  say When spring comes, seeds go into the rested soil again.
+  rest -> sow [tag: seeds]
+  set year: Year 2
+  set season: Spring
+
+step Grow in year 2
+  say In year 2 the shoots again grow through the summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+```
+
+
 ### Mind map
 
 Start with `mind` to draw a mind map, which spreads ideas out from one topic in the middle, branch by branch.

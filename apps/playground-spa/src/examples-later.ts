@@ -124,6 +124,8 @@ import restakeJa from "../../../packages/dragon/examples/restake.dragon?raw";
 import restakeEn from "../../../packages/dragon/examples/restake.en.dragon?raw";
 import focusClockJa from "../../../packages/dragon/examples/focus-clock.dragon?raw";
 import focusClockEn from "../../../packages/dragon/examples/focus-clock.en.dragon?raw";
+import farmYearJa from "../../../packages/dragon/examples/farm-year.dragon?raw";
+import farmYearEn from "../../../packages/dragon/examples/farm-year.en.dragon?raw";
 import budgetAppJa from "../../../packages/dragon/examples/budget-app.dragon?raw";
 import budgetAppEn from "../../../packages/dragon/examples/budget-app.en.dragon?raw";
 import tripPlanJa from "../../../packages/dragon/examples/trip-plan.dragon?raw";
@@ -235,6 +237,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   pdca: { ja: pdcaJa, en: pdcaEn },
   restake: { ja: restakeJa, en: restakeEn },
   "focus-clock": { ja: focusClockJa, en: focusClockEn },
+  "farm-year": { ja: farmYearJa, en: farmYearEn },
   "budget-app": { ja: budgetAppJa, en: budgetAppEn },
   "trip-plan": { ja: tripPlanJa, en: tripPlanEn },
   "dao-proposal": { ja: daoProposalJa, en: daoProposalEn },
