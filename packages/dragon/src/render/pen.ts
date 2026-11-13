@@ -35,13 +35,14 @@ const GEOMETRY: Record<string, readonly string[]> = {
   path: ["d"],
 };
 
-/** 1 つの区切り (M から次の M まで) の線。`pins` は揺らさずに通る点 (端と折れ目と尖った角) の番号 */
+/** 1 つの区切り (M から次の M まで) の線。揺らさずに通る点 (端と折れ目と尖った角) は `pinsOf` が `ends` と `straight` から選ぶ */
 interface Run {
   points: Point[];
   /** 点ごとに、元の命令の終わりの点か */
   ends: boolean[];
   /** 点ごとに、その点へ来る線がまっすぐか */
   straight: boolean[];
+  /** `Z` で閉じた形か。閉じた形の最後の点は最初の点と同じ所に在る */
   closed: boolean;
 }
 
@@ -270,6 +271,7 @@ function readPath(d: string): Run[] | undefined {
   return o.runs;
 }
 
+/** 属性 `name` の数。無い時は 0 (SVG の既定)、数として読めない時は `undefined` */
 const numberOf = (attrs: Map<string, string>, name: string): number | undefined => {
   const raw = attrs.get(name);
   if (raw === undefined) return 0;
