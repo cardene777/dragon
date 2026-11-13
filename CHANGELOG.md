@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.73.0] - 2026-11-13
+
 ### Added
 
 - **Diagrams can be drawn with hand-drawn pen lines (`--line pen`, `line: "pen"`)** (#3643)
