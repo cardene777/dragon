@@ -2503,7 +2503,7 @@
       }
     },
     "userBlock": {
-      "description": "使う人が足すブロック 1 つ。元のブロック (box / edge / icon) の形と色の役を替える。box を元にしたブロックは箱の絵柄 (icon) も持てる",
+      "description": "使う人が足すブロック 1 つ。元のブロック (box / edge / icon) の形と色の役を替える。box を元にしたブロックは箱の絵柄 (icon) も持てる。icon を元にしたブロックは、1 色の path の代わりに色付きの形 (paints) と元の表示の枠 (view) を持てる",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -2558,6 +2558,42 @@
         },
         "icon": {
           "$ref": "#/definitions/blockIcon"
+        },
+        "view": {
+          "description": "色付きの絵柄の、元の SVG の表示の枠 (viewBox) の左上の x と y と幅と高さ。icon を元にしたブロックが paints と一緒に持つ",
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number"
+          }
+        },
+        "paints": {
+          "description": "色付きの絵柄の形の並び。書いた順に重ねて描く。色は # と 16 進の 3 桁か 6 桁、path は SVG の path の文法の字だけ",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "color",
+              "path"
+            ],
+            "properties": {
+              "color": {
+                "type": "string",
+                "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+              },
+              "rule": {
+                "const": "evenodd"
+              },
+              "path": {
+                "type": "string",
+                "maxLength": 20000,
+                "pattern": "^\\s*[Mm][MmLlHhVvCcSsQqTtAaZz0-9eE.,+\\-\\s]*$"
+              }
+            }
+          }
         }
       }
     },

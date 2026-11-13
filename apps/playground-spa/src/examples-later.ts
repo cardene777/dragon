@@ -166,6 +166,8 @@ import deviceDotsJa from "../../../packages/dragon/examples/device-dots.dragon?r
 import deviceDotsEn from "../../../packages/dragon/examples/device-dots.en.dragon?raw";
 import walletDotsJa from "../../../packages/dragon/examples/wallet-dots.dragon?raw";
 import walletDotsEn from "../../../packages/dragon/examples/wallet-dots.en.dragon?raw";
+import photoDeliveryJa from "../../../packages/dragon/examples/photo-delivery.dragon?raw";
+import photoDeliveryEn from "../../../packages/dragon/examples/photo-delivery.en.dragon?raw";
 import tokenAllocationJa from "../../../packages/dragon/examples/token-allocation.dragon?raw";
 import tokenAllocationEn from "../../../packages/dragon/examples/token-allocation.en.dragon?raw";
 import feeSplitJa from "../../../packages/dragon/examples/fee-split.dragon?raw";
@@ -270,6 +272,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "phone-storage": { ja: phoneStorageJa, en: phoneStorageEn },
   "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
   "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
+  "photo-delivery": { ja: photoDeliveryJa, en: photoDeliveryEn },
 };
 
 /**

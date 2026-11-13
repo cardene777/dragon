@@ -5,9 +5,10 @@
  * 箱、区画、中身の帯、時間軸の図の節目、木の図の根の箱など、絵柄を置く部品はどれもこの file から引く。
  * 描く下請け (`render/parts.ts`) も箱と区画の絵柄をここから引くので、この file は下請けを読まない。
  * `tabler:<名前>` は絵柄集の絵柄で、登録簿 (`sets.ts`) に登録した表から引く (#3493)。手描きの絵柄と同じ格子なので、同じ縮みで描く。
+ * 色付きの絵柄 (`paint` の行を持つ印のブロック、#3633) は、定義を読む処理と一緒に後から読む描き方 (`paint.ts`) が、形ごとに定義の色で塗って描く。箱の色の線では描かない。
  */
 import { LOOK } from "../../look/values";
-import { userBlock } from "../../user-blocks";
+import { userBlock, userBlockReader } from "../../user-blocks";
 import { ICONS } from "./icons";
 import { tablerPath } from "./sets";
 
@@ -15,7 +16,7 @@ import { tablerPath } from "./sets";
 const r1 = (v: number): number => Math.round(v * 100) / 100;
 
 /** 絵柄を描ける名前か。`ICONS` の継いだ鍵 (`constructor` など) は描けない名前に数える */
-export const drawsIcon = (name: string | undefined): boolean => name !== undefined && pathOf(name) !== undefined;
+export const drawsIcon = (name: string | undefined): boolean => glyph(name, 0, 0, 1) !== "";
 
 /**
  * 絵柄の形。`+` で始まる名前は、使う人が足した印のブロックの path (#3399)。
@@ -27,6 +28,9 @@ function pathOf(name: string): string | undefined {
 }
 
 export function glyph(name: string | undefined, x: number, y: number, scale: number, cls = "dg-gl"): string {
+  // 色付きの絵柄 (#3633) は、定義を読む処理と一緒に読む描き方が描く。読む前と、`paint` の行を持たない印のブロックは今の path で描く
+  const art = userBlockReader()?.paint(name, x, y, scale);
+  if (art) return art;
   const d = name === undefined ? undefined : pathOf(name);
   return d ? `<path class="${cls}" transform="translate(${r1(x)} ${r1(y)}) scale(${scale})" d="${d}"/>` : "";
 }

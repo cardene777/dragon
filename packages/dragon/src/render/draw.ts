@@ -10,7 +10,7 @@
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
  */
-import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockUseMessages, withUserBlocks } from "../user-blocks";
+import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockReader, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
 import { boxTextY, card, headCard } from "../blocks/box/draw";
 import { carrier } from "../blocks/carry/draw";
@@ -867,6 +867,9 @@ function useUserBlocks(diagram: Diagram, lang: NotationLang): Diagram {
     if (found.base !== want) fail(m.wrongBase(name, found.base, want));
     // 引数 blocks で渡した定義は原本の形の検査を通らないので、SVG に入る path をここで確かめる (#3400)
     if (found.path !== undefined && !isUserPath(found.path)) fail(`${name}: ${m.badPath}`);
+    // 色付きの絵柄 (#3633) の色と path も、描く前に描き方で確かめる。描き方は定義を読む処理と一緒に読み、読む前は足した箱の形と同じく絵柄を描かない
+    const reader = userBlockReader();
+    if (found.paints && reader && reader.paint(name, 0, 0, 1) === undefined) fail(`${name}: ${m.badPath}`);
     const error = found.icon && tablerError(found.icon, TABLER_MESSAGES[lang]);
     if (error) fail(error);
     return found;

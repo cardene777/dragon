@@ -142,7 +142,9 @@ function fromJson(text: string, pageLang: Lang): Outcome {
     const line = jsonErrorLine(message, text);
     return { ok: false, problem: { lang: pageLang, notices: [{ ...(line !== undefined ? { line } : {}), text: TEXT[pageLang].notJson(message) }] } };
   }
-  const waiting = waitValidator(pageLang);
+  // 定義 (`define`) を持つ原本は、記法に書き戻す処理が定義を読む処理と一緒に届くので、その塊も待つ (#3633)
+  const defines = typeof value === "object" && value !== null && "define" in value;
+  const waiting = waitValidator(pageLang) ?? (defines ? waitDefinitions("blocks 1", pageLang) : undefined);
   if (waiting) return waiting;
   return check(value, pageLang, text);
 }

@@ -1,0 +1,43 @@
+// 写真を受け取って縮めて配る構成を、見本のために作った色付きの絵柄で描く。
+// 絵柄は見本のために作った物で、事業者が配るアイコンではない。事業者のアイコンは、配る元の最新の物を dragon icon で定義に変えて使う。
+architecture 写真を受け取って縮めて配る
+
+blocks 1
+block +phone
+  base icon
+  view 0 0 24 24
+  paint #1E3A8A "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-16a2 2 0 0 1 2 -2z"
+  paint #BFDBFE "M7 5h10v12h-10z"
+  paint #10B981 "M8 16l3 -4l2 2.5l1.5 -2l2.5 3.5z"
+  paint #F59E0B "M13.6 8a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0z"
+end
+block +resize
+  base icon
+  view 0 0 24 24
+  paint #7C3AED evenodd "M3 3h18v18h-18z M5 5v14h14v-14z"
+  paint #F472B6 "M7 12h6v6h-6z"
+  paint #7C3AED "M13 6h5v5l-1.8 -1.8l-2.8 2.8l-1.4 -1.4l2.8 -2.8z"
+end
+block +cloud
+  base icon
+  view 0 0 24 24
+  paint #0EA5E9 "M7 19a4.5 4.5 0 0 1 -.6 -8.96a6 6 0 0 1 11.4 -.84a5 5 0 0 1 -.3 9.8z"
+  paint #FFFFFF "M11 9h2v4h2.5l-3.5 3.5l-3.5 -3.5h2.5z"
+end
+
+box app as スマホのアプリ [note: 撮った写真を送る, color: blue, icon: +phone]
+box shrink as 縮める処理 [note: 3つの大きさに縮める, color: violet, icon: +resize]
+box cdn as 配る置き場 [note: 近い所から配る, color: green, icon: +cloud]
+box viewer as 見る人 [note: 縮めた写真を見る, color: amber, icon: user]
+
+step 受け取る
+  say スマホのアプリが、撮った写真を縮める処理へ送る。
+  app -> shrink: 写真
+
+step 縮める
+  say 縮める処理が写真を3つの大きさに縮め、配る置き場に置く。
+  shrink -> cdn: 縮めた写真
+
+step 配る
+  say 見る人は、近い配る置き場から縮めた写真を受け取る。
+  cdn -> viewer: 写真
