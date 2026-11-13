@@ -4,11 +4,10 @@
  * 帯は真ん中の曲線を帯の幅の太さで引き、その段で出どころの縁から行き先の縁へ伸ばす。伸びた段の間は濃く、後の段では薄くして残す。
  * 出どころの無い箱の棒と名前は初めから出し、行き先の棒は入る帯が伸び終えた時に帯の幅の分ずつ現れ、名前と量は最初の帯が着いた時に出る。
  * 帯の所と棒の所と字の所は並べ方 (`kinds/sankey/layout.ts`) が持つ。
- * 段ごとの帯の見た目 (`[shape: rows]`、#3641) は、行をその段が始まる時に出し、下りる帯をその段の線が伸びる間に出す。行と下りる帯の所は `kinds/sankey/rows.ts` が持つ。
+ * 段ごとの帯の見た目 (`[shape: rows]`、#3641) は、行をその段が始まる時に出し、下りる帯をその段の線が伸びる間に出す。行と下りる帯の所は並べ方 (`kinds/sankey/layout.ts` の `layoutRows`) が持つ。
  * この file は量の行き先の図の描く部品 (`kinds/sankey.ts`) が出し、見本帳を開いた時に読む塊に入れない
  */
-import type { SankeyBand, SankeyLayout, SankeyNode } from "../../kinds/sankey/layout";
-import type { SankeyRow, SankeyRowSection } from "../../kinds/sankey/rows";
+import type { SankeyBand, SankeyLayout, SankeyNode, SankeyRow, SankeyRowSection } from "../../kinds/sankey/layout";
 import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TYPE } from "../../look/sankey";
 import { EASE, MOTION } from "../../look/values";
 import { partRadius } from "../../render/corner";
