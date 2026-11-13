@@ -61,6 +61,7 @@ export {
   type PipeRevert,
   type PipeWrite,
   type Region,
+  type SankeyLook,
   type StatePath,
   type Step,
   type StepSource,

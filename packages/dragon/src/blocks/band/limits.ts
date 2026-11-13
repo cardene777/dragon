@@ -8,6 +8,9 @@
  */
 const LEAD = /^\d[\d,]*(?:\.\d+)?/u;
 
+/** 量の行き先の図の見た目 (#3641)。`rows` は段ごとに図の幅いっぱいの帯を1行ずつ上から積む */
+export const SANKEY_SHAPES = ["rows"] as const;
+
 /** 線の名前 `label` の初めの数。数で始まらない名前と、名前の無い線は `undefined` */
 export function amountOf(label: string | undefined): number | undefined {
   const found = label === undefined ? null : LEAD.exec(label);

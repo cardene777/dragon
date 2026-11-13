@@ -3,11 +3,12 @@
  * 軽い入口は、後から読む図の種類の個別ブロックの読み方を、書いた図が使う時に読む。
  *
  * 段の中の線は、書いた所で量と向きを確かめる。箱に入る量と出る量は、全ての線を読んでから記法の終わりに確かめる。
+ * 図の種類の行の `shape` (段ごとの帯の見た目、#3641) は最初の段を始める時 (`settle`) に確かめ、原本の根の `sankey` の欄に置く。
  */
-import { fail, readAttrs, skipSpaces } from "../../read-kit";
+import { fail, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
 import { type BlockReading, none } from "../block";
 import { EDGE, type EdgeEvent } from "../edge/block";
-import { amountOf } from "./limits";
+import { amountOf, SANKEY_SHAPES } from "./limits";
 
 export interface BandMessages {
   /** 線の名前の無い線 */
@@ -26,6 +27,8 @@ export interface BandMessages {
   sankeyNoLine: (word: string) => string;
   /** 箱に書けない属性 */
   sankeyNoBoxAttr: (key: string) => string;
+  /** `shape` に `rows` のほかの値を書いた (#3641) */
+  sankeyBadShape: string;
 }
 
 /** 量の行き先の図に書けない行の頭の語 */
@@ -62,6 +65,12 @@ export const reading: BlockReading<BandMessages> = {
       const attr = attrs.get(key);
       if (attr) throw fail(source, attr.at, state.m.sankeyNoBoxAttr(key));
     }
+  },
+  settle: (state, head) => {
+    const shape = state.head.get("shape");
+    if (!shape) return;
+    if (!isOneOf(SANKEY_SHAPES, shape.value)) throw fail(head, shape.at, state.m.sankeyBadShape);
+    state.figure.root = { ...state.figure.root, sankey: { shape: shape.value } };
   },
   afterEdge: (edge, state, source) => {
     const read = edge as EdgeEvent;
@@ -108,6 +117,7 @@ export const reading: BlockReading<BandMessages> = {
       sankeyNoChip: "量の行き先の図の線は、札と置く側 (tag、carry、side) を書けない。量の札は線の名前を出す",
       sankeyNoLine: (word) => `sankey (量の行き先の図) には ${word} の行を書けない`,
       sankeyNoBoxAttr: (key) => `量の行き先の図の箱には ${key} を書けない。箱は名前と色だけを持つ`,
+      sankeyBadShape: "sankey (量の行き先の図) の shape には rows を書ける。rows は段ごとに図の幅いっぱいの帯を1行ずつ上から積む",
     },
     en: {
       sankeyNoAmount: "A line in a sankey diagram takes its amount after the :, like 40% or 1,200",
@@ -118,6 +128,7 @@ export const reading: BlockReading<BandMessages> = {
       sankeyNoChip: "Lines in a sankey diagram take no tag, carry or side. The amount chip shows the line label",
       sankeyNoLine: (word) => `A sankey diagram takes no ${word} lines`,
       sankeyNoBoxAttr: (key) => `A box in a sankey diagram takes no ${key}. A box has only a name and a color`,
+      sankeyBadShape: "A sankey diagram takes rows for shape, which stacks one full-width bar per step from the top",
     },
   },
 };

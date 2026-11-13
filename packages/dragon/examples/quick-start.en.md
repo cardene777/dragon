@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial, or `[shape: band]` to run them left to right on a band), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial, or `[shape: band]` to run them left to right on a band), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>` (add `[shape: rows]` to stack one bar per step), or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -830,6 +830,36 @@ step The rest
   say Save 3,000 yen and spend 2,000 yen on fun.
   pay -> save: 3,000 yen
   pay -> fun: 2,000 yen
+```
+
+Add `[shape: rows]` to the kind line to stack one full-width bar per step from the top.
+Each row is split into the sections that the lines so far have cut, and the sections that split off in that step and those of the last row show their name and amount.
+What a box with no source has not handed out yet is a gray bar that reads like `16h left`, and a name that does not fit its section is listed under the bar.
+
+```dragon
+sankey How a day is spent [shape: rows]
+
+box day as One day [color: slate]
+box sleep as Sleep [color: blue]
+box awake as Awake [color: amber]
+box work as Work [color: violet]
+box free as Free time [color: rose]
+
+step One day
+  say A day has 24 hours.
+
+step Sleep
+  say Sleep 8 hours.
+  day -> sleep: 8h
+
+step Awake
+  say The other 16 hours are awake time.
+  day -> awake: 16h
+
+step Split
+  say Split the awake time into work and free time.
+  awake -> work: 10h
+  awake -> free: 6h
 ```
 
 ## Attributes

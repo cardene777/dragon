@@ -174,6 +174,8 @@ import salaryJa from "../../../packages/dragon/examples/salary.dragon?raw";
 import salaryEn from "../../../packages/dragon/examples/salary.en.dragon?raw";
 import revenueJa from "../../../packages/dragon/examples/revenue.dragon?raw";
 import revenueEn from "../../../packages/dragon/examples/revenue.en.dragon?raw";
+import dayHoursJa from "../../../packages/dragon/examples/day-hours.dragon?raw";
+import dayHoursEn from "../../../packages/dragon/examples/day-hours.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -262,6 +264,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "fee-split": { ja: feeSplitJa, en: feeSplitEn },
   salary: { ja: salaryJa, en: salaryEn },
   revenue: { ja: revenueJa, en: revenueEn },
+  "day-hours": { ja: dayHoursJa, en: dayHoursEn },
   "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
   "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
 };

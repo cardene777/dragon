@@ -60,10 +60,17 @@ export interface SankeyBand {
   color: ColorKey;
 }
 
+/**
+ * 量の行き先の図の置き場所。段ごとの帯の見た目 (`[shape: rows]`、#3641) は `arrangement` に `rows` を持ち、
+ * 棒と帯の代わりに段ごとの行 (`rows`) と下りる帯 (`drops`) を持つ (並べ方は `rows.ts`)
+ */
 export interface SankeyLayout extends Layout {
   kind: "sankey";
   nodes: SankeyNode[];
   bands: SankeyBand[];
+  arrangement?: "rows";
+  rows?: import("./rows").SankeyRow[];
+  drops?: import("./rows").SankeyDrop[];
 }
 
 const S = SANKEY_LOOK;
@@ -83,8 +90,15 @@ const leadOf = (label: string): string => /^\d[\d,]*(?:\.\d+)?/u.exec(label)?.[0
  * 2 本以上の線が入る箱の量の字。入る量の和を、線の名前の桁の区切りと小数の桁で書き、どの線の名前も同じ単位なら単位を後ろに付ける
  */
 function sumText(labels: readonly string[]): string {
+  return amountText(labels.reduce((s, label) => s + (amountOf(label) ?? 0), 0), labels);
+}
+
+/**
+ * 量 `total` の字。線の名前 `labels` の桁の区切りと小数の桁で書き、どの線の名前も同じ単位なら単位を後ろに付ける。
+ * 段ごとの帯の見た目 (#3641) の出どころの無い箱と残りの量も、同じ書き方で書く
+ */
+export function amountText(total: number, labels: readonly string[]): string {
   const leads = labels.map(leadOf);
-  const total = labels.reduce((s, label) => s + (amountOf(label) ?? 0), 0);
   const units = new Set(labels.map((label, i) => label.slice((leads[i] ?? "").length)));
   const digits = Math.max(...leads.map(decimals));
   const [whole = "0", part] = total.toFixed(digits).split(".");
@@ -100,7 +114,8 @@ export function bandPoint(band: Pick<SankeyBand, "x1" | "x2" | "a" | "b">, t: nu
   return [band.x1 + d * (1.5 * t - 1.5 * t * t + t * t * t), ca + (cb - ca) * (3 * t * t - 2 * t * t * t)];
 }
 
-interface Flow {
+/** 量の流れ。段ごとの帯の見た目 (`rows.ts`、#3641) も同じ流れから並べる */
+export interface Flow {
   step: number;
   event: number;
   from: string;
@@ -109,12 +124,18 @@ interface Flow {
   amount: number;
 }
 
+/** 箱どうしを結ぶ線を、書いた順の量の流れにする */
+export function flowsOf(diagram: DiagramModel): Flow[] {
+  const ids = diagram.boxes.map((b) => b.id);
+  return edgesOf(diagram).flatMap(({ step, event, edge }) =>
+    ids.includes(edge.from) && ids.includes(edge.to) ? [{ step, event, from: edge.from, to: edge.to, label: edge.label ?? "", amount: amountOf(edge.label) ?? 0 }] : [],
+  );
+}
+
 export function layoutSankey(diagram: DiagramModel): SankeyLayout {
   const colors = boxColors(diagram);
   const ids = diagram.boxes.map((b) => b.id);
-  const flows: Flow[] = edgesOf(diagram).flatMap(({ step, event, edge }) =>
-    ids.includes(edge.from) && ids.includes(edge.to) ? [{ step, event, from: edge.from, to: edge.to, label: edge.label ?? "", amount: amountOf(edge.label) ?? 0 }] : [],
-  );
+  const flows = flowsOf(diagram);
 
   // 列。入る線の無い箱を 0 にし、行き先を出どころの次の列より右に置く。前の列へ戻る線を持つ原本でも止まるよう、箱の数だけ回して打ち切る
   const column = new Map(ids.map((id) => [id, 0]));

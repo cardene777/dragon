@@ -41,3 +41,38 @@ export const SANKEY_LOOK = {
   band: { now: 0.42, lit: 0.26 },
   samples: 24,
 } as const;
+
+/**
+ * 段ごとの帯の見た目 (`[shape: rows]`、#3641) の字。区画の名前 (`name`)、区画の量 (`value`)、残りの量 (`rest`)、帯の下に並べる名前 (`list`)。
+ * 量は桁が揃うよう等幅の字で書く
+ */
+export const SANKEY_ROWS_TYPE = {
+  name: text(14, 700),
+  value: text(13, 700, "mono"),
+  rest: text(13, 500, "mono"),
+  list: text(13, 500),
+} as const;
+
+/**
+ * 段ごとの帯の見た目の値。見た目の元は step 2 で決めた案 (動く試作の案Bから、続いている区画の字と残りの点線の枠を減らした版)。
+ * `width` は既定の幅の図の幅。`bar` は段ごとの帯で、高さ `h` と角の丸み `radius`。`gap` は隣の区画との隙間。
+ * `drop` は上の行の帯の下の縁から下の行の帯の上の縁までの、下りる帯と量の札が通る間。`phone` は携帯の幅の時の図の外周の余白 `pad`、段の番号と帯の間 `badgeGap`、下りる帯の間 `drop`。
+ * `padX` は区画の左の縁と字の間。`lines` は区画の名前の基準線から量の基準線までの送りで、`nameAt` は区画の上の縁から名前の基準線まで。
+ * `badge` は段の番号で、丸の縁と帯の左の縁の間 `gap`。`chip` は量の札と、下りる帯の上の縁と下の縁の間の隙間。
+ * `names` は帯の下に並べる名前で、帯の下の縁との間 `gap`、色の印の一辺 `mark` と角の丸み `markRadius`、印と字の間 `markGap`、名前どうしの間 `apart`、行の送り `row`。
+ * `tint` は区画の地の濃さで、新しく分かれた区画 `now`、続いている区画 `carried`、残り `rest`、下りる帯 `drop`
+ */
+export const SANKEY_ROWS = {
+  width: 868,
+  bar: { h: 52, radius: 9 },
+  gap: 6,
+  drop: 56,
+  phone: { pad: 14, badgeGap: 8, drop: 44 },
+  padX: 10,
+  nameAt: 22,
+  lines: 18,
+  badge: { gap: 12 },
+  chip: 4,
+  names: { gap: 10, mark: 10, markRadius: 2, markGap: 6, apart: 14, row: 20 },
+  tint: { now: 0.32, carried: 0.14, rest: 0.2, drop: 0.16 },
+} as const;
