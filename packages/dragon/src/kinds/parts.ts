@@ -52,6 +52,10 @@ export interface OverviewShape {
 
 /** 後から読む種類の部品の組。`L` はその種類の並べ方が返す置き場所 */
 export interface KindParts<L extends Layout = Layout> {
+  model?: {
+    from(this: void, model: DiagramModel, version: number): import('../schema').Diagram;
+    to(this: void, diagram: import('../schema').Diagram): DiagramModel;
+  };
   validate?(this: void, diagram: import("../schema").Diagram): string[];
   notation?: {
     matches(text: string): boolean;

@@ -1,8 +1,8 @@
 /** Native purchase kind. Ports, edges and carriers use the shared SVG pipeline. */
-import { layoutCheckout, type PurchaseLayout } from "./checkout/layout";
+import { CHECKOUT_MARKER, layoutCheckout, type PurchaseLayout } from "./checkout/layout";
 import type { KindParts } from "./parts";
 import { isCheckoutNotation, parseCheckout } from "../checkout/read";
-import { definitionOf, purchaseNotation, validatePurchase, modelOf } from "../checkout/definition";
+import { definitionOf, purchaseNotation, validatePurchase, modelOf, diagramOf, checkoutModel } from "../checkout/definition";
 import { mountCheckoutRuntime } from "../checkout/runtime.mjs";
 import { fromModel } from "../model";
 import { markParsed } from "../parsed";
@@ -13,6 +13,7 @@ import type { Player } from "../player";
 const mounted = new WeakMap<HTMLElement, Player>();
 export const parts: KindParts<PurchaseLayout> = {
   ownBoxes: true,
+  model: {from: diagramOf, to: checkoutModel},
   validate: validatePurchase,
   times(_diagram, timeline) {
     if (timeline.edges.length !== 1) return timeline;
@@ -39,7 +40,7 @@ export const parts: KindParts<PurchaseLayout> = {
         const animation=ctx.m.kf([[0,{opacity:0}],[time.arrive,{opacity:0,r:'2px'}],[time.arrive+.08,{opacity:.7,r:'3px'}],[time.end,{opacity:0,r:'7px'}],[ctx.m.total,{opacity:0}]]);
         return `<circle class="dg-a" cx="${x}" cy="${y}" r="2" fill="none" stroke="#518563" stroke-width="1.3" style="${animation}"/>`;
       }).join('') : '',
-      node: layout.overlay ? "" : layout.boxes.map(b => card(b,ctx,[],subs.get(b.id) ?? [])).join("") };
+      node: layout.overlay ? "" : `<g ${CHECKOUT_MARKER}="">${layout.boxes.map(b => card(b,ctx,[],subs.get(b.id) ?? [])).join("")}</g>` };
   },
   mountInput(host, diagram, options) {
     mounted.get(host)?.destroy();

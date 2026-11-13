@@ -92,6 +92,16 @@
         "types": "./dist/frame.d.cts",
         "default": "./dist/frame.cjs"
       }
+    },
+    "./header": {
+      "import": {
+        "types": "./dist/header.d.ts",
+        "default": "./dist/header.js"
+      },
+      "require": {
+        "types": "./dist/header.d.cts",
+        "default": "./dist/header.cjs"
+      }
     }
   },
   "files": [

@@ -7,6 +7,15 @@ import {parseNotation,printNotation,renderDiagram,validateDiagram,readDiagram} f
 const source=readFileSync(new URL('../examples/checkout/acp-purchase.dragon',import.meta.url),'utf8');
 function parse(text=source){const p=parseNotation(text);assert.equal(p.ok,true,JSON.stringify(p.errors));return p.diagram;}
 
+test('保存したJSONの過大・非整数の行番号を展開前に拒否する',()=>{
+  for(const line of [10001,-1,1.5,NaN,Infinity,1000000000]){
+    const diagram=globalThis.structuredClone(parse());
+    diagram.blocks['purchase-party'][0].line=line;
+    assert.equal(validateDiagram(diagram).ok,false,`invalid source line ${line}`);
+    assert.throws(()=>printNotation(diagram),/line/);
+  }
+});
+
 test('通常の解析・JSON保存・再読込・描画で購入図のブロックと線を保持する',()=>{
   const diagram=JSON.parse(JSON.stringify(parse()));
   assert.equal(validateDiagram(diagram).ok,true);

@@ -210,6 +210,15 @@ function filesHolding(source: string): string[] {
     .sort();
 }
 
+/** Static shared chunks are part of the entry; lazy kind chunks are not. */
+function entryFiles(name = 'dragon-main.js', seen = new Set<string>()): Set<string> {
+  if (seen.has(name)) return seen;
+  seen.add(name);
+  const text = readFileSync(join(CDN, name), 'utf8');
+  for (const match of text.matchAll(/(?:\bfrom\s*|\bimport\s*)["']\.\/([^"']+\.js)["']/gu)) entryFiles(match[1], seen);
+  return seen;
+}
+
 describe("script の1行の入口 (#3343)", () => {
   it("script-entry-replaces-block-with-figure", async () => {
     if (!entryBuilt()) return;
@@ -369,7 +378,8 @@ describe("script の1行の入口 (#3343)", () => {
     // 回り続ける図の描く部品が中身の帯を描く処理を読み、考えの読み方が色を読む処理を読むと、どちらも本体から最初に読む別の file へ分かれる (#3657)。
     // どちらも本体だけが読み、本体に入る
     if (!entryBuilt()) return;
-    const missing = ["src/blocks/strip/draw.ts", "src/blocks/color/read.ts"].filter((source) => !filesHolding(source).includes("dragon-main.js"));
+    const first = entryFiles();
+    const missing = ["src/blocks/strip/draw.ts", "src/blocks/color/read.ts"].filter((source) => !filesHolding(source).some(file => first.has(file)));
     expect(missing, "本体 (dragon-main.js) の外の file に入った処理").toEqual([]);
   });
 

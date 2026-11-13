@@ -1,3 +1,4 @@
+import { createFigureHeader } from './header.mjs';
 import { editorUrl } from '../editor-url';
 import { paintSnippet, SNIPPET_CSS } from './dragon-snippet.mjs';
 import { snapshotDiagram, snapshotText, snapshotCanvas } from './dragon-snapshot.mjs';
@@ -10,10 +11,9 @@ const icons = {
   download:'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
   chevron:'m8 10 4 4 4-4',
 };
-let sequence = 0;
 
 /** Shared article chrome; diagram-specific inputs remain in the dragon player. */
-export function createDragonFrame(document, source, diagram) {
+export function createDragonFrame(document, source, diagram, options = {}) {
   const environment = document.defaultView;
   const frame = document.createElement('div');
   frame.className = 'dragon-frame';
@@ -21,17 +21,18 @@ export function createDragonFrame(document, source, diagram) {
   root.innerHTML = `<style>${SNIPPET_CSS}
     :host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:1px solid #cfd9cb;border-radius:12px;background:#fffefa;container-type:inline-size;overflow:visible}
     *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
-    .bar{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px 12px;background:#f4f6ef;border-radius:12px 12px 0 0;border-bottom:1px solid #dce3d6}
-    .identity{display:flex;align-items:center;gap:8px;margin-right:3px}.brand{font:650 12px/1.5 ui-monospace,monospace;letter-spacing:.02em}.kind{font:10px/1.5 ui-monospace,monospace;color:#76836f;border:1px solid #d6dfd0;border-radius:4px;padding:1px 5px}
-    .tabs{display:flex;gap:2px;border:1px solid #d2ddcd;border-radius:7px;padding:2px;background:#e9eee3}.tabs button{border:0;background:none;padding:4px 13px;color:#788471;border-radius:4px;font-size:12px}.tabs [aria-selected=true]{background:#fffefa;color:#31563a;box-shadow:0 1px 2px #29453317;font-weight:650}
-    .actions{display:flex;align-items:center;gap:5px;margin-left:auto}.tool{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:6px;padding:6px 8px;background:transparent;color:#52664c;font-size:12px}.tool{text-decoration:none}.tool:hover{background:#e5ecde;border-color:#d0dcc8}.export{position:relative}.export>button{border-color:#ccd8c5;background:#fffefa}.chevron{width:13px;height:13px}
-    .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:260px;margin:0;padding:6px;border:1px solid #cdd9c7;border-radius:10px;background:#fffefa;box-shadow:0 12px 35px #29453324}.menu button{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;border:0;border-radius:6px;padding:9px 11px;background:transparent;color:#294533}.menu button:hover{background:#edf3e6}.menu strong{font-size:12px;font-weight:650}.menu small{font-size:11px;color:#7a8673}.menu button+button{margin-top:2px}
-    .stage{min-width:0;border-radius:0 0 12px 12px;overflow:hidden}.code{background:#19261f;border-radius:0 0 12px 12px;color:#d9e6d5}.code-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #ffffff19}.code-head button{font:11px ui-monospace,monospace;color:#9eaf99;border:1px solid #50624d;border-radius:5px;padding:5px 9px;background:none}.code-head [aria-pressed=true]{background:#354733;color:#f0f6eb}.copy{margin-left:auto}.code pre{margin:0;padding:18px;max-height:620px;min-height:360px;overflow:auto;white-space:pre;tab-size:2;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace}.status{padding:9px 14px;margin:0;font-size:12px;color:#596e50}.status:empty{display:none}:host(:fullscreen){height:100vh;overflow:auto;background:#fffefa;border:0;border-radius:0}:host(:fullscreen) .bar{position:sticky;top:0;z-index:30}
-    @container(max-width:450px){.bar{padding:8px;gap:6px}.kind{display:none}.brand{font-size:11px}.tabs button{padding:4px 9px}.tool{padding:6px}.expand-label{display:none}.menu{width:245px}}
-  </style><div class="bar" role="toolbar" aria-label="図の操作"><div class="identity"><span class="brand">dragon</span><span class="kind"></span></div><div class="tabs" role="tablist" aria-label="図とコード"><button type="button" role="tab" aria-selected="true" data-view="diagram">図</button><button type="button" role="tab" aria-selected="false" data-view="code">コード</button></div><div class="actions"><a class="tool editor" target="_blank" rel="noopener" aria-label="dragonエディタで開く">エディタで開く</a><button class="tool expand" type="button" aria-label="図を拡大" title="図を拡大"><span class="expand-label">拡大</span></button><div class="export"><button class="tool export-toggle" type="button" aria-expanded="false" aria-haspopup="true">エクスポート</button><div class="menu" hidden><button type="button" data-format="png"><strong>PNG</strong><small>操作図全体を画像で保存</small></button><button type="button" data-format="svg"><strong>SVG</strong><small>操作図全体を保存</small></button><button type="button" data-format="html"><strong>HTML</strong><small>単独ファイルで操作・初期条件から開始</small></button><button type="button" data-format="gif"><strong>GIF</strong><small>直近の操作を全体で再生</small></button><button type="button" data-format="mp4"><strong>MP4</strong><small>直近の操作を全体で再生</small></button></div></div></div></div><div class="stage" role="tabpanel"></div><section class="code" role="tabpanel" hidden><div class="code-head"><button type="button" data-source="dragon" aria-pressed="true">dragon</button><button type="button" data-source="json" aria-pressed="false">JSON</button><button type="button" class="copy">コピー</button></div><pre tabindex="0"></pre></section><p class="status" role="status" aria-live="polite"></p>`;
+    .actions{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.tool{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 9px;border:1px solid transparent;border-radius:5px;background:none;color:inherit;font:inherit;text-decoration:none;cursor:pointer}.tool:hover{background:var(--h-hover);color:var(--h-accent)}.export{position:relative}.chevron{width:12px;height:12px}
+    .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:260px;margin:0;padding:6px;border:1px solid #cdd9c7;border-radius:10px;background:var(--h-bg);box-shadow:0 12px 35px #0002}.menu button{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;border:0;border-radius:6px;padding:9px 11px;background:transparent;color:var(--h-fg)}.menu button:hover{background:var(--h-hover)}.menu strong{font-size:12px;font-weight:650}.menu small{font-size:11px;color:var(--h-muted)}.menu button+button{margin-top:2px}
+    .stage{min-width:0;border-radius:0 0 12px 12px;overflow:hidden}.code{background:#19261f;border-radius:0 0 12px 12px;color:#d9e6d5}.code-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #ffffff19}.code-head button{font:11px ui-monospace,monospace;color:#9eaf99;border:1px solid #50624d;border-radius:5px;padding:5px 9px;background:none}.code-head [aria-pressed=true]{background:#354733;color:#f0f6eb}.copy{margin-left:auto}.code pre{margin:0;padding:18px;max-height:620px;min-height:360px;overflow:auto;white-space:pre;tab-size:2;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace}.status{padding:9px 14px;margin:0;font-size:12px;color:#596e50}.status:empty{display:none}:host(:fullscreen){height:100vh;overflow:auto;background:#fffefa;border:0;border-radius:0}:host(:fullscreen) [data-dragon-header]{position:sticky;top:0;z-index:30}
+
+    :host([data-code-open]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}:host([data-code-open]) [data-dragon-header],:host([data-code-open]) .status{grid-column:1/-1}:host([data-code-open]) .code{border-left:1px solid #53604e;border-radius:0;min-width:0}:host([data-code-open]) .code pre{min-height:0;max-height:calc(100dvh - 150px);font-size:11px}
+    @media(max-width:700px){:host([data-code-open]){grid-template-columns:minmax(0,1fr)}.expand-label{display:none}}
+  </style><div class="bar"><div class="actions"><button class="tool code-toggle" type="button" aria-pressed="false">コード</button><a class="tool editor" target="_blank" rel="noopener" aria-label="dragonエディタで開く">dragonで開く</a><button class="tool expand" type="button" aria-label="図を拡大" title="図を拡大"><span class="expand-label">拡大</span></button><div class="export"><button class="tool export-toggle" type="button" aria-expanded="false" aria-haspopup="true">書き出す</button><div class="menu" hidden><button type="button" data-format="png"><strong>PNG</strong><small>操作図全体を画像で保存</small></button><button type="button" data-format="svg"><strong>SVG</strong><small>操作図全体を保存</small></button><button type="button" data-format="html"><strong>HTML</strong><small>単独ファイルで操作・初期条件から開始</small></button><button type="button" data-format="gif"><strong>GIF</strong><small>直近の操作を全体で再生</small></button><button type="button" data-format="mp4"><strong>MP4</strong><small>直近の操作を全体で再生</small></button></div></div></div></div><div class="stage" ></div><section class="code"  hidden><div class="code-head"><button type="button" data-source="dragon" aria-pressed="true">dragon</button><button type="button" data-source="json" aria-pressed="false">JSON</button><button type="button" class="copy">コピー</button></div><pre tabindex="0"></pre></section><p class="status" role="status" aria-live="polite"></p>`;
   const $ = selector => root.querySelector(selector);
   $('.editor').href=diagramEditorUrl(source);
-  $('.kind').textContent = diagram.kind;
+  const header=createFigureHeader(document,{title:diagram.title,colors:options.headerColors});
+  const expandButton=$('.expand');
+  header.actions.append(...$('.actions').childNodes);header.actions.append(expandButton);$('.bar').replaceWith(header.element);
   const icon = (name, target, className = '') => {
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
     svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
@@ -39,15 +40,6 @@ export function createDragonFrame(document, source, diagram) {
     const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',icons[name]);svg.append(path);if(className==='chevron')target.append(svg);else target.prepend(svg);
   };
   icon('expand',$('.expand'));icon('download',$('.export-toggle'));icon('chevron',$('.export-toggle'),'chevron');
-  const id=`dragon-frame-${++sequence}`;
-  $('.stage').id=id+'-diagram';$('.code').id=id+'-code';
-  for(const button of root.querySelectorAll('[data-view]')){
-    const view=button.dataset.view;
-    button.id=id+'-tab-'+view;
-    button.setAttribute('aria-controls',id+'-'+view);
-    button.tabIndex=view==='diagram'?0:-1;
-    $(view==='diagram'?'.stage':'.code').setAttribute('aria-labelledby',button.id);
-  }
   const host = document.createElement('div');host.className='dragon-host';$('.stage').append(host);
   const sourceText={dragon:source,json:JSON.stringify(diagram,null,2)};
   let codeMode='dragon', disposed=false, busy=false;
@@ -58,22 +50,17 @@ export function createDragonFrame(document, source, diagram) {
   const releases=new Set();
   const status=text=>{if(!disposed)$('.status').textContent=text;};
   const closeMenu=()=>{ $('.menu').hidden=true;$('.export-toggle').setAttribute('aria-expanded','false'); };
-  const activateView=(view,focus=false)=>{
-    for(const button of root.querySelectorAll('[data-view]')){
-      const selected=button.dataset.view===view;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;
-      if(focus&&selected)button.focus();
-    }
-    $('.stage').hidden=view!=='diagram';$('.code').hidden=view!=='code';
-    paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
+  const activateView=view=>{
+    const open=view==='code';frame.toggleAttribute('data-code-open',open);
+    $('.code-toggle').setAttribute('aria-pressed',String(open));
+    $('.stage').hidden=false;$('.code').hidden=!open;
+    if(open)paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
     closeMenu();
   };
-  for(const button of root.querySelectorAll('[data-view]')){
-    button.addEventListener('click',()=>activateView(button.dataset.view));
-    button.addEventListener('keydown',event=>{
-      if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
-      event.preventDefault();activateView(event.key==='Home'?'diagram':event.key==='End'?'code':button.dataset.view==='diagram'?'code':'diagram',true);
-    });
-  }
+  $('.code-toggle').addEventListener('click',()=>{
+    const open=!frame.hasAttribute('data-code-open');activateView(open?'code':'diagram');
+    if(open&&!expandedDialog?.open)expandInDialog();
+  });
   for(const button of root.querySelectorAll('[data-source]'))button.addEventListener('click',()=>{
     codeMode=button.dataset.source;
     for(const b of root.querySelectorAll('[data-source]'))b.setAttribute('aria-pressed',String(b===button));
@@ -103,14 +90,14 @@ export function createDragonFrame(document, source, diagram) {
     dialog.className='dragon-expanded-dialog';
     dialog.style.cssText='width:min(1400px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 28px);padding:0;border:1px solid #cdd9c7;border-radius:12px;background:#fffefa;';
     const backdrop=document.createElement('style');backdrop.textContent='.dragon-expanded-dialog::backdrop{background:#1b2c25b3;backdrop-filter:blur(3px)}';
-    document.body.append(dialog);dialog.append(backdrop,frame);
+    marker.parentNode.append(dialog);dialog.append(backdrop,frame);
     frame.style.maxHeight='calc(100dvh - 32px)';frame.style.overflow='auto';
     closeExpandedDialog=()=>{
       if(expandedDialog!==dialog)return;
       expandedDialog=undefined;
       if(dialog.open)dialog.close();
       marker.replaceWith(frame);frame.style.removeProperty('max-height');frame.style.removeProperty('overflow');dialog.remove();
-      fullscreen();if(!disposed)$('.expand').focus();
+      activateView('diagram');fullscreen();if(!disposed)$('.expand').focus();
     };
     dialog.addEventListener('close',closeExpandedDialog,{once:true});
     dialog.showModal();fullscreen();$('.expand').focus();
@@ -191,7 +178,7 @@ export function createDragonFrame(document, source, diagram) {
       history.push({shot,time});if(history.length>12)history.shift();
     }catch{/* A hidden or detached diagram has no capture area. */}
   }
-  return {frame,host,connect(){
+  return {frame,host,header,setHeaderColors:header.setColors,connect(){
     record();observer=new environment.MutationObserver(()=>{
       if(queued||disposed||busy)return;queued=true;
       environment.requestAnimationFrame(()=>{queued=false;record();});

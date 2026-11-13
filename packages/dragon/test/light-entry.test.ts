@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { casesNamed } from "./export-support";
+import { KIND_FOLDERS } from "../src/kinds/index";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
@@ -21,6 +22,7 @@ const KIND_FILES = readdirSync(KINDS_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
   .map((entry) => ({ name: entry.name, text: readFileSync(join(KINDS_DIR, entry.name, "kind.ts"), "utf8") }));
 const ALL_KINDS = KIND_FILES.map((k) => k.name).sort();
+const fieldsOf = (kind: string): readonly string[] => (KIND_FOLDERS as Readonly<Record<string, { fields?: readonly string[] }>>)[kind]?.fields ?? [];
 const LATER_KINDS = KIND_FILES.filter((k) => /^\s*later: true,?$/mu.test(k.text))
   .map((k) => k.name)
   .sort();
@@ -75,6 +77,7 @@ const STATE_NO_PATH = "state 注文\n\nbox 受付\nbox 発送\n\nstep 受け付�
 
 /** 後から読む種類ごとの見本の記法 */
 const LATER_SAMPLES: Record<string, string> = {
+  checkout: "purchase-shoes.dragon",
   chart: "os-share.dragon",
   cycle: "eth-slot.dragon",
   er: "order-total.dragon",
@@ -429,7 +432,7 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
       const expected = whole.parseNotation(text);
       expect(parsed.ok ? light.renderDiagram(parsed.diagram).svg : "", `${file} を軽い入口で描いた SVG が既定の入口と違う`).toBe(expected.ok ? whole.renderDiagram(expected.diagram).svg : "");
       const loaded = loadedOf(light);
-      expect(loaded.length, `${file} で読んだ個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
+      expect(loaded.length + fieldsOf(kind).length, `${file} で読んだ個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
       expect(
         loaded.filter((block) => !whole.blockKinds(block).includes(kind)),
         `${file} (${kind}) で読んだ、ほかの種類の個別ブロック`,
@@ -514,7 +517,7 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
       await light.loadKind(kind);
       const parsed = light.parseNotation(readFileSync(join(EXAMPLES, file), "utf8"));
       const own = light.LATER_BLOCKS.filter((block) => whole.blockKinds(block).includes(kind)).sort();
-      expect(own.length, `${kind} だけの後から読む個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
+      expect(own.length + fieldsOf(kind).length, `${kind} だけの後から読む個別ブロックが無い (走査の空振り)`).toBeGreaterThan(0);
       expect(loadedOf(light), `loadKind("${kind}") の後に読んでいた個別ブロック`).toEqual(own);
       expect(parsed.ok ? true : messageOf(parsed), `loadKind("${kind}") の後に ${file} を読めない`).toBe(true);
     });
@@ -589,7 +592,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         const fs = await import("node:fs");
         // 記法を読むには個別ブロックの読み方が要るので (#3349)、描く部品だけを確かめるよう原本を読む
         const read = (file) => JSON.parse(fs.readFileSync(new URL("./examples/" + file, "file://${ROOT}/"), "utf8"));
-        const later = { chart: "os-share.json", cycle: "eth-slot.json", er: "order-total.json", flow: "login-check.json", git: "rebase.json", lineup: "auction.json", matrix: "task-priority.json", mind: "budget-app.json", pipe: "swap.json", sankey: "token-allocation.json", state: "order.json", time: "finality.json", tree: "merkle.json", try: "tx-block.json", venn: "wallet-usage.json" };
+        const later = ${JSON.stringify(Object.fromEntries(Object.entries(LATER_SAMPLES).map(([kind,file])=>[kind,file.replace(/\.dragon$/u,'.json')])))};
         const kept = { sequence: "api.json", architecture: "ccip.json" };
         const host = { ownerDocument: { defaultView: null } };
         const message = (run) => { try { run(); return "描けた"; } catch (e) { return e.message; } };
@@ -612,7 +615,7 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
     for (const kind of LATER_KINDS) {
       for (const message of out.refused[kind] ?? []) expect(message, `読んでいない ${kind} を描いた時の誤り`).toContain(kind);
     }
-    expect(out.loaded, "loadKind を待った後に描けた種類").toEqual(LATER_KINDS);
+    expect(out.loaded.sort(), "loadKind を待った後に描けた種類").toEqual(LATER_KINDS);
     expect(out.kept, "loadKind を呼ばずに描けた種類").toEqual(["sequence", "architecture"]);
   });
 

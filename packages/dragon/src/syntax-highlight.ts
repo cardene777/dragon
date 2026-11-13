@@ -69,8 +69,8 @@ function paintAttrs(attrs: string): Span<NotationRole>[] {
       out.push(...role(text, "value"));
       return;
     }
-    const key = /^(\s*)(.*?)(\s*)$/su.exec(text.slice(0, colon)) ?? [];
-    const value = /^(\s*)(.*?)(\s*)$/su.exec(text.slice(colon + 1)) ?? [];
+    const key = /^(\s*)([\s\S]*?)(\s*)$/u.exec(text.slice(0, colon)) ?? [];
+    const value = /^(\s*)([\s\S]*?)(\s*)$/u.exec(text.slice(colon + 1)) ?? [];
     out.push(...plain(key[1] ?? ""), ...role(key[2] ?? "", "key"), ...plain(key[3] ?? ""), { text: ":", role: "punct" });
     out.push(...plain(value[1] ?? ""), ...role(value[2] ?? "", "value"), ...plain(value[3] ?? ""));
   };

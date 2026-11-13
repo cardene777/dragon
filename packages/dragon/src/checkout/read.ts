@@ -2,6 +2,7 @@ import { messagesFor } from "../messages";
 import { fail, NotationError, readDeclared } from "../read-kit";
 import { isBlankOrComment, tokenize, type SourceLine } from "../tokenize";
 import { CHECKOUT_BLOCKS, type BlockRule } from "./blocks";
+export const MAX_CHECKOUT_LINES = 10000;
 
 export interface CheckoutBlock {
   kind: string;
@@ -27,6 +28,7 @@ export function isCheckoutNotation(text: string): boolean {
 
 /** 購入の操作図。数式と規則は列挙した値だけを受け付け、入力をコードとして実行しない。 */
 export function parseCheckout(text: string): ReadCheckout {
+  if (text.split('\n').length > MAX_CHECKOUT_LINES) return {ok:false,errors:[{line:1,column:1,message:`checkout source line limit is ${MAX_CHECKOUT_LINES}`} ]};
   const lines = tokenize(text).filter((line) => !isBlankOrComment(line));
   const head = lines[0];
   if (!head) return { ok: false, errors: [{ line: 1, column: 1, message: "checkout の定義がありません" }] };

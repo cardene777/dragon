@@ -21,11 +21,29 @@ test('frame retains source text and provides all five export formats', () => {
   const controls = createDragonFrame(document, source, parsed.diagram);
   document.body.append(controls.frame);
   const root = controls.frame.shadowRoot!;
-  (root.querySelector('[data-view="code"]') as HTMLButtonElement).click();
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value() { this.open = true; } });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value() { this.open = false; this.dispatchEvent(new Event('close')); } });
+  (root.querySelector('.code-toggle') as HTMLButtonElement).click();
+  expect(document.querySelector('dialog')?.parentElement).toBe(document.body);
   expect(root.querySelector('pre')?.textContent).toBe(source);
   expect(root.querySelectorAll('[data-syn]').length).toBeGreaterThan(0);
   expect([...root.querySelectorAll<HTMLElement>('[data-format]')].map(e => e.dataset.format)).toEqual(['png','svg','html','gif','mp4']);
   controls.destroy(); controls.destroy();
+});
+
+test('header layout and controls remain the same when the embedder changes its colors', () => {
+  const parsed = parseNotation('sequence 配色\na -> b: 確認');
+  if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
+  const controls = createDragonFrame(document, 'sequence 配色\na -> b: 確認', parsed.diagram, {headerColors:{surface:'#fff',accent:'#a23'}});
+  const header = controls.header;
+  expect(header.title.textContent).toBe('配色');
+  expect([...header.actions.children].map(el=>el.textContent?.trim())).toEqual(['コード','dragonで開く','書き出すPNG操作図全体を画像で保存SVG操作図全体を保存HTML単独ファイルで操作・初期条件から開始GIF直近の操作を全体で再生MP4直近の操作を全体で再生','拡大']);
+  expect(header.element.style.getPropertyValue('--dragon-header-accent')).toBe('#a23');
+  controls.setHeaderColors({accent:'#246',surface:undefined});
+  expect(header.element.style.getPropertyValue('--dragon-header-accent')).toBe('#246');
+  expect(header.element.style.getPropertyValue('--dragon-header-surface')).toBe('');
+  expect(header.settings.hidden).toBe(false);
+  controls.destroy();
 });
 
 test('snapshot preserves used centering margins instead of left-aligning the flow', () => {
