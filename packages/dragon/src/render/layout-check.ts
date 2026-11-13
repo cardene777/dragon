@@ -65,10 +65,7 @@ export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LAN
   return checkLayout((width) => drawDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }), ...(blocks === undefined ? {} : { blocks }) }).breaks ?? []);
 }
 
-/**
- * 記法 `text` の崩れ。記法に誤りがあれば描かずに空を返す (誤りは `parseNotation` か `dragon check` が出す)。
- * 崩れは描いた時に記録した字と線から数える。手描きの線 (#3643) は描き終えた形を描き替えるだけなので、線の描き方は崩れを変えない
- */
+/** 記法 `text` の崩れ。記法に誤りがあれば描かずに空を返す (誤りは `parseNotation` か `dragon check` が出す) */
 export function checkLayoutText(text: string, options: ParseOptions = {}): LayoutBreak[] {
   const parsed = parseNotation(text, options);
   return parsed.ok ? diagramBreaks(parsed.diagram, options.lang ?? DEFAULT_LANG, options.blocks) : [];

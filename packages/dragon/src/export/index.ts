@@ -11,7 +11,6 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Theme } from "../look/values";
 import type { Overlap } from "../render/ink";
-import type { LineStyle } from "../render/pen-store";
 import type { ViewMode } from "../schema";
 import type { UserBlocks } from "../user-blocks";
 import { chooseView } from "../view";
@@ -35,8 +34,6 @@ export interface ExportOptions {
   width?: number;
   palette?: string;
   theme?: Theme;
-  /** 線の描き方 (#3643)。`pen` は手描きのペンの線で描き、HTML の頁も同じ描き方で描き直す。書かなければ定規の線 */
-  line?: LineStyle;
   /** mp4 の 1 秒のコマの数 */
   fps?: number;
   /** GIF の 1 秒のコマの数 */

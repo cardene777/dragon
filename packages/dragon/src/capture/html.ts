@@ -12,7 +12,6 @@
 import { pageHtml } from "../export/html";
 import { planPage } from "../export/page";
 import type { Theme } from "../look/values";
-import type { LineStyle } from "../render/pen-store";
 import { parseNotation } from "../parser";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
@@ -29,8 +28,6 @@ export interface HtmlOptions {
   theme?: Theme;
   /** 記法の頭に書かずに渡す、使う人が足すブロックの定義。`readBlocks` が読んだ物 */
   blocks?: UserBlocks;
-  /** 線の描き方 (#3643)。`pen` は手描きのペンの線で描く。書かなければ定規の線。`dragon export --line` と同じ */
-  line?: LineStyle;
 }
 
 /** 断りの文 */

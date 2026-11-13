@@ -159,7 +159,6 @@ export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./rend
 export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
-export { LINE_STYLES, type LineStyle, penLoaded } from "./render/pen-store";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */

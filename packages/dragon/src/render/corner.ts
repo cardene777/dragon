@@ -22,7 +22,7 @@ export function cutCorners({ x, y, w, h }: Box): string {
 }
 
 /** 絵柄の線の class。絵柄、封の折り目、済みの印、木の札の印、時の旗で、角を落とす色味でも継ぎ目を丸いまま残す (#3358) */
-export const GLYPH_LINES = ["dg-gl", "dg-try-ng", "dg-env-in", "dg-done-ck", "dg-tree-cg", "dg-tm-pgl", "dg-tm-pcg"];
+const GLYPH_LINES = ["dg-gl", "dg-try-ng", "dg-env-in", "dg-done-ck", "dg-tree-cg", "dg-tm-pgl", "dg-tm-pcg"];
 
 /**
  * 角を落とす色味で、線と矢じりの継ぎ目を尖らせる規則 (#3358)。丸い角の色味では何も足さない。

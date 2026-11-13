@@ -16,7 +16,7 @@ import type { Lang } from "../text";
  * 節の並び。最初の図の後に宣言と段を省いた短い書き方 (#3438) を置き、記法の決まりの後に記法の要素を書く順に並べ、
  * 図を外で使う 2 つの形 (頁に置く、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "line", "migrate"] as const;
+export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -62,7 +62,6 @@ export const EXITS: Record<SectionId, Exit> = {
   json: { screen: "editor" },
   place: { section: "export" },
   export: { screen: "editor" },
-  line: { screen: "editor" },
   migrate: { screen: "editor" },
 };
 
@@ -347,15 +346,6 @@ export const DOCS: Record<Lang, DocsText> = {
         ],
         exit: "編集画面から書き出す →",
       },
-      line: {
-        title: "線の描き方",
-        text: [
-          "図の線は、定規で引いたまっすぐな線 (`ruler`、既定) か、手で引いたようにゆるく揺れるペンの線 (`pen`) で描ける。線の描き方は色味と同じく描く時に選び、記法には書かない。",
-          "手描きの線は、箱の縁と線と矢印と段の番号の輪を揺れる線で描く。絵柄と字と図の地の枠はそのまま描き、線の端と折れ目と尖った角は元の位置に残すので、矢じりの先は箱に着いたまま。同じ図は何度描いても同じ形に揺れる。下の図は手描きの線で描いた見本。",
-          "書き出しの命令では `--line pen`、頁に置く時は `mountDiagram` の 3 つめの引数に `line: \"pen\"` を渡す。編集画面では、図の上の帯の色味の丸の隣の釦で選ぶ。",
-        ],
-        exit: "編集画面で手描きを選ぶ →",
-      },
       migrate: {
         title: "前の形から書き直す",
         text: [
@@ -379,7 +369,6 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--out <dir>", "書き出す先。無ければ作る (既定は今の dir)"],
         ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる"],
         ["--palette <名前>", `色味 (${palettes}、既定は \`${fallback}\`)`],
-        ["--line <名前>", "線の描き方 (`ruler` / `pen`、既定は `ruler`)。`pen` は手描きのペンの線で描く"],
         ["--theme <明暗>", "`light` か `dark`"],
         ["--lang <言葉>", "図の中の字と命令の文の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に日本語の字があれば `ja`、無ければ `en` で、命令の文は `en`"],
         ["--fps <数>", "mp4 の 1 秒のコマの数 (既定 30)"],
@@ -627,15 +616,6 @@ export const DOCS: Record<Lang, DocsText> = {
         ],
         exit: "Export from the editor →",
       },
-      line: {
-        title: "How lines are drawn",
-        text: [
-          "Lines can be drawn straight, as with a ruler (`ruler`, the default), or as gently wobbling pen lines, as if drawn by hand (`pen`). Pick how lines are drawn when drawing, as with the palette; the notation does not say it.",
-          "Pen lines draw box edges, lines, arrows and step number rings as wobbling lines. Icons, text and the diagram frame stay as they are, and line ends, bends and sharp corners stay where they were, so arrow tips still touch their boxes. The same diagram wobbles the same way every time it is drawn. The diagram below is drawn with pen lines.",
-          "Pass `--line pen` to the export command, or `line: \"pen\"` in the third argument of `mountDiagram` on your page. In the editor, pick it with the buttons next to the palette dots above the diagram.",
-        ],
-        exit: "Pick pen lines in the editor →",
-      },
       migrate: {
         title: "Rewriting the old form",
         text: [
@@ -659,7 +639,6 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--out <dir>", "Where to write. Created if missing (default: the current dir)"],
         ["--width <px>", "Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`"],
         ["--palette <name>", `Colours (${palettes}, default \`${fallback}\`)`],
-        ["--line <name>", "How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws hand-drawn pen lines"],
         ["--theme <mode>", "`light` or `dark`"],
         ["--lang <lang>", "Language of the diagram text and command messages (`ja` or `en`). Without it, the diagram text is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en`"],
         ["--fps <n>", "Frames per second of the mp4 (default 30)"],

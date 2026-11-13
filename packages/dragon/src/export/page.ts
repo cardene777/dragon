@@ -12,9 +12,6 @@ import { FORMAT_VERSION, fromModel } from "../model";
 import { pipeTexts } from "../pipe-player";
 import { BUTTON_TEXT, stepNo, ZOOM_TEXT } from "../player";
 import { drawSvg, type Rendered, redrawWithBlocks, renderDiagram } from "../render/svg";
-// 書き出しは命令とブラウザの書き出す入口の両方で、手描きの線の処理を初めから持つ (#3643)
-import "../render/pen-all";
-import { drawLines, type LineStyle } from "../render/pen-store";
 import type { Diagram } from "../schema";
 import { tryTexts } from "../try-player";
 import type { UserBlocks } from "../user-blocks";
@@ -36,8 +33,6 @@ export interface PageOptions {
   width?: number;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3606) */
   blocks?: UserBlocks;
-  /** 線の描き方 (#3643)。書かなければ定規の線 */
-  line?: LineStyle;
 }
 
 /** 原本から集めた、頁と書き出しに要る物 */
@@ -58,8 +53,6 @@ export interface PagePlan {
   texts: string[];
   /** 頁に埋める原本。頁は埋めた原本を読み直して描く */
   source: Diagram;
-  /** 線の描き方。頁は埋めた原本をこの描き方で描き直す (#3643) */
-  line: LineStyle;
 }
 
 const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
@@ -133,7 +126,6 @@ export function planPage(input: unknown, options: PageOptions): PagePlan {
   const rendered = renderDiagram(input, {
     ...(options.palette ? { palette: options.palette } : {}),
     ...(options.theme ? { theme: options.theme } : {}),
-    ...(options.line === "pen" ? { line: options.line } : {}),
     ...blocks,
     lang,
   });
@@ -143,17 +135,10 @@ export function planPage(input: unknown, options: PageOptions): PagePlan {
   const width = options.width ?? (rendered.view === "follow" ? FOLLOW_WIDTH : layout.width);
   // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える。
   // 描き直す間も足したブロックの定義を有効にし、足した箱の形と線の模様を止め絵と同じに描く (#3606)
-  const line = options.line ?? "ruler";
-  const followSvg =
-    rendered.view === "fixed"
-      ? undefined
-      : redrawWithBlocks(input, { ...blocks, lang }, () => {
-          const svg = drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
-          return drawLines(svg, line, lang);
-        });
+  const followSvg = rendered.view === "fixed" ? undefined : redrawWithBlocks(input, { ...blocks, lang }, () => drawSvg(diagram, layout, timeline, palette, theme, { width, lang }));
   const texts = [...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang)];
   // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
   // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)
   const source = withDefinitions(fromModel(rendered.source ?? diagram, FORMAT_VERSION), options.blocks);
-  return { rendered, said, lang, palette, vars, width, followSvg, texts, source, line };
+  return { rendered, said, lang, palette, vars, width, followSvg, texts, source };
 }

@@ -17,12 +17,11 @@ import type { PagePlan } from "./page";
  * 頁の HTML。`plan` は原本から集めた物 (`planPage`)、`fontCss` は字の `@font-face` の並び、`player` は再生の script の中身。
  * 頁の `lang` 属性は図の中の字の言葉にし、名前をその言葉の声で読ませる (#3001)
  */
-export function pageHtml(plan: Pick<PagePlan, "source" | "palette" | "vars" | "lang" | "rendered" | "line">, fontCss: string, player: string): string {
+export function pageHtml(plan: Pick<PagePlan, "source" | "palette" | "vars" | "lang" | "rendered">, fontCss: string, player: string): string {
   const diagram = plan.source;
   // `</script>` で script が途切れないよう、`<` を JSON の逃がし方で書く
   const json = JSON.stringify(diagram).replace(/</g, "\\u003c");
-  // 手描きの線は、頁が図を描き直す時にも同じ描き方で描くよう渡す。定規の線の頁は前と同じ字のまま (#3643)
-  const options = JSON.stringify({ palette: plan.palette.id, theme: plan.rendered.theme, lang: plan.lang, ...(plan.line === "pen" ? { line: plan.line } : {}) });
+  const options = JSON.stringify({ palette: plan.palette.id, theme: plan.rendered.theme, lang: plan.lang });
   return [
     "<!doctype html>",
     `<html lang="${plan.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,

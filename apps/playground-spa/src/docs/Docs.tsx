@@ -120,8 +120,7 @@ function Section({ id, index, lang, theme, palette }: Look & { id: SectionId; in
           <pre className="docs-example-code" data-docs="example-code">
             <code>{example}</code>
           </pre>
-          {/* 線の描き方の節の見本は手描きの線で描く (#3643) */}
-          <LiveFigure className="docs-example-figure" notation={example} json={id === "json"} lang={lang} theme={theme} palette={palette} {...(id === "line" ? { line: "pen" as const } : {})} whole />
+          <LiveFigure className="docs-example-figure" notation={example} json={id === "json"} lang={lang} theme={theme} palette={palette} whole />
         </div>
       )}
       {id === "export" && (

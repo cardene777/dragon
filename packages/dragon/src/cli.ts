@@ -21,7 +21,6 @@ import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/
 import { PALETTES, type Theme } from "./look/values";
 import { parseNotation } from "./parser";
 import { describeOverlap } from "./render/ink";
-import { LINE_STYLES, type LineStyle } from "./render/pen-store";
 import type { UserBlocks } from "./user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "./words";
 
@@ -29,7 +28,6 @@ const OPTIONS = {
   out: { type: "string" },
   width: { type: "string" },
   palette: { type: "string" },
-  line: { type: "string" },
   theme: { type: "string" },
   lang: { type: "string" },
   fps: { type: "string" },
@@ -53,8 +51,6 @@ type Values = Partial<Record<keyof typeof OPTIONS, string>>;
 const THEMES: readonly Theme[] = ["light", "dark"];
 /** 色味の名前。使い方の文と `--palette` の値の確かめに使う */
 const PALETTE_NAMES = Object.keys(PALETTES).join(" / ");
-/** 線の描き方の名前。使い方の文と `--line` の値の確かめに使う (#3643) */
-const LINE_NAMES = LINE_STYLES.join(" / ");
 
 interface CliText {
   usage: string;
@@ -94,7 +90,6 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --out <dir>        書き出す先 (既定は今の dir)",
       "  --width <px>       枠の幅。見せ方を選び、寄って見せる窓の幅になる",
       `  --palette <名前>   色味 (${PALETTE_NAMES})`,
-      `  --line <名前>      線の描き方 (${LINE_NAMES})。pen は手描きのペンの線、既定は ruler`,
       "  --theme <明暗>     light か dark",
       "  --lang <言葉>      図の中の字と命令の文の言葉 (ja か en)。無ければ図の中の字は題と say の言葉、命令の文は en",
       "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
@@ -142,7 +137,6 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --out <dir>        Where to write (default: the current dir)",
       "  --width <px>       Frame width. Picks the view and sets the window width when following",
       `  --palette <name>   Colors (${PALETTE_NAMES})`,
-      `  --line <name>      How lines are drawn (${LINE_NAMES}). pen draws hand-drawn pen lines, default ruler`,
       "  --theme <mode>     light or dark",
       "  --lang <lang>      Language of the diagram text and command messages (ja or en). Without it, the diagram text follows the title and say lines, and messages are in en",
       "  --fps <n>          Frames per second of the mp4 (default 30)",
@@ -227,7 +221,6 @@ function valueProblem(values: Values, text: CliText): string | undefined {
   if (values.lang !== undefined && !isLang(values.lang)) return bad("lang", values.lang, text.allowed.lang);
   if (values.theme !== undefined && !THEMES.some((theme) => theme === values.theme)) return bad("theme", values.theme, text.allowed.theme);
   if (values.palette !== undefined && !Object.hasOwn(PALETTES, values.palette)) return bad("palette", values.palette, PALETTE_NAMES);
-  if (values.line !== undefined && !LINE_STYLES.some((line) => line === values.line)) return bad("line", values.line, LINE_NAMES);
   if (values.format !== undefined && !values.format.split(",").every((format) => FORMATS.some((known) => known === format))) {
     return bad("format", values.format, text.allowed.format);
   }
@@ -437,7 +430,6 @@ async function main(argv: string[]): Promise<number> {
       ...(values.format ? { formats: values.format.split(",") as ExportFormat[] } : {}),
       ...(width === undefined ? {} : { width }),
       ...(values.palette ? { palette: values.palette } : {}),
-      ...(values.line ? { line: values.line as LineStyle } : {}),
       ...(values.theme ? { theme: values.theme as Theme } : {}),
       ...(lang ? { lang } : {}),
       ...(fps === undefined ? {} : { fps }),

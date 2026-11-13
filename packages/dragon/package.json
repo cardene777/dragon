@@ -103,7 +103,6 @@
     "./dist/fonts.cjs",
     "./src/kinds/all.ts",
     "./src/blocks/icon/sets-all.ts",
-    "./src/render/pen-all.ts",
     "./src/render/svg.ts"
   ],
   "scripts": {
