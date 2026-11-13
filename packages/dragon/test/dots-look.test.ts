@@ -312,7 +312,11 @@ describe("点で数える見た目の原本の JSON (#3635)", () => {
     expect(pointers(validate(wrongShape as unknown as Json)), "集合の重なりの図の dots でない見た目の誤りの場所").toContain("/venn/shape");
     const zeroUnit = json(chart) as { chart: { unit: number } };
     zeroUnit.chart.unit = 0;
-    expect(pointers(validate(zeroUnit as unknown as Json)), "0 の 1 点の件数の誤りの場所").toContain("/chart/unit");
+    const zeroChecked = validate(zeroUnit, { lang: "ja" });
+    expect(pointers(zeroChecked), "0 の 1 点の件数の誤りの場所").toContain("/chart/unit");
+    // 誤りの文は決まりの名前 (exclusiveMinimum) のままにせず、書ける数を言う
+    const unitMessage = zeroChecked.ok ? undefined : zeroChecked.errors.find((error) => error.pointer === "/chart/unit")?.message;
+    expect(unitMessage, "0 の 1 点の件数の誤りの文").toBe("0 より大きい数にする");
   });
 });
 

@@ -45,6 +45,8 @@ export interface CoreFieldMessages {
   minItems: (limit: number) => string;
   maxItems: (limit: number) => string;
   minimum: (limit: number) => string;
+  /** `limit` ちょうどは書けず、それより大きい数だけを書ける決まり (点の見た目の 1 点の件数、#3635) */
+  exclusiveMinimum: (limit: number) => string;
   maximum: (limit: number) => string;
   const: (value: string) => string;
   /** どの欄の組み合わせか判らない場所では `undefined` */
@@ -101,6 +103,7 @@ const ja: CoreFieldMessages = {
   minItems: (limit) => `${limit} つ以上書く`,
   maxItems: (limit) => `${limit} つまでにする`,
   minimum: (limit) => `${limit} 以上にする`,
+  exclusiveMinimum: (limit) => `${limit} より大きい数にする`,
   maximum: (limit) => `${limit} 以下にする`,
   const: (value) => `${value} にする`,
   not: (allowed) => (allowed ? `${allowed.field} の欄は kind が ${allowed.kind} の時だけ書ける` : "この欄の組み合わせは書けない"),
@@ -130,6 +133,7 @@ const en: CoreFieldMessages = {
   minItems: (limit) => `Write at least ${plural(limit, "item")}`,
   maxItems: (limit) => `Write at most ${plural(limit, "item")}`,
   minimum: (limit) => `Use ${limit} or greater`,
+  exclusiveMinimum: (limit) => `Use a number greater than ${limit}`,
   maximum: (limit) => `Use ${limit} or less`,
   const: (value) => `Use ${value}`,
   not: (allowed) => (allowed ? `The ${allowed.field} field is allowed only when kind is ${allowed.kind}` : "This combination of fields is not allowed"),
