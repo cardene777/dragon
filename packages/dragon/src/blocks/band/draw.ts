@@ -5,13 +5,16 @@
  * 出どころの無い箱の棒と名前は初めから出し、行き先の棒は入る帯が伸び終えた時に帯の幅の分ずつ現れ、名前と量は最初の帯が着いた時に出る。
  * 帯の所と棒の所と字の所は並べ方 (`kinds/sankey/layout.ts`) が持つ。
  * 段ごとの帯の見た目 (`[shape: rows]`、#3641) は、行をその段が始まる時に出し、下りる帯をその段の線が伸びる間に出す。行と下りる帯の所は並べ方 (`kinds/sankey/layout.ts` の `layoutRows`) が持つ。
+ * 面積で割る四角の見た目 (`[shape: treemap]`、#3642) は、切る線をその段の線が伸びる間に引き、区画を線が伸び終えた時に出す。区画と切る線の所は並べ方の `layoutTreemap` が持つ。
  * この file は量の行き先の図の描く部品 (`kinds/sankey.ts`) が出し、見本帳を開いた時に読む塊に入れない
  */
-import type { SankeyBand, SankeyLayout, SankeyNode, SankeyRow, SankeyRowSection } from "../../kinds/sankey/layout";
-import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TYPE } from "../../look/sankey";
+import type { SankeyBand, SankeyLayout, SankeyNode, SankeyRow, SankeyRowSection, SankeyTile } from "../../kinds/sankey/layout";
+import type { Rect } from "../../layout/scene";
+import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TREEMAP, SANKEY_TREEMAP_TYPE, SANKEY_TYPE } from "../../look/sankey";
 import { EASE, MOTION } from "../../look/values";
 import { partRadius } from "../../render/corner";
 import { ALWAYS, type Shown } from "../../render/ink";
+import type { Frame } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
 
@@ -157,4 +160,92 @@ export function drawRows(layout: SankeyLayout, ctx: Ctx): string {
     })
     .join("");
   return `${drops}${(layout.rows ?? []).map(rowOf).join("")}`;
+}
+
+/**
+ * 面積で割る四角の見た目の区画と切る線と図の四角の下の名前を全て描く。区画ごとに 1 つの部品 (`data-sankey-tile="<名札>"`) にまとめ、
+ * 種類の `data-sankey-kind` を持ち、残りは `data-sankey-rest="<出どころの無い箱>"` も持つ。区画は切り出した線が伸び終えた時に出て、
+ * 残りは次の残りに替える線が伸び終えた時に消える。子の区画に分けた区画は、その時に地を薄くして枠と名前の札を出す。
+ * 切る線 (`data-sankey-cut="<段>:<番号>"`) はその段の線が伸びる間に引き、段の終わりに消える
+ */
+export function drawTreemap(layout: SankeyLayout, ctx: Ctx): string {
+  const { m, t } = ctx;
+  const TM = SANKEY_TREEMAP;
+  const TT = SANKEY_TREEMAP_TYPE;
+  const N = Number.POSITIVE_INFINITY;
+  /** 段 `step` の線 `event` が伸び終える時刻。線を持たない区画 (出どころの無い箱) はその段の始まり */
+  const at = (step: number, event: number | undefined): number => (event === undefined ? (t.steps[step]?.start ?? 0) : timesOf({ step, event }, ctx).drawn);
+  const rect = (r: Rect, cls: string, style = "", radius: number = TM.radius): string => {
+    const rx = partRadius(ctx.corner, Math.min(radius, r.h / 2, r.w / 2));
+    return `<rect class="${cls}" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}"${rx > 0 ? ` rx="${r1(rx)}"` : ""}${style ? ` style="${style}"` : ""}/>`;
+  };
+  const appearOf = new Map<string, number>();
+  /** 区画の地の濃さ。切り出した段の間は濃く、後の段では薄く、子の区画に分けた時に枠の中の濃さ (出どころの無い箱は 0) にする */
+  const tint = (tile: SankeyTile, end: number, splitAt: number | undefined): string => {
+    const T = TM.tint;
+    const pts: Frame[] = [[0, { "fill-opacity": T.now }]];
+    let now: number = T.now;
+    if (splitAt === undefined || end < splitAt) {
+      pts.push([end, { "fill-opacity": T.now }, EASE.inOut], [splitAt === undefined ? end + MOTION.fade : Math.min(end + MOTION.fade, splitAt), { "fill-opacity": T.lit }]);
+      now = T.lit;
+    }
+    if (splitAt !== undefined) {
+      pts.push([splitAt, { "fill-opacity": now }, EASE.inOut], [splitAt + MOTION.fade, { "fill-opacity": tile.event === undefined ? 0 : T.frame }]);
+      now = tile.event === undefined ? 0 : T.frame;
+    }
+    // 最後の点が無いと、keyframes の終わりへ向けて規則の濃さへ戻っていく
+    pts.push([m.total, { "fill-opacity": now }]);
+    return m.kf(pts);
+  };
+  const tiles = (layout.tiles ?? [])
+    .map((tile) => {
+      const appear = at(tile.step, tile.event);
+      appearOf.set(tile.id, appear);
+      const gone = tile.until === undefined ? undefined : at(tile.until, tile.cutBy);
+      const splitAt = tile.split === undefined ? undefined : at(tile.split, tile.cutBy);
+      const rest = tile.kind === "rest";
+      const shown: Shown[] = [[appear, splitAt ?? gone ?? N]];
+      const value = tile.value ? write(ctx.ink, rest ? "dg-sk-trest-v" : "dg-sk-tval", tile.value.x, tile.value.y, tile.value.text, rest ? TT.rest : TT.value, shown) : "";
+      const name = tile.name ? write(ctx.ink, "dg-sk-tname", tile.name.x, tile.name.y, tile.name.text, TT.name, shown) : "";
+      const fill = rest ? rect(tile, "dg-sk-trest") : rect(tile, "dg-sk-tile dg-a", tint(tile, t.steps[tile.step]?.end ?? appear, splitAt));
+      // 子の区画に分けた区画は、字を消して枠と名前の札を出す
+      const texts =
+        splitAt === undefined
+          ? name + value
+          : `<g class="dg-a" style="${m.kf([
+              [0, { opacity: 1 }],
+              [splitAt, { opacity: 1 }, EASE.inOut],
+              [splitAt + MOTION.fade, { opacity: 0 }],
+              [m.total, { opacity: 0 }],
+            ])}">${name}${value}</g>`;
+      const nested =
+        splitAt === undefined || tile.event === undefined
+          ? ""
+          : `<g class="dg-a" style="${m.vis(splitAt)}">${rect(tile, "dg-sk-frame")}${tile.chip ? write(ctx.ink, "dg-sk-tchip", tile.chip.x, tile.chip.y, tile.chip.text, TT.chip, [[splitAt, N]]) : ""}</g>`;
+      const restAttr = rest ? ` data-sankey-rest="${tile.box}"` : "";
+      return `<g data-sankey-tile="${tile.id}" data-sankey-kind="${tile.kind}"${restAttr} class="dg-a" style="${m.vis(appear, gone ?? m.last)}"><g style="${cs(tile.color)}">${fill}${texts}${nested}</g></g>`;
+    })
+    .join("");
+  const cuts = (layout.cuts ?? [])
+    .map((c, i) => {
+      const { start, drawn, end } = timesOf(c, ctx);
+      const style = m.kf([
+        [0, { opacity: 0, "stroke-dashoffset": 1 }],
+        [start, { opacity: 0, "stroke-dashoffset": 1 }, EASE.inOut],
+        [start + 0.05, { opacity: TM.cut.opacity }],
+        [drawn, { "stroke-dashoffset": 0 }],
+        [end, { opacity: TM.cut.opacity, "stroke-dashoffset": 0 }, EASE.inOut],
+        [end + MOTION.fade, { opacity: 0, "stroke-dashoffset": 0 }],
+        [m.total, { opacity: 0, "stroke-dashoffset": 0 }],
+      ]);
+      return `<path data-sankey-cut="${c.step}:${i}" class="dg-sk-cut dg-a" pathLength="1" d="M${r1(c.x1)} ${r1(c.y1)}L${r1(c.x2)} ${r1(c.y2)}" style="${style}"/>`;
+    })
+    .join("");
+  const names = (layout.names ?? [])
+    .map((n) => {
+      const appear = appearOf.get(n.id) ?? 0;
+      return `<g class="dg-a" style="${cs(n.color)};${m.vis(appear)}">${rect(n.mark, "dg-sk-mark", "", TM.names.markRadius)}${write(ctx.ink, "dg-sk-tlist", n.name.x, n.name.y, n.name.text, TT.list, [[appear, N]])}</g>`;
+    })
+    .join("");
+  return `${tiles}${cuts}${names === "" ? "" : `<g data-sankey-names="treemap">${names}</g>`}`;
 }

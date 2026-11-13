@@ -11,7 +11,7 @@ import { SANKEY_SHAPES } from "./limits";
 export const shape: BlockShape = {
   definitions: {
     sankeyLook: {
-      description: "量の行き先の図の見た目。rows は段ごとに図の幅いっぱいの帯を1行ずつ上から積み、各行をその段までの線で分かれた区画に分ける",
+      description: "量の行き先の図の見た目。rows は段ごとに図の幅いっぱいの帯を1行ずつ上から積み、各行をその段までの線で分かれた区画に分ける。treemap は全量を1つの四角にし、段ごとに切る線を引いて量の面積に割る",
       type: "object",
       additionalProperties: false,
       required: ["shape"],

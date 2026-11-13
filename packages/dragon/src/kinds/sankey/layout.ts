@@ -12,7 +12,7 @@
 import { amountOf } from "../../blocks/band/limits";
 import { textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, carrierHalf, edgesOf, type Layout, type Point, type Rect, type SceneBadge, type SceneEdge } from "../../layout/scene";
-import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TYPE } from "../../look/sankey";
+import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TREEMAP, SANKEY_TREEMAP_TYPE, SANKEY_TYPE } from "../../look/sankey";
 import { type ColorKey, LOOK, READABLE_PX } from "../../look/values";
 import type { DiagramModel } from "../../schema";
 import type { NotationLang } from "../../words";
@@ -63,15 +63,21 @@ export interface SankeyBand {
 
 /**
  * 量の行き先の図の置き場所。段ごとの帯の見た目 (`[shape: rows]`、#3641) は `arrangement` に `rows` を持ち、
- * 棒と帯の代わりに段ごとの行 (`rows`) と下りる帯 (`drops`) を持つ (並べ方は `layoutRows`)
+ * 棒と帯の代わりに段ごとの行 (`rows`) と下りる帯 (`drops`) を持つ (並べ方は `layoutRows`)。
+ * 面積で割る四角の見た目 (`[shape: treemap]`、#3642) は `arrangement` に `treemap` を持ち、図の四角 (`frame`) と区画 (`tiles`) と
+ * 切る線 (`cuts`) と図の四角の下の名前 (`names`) を持つ (並べ方は `layoutTreemap`)
  */
 export interface SankeyLayout extends Layout {
   kind: "sankey";
   nodes: SankeyNode[];
   bands: SankeyBand[];
-  arrangement?: "rows";
+  arrangement?: "rows" | "treemap";
   rows?: SankeyRow[];
   drops?: SankeyDrop[];
+  frame?: Rect;
+  tiles?: SankeyTile[];
+  cuts?: SankeyCut[];
+  names?: SankeyRowName[];
 }
 
 const S = SANKEY_LOOK;
@@ -620,4 +626,277 @@ export function layoutRows(diagram: DiagramModel, lang: NotationLang, width: num
   const wide = arrangeRows(diagram, lang, undefined);
   if (width === undefined || (width / wide.width) * RT.name.size >= READABLE_PX) return wide;
   return arrangeRows(diagram, lang, width);
+}
+
+/*
+ * 量の行き先の図の面積で割る四角の見た目 (`[shape: treemap]`、#3642) の置き場所。見た目の元は step 2 で決めた案。
+ *
+ * 全量を1つの四角 (図の四角) にし、出どころの無い箱を書いた順に図の四角から切り出す。箱と線は帯の図 (`layout.ts`) と同じ流れから読む。
+ * 段ごとに、同じ出どころから書いた線の量の和の帯を、出どころのまだ分けていない残りの長い辺を量の割合で切って切り出し、
+ * 帯の中を帯の長い辺に沿って線を書いた順に量で分ける。切る線は割った四角の縁から縁までに引く。
+ * 出どころの無い箱の残りは灰色の残りの区画 (`rest:<名札>:<段>`) にし、次に切る段で次の残りに替える。
+ * 行き先の区画をさらに分けた時は、区画の枠と名前の札 (`chip`) を残し、札の下の内側を子の区画に割る。
+ * 区画は名前と量を書く。名前が区画に入らない時は量だけを書き (量も入らなければ字を書かず)、図の四角の下に色の印と名前を並べる。
+ * 段の番号は図の四角の左上の上に置き、段が進むたびに数字を入れ替える。量の札は出さない。
+ * 既定の幅で描いた字を枠の幅 (`width`) に縮めると読める大きさに届かない時は、図の幅を枠の幅にして描く
+ */
+
+/**
+ * 区画。`id` は区画の名札で、箱の区画は箱の名札 (同じ箱の 2 つ目からは `<名札>@<番号>`)、出どころの無い箱の残りは `rest:<名札>:<段>`。
+ * `box` は区画が表す箱、`kind` は箱の区画 (`box`) か残り (`rest`)。`step` と `event` は区画を切り出した段と線 (出どころの無い箱は `event` を持たない)。
+ * `until` は残りを次の残りに替えた段、`split` は区画を子の区画に分けた段で、`cutBy` はその段で区画を切った最初の線。
+ * `amount` は区画の量、`name` と `value` は区画の中に書く名前と量、`chip` は子の区画に分けた後の名前の札
+ */
+export interface SankeyTile extends Rect {
+  id: string;
+  box: string;
+  kind: "box" | "rest";
+  step: number;
+  event?: number;
+  until?: number;
+  split?: number;
+  cutBy?: number;
+  color: ColorKey;
+  amount: number;
+  name?: SankeyRowText;
+  value?: SankeyRowText;
+  chip?: SankeyRowText;
+}
+
+/** 切る線。`step` と `event` は線を引く段と、その段の線。`region` は線が割った四角 */
+export interface SankeyCut {
+  step: number;
+  event: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  region: Rect;
+}
+
+const TM = SANKEY_TREEMAP;
+const TT = SANKEY_TREEMAP_TYPE;
+
+/** 四角 `r` を、縦に切るなら (`vertical`) 左から、横に切るなら上から、割合 `part` の所で切る。前の四角と後ろの四角と切る線 */
+function cutAt(r: Rect, part: number, vertical: boolean): { head: Rect; tail: Rect; line: [Point, Point] } {
+  if (vertical) {
+    const w = r.w * part;
+    return { head: { ...r, w }, tail: { x: r.x + w, y: r.y, w: r.w - w, h: r.h }, line: [[r.x + w, r.y], [r.x + w, r.y + r.h]] };
+  }
+  const h = r.h * part;
+  return { head: { ...r, h }, tail: { x: r.x, y: r.y + h, w: r.w, h: r.h - h }, line: [[r.x, r.y + h], [r.x + r.w, r.y + h]] };
+}
+
+/** 四角 `r` を区画の隙間の半分ずつ内へ寄せた区画の四角 */
+const inset = (r: Rect): Rect => ({ x: r.x + TM.gap / 2, y: r.y + TM.gap / 2, w: Math.max(1, r.w - TM.gap), h: Math.max(1, r.h - TM.gap) });
+
+/** まだ分けていない所。`rect` は残りの四角、`amount` は残りの量、`holder` はその四角を今占める区画 */
+interface Space {
+  rect: Rect;
+  amount: number;
+  holder: SankeyTile;
+  root: boolean;
+}
+
+/**
+ * 面積で割る四角の見た目を並べる。`frameWidth` は図の幅を枠の幅にする時の枠の幅で、`undefined` なら既定の幅で描く
+ */
+function arrangeTreemap(diagram: DiagramModel, lang: NotationLang, frameWidth: number | undefined): SankeyLayout {
+  const colors = boxColors(diagram);
+  const flows = flowsOf(diagram);
+  const boxNames = new Map(diagram.boxes.map((b) => [b.id, b.name]));
+  const into = (id: string): Flow[] => flows.filter((f) => f.to === id);
+  const outOf = (id: string): Flow[] => flows.filter((f) => f.from === id);
+  const roots = diagram.boxes.filter((b) => into(b.id).length === 0 && outOf(b.id).length > 0).map((b) => b.id);
+  const rootAmount = (id: string): number => outOf(id).reduce((s, f) => s + f.amount, 0);
+  const whole = roots.reduce((s, id) => s + rootAmount(id), 0);
+
+  const { r } = LOOK.badge;
+  const phone = frameWidth !== undefined;
+  const width = frameWidth ?? TM.width;
+  const pad = phone ? TM.phone.pad : SANKEY_LOOK.pad;
+  const fw = width - pad * 2;
+  const frame: Rect = { x: pad, y: pad + r * 2 + TM.badge.gap, w: fw, h: Math.round(fw * (phone ? TM.phone.aspect : TM.aspect)) };
+
+  const tiles: SankeyTile[] = [];
+  const cuts: SankeyCut[] = [];
+  const spaces = new Map<string, Space>();
+  const valueOf = new Map<string, string>();
+  const seen = new Map<string, number>();
+  const cutOf = (step: number, event: number, line: [Point, Point], region: Rect): SankeyCut => ({ step, event, x1: line[0][0], y1: line[0][1], x2: line[1][0], y2: line[1][1], region });
+
+  // 出どころの無い箱は書いた順に、図の四角の残りの長い辺を量の割合で切って並べる
+  let open = frame;
+  let pool = whole;
+  roots.forEach((id, i) => {
+    const amount = rootAmount(id);
+    const part = i === roots.length - 1 || pool <= 0 ? 1 : amount / pool;
+    const { head, tail } = cutAt(open, part, open.w >= open.h);
+    open = tail;
+    pool -= amount;
+    const tile: SankeyTile = { id, box: id, kind: "box", step: 0, color: colors.get(id) ?? "slate", amount, ...inset(head) };
+    tiles.push(tile);
+    valueOf.set(id, amountText(amount, outOf(id).map((f) => f.label)));
+    spaces.set(id, { rect: head, amount, holder: tile, root: true });
+  });
+
+  diagram.steps.forEach((_, s) => {
+    const here = flows.filter((f) => f.step === s && !empty(f.amount, whole));
+    for (const src of [...new Set(here.map((f) => f.from))]) {
+      const space = spaces.get(src);
+      if (!space) continue;
+      const group = here.filter((f) => f.from === src);
+      const first = group[0] as Flow;
+      const { holder } = space;
+      let region = space.rect;
+      // 初めて分ける行き先の区画は、枠と名前の札を残して内側を割る。出どころの無い箱と残りは、その段で区画を替える
+      if (holder.kind === "box" && holder.split === undefined) {
+        holder.split = s;
+        holder.cutBy = first.event;
+        if (!space.root) {
+          const n = TM.nest;
+          region = { x: holder.x + n.inset, y: holder.y + n.head, w: Math.max(1, holder.w - n.inset * 2), h: Math.max(1, holder.h - n.head - n.inset) };
+        }
+      } else if (holder.kind === "rest") {
+        holder.until = s;
+        holder.cutBy = first.event;
+      }
+      const total = group.reduce((sum, f) => sum + f.amount, 0);
+      const left = space.amount - total;
+      let strip = region;
+      let remainder: Rect | undefined;
+      if (left > 0 && !empty(left, whole)) {
+        const c = cutAt(region, total / space.amount, region.w >= region.h);
+        strip = c.head;
+        remainder = c.tail;
+        cuts.push(cutOf(s, first.event, c.line, region));
+      }
+      // 帯の中は帯の長い辺に沿って、線を書いた順に量で分ける
+      const vertical = strip.w >= strip.h;
+      let tail = strip;
+      let rest = total;
+      group.forEach((f, i) => {
+        let piece = tail;
+        const next = group[i + 1];
+        if (next) {
+          const c = cutAt(tail, rest > 0 ? f.amount / rest : 0, vertical);
+          piece = c.head;
+          tail = c.tail;
+          cuts.push(cutOf(s, next.event, c.line, strip));
+        }
+        rest -= f.amount;
+        const count = (seen.get(f.to) ?? 0) + 1;
+        seen.set(f.to, count);
+        const tile: SankeyTile = { id: count === 1 ? f.to : `${f.to}@${count}`, box: f.to, kind: "box", step: s, event: f.event, color: colors.get(f.to) ?? "slate", amount: f.amount, ...inset(piece) };
+        tiles.push(tile);
+        valueOf.set(tile.id, f.label);
+        if (count === 1) spaces.set(f.to, { rect: piece, amount: f.amount, holder: tile, root: false });
+      });
+      if (!remainder) {
+        spaces.delete(src);
+        continue;
+      }
+      if (!space.root) {
+        spaces.set(src, { ...space, rect: remainder, amount: left });
+        continue;
+      }
+      const restTile: SankeyTile = { id: `rest:${src}:${s}`, box: src, kind: "rest", step: s, event: first.event, color: "slate", amount: left, ...inset(remainder) };
+      tiles.push(restTile);
+      spaces.set(src, { rect: remainder, amount: left, holder: restTile, root: true });
+    }
+  });
+
+  // 区画の中の字。名前と量が入らない区画は量だけを書き、名前を図の四角の下に並べる
+  const listed: { tile: SankeyTile; text: string }[] = [];
+  for (const t of tiles) {
+    const inner = t.w - TM.padX * 2;
+    const single = (text: string, size: number, w: number): SankeyRowText | undefined =>
+      w <= inner && ascent(size) + descent(size) + TM.padY <= t.h ? placed(text, t.x + t.w / 2 - w / 2, t.y + t.h / 2 + ascent(size) / 2, size, w) : undefined;
+    if (t.kind === "rest") {
+      const text = REST_TEXT[lang](amountText(t.amount, outOf(t.box).map((f) => f.label)));
+      t.value = single(text, TT.rest.size, textWidth(text, TT.rest));
+      continue;
+    }
+    const name = boxNames.get(t.box) ?? t.box;
+    const valueText = valueOf.get(t.id) ?? "";
+    const nameW = textWidth(name, TT.name);
+    const valueW = textWidth(valueText, TT.value);
+    if (t.split !== undefined && !roots.includes(t.id)) {
+      const n = TM.nest;
+      const both = `${name} ${valueText}`;
+      const text = textWidth(both, TT.chip) <= inner ? both : name;
+      const w = textWidth(text, TT.chip);
+      if (w <= inner) t.chip = placed(text, t.x + TM.padX, t.y + n.chipAt, TT.chip.size, w);
+    }
+    if (nameW <= inner && valueW <= inner && TM.nameAt + TM.lines + descent(TT.value.size) + TM.padY <= t.h) {
+      t.name = placed(name, t.x + TM.padX, t.y + TM.nameAt, TT.name.size, nameW);
+      t.value = placed(valueText, t.x + TM.padX, t.y + TM.nameAt + TM.lines, TT.value.size, valueW);
+      continue;
+    }
+    t.value = single(valueText, TT.value.size, valueW);
+    listed.push({ tile: t, text: t.value ? name : `${name} ${valueText}` });
+  }
+
+  // 図の四角の下に並べる名前。区画の左の端の下に置き、前の名前と重なる時は右へずらし、図の四角の右の端を越える時は次の行へ送る
+  const N = TM.names;
+  const names: SankeyRowName[] = [];
+  let nx = frame.x;
+  let line = 0;
+  for (const { tile, text } of listed) {
+    const w = textWidth(text, TT.list);
+    const span = N.mark + N.markGap + w;
+    let x = Math.max(nx, Math.min(tile.x, frame.x + frame.w - span));
+    if (nx > frame.x && x + span > frame.x + frame.w) {
+      x = Math.max(frame.x, Math.min(tile.x, frame.x + frame.w - span));
+      line += 1;
+    }
+    nx = x;
+    const base = frame.y + frame.h + N.gap + ascent(TT.list.size) + line * N.row;
+    names.push({
+      id: tile.id,
+      color: tile.color,
+      mark: { x: nx, y: base - ascent(TT.list.size) / 2 - N.mark / 2, w: N.mark, h: N.mark },
+      name: placed(text, nx + N.mark + N.markGap, base, TT.list.size, w),
+    });
+    nx += span + N.apart;
+  }
+
+  // 段の番号は図の四角の左上の上に置き、次の段が始まると数字を入れ替える (列の図の右上で段を数える番号と同じ作り)。色はその段で最初に切り出した区画の色
+  const last = diagram.steps.length - 1;
+  const badges: SceneBadge[] = diagram.steps.map((_, s) => ({
+    step: s,
+    x: frame.x + r,
+    y: pad + r,
+    color: tiles.find((t) => t.step === s && t.kind === "box" && t.event !== undefined)?.color ?? "slate",
+    ...(s < last ? { until: s + 1, shared: true } : {}),
+  }));
+  const bottom = Math.max(frame.y + frame.h, ...names.map((n) => n.name.rect.y + n.name.rect.h));
+  return {
+    kind: "sankey",
+    arrangement: "treemap",
+    width,
+    height: bottom + pad,
+    regions: [],
+    boxes: [],
+    lifelines: [],
+    edges: [],
+    labels: [],
+    actions: [],
+    badges,
+    paths: [],
+    ends: [],
+    nodes: [],
+    bands: [],
+    frame,
+    tiles,
+    cuts,
+    names,
+  };
+}
+
+/** 面積で割る四角の見た目を並べる。既定の幅で描いた字を枠の幅 `width` に縮めると読める大きさに届かない時は、図の幅を枠の幅にして描き直す */
+export function layoutTreemap(diagram: DiagramModel, lang: NotationLang, width: number | undefined): SankeyLayout {
+  const wide = arrangeTreemap(diagram, lang, undefined);
+  if (width === undefined || (width / wide.width) * TT.name.size >= READABLE_PX) return wide;
+  return arrangeTreemap(diagram, lang, width);
 }

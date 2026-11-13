@@ -1,0 +1,32 @@
+// スマホの128GBの保存領域を、写真とアプリと動画と空きに分け、アプリをさらに遊びと仕事に分けていく流れを、面積で割る四角で追う。
+// 容量は形を見せるための見本の値で、誰かの実際のスマホではない。
+sankey スマホの保存領域の内訳 [shape: treemap]
+
+box all as 保存領域 [color: slate]
+box photo as 写真 [color: blue]
+box app as アプリ [color: green]
+box video as 動画 [color: violet]
+box free as 空き [color: amber]
+box game as 遊び [color: rose]
+box work as 仕事 [color: blue]
+
+step 保存領域
+  say スマホの保存領域は128GB。
+
+step 写真
+  say 128GBのうち48GBを写真が使う。
+  all -> photo: 48GB
+
+step アプリと動画
+  say アプリが32GB、動画が16GBを使う。
+  all -> app: 32GB
+  all -> video: 16GB
+
+step 空き
+  say 残りの32GBは空き。
+  all -> free: 32GB
+
+step アプリの内訳
+  say アプリの32GBを、遊びの20GBと仕事の12GBに分ける。
+  app -> game: 20GB
+  app -> work: 12GB

@@ -1,0 +1,32 @@
+// Follow how a phone's 128GB of storage splits into photos, apps, videos and free space, and how the apps split into games and work, as one square cut by area.
+// The sizes are sample values to show the shape, not anyone's real phone.
+sankey What fills a phone's storage [shape: treemap]
+
+box all as Storage [color: slate]
+box photo as Photos [color: blue]
+box app as Apps [color: green]
+box video as Videos [color: violet]
+box free as Free space [color: amber]
+box game as Games [color: rose]
+box work as Work [color: blue]
+
+step Storage
+  say The phone has 128GB of storage.
+
+step Photos
+  say Photos use 48 of the 128GB.
+  all -> photo: 48GB
+
+step Apps and videos
+  say Apps use 32GB and videos use 16GB.
+  all -> app: 32GB
+  all -> video: 16GB
+
+step Free space
+  say The other 32GB is free space.
+  all -> free: 32GB
+
+step Inside the apps
+  say Split the 32GB of apps into 20GB of games and 12GB of work.
+  app -> game: 20GB
+  app -> work: 12GB

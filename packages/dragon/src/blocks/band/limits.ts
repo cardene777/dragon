@@ -8,8 +8,8 @@
  */
 const LEAD = /^\d[\d,]*(?:\.\d+)?/u;
 
-/** 量の行き先の図の見た目 (#3641)。`rows` は段ごとに図の幅いっぱいの帯を1行ずつ上から積む */
-export const SANKEY_SHAPES = ["rows"] as const;
+/** 量の行き先の図の見た目。`rows` (#3641) は段ごとに図の幅いっぱいの帯を1行ずつ上から積み、`treemap` (#3642) は全量の四角を段ごとに量の面積に割る */
+export const SANKEY_SHAPES = ["rows", "treemap"] as const;
 
 /** 線の名前 `label` の初めの数。数で始まらない名前と、名前の無い線は `undefined` */
 export function amountOf(label: string | undefined): number | undefined {
