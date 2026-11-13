@@ -4,12 +4,11 @@
  * 版を上げるたびに、`package.json` の版を前提の配り方の節と更新履歴の見出しへ手で書き足す。
  * 書き足し忘れても build も他の検査も通るので、ここで版が 2 か所に載っているかを確かめる。
  */
-import { execFile, execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -950,14 +949,9 @@ describe("Release の本文 (#3335)", () => {
    * 一度に起こすのは 8 つまでにする
    */
   const allNotes = async (versions: string[]): Promise<Map<string, string>> => {
-    const run = promisify(execFile);
-    const out = new Map<string, string>();
-    for (let i = 0; i < versions.length; i += 8) {
-      const batch = versions.slice(i, i + 8);
-      const texts = await Promise.all(batch.map(async (version) => (await run("node", [SCRIPT, `v${version}`], { encoding: "utf8" })).stdout));
-      batch.forEach((version, k) => out.set(version, texts[k] ?? ""));
-    }
-    return out;
+    const { releaseNotes } = await import(/* @vite-ignore */ SCRIPT) as { releaseNotes(text: string, version: string): string | undefined };
+    const changelog = readFileSync(join(ROOT, "CHANGELOG.md"), "utf8");
+    return new Map(versions.map(version => [version, releaseNotes(changelog, `v${version}`) ?? ""]));
   };
   const LINK = "Every version is listed in [CHANGELOG.md](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).";
 

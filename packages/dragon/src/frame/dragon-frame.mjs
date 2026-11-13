@@ -88,7 +88,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
     const dialog=document.createElement('dialog');expandedDialog=dialog;
     dialog.setAttribute('aria-label',diagram.title);
     dialog.className='dragon-expanded-dialog';
-    dialog.style.cssText='width:min(1400px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 28px);padding:0;border:1px solid #cdd9c7;border-radius:12px;background:#fffefa;';
+    dialog.style.cssText='position:fixed;inset:0;margin:auto;width:min(1400px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 28px);padding:0;border:1px solid #cdd9c7;border-radius:12px;background:#fffefa;';
     const backdrop=document.createElement('style');backdrop.textContent='.dragon-expanded-dialog::backdrop{background:#1b2c25b3;backdrop-filter:blur(3px)}';
     marker.parentNode.append(dialog);dialog.append(backdrop,frame);
     frame.style.maxHeight='calc(100dvh - 32px)';frame.style.overflow='auto';
