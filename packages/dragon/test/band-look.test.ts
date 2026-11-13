@@ -364,8 +364,8 @@ const segmentOf = (motion: Motion, id: string, round: number): Element | null =>
 const chipOf = (motion: Motion, text: string, t: number): Element | undefined =>
   [...motion.doc.querySelectorAll("text.dg-car-t")]
     .filter((x) => x.textContent === text)
-    .map((x) => x.parentElement)
-    .find((g): g is Element => g !== null && motion.opacity(g, t) > 0.5);
+    .flatMap((x): Element[] => (x.parentElement ? [x.parentElement] : []))
+    .find((g) => motion.opacity(g, t) > 0.5);
 
 /** 箱に書いた長さの単位を、言語ごとに目盛りの数字に添える字 */
 const UNIT_WORD: Record<Lang, Record<string, string>> = {
@@ -751,7 +751,7 @@ describe("輪を開いた帯の見た目の並べ方と動き (#3639)", () => {
       const carrier = timeline.carriers.find((c) => c.step === e.step && c.event === e.event);
       expect(carrier, `${what} の札が走らない`).toBeDefined();
       if (!carrier) continue;
-      const chip = chipOf(motion, e.carry.text, (carrier.depart + carrier.arrive) / 2);
+      const chip = chipOf(motion, e.carry.text ?? "", (carrier.depart + carrier.arrive) / 2);
       expect(chip, `${what} の札の字が描いた図に無い`).toBeDefined();
       if (!chip) continue;
       for (const k of [0.25, 0.5, 0.75]) {
