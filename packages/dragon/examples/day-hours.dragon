@@ -1,0 +1,34 @@
+// 1日の24時間を、寝る時間と起きている時間に分け、起きている時間を仕事と家のことと自由な時間に分けていく流れを、段ごとの帯で追う。
+// 時間は形を見せるための見本の値で、誰かの実際の1日ではない。
+sankey 1日24時間の使い方 [shape: rows]
+
+box day as 1日 [color: slate]
+box sleep as 寝る [color: blue]
+box awake as 起きている [color: amber]
+box work as 仕事 [color: violet]
+box home as 家のこと [color: green]
+box free as 自由な時間 [color: rose]
+box move as 通う [color: violet]
+box desk as 働く [color: violet]
+
+step 1日
+  say 1日は24時間。
+
+step 寝る
+  say 24時間のうち8時間を寝る。
+  day -> sleep: 8時間
+
+step 起きている
+  say 残りの16時間は起きている。
+  day -> awake: 16時間
+
+step 起きている時間を分ける
+  say 起きている16時間を、仕事の10時間と家のことの3時間と自由な時間の3時間に分ける。
+  awake -> work: 10時間
+  awake -> home: 3時間
+  awake -> free: 3時間
+
+step 仕事の時間を分ける
+  say 仕事の10時間を、通う2時間と働く8時間に分ける。
+  work -> move: 2時間
+  work -> desk: 8時間

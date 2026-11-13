@@ -202,11 +202,11 @@ function sameJson(a: unknown, b: unknown): boolean {
 /** 描く処理の形の図を、`omit` の物を省いて記法に書く */
 function printModel(diagram: DiagramModel, omit: Omissions): string {
   const blocks = [
-    // 量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) の見た目と、点で数える見た目の 1 点の件数と、
+    // 量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641) の見た目と、点で数える見た目の 1 点の件数と、
     // 点数で点を打つ見た目の表の欄と、時計の文字盤の見た目の回る向きは図の種類の行の属性なので、見た目のブロックでなくここで書く
     `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([
       // 見た目の欄は図の種類ごとの欄のどれか 1 つだけが持つ
-      ["shape", (diagram.chart ?? diagram.lineup ?? diagram.venn ?? diagram.matrix ?? diagram.cycle)?.shape],
+      ["shape", (diagram.chart ?? diagram.lineup ?? diagram.venn ?? diagram.matrix ?? diagram.cycle ?? diagram.sankey)?.shape],
       ["unit", num(diagram.chart?.unit ?? diagram.venn?.unit)],
       ["table", diagram.matrix?.table],
       ["turn", diagram.cycle?.turn],

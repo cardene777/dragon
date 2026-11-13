@@ -73,6 +73,10 @@
       "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く。clock は全ての箱に、band は全ての箱かどの箱にも書かない",
       "$ref": "#/definitions/cycleLook"
     },
+    "sankey": {
+      "description": "量の行き先の図の見た目。量の行き先の図だけが書け、出どころと行き先は blocks の box に、量は段の中の線の名前に書く",
+      "$ref": "#/definitions/sankeyLook"
+    },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
       "type": "object",
@@ -250,6 +254,25 @@
       "else": {
         "properties": {
           "cycle": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "sankey"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "sankey": {
             "$ref": "#/definitions/absent"
           }
         }

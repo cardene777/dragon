@@ -210,10 +210,10 @@ const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "fl
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 /**
- * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638)、
+ * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
  * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
 
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -235,7 +235,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const view = viewOf(head, headAttrs.get("view"), m);
   // 図の種類の行の属性は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
   // 値は図の種類のブロックが確かめる。量の図の見た目は見た目のブロック、列の図の見た目はチップのブロック、集合の重なりの図の見た目は集まりの円のブロック、
-  // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロックが確かめる
+  // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロック、量の行き先の図の見た目は量の帯のブロックが確かめる
   for (const [key, kinds] of Object.entries(HEAD_KINDS)) {
     const attr = headAttrs.get(key);
     if (attr && !kinds.includes(kind)) throw fail(head, attr.at, m.headOnlyAttr(key, kinds));

@@ -1,0 +1,34 @@
+// Follow how the 24 hours of a day split into sleep and awake time, and how the awake time splits into work, home and free time, one row per step.
+// The hours are sample values to show the shape, not anyone's real day.
+sankey How a day's 24 hours are spent [shape: rows]
+
+box day as One day [color: slate]
+box sleep as Sleep [color: blue]
+box awake as Awake [color: amber]
+box work as Work [color: violet]
+box home as Home [color: green]
+box free as Free time [color: rose]
+box move as Commute [color: violet]
+box desk as Desk work [color: violet]
+
+step One day
+  say A day has 24 hours.
+
+step Sleep
+  say Sleep 8 of the 24 hours.
+  day -> sleep: 8h
+
+step Awake
+  say The other 16 hours are awake time.
+  day -> awake: 16h
+
+step Split the awake time
+  say Split the 16 awake hours into 10 hours of work, 3 hours at home and 3 hours of free time.
+  awake -> work: 10h
+  awake -> home: 3h
+  awake -> free: 3h
+
+step Split the work time
+  say Split the 10 hours of work into a 2-hour commute and 8 hours at the desk.
+  work -> move: 2h
+  work -> desk: 8h

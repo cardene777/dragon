@@ -65,7 +65,7 @@ export interface FigureDraft {
    * 量の図は項目のブロック、表どうしの関係の図は表のブロック、2つの軸で置く図は軸のブロック、集合の重なりの図は集まりの円のブロック、
    * 回り続ける図の見た目と向き (#3638) は輪のブロックが置く。ブロックは前に置かれた欄を残して足す
    */
-  root?: Partial<Pick<DiagramModel, "chart" | "er" | "matrix" | "venn" | "cycle">>;
+  root?: Partial<Pick<DiagramModel, "chart" | "er" | "matrix" | "venn" | "cycle" | "sankey">>;
   /** 宣言した区画。区画のブロックが `group` の行で足す */
   regions: Region[];
   /** 宣言した箱。箱のブロックが `box` の行で足す */

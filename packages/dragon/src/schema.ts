@@ -216,6 +216,11 @@ export interface CycleLook {
   turn?: "left";
 }
 
+/** 量の行き先の図 (#3641) の見た目。`rows` は段ごとに図の幅いっぱいの帯を1行ずつ上から積み、各行をその段までの線で分かれた区画に分ける */
+export interface SankeyLook {
+  shape: "rows";
+}
+
 /** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
 export interface TryLine {
   type: "line";
@@ -386,6 +391,8 @@ export interface Diagram {
   venn?: VennLook;
   /** 回り続ける図の見た目 (#3638)。回り続ける図だけが書き、手順の長さは `blocks` の箱 (`box`) の `time` に持つ */
   cycle?: CycleLook;
+  /** 量の行き先の図の見た目 (#3641)。量の行き先の図だけが書き、出どころと行き先は `blocks` の箱 (`box`) に持つ */
+  sankey?: SankeyLook;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -432,6 +439,8 @@ export interface DiagramModel {
   venn?: { sets: VennSet[]; shape?: VennShape; unit?: number };
   /** 回り続ける図の見た目 (#3638)。版1の原本に無かった欄なので、版2の原本の根の `cycle` の欄をそのまま持つ */
   cycle?: CycleLook;
+  /** 量の行き先の図の見た目 (#3641)。版1の原本に無かった欄なので、版2の原本の根の `sankey` の欄をそのまま持つ */
+  sankey?: SankeyLook;
 }
 
 /**

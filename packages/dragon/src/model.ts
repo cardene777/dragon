@@ -46,9 +46,9 @@ const blank = (value: unknown): boolean => value === undefined || (Array.isArray
 
 /**
  * 版1に無かった欄のうち、描く処理の形と原本の根に同じ形で置く欄。
- * 量の図 (#3560) の見た目と項目、2つの軸で置く図 (#3622) の軸と課題、回り続ける図の見た目 (#3638)
+ * 量の図 (#3560) の見た目と項目、2つの軸で置く図 (#3622) の軸と課題、回り続ける図の見た目 (#3638)、量の行き先の図の見た目 (#3641)
  */
-const ROOTED = ["chart", "matrix", "cycle"] as const;
+const ROOTED = ["chart", "matrix", "cycle", "sankey"] as const;
 
 /** `from` の `ROOTED` の欄のうち、書いた欄だけ */
 const rooted = (from: object): Obj => Object.fromEntries(ROOTED.flatMap((key) => ((from as Obj)[key] === undefined ? [] : [[key, (from as Obj)[key]]])));

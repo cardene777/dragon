@@ -6,9 +6,9 @@
  * 見た目の規則も量の行き先の図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない。
  * この file は後から読む量の行き先の図の塊 (`kinds/sankey.ts`) だけが読み、見本帳を開いた時に読む塊に入れない
  */
-import { drawBands, drawNodes } from "../blocks/band/draw";
+import { drawBands, drawNodes, drawRows } from "../blocks/band/draw";
 import type { SankeyLayout } from "../kinds/sankey/layout";
-import { SANKEY_TYPE } from "../look/sankey";
+import { SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TYPE } from "../look/sankey";
 import { type Ctx, cssFont as font } from "./parts";
 
 /** 量の行き先の図の見た目の規則。帯、棒、名前、棒の右の量、棒の上の量 */
@@ -20,7 +20,28 @@ const SANKEY_CSS = [
   `.dg-sk-lead{${font(SANKEY_TYPE.lead)};fill:var(--ct)}`,
 ].join("");
 
-/** 量の行き先の図の帯と、その上に重ねる棒と字。帯の上に棒と字を重ね、ほかの層は空なので、帯と棒と字を 1 つの層に入れる。段の番号と量の札は描く所が描く */
+/**
+ * 段ごとの帯の見た目 (`[shape: rows]`、#3641) の見た目の規則。区画の地、下りる帯、帯の下の名前の色の印、区画の名前、区画の量、残りの量、帯の下の名前。
+ * 区画の地の濃さは、新しく分かれた区画、続いている区画、残りで分ける。帯の図の SVG には書かない
+ */
+const ROWS_CSS = [
+  ".dg-sk-cell{fill:var(--c)}",
+  `.dg-sk-new{fill-opacity:${SANKEY_ROWS.tint.now}}`,
+  `.dg-sk-carried{fill-opacity:${SANKEY_ROWS.tint.carried}}`,
+  `.dg-sk-rest{fill-opacity:${SANKEY_ROWS.tint.rest}}`,
+  `.dg-sk-drop{fill:var(--c);fill-opacity:${SANKEY_ROWS.tint.drop}}`,
+  ".dg-sk-mark{fill:var(--c)}",
+  `.dg-sk-rname{${font(SANKEY_ROWS_TYPE.name)};fill:var(--ink)}`,
+  `.dg-sk-rval{${font(SANKEY_ROWS_TYPE.value)};fill:var(--ct)}`,
+  `.dg-sk-rrest{${font(SANKEY_ROWS_TYPE.rest)};fill:var(--mute)}`,
+  `.dg-sk-rlist{${font(SANKEY_ROWS_TYPE.list)};fill:var(--ink)}`,
+].join("");
+
+/**
+ * 量の行き先の図の帯と、その上に重ねる棒と字。帯の上に棒と字を重ね、ほかの層は空なので、帯と棒と字を 1 つの層に入れる。段の番号と量の札は描く所が描く。
+ * 段ごとの帯の見た目は、下りる帯と行を 1 つの層に入れ、帯の図の見た目の規則に段ごとの帯の規則を足す
+ */
 export function drawSankey(layout: SankeyLayout, ctx: Ctx): { base: string; css: string } {
+  if (layout.arrangement === "rows") return { base: `<g class="dg-sk">${drawRows(layout, ctx)}</g>`, css: SANKEY_CSS + ROWS_CSS };
   return { base: `<g class="dg-sk">${drawBands(layout, ctx)}</g>${drawNodes(layout, ctx)}`, css: SANKEY_CSS };
 }

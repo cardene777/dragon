@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>` (段ごとに帯を積む見た目は `[shape: rows]`)、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -830,6 +830,36 @@ step 残り
   say 3,000円を貯めて、2,000円で遊ぶ。
   pay -> save: 3,000円
   pay -> fun: 2,000円
+```
+
+図の種類の行に `[shape: rows]` を足すと、段ごとに図の幅いっぱいの帯を1行ずつ上から積む。
+各行はその段までの線で分かれた区画に分かれ、その段で新しく分かれた区画と最後の行の区画に名前と量が出る。
+出どころの無い箱のまだ分けていない残りは灰色の帯に `残り16時間` の形で出て、名前が区画に入らない区画は名前を帯の下に並べる。
+
+```dragon
+sankey 1日の使い方 [shape: rows]
+
+box day as 1日 [color: slate]
+box sleep as 寝る [color: blue]
+box awake as 起きている [color: amber]
+box work as 仕事 [color: violet]
+box free as 自由な時間 [color: rose]
+
+step 1日
+  say 1日は24時間。
+
+step 寝る
+  say 8時間を寝る。
+  day -> sleep: 8時間
+
+step 起きている
+  say 残りの16時間は起きている。
+  day -> awake: 16時間
+
+step 分ける
+  say 起きている時間を仕事と自由な時間に分ける。
+  awake -> work: 10時間
+  awake -> free: 6時間
 ```
 
 ## 属性

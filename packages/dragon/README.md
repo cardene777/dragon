@@ -1214,6 +1214,40 @@ step The rest
   pay -> fun: 2,000 yen
 ```
 
+Write `sankey <title> [shape: rows]` to stack one full-width bar per step from the top instead of drawing bands.
+
+- Boxes, steps and lines are written as in the band look, and there is one row per step. Each row is split into the sections that the lines so far have cut, and a section is as wide as its share of the total of the boxes with no source
+- Each line cuts its target section out of the source section, from the left and in the order written. What a box with no source has not handed out yet is a gray bar that reads like `16h left`
+- Sections that split off in that step and the sections of the last row show their name and amount, and sections carried over from the step before are faint bars with no text
+- The band coming down from the row above and the amount chip are drawn only for the sections that split off in that step
+- When a name does not fit in its section, the section shows only the amount and the name is listed under that row's bar with a color mark. At phone width the bars still span the full width
+
+```dragon
+sankey How a day is spent [shape: rows]
+
+box day as One day [color: slate]
+box sleep as Sleep [color: blue]
+box awake as Awake [color: amber]
+box work as Work [color: violet]
+box free as Free time [color: rose]
+
+step One day
+  say A day has 24 hours.
+
+step Sleep
+  say Sleep 8 hours.
+  day -> sleep: 8h
+
+step Awake
+  say The other 16 hours are awake time.
+  day -> awake: 16h
+
+step Split
+  say Split the awake time into work and free time.
+  awake -> work: 10h
+  awake -> free: 6h
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
