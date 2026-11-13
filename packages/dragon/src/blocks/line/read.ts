@@ -62,7 +62,7 @@ export const reading: BlockReading<LineMessages> = {
     events: {
       // 試す図の line は待ち行列のブロックが書き戻す (#3349)。出来事の形は列と部品の 2 つを持つので、両方を読む
       // 列を空にする列の図の line (#3624) は `:` の後ろに何も書かない
-      line: (e) => `line ${"part" in e ? e.part : e.box}:${e.items.length > 0 ? ` ${e.items.join(", ")}` : ""}`,
+      line: (e) => `line ${"part" in e ? e.part : "box" in e ? e.box : ""}:${e.items.length > 0 ? ` ${e.items.join(", ")}` : ""}`,
     },
   },
   messages: {

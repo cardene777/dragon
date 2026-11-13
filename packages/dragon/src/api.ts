@@ -44,6 +44,8 @@ export {
   type LineupStamp,
   type MatrixAxis,
   type MatrixItem,
+  type MatrixPlot,
+  type MatrixShape,
   type MatrixSpec,
   type MindIdea,
   type PipeCalc,

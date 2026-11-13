@@ -23,7 +23,7 @@ import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem,
 import type { PipeRun } from "../pipe-run";
 import type { FlowChoice, FlowLine } from "./choice/block";
 import type { ErTable } from "./table/block";
-import type { MatrixAxis } from "./axis/block";
+import type { MatrixAxis, MatrixShape } from "./axis/block";
 import type { MatrixItem } from "./matrix-item/block";
 import type { VennSet } from "./circle/block";
 import type { TryRun } from "../try-state";
@@ -93,8 +93,11 @@ export interface FigureDraft {
   tree: { boxes: Map<string, { source: SourceLine; at: number }>; parents: Map<string, string> };
   /** 考えを広げる地図で書いた考えの名札と段 (真ん中の題が 0、枝が 1、葉が 2) と、真ん中の題の名札。考えのブロックが組む (#3619) */
   mind: { levels: Map<string, number>; centre?: string };
-  /** 2つの軸で置く図で宣言した軸と課題。軸のブロックと課題のブロックが組む (#3622) */
-  matrix: { axes: MatrixAxis[]; items: MatrixItem[] };
+  /**
+   * 2つの軸で置く図の原本の `matrix` の欄。軸のブロックと課題のブロックが組む (#3622)。
+   * 見た目 `shape` と表の欄 `table` (#3637) は、軸のブロックが図の種類の行の属性 (`ParseState.head`) を確かめてから置く
+   */
+  matrix: { axes: MatrixAxis[]; items: MatrixItem[]; shape?: MatrixShape; table?: "none" };
   /**
    * 列の図で宣言したチップと役と、今封をしている列。チップと役と封のブロックが組む (#3348)。
    * `shape` は図の種類の行の見た目 (#3625) で、読む処理が置き、チップのブロックが確かめる
@@ -158,6 +161,8 @@ export interface ParseState {
   readonly kind: KindName;
   /** 行ごとに書ける属性の鍵 (語の表の `ATTRS`)。鍵は行の頭の語で、線の行は `edge` */
   readonly attrs: Readonly<Record<string, readonly string[]>>;
+  /** 図の種類の行の属性。図の種類だけが使う属性は、その図の種類のブロックが読んで確かめる (#3637) */
+  readonly head: ReadonlyMap<string, Attr>;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
   /** 書いている段。最初の `step` より前は `undefined` (#3348) */

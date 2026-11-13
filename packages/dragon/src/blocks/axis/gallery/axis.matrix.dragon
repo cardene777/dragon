@@ -1,22 +1,22 @@
-matrix 軸
+matrix 軸 [shape: scatter, table: none]
 
 axis 手間 [from: 小さい, to: 大きい]
-axis 効き目 [from: 小さい, to: 大きい]
+axis 危うさ [from: 低い, to: 高い, reverse: yes]
 
 box now as 今やる
 box plan as 計画する
-box spare as 手が空いたら
+box wait as 様子を見る
 box drop as やらない
 
-item login as ログインを速く
-item old as 古い画面を作り直す
+item login as ログインを速く [x: 2, y: 2]
+item old as 古い画面を作り直す [x: 8, y: 7]
 
 step 横の軸
-  say axis の 1 行目が横の軸で、区画の下を左から右へ引く。
-    from に左の端の字、to に右の端の字を書く。
-  line now: login
+  say axisの1行目が横の軸で、0から10の目盛りを左から右へ引く。
+    fromに左の端の字、toに右の端の字を書く。
+  line: login
 
 step 縦の軸
-  say axis の 2 行目が縦の軸で、区画の左を下から上へ引く。
-    名前と両端の字は軸の外に出る。
-  line drop: old
+  say axisの2行目が縦の軸で、下から上へ引く。
+    reverse: yesを書くと大きい値を下に置き、危うさの低い課題が上に来る。
+  line: old

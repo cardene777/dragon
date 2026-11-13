@@ -115,7 +115,7 @@ export const reading: BlockReading<QueueMessages> = {
   print: {
     events: {
       // 試す図の line は列 (box) でなく部品 (part) を名指す (#3337)。書き戻す処理は図の種類で使えるブロックから引くので、列の図の並びのブロックと分けて持つ (#3349)
-      line: (e) => `line ${"part" in e ? e.part : e.box}: ${e.items.join(", ")}`,
+      line: (e) => `line ${"part" in e ? e.part : "box" in e ? e.box : ""}: ${e.items.join(", ")}`,
     },
     part: (part) =>
       part.type === "queue"

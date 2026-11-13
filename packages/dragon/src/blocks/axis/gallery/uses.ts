@@ -7,4 +7,8 @@ export const uses = {
   "head:axis": (v) => (v.diagram.matrix?.axes.length ?? 0) > 0,
   "attr:axis.from": (v) => (v.diagram.matrix?.axes ?? []).some((axis) => axis.from !== undefined),
   "attr:axis.to": (v) => (v.diagram.matrix?.axes ?? []).some((axis) => axis.to !== undefined),
+  /** 軸の大きい値の側を左か下にする `reverse` (#3637) */
+  "attr:axis.reverse": (v) => (v.diagram.matrix?.axes ?? []).some((axis) => axis.reverse === true),
+  /** 点数で点を打つ見た目の表を出さない `table` (#3637)。図の種類の行に書き、2つの軸で置く図だけが読む */
+  "attr:diagram.table": (v) => v.diagram.matrix?.table !== undefined,
 } satisfies BlockUses;

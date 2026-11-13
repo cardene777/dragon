@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>`, `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -607,6 +607,8 @@ The horizontal arrow runs below the areas from left to right and the vertical ar
 Write exactly four areas with `box <id> as <name>`; they go top left, top right, bottom left and bottom right in the order written. Write the items to sort with `item <id> as <name>`; they wait in the list left of the areas in the order written.
 `line <area>: <item>, <item>` inside a step places items into an area: the cards slide from the list into the area and the area lights up. A placed card stays until a later step places it in another area.
 A matrix without exactly two axes or four areas, and a `line` that names an unknown area or item, are refused. Lines between boxes and `strip` are not allowed.
+Give an item scores from 0 to 10 with `[x: <across>, y: <up>]` on its line, and `line: <item>` inside a step places it without naming an area, into the area its scores fall in. A score of 5 or more counts as the large side, and `reverse: yes` on an axis line puts large values on the left or at the bottom.
+Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores, with a table of the items and their scores on the left. `[shape: scatter, table: none]` leaves the table out.
 
 ```dragon
 matrix Sort the work by effort and impact
@@ -634,6 +636,37 @@ step The rest
   say Sort the rest by effort and impact.
   line plan: pay
   line spare: word
+```
+
+```dragon
+matrix Plot the work by score [shape: scatter]
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login [x: 2, y: 8]
+item pay as Add payments [x: 8, y: 7.5]
+item word as Fix wording [x: 3, y: 3]
+
+step Line up
+  say Line up the work and its scores in the table on the left.
+
+step Login
+  say Plot the work with low effort and high impact.
+  line: login
+
+step Payments
+  say Plot the work with high impact and high effort.
+  line: pay
+
+step Wording
+  say Plot the work with low effort and low impact.
+  line: word
 ```
 
 In a set overlap diagram (`venn <title>`), write 2 or 3 sets with `item <id> as <name>` before the first `step` line.

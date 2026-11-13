@@ -3,10 +3,11 @@
  *
  * 軸の線を小さい側の端から大きい側の端まで引き、大きい側の端に山形の矢じりを付ける。軸の名前と両端の字は軸の外に置く。
  * 縦の軸の字は左へ 90 度回し、下から上へ読ませる。字の記録 (`ctx.ink`) には回した後の字の四角を残し、崩れの確かめが重なりを測れるようにする。
+ * 点数で点を打つ見た目 (#3637) の軸は、線の脇に 0 から 10 の目盛りを引き、5 の倍数の目盛りに数を書く。目盛りの数は回さない。
  * 軸の所と字の所は並べ方 (`kinds/matrix/layout.ts`) が持つ。
  * この file は 2つの軸で置く図を描く部品 (`render/matrix.ts`) だけが読み、見本帳を開いた時に読む塊に入れない
  */
-import type { MatrixAxisPlaced, MatrixAxisText } from "../../kinds/matrix/layout";
+import type { MatrixAxisPlaced, MatrixAxisText, MatrixTick } from "../../kinds/matrix/layout";
 import { textWidth } from "../../layout/measure";
 import type { Rect } from "../../layout/scene";
 import { MATRIX_LOOK, MATRIX_TYPE } from "../../look/matrix";
@@ -29,7 +30,22 @@ function axisText(t: MatrixAxisText, name: boolean, turned: boolean, ctx: Ctx): 
   return `<text class="${name ? "dg-mx-an" : "dg-mx-ae"}" x="${r1(x)}" y="${r1(y)}"${t.anchor === "start" ? "" : ` text-anchor="${t.anchor}"`}${turn}>${esc(t.text)}</text>`;
 }
 
-/** 軸 1 つ。線と矢じりと字 */
+/** 目盛りの線と数。数は回さず、並べ方が決めた揃え方で書く */
+function ticksOf(ticks: readonly MatrixTick[], ctx: Ctx): string {
+  if (ticks.length === 0) return "";
+  const style = MATRIX_TYPE.tick;
+  const d = ticks.map(({ from: [ax, ay], to: [bx, by] }) => `M${r1(ax)} ${r1(ay)}L${r1(bx)} ${r1(by)}`).join("");
+  const numbers = ticks.flatMap(({ text: t }) => {
+    if (!t) return [];
+    const w = textWidth(t.text, style);
+    const [x, y] = t.at;
+    ctx.ink.push({ text: t.text, rect: { x: x - w * SHIFT[t.anchor], y: y - style.size * 0.8, w, h: style.size }, shown: ALWAYS });
+    return [`<text class="dg-mx-tn" x="${r1(x)}" y="${r1(y)}"${t.anchor === "start" ? "" : ` text-anchor="${t.anchor}"`}>${esc(t.text)}</text>`];
+  });
+  return `<path class="dg-mx-tk" d="${d}"/>${numbers.join("")}`;
+}
+
+/** 軸 1 つ。線と矢じりと字と、点数で点を打つ見た目の目盛り */
 function axisOf(axis: MatrixAxisPlaced, ctx: Ctx): string {
   const [[ax, ay], [bx, by]] = axis.line;
   const len = Math.hypot(bx - ax, by - ay) || 1;
@@ -40,6 +56,7 @@ function axisOf(axis: MatrixAxisPlaced, ctx: Ctx): string {
     `<g data-matrix-axis="${axis.dir}">` +
     `<path class="dg-mx-ax" d="M${r1(ax)} ${r1(ay)}L${r1(bx)} ${r1(by)}"/>` +
     `<path class="dg-mx-ax" data-matrix-arrow="" d="M${wing(1)}L${r1(bx)} ${r1(by)}L${wing(-1)}"/>` +
+    ticksOf(axis.ticks ?? [], ctx) +
     // 真ん中に置く字が軸の名前で、両端の字は始まりと終わりに揃える
     axis.texts.map((t) => axisText(t, t.anchor === "middle", axis.dir === "y", ctx)).join("") +
     "</g>"

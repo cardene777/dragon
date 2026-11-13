@@ -1,22 +1,22 @@
-matrix Axes
+matrix Axes [shape: scatter, table: none]
 
 axis Effort [from: low, to: high]
-axis Impact [from: low, to: high]
+axis Risk [from: low, to: high, reverse: yes]
 
 box now as Do now
 box plan as Plan it
-box spare as When free
+box wait as Watch it
 box drop as Skip
 
-item login as Faster login
-item old as Rebuild old screen
+item login as Faster login [x: 2, y: 2]
+item old as Rebuild old screen [x: 8, y: 7]
 
 step Horizontal axis
-  say The first axis line is the horizontal axis, drawn below the areas from left to right.
+  say The first axis line is the horizontal axis, ruled from 0 to 10 from left to right.
     from is the text at the left end and to the text at the right end.
-  line now: login
+  line: login
 
 step Vertical axis
-  say The second axis line is the vertical axis, drawn left of the areas from bottom to top.
-    The name and both ends sit outside the axis.
-  line drop: old
+  say The second axis line is the vertical axis, drawn from bottom to top.
+    With reverse: yes it puts high values at the bottom, so low-risk items come to the top.
+  line: old

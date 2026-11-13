@@ -142,6 +142,8 @@ import taskPriorityJa from "../../../packages/dragon/examples/task-priority.drag
 import taskPriorityEn from "../../../packages/dragon/examples/task-priority.en.dragon?raw";
 import riskMatrixJa from "../../../packages/dragon/examples/risk-matrix.dragon?raw";
 import riskMatrixEn from "../../../packages/dragon/examples/risk-matrix.en.dragon?raw";
+import featureScoresJa from "../../../packages/dragon/examples/feature-scores.dragon?raw";
+import featureScoresEn from "../../../packages/dragon/examples/feature-scores.en.dragon?raw";
 import tokenListingJa from "../../../packages/dragon/examples/token-listing.dragon?raw";
 import tokenListingEn from "../../../packages/dragon/examples/token-listing.en.dragon?raw";
 import chainChoiceJa from "../../../packages/dragon/examples/chain-choice.dragon?raw";
@@ -240,6 +242,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "token-transfer": { ja: tokenTransferJa, en: tokenTransferEn },
   "task-priority": { ja: taskPriorityJa, en: taskPriorityEn },
   "risk-matrix": { ja: riskMatrixJa, en: riskMatrixEn },
+  "feature-scores": { ja: featureScoresJa, en: featureScoresEn },
   "token-listing": { ja: tokenListingJa, en: tokenListingEn },
   "chain-choice": { ja: chainChoiceJa, en: chainChoiceEn },
   "wallet-usage": { ja: walletUsageJa, en: walletUsageEn },

@@ -956,6 +956,9 @@ The horizontal axis runs below the areas from left to right and the vertical axi
 - `item <id> as <name>` is an item to sort, written before the first `step`. Items wait in the "Not placed yet" list in the order written
 - `line <area>: <item>, <item>` inside a step places items into an area. The cards slide from the list into the area and the area lights up in that step. A placed card stays until a later step places it in another area. An unknown area or item, or the same item twice on one line, is refused
 - `as <name>` can be left out, and the id is then shown as the name. Lines between boxes and `strip` lines are refused in a two-axis matrix
+- `item <id> as <name> [x: <across>, y: <up>]` gives an item scores from 0 to 10, with at most one decimal place. `line: <item>` inside a step then places it without naming an area, into the area its scores fall in, and a score of 5 or more counts as the large side. A `line <area>: <item>` for a scored item is read only when the area matches its scores. Scores outside 0 to 10, or only one of the two, are refused
+- Add `reverse: yes` to an axis line, as `axis <name> [from: <low end>, to: <high end>, reverse: yes]`, and that axis puts large values on the left or at the bottom, with its arrow pointing that way
+- Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores instead of moving a card. The ruled axes show 0 to 10, a table of the items and their scores sits left of the plot, and the step that plots an item draws lines from both axes to the dot with its scores and lights the area it lands in. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out, and a narrow frame stacks the table above the plot
 
 ```dragon
 matrix Sort the work by effort and impact
@@ -983,6 +986,37 @@ step The rest
   say Sort the rest by effort and impact.
   line plan: pay
   line spare: word
+```
+
+```dragon
+matrix Plot the work by score [shape: scatter]
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login [x: 2, y: 8]
+item pay as Add payments [x: 8, y: 7.5]
+item word as Fix wording [x: 3, y: 3]
+
+step Line up
+  say Line up the work and its scores in the table on the left.
+
+step Login
+  say Plot the work with low effort and high impact.
+  line: login
+
+step Payments
+  say Plot the work with high impact and high effort.
+  line: pay
+
+step Wording
+  say Plot the work with low effort and low impact.
+  line: word
 ```
 
 ### Set overlap diagram

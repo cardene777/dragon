@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>`、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -607,6 +607,8 @@ step 数を増やす
 区画は `box <名札> as <名前>` でちょうど 4 つ書き、書いた順に左上、右上、左下、右下に並ぶ。分ける課題は `item <名札> as <名前>` で書き、区画の左の置く前の一覧に書いた順に並ぶ。
 段の中の `line <区画>: <課題>, <課題>` で課題を区画へ置くと、札が一覧から区画へ滑り、区画が光る。置いた札は後の段で別の区画へ置き直すまで残る。
 軸が 2 本でない図、区画が 4 つでない図、無い区画か課題を名指す `line` は誤りで止まる。箱どうしの線と `strip` は書けない。
+課題の行に `[x: <横>, y: <縦>]` で0から10の点数を書くと、段の中の `line: <課題>` で区画を書かずに点数から決まる区画へ置ける。軸ごとに5以上を大きい側に数え、軸の行に `reverse: yes` を足すとその軸は大きい値を左か下に置く。
+最初の行を `matrix <題> [shape: scatter]` にすると、課題を点数どおりの所の点で打ち、左に課題と点数の表を並べる。表は `[shape: scatter, table: none]` で消せる。
 
 ```dragon
 matrix 仕事を手間と効き目で分ける
@@ -634,6 +636,37 @@ step 残りを分ける
   say 残りを手間と効き目で分ける。
   line plan: pay
   line spare: word
+```
+
+```dragon
+matrix 仕事を点数で打つ [shape: scatter]
+
+axis 手間 [from: 小さい, to: 大きい]
+axis 効き目 [from: 小さい, to: 大きい]
+
+box now as 今やる
+box plan as 計画する
+box spare as 手が空いたら
+box drop as やらない
+
+item login as ログインを速く [x: 2, y: 8]
+item pay as 決済を足す [x: 8, y: 7.5]
+item word as 文言の直し [x: 3, y: 3]
+
+step 並べる
+  say 仕事と点数を左の表に並べる。
+
+step ログイン
+  say 手間が小さく効き目の大きい仕事を打つ。
+  line: login
+
+step 決済
+  say 効き目も手間も大きい仕事を打つ。
+  line: pay
+
+step 文言
+  say 手間も効き目も小さい仕事を打つ。
+  line: word
 ```
 
 集合の重なりの図 (`venn <題>`) は、最初の `step` の行より前に `item <名札> as <名前>` で集まりを 2 つか 3 つ書く。

@@ -26,7 +26,7 @@ Lines starting with `//` and blank lines are not read.
 `<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn`, `matrix` and `sankey`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
-- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]` or `chart <title> [shape: dots]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers ([lineup](kinds/lineup.md)), and `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)). Only `chart`, `lineup` and `venn` take `shape` here, and only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)).
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]` or `chart <title> [shape: dots]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), and `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)). Only `chart`, `lineup`, `venn` and `matrix` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), and only `matrix` with `[shape: scatter]` takes `table`.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups
@@ -90,8 +90,12 @@ A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <
 | `carry` | `coin`, `none` |
 | `side` | `above`, `below`, `left`, `right` |
 | `view` | `fixed`, `follow` |
-| `shape` on the `chart` head line | `donut`, `bar` |
-| `shape` on the `lineup` head line | `layers` |
+| `shape` on the `chart` head line | `donut`, `bar`, `funnel`, `dots` |
+| `shape` on the `lineup` head line | `layers`, `stations` |
+| `shape` on the `venn` head line | `dots` |
+| `shape` on the `matrix` head line | `scatter` |
+| `table` on the `matrix` head line | `none` |
+| `reverse` on `axis` lines | `yes` |
 
 Pick colors by meaning and keep them consistent in one diagram: for example `slate` for people and clients, `blue` for your system, `green` for success, `rose` for failure, `amber` for waiting or money.
 `lineup` takes no icons.
@@ -115,7 +119,7 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | `strip` and `set` | `architecture`, `cycle`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
 | `idea` (with its own `color`) | `mind` |
-| `axis`, `item`, `line <area>: <item>` (exactly four `box` lines as the areas) | `matrix` |
+| `axis`, `item`, `line <area>: <item>`, `line: <item>` (exactly four `box` lines as the areas) | `matrix` |
 | `table`, `field`, `pick`, `set <table>.<field>`, `note <table>.<field>`, `carry` and `->` lines between linked fields | `er` |
 | `item`, `set <id>: <count>`, `set <id> & <id>: <count>` and `set none: <count>` | `venn` |
 | `group ... end` | `architecture` |
