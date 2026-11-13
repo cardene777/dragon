@@ -49,6 +49,12 @@
  * 線は最初の駅の左へ `before`、最後の駅の右へ `after` 伸ばす。駅どうしの間の下限 `step`、名前の基準線は線から `nameY` 上、2 行目の真ん中は線から `row2Y` 上、
  * 札は幅の下限 `cardW`、高さ `cardH`、上下の間 `cardGap`、線から最初の札の上端まで `top` (差し戻しの在る図は `backTop`)、戻りの線は線から `backY` 下。
  * 段で通った区間の線の太さ `run`。狭い枠は流れの線を図の左から `narrowX` に引き、戻りの線を `narrowRail` に、札の列を `narrowCards` から置く
+ *
+ * `stairs` は階段の見た目 (#3640) で、帯と印と札は層の見た目 (`layers`) の値を使い、ここは階段のずらしと経った時間の目盛りと針の値を持つ。
+ * 帯の幅の下限 `width`、下の層を右へずらす幅 `shift` (携帯の幅は `phoneShift`、帯が狭くなる時は `leastShift` まで縮める)。
+ * 目盛りは、既定の幅では階段の右に縦に、携帯の幅では階段の下に横に置く。目盛りの線の太さ `line`、目盛りの印の長さ `mark`、印と数字の間 `tickGap`。
+ * 針は線を指す三角で、長さ `needle`、開きは長さに `spread` を掛けた幅。針に添える経った時間の札は高さ `chipH`、字の左右の余白 `chipPadX`、角の丸み `chipRadius`、針との間 `chipGap`。
+ * 既定の幅では階段の右の端から札の列まで `gap`、携帯の幅では階段の下の端から札の行まで `below` 空ける。字の大きさと太さは `type` が持つ
  */
 export const LINEUP_LOOK = {
   margin: 20,
@@ -198,5 +204,26 @@ export const LINEUP_LOOK = {
     narrowHead1: 36,
     narrowHead2: 66,
     narrowCard: { h: 34, gap: 6, numR: 10, numX: 17, textX: 33, plainX: 15, padR: 10, tagInset: 6, backInset: 16, backR: 9.5 },
+  },
+  stairs: {
+    width: 560,
+    shift: 44,
+    phoneShift: 14,
+    leastShift: 8,
+    line: 2,
+    mark: 7,
+    tickGap: 6,
+    needle: 10,
+    spread: 0.6,
+    chipH: 28,
+    chipPadX: 10,
+    chipRadius: 8,
+    chipGap: 4,
+    gap: 24,
+    below: 20,
+    type: {
+      tick: { size: 12.5, weight: 600, family: "sans" },
+      elapsed: { size: 13.5, weight: 700, family: "sans" },
+    },
   },
 } as const;

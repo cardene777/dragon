@@ -24,6 +24,11 @@
  * 層の見た目 (`[shape: layers]`、#3625) は箱を宣言した順に上から横の帯に重ね、帯の左に色の棒と層の名前と説明 (`sub`) を、その右に層の番号と印と札の列を置く。
  * 札 (チップ) は `line` を書いた段にその層の帯へ下り、`note` は書いた段からその層の帯に印を出して、次の `note` まで残す。層の間に矢印を置かない。
  * 横に並べると層の名前が `READABLE_PX` に届かない枠の幅では、帯の中で名前と説明の下に印と札の行を置いて縦に組む。
+ *
+ * 階段の見た目 (`[shape: stairs]`、#3640) は層の見た目の帯を、下の層ほど同じ幅だけ右へずらした階段に置く。帯の中と印と札は層の見た目と同じ。
+ * 全ての箱に `time` を書いた図は、経った時間の目盛りと針を添える。目盛りは 0 から 1、2、5 に 10 の累乗を掛けた間隔で数字を置き、単位は箱に書いた中で一番大きい単位にする。
+ * 針は段ごとに、その段で最後に札を下ろした層までに経った時間 (その層の時間を含む) を指し、経った時間を書いた札を添える。札を下ろす前の段は 0 を指す。
+ * 既定の幅では目盛りを階段の右に縦に置いて上から下へ時間を進め、携帯の幅では階段を幅いっぱいに描き、目盛りを階段の下に横に置いて左から右へ時間を進める。
  */
 import { type FigureText, FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../look/values";
@@ -32,6 +37,7 @@ import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
 import { hasWide, textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
+import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 
 const L = LINEUP_LOOK;
 const Y = L.layers;
@@ -255,15 +261,51 @@ export interface LineupBandNote extends Rect, LineupAt {
   until?: LineupAt;
 }
 
+/** 階段の見た目 (#3640) の目盛りの数字。`value` は単位で数えた値、`at` は目盛りの向き (縦なら y、横なら x) の所、`rect` は字の四角、`mark` は目盛りの印の両端 */
+export interface LineupScaleTick {
+  value: number;
+  text: string;
+  at: number;
+  rect: Rect;
+  label: LineupText;
+  mark: [Point, Point];
+}
+
+/** 階段の見た目の経った時間の目盛り。既定の幅は縦 (`vertical`)、携帯の幅は横 (`horizontal`)。`line` は目盛りの線の四角 */
+export interface LineupScale {
+  axis: "vertical" | "horizontal";
+  unit: TimeUnit;
+  line: Rect;
+  ticks: LineupScaleTick[];
+}
+
+/**
+ * 階段の見た目の段ごとの針。`value` は目盛りの単位で数えた経った時間、`at` は目盛りの向きの所、`tip` は針の三角の 3 つの点。
+ * `chip` は経った時間を書いた札の四角で、`label` はその字。`move` は針を動かした段の `line` の出来事で、札を下ろさない段は持たない
+ */
+export interface LineupNeedle {
+  step: number;
+  value: number;
+  text: string;
+  at: number;
+  tip: [Point, Point, Point];
+  chip: Rect;
+  label: LineupText;
+  move?: LineupAt;
+}
+
 export interface LineupLayout extends Layout {
   kind: "lineup";
-  /** 見た目。既定のボード (#3624)、流れの線 (`[shape: stations]`、#3624)、層の見た目 (`[shape: layers]`、#3625) */
-  shape: "board" | "stations" | "layers";
-  /** 帯か駅を横に並べたか (`row`)、携帯の幅で上から積んだか (`stack`)、層の見た目で横の帯に重ねたか (`layers`) */
-  arrangement: "row" | "stack" | "layers";
-  /** 層の見た目の帯の飾りと印。層の見た目だけが持つ */
+  /** 見た目。既定のボード (#3624)、流れの線 (`[shape: stations]`、#3624)、層の見た目 (`[shape: layers]`、#3625)、階段の見た目 (`[shape: stairs]`、#3640) */
+  shape: "board" | "stations" | "layers" | "stairs";
+  /** 帯か駅を横に並べたか (`row`)、携帯の幅で上から積んだか (`stack`)、層の見た目で横の帯に重ねたか (`layers`)、階段に置いたか (`stairs`) */
+  arrangement: "row" | "stack" | "layers" | "stairs";
+  /** 層の見た目と階段の見た目の帯の飾りと印。2 つの見た目だけが持つ */
   bands?: LineupBand[];
   bandNotes?: LineupBandNote[];
+  /** 階段の見た目の経った時間の目盛りと段ごとの針。全ての箱に `time` を書いた階段の見た目だけが持つ */
+  scale?: LineupScale;
+  needles?: LineupNeedle[];
   lanes: LineupLane[];
   chips: LineupSeat[];
   seals: LineupSeal[];
@@ -436,10 +478,12 @@ export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {})
   const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
   const { width } = options;
   const shape = diagram.lineup?.shape;
-  if (shape === "layers") {
-    const wide = arrangeLayers(diagram, words, false);
+  if (shape === "layers" || shape === "stairs") {
+    const lang = options.lang ?? DEFAULT_LANG;
+    const stairs = shape === "stairs";
+    const wide = arrangeLayers(diagram, words, false, lang, stairs);
     if (width === undefined || (width / wide.width) * Y.type.name.size >= READABLE_PX) return wide;
-    return arrangeLayers(diagram, words, true);
+    return arrangeLayers(diagram, words, true, lang, stairs);
   }
   const look = shape === "stations" ? "stations" : "board";
   const row = arrange(diagram, words, look, false);
@@ -1095,10 +1139,11 @@ function remarkLines(text: string, w: number): number {
 const layerWidth = (text: string, style: TextStyle): number => textWidth(text, style.family === "mono" && hasWide(text) ? { ...style, family: "sans" } : style);
 
 /**
- * 層の見た目 (#3625) の置き方。`narrow` は携帯の幅で、帯の中で名前と説明の下に印と札の行を置く。
- * 横に並べた帯は左から、色の棒と名前と説明、層の番号、印、札の列を置き、帯の中の幅が下限より広い時は、余りを番号の前と札の前に半分ずつ空ける
+ * 層の見た目 (#3625) と階段の見た目 (#3640) の置き方。`narrow` は携帯の幅で、帯の中で名前と説明の下に印と札の行を置く。
+ * 横に並べた帯は左から、色の棒と名前と説明、層の番号、印、札の列を置き、帯の中の幅が下限より広い時は、余りを番号の前と札の前に半分ずつ空ける。
+ * `stairs` は帯を下の層ほど同じ幅だけ右へずらし、全ての箱に長さを書いた図には経った時間の目盛りと針を置く
  */
-function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean): LineupLayout {
+function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean, lang: NotationLang, stairs: boolean): LineupLayout {
   const T = Y.type;
   const margin = narrow ? L.stack.margin : L.margin;
   const items = diagram.lineup?.items ?? [];
@@ -1123,12 +1168,21 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
   const nameW = Math.max(0, ...diagram.boxes.map((b) => layerWidth(b.name, T.name)));
   const descW = Math.max(0, ...diagram.boxes.map((b) => (b.sub === undefined ? 0 : layerWidth(b.sub, T.desc))));
   const noW = Y.no * 2;
+  // 階段の見た目の経った時間。全ての箱に長さを書いた時だけ持つ
+  const timing = stairs ? timingOf(diagram, lines, lang) : undefined;
 
   // 帯の中の幅。横に並べた帯は列を全て並べた幅、縦に組んだ帯は名前と番号の行と、印と札の行の広い方
   const rowNeed = stampCol + (stampCol > 0 && cardCol > 0 ? Y.colGap : 0) + cardCol;
   const wideNeed = Y.textX + Math.max(nameW, descW) + Y.colGap + noW + Y.colGap + rowNeed + Y.padR;
   const narrowNeed = Y.textX + Math.max(nameW + Y.colGap + noW, stampCol, cardCol) + Y.padR;
-  const inner = Math.max(narrow ? L.stack.width - margin * 2 : Y.width, narrow ? narrowNeed : wideNeed, stripNeed(diagram));
+  // 図の中の幅 (`inner`) と、帯 1 本の幅 (`laneW`) と、下の層をずらす幅 (`shift`)。階段の見た目の携帯の幅は、帯が狭くなりすぎない所までずらしを縮める
+  const steps = Math.max(0, diagram.boxes.length - 1);
+  const room = L.stack.width - margin * 2;
+  const shift = !stairs || steps === 0 ? 0 : narrow ? Math.max(STAIRS.leastShift, Math.min(STAIRS.phoneShift, (room - narrowNeed) / steps)) : STAIRS.shift;
+  const laneMin = narrow ? narrowNeed : Math.max(stairs ? STAIRS.width : Y.width, wideNeed);
+  const scaleW = timing && !narrow ? scaleColumn(timing) : 0;
+  const inner = Math.max(narrow ? room : 0, laneMin + shift * steps + scaleW, stripNeed(diagram));
+  const laneW = stairs ? inner - shift * steps - scaleW : inner;
   const width = inner + margin * 2;
   /** 層に出る印の幅と札の列の幅。縦に組んだ帯は層ごとにこれで行の数を決め、印の短い層まで長い印の層に合わせて間延びさせない */
   const stampIn = (lane: string): number => Math.max(0, ...notes.filter((n) => n.lane === lane).map((n) => stampW(n.text)));
@@ -1139,15 +1193,15 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
   const bands: LineupBand[] = [];
   /** 帯ごとの、印と札の行の真ん中の高さと、札の列の左端 */
   const rowOf = new Map<string, { stampY: number; cardY: number; stampX: number; cardX: number }>();
-  const extra = narrow ? 0 : (inner - wideNeed) / 2;
+  const extra = narrow ? 0 : (laneW - wideNeed) / 2;
   let y = headBottom + L.headline.below;
   diagram.boxes.forEach((b, k) => {
     if (k > 0) y += Y.gap;
-    const x = margin;
+    const x = margin + shift * k;
     const textX = x + Y.textX;
-    const textW = narrow ? inner - Y.textX - Y.padR - Y.colGap - noW : Math.max(nameW, descW);
+    const textW = narrow ? laneW - Y.textX - Y.padR - Y.colGap - noW : Math.max(nameW, descW);
     const nameBase = y + Y.nameY;
-    const desc = b.sub === undefined ? undefined : narrow ? wrapped(b.sub, textX, nameBase + Y.descY, T.desc, inner - Y.textX - Y.padR, Y.descLine) : single(b.sub, textX, nameBase + Y.descY, T.desc);
+    const desc = b.sub === undefined ? undefined : narrow ? wrapped(b.sub, textX, nameBase + Y.descY, T.desc, laneW - Y.textX - Y.padR, Y.descLine) : single(b.sub, textX, nameBase + Y.descY, T.desc);
     const textBottom = bottomOf(desc ?? single(b.name, textX, nameBase, T.name));
     let h: number;
     let row: { stampY: number; cardY: number; stampX: number; cardX: number };
@@ -1156,14 +1210,14 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
       // 印と札が 1 つの行に収まらない層は、札を印の下の行に置く。印も札も出ない層は行を空けない
       const stamp = stampIn(b.id);
       const cards = cardsIn(b.id);
-      const oneRow = stamp === 0 || cards === 0 || Y.textX + stamp + Y.cardGap + cards + Y.padR <= inner;
+      const oneRow = stamp === 0 || cards === 0 || Y.textX + stamp + Y.cardGap + cards + Y.padR <= laneW;
       const rowTop = textBottom + Y.rowGap;
       const tall = oneRow ? Math.max(stamp > 0 ? Y.stamp : 0, cards > 0 ? Y.card : 0) : Y.stamp;
       const stampY = rowTop + tall / 2;
       const cardY = oneRow ? stampY : rowTop + tall + Y.rowGap + Y.card / 2;
       row = { stampY, cardY, stampX: textX, cardX: oneRow && stamp > 0 ? textX + stamp + Y.cardGap : textX };
       h = (stamp === 0 && cards === 0 ? textBottom : oneRow ? rowTop + tall : cardY + Y.card / 2) + Y.padY - y;
-      no = { cx: x + inner - Y.padR - Y.no, cy: nameBase - T.name.size * 0.35 };
+      no = { cx: x + laneW - Y.padR - Y.no, cy: nameBase - T.name.size * 0.35 };
     } else {
       h = Math.max(Y.minH, textBottom + Y.padY - y, Y.card + Y.padY * 2);
       const mid = y + h / 2;
@@ -1174,7 +1228,7 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
     }
     // 説明を持たない層は、名前を帯の真ん中の高さに置く
     const name = single(b.name, textX, desc === undefined && !narrow ? y + h / 2 + T.name.size * 0.35 : nameBase, T.name);
-    const rect = { x, y, w: inner, h };
+    const rect = { x, y, w: laneW, h };
     const number = String(k + 1);
     lanes.push({
       id: b.id,
@@ -1182,7 +1236,7 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
       ...(b.sub !== undefined ? { sub: b.sub } : {}),
       color: colors.get(b.id) ?? "slate",
       ...rect,
-      cx: x + inner / 2,
+      cx: x + laneW / 2,
       cy: y + h / 2,
       pool: false,
       title: name,
@@ -1199,7 +1253,8 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
     rowOf.set(b.id, row);
     y += h;
   });
-  const bottom = Math.max(headBottom, ...lanes.map(bottomOf));
+  const timed = timing && lanes.length > 0 ? placeScale(timing, lanes, margin, inner, narrow) : undefined;
+  const bottom = Math.max(headBottom, ...lanes.map(bottomOf), timed?.bottom ?? 0);
 
   // 帯の印。同じ層の次の note まで残す
   const bandNotes: LineupBandNote[] = notes.map((n) => {
@@ -1257,10 +1312,11 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
     });
   });
 
+  const look = stairs ? "stairs" : "layers";
   const layout: LineupLayout = {
     kind: "lineup",
-    shape: "layers",
-    arrangement: "layers",
+    shape: look,
+    arrangement: look,
     width,
     height: 0,
     regions: [],
@@ -1288,6 +1344,7 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
     sealWord: words.lineupSealed,
     bands,
     bandNotes,
+    ...(timed ? { scale: timed.scale, needles: timed.needles } : {}),
     counts: [],
     ticks: [],
     values: [],
@@ -1300,6 +1357,113 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
   const badges: SceneBadge[] = diagram.steps.map((_, s) => ({ step: s, x: width - margin - LOOK.badge.r, y: margin + L.headline.badgeY, color: "green" }));
   layout.badges = besideSameSpot(badges, () => true, () => true);
   return layout;
+}
+
+const STAIRS = L.stairs;
+
+/**
+ * 階段の見た目 (#3640) の経った時間の材料。`span` は目盛りの単位で数えた全体の長さ、`ticks` は目盛りの数字と字の幅、
+ * `needles` は段ごとの、目盛りの単位で数えた経った時間と字と札の幅と、針を動かした `line` の出来事
+ */
+interface Timing {
+  unit: TimeUnit;
+  span: number;
+  ticks: { value: number; text: string; w: number }[];
+  needles: { value: number; text: string; w: number; move?: LineupAt }[];
+}
+
+/** 全ての箱に長さを書いた階段の見た目の経った時間。長さの無い箱が在れば `undefined` */
+function timingOf(diagram: DiagramModel, lines: Line[], lang: NotationLang): Timing | undefined {
+  const times = diagram.boxes.map((b) => timeOf(b.time ?? "", true));
+  const known = times.flatMap((t) => (t ? [t] : []));
+  if (known.length === 0 || known.length < times.length) return undefined;
+  const order = Object.keys(TIME_UNITS) as TimeUnit[];
+  const ranks = known.map((t) => order.indexOf(t.unit));
+  const unit = order[Math.max(...ranks)] as TimeUnit;
+  const least = order[Math.min(...ranks)] as TimeUnit;
+  const size = TIME_UNITS[unit];
+  // 層ごとの、その層までに経った秒 (その層の時間を含む)
+  let sum = 0;
+  const through = known.map((t) => (sum += t.value * TIME_UNITS[t.unit]));
+  const span = sum / size;
+  const step = span > 0 ? niceStep(span) : 1;
+  const ticks: Timing["ticks"] = [];
+  for (let k = 0; k * step <= span + 1e-9; k++) {
+    const value = Number((k * step).toPrecision(12));
+    const text = `${String(value)}${UNIT_WORDS[lang][unit]}`;
+    ticks.push({ value, text, w: textWidth(text, STAIRS.type.tick) });
+  }
+  // 針は、その段で最後に札を下ろした層を指す。札を下ろさない段は前の段の所に留まる
+  const ids = diagram.boxes.map((b) => b.id);
+  let seconds = 0;
+  const needles = diagram.steps.map((_, s) => {
+    const last = lines.filter((l) => l.step === s).at(-1);
+    if (last) seconds = through[ids.indexOf(last.lane)] ?? 0;
+    const text = elapsedText(seconds, unit, least, lang);
+    return { value: seconds / size, text, w: textWidth(text, STAIRS.type.elapsed) + STAIRS.chipPadX * 2, ...(last ? { move: { step: last.step, event: last.event } } : {}) };
+  });
+  return { unit, span, ticks, needles };
+}
+
+/** 既定の幅で階段の右に置く、経った時間の札と針と目盛りの線と数字の列の幅 */
+function scaleColumn(t: Timing): number {
+  const chip = Math.max(0, ...t.needles.map((n) => n.w));
+  const tick = Math.max(0, ...t.ticks.map((k) => k.w));
+  return STAIRS.gap + chip + STAIRS.chipGap + STAIRS.needle + STAIRS.line + STAIRS.mark + STAIRS.tickGap + tick;
+}
+
+/**
+ * 経った時間の目盛りと段ごとの針を置く。既定の幅は階段の右に縦の線を、一番上の層の上の端から一番下の層の下の端まで引き、針の札を線の左に置く。
+ * 携帯の幅は階段の下に針の札の行を置き、その下に横の線を引いて数字を線の下に置く。横の線は両端の数字が図の中に収まる所まで内へ寄せる
+ */
+function placeScale(t: Timing, lanes: LineupLane[], margin: number, inner: number, narrow: boolean): { scale: LineupScale; needles: LineupNeedle[]; bottom: number } {
+  const T = STAIRS.type;
+  const half = STAIRS.needle * STAIRS.spread;
+  const right = Math.max(...lanes.map((l) => l.x + l.w));
+  const top = Math.min(...lanes.map((l) => l.y));
+  const low = Math.max(...lanes.map(bottomOf));
+  const rectOf = (r: Rect): Rect => ({ x: r.x, y: r.y, w: r.w, h: r.h });
+  if (!narrow) {
+    const chipCol = Math.max(0, ...t.needles.map((n) => n.w));
+    const tipX = right + STAIRS.gap + chipCol + STAIRS.chipGap + STAIRS.needle;
+    const edge = tipX + STAIRS.line;
+    const pos = (v: number): number => (t.span > 0 ? top + (v / t.span) * (low - top) : top);
+    const ticks = t.ticks.map((tick): LineupScaleTick => {
+      const at = pos(tick.value);
+      const label = single(tick.text, edge + STAIRS.mark + STAIRS.tickGap, at + T.tick.size * 0.35, T.tick);
+      return { value: tick.value, text: tick.text, at, rect: rectOf(label), label, mark: [[edge, at], [edge + STAIRS.mark, at]] };
+    });
+    const needles = t.needles.map((n, s): LineupNeedle => {
+      const at = pos(n.value);
+      const chip = { x: tipX - STAIRS.needle - STAIRS.chipGap - n.w, y: at - STAIRS.chipH / 2, w: n.w, h: STAIRS.chipH };
+      const label = single(n.text, chip.x + STAIRS.chipPadX, at + T.elapsed.size * 0.35, T.elapsed);
+      const tip: LineupNeedle["tip"] = [[tipX, at], [tipX - STAIRS.needle, at - half], [tipX - STAIRS.needle, at + half]];
+      return { step: s, value: n.value, text: n.text, at, tip, chip, label, ...(n.move ? { move: n.move } : {}) };
+    });
+    const bottom = Math.max(low + STAIRS.chipH / 2, ...ticks.map((k) => bottomOf(k.rect)));
+    return { scale: { axis: "vertical", unit: t.unit, line: { x: tipX, y: top, w: STAIRS.line, h: low - top }, ticks }, needles, bottom };
+  }
+  const x0 = margin + (t.ticks[0]?.w ?? 0) / 2;
+  const x1 = margin + inner - (t.ticks.at(-1)?.w ?? 0) / 2;
+  const pos = (v: number): number => (t.span > 0 ? x0 + (v / t.span) * (x1 - x0) : x0);
+  const chipTop = low + STAIRS.below;
+  const tipY = chipTop + STAIRS.chipH + STAIRS.chipGap + STAIRS.needle;
+  const edge = tipY + STAIRS.line;
+  const ticks = t.ticks.map((tick): LineupScaleTick => {
+    const at = pos(tick.value);
+    const label = single(tick.text, at - tick.w / 2, edge + STAIRS.mark + STAIRS.tickGap + T.tick.size * 0.8, T.tick);
+    return { value: tick.value, text: tick.text, at, rect: rectOf(label), label, mark: [[at, edge], [at, edge + STAIRS.mark]] };
+  });
+  const needles = t.needles.map((n, s): LineupNeedle => {
+    const at = pos(n.value);
+    const x = Math.min(Math.max(at - n.w / 2, margin), margin + inner - n.w);
+    const chip = { x, y: chipTop, w: n.w, h: STAIRS.chipH };
+    const label = single(n.text, x + STAIRS.chipPadX, chipTop + STAIRS.chipH / 2 + T.elapsed.size * 0.35, T.elapsed);
+    const tip: LineupNeedle["tip"] = [[at, tipY], [at - half, tipY - STAIRS.needle], [at + half, tipY - STAIRS.needle]];
+    return { step: s, value: n.value, text: n.text, at, tip, chip, label, ...(n.move ? { move: n.move } : {}) };
+  });
+  const bottom = Math.max(edge + STAIRS.mark, ...ticks.map((k) => bottomOf(k.rect)));
+  return { scale: { axis: "horizontal", unit: t.unit, line: { x: x0, y: tipY, w: x1 - x0, h: STAIRS.line }, ticks }, needles, bottom };
 }
 
 /**

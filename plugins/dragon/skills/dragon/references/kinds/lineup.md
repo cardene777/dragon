@@ -6,7 +6,7 @@ Shared syntax: [notation](../notation.md). Workflow: [SKILL.md](../../SKILL.md).
 
 Items that line up in lanes and move or reorder between them: a mempool and the blocks builders make, bids in an auction, a review queue, a kanban board, a release flow, sorting, picking a winner.
 Each box is a lane. Each item is a chip. Steps rewrite which chips sit in which lane and in what order. There are no lines between boxes.
-The default look is a board of pale vertical columns. `[shape: stations]` puts the lanes on one line as stops, and `[shape: layers]` stacks them as horizontal layers.
+The default look is a board of pale vertical columns. `[shape: stations]` puts the lanes on one line as stops, `[shape: layers]` stacks them as horizontal layers, and `[shape: stairs]` sets those layers as stairs with a scale of the time spent.
 
 Pick `try` instead when the reader should add items and press buttons themselves.
 
@@ -112,6 +112,40 @@ step Write it to the store
   say The checked request is written as a row of notes.
   line db: Request
   note db: Written in 30 ms
+```
+
+## Stairs look
+
+Write `[shape: stairs]` on the head line (`lineup <title> [shape: stairs]`) when the time each layer takes matters, such as uploading, encoding and delivering a video.
+The layers of the layers look become stairs, each lower layer shifted right by the same width. The lines and the refused lines are the same as in the layers look, and the chip walks no line between layers.
+
+| Line | Meaning in the stairs look |
+|---|---|
+| `box <id> as <name> [time: <length>]` | The time spent in that layer, as a number and a unit (`ms`, `s`, `min`, `h`, `d`). Write `time` on every box or on none. `0s` is allowed for a layer that takes no time |
+| `line <layer>: <chip>, ...` | The layer the chips are in now. With `time`, the needle of the scale moves to the time spent through that layer, including it, with a card such as `1min 3s` |
+
+With `time`, a scale of the time spent so far sits to the right of the stairs. Its numbers start at 0 in round steps (1, 2, or 5 times a power of 10), in the largest unit written on the boxes. On a phone-width frame the stairs fill the width and the scale lies under the diagram.
+
+```dragon
+lineup Until a video can be watched [shape: stairs]
+
+box upload as Upload [note: Sends the video to storage, color: violet, time: 40s]
+box encode as Encode [note: Remakes it for each quality, color: amber, time: 3min]
+box viewer as Viewer's device [note: Plays the video, color: green, time: 3s]
+
+item video [color: blue, note: Trip video]
+
+step Upload
+  say The phone sends the video to storage.
+  line upload: video
+
+step Encode
+  say Storage remakes the video in four qualities.
+  line encode: video
+
+step Play
+  say The viewer's device starts playback.
+  line viewer: video
 ```
 
 ## How to write it well

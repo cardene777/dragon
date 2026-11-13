@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。階段の見た目 (stairs) の列の図は層の見た目と同じ決まりを持ち、層の時間 (time) を全ての箱に持つかどの箱にも持たない。ほかの列の図の箱は time を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -394,7 +394,12 @@
                 "items": {
                   "required": [
                     "time"
-                  ]
+                  ],
+                  "properties": {
+                    "time": {
+                      "$ref": "#/definitions/clockTime"
+                    }
+                  }
                 }
               }
             }
@@ -429,7 +434,12 @@
                       "items": {
                         "required": [
                           "time"
-                        ]
+                        ],
+                        "properties": {
+                          "time": {
+                            "$ref": "#/definitions/clockTime"
+                          }
+                        }
                       }
                     },
                     {
@@ -448,14 +458,61 @@
           }
         },
         "else": {
-          "properties": {
-            "blocks": {
-              "properties": {
-                "box": {
-                  "items": {
-                    "properties": {
-                      "time": {
-                        "$ref": "#/definitions/absent"
+          "if": {
+            "required": [
+              "lineup"
+            ],
+            "properties": {
+              "lineup": {
+                "required": [
+                  "shape"
+                ],
+                "properties": {
+                  "shape": {
+                    "const": "stairs"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "blocks": {
+                "properties": {
+                  "box": {
+                    "anyOf": [
+                      {
+                        "items": {
+                          "required": [
+                            "time"
+                          ]
+                        }
+                      },
+                      {
+                        "items": {
+                          "properties": {
+                            "time": {
+                              "$ref": "#/definitions/absent"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "blocks": {
+                "properties": {
+                  "box": {
+                    "items": {
+                      "properties": {
+                        "time": {
+                          "$ref": "#/definitions/absent"
+                        }
                       }
                     }
                   }
@@ -478,7 +535,10 @@
             ],
             "properties": {
               "shape": {
-                "const": "layers"
+                "enum": [
+                  "layers",
+                  "stairs"
+                ]
               }
             }
           }
@@ -2692,8 +2752,8 @@
           "maximum": 12
         },
         "time": {
-          "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) と輪を開いた帯の見た目 (shape: band) の、手順の長さ",
-          "$ref": "#/definitions/clockTime"
+          "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) と輪を開いた帯の見た目 (shape: band) の手順の長さと、列の図の階段の見た目 (shape: stairs) の層の時間",
+          "$ref": "#/definitions/boxTime"
         }
       }
     },
@@ -3140,7 +3200,7 @@
       }
     },
     "lineupLook": {
-      "description": "列の図の見た目。layers は箱を書いた順に上から横の帯に重ね、札が段ごとに帯を下りて、帯ごとの note を印に残す。stations は箱を書いた順に 1 本の流れの線の上の駅にし、札を駅の下に積んで、札が線の上を次の駅へ走る",
+      "description": "列の図の見た目。layers は箱を書いた順に上から横の帯に重ね、札が段ごとに帯を下りて、帯ごとの note を印に残す。stations は箱を書いた順に 1 本の流れの線の上の駅にし、札を駅の下に積んで、札が線の上を次の駅へ走る。stairs は layers の帯を下の層ほど右へずらした階段にし、箱の time を層の時間にして経った時間の目盛りと針を添える",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -3151,13 +3211,14 @@
           "description": "列の図の見た目の名前",
           "enum": [
             "layers",
-            "stations"
+            "stations",
+            "stairs"
           ]
         }
       }
     },
     "layersBoxes": {
-      "description": "層の見た目の列の図の箱。8 つまでで、順番の無い置き場にできず、上限 (limit) を持たない",
+      "description": "層の見た目と階段の見た目の列の図の箱。8 つまでで、順番の無い置き場にできず、上限 (limit) を持たない",
       "maxItems": 8,
       "items": {
         "properties": {
@@ -3171,7 +3232,7 @@
       }
     },
     "notLayersEvent": {
-      "description": "列の図の層の見た目で描かない出来事 (封、開ける、選ぶ、札、役) を書けない",
+      "description": "列の図の層の見た目と階段の見た目で描かない出来事 (封、開ける、選ぶ、札、役) を書けない",
       "not": {
         "required": [
           "type"
@@ -3483,6 +3544,11 @@
       "description": "時計の文字盤の見た目と輪を開いた帯の見た目の手順の長さ。0 でない数と単位 (ms / s / min / h / d) の組で書く (25min など)",
       "type": "string",
       "pattern": "^(?=[0-9.]*[1-9])[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
+    },
+    "boxTime": {
+      "description": "箱の長さ。0 以上の数と単位 (ms / s / min / h / d) の組で書く (40s など)",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
     },
     "erTable": {
       "description": "表。id は項目を <表>.<項目> で名指すので . を持たない。color を書かない表は宣言した順に色の役を配る",

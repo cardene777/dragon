@@ -1,5 +1,5 @@
 /**
- * 列の図 (#3239) を描く部品。既定の見た目はボード (#3624) で、選べる見た目に流れの線 (`[shape: stations]`、#3624) と層の見た目 (`[shape: layers]`、#3625) を持つ。
+ * 列の図 (#3239) を描く部品。既定の見た目はボード (#3624) で、選べる見た目に流れの線 (`[shape: stations]`、#3624) と層の見た目 (`[shape: layers]`、#3625) と階段の見た目 (`[shape: stairs]`、#3640) を持つ。
  * ボードと流れの線の見た目の元は #3624 の step 2 で本人が選んだ動く試作 (列を淡い色の縦の帯にする案と、駅をつなぐ流れの線の案)。
  *
  * 図の題と段の題と文、役の札、帯か駅と見出し (名前、札の数、上限の目盛り、順番なし、値の札)、帯の間の向きの印、受け口、帯の下の一言、「この先」の帯、凡例は下の層に、
@@ -13,7 +13,7 @@
  */
 import { hasWide } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
-import type { LineupAt, LineupLane, LineupLayout, LineupPick, LineupSeal, LineupSeat, LineupValue } from "../kinds/lineup/layout";
+import type { LineupAt, LineupLane, LineupLayout, LineupNeedle, LineupPick, LineupScale, LineupSeal, LineupSeat, LineupValue } from "../kinds/lineup/layout";
 import { EASE, LOOK, MOTION, type TextStyle, TYPE } from "../look/values";
 import { LINEUP_LOOK } from "../look/lineup";
 import type { DiagramModel } from "../schema";
@@ -249,6 +249,70 @@ function drawLayers(
   return { lanes: `${bands}${notes}`, chips: cards };
 }
 
+const SR = LINEUP_LOOK.stairs;
+
+/**
+ * 階段の見た目 (#3640) の経った時間の目盛りと針の見た目。目盛りの線と印と数字、針の三角、経った時間の札。どの値も値の表から読み、階段の見た目の SVG にだけ書く
+ */
+const STAIRS_CSS = [
+  ".dg-sr-line{fill:var(--line)}",
+  `.dg-sr-mark{fill:none;stroke:var(--line);stroke-width:${S.mark};stroke-linecap:round}`,
+  `.dg-sr-tick{${font(SR.type.tick)};fill:var(--mute)}`,
+  ".dg-sr-needle{fill:var(--ink)}",
+  `.dg-sr-chip{fill:var(--surf);stroke:var(--ink);stroke-width:${S.badgeRing}}`,
+  `.dg-sr-t{${font(SR.type.elapsed)};fill:var(--ink)}`,
+].join("");
+
+/**
+ * 経った時間の目盛りと針と札 (#3640)。針は段ごとに、札が層へ下りるのと同じ時刻に前の所から次の所へ滑り、札を下ろさない段は留まる。
+ * 経った時間の札は、針が着いてから次に針が動くまで見せる。同じ字と所が続く段は 1 枚の札にまとめる
+ */
+function drawStairs(
+  scale: LineupScale,
+  needles: LineupNeedle[],
+  parts: { timeOf: (at: LineupAt) => { start: number; drawn: number }; during: (ranges: Shown[]) => string },
+  ctx: Ctx,
+): string {
+  const { m } = ctx;
+  const { timeOf, during } = parts;
+  const ticks = scale.ticks
+    .map(({ mark: [a, b], label }) => `<g data-stairs-tick="">${`<path class="dg-sr-mark" d="M${r1(a[0])} ${r1(a[1])}L${r1(b[0])} ${r1(b[1])}"/>`}${lines(ctx, "dg-sr-tick", label, SR.type.tick)}</g>`)
+    .join("");
+  const axis = `<g data-stairs-scale="${scale.axis}">${rect("dg-sr-line", scale.line, 0)}${ticks}</g>`;
+  // 針が着く時刻。札を下ろした出来事の時刻に滑り始め、札と同じ長さで着く。最初の段で札を下ろさない針は初めから在る
+  const arriveAt = (n: LineupNeedle): number => (n.move ? timeOf(n.move).start + MOTION.lineup.slide : 0);
+  const groups: { first: LineupNeedle; start: number }[] = [];
+  for (const n of needles) {
+    const last = groups.at(-1);
+    if (last && last.first.text === n.text && Math.abs(last.first.at - n.at) < 0.01) continue;
+    groups.push({ first: n, start: arriveAt(n) });
+  }
+  const first = groups[0]?.first;
+  if (!first) return axis;
+  const offset = (n: LineupNeedle): Frame[1] => {
+    const d = n.at - first.at;
+    return { transform: scale.axis === "vertical" ? `translateY(${r1(d)}px)` : `translateX(${r1(d)}px)` };
+  };
+  const frames: Frame[] = [[0, offset(first)]];
+  groups.slice(1).forEach((g, k) => {
+    const before = groups[k]?.first ?? first;
+    frames.push([g.start - MOTION.lineup.slide, offset(before), EASE.inOut], [g.start, offset(g.first)]);
+  });
+  const end = groups.at(-1)?.first ?? first;
+  frames.push([m.last, offset(end), EASE.inOut], [m.total, offset(first)]);
+  const [tip, a, b] = first.tip;
+  const needle = `<g data-stairs-needle="" class="dg-a" style="${m.kf(frames)}"><path class="dg-sr-needle" d="M${r1(tip[0])} ${r1(tip[1])}L${r1(a[0])} ${r1(a[1])}L${r1(b[0])} ${r1(b[1])}Z"/></g>`;
+  const chips = groups
+    .map((g, k) => {
+      const until = groups[k + 1]?.start ?? m.last;
+      const shown: Shown[] = [[g.start + MOTION.fade, until]];
+      const body = `${rect("dg-sr-chip", g.first.chip, partRadius(ctx.corner, SR.chipRadius))}${lines(ctx, "dg-sr-t", g.first.label, SR.type.elapsed, shown)}`;
+      return `<g class="dg-a" data-stairs-elapsed="${g.first.step}" style="${during([[g.start, until]])}">${body}</g>`;
+    })
+    .join("");
+  return `${axis}${needle}${chips}`;
+}
+
 /** 席から `(dx, dy)` ずらして大きさを `scale` 倍にした時の `transform` */
 const place = (dx: number, dy: number, scale = 1): string =>
   `translate(${r1(dx)}px,${r1(dy)}px) scale(${scale})`;
@@ -481,8 +545,14 @@ export function drawLineup(
     return `${heading}${headlines}`;
   };
 
-  // 層の見た目 (#3625) は帯と印と札を別の部品で描く。見た目の規則も層の見た目の SVG にだけ書く
-  if (layout.arrangement === "layers") return { heading: headingOf(), ...drawLayers(layout, diagram, timeline, { timeOf, chipKf, leaving, during }, ctx), css: `${LINEUP_CSS}${LAYERS_CSS}` };
+  // 層の見た目 (#3625) と階段の見た目 (#3640) は帯と印と札を別の部品で描く。見た目の規則もその見た目の SVG にだけ書く
+  if (layout.arrangement === "layers" || layout.arrangement === "stairs") {
+    // 動きの名前は描いた順に付くので、題を帯より先に描く
+    const heading = headingOf();
+    const drawn = drawLayers(layout, diagram, timeline, { timeOf, chipKf, leaving, during }, ctx);
+    const scale = layout.scale ? drawStairs(layout.scale, layout.needles ?? [], { timeOf, during }, ctx) : "";
+    return { heading, lanes: `${drawn.lanes}${scale}`, chips: drawn.chips, css: `${LINEUP_CSS}${LAYERS_CSS}${layout.scale ? STAIRS_CSS : ""}` };
+  }
 
   const stations = layout.shape === "stations";
   const narrow = layout.arrangement === "stack";

@@ -472,6 +472,32 @@ step 置き場に書く
   note db: 30ミリ秒で書いた
 ```
 
+代わりに `[shape: stairs]` を足すと、層を下の層ほど同じ幅だけ右へずらした階段に置く。
+全ての箱の行に `box encode as 変換する [time: 3min]` のように `[time: <長さ>]` を書くと、階段の右に経った時間の目盛りを置く。時間の掛からない層は `0s` と書ける。
+目盛りの針は段ごとに、チップが下りた層までに経った時間の所へ進み、`1分3秒` のような札を添える。携帯の幅では目盛りを図の下に置く。
+
+```dragon
+lineup 動画が見られるようになるまで [shape: stairs]
+
+box upload as 送る [color: violet, time: 40s]
+box encode as 変換する [color: amber, time: 3min]
+box viewer as 見る人の端末 [color: green, time: 3s]
+
+item 動画 [color: blue]
+
+step 送る
+  say 動画を端末から置き場へ送る。
+  line upload: 動画
+
+step 変換する
+  say 置き場が動画を4つの画質に作り直す。
+  line encode: 動画
+
+step 再生する
+  say 見る人の端末が再生を始める。
+  line viewer: 動画
+```
+
 手順の図 (`flow <題>`) では、手順を `box`、判断を `choice <名札> as <問い>` で書く。
 段が通る箱と判断は、線が初めて辿り着く順に上から下へ 1 列に並び、判断がほかへ送る道は判断の右へ出る。
 判断から出る線には答えを名前に書き、1 つの判断から出る道は 2 つまで。

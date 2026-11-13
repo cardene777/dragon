@@ -1,0 +1,36 @@
+// 撮った動画が、見る人の端末で見られるようになるまでに通る5つの層。
+// 札は1本の動画で、段ごとに1つ下の層へ下り、右の目盛りの針がそこまでに経った時間を指す。
+lineup 動画が見られるようになるまで [shape: stairs]
+
+box phone as 撮った端末 [note: 撮り終えた動画を持つ, color: blue, time: 0s]
+box upload as 送る [note: 動画を置き場へ送る, color: violet, time: 40s]
+box encode as 変換する [note: 画質ごとの動画に作り直す, color: amber, time: 3min]
+box cdn as 配信網に置く [note: 見る人の近くへ写す, color: slate, time: 20s]
+box viewer as 見る人の端末 [note: 動画を読み込んで再生する, color: green, time: 3s]
+
+item 動画 [color: blue, note: 旅行の動画]
+
+step 撮り終える
+  say 端末で旅行の動画を撮り終える。
+  line phone: 動画
+  note phone: 撮り終えた
+
+step 置き場へ送る
+  say 動画を端末から置き場へ送る。
+  line upload: 動画
+  note upload: 送り終えた
+
+step 画質ごとに変換する
+  say 置き場が動画を4つの画質に作り直す。
+  line encode: 動画
+  note encode: 4つの画質にした
+
+step 配信網に置く
+  say 作り直した動画を、見る人の近くの配信網へ写す。
+  line cdn: 動画
+  note cdn: 近くへ写した
+
+step 見る人の端末で再生する
+  say 見る人の端末が動画を読み込み、再生を始める。
+  line viewer: 動画
+  note viewer: 再生を始めた

@@ -42,7 +42,7 @@ export interface RingMessages {
 const NO_LINES: readonly string[] = ["act", "group", "end"];
 
 export const reading: BlockReading<RingMessages> = {
-  // 箱の行は、手順の長さ (`time`) を足した鍵で箱のブロックの読み方に読ませ、読んだ箱に長さを足す
+  // 箱の行は、手順の長さ (`time`) を足した鍵で箱のブロックの読み方に読ませる
   take: (source, state) => {
     const { m } = state;
     const box = [...(state.attrs.box ?? []), "time"];
@@ -54,9 +54,9 @@ export const reading: BlockReading<RingMessages> = {
     if (time && !timeOf(time.value)) throw fail(source, time.at, m.cycleBadTime(time.value));
     const before = [...state.figure.boxes];
     state.reader("box")?.(source, { ...state, attrs: { ...state.attrs, box } }, () => undefined);
+    // 長さは箱のブロックの読み方が箱に置く
     const read = state.figure.boxes.at(-1) as Box;
-    if (time) read.time = time.value;
-    else if (clock) throw fail(source, 0, m.cycleNoTime(read.id));
+    if (!time && clock) throw fail(source, 0, m.cycleNoTime(read.id));
     // 帯の見た目は、全ての箱に長さを書くかどの箱にも書かない。長さの無い箱を、その箱の行かその後で長さを書いた行で止める
     const bare = band ? (time ? before.find((b) => b.time === undefined) : before.some((b) => b.time !== undefined) ? read : undefined) : undefined;
     if (bare) throw fail(source, 0, m.cycleBandTime(bare.id));

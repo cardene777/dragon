@@ -472,6 +472,32 @@ step Write it to the store
   note db: Written in 30 ms
 ```
 
+Add `[shape: stairs]` instead to set the layers as stairs, each lower layer shifted right by the same width.
+Write `[time: <length>]` on every box line, such as `box encode as Encode [time: 3min]`, and a scale of the time spent so far sits to the right of the stairs. `0s` is allowed for a layer that takes no time.
+At each step, the needle of the scale moves to the time spent through the layer the chip went down to, with a card such as `1min 3s`. On a phone-width frame, the scale lies under the diagram.
+
+```dragon
+lineup Until a video can be watched [shape: stairs]
+
+box upload as Upload [color: violet, time: 40s]
+box encode as Encode [color: amber, time: 3min]
+box viewer as Viewer's device [color: green, time: 3s]
+
+item video [color: blue]
+
+step Upload
+  say The phone sends the video to storage.
+  line upload: video
+
+step Encode
+  say Storage remakes the video in four qualities.
+  line encode: video
+
+step Play
+  say The viewer's device starts playback.
+  line viewer: video
+```
+
 In a flow diagram (`flow <title>`), write the steps of the procedure with `box` and each choice with `choice <id> as <question>`.
 The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
 Each line out of a choice carries the answer as its label, and a choice has at most two ways out.

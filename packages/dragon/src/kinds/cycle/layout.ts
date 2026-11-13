@@ -11,7 +11,7 @@
  * 図の種類の行に `shape: clock` を書いた図の時計の文字盤の見た目 (#3638) の置き場所 (`layoutClock`) と、
  * `shape: band` を書いた図の輪を開いた帯の見た目 (#3639) の置き場所 (`layoutBand`) は、この file の後ろの節が持つ
  */
-import { TIME_UNITS, type TimeUnit, timeOf } from "../../blocks/ring/limits";
+import { niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 import { hasWide, textBox, textWidth } from "../../layout/measure";
 import {
   besideSameSpot,
@@ -469,12 +469,6 @@ export interface ClockLayout extends Layout {
 const C = CLOCK_LOOK;
 const RAD = Math.PI / 180;
 
-/** 目盛りの数字に添える単位の字 */
-const UNIT_WORDS: Readonly<Record<NotationLang, Readonly<Record<TimeUnit, string>>>> = {
-  ja: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
-  en: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
-};
-
 /** 文字盤の真ん中を (0, 0) にした所で、12 時から右回りに `a` 度、半径 `r` の点 */
 const onDeg = (r: number, a: number): Point => [r * Math.sin(a * RAD), -r * Math.cos(a * RAD)];
 
@@ -498,15 +492,6 @@ function along([ax, ay]: Point, [bx, by]: Point): Point[] {
     ax + ((bx - ax) * k) / n,
     ay + ((by - ay) * k) / n,
   ]);
-}
-
-/** 1 周の長さ `span` を、0 から 6 個以下の数字で区切る一番細かい切りのよい間隔 (1、2、5 に 10 の累乗を掛けた数) */
-function niceStep(span: number): number {
-  for (let e = Math.floor(Math.log10(span)) - 2; ; e++)
-    for (const m of [1, 2, 5]) {
-      const step = m * 10 ** e;
-      if (Math.ceil(span / step - 1e-9) <= 6) return step;
-    }
 }
 
 /** 半径 `r` の点を、角度 `a` から `b` まで `CLOCK_LOOK.samples` 度ほどの間で区切った点 (両端を含む) */
