@@ -73,6 +73,10 @@ import { Motion } from "./motion";
 const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 export interface RenderOptions {
+  /** Native input diagrams align their SVG ports to the controls' measured rectangles. */
+  anchors?: Readonly<Record<string, Rect>>;
+  overlay?: boolean;
+
   /** 色味の名前。書かないか知らない名前なら紙と墨 */
   palette?: string;
   /**

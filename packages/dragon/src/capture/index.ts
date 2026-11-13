@@ -35,6 +35,33 @@ const TOOLS = {
   gif: { GIFEncoder: gifenc.GIFEncoder, nearestColorIndex: gifenc.nearestColorIndex, quantize: gifenc.quantize },
 };
 
+/** Encode full interactive-diagram frames using the same encoders as SVG capture. */
+export async function captureFrames(options: {
+  width: number; height: number; total: number; format: "gif" | "mp4";
+  draw: (seconds: number) => Promise<HTMLCanvasElement>;
+  signal?: AbortSignal; onProgress?: (fraction: number) => void;
+}): Promise<Blob> {
+  if (options.format === "mp4" && !(await canCaptureMp4())) throw new Error(TEXT.ja.noMp4);
+  const fps = options.format === "gif" ? 8 : 24;
+  const count = Math.max(1, Math.ceil(options.total * fps));
+  const box = await makeFilm(TOOLS, {width:options.width,height:options.height,scale:1,fps,mp4:options.format==="mp4",gifEvery:options.format==="gif"?1:0});
+  try {
+  const check = () => options.signal?.throwIfAborted();
+  if (options.format === "gif") {
+    for (let i=0;i<4;i++) {check();box.sample(await options.draw(options.total*i/4));}
+    box.seal();
+  }
+  for(let i=0;i<count;i++) {check();await box.push(await options.draw(i/fps),i);options.onProgress?.((i+1)/count);}
+  check();const made=await box.finish();
+  const bytes=options.format==="gif"?made.gif:made.mp4;
+  if(!bytes)throw new Error("動画を作成できませんでした");
+  return new Blob([bytes as BlobPart],{type:options.format==="gif"?"image/gif":"video/mp4"});
+  } catch (error) {
+    try { await box.cancel(); } catch (cleanup) { throw new AggregateError([error,cleanup],"動画の作成と終了処理に失敗しました"); }
+    throw error;
+  }
+}
+
 /** 断りの文 */
 const TEXT: Record<NotationLang, { noCycle: string; noMp4: string }> = {
   ja: {

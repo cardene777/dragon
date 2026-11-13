@@ -130,8 +130,11 @@ export interface PrintOptions {
   short?: boolean;
 }
 
+import { readyParts } from "./kinds/registry";
 export function printNotation(source: Diagram, options: PrintOptions = {}): string {
   const current = isVersion1(source) ? (upgrade(source, FORMAT_VERSION) as unknown as Diagram) : source;
+  const native = readyParts(current.kind)?.notation?.print;
+  if (native) return native(current);
   // 書き戻す処理は読んだブロックの物だけを回すので、読んでいないブロックの欄は黙って落ちる。書く前に、原本が使う全てのブロックを読んだかを見る
   const missing = blocksUsedBy(current).find((name) => !readingLoaded(name));
   if (missing !== undefined) throw new Error(messagesFor(DEFAULT_LANG).blockNotLoaded(missing));

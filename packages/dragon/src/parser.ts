@@ -556,8 +556,12 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   };
 }
 
+import { notationReader } from "./kinds/registry";
+
 export function parseNotation(notation: string, options: ParseOptions = {}): Parsed {
   const lang = options.lang ?? DEFAULT_LANG;
+  const native = notationReader(notation);
+  if (native) return native.read(notation);
   try {
     // 引数で渡した定義と図の頭の定義は、読んでいる間だけ有効にする (#3399)
     // 読んだ図には印を付け、描く時の原本の形の検査を省く (#3400)

@@ -29,6 +29,7 @@ import { type Kind, samplesOf } from "./catalog";
 import { PartCard } from "./CatalogIndex";
 import { LaterFailed } from "./LaterFailed";
 import { partsOf } from "./parts";
+import { inputsOf } from "./inputs";
 import { CATALOG_TEXT } from "./text";
 
 type View = "figure" | "code";
@@ -235,6 +236,12 @@ function CategoryContent({ kind, lang, theme, palette: sitePalette }: Props): Re
         <div className="catalog-part-grid">
           {partsOf(kind).map((part) => (
             <PartCard key={part.id} part={part} lang={lang} name="uses-part" />
+          ))}
+          {inputsOf(kind).map((block) => (
+            <article className="catalog-part-card" key={block.name}>
+              <h3><code>{block.name}</code></h3>
+              <p>{Object.keys(block.fields).map(field => <code key={field}>{field} </code>)}</p>
+            </article>
           ))}
         </div>
       </section>

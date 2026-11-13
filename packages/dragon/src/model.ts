@@ -9,6 +9,7 @@
  * 版2の原本を足す前と同じ図からは同じ id の SVG を描く。
  */
 import { lifelinesOf } from "./blocks/lifeline/read";
+import { readyParts } from './kinds/registry';
 import type { Diagram, DiagramBlocks, DiagramModel, TryItem } from "./schema";
 
 /** この道具が読める原本の版。版1の原本は読む時にこの版へ移す (#3346) */
@@ -50,6 +51,8 @@ const blank = (value: unknown): boolean => value === undefined || (Array.isArray
  * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
+  const own = readyParts(model.kind)?.model;
+  if (own) return own.from(model, version);
   const source = model as unknown as Obj;
   const blocks: Obj = {};
   if (model.kind === "try") {
@@ -81,7 +84,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
     // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
     ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
-    blocks,
+    blocks: blocks as DiagramBlocks,
     steps: model.steps,
   };
 }
@@ -98,6 +101,8 @@ export const isVersion1 = (input: unknown): input is Obj =>
  * 集合の重なりの図 (#3620) は集まりと見た目 (#3635) を集合の重なりの図の欄 (`venn`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
+  const own = readyParts(diagram.kind)?.model;
+  if (own) return own.to(diagram);
   const b = diagram.blocks;
   const boxes = b.box ?? [];
   if (diagram.kind === "try")

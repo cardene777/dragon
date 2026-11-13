@@ -19,6 +19,8 @@ interface KindBase {
   name: KindName;
   /** 受け付ける付け方 */
   accepts: readonly AttachHow[];
+  /** Semantic input blocks read by the kind's own notation reader. */
+  fields?: readonly string[];
   /**
    * 宣言と段を省いた短い記法を読むか (#3438)。箱を線で結ぶ図の種類 (時系列図、構成図、状態遷移図) が名乗る。
    * 名乗った図は、1 行目の題と、段と、段の本文 (`say`) と、箱の宣言を省ける。省き方の決まりは `short-form.ts` が持つ

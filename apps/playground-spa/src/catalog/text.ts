@@ -33,6 +33,7 @@ export const CATALOG_TEXT = {
     count: (n: number) => `${n} 件`,
     open: "開く →",
     kinds: {
+      checkout: "数量や配送を変え、購入条件を承認して支払いの結果を試す図。",
       sequence: "登場する物の間で、誰が誰に何を渡すかを段ごとに追う図。ログインの流れや API の呼び出しの順を、線の上を走る封筒で見せる。",
       architecture: "区画と箱で仕組みの構成を描き、段ごとにどこからどこへ何が流れるかを見せる図。チェーンをまたぐ送金や、サービスの間の受け渡しに使う。",
       state: "1 つの物が状態を移る様子を段ごとに追う図。注文や申請が受付から閉じるまでにどの状態を通るかを、線の上を走る札で見せる。",
@@ -97,6 +98,7 @@ export const CATALOG_TEXT = {
     count: (n: number) => `${n} ${n === 1 ? "example" : "examples"}`,
     open: "Open →",
     kinds: {
+      checkout: "Change quantity, delivery and budget, approve the latest quote and try payment outcomes.",
       sequence: "Follow who hands what to whom, step by step. Show a sign-in flow or the order of API calls with envelopes running along the edges.",
       architecture: "Draw a system as regions and boxes, and show what flows where in each step. Use it for cross-chain transfers or hand-offs between services.",
       state: "Follow one object as it moves between states, step by step. A tag running along the lines shows which states an order or a request passes before it closes.",

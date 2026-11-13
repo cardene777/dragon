@@ -82,6 +82,26 @@
         "types": "./dist/capture.d.cts",
         "default": "./dist/capture.cjs"
       }
+    },
+    "./frame": {
+      "import": {
+        "types": "./dist/frame.d.ts",
+        "default": "./dist/frame.js"
+      },
+      "require": {
+        "types": "./dist/frame.d.cts",
+        "default": "./dist/frame.cjs"
+      }
+    },
+    "./header": {
+      "import": {
+        "types": "./dist/header.d.ts",
+        "default": "./dist/header.js"
+      },
+      "require": {
+        "types": "./dist/header.d.cts",
+        "default": "./dist/header.cjs"
+      }
     }
   },
   "files": [
@@ -107,7 +127,7 @@
     "./src/render/svg.ts"
   ],
   "scripts": {
-    "build": "node scripts/build-blocks.mjs && node scripts/build-tabler.mjs && node --import ./scripts/ts-resolve.mjs scripts/build-validator.mjs && tsup",
+    "build": "node scripts/build-blocks.mjs && node scripts/build-tabler.mjs && node --import ./scripts/ts-resolve.mjs scripts/build-validator.mjs && tsup && tsup --config tsup.frame.config.ts",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",

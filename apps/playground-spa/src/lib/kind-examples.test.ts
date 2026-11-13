@@ -97,7 +97,7 @@ function shapeOf(text: string): unknown {
   };
   return {
     kind: d.kind,
-    blocks: Object.fromEntries(Object.entries(d.blocks as Record<string, readonly unknown[]>).map(([name, list]) => [name, list.length])),
+    blocks: Object.fromEntries(Object.entries(d.blocks).map(([name, list]) => [name, list.length])),
     steps: d.steps.map((step) => count(step.events.map((event) => event.type))),
   };
 }
@@ -110,7 +110,7 @@ beforeAll(async () => {
 
 describe("見本が少ない図の種類に見本を足す (#3615)", () => {
   it("every-kind-has-four-examples", () => {
-    expect(KINDS.length, "カタログの図の種類の数").toBe(17);
+    expect(KINDS.length, "カタログの図の種類の数").toBe(18);
     const short = KINDS.map((kind) => ({ kind, count: samplesOf(kind).length })).filter(({ count }) => count < 4);
     expect(short, "見本が 4 枚に届かない種類").toEqual([]);
   });

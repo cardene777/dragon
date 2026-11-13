@@ -18,6 +18,7 @@
  * 最初に読む量を抑えたい頁を束ねる時に使い、この入口と既定の入口を 1 つの頁で混ぜない (混ぜると全ての部品が頁に入る)。
  */
 import { readingLoaded, registerReading } from "./blocks/reading";
+import { KIND_FOLDERS } from "./kinds/index";
 import { LATER_READINGS } from "./blocks/later-readings";
 import { blockKinds } from "./blocks/usable";
 import { blocksUsedBy, kindOf } from "./blocks/used";
@@ -34,6 +35,7 @@ export * from "./api";
 export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
+  checkout: () => import("./kinds/checkout"),
   chart: () => import("./kinds/chart"),
   cycle: () => import("./kinds/cycle"),
   er: () => import("./kinds/er"),
@@ -126,6 +128,8 @@ async function loadUserBlocks(text: string): Promise<void> {
  */
 export async function loadReadings(source: string | object): Promise<void> {
   const diagram = current(source);
+  const kind = diagramKind(diagram);
+  if (kind && (KIND_FOLDERS as Readonly<Record<string, { fields?: readonly string[] }>>)[kind]?.fields) await loadParts(kind);
   if (typeof diagram === "string") {
     await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(diagram), loadIconSets(diagram)]);
     return;

@@ -48,12 +48,15 @@ import {
 import { kindParts } from "./kinds/registry";
 import { isParsed, markParsed } from "./parsed";
 import type { PipeCalls } from "./pipe-player";
+import { readDiagram } from "./version";
+import { partsOf } from "./kinds/registry";
 import type { Diagram, Step, ViewMode } from "./schema";
 import type { Span } from "./timeline";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
 
 export interface PlayerOptions extends RenderOptions {
+  onResize?: (height: number) => void;
   /** 段が替わるたびに今の段 (0 から) を受け取る。置いた時にも最初の段で 1 度呼ぶ。頁の側で段の札や進み具合を出す時に使う (#3031) */
   onStep?: (step: number) => void;
   /**
@@ -85,6 +88,9 @@ export interface PlayerOptions extends RenderOptions {
 }
 
 export interface Player {
+  dispatch?(event: import("./checkout/types").CheckoutEvent): void;
+  getState?(): import("./checkout/types").CheckoutState;
+
   /** 今の段 (0 から) */
   readonly step: number;
   /** 動いているか */
@@ -278,6 +284,12 @@ export function mountDiagram(
   };
   // 描けない図は頁に何も置く前に断る
   let rendered = renderDiagram(source, isPipeSource(source) ? pipeOptions(hostWidth()) : options);
+  const inputKind = partsOf(rendered.diagram.kind)?.mountInput;
+  if (inputKind) {
+    const current = readDiagram(diagram);
+    if (!current.ok) throw new Error(current.errors.map(e=>e.message).join("\n"));
+    return inputKind(host, current.diagram, options);
+  }
   const lang = options.lang ?? DEFAULT_LANG;
   const words = FIGURE_TEXT[lang];
   const palette = paletteOf({ ...options, palette: rendered.palette }, rendered.theme);

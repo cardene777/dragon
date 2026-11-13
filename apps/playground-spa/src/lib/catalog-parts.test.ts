@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import * as WORDS from "../../../../packages/dragon/src/words";
 import { type Kind } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
+import { INPUT_KINDS } from "../catalog/inputs";
 import { type Lang } from "../text";
 import { partFigure, partFigureNames } from "./playground-support";
 
@@ -139,12 +140,16 @@ describe("部品の表と記法の file (#3166)", () => {
   it("catalog-parts-cover-every-word", async () => {
     const parts = await partsTable();
     expect(NOTATION_WORDS.length, "記法の語の表から語を引けない").toBeGreaterThan(0);
-    const owned = new Set(parts.flatMap((part) => part.words));
+    const owned = new Set([...parts.flatMap((part) => part.words), ...INPUT_KINDS.flatMap(input => input.words)]);
     const missing = NOTATION_WORDS.filter((word) => !owned.has(word));
     expect(missing, `どの部品も受け持たない記法の語が ${missing.length} 個ある`).toEqual([]);
     // 表に無い語を書いた部品は、綴りを誤ったまま語を受け持ったつもりになる
     const unknown = [...owned].filter((word) => !NOTATION_WORDS.includes(word));
     expect(unknown, "記法の語の表に無い語を受け持つ部品がある").toEqual([]);
+    for (const input of INPUT_KINDS) {
+      expect(input.words).toContain(`kind:${input.kind}`);
+      expect(input.blocks.length, '図種専用入力の定義が空').toBeGreaterThan(0);
+    }
   });
 
   it("catalog-part-snippets-use-their-words", async () => {

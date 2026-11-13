@@ -3,7 +3,7 @@
  * ブロックと図の種類の置き場の dir から、一覧の file を書き出す (#3345、#3348、#3350)。
  *
  * ブロックは `src/blocks/<名前>/`、図の種類は `src/kinds/<種類>/` に置き場を1つずつ持つ。
- * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の 11 を書き出す。
+ * 一覧を手で書くと、置き場を足した時に書き足し忘れるので、置き場の dir の名前から次の一覧を書き出す。
  *
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
  * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
@@ -16,6 +16,7 @@
  * - `apps/playground-spa/src/catalog/blocks-docs.gen.ts` ... 見本帳の分のうち、使い方の頁だけが読む段落 (`BLOCK_DOCS`) の表
  * - `apps/playground-spa/src/catalog/blocks-uses.gen.ts` ... 見本帳の分のうち、部品の頁が見本を探す関数 (`BLOCK_USES`) の表
  * - `apps/playground-spa/src/catalog/blocks-desc.gen.ts` ... 見本帳の分のうち、部品の頁だけが出す説明 (`BLOCK_DESC`) の表 (#3531)
+ * - `apps/playground-spa/src/catalog/inputs.gen.ts` ... 図種固有の入力ブロックが持つ名前と属性の定義
  * - `docs/design/base/GRAMMAR.md` の部品と使い方の表 ... 各置き場の `gallery/rule.ts` の行を、ブロックの並びの順に並べた表の行
  *
  * 形の欠片の一覧を `src/blocks/index.ts` と分けるのは、形の欠片を使うのが build の時に原本の検査を書き出す script と検査だけで、
@@ -232,6 +233,19 @@ function grammarText(root, grammar, order) {
  * 書き出す file の path と中身。`root` は package の src に当たる dir、`catalog` は見本帳の分の一覧を書き出す先。
  * 読み方の一覧は、置き場の `block.ts` の付け方の `only` と図の種類の `kind.ts` の `later: true` の字で分ける
  */
+/** Keep the catalog's kind-owned inputs outside the public drawing entry. */
+function inputCatalog(root) {
+  const directory = join(root, "checkout", "blocks");
+  if (!existsSync(directory)) return undefined;
+  const blocks = readdirSync(directory).filter(name => name.endsWith(".ts") && name !== "index.ts").sort().map(name => {
+    const source = readFileSync(join(directory, name), "utf8");
+    const object = /export const \w+ = (\{[\s\S]*\}) satisfies BlockRule;/u.exec(source)?.[1];
+    if (!object) throw new Error(`Cannot read input definition ${name}`);
+    return JSON.parse(object);
+  });
+  return `${HEADER}\nexport const CHECKOUT_INPUTS = ${JSON.stringify(blocks, null, 2)};\n`;
+}
+
 export function generate(root = SRC, catalog = CATALOG, grammar = GRAMMAR) {
   const blocks = dirs(join(root, "blocks"));
   const kinds = dirs(join(root, "kinds"));
@@ -240,6 +254,7 @@ export function generate(root = SRC, catalog = CATALOG, grammar = GRAMMAR) {
   const order = rankedNames(root, blocks);
   const apart = Object.keys(APART_FILES);
   const grammarRewritten = existsSync(grammar) ? grammarText(root, grammar, order) : undefined;
+  const inputs = inputCatalog(root);
   return {
     [join(root, "blocks", "index.ts")]: blocksIndex(blocks),
     [join(root, "blocks", "shapes.ts")]: shapesIndex(blocks),
@@ -248,6 +263,7 @@ export function generate(root = SRC, catalog = CATALOG, grammar = GRAMMAR) {
     [join(root, "blocks", "later-readings.ts")]: laterReadingsIndex(laterBlocks),
     [join(root, "kinds", "index.ts")]: kindsIndex(kinds),
     [catalog]: catalogIndex(root, catalog, blocks, GALLERY_FILES.filter((file) => !apart.includes(file)), order),
+    ...(inputs === undefined ? {} : { [join(dirname(catalog), "inputs.gen.ts")]: inputs }),
     ...Object.fromEntries(Object.entries(APART_FILES).map(([file, name]) => [join(dirname(catalog), name), catalogIndex(root, join(dirname(catalog), name), blocks, [file])])),
     ...(grammarRewritten === undefined ? {} : { [grammar]: grammarRewritten }),
   };

@@ -12,6 +12,7 @@
     }
   ],
   "include": [
+    "packages/dragon/tsup.frame.config.ts",
     "vitest.config.ts",
     "test-support/fixtures/limits/vitest.config.ts"
   ]

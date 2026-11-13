@@ -4,6 +4,14 @@
  * `examples.ts` がこの file を `import()` で読み、build はこの file を見本の記法だけを持つ 1 つの塊にする。
  * 概要の頁と編集画面の最初の見本は待たずに出すので、ここに置かず `examples.ts` が最初に読む。
  */
+import purchase0Ja from "../../../packages/dragon/examples/purchase-shoes.dragon?raw";
+import purchase0En from "../../../packages/dragon/examples/purchase-shoes.en.dragon?raw";
+import purchase1Ja from "../../../packages/dragon/examples/purchase-standard.dragon?raw";
+import purchase1En from "../../../packages/dragon/examples/purchase-standard.en.dragon?raw";
+import purchase2Ja from "../../../packages/dragon/examples/purchase-quantity.dragon?raw";
+import purchase2En from "../../../packages/dragon/examples/purchase-quantity.en.dragon?raw";
+import purchase3Ja from "../../../packages/dragon/examples/purchase-retry.dragon?raw";
+import purchase3En from "../../../packages/dragon/examples/purchase-retry.en.dragon?raw";
 import swapJa from "../../../packages/dragon/examples/swap.dragon?raw";
 import swapEn from "../../../packages/dragon/examples/swap.en.dragon?raw";
 import swapRevertJa from "../../../packages/dragon/examples/swap-revert.dragon?raw";
@@ -163,6 +171,10 @@ import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
 
 export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
+  "purchase-shoes": { ja: purchase0Ja, en: purchase0En },
+  "purchase-standard": { ja: purchase1Ja, en: purchase1En },
+  "purchase-quantity": { ja: purchase2Ja, en: purchase2En },
+  "purchase-retry": { ja: purchase3Ja, en: purchase3En },
   api: { ja: apiJa, en: apiEn },
   retry: { ja: retryJa, en: retryEn },
   payment: { ja: paymentJa, en: paymentEn },

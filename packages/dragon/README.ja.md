@@ -1180,3 +1180,7 @@ const local = editorUrl(source, { base: "http://localhost:5173/" });
 ## license
 
 MIT
+
+## 読者が条件を変える購入図
+
+`checkout`は本体の図種です。主体、注文フロー、商品、配送、予算、承認、支払い、注文とケースを記法のブロックに分けます。標準の解析・記法出力・描画・配置の入口で扱います。記事のコード表示と操作欄を含む書き出しには、`@cardenelabs/dragon/frame`の`mountFramedDiagram`を使います。`src/frame/README.md`と`examples/checkout/acp-purchase.dragon`に使い方があります。

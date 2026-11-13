@@ -4,6 +4,7 @@
  */
 import { registerReading } from "../blocks/reading";
 import { READINGS } from "../blocks/readings";
+import * as checkout from "./checkout";
 import * as chart from "./chart";
 import * as cycle from "./cycle";
 import * as er from "./er";
@@ -25,6 +26,7 @@ import * as tree from "./tree";
 import * as tryKind from "./try";
 import * as venn from "./venn";
 
+registerKind("checkout", checkout);
 registerKind("chart", chart);
 registerKind("cycle", cycle);
 registerKind("er", er);

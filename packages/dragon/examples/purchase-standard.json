@@ -1,0 +1,266 @@
+{
+  "version": 2,
+  "kind": "checkout",
+  "checkout": {
+    "format": 1,
+    "kind": "checkout",
+    "id": "acp",
+    "title": "通常配送の購入条件を承認する",
+    "note": "配送や数量を変えて、最新の購入条件を承認してみてください。"
+  },
+  "title": "通常配送の購入条件を承認する",
+  "blocks": {
+    "purchase-party": [
+      {
+        "kind": "party",
+        "id": "buyer",
+        "name": "あなた",
+        "options": {
+          "role": "buyer",
+          "note": "購入の判断",
+          "icon": "user"
+        },
+        "line": 4
+      },
+      {
+        "kind": "party",
+        "id": "agent",
+        "name": "エージェント",
+        "options": {
+          "role": "agent",
+          "note": "情報をつなぐ",
+          "icon": "agent"
+        },
+        "line": 5
+      },
+      {
+        "kind": "party",
+        "id": "seller",
+        "name": "販売事業者",
+        "options": {
+          "role": "seller",
+          "note": "条件と注文",
+          "icon": "shop"
+        },
+        "line": 6
+      },
+      {
+        "kind": "party",
+        "id": "processor",
+        "name": "決済事業者",
+        "options": {
+          "role": "payment",
+          "note": "支払いの処理",
+          "icon": "card"
+        },
+        "line": 7
+      }
+    ],
+    "purchase-flow": [
+      {
+        "kind": "flow",
+        "id": "orders",
+        "name": "注文フロー",
+        "options": {
+          "buyer": "buyer",
+          "agent": "agent",
+          "seller": "seller",
+          "payment": "processor",
+          "wire": "horizontal",
+          "carry": "message"
+        },
+        "line": 8
+      }
+    ],
+    "purchase-product": [
+      {
+        "kind": "product",
+        "id": "shoes",
+        "name": "白いランニングシューズ",
+        "options": {
+          "price": "18000",
+          "min": "1",
+          "max": "3",
+          "initial": "1",
+          "unit": "足",
+          "merchant": "シューズ店A",
+          "art": "shoe"
+        },
+        "line": 11
+      }
+    ],
+    "purchase-delivery": [
+      {
+        "kind": "delivery",
+        "id": "shipping",
+        "name": "配送方法を変える",
+        "options": {
+          "initial": "standard"
+        },
+        "line": 12
+      }
+    ],
+    "purchase-option": [
+      {
+        "kind": "option",
+        "id": "express",
+        "name": "速達",
+        "options": {
+          "for": "shipping",
+          "fee": "2500",
+          "note": "早さを優先",
+          "icon": "bolt"
+        },
+        "line": 13
+      },
+      {
+        "kind": "option",
+        "id": "standard",
+        "name": "通常配送",
+        "options": {
+          "for": "shipping",
+          "fee": "1000",
+          "note": "送料を抑える",
+          "icon": "truck"
+        },
+        "line": 14
+      },
+      {
+        "kind": "option",
+        "id": "pickup",
+        "name": "店頭受取",
+        "options": {
+          "for": "shipping",
+          "fee": "0",
+          "note": "配送しない",
+          "icon": "bag"
+        },
+        "line": 15
+      }
+    ],
+    "purchase-budget": [
+      {
+        "kind": "budget",
+        "id": "spending",
+        "name": "送料込みの予算",
+        "options": {
+          "min": "15000",
+          "max": "60000",
+          "step": "500",
+          "initial": "20000"
+        },
+        "line": 18
+      }
+    ],
+    "purchase-total": [
+      {
+        "kind": "total",
+        "id": "quote",
+        "name": "販売事業者が返した合計",
+        "options": {
+          "product": "shoes",
+          "delivery": "shipping",
+          "rule": "price * quantity + fee"
+        },
+        "line": 19
+      }
+    ],
+    "purchase-approval": [
+      {
+        "kind": "approval",
+        "id": "consent",
+        "name": "最新条件の承認",
+        "options": {
+          "total": "quote",
+          "invalidates": "quantity, delivery"
+        },
+        "line": 20
+      }
+    ],
+    "purchase-payment": [
+      {
+        "kind": "payment",
+        "id": "delegated",
+        "name": "この購入に限った支払い",
+        "options": {
+          "approval": "consent",
+          "limit": "approved-total"
+        },
+        "line": 23
+      }
+    ],
+    "purchase-order": [
+      {
+        "kind": "order",
+        "id": "result",
+        "name": "注文",
+        "options": {
+          "payment": "delegated",
+          "policy": "once"
+        },
+        "line": 24
+      }
+    ],
+    "purchase-scenario": [
+      {
+        "kind": "scenario",
+        "id": "normal",
+        "name": "通常の購入",
+        "options": {
+          "outcome": "normal"
+        },
+        "line": 27
+      },
+      {
+        "kind": "scenario",
+        "id": "declined",
+        "name": "決済拒否",
+        "options": {
+          "outcome": "decline"
+        },
+        "line": 28
+      },
+      {
+        "kind": "scenario",
+        "id": "missing",
+        "name": "応答不達",
+        "options": {
+          "outcome": "lost"
+        },
+        "line": 29
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "注文フロー",
+      "body": "配送や数量を変えて、最新の購入条件を承認してみてください。",
+      "events": [
+        {
+          "type": "edge",
+          "from": "buyer",
+          "to": "agent",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "agent",
+          "to": "seller",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "edge",
+          "from": "seller",
+          "to": "processor",
+          "carry": {
+            "kind": "envelope"
+          }
+        }
+      ]
+    }
+  ]
+}

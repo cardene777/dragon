@@ -1,6 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import { kind as architectureKind } from "./architecture/kind";
 import { kind as chartKind } from "./chart/kind";
+import { kind as checkoutKind } from "./checkout/kind";
 import { kind as cycleKind } from "./cycle/kind";
 import { kind as erKind } from "./er/kind";
 import { kind as flowKind } from "./flow/kind";
@@ -21,6 +22,7 @@ import { kind as vennKind } from "./venn/kind";
 export const KIND_FOLDERS = {
   "architecture": architectureKind,
   "chart": chartKind,
+  "checkout": checkoutKind,
   "cycle": cycleKind,
   "er": erKind,
   "flow": flowKind,

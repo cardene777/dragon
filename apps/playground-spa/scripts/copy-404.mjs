@@ -16,9 +16,9 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * カタログの部品の名札と図の種類。部品の図の記法の file (`packages/dragon/src/blocks/<名前>/gallery/<名札>.<図の種類>.dragon`) の名前から引く。
+ * カタログの部品の名札は、部品の図の記法の file (`packages/dragon/src/blocks/<名前>/gallery/<名札>.<図の種類>.dragon`) の名前から引く。
  * file は部品の表 (`src/catalog/parts.ts` の `PARTS`) の部品と、その部品を描ける図の種類ごとにあり、過不足を頁の検査が数える (#3166)。
- * どの図でも使う部品は全ての図の種類の file を持つので、file の名前の図の種類はカタログの分類を全て含む (#3163)。
+ * 図の種類は、専用の入力を持つ図も含め、図の種類の置き場の dir から引く。
  * 部品の図は全てブロックの置き場に在る (#3345、#3348)
  */
 const BLOCKS = resolve(__dirname, "../../../packages/dragon/src/blocks");
@@ -27,7 +27,8 @@ const FIGURE_DIRS = readdirSync(BLOCKS)
   .filter((dir) => existsSync(dir));
 const SNIPPETS = FIGURE_DIRS.flatMap((dir) => readdirSync(dir).filter((name) => name.endsWith(".dragon"))).sort();
 const PART_IDS = [...new Set(SNIPPETS.map((name) => name.split(".")[0]))];
-const KINDS = [...new Set(SNIPPETS.map((name) => name.split(".")[1]))];
+const KIND_DIR = resolve(__dirname, "../../../packages/dragon/src/kinds");
+const KINDS = readdirSync(KIND_DIR, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name);
 
 /**
  * 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表 (`src/site/routes.ts` の `PATHS`) と、

@@ -30,5 +30,9 @@
   "vault-proxy.json": "30fbea2f797fd3452d7430b310a173bce406f72459218ea8cd6c5d61f649f651",
   "wallet-usage.json": "540777d19d2d071f237f1548d0cf34dfdcbe34dbf3a38a3a41b63b04c4f58fdc",
   "wallet.json": "ebabad32926147ac472137c2771de7894698fd7147aa438bb89cbf20961b6225",
-  "withdraw.json": "d4b7f19863f9803ac22cefd7d9f03a40d96ba67fa5df8a2a06eaea2922639df3"
+  "withdraw.json": "d4b7f19863f9803ac22cefd7d9f03a40d96ba67fa5df8a2a06eaea2922639df3",
+  "purchase-quantity.json": "d3fd9096083c7517fb787680ca1ae8a0414b154f0350293a9c6883aa5cf0c92f",
+  "purchase-retry.json": "d3fd9096083c7517fb787680ca1ae8a0414b154f0350293a9c6883aa5cf0c92f",
+  "purchase-shoes.json": "d3fd9096083c7517fb787680ca1ae8a0414b154f0350293a9c6883aa5cf0c92f",
+  "purchase-standard.json": "d3fd9096083c7517fb787680ca1ae8a0414b154f0350293a9c6883aa5cf0c92f"
 }

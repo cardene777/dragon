@@ -74,6 +74,7 @@ export interface FilmBox {
   seal(): void;
   push(image: CanvasImageSource, i: number): Promise<void>;
   finish(): Promise<{ mp4?: Uint8Array; gif?: Uint8Array }>;
+  cancel(): Promise<void>;
 }
 
 /**
@@ -88,14 +89,18 @@ export async function makeFilm(tools: FilmTools, size: FilmSize): Promise<FilmBo
   const { width, height, scale, fps, mp4, gifEvery } = size;
   let add: (image: CanvasImageSource, i: number) => Promise<void> = () => Promise.resolve();
   let close: () => Promise<Uint8Array | undefined> = () => Promise.resolve(undefined);
+  let cancel: () => Promise<void> = () => Promise.resolve();
+  let cancelled = false;
+  let finished = false;
   if (mp4) {
     const canvas = new OffscreenCanvas(width * scale, height * scale);
     const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
     const target = new mb.BufferTarget();
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target });
+    cancel = () => output.cancel();
     const source = new mb.CanvasSource(canvas, { codec: "avc", bitrate: mb.QUALITY_MEDIUM, keyFrameInterval: 2 });
     output.addVideoTrack(source, { frameRate: fps });
-    await output.start();
+    try { await output.start(); } catch (error) { await cancel(); throw error; }
     add = async (image, i) => {
       context.drawImage(image, 0, 0, width * scale, height * scale);
       await source.add(i / fps, 1 / fps);
@@ -161,6 +166,11 @@ export async function makeFilm(tools: FilmTools, size: FilmSize): Promise<FilmBo
   };
 
   return {
+    async cancel() {
+      if (cancelled || finished) return;
+      cancelled = true;
+      try { await cancel(); } finally { sampled.length=0;nearest.clear();previous=undefined; }
+    },
     sample(image) {
       sampled.push(read(image));
     },
@@ -180,6 +190,7 @@ export async function makeFilm(tools: FilmTools, size: FilmSize): Promise<FilmBo
     async finish() {
       const video = await close();
       if (encoder) encoder.finish();
+      finished = true;
       return { ...(video ? { mp4: video } : {}), ...(encoder ? { gif: encoder.bytes() as Uint8Array } : {}) };
     },
   };

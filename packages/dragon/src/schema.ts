@@ -12,6 +12,7 @@
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false, messages: false }` で行う。
  * ajv の英語の文は書き出さないので、誤りの `message` は持たない。
  */
+import { readyParts } from "./kinds/registry";
 import type { UserBlocks } from "./user-blocks";
 import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
@@ -303,7 +304,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey";
+export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -318,6 +319,7 @@ export interface Strip {
  * 時間軸の図の目盛り `scale` と区切り `period` と印の列 `row` と作業 `task` と節目 `point` と拡大の範囲 `zoom`、列の図と試す図のチップ `item`、試す図の部品 `part` と関門 `check`)
  */
 export interface DiagramBlocks {
+  [purchaseBlock: `purchase-${string}`]: import("./checkout/read").CheckoutBlock[] | undefined;
   group?: Region[];
   box?: Box[];
   /** 手順の図 (#3561) の判断。ひし形で描く */
@@ -353,6 +355,7 @@ export interface DiagramBlocks {
 export interface Diagram {
   version: number;
   kind: DiagramKind;
+  checkout?: Omit<import("./checkout/read").CheckoutDefinition, "blocks">;
   title: string;
   view?: ViewMode;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
@@ -377,6 +380,7 @@ export interface Diagram {
 export interface DiagramModel {
   version: 1;
   kind: DiagramKind;
+  checkout?: import("./checkout/read").CheckoutDefinition;
   title: string;
   view?: ViewMode;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
@@ -720,6 +724,10 @@ export function validateDiagram(input: unknown, options: CheckOptions = {}): Che
   // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる。
   // 量の図の漏斗の見た目の値が段を進むほど減るかも、形に書けないのでここで確かめる (#3621)
   const sets = [...tablerErrors(input, m), ...funnelErrors(input, lang)];
+  if (typeof input === "object" && input !== null && (input as Diagram).kind) {
+    const native = readyParts((input as Diagram).kind)?.validate;
+    if (native) sets.push(...native(input as Diagram).map(message => ({pointer:"/blocks",message})));
+  }
   if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return sets.length === 0 ? { ok: true } : { ok: false, errors: sets };
   const all = ((validate.errors ?? []) as ErrorObject[]).map((error) => (version1 ? toVersion1Error(error) : error));
   const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));

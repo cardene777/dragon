@@ -764,5 +764,25 @@
     "dg-tm-bx rx=6": 1,
     "dg-tm-m dg-a rx=1.5": 9,
     "dg-tm-slot rx=1.5": 10
+  },
+  "purchase-quantity.json": {
+    "dg-bg rx=14": 1,
+    "dg-st rx=12": 4,
+    "dg-env rx=3": 3
+  },
+  "purchase-retry.json": {
+    "dg-bg rx=14": 1,
+    "dg-st rx=12": 4,
+    "dg-env rx=3": 3
+  },
+  "purchase-shoes.json": {
+    "dg-bg rx=14": 1,
+    "dg-st rx=12": 4,
+    "dg-env rx=3": 3
+  },
+  "purchase-standard.json": {
+    "dg-bg rx=14": 1,
+    "dg-st rx=12": 4,
+    "dg-env rx=3": 3
   }
 }
