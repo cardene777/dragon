@@ -203,9 +203,12 @@ export interface VennLook {
   unit?: number;
 }
 
-/** 回り続ける図 (#3638) の見た目。`clock` は手順を長さの弧で置く時計の文字盤で、`turn` が `left` なら左回りに置く */
+/**
+ * 回り続ける図 (#3638) の見た目。`clock` は手順を長さの弧で置く時計の文字盤で、`turn` が `left` なら左回りに置く。
+ * `band` は手順を左から右へ山形で並べ、回ごとに帯を積む輪を開いた帯 (#3639) で、`turn` を持たない
+ */
 export interface CycleLook {
-  shape: "clock";
+  shape: "clock" | "band";
   turn?: "left";
 }
 

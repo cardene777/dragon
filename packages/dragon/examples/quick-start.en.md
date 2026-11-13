@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial, or `[shape: band]` to run them left to right on a band), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -579,6 +579,53 @@ step On to the next round
   long -> focus
   set round: Round 2
 ```
+
+Write the first line as `cycle <title> [shape: band]` to run the steps left to right on a band, one band per round.
+`[time: <length>]` on every step `box` puts a scale over the band that marks when each step starts. Write a length on every step or on none.
+The chip of a line runs from chevron to chevron, and the line from the last step to the first one follows a return arrow down to the next band.
+
+```dragon
+cycle A year on the field [shape: band]
+
+box sow as Sow [time: 60d, color: green]
+box grow as Grow [time: 120d, color: blue]
+box harvest as Harvest [time: 60d, color: amber]
+box rest as Rest the soil [time: 120d, color: slate]
+
+strip Field: year, season
+
+step Sow
+  say In spring the soil is tilled and seeds go into the field.
+  set year: Year 1
+  set season: Spring
+
+step Grow
+  say Once the shoots are up, they get water and grow all summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+
+step Harvest
+  say In autumn the ripe crop is harvested.
+  grow -> harvest [tag: crop]
+  set season: Autumn
+
+step Rest the soil
+  say After the harvest, compost goes on the field and the soil rests through winter.
+  harvest -> rest [tag: compost]
+  set season: Winter
+
+step Into year 2
+  say When spring comes, seeds go into the rested soil again.
+  rest -> sow [tag: seeds]
+  set year: Year 2
+  set season: Spring
+
+step Grow in year 2
+  say In year 2 the shoots again grow through the summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+```
+
 
 In a mind map (`mind <title>`), write ideas with `idea` lines inside steps; an idea turns solid at its step and the line from its parent is drawn.
 The idea without `of` is the topic in the middle, and there is only one. `idea <id> as <name> of <parent>` joined to the topic is a branch, joined to a branch is a leaf, and a fourth level is refused.

@@ -8,7 +8,8 @@
  * 段の番号は、その段で札が着いた手順 (札の無い段は前の段の手順、最初の段は最初の手順) の箱の横の、輪の外を向く側に置く。
  * 弧に掛かる時は、丸を輪の外へずらす。同じ手順の番号は同じ所で後の段の番号と入れ替える。
  * 輪の半径は下限から広げていき、箱どうしと、札の道と、真ん中の字が互いに離れて収まる最も小さな半径にする。
- * 図の種類の行に `shape: clock` を書いた図の時計の文字盤の見た目 (#3638) の置き場所 (`layoutClock`) は、この file の後ろの節が持つ
+ * 図の種類の行に `shape: clock` を書いた図の時計の文字盤の見た目 (#3638) の置き場所 (`layoutClock`) と、
+ * `shape: band` を書いた図の輪を開いた帯の見た目 (#3639) の置き場所 (`layoutBand`) は、この file の後ろの節が持つ
  */
 import { TIME_UNITS, type TimeUnit, timeOf } from "../../blocks/ring/limits";
 import { hasWide, textBox, textWidth } from "../../layout/measure";
@@ -17,6 +18,7 @@ import {
   boxColors,
   boxWidth,
   carrierHalf,
+  type EdgeEvent,
   edgesOf,
   gapBetween,
   type Layout,
@@ -27,7 +29,7 @@ import {
   type SceneEdge,
   shapedSize,
 } from "../../layout/scene";
-import { CLOCK_LOOK, CLOCK_TYPE, CYCLE_LOOK, CYCLE_TYPE } from "../../look/cycle";
+import { BAND_LOOK, BAND_TYPE, CLOCK_LOOK, CLOCK_TYPE, CYCLE_LOOK, CYCLE_TYPE } from "../../look/cycle";
 import { type ColorKey, LOOK, type TextStyle } from "../../look/values";
 import type { DiagramModel } from "../../schema";
 import type { NotationLang } from "../../words";
@@ -845,6 +847,362 @@ export function layoutClock(
         rows: centre.rows.map((row) => ({ ...row, y: row.y + dy })),
       },
       current,
+    };
+  }
+}
+
+/*
+ * ここから下は輪を開いた帯の見た目の置き場所 (#3639)。見た目の元は #3623 の step 2 で本人が選ばなかった動く試作の案C (`drawC`)。
+ *
+ * 手順は書いた順に左から右へ、等しい幅の山形で帯に並べる。山形の先は次の山形の切り込みに入り、帯の最初の山形は左の縁を平らにする。
+ * 回ごとに帯を 1 本ずつ上から下へ積む。回は 0 から数え、最後の手順から最初の手順への線で 1 つ進む。
+ * 帯ごとに、上から帯の頭 (中身の帯の題と、その回の欄の値)、目盛りの数字と段の番号の行、山形、手順の名前を置く。
+ * 全ての箱に長さを書いた図は、手順の境目に始まる時刻の目盛りを 0 から置き、字は境目の時刻を整数か小数 1 桁で書ける一番大きい単位で書く。
+ * 段の中の線の札は帯の真ん中の高さを、送る手順の山形の真ん中から受ける手順の山形の真ん中へ走る。
+ * 最後の手順から最初の手順への線の札は、帯の右の端から外を回って帯の下を横切り、下の回の帯の左の端へ入る戻る矢印を辿って、次の回の最初の山形の真ん中で着く。
+ * 段の番号は、その段の手順のその回の山形の真ん中の上に置く。
+ * 枠の幅が狭い (携帯の幅) 時は、山形を枠の幅に収まるまで縮めて手順の番号を山形の中に書き、名前の代わりに番号と名前と長さの一覧を帯の下に積む
+ */
+
+/** 山形。`round` はその山形が在る回、`first` は帯の最初の山形 (左の縁を平らにする) */
+export interface BandSegment extends Rect {
+  id: string;
+  round: number;
+  color: ColorKey;
+  first: boolean;
+}
+
+/** 回の帯。その回の山形の並びを囲む四角 */
+export interface BandRow extends Rect {
+  round: number;
+}
+
+/** 帯の上の目盛り。`value` は `unit` で数えた境目の時刻、`x` は境目の所、`y` は字の基準線、`mark` は印の上の端と下の端 */
+export interface BandTick {
+  round: number;
+  value: number;
+  text: string;
+  x: number;
+  y: number;
+  rect: Rect;
+  mark: [number, number];
+}
+
+/** 山形の下の手順の名前と箱の下の字。字は `x` を真ん中に揃え、`y` は基準線 */
+export interface BandName extends Rect {
+  id: string;
+  round: number;
+  texts: { text: string; x: number; y: number; style: "name" | "sub" }[];
+}
+
+/** 帯の頭の欄。`x` は字の左の端、`lead` は大きく書く最初の欄 */
+export interface BandField {
+  field: string;
+  x: number;
+  lead: boolean;
+}
+
+/** 帯の頭。`base` は字の基準線で、題と欄の値を左から並べる。四角は字の並びを囲む */
+export interface BandHead extends Rect {
+  round: number;
+  base: number;
+  title: { text: string; x: number };
+  fields: BandField[];
+}
+
+/** 回 `round` から次の回へ戻る矢印。帯の右の端から下の回の帯の左の端までの折れ線 */
+export interface BandReturn {
+  round: number;
+  points: Point[];
+}
+
+export interface BandLayout extends Layout {
+  kind: "cycle";
+  shape: "band";
+  bands: BandRow[];
+  segments: BandSegment[];
+  /** 全ての箱に長さを書いた図の目盛り。長さを書かない図では空 */
+  ticks: BandTick[];
+  unit?: TimeUnit;
+  /** 既定の幅の、山形の下の名前。携帯の幅では空 */
+  names: BandName[];
+  /** 中身の帯を持つ図の、回ごとの帯の頭 */
+  heads: BandHead[];
+  returns: BandReturn[];
+  /** 携帯の幅の、山形の中の番号の基準線の、山形の上の縁からの高さ */
+  keyAt?: number;
+  /** 携帯の幅の、帯の下の一覧 */
+  list?: Rect & { rows: ClockRow[] };
+  /** 段ごとの、その段の手順の名札と回 */
+  current: string[];
+  rounds: number[];
+}
+
+/** 帯の頭の値の字の形。最初の欄の和文を含む値は和文の字で書く */
+export const bandValueStyle = (value: string, lead: boolean): TextStyle =>
+  lead ? (hasWide(value) ? BAND_TYPE.leadJa : BAND_TYPE.lead) : BAND_TYPE.rest;
+
+/** 目盛りの字の形 */
+export const bandTickStyle = (text: string): TextStyle => (hasWide(text) ? BAND_TYPE.tickJa : BAND_TYPE.tick);
+
+/** 境目の時刻 (秒) を全て整数か小数 1 桁で書ける一番大きい単位 */
+function bandUnit(bounds: number[]): TimeUnit {
+  const order = (Object.keys(TIME_UNITS) as TimeUnit[]).reverse();
+  const fits = (unit: TimeUnit): boolean =>
+    bounds.every((s) => {
+      const v = (s / TIME_UNITS[unit]) * 10;
+      return Math.abs(v - Math.round(v)) < 1e-6;
+    });
+  return order.find(fits) ?? "ms";
+}
+
+export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: KindOptions): BandLayout {
+  const B = BAND_LOOK;
+  const ids = diagram.boxes.map((b) => b.id);
+  const n = ids.length;
+  const colors = boxColors(diagram);
+  const colorOf = (id: string): ColorKey => colors.get(id) ?? "slate";
+  const phone = options.width !== undefined && options.width < B.wide;
+
+  // 段ごとの手順と回。札が着いた手順、線の無い段は前の段の手順。最後の手順から最初の手順への線で回が 1 つ進む
+  const current: string[] = [];
+  const rounds: number[] = [];
+  const runs: { step: number; event: number; edge: EdgeEvent; round: number; wrap: boolean }[] = [];
+  let now = ids[0] ?? "";
+  let round = 0;
+  for (const { step, event, edge } of edgesOf(diagram)) {
+    while (current.length < step) {
+      current.push(now);
+      rounds.push(round);
+    }
+    if (!ids.includes(edge.to)) continue;
+    const wrap = edge.from === ids[n - 1] && edge.to === ids[0];
+    runs.push({ step, event, edge, round, wrap });
+    if (wrap) round += 1;
+    now = edge.to;
+  }
+  while (current.length < diagram.steps.length) {
+    current.push(now);
+    rounds.push(round);
+  }
+  const count = round + 1;
+
+  // 目盛り。全ての箱に長さを書いた図だけが持つ
+  const times = diagram.boxes.map((b) => (b.time === undefined ? undefined : timeOf(b.time)));
+  const timed = n > 0 && times.every((t) => t !== undefined);
+  const bounds: number[] = [0];
+  if (timed) for (const t of times) bounds.push((bounds[bounds.length - 1] as number) + (t?.value ?? 0) * TIME_UNITS[t?.unit ?? "s"]);
+  const unit = timed ? bandUnit(bounds) : undefined;
+  const tickTexts = unit
+    ? bounds.map((s) => {
+        const value = Math.round((s / TIME_UNITS[unit]) * 10) / 10;
+        return { value, text: `${String(value)}${UNIT_WORDS[lang][unit]}` };
+      })
+    : [];
+  const tickWidths = tickTexts.map((t) => textWidth(t.text, bandTickStyle(t.text)));
+  const tickWidest = Math.max(0, ...tickWidths);
+
+  // 帯の頭の欄。欄の値の幅は、どの段の値も収まる幅にする
+  const strip = diagram.strip;
+  const values = valuesOf(diagram);
+  const titleWidth = strip ? textWidth(strip.title, BAND_TYPE.title) : 0;
+  const fieldWidths = (strip?.fields ?? []).map((field, k) =>
+    Math.max(0, ...(values.get(field) ?? []).map((value) => textWidth(value, bandValueStyle(value, k === 0)))),
+  );
+
+  // 名前の幅。携帯の幅では名前を下の一覧に置く
+  const nameWidth = phone
+    ? 0
+    : Math.max(0, ...diagram.boxes.map((b) => Math.max(textWidth(b.name, BAND_TYPE.name), b.sub === undefined ? 0 : textWidth(b.sub, BAND_TYPE.sub))));
+  const h = phone ? B.phoneH : B.h;
+  const br = LOOK.badge.r;
+  // 戻る矢印は、帯の左の端の目盛りの字に掛からない所まで外を回る
+  const out = Math.max(B.out, (tickWidths[0] ?? 0) / 2 + B.apart, (tickWidths[tickWidths.length - 1] ?? 0) / 2 + B.apart);
+
+  const widest = Math.max(B.pitch, nameWidth + B.nameGap, tickWidest + B.apart);
+  if (!phone) return place(widest);
+  const width = options.width as number;
+  let pitch = Math.min(widest, (width - B.pad * 2 - out * 2 + B.gap - B.point) / Math.max(n, 1));
+  let laid = place(pitch);
+  while (pitch > B.point * 2 && laid.width > width) {
+    pitch -= 2;
+    laid = place(pitch);
+  }
+  return laid;
+
+  /** 山形を `pitch` の間で並べた置き場所 */
+  function place(pitch: number): BandLayout {
+    const w = pitch - B.gap + B.point;
+    const bandW = pitch * (n - 1) + w;
+    // 目盛りの数字は番号と同じ行に置き、番号に掛かる時は上の行へ移す
+    const shared = (pitch + B.gap - B.point) / 2 >= tickWidest / 2 + br + B.apart;
+    const tickStyleSize = BAND_TYPE.tick.size;
+    const tickUp = unit === undefined ? 0 : shared ? 0 : B.tickRow;
+    // 山形の上の縁から、番号と目盛りの行の上の端と、帯の頭の基準線までの高さ
+    const tickBase = B.badgeAt + tickUp - tickStyleSize * 0.35;
+    const rowTop = Math.max(B.badgeAt + br, unit === undefined ? 0 : tickBase + tickStyleSize * 0.8);
+    const headBase = rowTop + B.headGap;
+    const headSize = Math.max(BAND_TYPE.title.size, BAND_TYPE.lead.size, BAND_TYPE.leadJa.size, BAND_TYPE.rest.size);
+    const above = strip ? headBase + headSize * 0.8 : rowTop;
+    // 山形の下の縁から、名前の下の端までの高さ
+    const hasSub = !phone && diagram.boxes.some((b) => b.sub !== undefined);
+    const below = phone ? 0 : B.nameAt + (hasSub ? B.subAt + BAND_TYPE.sub.size * 0.2 : BAND_TYPE.name.size * 0.2);
+    const stride = above + h + below + B.cross * 2;
+    const topOf = (r: number): number => above + r * stride;
+    const midOf = (r: number): number => topOf(r) + h / 2;
+
+    const bands: BandRow[] = Array.from({ length: count }, (_, r) => ({ round: r, x: 0, y: topOf(r), w: bandW, h }));
+    const segments: BandSegment[] = bands.flatMap((band) =>
+      ids.map((id, i) => ({ id, round: band.round, color: colorOf(id), first: i === 0, x: pitch * i, y: band.y, w, h })),
+    );
+    const segOf = (id: string, r: number): BandSegment | undefined => segments.find((s) => s.id === id && s.round === r);
+    const centre = (s: BandSegment | undefined): Point => (s ? [s.x + s.w / 2, s.y + s.h / 2] : [0, 0]);
+
+    const ticks: BandTick[] = bands.flatMap((band) =>
+      tickTexts.map(({ value, text }, k): BandTick => {
+        const x = k < n ? pitch * k : pitch * (n - 1) + w;
+        const y = band.y - tickBase;
+        return { round: band.round, value, text, x, y, rect: textBox(text, x, y, bandTickStyle(text), "middle"), mark: [y + 3, band.y - B.mark] };
+      }),
+    );
+
+    const names: BandName[] = phone
+      ? []
+      : segments.map((seg, i) => {
+          const box = diagram.boxes[i % n];
+          const cx = seg.x + seg.w / 2;
+          const lines = [
+            { text: box?.name ?? seg.id, style: "name" as const },
+            ...(box?.sub !== undefined ? [{ text: box.sub, style: "sub" as const }] : []),
+          ];
+          let y = seg.y + seg.h + B.nameAt;
+          const texts = lines.map((line, k) => {
+            if (k > 0) y += B.subAt;
+            return { text: line.text, x: cx, y, style: line.style };
+          });
+          const rects = texts.map((t) => textBox(t.text, t.x, t.y, BAND_TYPE[t.style], "middle"));
+          const left = Math.min(...rects.map((r) => r.x));
+          const top = Math.min(...rects.map((r) => r.y));
+          return {
+            id: seg.id,
+            round: seg.round,
+            texts,
+            x: left,
+            y: top,
+            w: Math.max(...rects.map((r) => r.x + r.w)) - left,
+            h: Math.max(...rects.map((r) => r.y + r.h)) - top,
+          };
+        });
+
+    const heads: BandHead[] = strip
+      ? bands.map((band) => {
+          const base = band.y - headBase;
+          let x = titleWidth + B.fieldGap;
+          const fields = strip.fields.map((field, k) => {
+            const at = x;
+            x += (fieldWidths[k] ?? 0) + B.fieldGap;
+            return { field, x: at, lead: k === 0 };
+          });
+          return { round: band.round, base, title: { text: strip.title, x: 0 }, fields, x: 0, y: base - headSize * 0.8, w: x - B.fieldGap, h: headSize };
+        })
+      : [];
+
+    // 戻る矢印。帯の右の端から外を回って帯の下を横切り、下の回の帯の左の端へ入る
+    const returns: BandReturn[] = bands.slice(0, -1).map((band) => {
+      const cross = band.y + h + below + B.cross;
+      const next = midOf(band.round + 1);
+      const mid = midOf(band.round);
+      return {
+        round: band.round,
+        points: [
+          [bandW + 2, mid],
+          [bandW + out, mid],
+          [bandW + out, cross],
+          [-out, cross],
+          [-out, next],
+          [-2, next],
+        ],
+      };
+    });
+
+    // 札の道。段の中の線は帯の真ん中を山形の真ん中から真ん中へ、最後の手順から最初の手順への線は戻る矢印を辿る
+    const edges: SceneEdge[] = runs.map(({ step, event, edge, round: r, wrap }) => {
+      const from = centre(segOf(edge.from, r));
+      const to = centre(segOf(edge.to, wrap ? r + 1 : r));
+      const back = wrap ? (returns.find((x) => x.round === r)?.points ?? []) : [];
+      return { step, event, from: edge.from, to: edge.to, points: [from, ...back, to], color: colorOf(edge.to), carry: edge.carry };
+    });
+
+    // 段の番号。その段の手順のその回の山形の真ん中の上。同じ手順の番号は同じ所で後の段の番号と入れ替える
+    const badges: SceneBadge[] = besideSameSpot(
+      current.flatMap((id, s) => {
+        const seg = segOf(id, rounds[s] ?? 0);
+        return seg ? [{ step: s, x: seg.x + seg.w / 2, y: seg.y - B.badgeAt, color: colorOf(id) }] : [];
+      }),
+      () => false,
+      () => true,
+    );
+
+    // 携帯の幅の一覧。帯の下に、手順を書いた順に積む
+    const last = bands[bands.length - 1] as BandRow;
+    const listTop = last.y + h + B.listGap;
+    const list = phone
+      ? {
+          x: 0,
+          y: listTop,
+          w: bandW,
+          h: n * B.row,
+          rows: ids.map((id, i): ClockRow => {
+            const box = diagram.boxes[i];
+            return { id, number: String(i + 1), name: box?.name ?? id, time: box?.time ?? "", y: listTop + i * B.row, color: colorOf(id) };
+          }),
+        }
+      : undefined;
+
+    // 図の枠。全ての部品と、走る札と留まる札を囲み、外周に余白を空ける
+    const parts: Rect[] = [
+      ...segments,
+      ...ticks.map((t) => t.rect),
+      ...names,
+      ...heads,
+      ...badges.map((b) => around([b.x, b.y], [br, br])),
+      ...returns.flatMap((x) => x.points.map((p) => around(p, [B.headHalf, B.headHalf]))),
+      ...edges.flatMap((e) => (e.carry.kind === "none" ? [] : e.points.map((p) => around(p, carrierHalf(e.carry))))),
+      ...(list ? [list] : []),
+    ];
+    const left = Math.min(...parts.map((p) => p.x));
+    const top = Math.min(...parts.map((p) => p.y));
+    const right = Math.max(...parts.map((p) => p.x + p.w));
+    const bottom = Math.max(...parts.map((p) => p.y + p.h));
+    const dx = B.pad - left;
+    const dy = B.pad - top;
+    const move = ([x, y]: Point): Point => [x + dx, y + dy];
+    const shift = <T extends Rect>(rect: T): T => ({ ...rect, x: rect.x + dx, y: rect.y + dy });
+    return {
+      kind: "cycle",
+      shape: "band",
+      width: right - left + B.pad * 2,
+      height: bottom - top + B.pad * 2,
+      regions: [],
+      boxes: [],
+      lifelines: [],
+      edges: edges.map((e) => ({ ...e, points: e.points.map(move) })),
+      labels: [],
+      actions: [],
+      badges: badges.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+      paths: [],
+      ends: [],
+      bands: bands.map(shift),
+      segments: segments.map(shift),
+      ticks: ticks.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy, rect: shift(t.rect), mark: [t.mark[0] + dy, t.mark[1] + dy] })),
+      ...(unit ? { unit } : {}),
+      names: names.map((x) => ({ ...shift(x), texts: x.texts.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy })) })),
+      heads: heads.map((x) => ({ ...shift(x), base: x.base + dy, title: { ...x.title, x: x.title.x + dx }, fields: x.fields.map((f) => ({ ...f, x: f.x + dx })) })),
+      returns: returns.map((x) => ({ ...x, points: x.points.map(move) })),
+      ...(phone ? { keyAt: B.keyAt } : {}),
+      ...(list ? { list: { ...shift(list), rows: list.rows.map((row) => ({ ...row, y: row.y + dy })) } } : {}),
+      current,
+      rounds,
     };
   }
 }

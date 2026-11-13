@@ -107,3 +107,66 @@ export const CLOCK_LOOK = {
   tint: 30,
   samples: 3,
 } as const;
+
+/**
+ * 輪を開いた帯の見た目 (#3639) の字。山形の下の手順の名前 (`name`) と箱の下の字 (`sub`)、帯の上の目盛りの数字 (`tick`、和文を含む数字は `tickJa`)、
+ * 帯の頭の中身の帯の題 (`title`) と最初の欄の値 (`lead`、和文を含む値は `leadJa`) と 2 つ目からの欄の値 (`rest`)、
+ * 携帯の幅で山形の中に書く手順の番号 (`key`) と、下の一覧の番号と名前と長さ (`row`、`rowName`、`rowTime`)。
+ * 数字と長さは桁が揃うよう等幅の字で書き、和文を含む字は和文の字で書く
+ */
+export const BAND_TYPE = {
+  name: text(14.5, 700),
+  sub: text(12.5, 500),
+  tick: text(12, 700, "mono"),
+  tickJa: text(12, 700),
+  title: text(13, 700),
+  lead: text(16, 700, "mono"),
+  leadJa: text(15, 700),
+  rest: text(13, 500),
+  key: text(12.5, 700, "mono"),
+  row: text(12.5, 700, "mono"),
+  rowName: text(14, 700),
+  rowTime: text(12.5, 600, "mono"),
+} as const;
+
+/**
+ * 輪を開いた帯の見た目 (#3639) の値。見た目の元は #3623 の step 2 で本人が選ばなかった動く試作の案C (`drawC`)。
+ * 山形は左から右へ `pitch` の間で並べ、山形の先の深さは `point`、隣の山形との間は `gap`。山形の高さは `h` で、携帯の幅では `phoneH` にする。
+ * 手順の名前が山形の間に収まらない時は、名前の幅に `nameGap` を足した間まで広げる。
+ * 段の番号は山形の上の縁から `badgeAt` 上に置く。目盛りの数字の基準線は番号と同じ高さに置き、番号に掛かる時は `tickRow` 上の行へ移す。
+ * 目盛りの印は数字の下から山形の上の縁の `mark` 手前まで引く。帯の頭の字の基準線は、番号と目盛りの上の端から `headGap` 上に置き、欄どうしは `fieldGap` 空ける。
+ * 手順の名前の基準線は山形の下の縁から `nameAt` 下に置き、箱の下の字はその `subAt` 下に置く。
+ * 戻る矢印は帯の右の端と左の端から `out` 外を回り、帯の下の字から `cross` 下を横切る。矢じりは長さ `head` で開きの半分 `headHalf`。
+ * まだ来ていない回の帯は濃さ `faint` で出す。枠の幅が `wide` より狭い時は携帯の幅の並べ方にし、山形の中の番号の基準線を山形の上の縁から `keyAt` 下に置き、
+ * 帯の下に `listGap` 空けて、高さ `row` の行の一覧を置く。行の頭の色の印の大きさは `swatch`。
+ * `stroke` は線の太さで、山形の縁 `segment`、目盛りの印 `tick`、戻る矢印 `ret`。`tint` は光った山形の色の濃さ (%)
+ */
+export const BAND_LOOK = {
+  pad: 24,
+  pitch: 152,
+  point: 14,
+  gap: 6,
+  h: 32,
+  phoneH: 56,
+  nameGap: 18,
+  badgeAt: 20,
+  tickRow: 22,
+  mark: 3,
+  headGap: 14,
+  fieldGap: 12,
+  nameAt: 22,
+  subAt: 18,
+  out: 18,
+  cross: 22,
+  head: 7,
+  headHalf: 4.5,
+  faint: 0.35,
+  wide: 560,
+  keyAt: 16,
+  listGap: 20,
+  row: 30,
+  swatch: 10,
+  apart: 6,
+  stroke: { segment: 1.2, tick: 1.4, ret: 1.8 },
+  tint: 30,
+} as const;

@@ -1,0 +1,40 @@
+// A year on a field. Sow in spring, grow through summer, harvest in autumn, rest the soil in winter, and sow again in the second spring.
+cycle A year on the field [shape: band]
+
+box sow as Sow [time: 60d, color: green]
+box grow as Grow [time: 120d, color: blue]
+box harvest as Harvest [time: 60d, color: amber]
+box rest as Rest the soil [time: 120d, color: slate]
+
+strip Field: year, season
+
+step Sow
+  say In spring the soil is tilled and seeds go into the field.
+  set year: Year 1
+  set season: Spring
+
+step Grow
+  say Once the shoots are up, they get water and grow all summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+
+step Harvest
+  say In autumn the ripe crop is harvested.
+  grow -> harvest [tag: crop]
+  set season: Autumn
+
+step Rest the soil
+  say After the harvest, compost goes on the field and the soil rests through winter.
+  harvest -> rest [tag: compost]
+  set season: Winter
+
+step Into year 2
+  say When spring comes, seeds go into the rested soil again.
+  rest -> sow [tag: seeds]
+  set year: Year 2
+  set season: Spring
+
+step Grow in year 2
+  say In year 2 the shoots again grow through the summer.
+  sow -> grow [tag: shoots]
+  set season: Summer

@@ -70,7 +70,7 @@
       "$ref": "#/definitions/vennLook"
     },
     "cycle": {
-      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く",
+      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く。clock は全ての箱に、band は全ての箱かどの箱にも書かない",
       "$ref": "#/definitions/cycleLook"
     },
     "blocks": {
@@ -264,7 +264,12 @@
           "cycle": {
             "required": [
               "shape"
-            ]
+            ],
+            "properties": {
+              "shape": {
+                "const": "clock"
+              }
+            }
           }
         }
       },
@@ -284,14 +289,61 @@
         }
       },
       "else": {
-        "properties": {
-          "blocks": {
-            "properties": {
-              "box": {
-                "items": {
-                  "properties": {
-                    "time": {
-                      "$ref": "#/definitions/absent"
+        "if": {
+          "required": [
+            "cycle"
+          ],
+          "properties": {
+            "cycle": {
+              "required": [
+                "shape"
+              ],
+              "properties": {
+                "shape": {
+                  "const": "band"
+                }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "blocks": {
+              "properties": {
+                "box": {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "required": [
+                          "time"
+                        ]
+                      }
+                    },
+                    {
+                      "items": {
+                        "properties": {
+                          "time": {
+                            "$ref": "#/definitions/absent"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "blocks": {
+              "properties": {
+                "box": {
+                  "items": {
+                    "properties": {
+                      "time": {
+                        "$ref": "#/definitions/absent"
+                      }
                     }
                   }
                 }

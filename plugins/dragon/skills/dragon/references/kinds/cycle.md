@@ -19,8 +19,9 @@ Pick `flow` instead when the procedure branches at choices and ends, and `state`
 | `strip <title>: <field>, <field>` | The strip title and field values, shown in the middle of the ring instead of under the diagram |
 | `set <field>: <value>` | Changes a value in the middle of the ring. The first field shows large, and field names are not shown |
 | `cycle <title> [shape: clock]` | The clock look. The steps sit on a clock dial clockwise from 12 o'clock as arcs as long as they take, and one hand turns from step to step |
-| `box <id> as <name> [time: 25min]` | The length of a step in the clock look, a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`). Every step needs one, and `time` is refused without `[shape: clock]` |
+| `box <id> as <name> [time: 25min]` | The length of a step, a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`). The clock look needs one on every step, the band look takes one on every step or on none, and `time` is refused in the ring look |
 | `cycle <title> [shape: clock, turn: left]` | Turns the dial counterclockwise. `turn` is refused without `[shape: clock]` |
+| `cycle <title> [shape: band]` | The band look. The steps run left to right as chevrons of equal width, one band per round stacked top to bottom, and the line from the last step to the first one follows a return arrow to the next band |
 
 ## How to write it well
 
@@ -32,6 +33,7 @@ Pick `flow` instead when the procedure branches at choices and ends, and `state`
 - A value that changes after it was first written shows in the color of that step's box while the step lasts.
 - Pick `[shape: clock]` when how long each step takes matters, such as a timetable of focus and rest or the phases of a slot. The arcs are as long as the steps, so a step that takes most of the round fills most of the dial.
 - In the clock look the chip rides the tip of the hand, and the arcs entered in the round stay lit until the hand passes 12 o'clock. The numbers around the dial use the largest unit written, so write lengths in units that read well together.
+- Pick `[shape: band]` when the rounds should stay readable one under another, such as the seasons of each year on a field. Each band's head shows that round's strip values, so write the round in the first field. With lengths on every step, the scale over each band marks when each step starts.
 
 ## Example
 
