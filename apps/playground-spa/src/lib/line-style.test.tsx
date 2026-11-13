@@ -19,6 +19,11 @@ import { Playground } from "../Playground";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+// 書き方の頁の版の札は、build が差し込む版の値 (`vite.config.ts` の `define`) を読む。検査は vite の build を通さないので、頁を読む前に代わりの値を置く
+vi.hoisted(() => {
+  (globalThis as { __DRAGON_VERSION__?: string }).__DRAGON_VERSION__ = "0.0.0";
+});
+
 /** 書き出す入口の代わり。HTML の頁は返した字を保存させる */
 const capture = vi.hoisted(() => ({
   capturePng: vi.fn(),
