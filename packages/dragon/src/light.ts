@@ -114,9 +114,9 @@ async function loadIconSets(source: string | object): Promise<void> {
   if (usesTabler(source, __DRAGON_SHARED_TABLER__) && !iconSetLoaded("tabler")) registerTabler((await import("./blocks/icon/tabler.js")).default);
 }
 
-/** 記法 `text` が足すブロックの定義の行を持てば、定義を読む処理を読む (#3399)。読んでいれば何もしない */
-async function loadUserBlocks(text: string): Promise<void> {
-  if (definesBlocks(text) && userBlockReader() === undefined) registerUserBlockReader((await import("./user-blocks-read")).USER_BLOCK_READER);
+/** 足すブロックの定義を持つ図 (`defines`) なら、定義を読む処理を読む (#3399)。読んでいれば何もしない */
+async function loadUserBlocks(defines: boolean): Promise<void> {
+  if (defines && userBlockReader() === undefined) registerUserBlockReader((await import("./user-blocks-read")).USER_BLOCK_READER);
 }
 
 /**
@@ -131,10 +131,11 @@ export async function loadReadings(source: string | object): Promise<void> {
   const kind = diagramKind(diagram);
   if (kind && (KIND_FOLDERS as Readonly<Record<string, { fields?: readonly string[] }>>)[kind]?.fields) await loadParts(kind);
   if (typeof diagram === "string") {
-    await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(diagram), loadIconSets(diagram)]);
+    await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadUserBlocks(definesBlocks(diagram)), loadIconSets(diagram)]);
     return;
   }
-  await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadIconSets(diagram)]);
+  // 定義 (`define`) を書き戻す処理は定義を読む処理と一緒に読むので、書き戻す前に読む (#3633)
+  await Promise.all([loadBlocks(blocksUsedBy(diagram)), loadIconSets(diagram), loadUserBlocks((diagram as Diagram).define !== undefined)]);
   let printed: string;
   try {
     // 読むのに要るブロックを数えるだけなので、省かずに書く。省く形は読み直して確かめるので、まだ読んでいないブロックで落ちる
@@ -143,7 +144,7 @@ export async function loadReadings(source: string | object): Promise<void> {
     // 書き戻せない原本は、読む処理 (`readDiagram`) がその誤りを返す
     return;
   }
-  await Promise.all([loadBlocks(blocksUsedBy(printed)), loadUserBlocks(printed)]);
+  await loadBlocks(blocksUsedBy(printed));
 }
 
 /**

@@ -44,7 +44,7 @@ import { FORMAT_VERSION, isVersion1, toModel, upgrade } from "./model";
 import type { Diagram, DiagramEvent, DiagramModel, Step, TryPart } from "./schema";
 import { parseNotation } from "./parser";
 import { derivedBody, lineText, type NameOf } from "./short-form";
-import { printBlocks } from "./user-blocks";
+import { type UserBlocks, userBlockReader } from "./user-blocks";
 import { DEFAULT_LANG } from "./words";
 
 /** 持っている読み方の書き戻す処理を、ブロックの並び (`rank`) の順に引く (#3349) */
@@ -99,6 +99,16 @@ const partPrinters = cachedByReadings(
 function missingPrinter(what: string, owner: string | undefined): Error {
   if (owner !== undefined && !readingLoaded(owner)) return new Error(messagesFor(DEFAULT_LANG).blockNotLoaded(owner));
   return new Error(`${what} を書き戻す処理が無い`);
+}
+
+/**
+ * 図の頭の定義の並びの行 (#3399)。書き戻す処理は定義を読む処理と一緒に後から読む (#3633)。
+ * 軽い入口で定義を読む処理を読む前に書き戻すと、黙って定義を落とさずに `loadFor` を待つよう断る
+ */
+function defineLines(define: UserBlocks): string {
+  const reader = userBlockReader();
+  if (!reader) throw new Error(messagesFor(DEFAULT_LANG).blockNotLoaded("blocks"));
+  return reader.print(define);
 }
 
 /** 試す図の部品の塊。部品の行を原本の並びのまま 1 つの塊に書く */
@@ -213,7 +223,7 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
       ["view", diagram.view],
     ])}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
-    ...(diagram.define ? [printBlocks(diagram.define)] : []),
+    ...(diagram.define ? [defineLines(diagram.define)] : []),
     ...(diagram.try ? [tryParts(diagram.try.parts)] : []),
     ...leadPrinters().flatMap((print) => print(diagram)),
     ...declarePrinters().flatMap((print) => print(omit.boxes ? { ...diagram, boxes: [] } : diagram)),

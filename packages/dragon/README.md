@@ -268,6 +268,26 @@ step Hand over
 A definition based on `box` can also give its boxes an icon with a line such as `icon key` or `icon tabler:building-bridge-2`.
 It takes the same names as `icon:` on a box line, and an icon written on the box line wins over the definition's.
 
+A definition based on `icon` can take colored shapes as `paint <color> "<path>"` lines in place of a one-color `path`.
+Write the view box of the original SVG as `view <x> <y> <width> <height>`, and the icon is scaled into the 20 by 20 square of an icon, with each shape filled in the color written for it.
+Write a color as `#` and 3 or 6 hex digits, and put `evenodd` after the color for a shape filled by the even-odd rule.
+A colored icon can go on the boxes of every diagram kind that takes icons.
+
+```text
+blocks 1
+block +phone
+  base icon
+  view 0 0 24 24
+  paint #1E3A8A "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-16a2 2 0 0 1 2 -2z"
+  paint #BFDBFE "M7 5h10v12h-10z"
+end
+```
+
+`dragon icon <file.svg>` turns a colored SVG you have into definition lines of this form.
+`--name +<name>` names the definition, and without it the name is made from the file name.
+Shapes not filled with one color (gradients, patterns, embedded images, text) and elements with a transform or a stroke are refused, with the element named.
+When you use a cloud provider's icons, convert the latest ones from the provider.
+
 A definition is data only, and a path takes only path syntax (commands, numbers, and separators).
 It cannot hold URLs, code, or SVG elements, so reading a definition someone else wrote runs nothing.
 A definition without the version line (`blocks 1`), or with an unknown version, is refused.

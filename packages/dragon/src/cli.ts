@@ -5,6 +5,8 @@
  * `dragon embed <HTML の file>` の命令は、頁の script の1行の入口を束ねた script の中身に置き換え、外へ通信しない1 file を書く (#3343)。
  * `dragon check <file>` の命令は、記法を描かずに確かめ、誤りと知らせを `<file>:<行>:<列> <重さ> <文>` の 1 件 1 行で出す (#3455)。
  * 誤りがあれば終わり方 1、知らせだけなら 0 で終わる。`dragon --version` は package の版を出す。
+ * `dragon icon <file.svg>` の命令は、書き手が持つ色付きの SVG を、色付きの絵柄の印のブロックの定義の行にして出す (#3633)。
+ * 1 色で塗っていない形と変形と線を持つ要素は、要素を名指して断り、終わり方 1 で終わる。
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
  *
@@ -19,6 +21,7 @@ import { CHECKED_FILES, checkText, isBlocksFile, type Problem, problemLine, read
 import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/index";
 import { PALETTES, type Theme } from "./look/values";
+import { iconDefinition, iconNameOf, type SvgIconRefusal, svgIcon } from "./svg-icon";
 import { parseNotation } from "./parser";
 import { describeOverlap } from "./render/ink";
 import { LINE_STYLES, type LineStyle } from "./render/pen-store";
@@ -44,6 +47,9 @@ const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as c
 
 /** `dragon check` の設定 */
 const CHECK_OPTIONS = { json: { type: "boolean" }, layout: { type: "boolean" }, lang: { type: "string" }, blocks: { type: "string" } } as const;
+
+/** `dragon icon` の設定 (#3633) */
+const ICON_OPTIONS = { name: { type: "string" }, lang: { type: "string" } } as const;
 
 /** package の版。build が入れる (`tsup.config.ts`) */
 declare const __DRAGON_VERSION__: string;
@@ -72,6 +78,9 @@ interface CliText {
   notBlocksFile: (path: string) => string;
   /** `dragon --version` の使い方 */
   versionUsage: string;
+  /** `dragon icon` の使い方と誤りの文 (#3633) */
+  iconUsage: string;
+  icon: { noFile: (path: string) => string; badName: (name: string) => string; refused: (path: string, refusal: SvgIconRefusal) => string };
   unknownOption: (name: string) => string;
   missingValue: (name: string) => string;
   extraFiles: (extra: string[]) => string;
@@ -125,6 +134,35 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     noBlocksFile: (path) => `足したブロックの定義の file が無い: ${path}`,
     notBlocksFile: (path) => `足したブロックの定義の file でない: ${path} (注釈の後の最初の行を blocks 1 にする)`,
     versionUsage: "使い方: dragon --version (版を出す)",
+    iconUsage: [
+      "使い方: dragon icon <SVG の file> [設定]",
+      "  書き手が持つ色付きの SVG を、色付きの絵柄の印のブロックの定義の行 (blocks 1 から end まで) にして出す",
+      "  --name <+名前>     定義の名前。既定は file の名前から作る",
+      "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
+    ].join("\n"),
+    icon: {
+      noFile: (path) => `SVG の file を読めない: ${path}`,
+      badName: (name) => `定義の名前 ${name} は + で始め、英小文字で始まり、英小文字と数字と - で書く (+lambda など)`,
+      refused: (path, r) => {
+        const why =
+          r.reason === "not-svg"
+            ? "svg の要素が無い"
+            : r.reason === "no-view"
+              ? "svg の要素に表示の枠 (viewBox) か幅と高さが無い"
+              : r.reason === "empty"
+                ? "1 色で塗った形が 1 つも無い"
+                : r.reason === "unsupported"
+                  ? `${r.element} の要素は 1 色で塗った形でない (グラデーションと模様と画像と切り抜きと字は変えられない)`
+                  : r.reason === "transform"
+                    ? `${r.element} の要素が変形 (transform) を持つ。変形を形の座標に直した SVG を渡す`
+                    : r.reason === "stroke"
+                      ? `${r.element} の要素を線 (stroke) で描いている。線を塗った形に直した SVG を渡す`
+                      : r.reason === "color"
+                        ? `${r.element} の要素の塗りの色 ${r.value} を 16 進の色に直せない`
+                        : `${r.element} の要素の形が path の文法の字だけで書けていないか、長すぎる`;
+        return `色付きの絵柄に変えられない: ${path} (${why})`;
+      },
+    },
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
     extraFiles: (extra) => `図の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
@@ -173,6 +211,35 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     noBlocksFile: (path) => `No such block definitions file: ${path}`,
     notBlocksFile: (path) => `Not a block definitions file: ${path} (start it with blocks 1 after any comments)`,
     versionUsage: "Usage: dragon --version (prints the version)",
+    iconUsage: [
+      "Usage: dragon icon <SVG file> [options]",
+      "  Print a colored SVG you have as the definition lines of a colored icon block (from blocks 1 to end)",
+      "  --name <+name>     Name of the definition. Defaults to one made from the file name",
+      "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
+    ].join("\n"),
+    icon: {
+      noFile: (path) => `Cannot read the SVG file: ${path}`,
+      badName: (name) => `Name the definition like +lambda: ${name} must start with + and a lowercase letter, and use lowercase letters, digits and -`,
+      refused: (path, r) => {
+        const why =
+          r.reason === "not-svg"
+            ? "it has no svg element"
+            : r.reason === "no-view"
+              ? "its svg element has no viewBox and no width and height"
+              : r.reason === "empty"
+                ? "it has no shape filled with one color"
+                : r.reason === "unsupported"
+                  ? `the ${r.element} element is not a shape filled with one color (gradients, patterns, images, clips and text cannot be converted)`
+                  : r.reason === "transform"
+                    ? `the ${r.element} element has a transform. Pass an SVG with the transform applied to the coordinates`
+                    : r.reason === "stroke"
+                      ? `the ${r.element} element is drawn with a stroke. Pass an SVG with the stroke turned into a filled shape`
+                      : r.reason === "color"
+                        ? `the fill ${r.value} of the ${r.element} element cannot be written as a hex color`
+                        : `the shape of the ${r.element} element is not plain path syntax, or is too long`;
+        return `Cannot convert to a colored icon: ${path} (${why})`;
+      },
+    },
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
     extraFiles: (extra) => `Pass only one diagram file. Extra arguments: ${extra.join(" ")}`,
@@ -205,7 +272,7 @@ function langOf(args: string[]): string | undefined {
  * 設定の誤りを、Node の文ではなく命令の言葉で返す。誤りが無ければ `undefined`。
  * 値の要る設定の後ろに `-` で始まる語が続く時は、その語を値と取り違えずに値が無いとみなす (Node も同じ形を断る)。
  */
-function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS | typeof CHECK_OPTIONS = OPTIONS): string | undefined {
+function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS | typeof CHECK_OPTIONS | typeof ICON_OPTIONS = OPTIONS): string | undefined {
   const { tokens } = parseArgs({ args, options, allowPositionals: true, strict: false, tokens: true });
   const types: Readonly<Record<string, { type: string }>> = options;
   for (const token of tokens) {
@@ -382,6 +449,45 @@ function report(problems: Problem[], json: boolean): number {
   return problems.some((found) => found.severity === "error") ? 1 : 0;
 }
 
+/** `dragon icon <file.svg>`。色付きの SVG を印のブロックの定義の行にして標準出力に出す (#3633) */
+function icon(args: string[], text: CliText): number {
+  const problem = optionProblem(args, text, ICON_OPTIONS);
+  if (problem !== undefined) {
+    console.error(`${problem}\n${text.iconUsage}`);
+    return 2;
+  }
+  const { values, positionals } = parseArgs({ args, options: ICON_OPTIONS, allowPositionals: true });
+  if (values.lang !== undefined && !isLang(values.lang)) {
+    console.error(`${text.badValue("--lang", values.lang, text.allowed.lang)}\n${text.iconUsage}`);
+    return 2;
+  }
+  const [file, ...extra] = positionals;
+  if (file === undefined || extra.length > 0) {
+    console.error(text.iconUsage);
+    return 2;
+  }
+  const say = CLI_TEXT[values.lang ?? DEFAULT_LANG].icon;
+  const name = values.name ?? iconNameOf(file);
+  if (!/^\+[a-z][a-z0-9-]*$/u.test(name)) {
+    console.error(say.badName(name));
+    return 2;
+  }
+  let source: string;
+  try {
+    source = readFileSync(file, "utf8");
+  } catch {
+    console.error(say.noFile(file));
+    return 1;
+  }
+  const read = svgIcon(source);
+  if (!read.ok) {
+    console.error(say.refused(file, read.refusal));
+    return 1;
+  }
+  console.log(iconDefinition(name, read));
+  return 0;
+}
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const chosen = langOf(argv);
@@ -393,8 +499,9 @@ async function main(argv: string[]): Promise<number> {
   }
   if (command === "embed") return embed(rest, early);
   if (command === "check") return check(rest, early);
+  if (command === "icon") return icon(rest, early);
   if (command !== "export") {
-    console.error(`${early.usage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.versionUsage}`);
+    console.error(`${early.usage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.iconUsage}\n\n${early.versionUsage}`);
     return 2;
   }
   const problem = optionProblem(rest, early);

@@ -17,8 +17,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { api, type Json, type LineError, type NotationLang } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
 
-// 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
-const { checkText, problemLine } = await import("../src/check");
+// 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む。
+// 見本は定義の行を持つので、定義を読む処理も全部入りの入口と同じく読むだけで登録する (`kinds/all`)
+const [{ checkText, problemLine }] = await Promise.all([
+  import("../src/check"),
+  import("../src/kinds/all"),
+]);
 
 const ROOT = process.cwd();
 const PACKAGE = join(ROOT, "packages/dragon");

@@ -34,7 +34,14 @@ const PATH_TEXT = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,+\-\s]+$/u;
 const PATH_MAX = 2000;
 
 /** 足したブロックの path として描いてよい字か。定義を読む時と、記法から読んだ図を読む時と、描く時に同じ決まりで確かめる (#3400) */
-export const isUserPath = (value: string): boolean => value.length <= PATH_MAX && PATH_TEXT.test(value) && /^\s*[Mm]/u.test(value);
+export const isUserPath = (value: string, max = PATH_MAX): boolean => value.length <= max && PATH_TEXT.test(value) && /^\s*[Mm]/u.test(value);
+
+/** 色付きの絵柄の形 1 つ (#3633)。`color` で塗り、`rule` が `evenodd` なら偶奇の決まりで塗る。決まりと描き方は `blocks/icon/paint.ts` が持つ */
+export interface UserPaint {
+  color: string;
+  rule?: "evenodd";
+  path: string;
+}
 
 /** 足すブロックの定義 1 つ */
 export interface UserBlock {
@@ -49,6 +56,10 @@ export interface UserBlock {
   color?: Color;
   /** 箱の絵柄の枠に描く絵柄の名前 (#3489)。箱を元にしたブロックだけが持ち、箱の行に書いた `icon` が勝つ */
   icon?: string;
+  /** 色付きの絵柄 (#3633) の、元の SVG の表示の枠 (`viewBox`) の左上と幅と高さ。印を元にしたブロックが `paints` と一緒に持つ */
+  view?: [number, number, number, number];
+  /** 色付きの絵柄の形の並び。書いた順に重ねて描く。`path` と一緒には書けない */
+  paints?: UserPaint[];
 }
 
 /** 足すブロックの定義の並び。JSON の file と、原本の `define` の欄と、`parseNotation` と `renderDiagram` の引数 `blocks` の形 */
@@ -127,27 +138,17 @@ export interface BoxShapes {
   corner: (id: string, rect: Rect) => Point | undefined;
 }
 
-/** 定義の並びを読む処理と、足した箱の形を測る処理。最初に読む束を軽くするため別の file (`user-blocks-read.ts`) に置き、全部を持つ入口と軽い入口が登録する */
+/** 定義の並びを読む処理と書き戻す処理と、足した箱の形を測る処理と、色付きの絵柄を描く処理。最初に読む束を軽くするため別の file (`user-blocks-read.ts`) に置き、全部を持つ入口と軽い入口が登録する */
 export interface UserBlockReader {
   readBlockLines: (lines: readonly SourceLine[], start: number, lang: NotationLang, known?: ReadonlySet<string>) => { blocks: UserBlock[]; next: number };
   shapes: BoxShapes;
+  /** 定義の並びを記法の行に書き戻す処理。定義を持つ図にしか要らないので、最初に読む束に入れない (#3633) */
+  print: (set: UserBlocks) => string;
+  /** 名前 `name` の印のブロックの色付きの絵柄 (#3633) を描く処理 (`blocks/icon/paint.ts`)。`paint` の行を持たない定義と、描いてよい形でない定義は `undefined` を返す */
+  paint: (name: string | undefined, x: number, y: number, scale: number) => string | undefined;
 }
 
 export { registerUserBlockReader, userBlockReader } from "./user-blocks-registry";
-
-/** 定義の並びを記法の行に書き戻す。`blocks 1` の行から最後の `end` まで */
-export function printBlocks(set: UserBlocks): string {
-  const lines = [`blocks ${set.format}`];
-  for (const b of set.blocks) {
-    lines.push(`block ${b.name}`, `  base ${b.base}`);
-    if (b.shape !== undefined) lines.push(`  shape ${b.shape}`);
-    if (b.path !== undefined) lines.push(`  shape path "${b.path.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`);
-    if (b.color !== undefined) lines.push(`  color ${b.color}`);
-    if (b.icon !== undefined) lines.push(`  icon ${b.icon}`);
-    lines.push("end");
-  }
-  return lines.join("\n");
-}
 
 /** 共有のブロック集の定義。build が `packages/dragon/blocks/` の file を読んで入れる (`tsup.config.ts`) */
 declare const __DRAGON_SHARED_BLOCKS__: readonly UserBlock[];

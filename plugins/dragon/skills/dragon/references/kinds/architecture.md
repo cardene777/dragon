@@ -25,6 +25,8 @@ Pick `sequence` instead when the order of messages between a few parties is the 
 ## How to write it well
 
 - Give each group a `color` and each box an `icon` that names its role.
+- When the diagram uses a cloud provider's icons, use the latest icons and names from the provider. Turn a colored SVG icon into a block definition with `dragon icon <file.svg>` (it prints `view` and `paint` lines from `blocks 1` to `end`), put the definition at the head of the diagram, and write `icon: +<name>` on the box. The icon keeps its own colors. Gradients, patterns, images, text, transforms and strokes are refused, so turn those into flat filled shapes first.
+- Do not abbreviate a box name the first time it appears. Spell it out and use the short name only after that.
 - Order groups in the direction things flow, and boxes inside a group in the order they are used.
 - Lines can be written without a label when the step's `say` explains them.
 - Show money or tokens with `[carry: coin]`, and amounts with `note <id>: -100 USDC`.
