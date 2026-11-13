@@ -95,7 +95,7 @@ export {
   type ViewMode,
 } from "./schema";
 export { FORMAT_VERSION, type Read, readDiagram } from "./version";
-export type { ReadBlocks, UserBase, UserBlock, UserBlockError, UserBlocks } from "./user-blocks";
+export type { ReadBlocks, UserBase, UserBlock, UserBlockError, UserBlocks, UserPaint } from "./user-blocks";
 export type {
   Layout,
   Point,
