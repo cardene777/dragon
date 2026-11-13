@@ -302,7 +302,7 @@ describe("点で数える見た目の原本の JSON (#3635)", () => {
       ["unit を書かない量の図", parsed(CHART)],
       ["unit を書かない集合の重なりの図", parsed(VENN)],
     ] as const) {
-      const checked = validate(source as unknown as Json);
+      const checked = validate(source);
       expect(checked.ok, `点で数える見た目の${where}の原本が検査で落ちる: ${JSON.stringify(checked.ok ? [] : checked.errors)}`).toBe(true);
     }
     // 集合の重なりの図の dots のほかの見た目と、0 より大きくない 1 点の件数は、その欄を指して断る
