@@ -26,7 +26,8 @@ import type { GitDelete } from "./blocks/delete/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
 import type { TablerMessages } from "./blocks/icon/sets";
-import type { LineupItem, LineupShape } from "./blocks/item/block";
+import type { LineupItem } from "./blocks/item/block";
+import type { LineupShape } from "./blocks/item/limits";
 import type { MindIdea } from "./blocks/idea/block";
 import type { MatrixAxis, MatrixShape, MatrixSpec } from "./blocks/axis/block";
 import type { MatrixItem, MatrixPlot } from "./blocks/matrix-item/block";
@@ -80,7 +81,10 @@ export interface Box {
   order?: "none";
   /** 列の図の箱に並べられる札の数の上限 (#3624)。1 から 12 までの整数で、書かない箱は 1 列に並べられる札の数まで並べられる */
   limit?: number;
-  /** 回り続ける図の時計の文字盤の見た目の、手順の長さ (#3638)。数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で、0 を書かない */
+  /**
+   * 回り続ける図の時計の文字盤の見た目と輪を開いた帯の見た目の手順の長さ (#3638、#3639) と、列の図の階段の見た目の層の時間 (#3640)。
+   * 数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で、回り続ける図には 0 を書かない
+   */
   time?: string;
   /** 使う人が足した、箱を元にしたブロックの名前 (#3399)。形と色はその定義から読む */
   block?: string;
@@ -178,7 +182,7 @@ export type { MatrixAxis, MatrixItem, MatrixPlot, MatrixShape, MatrixSpec };
  */
 export type { LineupAct, LineupItem, LineupOrder, LineupRole, LineupStamp };
 
-/** 列の図の見た目 (#3625) の型は、チップのブロックが持つ。列の図の決まりはチップのブロックが持つため */
+/** 列の図の見た目 (#3625、#3624、#3640) の型は、チップのブロックが持つ。列の図の決まりはチップのブロックが持つため */
 export type { LineupShape };
 
 /** 列の図 (#3625) の見た目。列の図だけが書き、書かない列の図は箱を札にして横に並べる */

@@ -391,7 +391,7 @@ describe("階段の見た目の記法 (#3640)", () => {
       expect(
         codeLines(printed)
           .filter((line) => line.startsWith("box "))
-          .every((line) => /^box \S+ as .+ \[time: [^,\]]+/u.test(line)),
+          .every((line) => /^box \S+ as .+ \[(?:[^\]]*, )?time: [^,\]]+/u.test(line)),
         `${where} を書き戻した箱の行が box <id> as <名前> [time: <長さ>] の形でない`,
       ).toBe(true);
       const second = parse(printed, { lang });
@@ -422,7 +422,9 @@ describe("階段の見た目の記法 (#3640)", () => {
     }
     const timedRead = api("readDiagram")(smallStairs());
     const timed = print(timedRead.ok ? timedRead.diagram : undefined);
-    expect(timed, "0s の長さを書き戻さない").toMatch(/^box store as 置き場 \[time: 0s\b/mu);
+    expect(timed, "0s の長さを書き戻さない").toMatch(
+      /^box store as 置き場 \[(?:[^\]]*, )?time: 0s\b/mu,
+    );
   });
 });
 
@@ -860,9 +862,10 @@ describe("階段の見た目で描けない列の図 (#3640)", () => {
         ["L2", "time"],
       ],
       [
+        // 前の箱に長さが無い時は、長さを書いた箱の行で、長さの無い箱を名指して止める
         "一部の箱にだけ書いた長さ (前の箱に無い)",
         ["lineup Stairs [shape: stairs]", "box L1", "box L2 [time: 3s]", ...tail],
-        "box L1",
+        "box L2",
         ["L1", "time"],
       ],
       [

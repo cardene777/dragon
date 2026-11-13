@@ -13,23 +13,11 @@ import type { Color } from "../color/block";
 export const LABEL_MOST = 4;
 
 /**
- * 列の図の見た目 (#3625、#3624)。図の種類の行の `[shape: <見た目>]` で選び、書かない列の図は箱を縦の帯にしたボードに並べる。
- * `layers` は箱を書いた順に上から横の帯に重ね、札が段ごとに帯を下りて、帯ごとの `note` を印に残す。
- * `stations` は箱を書いた順に 1 本の流れの線の上の駅にし、札を駅の下に積んで、札が線の上を次の駅へ走る
- */
-export const LINEUP_SHAPES = ["layers", "stations"] as const;
-
-export type LineupShape = (typeof LINEUP_SHAPES)[number];
-
-/** 層の見た目で重ねる層の上限 (#3625)。9 つ以上の帯は、1 枚の図の高さに収めると帯の字が読めなくなる */
-export const LAYERS_MOST = 8;
-
-/**
- * 列の図の `box` の行に書ける属性。`limit` は箱に並べられる札の数の上限 (#3624)。
+ * 列の図の `box` の行に書ける属性。`limit` は箱に並べられる札の数の上限 (#3624)、`time` は階段の見た目 (`[shape: stairs]`) の層の時間 (#3640)。
  * 箱のブロックの読み方が列の図の箱を読む時に使い、層の見た目の読み方 (`layers.ts`) が層に書けない `order` と `limit` を見分ける時にも使う。
  * 箱のブロックの読み方は最初に読む塊に在り、層の見た目の読み方は後から読む塊に在るので、両方が既に読むこの定義に置き、後から読む塊が箱の読み方を引いて最初に読む塊を割らないようにする (#3625)
  */
-export const LANE_ATTRS = ["note", "color", "order", "limit"] as const;
+export const LANE_ATTRS = ["note", "color", "order", "limit", "time"] as const;
 
 /** 列の図のチップ。`color` を書かないチップは薄い色で、`label` を書かないチップは名前を出す。`note` は凡例に出す説明 (#3351) */
 export interface LineupItem {

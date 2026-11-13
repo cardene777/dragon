@@ -1,0 +1,36 @@
+// The five layers a video passes through, from the phone that shot it until a viewer can watch it.
+// The card is one video. It steps down one layer per step, and the needle of the scale on the right points at the time spent so far.
+lineup Until a video can be watched [shape: stairs]
+
+box phone as Shooting phone [note: Holds the finished video, color: blue, time: 0s]
+box upload as Upload [note: Sends the video to storage, color: violet, time: 40s]
+box encode as Encode [note: Remakes it for each quality, color: amber, time: 3min]
+box cdn as Place on CDN [note: Copies it near the viewers, color: slate, time: 20s]
+box viewer as Viewer's device [note: Loads and plays the video, color: green, time: 3s]
+
+item video [color: blue, note: Trip video]
+
+step Finish shooting
+  say The phone finishes shooting a trip video.
+  line phone: video
+  note phone: Shot
+
+step Upload to storage
+  say The phone sends the video to storage.
+  line upload: video
+  note upload: Uploaded
+
+step Encode for each quality
+  say Storage remakes the video in four qualities.
+  line encode: video
+  note encode: Four qualities
+
+step Place on the CDN
+  say The remade video is copied to the CDN near the viewers.
+  line cdn: video
+  note cdn: Copied nearby
+
+step Play on the viewer's device
+  say The viewer's device loads the video and starts playback.
+  line viewer: video
+  note viewer: Playing

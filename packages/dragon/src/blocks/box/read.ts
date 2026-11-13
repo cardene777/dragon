@@ -43,7 +43,7 @@ const declareBox = (b: Box): string =>
     ["link", b.link],
     ["order", b.order],
     ["limit", num(b.limit)],
-    // 回り続ける図の時計の文字盤の見た目の手順の長さ (#3638)。読むのは輪のブロック
+    // 回り続ける図の手順の長さ (#3638) と、列の図の階段の見た目の層の時間 (#3640)
     ["time", b.time],
   ])}`;
 
@@ -102,6 +102,8 @@ export const reading: BlockReading<BoxMessages> = {
       if (limit && state.kind !== "lineup") throw fail(source, limit.at, state.m.lineupOnlyAttr("limit"));
       if (limit && (!LIMIT.test(limit.value) || Number(limit.value) > LANE_MOST)) throw fail(source, limit.at, state.m.limitRange(LANE_MOST));
       const group = state.figure.group;
+      // 層の時間か手順の長さ (#3640、#3638)。書ける図の見た目と値は、列の図はチップのブロックが、回り続ける図は輪のブロックが確かめる
+      const time = declared.attrs.get("time");
       state.figure.boxes.push({
         id: declared.id,
         name: declared.name ?? declared.id,
@@ -111,6 +113,7 @@ export const reading: BlockReading<BoxMessages> = {
         ...(link ? { link: urlOf(source, "link", link, state.m) } : {}),
         ...(order ? { order: order.value as (typeof ORDERS)[number] } : {}),
         ...(limit ? { limit: Number(limit.value) } : {}),
+        ...(time ? { time: time.value } : {}),
       });
     },
   },

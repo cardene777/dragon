@@ -584,6 +584,40 @@ step L1 makes it final
   note l1: Final in 13 min
 ```
 
+### Stairs look of a lineup diagram
+
+Add `[shape: stairs]` to the first line instead to set the layers of the layers look as stairs, each lower layer shifted right by the same width.
+It takes the same `box`, `item`, `line`, and `note` lines as the layers look, and refuses the same lines.
+
+- `box <id> as <name> [time: <length>]` is the time spent in that layer, as a number and a unit (`ms`, `s`, `min`, `h`, `d`). Write `time` on every box or on none. A layer that takes no time can be written as `0s`
+- With `time`, a scale of the time spent so far sits to the right of the stairs. Its numbers start at 0 and go up in round steps (1, 2, or 5 times a power of 10), in the largest unit written on the boxes
+- At each step, the needle of the scale moves to the time spent through the layer the chip went down to, including that layer, with a card such as `1min 3s`
+- The chip walks no line between layers
+
+On a phone-width frame, the stairs fill the width and the scale lies horizontally under the diagram.
+
+```dragon
+lineup Until a video can be watched [shape: stairs]
+
+box upload as Upload [note: Sends the video to storage, color: violet, time: 40s]
+box encode as Encode [note: Remakes it for each quality, color: amber, time: 3min]
+box viewer as Viewer's device [note: Plays the video, color: green, time: 3s]
+
+item video [color: blue, note: Trip video]
+
+step Upload
+  say The phone sends the video to storage.
+  line upload: video
+
+step Encode
+  say Storage remakes the video in four qualities.
+  line encode: video
+
+step Play
+  say The viewer's device starts playback.
+  line viewer: video
+```
+
 ### Try diagram
 
 Start with `try` to draw a try diagram, which readers move themselves by typing values and pressing buttons. Write the part lines before the first step, from top to bottom, and the parts are stacked in that order.

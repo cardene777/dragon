@@ -30,5 +30,11 @@ export const shape: BlockShape = {
       type: "string",
       pattern: `^(?=[0-9.]*[1-9])[0-9]+(\\.[0-9]+)?(${Object.keys(TIME_UNITS).join("|")})$`,
     },
+    // 箱の長さの欄の形。列の図の階段の見た目 (#3640) の層の時間は 0 を書けるので、0 を断るのは回り続ける図の決まり (骨組み) が clockTime で重ねる
+    boxTime: {
+      description: `箱の長さ。0 以上の数と単位 (${Object.keys(TIME_UNITS).join(" / ")}) の組で書く (40s など)`,
+      type: "string",
+      pattern: `^[0-9]+(\\.[0-9]+)?(${Object.keys(TIME_UNITS).join("|")})$`,
+    },
   },
 };

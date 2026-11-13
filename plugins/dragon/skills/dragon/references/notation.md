@@ -26,7 +26,7 @@ Lines starting with `//` and blank lines are not read.
 `<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn`, `matrix` and `sankey`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
-- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]` or `chart <title> [shape: dots]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)), and `cycle` can take `[shape: clock]` to set its steps on a clock dial by their `[time: <length>]`, with `turn: left` to turn it counterclockwise, or `[shape: band]` to run its steps left to right on a band per round ([cycle](kinds/cycle.md)). Only `chart`, `lineup`, `venn`, `matrix` and `cycle` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), only `matrix` with `[shape: scatter]` takes `table`, and only `cycle` with `[shape: clock]` takes `turn`.
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]` or `chart <title> [shape: dots]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers, `[shape: stairs]` to set those layers as stairs with a scale of the time spent from the `[time: <length>]` of each box, or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)), and `cycle` can take `[shape: clock]` to set its steps on a clock dial by their `[time: <length>]`, with `turn: left` to turn it counterclockwise, or `[shape: band]` to run its steps left to right on a band per round ([cycle](kinds/cycle.md)). Only `chart`, `lineup`, `venn`, `matrix` and `cycle` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), only `matrix` with `[shape: scatter]` takes `table`, and only `cycle` with `[shape: clock]` takes `turn`.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups
@@ -91,12 +91,13 @@ A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <
 | `side` | `above`, `below`, `left`, `right` |
 | `view` | `fixed`, `follow` |
 | `shape` on the `chart` head line | `donut`, `bar`, `funnel`, `dots` |
-| `shape` on the `lineup` head line | `layers`, `stations` |
+| `shape` on the `lineup` head line | `layers`, `stations` or `stairs` |
 | `shape` on the `venn` head line | `dots` |
 | `shape` on the `matrix` head line | `scatter` |
 | `shape` on the `cycle` head line | `clock` or `band` |
 | `turn` on the `cycle` head line | `left` |
 | `time` on a `cycle` box | a number other than 0 and `ms`, `s`, `min`, `h` or `d` |
+| `time` on a `lineup` box with `[shape: stairs]` | a number of 0 or more and `ms`, `s`, `min`, `h` or `d` |
 | `table` on the `matrix` head line | `none` |
 | `reverse` on `axis` lines | `yes` |
 

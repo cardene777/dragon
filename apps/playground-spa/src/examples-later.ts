@@ -96,6 +96,8 @@ import l2FinalityJa from "../../../packages/dragon/examples/l2-finality.dragon?r
 import l2FinalityEn from "../../../packages/dragon/examples/l2-finality.en.dragon?raw";
 import webRequestJa from "../../../packages/dragon/examples/web-request.dragon?raw";
 import webRequestEn from "../../../packages/dragon/examples/web-request.en.dragon?raw";
+import videoPublishJa from "../../../packages/dragon/examples/video-publish.dragon?raw";
+import videoPublishEn from "../../../packages/dragon/examples/video-publish.en.dragon?raw";
 import checkoutLanesJa from "../../../packages/dragon/examples/checkout-lanes.dragon?raw";
 import checkoutLanesEn from "../../../packages/dragon/examples/checkout-lanes.en.dragon?raw";
 import stockReserveJa from "../../../packages/dragon/examples/stock-reserve.dragon?raw";
@@ -223,6 +225,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "rollup-batch": { ja: rollupBatchJa, en: rollupBatchEn },
   "l2-finality": { ja: l2FinalityJa, en: l2FinalityEn },
   "web-request": { ja: webRequestJa, en: webRequestEn },
+  "video-publish": { ja: videoPublishJa, en: videoPublishEn },
   "checkout-lanes": { ja: checkoutLanesJa, en: checkoutLanesEn },
   "stock-reserve": { ja: stockReserveJa, en: stockReserveEn },
   multisig: { ja: multisigJa, en: multisigEn },
