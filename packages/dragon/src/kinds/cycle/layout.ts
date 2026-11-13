@@ -7,9 +7,11 @@
  * 輪の真ん中には中身の帯の題と、段の中の `set` で書いた欄の値を置き、図の下に帯を置かない。
  * 段の番号は、その段で札が着いた手順 (札の無い段は前の段の手順、最初の段は最初の手順) の箱の横の、輪の外を向く側に置く。
  * 弧に掛かる時は、丸を輪の外へずらす。同じ手順の番号は同じ所で後の段の番号と入れ替える。
- * 輪の半径は下限から広げていき、箱どうしと、札の道と、真ん中の字が互いに離れて収まる最も小さな半径にする
+ * 輪の半径は下限から広げていき、箱どうしと、札の道と、真ん中の字が互いに離れて収まる最も小さな半径にする。
+ * 図の種類の行に `shape: clock` を書いた図の時計の文字盤の見た目 (#3638) の置き場所 (`layoutClock`) は、この file の後ろの節が持つ
  */
-import { hasWide, textBox } from "../../layout/measure";
+import { TIME_UNITS, type TimeUnit, timeOf } from "../../blocks/ring/limits";
+import { hasWide, textBox, textWidth } from "../../layout/measure";
 import {
   besideSameSpot,
   boxColors,
@@ -25,9 +27,11 @@ import {
   type SceneEdge,
   shapedSize,
 } from "../../layout/scene";
-import { CYCLE_LOOK, CYCLE_TYPE } from "../../look/cycle";
-import { LOOK, type TextStyle } from "../../look/values";
+import { CLOCK_LOOK, CLOCK_TYPE, CYCLE_LOOK, CYCLE_TYPE } from "../../look/cycle";
+import { type ColorKey, LOOK, type TextStyle } from "../../look/values";
 import type { DiagramModel } from "../../schema";
+import type { NotationLang } from "../../words";
+import type { KindOptions } from "../parts";
 
 /** 隣どうしの手順を結ぶ弧。`points` は両端の箱の外に見える輪の線を細かく区切った点で、`head` は弧の真ん中の矢じりの所と向き (度) */
 export interface CycleArc {
@@ -364,3 +368,483 @@ export function layoutCycle(diagram: DiagramModel): CycleLayout {
 
 /** 輪の真ん中の値の字の形 (描く部品が読む) */
 export const cycleValueStyle = valueStyle;
+
+/*
+ * ここから下は時計の文字盤の見た目の置き場所 (#3638)。見た目の元は #3623 の step 2 で本人が選ばなかった動く試作の案B (`drawB`)。
+ *
+ * 手順は 12 時から書いた順に回る向き (既定は右回り、`turn: left` は左回り) へ、手順の長さを 1 周の長さ (長さの合計) で割った角度の弧で帯の上に置く。
+ * 角度は 12 時を 0 にした度で、右回りに増え、左回りの図は減る。
+ * 目盛りの数字は、1、2、5 に 10 の累乗を掛けた間隔のうち、1 周の長さより手前に置く数字が 6 個以下になる一番細かい間隔で 0 から置く。単位は箱に書いた中で一番大きい単位にする。
+ * 針は段ごとに、その段の手順 (札が着いた手順、線の無い段は前の段の手順) の弧の始まりを指す。段の中の線ごとに、前の向きから受ける手順の始まりまで回る向きへ回し、
+ * 回った分だけ向きを足していく。線の札は針の先に乗り、針と同じ道を走る。
+ * 段の番号は、その段の手順の弧の真ん中の帯の上に置く。弧に入らない短い手順と、針の先に留まる札に掛かる番号は文字盤の外へ出し、短い線で弧と結ぶ。
+ * 既定の幅では文字盤の外に手順の名前と長さを置き、外へ出した番号は名前の文字盤の側に添える。
+ * 枠の幅が狭い (携帯の幅) 時は、文字盤を枠の幅いっぱいにし、名前の代わりに手順の番号を外に置き、番号と名前と長さの一覧を文字盤の下に積む。
+ * 輪の真ん中の字は輪の見た目と同じ置き方 (`centreOf`) で文字盤の真ん中に置く
+ */
+
+/** 手順の弧。`from` と `to` は弧の両端の角度 */
+export interface ClockSector {
+  id: string;
+  from: number;
+  to: number;
+  color: ColorKey;
+}
+
+/** 目盛りの数字。`value` は `unit` で数えた値、`x` と `y` は真ん中に揃えた字の基準線の所、`rect` は字の四角 */
+export interface ClockTick {
+  value: number;
+  text: string;
+  angle: number;
+  x: number;
+  y: number;
+  rect: Rect;
+}
+
+/** 文字盤の外に置く字の 1 行。`x` は行の始まり、`y` は基準線 */
+export interface ClockText {
+  text: string;
+  x: number;
+  y: number;
+  style: keyof typeof CLOCK_TYPE;
+}
+
+/** 文字盤の外に置く、手順の名前と長さ (既定の幅) か手順の番号 (携帯の幅) の字の固まり */
+export interface ClockLabel extends Rect {
+  id: string;
+  texts: ClockText[];
+}
+
+/** 番号が弧に入らない手順の、弧から文字盤の外の番号への線 */
+export interface ClockLead {
+  id: string;
+  from: Point;
+  to: Point;
+  color: ColorKey;
+}
+
+/** 携帯の幅の一覧の行。`y` は行の上の端 */
+export interface ClockRow {
+  id: string;
+  number: string;
+  name: string;
+  time: string;
+  y: number;
+  color: ColorKey;
+}
+
+/** 段の中の線ごとの針の回り方。`from` から `to` の角度まで回る */
+export interface ClockMove {
+  step: number;
+  event: number;
+  from: number;
+  to: number;
+}
+
+export interface ClockLayout extends Layout {
+  kind: "cycle";
+  shape: "clock";
+  turn: "right" | "left";
+  /** 文字盤の真ん中と、弧の帯の外の半径 `r` と内の半径 `inner` */
+  ring: { cx: number; cy: number; r: number; inner: number };
+  sectors: ClockSector[];
+  ticks: ClockTick[];
+  unit: TimeUnit;
+  /** 針。`r` は針の先の半径、`from` は針の根の半径、`angles` は段ごとの向き、`moves` は線ごとの回り方 */
+  hand: { r: number; from: number; angles: number[]; moves: ClockMove[] };
+  /** 既定の幅の、文字盤の外の名前と長さ。携帯の幅では空 */
+  names: ClockLabel[];
+  /** 携帯の幅の、文字盤の外の手順の番号。既定の幅では空 */
+  keys: ClockLabel[];
+  leads: ClockLead[];
+  /** 携帯の幅の、文字盤の下の一覧 */
+  list?: Rect & { rows: ClockRow[] };
+  centre: CycleCentre;
+  /** 段ごとの、その段の手順の名札 */
+  current: string[];
+}
+
+const C = CLOCK_LOOK;
+const RAD = Math.PI / 180;
+
+/** 目盛りの数字に添える単位の字 */
+const UNIT_WORDS: Readonly<Record<NotationLang, Readonly<Record<TimeUnit, string>>>> = {
+  ja: { ms: "ミリ秒", s: "秒", min: "分", h: "時間", d: "日" },
+  en: { ms: "ms", s: "s", min: "min", h: "h", d: "d" },
+};
+
+/** 文字盤の真ん中を (0, 0) にした所で、12 時から右回りに `a` 度、半径 `r` の点 */
+const onDeg = (r: number, a: number): Point => [r * Math.sin(a * RAD), -r * Math.cos(a * RAD)];
+
+/** 度を 0 以上 360 未満にする */
+const norm = (a: number): number => ((a % 360) + 360) % 360;
+
+/** 点 `p` から四角 `rect` までの距離。中に在る時は 0 */
+const toRect = ([x, y]: Point, rect: Rect): number =>
+  Math.hypot(
+    Math.max(rect.x - x, 0, x - rect.x - rect.w),
+    Math.max(rect.y - y, 0, y - rect.y - rect.h),
+  );
+
+/** 文字盤の真ん中から四角の一番近い所までの距離 */
+const nearest = (rect: Rect): number => toRect([0, 0], rect);
+
+/** 線分 `a`-`b` を 2 px ほどの間で区切った点 */
+function along([ax, ay]: Point, [bx, by]: Point): Point[] {
+  const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 2));
+  return Array.from({ length: n + 1 }, (_, k): Point => [
+    ax + ((bx - ax) * k) / n,
+    ay + ((by - ay) * k) / n,
+  ]);
+}
+
+/** 1 周の長さ `span` を、0 から 6 個以下の数字で区切る一番細かい切りのよい間隔 (1、2、5 に 10 の累乗を掛けた数) */
+function niceStep(span: number): number {
+  for (let e = Math.floor(Math.log10(span)) - 2; ; e++)
+    for (const m of [1, 2, 5]) {
+      const step = m * 10 ** e;
+      if (Math.ceil(span / step - 1e-9) <= 6) return step;
+    }
+}
+
+/** 半径 `r` の点を、角度 `a` から `b` まで `CLOCK_LOOK.samples` 度ほどの間で区切った点 (両端を含む) */
+function arcPoints(r: number, a: number, b: number): Point[] {
+  const n = Math.max(2, Math.ceil(Math.abs(b - a) / C.samples));
+  return Array.from({ length: n + 1 }, (_, k) => onDeg(r, a + ((b - a) * k) / n));
+}
+
+/** 字の行の並びの高さと幅。行の上の端から次の行の上の端まで、字の大きさに行の間を足す */
+const LINE_GAP = 4;
+function blockOf(lines: { text: string; style: keyof typeof CLOCK_TYPE }[]): {
+  w: number;
+  h: number;
+  widths: number[];
+} {
+  const widths = lines.map((line) => textWidth(line.text, CLOCK_TYPE[line.style]));
+  const h =
+    lines.reduce((sum, line) => sum + CLOCK_TYPE[line.style].size, 0) +
+    LINE_GAP * (lines.length - 1);
+  return { w: Math.max(...widths), h, widths };
+}
+
+export function layoutClock(
+  diagram: DiagramModel,
+  lang: NotationLang,
+  options: KindOptions,
+): ClockLayout {
+  const ids = diagram.boxes.map((b) => b.id);
+  const colors = boxColors(diagram);
+  const colorOf = (id: string): ColorKey => colors.get(id) ?? "slate";
+  const times = diagram.boxes.map((b) => timeOf(b.time ?? "") ?? { value: 1, unit: "s" as const });
+  const seconds = times.map((t) => t.value * TIME_UNITS[t.unit]);
+  const total = seconds.reduce((a, b) => a + b, 0);
+  const order = Object.keys(TIME_UNITS) as TimeUnit[];
+  const unit = order[Math.max(...times.map((t) => order.indexOf(t.unit)))] as TimeUnit;
+  const turn = diagram.cycle?.turn === "left" ? -1 : 1;
+
+  // 手順の弧
+  let done = 0;
+  const sectors: ClockSector[] = ids.map((id, i) => {
+    const from = (turn * 360 * done) / total;
+    done += seconds[i] as number;
+    return { id, from, to: (turn * 360 * done) / total, color: colorOf(id) };
+  });
+  const startOf = (id: string): number => sectors.find((s) => s.id === id)?.from ?? 0;
+
+  // 針の回り方。線ごとに、今の向きから受ける手順の始まりまで回る向きへ回る
+  let angle = 0;
+  const moves: ClockMove[] = [];
+  const angles: number[] = [];
+  const current: string[] = [];
+  let now = ids[0] ?? "";
+  diagram.steps.forEach((step, s) => {
+    step.events.forEach((event, i) => {
+      if (event.type !== "edge" || !ids.includes(event.to)) return;
+      const next = angle + turn * norm((startOf(event.to) - angle) * turn);
+      moves.push({ step: s, event: i, from: angle, to: next });
+      angle = next;
+      now = event.to;
+    });
+    angles.push(angle);
+    current.push(now);
+  });
+
+  // 目盛りの数字の値。1 周の長さより手前まで
+  const span = total / TIME_UNITS[unit];
+  const step = niceStep(span);
+  const values: number[] = [];
+  for (let k = 0; k * step < span - 1e-9; k++) values.push(Number((k * step).toPrecision(12)));
+
+  const centre = centreOf(diagram);
+  // 弧の帯の内の半径は、真ん中の字に掛からない半径 (`hole`) より小さくしない。既定の幅では `CLOCK_LOOK.inner` より小さくもしない
+  const hole = Math.hypot(centre.w / 2, centre.h / 2) + C.centreGap;
+  const least = Math.max(C.inner, hole) + C.band;
+  const edgeOf = (s: number, e: number) => {
+    const event = diagram.steps[s]?.events[e];
+    return event?.type === "edge" ? event : undefined;
+  };
+
+  /** 半径 `r` の文字盤の、針の先に留まる札の四角と、目盛りの数字。数字は札に掛からない所まで外へずらす */
+  const dialAt = (r: number): { rests: Rect[]; ticks: ClockTick[] } => {
+    const rests = moves.flatMap((move) => {
+      const carry = edgeOf(move.step, move.event)?.carry;
+      return carry && carry.kind !== "none"
+        ? [around(onDeg(r - C.tip, move.to), carrierHalf(carry))]
+        : [];
+    });
+    const ticks = values.map((value): ClockTick => {
+      const text = `${String(value)}${UNIT_WORDS[lang][unit]}`;
+      const style = hasWide(text) ? CLOCK_TYPE.tickJa : CLOCK_TYPE.tick;
+      const w = textWidth(text, style);
+      const a = (turn * 360 * value) / span;
+      let d = r + C.tickAt;
+      for (;;) {
+        const [x, y] = onDeg(d, a);
+        const rect = { x: x - w / 2, y: y - style.size / 2, w, h: style.size };
+        const clear =
+          nearest(rect) > r + C.mark[1] && rests.every((rest) => gapBetween(rect, rest) >= C.apart);
+        if (clear || d > r + C.farthest)
+          return { value, text, angle: a, x, y: y + style.size * 0.3, rect };
+        d += C.slide;
+      }
+    });
+    return { rests, ticks };
+  };
+  /** 文字盤と目盛りの数字と札が占める横の幅 */
+  const widthAt = (r: number): number => {
+    const { rests, ticks } = dialAt(r);
+    const rects = [...rests, ...ticks.map((t) => t.rect), { x: -r, y: -r, w: r * 2, h: r * 2 }];
+    return Math.max(...rects.map((p) => p.x + p.w)) - Math.min(...rects.map((p) => p.x));
+  };
+
+  // 携帯の幅では、文字盤と目盛りの数字が枠の幅に収まる一番大きい半径から始め、外に置いた番号まで枠の幅に収まるまで半径を縮める
+  const phone = options.width !== undefined && options.width < C.wide;
+  if (!phone) return place(least);
+  const width = options.width as number;
+  const room = width - C.pad * 2;
+  let r = Math.floor(room / 2);
+  // 携帯の幅では、内の半径を真ん中の字に掛からない所まで小さくしてよい
+  const smallest = hole + C.band;
+  while (r > smallest && widthAt(r) > room) r -= 2;
+  let laid = place(Math.max(r, smallest));
+  while (r > smallest && laid.width > width) {
+    r -= 2;
+    laid = place(Math.max(r, smallest));
+  }
+  return laid;
+
+  /** 弧の帯の外の半径を `r` にした文字盤の置き場所 */
+  function place(r: number): ClockLayout {
+    const inner = r - C.band;
+    const tip = r - C.tip;
+    const { rests, ticks } = dialAt(r);
+    const br = LOOK.badge.r;
+
+    /** 弧の上に置ける段の番号の所。弧に入らないか、針の先に留まる札に掛かれば `undefined` */
+    const onArc = (sector: ClockSector): Point | undefined => {
+      const at = inner + C.badgeAt;
+      if (Math.abs(sector.to - sector.from) * RAD * at < 2 * (br + C.badgeRoom)) return undefined;
+      const p = onDeg(at, (sector.from + sector.to) / 2);
+      return rests.every((rest) => gapBetween(around(p, [br, br]), rest) >= C.badgeRoom)
+        ? p
+        : undefined;
+    };
+
+    // 文字盤の外の字の固まり。既定の幅は手順の名前と長さと箱の下の字、携帯の幅は手順の番号
+    const labels: ClockLabel[] = [];
+    const leads: ClockLead[] = [];
+    const spots = new Map<string, Point>();
+    /** 文字盤の外に置いた物。字の固まりと、外へ出した番号の丸と、引き出す線を区切った点 */
+    const placed: Rect[] = [];
+    const leadPoints: Point[] = [];
+    const obstacles = (): Rect[] => [...ticks.map((t) => t.rect), ...rests, ...placed];
+    sectors.forEach((sector, i) => {
+      const box = diagram.boxes[i];
+      const lines: { text: string; style: keyof typeof CLOCK_TYPE }[] = phone
+        ? [{ text: String(i + 1), style: "key" }]
+        : [
+            { text: box?.name ?? sector.id, style: "name" },
+            { text: box?.time ?? "", style: "time" },
+            ...(box?.sub !== undefined ? [{ text: box.sub, style: "sub" as const }] : []),
+          ];
+      const { w, h, widths } = blockOf(lines);
+      const arc = onArc(sector);
+      const mid = (sector.from + sector.to) / 2;
+      const off = arc ? 0 : br + C.badgeRoom;
+      // 角度は真ん中から 4 度ずつ左右へずらして探す。線で結ばない字は、弧の両端の内に留める
+      const half = Math.abs(sector.to - sector.from) / 2;
+      const shifts = Array.from(
+        { length: (C.shift / 4) * 2 + 1 },
+        (_, k) => (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * 4,
+      ).filter((da) => !arc || Math.abs(da) < half);
+      // 携帯の幅の番号は字が小さいので、目盛りの数字と同じ近さから探す
+      const candidates: { d: number; a: number; cost: number }[] = [];
+      for (let d = r + (phone ? C.tickAt : C.nameAt); d <= r + C.farthest; d += C.slide)
+        for (const da of shifts)
+          candidates.push({ d, a: mid + da, cost: d - r + Math.abs(da) * 2 });
+      candidates.sort((x, y) => x.cost - y.cost);
+      const rectAt = (
+        d: number,
+        a: number,
+      ): { p: Point; a: number; rect: Rect; badge?: Rect; lead?: [Point, Point] } => {
+        const p = onDeg(d, a);
+        const sx = Math.sin(a * RAD);
+        const top = Math.cos(a * RAD) > 0;
+        const rect =
+          sx > 0.35
+            ? { x: p[0] + off, y: p[1] - h / 2, w, h }
+            : sx < -0.35
+              ? { x: p[0] - off - w, y: p[1] - h / 2, w, h }
+              : { x: p[0] - w / 2, y: top ? p[1] - off - h : p[1] + off, w, h };
+        if (arc) return { p, a, rect };
+        const from = onDeg(r, mid);
+        const dist = Math.hypot(p[0] - from[0], p[1] - from[1]);
+        const to: Point = [
+          p[0] - ((p[0] - from[0]) * br) / dist,
+          p[1] - ((p[1] - from[1]) * br) / dist,
+        ];
+        return { p, a, rect, badge: around(p, [br, br]), lead: [from, to] };
+      };
+      const fits = ({ rect, badge, lead }: ReturnType<typeof rectAt>): boolean => {
+        const blocks = obstacles();
+        for (const part of badge ? [rect, badge] : [rect]) {
+          if (nearest(part) <= r + C.mark[1] + 1) return false;
+          if (blocks.some((o) => gapBetween(part, o) < C.apart)) return false;
+          if (leadPoints.some((q) => toRect(q, part) < C.leadClear)) return false;
+        }
+        return (
+          !lead ||
+          along(lead[0], lead[1]).every((q) => blocks.every((o) => toRect(q, o) >= C.leadClear))
+        );
+      };
+      const found =
+        candidates.map((c) => rectAt(c.d, c.a)).find(fits) ?? rectAt(r + C.farthest, mid);
+      const { rect, badge, lead } = found;
+      // 字の行は、文字盤の右の字は左の端で、左の字は右の端で、上と下の字は真ん中で揃える
+      const sx = Math.sin(found.a * RAD);
+      let y = rect.y;
+      const texts = lines.map((line, k): ClockText => {
+        const style = CLOCK_TYPE[line.style];
+        const lw = widths[k] as number;
+        const x =
+          sx > 0.35 ? rect.x : sx < -0.35 ? rect.x + rect.w - lw : rect.x + (rect.w - lw) / 2;
+        const text = { text: line.text, x, y: y + style.size * 0.8, style: line.style };
+        y += style.size + LINE_GAP;
+        return text;
+      });
+      labels.push({ id: sector.id, ...rect, texts });
+      placed.push(rect);
+      if (badge && lead) {
+        placed.push(badge);
+        leadPoints.push(...along(lead[0], lead[1]));
+        leads.push({ id: sector.id, from: lead[0], to: lead[1], color: sector.color });
+      }
+      spots.set(sector.id, arc ?? found.p);
+    });
+
+    // 段の番号。同じ手順の番号は同じ所で後の段の番号と入れ替える
+    const badges: SceneBadge[] = besideSameSpot(
+      current.flatMap((id, s) => {
+        const p = spots.get(id);
+        return p ? [{ step: s, x: p[0], y: p[1], color: colorOf(id) }] : [];
+      }),
+      () => false,
+      () => true,
+    );
+
+    // 札は針の先に乗って、針と同じ道を走る
+    const edges: SceneEdge[] = moves.flatMap((move) => {
+      const edge = edgeOf(move.step, move.event);
+      if (!edge) return [];
+      return [
+        {
+          step: move.step,
+          event: move.event,
+          from: edge.from,
+          to: edge.to,
+          points: arcPoints(tip, move.from, move.to),
+          color: colorOf(edge.to),
+          carry: edge.carry,
+        },
+      ];
+    });
+
+    // 文字盤と、その外に置いた物の四角
+    const dialParts: Rect[] = [
+      { x: -r, y: -r, w: r * 2, h: r * 2 },
+      ...ticks.map((t) => t.rect),
+      ...rests,
+      ...placed,
+      ...badges.map((b) => around([b.x, b.y], [br, br])),
+      ...(centre.w > 0 ? [centre] : []),
+    ];
+    const left = Math.min(...dialParts.map((p) => p.x));
+    const right = Math.max(...dialParts.map((p) => p.x + p.w));
+    const bottom = Math.max(...dialParts.map((p) => p.y + p.h));
+    const top = Math.min(...dialParts.map((p) => p.y));
+
+    // 携帯の幅の一覧。文字盤の下に、手順を書いた順に積む
+    const list = phone
+      ? {
+          x: left,
+          y: bottom + C.listGap,
+          w: right - left,
+          h: ids.length * C.row,
+          rows: ids.map((id, i): ClockRow => {
+            const box = diagram.boxes[i];
+            return {
+              id,
+              number: String(i + 1),
+              name: box?.name ?? id,
+              time: box?.time ?? "",
+              y: bottom + C.listGap + i * C.row,
+              color: colorOf(id),
+            };
+          }),
+        }
+      : undefined;
+    const dx = C.pad - left;
+    const dy = C.pad - top;
+    const move = ([x, y]: Point): Point => [x + dx, y + dy];
+    const shift = <T extends Rect>(rect: T): T => ({ ...rect, x: rect.x + dx, y: rect.y + dy });
+    const moveLabel = (label: ClockLabel): ClockLabel => ({
+      ...shift(label),
+      texts: label.texts.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy })),
+    });
+    return {
+      kind: "cycle",
+      shape: "clock",
+      turn: turn > 0 ? "right" : "left",
+      width: right - left + C.pad * 2,
+      height: (list ? list.y + list.h : bottom) - top + C.pad * 2,
+      regions: [],
+      boxes: [],
+      lifelines: [],
+      edges: edges.map((e) => ({ ...e, points: e.points.map(move) })),
+      labels: [],
+      actions: [],
+      badges: badges.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+      paths: [],
+      ends: [],
+      ring: { cx: dx, cy: dy, r, inner },
+      sectors,
+      ticks: ticks.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy, rect: shift(t.rect) })),
+      unit,
+      hand: { r: tip, from: inner - C.handIn, angles, moves },
+      names: phone ? [] : labels.map(moveLabel),
+      keys: phone ? labels.map(moveLabel) : [],
+      leads: leads.map((l) => ({ ...l, from: move(l.from), to: move(l.to) })),
+      ...(list
+        ? { list: { ...shift(list), rows: list.rows.map((row) => ({ ...row, y: row.y + dy })) } }
+        : {}),
+      centre: {
+        ...centre,
+        x: centre.x + dx,
+        y: centre.y + dy,
+        ...(centre.title ? { title: { ...centre.title, y: centre.title.y + dy } } : {}),
+        rows: centre.rows.map((row) => ({ ...row, y: row.y + dy })),
+      },
+      current,
+    };
+  }
+}

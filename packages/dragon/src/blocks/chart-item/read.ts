@@ -12,6 +12,7 @@ import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState, ranked } from "../block";
 import { type Color, COLORS } from "../color/block";
 import { BLOCKS } from "../index";
+import type { ChartShape } from "../chart-shape/block";
 import { CHART_ITEMS_MOST, type ChartItem } from "./block";
 
 /** 量の図の `item` の行に書ける属性の鍵 */
@@ -76,7 +77,10 @@ export const reading: BlockReading<ChartItemMessages> = {
     if (id === CHART_NONE && state.figure.chart.shape?.value !== "funnel") throw fail(source, at, state.m.chartNoneId);
   },
   finish: (state, head) => {
-    if (state.figure.chart.items.length === 0) throw fail(head, 0, state.m.chartNoItems);
+    const { chart } = state.figure;
+    if (chart.items.length === 0) throw fail(head, 0, state.m.chartNoItems);
+    // 見た目は見た目のブロックが `donut` か `bar` か `funnel` か `dots` と、1 点の件数は 0 より大きい数と確かめた
+    state.figure.root = { ...state.figure.root, chart: { shape: chart.shape?.value as ChartShape, ...(chart.unit ? { unit: Number(chart.unit.value) } : {}), items: chart.items } };
   },
   read: none("量の図の item の行は、列の図のチップの語なので行の形 (take) で読む"),
   print: {

@@ -33,6 +33,7 @@ export const shape: BlockShape = {
           minimum: 1,
           maximum: LANE_MOST,
         },
+        time: { description: "回り続ける図の時計の文字盤の見た目 (shape: clock) の、手順の長さ", $ref: "#/definitions/clockTime" },
       },
     },
   },

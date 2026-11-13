@@ -43,6 +43,8 @@ const declareBox = (b: Box): string =>
     ["link", b.link],
     ["order", b.order],
     ["limit", num(b.limit)],
+    // 回り続ける図の時計の文字盤の見た目の手順の長さ (#3638)。読むのは輪のブロック
+    ["time", b.time],
   ])}`;
 
 /**

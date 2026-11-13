@@ -1,18 +1,18 @@
-cycle Ring
+cycle Ring [shape: clock, turn: left]
 
-box plan as Decide
-box work as Do
-box look as Look back
+box plan as Decide [time: 1d]
+box work as Do [time: 3d]
+box look as Look back [time: 1d]
 
 step Decide
-  say The steps declared with box lines sit on a ring clockwise from the top in the order written.
+  say The steps declared with box lines sit on the ring in the order written. With shape: clock they sit from 12 o'clock as arcs as long as their time, and turn: left turns them counterclockwise.
 
 step Do
-  say A line goes only to the next step on the ring, and its tag chip runs along the arc.
+  say A line goes only to the next step on the ring, and its tag chip rides the tip of the hand.
   plan -> work [tag: tasks]
 
 step Look back
-  say An arc the chip ran stays lit in the color of the receiving step.
+  say The arc of a step the hand reached stays lit in the step color for the rest of the round.
   work -> look [tag: progress]
 
 step Next round

@@ -1,18 +1,18 @@
-cycle 輪
+cycle 輪 [shape: clock, turn: left]
 
-box plan as 決める
-box work as 進める
-box look as 振り返る
+box plan as 決める [time: 1d]
+box work as 進める [time: 3d]
+box look as 振り返る [time: 1d]
 
 step 決める
-  say box の行で宣言した手順は、書いた順に真上から右回りに輪の上へ並ぶ。
+  say box の行で宣言した手順は、書いた順に輪の上へ並ぶ。shape: clock では手順の長さ (time) の弧で 12 時から並び、turn: left で左回りになる。
 
 step 進める
-  say 線は輪の次の手順へだけ引け、tag の札が弧に沿って走る。
+  say 線は輪の次の手順へだけ引け、tag の札が針の先に乗って走る。
   plan -> work [tag: やること]
 
 step 振り返る
-  say 走った弧は、受ける側の手順の色で光ったまま残る。
+  say 針が着いた手順の弧は、その回の間は手順の色で光ったまま残る。
   work -> look [tag: 進み]
 
 step 次の回へ

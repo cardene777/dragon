@@ -20,15 +20,20 @@ import { type Ctx, cssFont as font, esc, r1, write } from "./parts";
 
 const S = CYCLE_LOOK.stroke;
 
-/** 回り続ける図の見た目の規則。弧、光った弧、札が走る段の太い弧、輪の真ん中の題と値 */
-export const CYCLE_CSS = [
-  `.dg-cy-arc,.dg-cy-head path{fill:none;stroke:var(--line);stroke-width:${S.arc};stroke-linecap:round;stroke-linejoin:round}`,
-  `.dg-cy-lit path{fill:none;stroke:var(--c);stroke-width:${S.lit};stroke-linecap:round;stroke-linejoin:round}`,
-  `.dg-cy-run path{fill:none;stroke:var(--c);stroke-width:${S.run};stroke-linecap:round}`,
+/** 輪の真ん中の題と値の見た目の規則。時計の文字盤の見た目 (#3638) も同じ規則で文字盤の真ん中に書く */
+export const CENTRE_CSS = [
   `.dg-cy-t{${font(CYCLE_TYPE.title)};fill:var(--mute)}`,
   `.dg-cy-v{${font(CYCLE_TYPE.lead)};fill:var(--ink)}`,
   `.dg-cy-vj{${font(CYCLE_TYPE.leadJa)};fill:var(--ink)}`,
   `.dg-cy-r{${font(CYCLE_TYPE.rest)};fill:var(--ink2)}`,
+].join("");
+
+/** 回り続ける図の見た目の規則。弧、光った弧、札が走る段の太い弧と、輪の真ん中の題と値 */
+export const CYCLE_CSS = [
+  `.dg-cy-arc,.dg-cy-head path{fill:none;stroke:var(--line);stroke-width:${S.arc};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-cy-lit path{fill:none;stroke:var(--c);stroke-width:${S.lit};stroke-linecap:round;stroke-linejoin:round}`,
+  `.dg-cy-run path{fill:none;stroke:var(--c);stroke-width:${S.run};stroke-linecap:round}`,
+  CENTRE_CSS,
 ].join("");
 
 /** 段ごとに光らせる箱。その段の手順の箱だけを、その段で光らせる */
@@ -38,8 +43,11 @@ function litSteps(layout: CycleLayout): Map<string, number[]> {
   return on;
 }
 
-/** 輪の真ん中の字。帯の題と、欄ごとの値の移り変わり (`changes`)。値は欄ごとに 1 つの部品 (`data-field`) にまとめる */
-function centre(layout: CycleLayout, changes: ReadonlyMap<string, FieldChange[]>, ctx: Ctx): string {
+/**
+ * 輪の真ん中の字。帯の題と、欄ごとの値の移り変わり (`changes`)。値は欄ごとに 1 つの部品 (`data-field`) にまとめる。
+ * 時計の文字盤の見た目 (#3638) も、輪の真ん中と字の置き場所を渡してこの処理で書く
+ */
+export function centre(layout: Pick<CycleLayout, "ring" | "centre">, changes: ReadonlyMap<string, FieldChange[]>, ctx: Ctx): string {
   const { m } = ctx;
   const { cx } = layout.ring;
   const c = layout.centre;

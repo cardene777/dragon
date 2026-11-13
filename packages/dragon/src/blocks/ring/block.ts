@@ -6,7 +6,11 @@
  * 段の中の線は輪の次の手順への線だけを受け、最後の手順から最初の手順への線も次の手順への線になる。
  * 1 つ飛ばす線、逆回りの線、同じ手順へ戻る線と、名前を持つ線は誤りで止める。走る札は線の `[tag: <字>]` で書く。
  * `act` と `group` の行は書けない。決まりは読み方 (`read.ts`) の `checkHead` と `afterEdge` と `finish` が持つ。
- * 原本の欄は持たず、手順の数の決まりは骨組み (`schemas/base.schema.json`) が持つ。
+ * 原本の blocks の欄は持たず、手順の数の決まりは骨組み (`schemas/base.schema.json`) が持つ。
+ * 図の種類の行に `[shape: clock]` を書くと時計の文字盤の見た目 (#3638) になり、手順の長さを箱の行の `[time: <長さ>]` で書く。`[turn: left]` は左回りにする。
+ * 見た目と向きは原本の根の `cycle` の欄が持ち、長さは箱の `time` が持つ。
+ * 長さは回り続ける図だけが書くので語の表 (`ATTRS`) の箱の鍵に入れず、箱の行を先に読む読み方 (`take`) が、長さを足した鍵で箱の読み方を呼んで読む。
+ * 語の表に入れると、ほかの図の箱の長さを断る処理が最初に読む箱の読み方に要る
  */
 import type { Block } from "../block";
 
@@ -14,7 +18,8 @@ export const block: Block = {
   name: "ring",
   rank: 145,
   attach: { how: "connect", only: "cycle" },
-  words: {},
+  words: { attrs: { diagram: ["turn"] } },
+  lines: [{ heads: ["box"] }],
   // 回り続ける図の手順の数と、輪の次の手順への線だけを受ける決まりを持つ
   always: true,
 };

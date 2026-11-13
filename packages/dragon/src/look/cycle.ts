@@ -51,3 +51,59 @@ export const CYCLE_LOOK = {
   badge: { beside: 8, slide: 4, clear: 5 },
   stroke: { arc: 2, lit: 2.25, run: 3.5 },
 } as const;
+
+/**
+ * 時計の文字盤の見た目 (#3638) の字。文字盤の外の手順の名前 (`name`) と長さ (`time`) と箱の下の字 (`sub`)、目盛りの数字 (`tick`、和文を含む数字は `tickJa`)、
+ * 携帯の幅で文字盤の外に置く手順の番号 (`key`) と、下の一覧の番号と名前と長さ (`row`、`rowName`、`rowTime`)。
+ * 数字と長さは桁が揃うよう等幅の字で書き、和文を含む字は和文の字で書く
+ */
+export const CLOCK_TYPE = {
+  name: text(14.5, 700),
+  time: text(12, 600, "mono"),
+  sub: text(12.5, 500),
+  tick: text(12, 700, "mono"),
+  tickJa: text(12, 700),
+  key: text(12.5, 700, "mono"),
+  row: text(12.5, 700, "mono"),
+  rowName: text(14, 700),
+  rowTime: text(12.5, 600, "mono"),
+} as const;
+
+/**
+ * 時計の文字盤の見た目 (#3638) の値。見た目の元は #3623 の step 2 で本人が選ばなかった動く試作の案B。
+ * 文字盤は手順の弧の帯で、帯の内の半径の下限 `inner` と帯の幅 `band`、輪の真ん中の字と帯の内の縁の間 `centreGap`、弧どうしの間 `gap` (度)。
+ * 段の番号は帯の内の縁から `badgeAt` の所の弧の上に置き、丸と弧の端の間を `badgeRoom` 空ける。入らない弧は番号を文字盤の外に置く。
+ * 針は帯の内の縁から `handIn` 内の所から、帯の外の縁から `tip` 内の針の先まで伸び、針の先の丸の半径は `dot`。線の札は針の先に乗る。
+ * 目盛りの印は帯の外の縁から `mark` の範囲に引き、数字の真ん中は外の縁から `tickAt` の所に置く。札の留まる所に掛かる数字は `slide` ずつ外へずらす。
+ * 文字盤の外の名前は外の縁から `nameAt` の所から `slide` ずつ外へ、`farthest` まで探し、ほかの部品と `apart` 空ける。
+ * 番号が弧に入らない手順の番号と名前は、弧の真ん中の向きから `shift` 度まで回した所まで探し、引き出す線をほかの部品から `leadClear` 離す。
+ * 枠の幅が `wide` より狭い時は携帯の幅の並べ方にし、文字盤の下に `listGap` 空けて、高さ `row` の行の一覧を置く。行の頭の色の印の大きさは `swatch`。
+ * `stroke` は線の太さで、針 `hand`、目盛りの印 `tick`、引き出す線 `lead`、弧の縁 `sector`。`tint` は光った弧の色の濃さ (%)。`samples` は札の道を区切る点の間の角 (度)
+ */
+export const CLOCK_LOOK = {
+  pad: 24,
+  inner: 104,
+  band: 48,
+  centreGap: 16,
+  gap: 1,
+  badgeAt: 15,
+  badgeRoom: 3,
+  handIn: 14,
+  tip: 13,
+  dot: 5,
+  mark: [3, 9],
+  tickAt: 22,
+  nameAt: 40,
+  slide: 3,
+  farthest: 240,
+  apart: 6,
+  shift: 40,
+  leadClear: 4,
+  wide: 560,
+  listGap: 20,
+  row: 30,
+  swatch: 10,
+  stroke: { hand: 3, tick: 1.6, lead: 1.4, sector: 1 },
+  tint: 30,
+  samples: 3,
+} as const;

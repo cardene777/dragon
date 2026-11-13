@@ -1,8 +1,8 @@
 /**
  * 回り続ける図の見本と棚 (#3623)。
  *
- * 見本は 4 枚 (`eth-slot`、`sprint`、`pdca`、`restake`) で、どれも日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
- * 題材は一般 (`sprint`、`pdca`) と Web3 (`eth-slot`、`restake`) を 2 枚ずつ持つ。題材の分野は記法から読めないので、この file の表が持つ。表は #3623 の「決まっていること」の写し。
+ * 見本は 5 枚 (`eth-slot`、`sprint`、`pdca`、`restake`、時計の文字盤の見た目の `focus-clock`) で、どれも日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
+ * 題材は一般 (`sprint`、`pdca`、`focus-clock`) と Web3 (`eth-slot`、`restake`) を持つ。題材の分野は記法から読めないので、この file の表が持つ。表は #3623 の「決まっていること」に #3638 の見本を足した物。
  * 編集画面の棚は、見本の束と記法の早見の頭の行から回り続ける図を書き始められる。
  */
 import { existsSync } from "node:fs";
@@ -26,6 +26,7 @@ const CYCLE: Readonly<Record<string, { field: Field; steps?: number }>> = {
   sprint: { field: "general" },
   pdca: { field: "general" },
   restake: { field: "web3" },
+  "focus-clock": { field: "general" },
 };
 
 const LANGS: readonly Lang[] = ["ja", "en"];
@@ -62,7 +63,7 @@ beforeAll(async () => {
 });
 
 describe("回り続ける図の見本 (#3623)", () => {
-  it("cycle-has-four-examples-in-both-langs", () => {
+  it("cycle-has-five-examples-in-both-langs", () => {
     for (const [key, info] of Object.entries(CYCLE)) {
       for (const file of [`${key}.dragon`, `${key}.en.dragon`]) {
         expect(existsSync(join(EXAMPLES_DIR, file)), `packages/dragon/examples/${file} が無い`).toBe(true);
@@ -79,7 +80,7 @@ describe("回り続ける図の見本 (#3623)", () => {
         expect(read.ok ? read.diagram.steps.length : -1, `${key} の段の数`).toBe(info.steps);
       }
     }
-    // カタログの回り続ける図の頁に 4 枚とも載る
+    // カタログの回り続ける図の頁に 5 枚とも載る
     const listed: readonly string[] = samplesOf("cycle");
     expect(listed, "カタログの回り続ける図の頁に載る見本").toEqual(Object.keys(CYCLE));
   });
@@ -89,7 +90,7 @@ describe("回り続ける図の見本 (#3623)", () => {
     expect(listed.map(([key]) => key), "見本の一覧に載った回り続ける図の見本").toEqual(Object.keys(CYCLE));
     const general = listed.filter(([, info]) => info.field === "general").map(([key]) => key);
     const web3 = listed.filter(([, info]) => info.field === "web3").map(([key]) => key);
-    expect(general, "一般の題の見本").toEqual(["sprint", "pdca"]);
+    expect(general, "一般の題の見本").toEqual(["sprint", "pdca", "focus-clock"]);
     expect(web3, "Web3 の題の見本").toEqual(["eth-slot", "restake"]);
   });
 

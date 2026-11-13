@@ -103,6 +103,9 @@ export interface Ctx {
   boxName?: (box: SceneBox, ink: Ink[], x: number, y: number) => string;
 }
 
+/** 動く物の速さの緩急。走り始めと着く前をゆっくりにする。運ぶ物と、時計の文字盤の見た目の針 (#3638) が同じ緩急で動く */
+export const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
 /** 和文を含む字の、和文の字で描く時の字の形 */
 export const sansOf = (t: TextStyle): TextStyle => ({ ...t, family: "sans" });
 

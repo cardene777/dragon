@@ -69,6 +69,10 @@
       "description": "集合の重なりの図の見た目。集合の重なりの図だけが書け、集まりは blocks.circle に書く",
       "$ref": "#/definitions/vennLook"
     },
+    "cycle": {
+      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く",
+      "$ref": "#/definitions/cycleLook"
+    },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
       "type": "object",
@@ -341,6 +345,71 @@
           },
           "lineup": {
             "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "cycle"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "cycle": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "cycle"
+        ],
+        "properties": {
+          "cycle": {
+            "required": [
+              "shape"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "box": {
+                "items": {
+                  "required": [
+                    "time"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "box": {
+                "items": {
+                  "properties": {
+                    "time": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2569,6 +2638,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 12
+        },
+        "time": {
+          "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) の、手順の長さ",
+          "$ref": "#/definitions/clockTime"
         }
       }
     },
@@ -3314,6 +3387,44 @@
           "$ref": "#/definitions/color"
         }
       }
+    },
+    "cycleLook": {
+      "description": "回り続ける図の見た目。clock は手順を 12 時から書いた順に、長さを 1 周の長さ (長さの合計) で割った角度の弧で置く時計の文字盤",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shape": {
+          "description": "回り続ける図の見た目の名前",
+          "enum": [
+            "clock"
+          ]
+        },
+        "turn": {
+          "description": "文字盤の回る向き。left は左回りにし、書かない図は右回りにする",
+          "enum": [
+            "left"
+          ]
+        }
+      },
+      "if": {
+        "not": {
+          "required": [
+            "shape"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "turn": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    "clockTime": {
+      "description": "時計の文字盤の見た目の手順の長さ。0 でない数と単位 (ms / s / min / h / d) の組で書く (25min など)",
+      "type": "string",
+      "pattern": "^(?=[0-9.]*[1-9])[0-9]+(\\.[0-9]+)?(ms|s|min|h|d)$"
     },
     "erTable": {
       "description": "表。id は項目を <表>.<項目> で名指すので . を持たない。color を書かない表は宣言した順に色の役を配る",
