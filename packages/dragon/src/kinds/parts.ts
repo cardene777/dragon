@@ -19,7 +19,7 @@ import type { Timeline } from "../timeline";
 import type { NotationLang } from "../words";
 
 /** 並べ方と並べる前の直しが読む、描く時に渡した設定。枠の幅と、開く呼び出しの番号と、呼ぶ側が渡す語 */
-export type KindOptions = Pick<RenderOptions, "width" | "open" | "words">;
+export type KindOptions = Pick<RenderOptions, "width" | "open" | "words" | "anchors" | "overlay">;
 
 /** 種類の描き方が描いた物。図の層ごとの字と、描く本体に渡す物 */
 export interface KindDrawn {
@@ -52,6 +52,14 @@ export interface OverviewShape {
 
 /** 後から読む種類の部品の組。`L` はその種類の並べ方が返す置き場所 */
 export interface KindParts<L extends Layout = Layout> {
+  validate?(this: void, diagram: import("../schema").Diagram): string[];
+  notation?: {
+    matches(text: string): boolean;
+    print?(this: void, diagram: import("../schema").Diagram): string;
+    read(text: string): import("../parser").Parsed;
+  };
+  mountInput?(this: void, host: HTMLElement, diagram: import("../schema").Diagram, options: import("../player").PlayerOptions): import("../player").Player;
+
   /** 並べる前に原本を直す。配管の図は、開くと頼まれていない呼び出しの内側の段を 1 つの段にまとめる (#3389) */
   fold?(this: void, model: DiagramModel, options: KindOptions, lang: NotationLang): DiagramModel;
   /** 並べ方 */

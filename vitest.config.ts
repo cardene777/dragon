@@ -40,6 +40,7 @@ export default defineConfig({
     include: [
       "packages/**/test/**/*.test.ts",
       "packages/**/test/**/*.test.tsx",
+      "packages/**/test/**/*.test.mjs",
       // apps/ 側 (playground-spa) の canvas pivot interaction unit test を対象化
       "apps/**/src/**/*.test.ts",
       "apps/**/src/**/*.test.tsx",

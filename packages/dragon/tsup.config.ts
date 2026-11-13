@@ -56,11 +56,11 @@ export default defineConfig([
     splitting: false,
     sourcemap: true,
     // 設定は同時に走るので、ほかの設定が書いた物 (頁の script、軽い入口、script の1行の入口、埋める script) を消さない
-    clean: ["!player.global.js", "!light/**", "!cdn/**", "!offline.global.js"],
+    clean: ["!frame.*", "!player.global.js", "!light/**", "!cdn/**", "!offline.global.js"],
     shims: true,
     treeshake: true,
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
-    external: ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"],
+    external: ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono", "@cardenelabs/dragon", "./capture.js"],
     // 命令の `dragon --version` は package の版を出す (#3455)
     define: { ...SHARED_BLOCKS, __DRAGON_VERSION__: JSON.stringify(VERSION) },
     outDir: "dist",

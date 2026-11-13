@@ -97,7 +97,7 @@ function shapeOf(text: string): unknown {
   };
   return {
     kind: d.kind,
-    blocks: Object.fromEntries(Object.entries(d.blocks as Record<string, readonly unknown[]>).map(([name, list]) => [name, list.length])),
+    blocks: Object.fromEntries(Object.entries(d.blocks).map(([name, list]) => [name, list.length])),
     steps: d.steps.map((step) => count(step.events.map((event) => event.type))),
   };
 }

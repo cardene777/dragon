@@ -1,0 +1,29 @@
+checkout acp as 応答不達でも注文を重ねない [version: 1, note: 配送や数量を変えて、最新の購入条件を承認してみてください。]
+
+// 注文フローの4者。商品や配送とは独立したブロック。
+party buyer as あなた [role: buyer, note: 購入の判断, icon: user]
+party agent as エージェント [role: agent, note: 情報をつなぐ, icon: agent]
+party seller as 販売事業者 [role: seller, note: 条件と注文, icon: shop]
+party processor as 決済事業者 [role: payment, note: 支払いの処理, icon: card]
+flow orders as 注文フロー [buyer: buyer, agent: agent, seller: seller, payment: processor, wire: horizontal, carry: message]
+
+// 商品・数量と配送の選択肢。
+product shoes as 白いランニングシューズ [price: 18000, min: 1, max: 3, initial: 1, unit: 足, merchant: シューズ店A, art: shoe]
+delivery shipping as 配送方法を変える [initial: express]
+option express as 速達 [for: shipping, fee: 2500, note: 早さを優先, icon: bolt]
+option standard as 通常配送 [for: shipping, fee: 1000, note: 送料を抑える, icon: truck]
+option pickup as 店頭受取 [for: shipping, fee: 0, note: 配送しない, icon: bag]
+
+// 合計と承認。値を変えると total を再計算し、古い承認を無効にする。
+budget spending as 送料込みの予算 [min: 15000, max: 60000, step: 500, initial: 20000]
+total quote as 販売事業者が返した合計 [product: shoes, delivery: shipping, rule: price * quantity + fee]
+approval consent as 最新条件の承認 [total: quote, invalidates: "quantity, delivery"]
+
+// 支払いの上限は予算ではなく承認額。応答不達でも注文と決済を重複させない。
+payment delegated as この購入に限った支払い [approval: consent, limit: approved-total]
+order result as 注文 [payment: delegated, policy: once]
+
+// ヘッダーで選ぶケース。固定の段階再生ではなく購入操作の結果を分岐する。
+scenario normal as 通常の購入 [outcome: normal]
+scenario declined as 決済拒否 [outcome: decline]
+scenario missing as 応答不達 [outcome: lost]

@@ -163,3 +163,6 @@ export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, State
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */
 export { blockKinds } from "./blocks/usable";
+
+export type { CheckoutBlock, CheckoutDefinition, ReadCheckout } from "./checkout/read";
+export type { CheckoutQuote, CheckoutState, CheckoutEvent, CheckoutView, CheckoutModel, CheckoutOptions, CheckoutController } from "./checkout/types";

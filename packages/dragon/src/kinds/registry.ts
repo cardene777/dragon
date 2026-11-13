@@ -10,6 +10,7 @@
 import { FIGURE_TEXT } from "../figure-text";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import type { KindParts } from "./parts";
+import type * as checkout from "./checkout";
 import type * as chart from "./chart";
 import type * as cycle from "./cycle";
 import type * as er from "./er";
@@ -27,9 +28,10 @@ import type * as tryKind from "./try";
 import type * as venn from "./venn";
 
 /** 後から読む種類の名前。部品の型から導くと、部品の型が軽い入口の型の file へ漏れるので字で書く */
-export type LaterKind = "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
+export type LaterKind = "checkout" | "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
 
 export interface LaterKinds {
+  checkout: typeof checkout;
   chart: typeof chart;
   cycle: typeof cycle;
   er: typeof er;
@@ -48,12 +50,18 @@ export interface LaterKinds {
 }
 
 /** 後から読む種類 */
-export const LATER_KINDS: readonly LaterKind[] = ["chart", "cycle", "er", "flow", "git", "lineup", "matrix", "mind", "pipe", "sankey", "state", "time", "tree", "try", "venn"];
+export const LATER_KINDS: readonly LaterKind[] = ["checkout", "chart", "cycle", "er", "flow", "git", "lineup", "matrix", "mind", "pipe", "sankey", "state", "time", "tree", "try", "venn"];
+
+export function notationReader(text: string): KindParts["notation"] {
+  return [...notations.values()].find(n => n.matches(text));
+}
 
 const registered: Partial<LaterKinds> = {};
+const notations = new Map<string, NonNullable<KindParts['notation']>>();
 
 export function registerKind<K extends LaterKind>(kind: K, parts: LaterKinds[K]): void {
   registered[kind] = parts;
+  if (parts.parts.notation) notations.set(kind, parts.parts.notation);
 }
 
 /** 種類の部品を今すぐ描ける形で持っているか。時系列図と構成図は常に持つ */
@@ -74,4 +82,9 @@ export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = DEF
  */
 export function partsOf(kind: string, lang: NotationLang = DEFAULT_LANG): KindParts | undefined {
   return (LATER_KINDS as readonly string[]).includes(kind) ? kindParts(kind as LaterKind, lang).parts : undefined;
+}
+
+/** Optional notation/validation hooks must not load drawing parts for other kinds. */
+export function readyParts(kind: string): KindParts | undefined {
+  return registered[kind as LaterKind]?.parts;
 }

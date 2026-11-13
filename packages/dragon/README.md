@@ -1170,3 +1170,7 @@ const local = editorUrl(source, { base: "http://localhost:5173/" });
 ## License
 
 MIT
+
+## Reader-controlled purchase diagrams
+
+`checkout` is a native diagram kind. It separates parties, order flow, product, delivery, budget, approval, payment, order and scenarios into notation blocks. Use the standard parsing, printing and mounting APIs. For article source tabs and full-view exports, import `mountFramedDiagram` from `@cardenelabs/dragon/frame`. See `src/frame/README.md` and `examples/checkout/acp-purchase.dragon`.

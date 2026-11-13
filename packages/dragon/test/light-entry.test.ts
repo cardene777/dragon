@@ -549,6 +549,8 @@ describe("見本ごとに分けた軽い入口の件 (#3580)", () => {
     const { BLOCKS } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, { name: string; fields?: readonly string[] }> };
     const schema = JSON.parse(readFileSync(join(ROOT, "src/schemas/diagram.schema.json"), "utf8")) as { properties: { blocks: { properties: Record<string, unknown> } } };
     const owned = new Set(Object.values(BLOCKS).flatMap((block) => [block.name, ...(block.fields ?? [])]));
+    const { KIND_FOLDERS } = await import('../src/kinds/index');
+    for (const kind of Object.values(KIND_FOLDERS) as { fields?: readonly string[] }[]) for (const field of kind.fields ?? []) owned.add(field);
     const keys = Object.keys(schema.properties.blocks.properties);
     expect(keys.length, "原本の blocks の欄の数 (走査の空振り)").toBeGreaterThan(0);
     expect(keys.filter((key) => key !== "part" && !owned.has(key)), "持ち主のブロックを引けない原本の blocks の欄").toEqual([]);

@@ -70,6 +70,7 @@ interface Block {
 interface Kind {
   name: string;
   accepts: string[];
+  fields?: readonly string[];
   /** 並べ方。後から読む図の種類は持たない */
   layout?: unknown;
   /** 後から読む図の種類か */
@@ -371,7 +372,7 @@ describe("図の種類の置き場 (#3345)", () => {
     expect(kindFolderProblems(KINDS_DIR), "図の種類の置き場の決まり").toEqual([]);
     expect(Object.keys(kinds).sort(), "定義を読めない図の種類").toEqual(dirs(KINDS_DIR));
     const laidOut = (kind: Kind): boolean => (kind.later === true ? kind.layout === undefined : typeof kind.layout === "function");
-    expect(Object.entries(kinds).filter(([folder, kind]) => kind.name !== folder || !laidOut(kind) || kind.accepts.length === 0).map(([folder]) => folder), "名前か並べ方か付け方を持たない図の種類").toEqual([]);
+    expect(Object.entries(kinds).filter(([folder, kind]) => kind.name !== folder || !laidOut(kind) || (kind.accepts.length === 0 && !kind.fields?.length)).map(([folder]) => folder), "名前か並べ方か付け方を持たない図の種類").toEqual([]);
   });
 
   it("kind-check-flags-drawing-file", () => {

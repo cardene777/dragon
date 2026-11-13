@@ -69,9 +69,11 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
       if (!blank(value)) blocks[field] = value;
     }
   }
+  if (model.checkout) delete blocks.box;
   return {
     version,
     kind: model.kind,
+    ...(model.checkout ? { checkout: (({blocks: _blocks, ...header}) => header)(model.checkout) } : {}),
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
@@ -81,7 +83,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
     // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
     ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
-    blocks,
+    blocks: (model.checkout ? { ...blocks, ...Object.fromEntries([...new Set(model.checkout.blocks.map(b => b.kind))].map(kind => [`purchase-${kind}`, model.checkout!.blocks.filter(b => b.kind === kind)])) } : blocks) as DiagramBlocks,
     steps: model.steps,
   };
 }
@@ -99,11 +101,12 @@ export const isVersion1 = (input: unknown): input is Obj =>
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const b = diagram.blocks;
-  const boxes = b.box ?? [];
+  const boxes = diagram.checkout ? (b['purchase-party'] ?? []).map(p=>({id:p.id,name:p.name,sub:p.options.note,color:'green' as const})) : b.box ?? [];
   if (diagram.kind === "try")
     return {
       version: MODEL_VERSION,
       kind: diagram.kind,
+    ...(diagram.checkout ? { checkout: { ...diagram.checkout, blocks: Object.entries(diagram.blocks).filter(([k]) => k.startsWith("purchase-")).flatMap(([,v]) => v as import("./checkout/read").CheckoutBlock[]) } } : {}),
       title: diagram.title,
       ...(diagram.view !== undefined ? { view: diagram.view } : {}),
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
@@ -120,6 +123,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     return {
       version: MODEL_VERSION,
       kind: diagram.kind,
+    ...(diagram.checkout ? { checkout: { ...diagram.checkout, blocks: Object.entries(diagram.blocks).filter(([k]) => k.startsWith("purchase-")).flatMap(([,v]) => v as import("./checkout/read").CheckoutBlock[]) } } : {}),
       title: diagram.title,
       ...(diagram.view !== undefined ? { view: diagram.view } : {}),
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
@@ -131,6 +135,7 @@ export function toModel(diagram: Diagram): DiagramModel {
   return {
     version: MODEL_VERSION,
     kind: diagram.kind,
+    ...(diagram.checkout ? { checkout: { ...diagram.checkout, blocks: Object.entries(diagram.blocks).filter(([k]) => k.startsWith("purchase-")).flatMap(([,v]) => v as import("./checkout/read").CheckoutBlock[]) } } : {}),
     title: diagram.title,
     ...(diagram.view !== undefined ? { view: diagram.view } : {}),
     ...(diagram.define !== undefined ? { define: diagram.define } : {}),

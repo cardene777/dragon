@@ -7,6 +7,7 @@
  * 版の番号と、版1と版2の欄の対応は `model.ts` が持つ。
  */
 import { FIELD_MESSAGES } from "./field-messages";
+import { readyParts } from "./kinds/registry";
 import { FORMAT_VERSION, fromModel, isVersion1, toModel, upgrade } from "./model";
 import { LINK_URL } from "./blocks/link/block";
 import { isParsed } from "./parsed";
@@ -60,6 +61,7 @@ export function readDiagram(input: unknown, options: CheckOptions = {}): Read {
   if (newer !== undefined) return { ok: false, errors: [newerError(newer, lang)] };
   if (isParsed(input)) {
     const unsafe = unsafeValues(input as Diagram, lang);
+    unsafe.push(...(readyParts((input as Diagram).kind)?.validate?.(input as Diagram) ?? []).map(message=>({pointer:"/blocks",message})));
     return unsafe.length > 0 ? { ok: false, errors: unsafe } : { ok: true, diagram: input as Diagram, warnings: [] };
   }
   const checked = validateDiagram(input, options);

@@ -46,7 +46,7 @@ const RESOLVE_EXT = [".ts", ".tsx", ".mts", ".js", ".mjs", ".cjs", ".jsx", ".jso
 
 /** vitest の設定の `include` と `exclude` と同じ規則で、検査の file か */
 export const isTest = (path) =>
-  /\.test\.tsx?$/u.test(path) && !path.endsWith("/bench.test.ts") && (/^packages\/[^/]+\/(?:.+\/)?test\//u.test(path) || /^apps\/[^/]+\/src\//u.test(path));
+  /\.test\.(?:tsx?|mjs)$/u.test(path) && !path.endsWith("/bench.test.ts") && (/^packages\/[^/]+\/(?:.+\/)?test\//u.test(path) || /^apps\/[^/]+\/src\//u.test(path));
 
 function parseArgs(argv) {
   const o = { list: false, unmapped: false, base: undefined, root: join(dirname(fileURLToPath(import.meta.url)), ".."), files: [], pass: [] };

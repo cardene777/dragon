@@ -37,6 +37,7 @@ Pick the kind from what the user wants to explain, then read [notation](referenc
 | `tree` | Values that fold up into one root: Merkle trees and proofs | [tree](references/kinds/tree.md) |
 | `lineup` | Items that line up and move between lanes: queues, bids, block building | [lineup](references/kinds/lineup.md) |
 | `try` | A model the reader drives by typing values and pressing buttons | [try](references/kinds/try.md) |
+| `checkout` | Change purchase terms, approve the latest quote and try payment outcomes | [checkout](references/kinds/checkout.md) |
 | `pipe` | One transaction through contracts: calls, balances, stored values, reverts | [pipe](references/kinds/pipe.md) |
 | `chart` | Comparing the sizes of a few items step by step: shares as a donut, amounts as bars | [chart](references/kinds/chart.md) |
 | `flow` | A procedure that branches at yes/no choices: a login check, a review, a deploy gate | [flow](references/kinds/flow.md) |
