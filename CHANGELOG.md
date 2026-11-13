@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **A two-axis matrix can plot items as dots at their scores (`[shape: scatter]`)** (#3637)
+
+  A two-axis matrix only put each item's card into one of the four areas, so there was no way to show where in an area an item sits or how close two items are. Give an item scores from 0 to 10 with at most one decimal place as `[x: <across>, y: <up>]`, and `line: <item>` in a step places it without naming an area, into the area its scores fall in; 5 or more counts as the large side on each axis. Start the first line with `matrix <title> [shape: scatter]` to rule both axes from 0 to 10 and plot each item as a dot at its scores, with guide lines from the dot of the step to the axes, its scores in chips on the axes, and a table of the items and their scores on the left. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out and puts each step number in a corner of the area that clears the area name and the dots. `reverse: yes` on an axis line puts large values on the left or at the bottom in either look. Scores outside 0 to 10, scores with two or more decimal places, only one of `x` and `y`, `line: <item>` for an item without scores, and `line <area>: <item>` with an area that does not match the scores are refused when the notation is read. `table` without `[shape: scatter]` is refused when the notation is read and when a JSON source is checked, and `table` outside a two-axis matrix is refused when the notation is read, as is `[shape: scatter]` on a chart, naming the two-axis matrix. At phone width the table sits on top with the plot below it. The catalog has an example in Japanese and English that plots the next features by effort and impact, and the editor shelf has the scatter head line.
+
 ## [0.73.0] - 2026-11-13
 
 ### Added
