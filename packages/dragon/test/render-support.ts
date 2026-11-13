@@ -149,6 +149,8 @@ export interface RenderOptions {
   width?: number;
   /** 配管の図 (#3389) で開いて描く `[fold]` の呼び出しの番号 */
   open?: readonly number[];
+  /** 線の描き方 (#3643)。`ruler` は定規の線、`pen` は手描きのペンの線 */
+  line?: "ruler" | "pen";
 }
 
 export interface PlayerOptions extends RenderOptions {
