@@ -34,6 +34,10 @@ function tableRows(text: string): string[][] {
   return rows;
 }
 
+/** 句点か改行で区切った文のうち、全ての語を含む最初の文。無い時は undefined */
+const sentenceWith = (text: string, words: string[]): string | undefined =>
+  text.split(/[。\n]/u).find((sentence) => words.every((word) => sentence.includes(word)));
+
 /** 欄の字から、backtick で囲んだ検査の名前を読む。空白を含む名前は二重引用符で囲む。命令と path は外す */
 function namesIn(cell: string): string[] {
   const names: string[] = [];
@@ -140,6 +144,32 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     }
     // e2e は配る前にも回さない (ikkan の flow/steps.md、#3585)
     expect(command, "配る前のテストが e2e を回す").not.toMatch(/e2e|playwright\s+test|test:e2e/iu);
+  });
+
+  it("checks-run-related-tests-after-building", () => {
+    // 照合の step の無い線の実装の関門は、欄 `届く検査` の命令を回す (ikkan の #380)。
+    // 検査は build した dist を読み、`pnpm test:related` は build しないので、package を build してから回す (#3679)
+    const rows = tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8")).filter((cells) => cells[0] === "届く検査");
+    expect(rows, "`.ikkan/checks.md` の欄 `届く検査` が 1 行でない").toHaveLength(1);
+    const command = (rows[0]?.[1] ?? "").replace(/^`|`$/gu, "");
+    expect(command, "届く検査が package を build してから関係する検査を回す形でない").toMatch(/pnpm build:packages\s*&&\s*pnpm test:related/u);
+  });
+
+  it("checks-intro-names-reached-checks", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    expect(sentenceWith(intro, ["照合の段", "一式"]), "`.ikkan/checks.md` の冒頭が、通らない照合の段が一式を回すと書いている").toBeUndefined();
+    expect(sentenceWith(intro, ["実装の", "関門", "届く検査", "回す"]), "`.ikkan/checks.md` の冒頭が、実装の関門が届く検査を回すと書いていない").toBeDefined();
+  });
+
+  it("maintainer-notes-say-gate-runs-related-tests", () => {
+    const notes = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
+    const start = notes.indexOf("## 関係する検査だけを回す");
+    expect(start, "管理者向けの決まりに、関係する検査だけを回す節が無い").toBeGreaterThanOrEqual(0);
+    const rest = notes.slice(start + 1);
+    const end = rest.search(/^## /mu);
+    const section = end === -1 ? rest : rest.slice(0, end);
+    expect(sentenceWith(section, ["実装の", "関門", "`届く検査`", "`pnpm test:related`"]), "関係する検査だけを回す節が、実装の関門が欄 `届く検査` で `pnpm test:related` を回すと書いていない").toBeDefined();
   });
 
   it("maintainer-notes-name-related-runner", () => {
