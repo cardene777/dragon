@@ -28,6 +28,7 @@ const SANKEY: Readonly<Record<string, Field>> = {
   salary: "general",
   revenue: "general",
   "day-hours": "general",
+  "phone-storage": "general",
 };
 
 const LANGS: readonly Lang[] = ["ja", "en"];
@@ -87,7 +88,7 @@ describe("量の行き先の図の見本 (#3626)", () => {
     expect(listed.map(([key]) => key), "見本の一覧に載った量の行き先の図の見本").toEqual(Object.keys(SANKEY));
     const general = listed.filter(([, field]) => field === "general").map(([key]) => key);
     const web3 = listed.filter(([, field]) => field === "web3").map(([key]) => key);
-    expect(general, "一般の題の見本").toEqual(["salary", "revenue", "day-hours"]);
+    expect(general, "一般の題の見本").toEqual(["salary", "revenue", "day-hours", "phone-storage"]);
     expect(web3, "Web3 の題の見本").toEqual(["token-allocation", "fee-split"]);
   });
 

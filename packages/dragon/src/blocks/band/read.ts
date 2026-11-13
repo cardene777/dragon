@@ -27,7 +27,7 @@ export interface BandMessages {
   sankeyNoLine: (word: string) => string;
   /** 箱に書けない属性 */
   sankeyNoBoxAttr: (key: string) => string;
-  /** `shape` に `rows` のほかの値を書いた (#3641) */
+  /** `shape` に `rows` と `treemap` のほかの値を書いた (#3641、#3642) */
   sankeyBadShape: string;
 }
 
@@ -117,7 +117,7 @@ export const reading: BlockReading<BandMessages> = {
       sankeyNoChip: "量の行き先の図の線は、札と置く側 (tag、carry、side) を書けない。量の札は線の名前を出す",
       sankeyNoLine: (word) => `sankey (量の行き先の図) には ${word} の行を書けない`,
       sankeyNoBoxAttr: (key) => `量の行き先の図の箱には ${key} を書けない。箱は名前と色だけを持つ`,
-      sankeyBadShape: "sankey (量の行き先の図) の shape には rows を書ける。rows は段ごとに図の幅いっぱいの帯を1行ずつ上から積む",
+      sankeyBadShape: "sankey (量の行き先の図) の shape には rows と treemap を書ける。rows は段ごとに図の幅いっぱいの帯を1行ずつ上から積み、treemap は全量の四角を段ごとに量の面積に割る",
     },
     en: {
       sankeyNoAmount: "A line in a sankey diagram takes its amount after the :, like 40% or 1,200",
@@ -128,7 +128,7 @@ export const reading: BlockReading<BandMessages> = {
       sankeyNoChip: "Lines in a sankey diagram take no tag, carry or side. The amount chip shows the line label",
       sankeyNoLine: (word) => `A sankey diagram takes no ${word} lines`,
       sankeyNoBoxAttr: (key) => `A box in a sankey diagram takes no ${key}. A box has only a name and a color`,
-      sankeyBadShape: "A sankey diagram takes rows for shape, which stacks one full-width bar per step from the top",
+      sankeyBadShape: "A sankey diagram takes rows or treemap for shape. rows stacks one full-width bar per step from the top, and treemap splits one square of the whole into areas by amount, step by step",
     },
   },
 };

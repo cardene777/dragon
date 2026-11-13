@@ -176,6 +176,8 @@ import revenueJa from "../../../packages/dragon/examples/revenue.dragon?raw";
 import revenueEn from "../../../packages/dragon/examples/revenue.en.dragon?raw";
 import dayHoursJa from "../../../packages/dragon/examples/day-hours.dragon?raw";
 import dayHoursEn from "../../../packages/dragon/examples/day-hours.en.dragon?raw";
+import phoneStorageJa from "../../../packages/dragon/examples/phone-storage.dragon?raw";
+import phoneStorageEn from "../../../packages/dragon/examples/phone-storage.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -265,6 +267,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   salary: { ja: salaryJa, en: salaryEn },
   revenue: { ja: revenueJa, en: revenueEn },
   "day-hours": { ja: dayHoursJa, en: dayHoursEn },
+  "phone-storage": { ja: phoneStorageJa, en: phoneStorageEn },
   "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
   "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
 };

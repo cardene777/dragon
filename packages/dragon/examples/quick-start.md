@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>` (段ごとに帯を積む見た目は `[shape: rows]`)、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>` (段ごとに帯を積む見た目は `[shape: rows]`、全量の四角を面積で割る見た目は `[shape: treemap]`)、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -860,6 +860,33 @@ step 分ける
   say 起きている時間を仕事と自由な時間に分ける。
   awake -> work: 10時間
   awake -> free: 6時間
+```
+
+図の種類の行に `[shape: treemap]` を足すと、全量を1つの四角にし、段ごとに切る線を引いて量の面積に割る。
+まだ分けていない残りは長い辺を量の割合で切り、同じ段に同じ出どころから書いた線は1つの帯を切り出して帯の中を書いた順に分ける。
+行き先の区画をさらに分けると区画の枠と名前の札が残り、出どころの無い箱のまだ分けていない残りは灰色の区画に `残り48GB` の形で出る。
+
+```dragon
+sankey スマホの保存領域 [shape: treemap]
+
+box all as 保存領域 [color: slate]
+box photo as 写真 [color: blue]
+box app as アプリ [color: green]
+box game as 遊び [color: rose]
+box work as 仕事 [color: blue]
+
+step 保存領域
+  say 保存領域は128GB。
+
+step 写真とアプリ
+  say 写真が48GB、アプリが32GBを使う。
+  all -> photo: 48GB
+  all -> app: 32GB
+
+step アプリの内訳
+  say アプリの32GBを遊びと仕事に分ける。
+  app -> game: 20GB
+  app -> work: 12GB
 ```
 
 ## 属性

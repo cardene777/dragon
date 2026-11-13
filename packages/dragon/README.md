@@ -1248,6 +1248,37 @@ step Split
   awake -> free: 6h
 ```
 
+Write `sankey <title> [shape: treemap]` to make the whole amount one square and split it into areas by amount, step by step.
+
+- Boxes, steps and lines are written as in the band look. The boxes with no source make up the whole square, and each step draws a cut that carves out its target sections. A section's area is its share of the total of the boxes with no source
+- The part not split yet is cut across its longer side by the share of the amount. Lines written in the same step from the same source carve out one strip as large as their total, and the strip is divided in the order the lines are written
+- What a box with no source has not handed out yet is a gray section that reads like `48GB left`
+- When a target section is split again, its frame and name chip stay, and the inside below the chip is divided into the child sections
+- Sections show their name and amount, and no amount chip is drawn. When a name does not fit in its section, the section shows only the amount and the name is listed under the square with a color mark
+
+```dragon
+sankey Phone storage [shape: treemap]
+
+box all as Storage [color: slate]
+box photo as Photos [color: blue]
+box app as Apps [color: green]
+box game as Games [color: rose]
+box work as Work [color: blue]
+
+step Storage
+  say The phone has 128GB of storage.
+
+step Photos and apps
+  say Photos use 48GB and apps use 32GB.
+  all -> photo: 48GB
+  all -> app: 32GB
+
+step Inside the apps
+  say Split the 32GB of apps into games and work.
+  app -> game: 20GB
+  app -> work: 12GB
+```
+
 ## Source JSON
 
 The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).

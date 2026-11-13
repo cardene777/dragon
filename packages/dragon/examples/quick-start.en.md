@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial, or `[shape: band]` to run them left to right on a band), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>` (add `[shape: rows]` to stack one bar per step), or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial, or `[shape: band]` to run them left to right on a band), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>` (add `[shape: rows]` to stack one bar per step, or `[shape: treemap]` to split one square of the whole by area), or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -860,6 +860,33 @@ step Split
   say Split the awake time into work and free time.
   awake -> work: 10h
   awake -> free: 6h
+```
+
+Add `[shape: treemap]` to the kind line to make the whole amount one square and cut it into areas by amount, step by step.
+The part not split yet is cut across its longer side, and lines written in the same step from the same source carve out one strip that is divided in the order written.
+When a target section is split again its frame and name chip stay, and what a box with no source has not handed out yet is a gray section that reads like `48GB left`.
+
+```dragon
+sankey Phone storage [shape: treemap]
+
+box all as Storage [color: slate]
+box photo as Photos [color: blue]
+box app as Apps [color: green]
+box game as Games [color: rose]
+box work as Work [color: blue]
+
+step Storage
+  say The phone has 128GB of storage.
+
+step Photos and apps
+  say Photos use 48GB and apps use 32GB.
+  all -> photo: 48GB
+  all -> app: 32GB
+
+step Inside the apps
+  say Split the 32GB of apps into games and work.
+  app -> game: 20GB
+  app -> work: 12GB
 ```
 
 ## Attributes

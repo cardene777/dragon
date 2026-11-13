@@ -76,3 +76,43 @@ export const SANKEY_ROWS = {
   names: { gap: 10, mark: 10, markRadius: 2, markGap: 6, apart: 14, row: 20 },
   tint: { now: 0.32, carried: 0.14, rest: 0.2, drop: 0.16 },
 } as const;
+
+/**
+ * 面積で割る四角の見た目 (`[shape: treemap]`、#3642) の字。区画の名前 (`name`)、区画の量 (`value`)、残りの量 (`rest`)、
+ * 分けた区画の名前の札 (`chip`)、図の四角の下に並べる名前 (`list`)。量は桁が揃うよう等幅の字で書く
+ */
+export const SANKEY_TREEMAP_TYPE = {
+  name: text(14, 700),
+  value: text(13, 700, "mono"),
+  rest: text(13, 500, "mono"),
+  chip: text(13, 700),
+  list: text(13, 500),
+} as const;
+
+/**
+ * 面積で割る四角の見た目の値。見た目の元は step 2 で決めた案。
+ * `width` は既定の幅の図の幅、`aspect` は図の四角の高さの幅に比べた割合。`phone` は携帯の幅の時の図の外周の余白 `pad` と高さの割合 `aspect`。
+ * `gap` は隣の区画との隙間、`radius` は区画の角の丸み。`padX` は区画の左の縁と字の間、`nameAt` は区画の上の縁から名前の基準線まで、
+ * `lines` は名前の基準線から量の基準線までの送り、`padY` は量の字の下の縁と区画の下の縁の間の下限。
+ * `nest` は子の区画に分けた区画で、上の縁から子の区画まで `head` (名前の札を書く所)、札の基準線 `chipAt`、左右と下の縁から子の区画まで `inset`、枠の線の太さ `stroke`。
+ * `badge` は段の番号で、丸の下の縁と図の四角の上の縁の間 `gap`。
+ * `names` は図の四角の下に並べる名前で、図の四角の下の縁との間 `gap`、色の印の一辺 `mark` と角の丸み `markRadius`、印と字の間 `markGap`、名前どうしの間 `apart`、行の送り `row`。
+ * `tint` は区画の地の濃さで、その段で切り出した区画 `now`、前の段の区画 `lit`、残り `rest`、子の区画に分けた区画の枠の中 `frame`。
+ * `cut` は切る線の太さ `width` と濃さ `opacity`
+ */
+export const SANKEY_TREEMAP = {
+  width: 868,
+  aspect: 0.5,
+  phone: { pad: 14, aspect: 1 },
+  gap: 4,
+  radius: 6,
+  padX: 10,
+  nameAt: 22,
+  lines: 18,
+  padY: 6,
+  nest: { head: 22, chipAt: 15, inset: 3, stroke: 1.5 },
+  badge: { gap: 8 },
+  names: { gap: 10, mark: 10, markRadius: 2, markGap: 6, apart: 14, row: 20 },
+  tint: { now: 0.34, lit: 0.2, rest: 0.16, frame: 0.07 },
+  cut: { width: 2, opacity: 0.7 },
+} as const;
