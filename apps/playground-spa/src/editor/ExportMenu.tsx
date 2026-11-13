@@ -9,7 +9,7 @@
  * mp4 は WebCodecs の H.264 が無いブラウザでは作れないので、窓を開いた時に確かめ、作れない時は MP4 を並べない。
  * 書き出している間は釦を押せない。書き出せなかった時は、釦の下に訳を出す。
  */
-import type { Theme, Timeline } from "@cardenelabs/dragon/light";
+import type { LineStyle, Theme, Timeline } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import type { Lang, Text } from "../text";
@@ -40,6 +40,8 @@ interface Props {
   /** 今の図の色味と明るさ。HTML の頁を同じ色で描く */
   palette: string;
   theme: Theme;
+  /** 今の図の線の描き方。HTML の頁を同じ描き方で描く (#3643)。画像と動画は描いた図をそのまま撮るので要らない */
+  line: LineStyle;
   /** 保存させる file の名前 (拡張子を除く) */
   name: string;
 }
@@ -55,7 +57,7 @@ function save(blob: Blob, name: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, name }: Props): ReactElement {
+export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, line, name }: Props): ReactElement {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mp4, setMp4] = useState<boolean | undefined>(undefined);
@@ -126,7 +128,7 @@ export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, 
       const film = { lang, timeline: timeline() };
       const made =
         format === "html"
-          ? new Blob([await capture.captureHtml(notation, { lang, palette, theme })], { type: "text/html" })
+          ? new Blob([await capture.captureHtml(notation, { lang, palette, theme, line })], { type: "text/html" })
           : format === "png"
           ? await capture.capturePng(svg, { lang })
           : format === "svg"

@@ -9,6 +9,7 @@
  * - `loadReadings(<記法か原本>)` を待つと、書いた図が使う個別ブロックの読み方だけを読み、描く部品は読まない (題と種類だけを引く時に使う)
  * - `diagramKind(<記法か原本>)` は、読む前に図の種類を返す。どの種類の `loadKind` を待つかを決める時に使う
  * - `definesBlocks(<記法>)` は、記法が足すブロックの定義の行 (`blocks 1`) を持つかを返す。持つ記法は `loadReadings` か `loadFor` を待ってから読む (#3399、#3407)
+ * - `loadLine(<線の描き方>)` を待つと、その描き方で描くのに要る部品を読む。手描きの線 (`pen`、#3643) の時だけ、描き替える処理を読む
  * - `loadValidator()` を待つと、原本の形の検査だけを読む。`parseNotation` で記法から読んだ図は描く時に検査を省くので、原本の JSON を読む頁だけが要る (#3400)
  * - 箱と区画の `icon` に絵柄集の絵柄 (`tabler:<名前>`) を書いた図は、`loadFor` と `loadReadings` が絵柄集の表も読む。`iconSetLoaded("tabler")` は読んだかを返す (#3493)
  *
@@ -27,6 +28,7 @@ import { isParsed } from "./parsed";
 import { type Diagram, registerValidator, validatorLoaded } from "./schema";
 import { iconSetLoaded, registerTabler, usesTabler } from "./blocks/icon/sets";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
+import { type LineStyle, penLoaded, registerPen } from "./render/pen-store";
 
 export * from "./api";
 export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };
@@ -138,6 +140,14 @@ export async function loadReadings(source: string | object): Promise<void> {
     return;
   }
   await Promise.all([loadBlocks(blocksUsedBy(printed)), loadUserBlocks(printed)]);
+}
+
+/**
+ * 線の描き方 `line` (#3643) で描くのに要る部品を読む。手描きの線 (`pen`) の時だけ描き替える処理を読み、読んでいれば何もしない。
+ * 描き替える処理は線を揺らす計算を持ち、最初に読む量に入れないため後から読む。読み込みが落ちると拒否され、次に呼ぶと読み直す
+ */
+export async function loadLine(line: LineStyle | undefined): Promise<void> {
+  if (line === "pen" && !penLoaded()) registerPen((await import("./render/pen")).penSvg);
 }
 
 /**

@@ -132,6 +132,8 @@ export const EN_TEXT = {
     export: "Export",
     exportMenu: "Export format",
     exportFailed: (reason: string) => `Could not export: ${reason}`,
+    line: "Line style",
+    lineNames: { ruler: "Ruler", pen: "Hand-drawn" },
   },
   notices: {
     line: (line: number) => `Line ${line}`,

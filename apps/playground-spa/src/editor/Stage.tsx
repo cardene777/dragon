@@ -1,7 +1,7 @@
 /**
  * 編集画面の図の側 (#3031)。前の編集画面の舞台の配置を、今の再生の部品で戻す。
  *
- * 上の段に色味と道具 (語りの字の大きさ、格子、全画面、全体に合わせる、縮小、拡大、書き出す) を置く。
+ * 上の段に色味と線の描き方 (#3643) と道具 (語りの字の大きさ、格子、全画面、全体に合わせる、縮小、拡大、書き出す) を置く。
  * 書き出すの釦は右端に置き、押すと今の図を PNG、SVG、GIF、MP4、HTML に書き出す形を選ばせる (`ExportMenu.tsx`、#3644、#3667)。
  * 命令で書き出す人のために、図の下の `dragon export` の案内は残す。
  * 携帯の幅では道具を指で押せる大きさ (44px) にして 1 列に収めるため、全体に合わせるの釦を出さず、
@@ -12,7 +12,7 @@
  * 段を 2 つ以上持つ図は、左上に今の段の札を、下端に段の数で区切った進み具合の帯を出す。
  * 字の重なりがある時は、今の段で重なる字を再生の部品に点線で囲ませ、知らせの欄の段の札で頼まれた段へ移って止める (#3178)。
  */
-import { type Diagram, type Overlap, PALETTES, type Player, printNotation, renderDiagram, type Theme, type Timeline } from "@cardenelabs/dragon/light";
+import { type Diagram, LINE_STYLES, type LineStyle, type Overlap, PALETTES, type Player, printNotation, renderDiagram, type Theme, type Timeline } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
 
 import { FigureWaiting } from "../site/KindState";
@@ -75,12 +75,15 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
   const [grid, setGrid] = useState(false);
   const [say, setSay] = useState(1);
   const [full, setFull] = useState(false);
+  // 線の描き方は色味と同じく描く時に選び、記法には書かない (#3643)
+  const [line, setLine] = useState<LineStyle>("ruler");
   const phone = usePhone();
   const player = useRef<Player | null>(null);
   const fit = useFittedFigure(host, diagram, {
     palette,
     theme,
     lang,
+    line,
     onStep: setStep,
     // 図の枠は画面の高さで決まり、寄って追う図は枠の中で送る。窓の下の全体図は枠の中に収める (#3554)
     fitOverview: true,
@@ -156,6 +159,23 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
             </button>
           ))}
         </div>
+        {/* 線の描き方の選び口 (#3643)。色味の丸の隣に、定規の線と手描きの線の 2 つの釦を置き、押すと図を描き直す */}
+        <div className="pg-lines" data-playground="line-style" role="group" aria-label={t.stage.line}>
+          {LINE_STYLES.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className="pg-tool"
+              data-playground={`line-${id}`}
+              aria-pressed={line === id}
+              aria-label={t.stage.lineNames[id]}
+              title={t.stage.lineNames[id]}
+              onClick={() => setLine(id)}
+            >
+              <span className="pg-icon" data-icon={`line-${id}`} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
         <span className="pg-gap" />
         <Tool name="font-down" icon="text-down" label={t.stage.fontDown} onClick={() => setSay(clampSay(say / SAY_STEP))} />
         <Tool name="font-up" icon="text-up" label={t.stage.fontUp} onClick={() => setSay(clampSay(say * SAY_STEP))} />
@@ -193,6 +213,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
           source={() => (diagram ? printNotation(diagram) : null)}
           palette={palette}
           theme={theme}
+          line={line}
           name={fileName.replace(/\.dragon$/u, "")}
         />
       </div>
