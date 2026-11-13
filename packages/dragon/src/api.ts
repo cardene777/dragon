@@ -84,8 +84,10 @@ export {
   validateDiagram,
   validatorLoaded,
   type VennCount,
+  type VennLook,
   type VennNone,
   type VennSet,
+  type VennShape,
   type ViewMode,
 } from "./schema";
 export { FORMAT_VERSION, type Read, readDiagram } from "./version";
@@ -149,7 +151,8 @@ export type {
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
 export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow, ChartSpot, FunnelGap, FunnelPlan, FunnelRow, FunnelTotal } from "./kinds/chart/layout";
-export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupBand, LineupBandNote, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupText, TextLine } from "./kinds/lineup/layout";
+export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupBack, LineupBand, LineupBandNote, LineupCount, LineupGhost, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupPick, LineupRemark, LineupRoleCard, LineupRun, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupStations, LineupStationsLine, LineupStop, LineupText, LineupTick, LineupValue, TextLine } from "./kinds/lineup/layout";
+export type { DotBox, DotGroup, DotPlan, DotSize, DotText, DotTextRole, PlacedDot } from "./layout/dots";
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
@@ -159,6 +162,7 @@ export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./rend
 export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
+export { LINE_STYLES, type LineStyle, penLoaded } from "./render/pen-store";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */

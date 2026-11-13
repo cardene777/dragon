@@ -9,11 +9,11 @@
  * 後から読む種類の図は、種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届いてから読む。塊が届くまでは枠に読み込み中を出す。
  * 足したブロックの定義を持つ記法は、定義を読む処理の塊 (#3399) が届いてから読む (#3407)。
  */
-import { type Diagram, diagramKind, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
+import { type Diagram, diagramKind, type LineStyle, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
-import { useDefinitions, useKind, useValidator } from "./kinds";
+import { useDefinitions, useKind, useLine, useValidator } from "./kinds";
 import { KindState } from "./KindState";
 
 interface Props {
@@ -22,6 +22,8 @@ interface Props {
   theme: Theme;
   /** 図の色味。上の帯で選んだ色味を受け取る (#3033) */
   palette: string;
+  /** 線の描き方 (#3643)。書かなければ定規の線 */
+  line?: LineStyle;
   /** 枠の幅に関わらず全体を止めて見せる */
   whole?: boolean;
   /** `notation` に記法ではなく原本の JSON の字を渡す */
@@ -62,14 +64,16 @@ function readNotation(text: string): Diagram | null {
   return parsed.ok ? parsed.diagram : null;
 }
 
-export function LiveFigure({ notation, lang, theme, palette, whole = false, json = false, onStep, pausedAt, className }: Props): ReactElement {
+export function LiveFigure({ notation, lang, theme, palette, line, whole = false, json = false, onStep, pausedAt, className }: Props): ReactElement {
   const host = useRef<HTMLDivElement>(null);
   const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
   // 原本の JSON は原本の形の検査の塊も待つ。記法から読んだ図は検査を要らない (#3400)
   const checked = useValidator(json).status === "ready";
   // 足したブロックの定義を持つ記法は、定義を読む処理の塊も待つ (#3407)
   const defined = useDefinitions(json ? "" : notation).status === "ready";
-  const ready = useKind(kind).status === "ready" && checked && defined;
+  // 手描きの線を選んだ図は、描き替える処理の塊も待つ (#3643)
+  const drawn = useLine(line).status === "ready";
+  const ready = useKind(kind).status === "ready" && checked && defined && drawn;
   const diagram = useMemo((): Diagram | null => {
     if (!ready) return null;
     const read = json ? readJson(notation) : readNotation(notation);
@@ -87,9 +91,9 @@ export function LiveFigure({ notation, lang, theme, palette, whole = false, json
   useEffect(() => {
     const el = host.current;
     if (!el || !diagram || !ready) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, pausedAt, onStep: (step) => stepTo.current?.(step) });
+    const player = mountDiagram(el, diagram, { palette, theme, lang, ...(line ? { line } : {}), pausedAt, onStep: (step) => stepTo.current?.(step) });
     return () => player.destroy();
-  }, [diagram, ready, palette, theme, lang, pausedAt]);
+  }, [diagram, ready, palette, theme, lang, line, pausedAt]);
 
   return (
     <div ref={host} className={className}>

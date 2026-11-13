@@ -167,21 +167,30 @@ function Site({ firstLang }: { firstLang: Lang }): ReactElement {
   );
 }
 
+/**
+ * 字と言葉の塊を待ってから頁を描く。
+ * 後から読む塊 (英語の塊など) はこの script から部品を読み込むので、この script の評価が終わるまで動かない。
+ * 最上位で待つとこの script の評価が終わらず、塊とこの script が互いを待って頁を描かないため、待つ処理は関数の中に置く
+ */
+async function openSite(): Promise<void> {
+  // 2 度目からは字の CSS を読み終えてから描く。字の file が cache に在れば端末の字を挟まない (#3292)
+  if (fontsSeen()) await loadFonts();
+  // 英語で開く頁は英語の塊が届いてから描き、日本語の字を挟まない (#3646)
+  const firstLang = await openLang(deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
+
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <Site firstLang={firstLang} />
+    </StrictMode>,
+  );
+  // 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)。
+  // 後から読む見本は記法だけを裏で読む。見本が使う個別ブロックの読み方は種類の塊も読み、残る足したブロックの定義の読み方と
+  // 絵柄集の表 (gzip で約 225KB) は、見本を並べる所 (棚と見本の一覧) を開いた時に読む (#3505)。
+  // 使い方の頁とカタログの頁も同じで、初めて頁を開く時に待たせない (#3280)
+  startWhenIdle([{ start: () => void import("./examples-later") }, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);
+}
+
 redirectSharedLink();
 // React が最初に描く前に色を置き、最初の 1 回だけ色の無い地が出るのを避ける
 paintSite(storedPalette(), deviceTheme());
-// 2 度目からは字の CSS を読み終えてから描く。字の file が cache に在れば端末の字を挟まない (#3292)
-if (fontsSeen()) await loadFonts();
-// 英語で開く頁は英語の塊が届いてから描き、日本語の字を挟まない (#3646)
-const firstLang = await openLang(deviceLang(navigator.languages.length > 0 ? navigator.languages : [navigator.language]));
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <Site firstLang={firstLang} />
-  </StrictMode>,
-);
-// 見本と部品の図の記法は最初の画面を描いた後に裏で読み始め、見本帳を開く頃には届いているようにする (#3246)。
-// 後から読む見本は記法だけを裏で読む。見本が使う個別ブロックの読み方は種類の塊も読み、残る足したブロックの定義の読み方と
-// 絵柄集の表 (gzip で約 225KB) は、見本を並べる所 (棚と見本の一覧) を開いた時に読む (#3505)。
-// 使い方の頁とカタログの頁も同じで、初めて頁を開く時に待たせない (#3280)
-startWhenIdle([{ start: () => void import("./examples-later") }, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);
+void openSite();
