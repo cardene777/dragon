@@ -182,6 +182,10 @@ mountDiagram(host, parsed.diagram, {
 
 A name the palette does not have, or a value that cannot be read as a color (one that contains `;`, `"`, `<`, and so on), is refused with that name and nothing is drawn.
 
+Pass `line: "pen"` to draw box edges, lines, arrows and rings as gently wobbling hand-drawn pen lines.
+Icons, text and the diagram frame stay as they are, line ends, bends and sharp corners stay where they were, and the same diagram wobbles the same way every time it is drawn.
+The default `line: "ruler"` draws straight lines, and `renderDiagram` and `captureHtml` take the same `line`.
+
 To draw a pipe diagram in your page's own words, pass `words.pipe`.
 `tags` replaces the words under the tank amounts (`provisional`, `final`, `rolled`), `io` replaces the labels on the sender's and receiver's tanks (`in`, `out`), and `fold`, `open`, and `foldTitle` replace the text of a folded box, its "click to open" line, and the title of the folded step.
 In `fold`, `{steps}` and `{parties}` become the number of inner steps and parties, and in `foldTitle`, `{name}` becomes the name of the called party.
@@ -1108,6 +1112,7 @@ dragon export ccip.json --out out
 | `--out <dir>` | Where to write. Created if missing (default: the current dir) |
 | `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
 | `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade` / `sea`, default `paper`, and `sea` for the pipe diagram). `arcade` also cuts the top-right and bottom-left corners of boxes |
+| `--line <name>` | How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws box edges, lines, arrows and rings as gently wobbling hand-drawn pen lines and keeps icons, text and the diagram frame as they are |
 | `--theme <mode>` | `light` or `dark` |
 | `--lang <lang>` | Language of the text in the diagram (the text dragon adds, overview labels, and the names read in HTML) and of the command's messages (usage, errors, and the message when it cannot draw) (`ja` or `en`). Without it, the text in the diagram is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en`. The same goes for notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
@@ -1148,7 +1153,7 @@ Pass the `timeline` that `renderDiagram` returns to GIF and MP4 (`captureGif(svg
 The page is built by the same code as `dragon export`, so it is the same text except for the `@font-face` rules.
 Fonts are embedded whole from the page's `@font-face` rules for the characters the page and the player bar can draw, and a font file that cannot be read is refused with its family and range named.
 The player script (`player.global.js`, over 1 MB) sits next to the entry and is fetched only on the first call.
-`palette` and `theme` pick the colors, and `lang` picks the language of the text in the diagram and of the refusals.
+`palette` and `theme` pick the colors, `line` picks how lines are drawn, and `lang` picks the language of the text in the diagram and of the refusals.
 
 ```ts
 import { captureHtml } from "@cardenelabs/dragon/capture";

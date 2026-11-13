@@ -156,6 +156,9 @@ const JA = {
     export: "書き出す",
     exportMenu: "書き出す形",
     exportFailed: (reason: string) => `書き出せない: ${reason}`,
+    /** 線の描き方の選び口と、描き方ごとの釦の名前 (#3643) */
+    line: "線の描き方",
+    lineNames: { ruler: "定規", pen: "手描き" },
   },
   notices: {
     line: (line: number) => `${line} 行目`,

@@ -37,6 +37,7 @@ import type { TryLayout } from "./kinds/try/layout";
 import { PIPE_LOOK } from "./look/pipe";
 import { FONT_VARS, LOOK, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
+import { drawLines } from "./render/pen-store";
 import {
   drawSvg,
   paletteOf,
@@ -697,15 +698,17 @@ export function mountDiagram(
     settle();
     panTo();
   };
-  const markup = (): string =>
-    mode === "follow"
-      ? drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, {
-          width,
-          ...(height === undefined ? {} : { height }),
-          ...(visible === undefined ? {} : { visible }),
-          lang,
-        })
-      : rendered.svg;
+  /** 寄って追う図は枠の幅で描き直す。手描きの線を選んだ時は、止めて見せる図 (`rendered.svg`) と同じく描き替える (#3643) */
+  const following = (): string => {
+    const svg = drawSvg(rendered.diagram, rendered.layout, timeline, palette, rendered.theme, {
+      width,
+      ...(height === undefined ? {} : { height }),
+      ...(visible === undefined ? {} : { visible }),
+      lang,
+    });
+    return drawLines(svg, options.line, lang);
+  };
+  const markup = (): string => (mode === "follow" ? following() : rendered.svg);
 
   const now = (): number => (playing ? (at + elapsed()) % timeline.total : at);
   const stepAt = (t: number): number => {
