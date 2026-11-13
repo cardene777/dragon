@@ -128,7 +128,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { ChartShape, Diagram, DiagramModel, LineupShape, Step, VennShape } from "./schema";
+import type { Diagram, DiagramModel, LineupShape, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -209,8 +209,11 @@ const LINEUP_OR_TRY = ["item", "line"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
-/** 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637)、1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635) */
-const HEAD_KINDS: Readonly<Record<"shape" | "unit" | "table", readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix"], unit: ["chart", "venn"], table: ["matrix"] };
+/**
+ * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638)、
+ * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)
+ */
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
 
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -230,14 +233,15 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const title = titled.value === "" ? kind : titled.value;
   const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
   const view = viewOf(head, headAttrs.get("view"), m);
-  // 図の種類の行の `shape` (見た目) と `unit` (点で数える見た目の 1 点の件数) は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
-  // 量の図の見た目は見た目のブロックが、列の図の見た目はチップのブロックが、集合の重なりの図の見た目は集まりの円のブロックが、2つの軸で置く図の見た目は軸のブロックが確かめる
+  // 図の種類の行の属性は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
+  // 値は図の種類のブロックが確かめる。量の図の見た目は見た目のブロック、列の図の見た目はチップのブロック、集合の重なりの図の見た目は集まりの円のブロック、
+  // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロックが確かめる
+  for (const [key, kinds] of Object.entries(HEAD_KINDS)) {
+    const attr = headAttrs.get(key);
+    if (attr && !kinds.includes(kind)) throw fail(head, attr.at, m.headOnlyAttr(key, kinds));
+  }
   const shape = headAttrs.get("shape");
-  if (shape && !HEAD_KINDS.shape.includes(kind)) throw fail(head, shape.at, m.headOnlyAttr("shape", HEAD_KINDS.shape));
   const unit = headAttrs.get("unit");
-  if (unit && !HEAD_KINDS.unit.includes(kind)) throw fail(head, unit.at, m.headOnlyAttr("unit", HEAD_KINDS.unit));
-  const table = headAttrs.get("table");
-  if (table && !HEAD_KINDS.table.includes(kind)) throw fail(head, table.at, m.headOnlyAttr("table", HEAD_KINDS.table));
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -385,7 +389,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (given) throw fail(source, given.attr.at, m.timeOnly(given.name));
     return {};
   };
-  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure };
+  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure, reader: (word) => headReaders().get(word) };
   /** 行が使うブロックの読み方を持っているか確かめる。持っていなければ、ブロックの名前を名指して止める */
   const needed = (source: SourceLine, line: LineView): void => {
     const missing = lineNeeds(line, kind).find((name) => !readingLoaded(name));
@@ -529,23 +533,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
         }
       : {}),
     ...(figure.pipe.holds.length > 0 ? { pipe: { holds: figure.pipe.holds } } : {}),
-    // 量の図の見た目は見た目のブロックが `donut` か `bar` か `funnel` か `dots` と、1 点の件数は 0 より大きい数と確かめた
-    ...(kind === "chart"
-      ? { chart: { shape: figure.chart.shape?.value as ChartShape, ...(figure.chart.unit ? { unit: Number(figure.chart.unit.value) } : {}), items: figure.chart.items } }
-      : {}),
-    ...(kind === "er" ? { er: { tables: figure.er.tables } } : {}),
-    // 2つの軸で置く図の欄は軸のブロックと課題のブロックが組み、見た目 (#3637) は軸のブロックが確かめてから置いた
-    ...(kind === "matrix" ? { matrix: figure.matrix } : {}),
-    // 集合の重なりの図の見た目 (#3635) は集まりの円のブロックが `dots` と確かめた
-    ...(kind === "venn"
-      ? {
-          venn: {
-            sets: figure.venn.sets,
-            ...(figure.venn.shape ? { shape: figure.venn.shape.value as VennShape } : {}),
-            ...(figure.venn.unit ? { unit: Number(figure.venn.unit.value) } : {}),
-          },
-        }
-      : {}),
+    // 図の種類のブロックが確かめてから組んだ欄。量の図 (#3560) と表どうしの関係の図 (#3618) と2つの軸で置く図 (#3622) と集合の重なりの図 (#3620) の欄と、
+    // 回り続ける図の見た目と向き (#3638)。組むのは後から読むブロックの読み方なので、最初に読む記法を読む処理に種類ごとの組み方を持たない
+    ...figure.root,
     ...(isTime && time.scale
       ? {
           time: {

@@ -18,6 +18,9 @@ Pick `flow` instead when the procedure branches at choices and ends, and `state`
 | `<id> -> <id> [tag: <text>]` | A line to the next step on the ring. In that step the chip runs along the arc, and the arc stays lit in the color of the receiving step |
 | `strip <title>: <field>, <field>` | The strip title and field values, shown in the middle of the ring instead of under the diagram |
 | `set <field>: <value>` | Changes a value in the middle of the ring. The first field shows large, and field names are not shown |
+| `cycle <title> [shape: clock]` | The clock look. The steps sit on a clock dial clockwise from 12 o'clock as arcs as long as they take, and one hand turns from step to step |
+| `box <id> as <name> [time: 25min]` | The length of a step in the clock look, a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`). Every step needs one, and `time` is refused without `[shape: clock]` |
+| `cycle <title> [shape: clock, turn: left]` | Turns the dial counterclockwise. `turn` is refused without `[shape: clock]` |
 
 ## How to write it well
 
@@ -27,6 +30,8 @@ Pick `flow` instead when the procedure branches at choices and ends, and `state`
 - Start with a step that has no line and sets the strip values, so the first round has a clear beginning.
 - Write values that read on their own, because field names are not shown. Use the first field for the round (a slot number, a sprint number) and the rest for where in the round it is.
 - A value that changes after it was first written shows in the color of that step's box while the step lasts.
+- Pick `[shape: clock]` when how long each step takes matters, such as a timetable of focus and rest or the phases of a slot. The arcs are as long as the steps, so a step that takes most of the round fills most of the dial.
+- In the clock look the chip rides the tip of the hand, and the arcs entered in the round stay lit until the hand passes 12 o'clock. The numbers around the dial use the largest unit written, so write lengths in units that read well together.
 
 ## Example
 
@@ -59,4 +64,40 @@ step On to the next week
   look -> plan [tag: left]
   set round: Week 2
   set day: Monday
+```
+
+The clock look:
+
+```dragon
+cycle Focus and rest schedule [shape: clock]
+
+box focus as Focus [time: 25min, color: blue]
+box short as Short rest [time: 5min, color: green]
+box review as Look back [time: 10min, color: amber]
+box long as Long rest [time: 20min, color: rose]
+
+strip Schedule: round, focused
+
+step Start focusing
+  say Notifications go off and the work at hand gets 25 minutes of focus.
+  set round: Round 1
+  set focused: 0 min
+
+step Short rest
+  say After 25 minutes the work stops for a 5 minute stretch.
+  focus -> short [tag: 25 min]
+  set focused: 25 min
+
+step Look back
+  say After the rest, 10 minutes go into writing down what moved and what got stuck.
+  short -> review
+
+step Long rest
+  say With the notes written, a long 20 minute rest clears the head.
+  review -> long [tag: notes]
+
+step On to the next round
+  say The rest ends and the second round of focus begins.
+  long -> focus
+  set round: Round 2
 ```

@@ -611,7 +611,8 @@ describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
         if (!carrier) continue;
         const span = timeline.steps[e.step] as Span;
         expect(carrier.depart >= span.start - 1e-9 && carrier.arrive <= span.end + 1e-9 && carrier.arrive > carrier.depart, `${what} の札がその段の間に走らない`).toBe(true);
-        const chip = [...motion.doc.querySelectorAll("text")].find((t) => t.textContent === e.carry?.text)?.parentElement;
+        // 真ん中の値の欄が札と同じ字を書くことがあるので、走る札の字 (`.dg-car-t`) だけから探す
+        const chip = [...motion.doc.querySelectorAll("text.dg-car-t")].find((t) => t.textContent === e.carry?.text)?.parentElement;
         expect(chip, `${what} の札の字が描いた図に無い`).toBeDefined();
         if (!chip) continue;
         for (const k of [0.25, 0.5, 0.75]) {
@@ -649,12 +650,13 @@ describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
       if (SHORT_STEPS.includes(id)) expect(d, `段 ${badge.step + 1} の ${id} の番号が文字盤の外に無い`).toBeGreaterThan(ring.r + BADGE_R - 1);
       else expect(d >= ring.inner && d <= ring.r, `段 ${badge.step + 1} の ${id} の番号が弧の上に無い (${d})`).toBe(true);
     }
-    // 名前と番号はどれも互いに重ならない
+    // 名前と番号はどれも互いに重ならない。同じ手順の番号は同じ所で入れ替わって出るので、同じ所の番号どうしは数えない
     const parts: [string, Rect][] = [...names.map((n): [string, Rect] => [`${n.id} の名前`, n]), ...layout.badges.map((b): [string, Rect] => [`段 ${b.step + 1} の番号`, badgeRect(b)])];
     for (let i = 0; i < parts.length; i++)
       for (let j = i + 1; j < parts.length; j++) {
         const [a, ra] = parts[i] as [string, Rect];
         const [b, rb] = parts[j] as [string, Rect];
+        if (i >= names.length && ra.x === rb.x && ra.y === rb.y) continue;
         expect(gap(ra, rb), `${a}と${b}が重なる`).toBeGreaterThan(0);
       }
     // 引き出した図も崩れの知らせを出さない

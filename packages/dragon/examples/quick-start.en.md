@@ -51,7 +51,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 
 | Line | Form | Example |
 |---|---|---|
-| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>`, `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
+| Kind and title | `sequence <title>`, `architecture <title>`, `state <title>`, `git <title>`, `time <title>`, `tree <title>`, `pipe <title>`, `flow <title>`, `cycle <title>` (add `[shape: clock]` to set the steps on a clock dial), `mind <title>`, `er <title>`, `matrix <title>` (add `[shape: scatter]` to plot by score), `venn <title>`, `sankey <title>`, or `chart <title> [shape: donut]` (or `[shape: bar]`, `[shape: funnel]` or `[shape: dots]`). Choose the view by adding `[view: fixed]` or `[view: follow]` at the end of the line | `architecture Send tokens with CCIP [view: follow]` |
 | Region | Open with a `group <id> as <name> [note: <note>]` line and close with an `end` line. The boxes on the `box` lines in between go inside the region | `group source as Source chain [note: e.g. Ethereum, color: blue]` |
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
@@ -540,6 +540,44 @@ step On to the next week
   look -> plan [tag: left]
   set round: Week 2
   set day: Monday
+```
+
+Write the first line as `cycle <title> [shape: clock]` to set the steps on a clock dial.
+Each step `box` takes its length as `[time: 25min]` (a number other than 0 and a unit, `ms`, `s`, `min`, `h` or `d`), and the steps sit from 12 o'clock as arcs as long as they take.
+In each step the hand points at the start of that step's arc and the chip rides the hand tip. `[shape: clock, turn: left]` turns the dial counterclockwise.
+
+```dragon
+cycle Focus and rest schedule [shape: clock]
+
+box focus as Focus [time: 25min, color: blue]
+box short as Short rest [time: 5min, color: green]
+box review as Look back [time: 10min, color: amber]
+box long as Long rest [time: 20min, color: rose]
+
+strip Schedule: round, focused
+
+step Start focusing
+  say Notifications go off and the work at hand gets 25 minutes of focus.
+  set round: Round 1
+  set focused: 0 min
+
+step Short rest
+  say After 25 minutes the work stops for a 5 minute stretch.
+  focus -> short [tag: 25 min]
+  set focused: 25 min
+
+step Look back
+  say After the rest, 10 minutes go into writing down what moved and what got stuck.
+  short -> review
+
+step Long rest
+  say With the notes written, a long 20 minute rest clears the head.
+  review -> long [tag: notes]
+
+step On to the next round
+  say The rest ends and the second round of focus begins.
+  long -> focus
+  set round: Round 2
 ```
 
 In a mind map (`mind <title>`), write ideas with `idea` lines inside steps; an idea turns solid at its step and the line from its parent is drawn.

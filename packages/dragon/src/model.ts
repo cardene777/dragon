@@ -45,9 +45,18 @@ const isObject = (value: unknown): value is Obj => typeof value === "object" && 
 const blank = (value: unknown): boolean => value === undefined || (Array.isArray(value) && value.length === 0);
 
 /**
+ * 版1に無かった欄のうち、描く処理の形と原本の根に同じ形で置く欄。
+ * 量の図 (#3560) の見た目と項目、2つの軸で置く図 (#3622) の軸と課題、回り続ける図の見た目 (#3638)
+ */
+const ROOTED = ["chart", "matrix", "cycle"] as const;
+
+/** `from` の `ROOTED` の欄のうち、書いた欄だけ */
+const rooted = (from: object): Obj => Object.fromEntries(ROOTED.flatMap((key) => ((from as Obj)[key] === undefined ? [] : [[key, (from as Obj)[key]]])));
+
+/**
  * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
  * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) と並べる組 (`side`) と関門 (`check`、#3476) をこの順に置く。
- * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す。2つの軸で置く図 (#3622) の軸と課題も根の欄 (`matrix`) のまま移す
+ * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す。2つの軸で置く図 (#3622) の軸と課題と、回り続ける図の見た目 (#3638) も根の欄 (`matrix` と `cycle`) のまま移す
  * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
@@ -78,8 +87,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
-    ...(model.chart !== undefined ? { chart: model.chart } : {}),
-    ...(model.matrix !== undefined ? { matrix: model.matrix } : {}),
+    ...rooted(source),
     // 列の図の見た目 (#3625) は版1に無かった欄なので、`HOMES` を通さず根の欄 (`lineup`) に移す
     ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
     // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
@@ -144,8 +152,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.strip !== undefined ? { strip: b.strip } : {}),
     steps: diagram.steps,
     ...(diagram.kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
-    ...(diagram.chart !== undefined ? { chart: diagram.chart } : {}),
-    ...(diagram.matrix !== undefined ? { matrix: diagram.matrix } : {}),
+    ...rooted(diagram),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
     // 見た目 (#3625) だけを持ちチップを持たない列の図も、見た目を落とさないよう列の図の欄を置く。空のチップの並びは `fromModel` が書き戻さない

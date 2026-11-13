@@ -180,6 +180,7 @@ export const reading: BlockReading<TableMessages> = {
       if (!hasField(er.tables, ref)) throw fail(source, at, m.erNoField(ref));
       if (target.table === from) throw fail(source, at, m.erRefSame(ref));
     }
+    state.figure.root = { ...state.figure.root, er: { tables: er.tables } };
   },
   endAt: (source, id, at, _side, state) => fieldAt(source, id, at, state),
   afterEdge: (edge, state, source) => {

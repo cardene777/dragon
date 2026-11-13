@@ -1,0 +1,32 @@
+// 1時間の集中の時間割。25分集中し、5分休み、10分で振り返り、20分長く休んで、次の集中へ戻る。
+cycle 集中と休みの時間割 [shape: clock]
+
+box focus as 集中する [time: 25min, color: blue]
+box short as 短く休む [time: 5min, color: green]
+box review as 振り返る [time: 10min, color: amber]
+box long as 長く休む [time: 20min, color: rose]
+
+strip 時間割: 回, 集中した時間
+
+step 集中を始める
+  say 通知を切り、手元の作業に25分集中する。
+  set 回: 1回目
+  set 集中した時間: 0分
+
+step 短く休む
+  say 25分たったら手を止め、5分だけ立って体を伸ばす。
+  focus -> short [tag: 25分]
+  set 集中した時間: 25分
+
+step 振り返る
+  say 休みを終えたら、進んだ所と詰まった所を10分で書き出す。
+  short -> review
+
+step 長く休む
+  say 書き出したら、20分しっかり休んで頭を空ける。
+  review -> long [tag: メモ]
+
+step 次の回へ
+  say 休みを終えて、2回目の集中を始める。
+  long -> focus
+  set 回: 2回目

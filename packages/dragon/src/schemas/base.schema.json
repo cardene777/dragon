@@ -69,6 +69,10 @@
       "description": "集合の重なりの図の見た目。集合の重なりの図だけが書け、集まりは blocks.circle に書く",
       "$ref": "#/definitions/vennLook"
     },
+    "cycle": {
+      "description": "回り続ける図の見た目。回り続ける図だけが書け、手順の長さは blocks の box の time に書く",
+      "$ref": "#/definitions/cycleLook"
+    },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
       "type": "object",
@@ -228,6 +232,71 @@
           },
           "lineup": {
             "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "cycle"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "cycle": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "cycle"
+        ],
+        "properties": {
+          "cycle": {
+            "required": [
+              "shape"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "box": {
+                "items": {
+                  "required": [
+                    "time"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "box": {
+                "items": {
+                  "properties": {
+                    "time": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

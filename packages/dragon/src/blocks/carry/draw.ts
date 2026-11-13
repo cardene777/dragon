@@ -9,7 +9,7 @@ import { along, carrierHalf, type Point, pathLength, type SceneEdge } from "../.
 import { type Corner, LOOK, TYPE } from "../../look/values";
 import { partRadius } from "../../render/corner";
 import type { Ink } from "../../render/ink";
-import { type Ctx, esc, r1 } from "../../render/parts";
+import { type Ctx, easeInOut, esc, r1 } from "../../render/parts";
 import type { CarrierTime } from "./timing";
 
 function carrierShape(e: SceneEdge, sh: string, corner: Corner): string {
@@ -24,8 +24,6 @@ function carrierShape(e: SceneEdge, sh: string, corner: Corner): string {
   }
   return `<rect class="dg-env" x="${-C.envW / 2}" y="${-C.envH / 2}" width="${C.envW}" height="${C.envH}" rx="${partRadius(corner, 3)}" ${sh}/><path class="dg-env-in" d="M -8 -4.5 L 0 1.5 L 8 -4.5"/>`;
 }
-
-const easeInOut = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 /**
  * 運ぶ物。走り出す前は待つ点 (`wait`) に居て、そこから線の始まりへ出て線の上を走り、

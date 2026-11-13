@@ -873,6 +873,48 @@ step On to the next week
   set day: Monday
 ```
 
+`cycle <title> [shape: clock]` draws the steps on a clock dial instead of a ring.
+
+- Each `box` takes the length of its step, such as `[time: 25min]`. A length is a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`), and every step needs one. The steps sit clockwise from 12 o'clock as arcs as long as they take
+- Numbers around the dial count from 0 at round steps, in the largest unit written. One hand points at the start of the arc of the step the diagram is at, and the chip of a line rides the tip of the hand
+- The arcs entered in the current round stay lit in their step colors until the hand passes 12 o'clock again
+- `[shape: clock, turn: left]` turns the dial counterclockwise. `turn` can be written only with `[shape: clock]`
+- At a phone width the step numbers sit outside the dial in place of the names, and a list of numbers, names and lengths sits below the dial
+
+```dragon
+cycle Focus and rest schedule [shape: clock]
+
+box focus as Focus [time: 25min, color: blue]
+box short as Short rest [time: 5min, color: green]
+box review as Look back [time: 10min, color: amber]
+box long as Long rest [time: 20min, color: rose]
+
+strip Schedule: round, focused
+
+step Start focusing
+  say Notifications go off and the work at hand gets 25 minutes of focus.
+  set round: Round 1
+  set focused: 0 min
+
+step Short rest
+  say After 25 minutes the work stops for a 5 minute stretch.
+  focus -> short [tag: 25 min]
+  set focused: 25 min
+
+step Look back
+  say After the rest, 10 minutes go into writing down what moved and what got stuck.
+  short -> review
+
+step Long rest
+  say With the notes written, a long 20 minute rest clears the head.
+  review -> long [tag: notes]
+
+step On to the next round
+  say The rest ends and the second round of focus begins.
+  long -> focus
+  set round: Round 2
+```
+
 ### Mind map
 
 Start with `mind` to draw a mind map, which spreads ideas out from one topic in the middle, branch by branch.

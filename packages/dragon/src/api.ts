@@ -19,6 +19,7 @@ export {
   type CheckOp,
   type CheckOptions,
   type Color,
+  type CycleLook,
   type Diagram,
   type DiagramBlocks,
   type DiagramEvent,

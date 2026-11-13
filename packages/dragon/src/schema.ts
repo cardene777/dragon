@@ -80,6 +80,8 @@ export interface Box {
   order?: "none";
   /** 列の図の箱に並べられる札の数の上限 (#3624)。1 から 12 までの整数で、書かない箱は 1 列に並べられる札の数まで並べられる */
   limit?: number;
+  /** 回り続ける図の時計の文字盤の見た目の、手順の長さ (#3638)。数と単位 (`ms`、`s`、`min`、`h`、`d`) の組で、0 を書かない */
+  time?: string;
   /** 使う人が足した、箱を元にしたブロックの名前 (#3399)。形と色はその定義から読む */
   block?: string;
 }
@@ -199,6 +201,12 @@ export interface ChartSpec {
 export interface VennLook {
   shape: VennShape;
   unit?: number;
+}
+
+/** 回り続ける図 (#3638) の見た目。`clock` は手順を長さの弧で置く時計の文字盤で、`turn` が `left` なら左回りに置く */
+export interface CycleLook {
+  shape: "clock";
+  turn?: "left";
 }
 
 /** 試す図 (#3337) の、待ち行列 `part` の中身を `items` の並びにするか、機械の列 `part` に `items` を入れた新しいブロックを足す出来事 */
@@ -369,6 +377,8 @@ export interface Diagram {
   lineup?: LineupLook;
   /** 集合の重なりの図 (#3635) の見た目。集合の重なりの図だけが書き、集まりは `blocks` の `circle` に持つ */
   venn?: VennLook;
+  /** 回り続ける図の見た目 (#3638)。回り続ける図だけが書き、手順の長さは `blocks` の箱 (`box`) の `time` に持つ */
+  cycle?: CycleLook;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -413,6 +423,8 @@ export interface DiagramModel {
   matrix?: MatrixSpec;
   /** 集合の重なりの図 (#3620) の集まりと見た目 (#3635)。版1の原本に無かった種類なので、版2の原本の `circle` と根の `venn` の欄をそのまま持つ */
   venn?: { sets: VennSet[]; shape?: VennShape; unit?: number };
+  /** 回り続ける図の見た目 (#3638)。版1の原本に無かった欄なので、版2の原本の根の `cycle` の欄をそのまま持つ */
+  cycle?: CycleLook;
 }
 
 /**

@@ -17,7 +17,7 @@ import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
-import { VENN_SHAPES } from "../chart-shape/block";
+import { VENN_SHAPES, type VennShape } from "../chart-shape/block";
 import { isUnit, tooManyDots, unitOf } from "../../dot-count";
 import { DOTS_TEXT } from "../chart-shape/dots";
 import { type Color, COLORS } from "../color/block";
@@ -203,6 +203,11 @@ export const reading: BlockReading<CircleMessages> = {
     const { sets, shape, unit: given } = state.figure.venn;
     if (sets.length < VENN_SETS.least) throw fail(head, 0, state.m.vennSetCount(VENN_SETS.least, VENN_SETS.most, sets.length));
     checkRegions(state);
+    // 見た目は `dots` と最初の段を始める時に確かめた
+    state.figure.root = {
+      ...state.figure.root,
+      venn: { sets, ...(shape ? { shape: shape.value as VennShape } : {}), ...(given ? { unit: Number(given.value) } : {}) },
+    };
     if (!shape) return;
     const totals = dotTotals(state);
     const unit = unitOf(totals, given ? Number(given.value) : undefined);

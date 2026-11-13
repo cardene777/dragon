@@ -107,6 +107,8 @@ export const reading: BlockReading<AxisMessages> = {
     if (table) state.figure.matrix.table = "none";
     if (state.figure.matrix.axes.length !== MATRIX_AXES) throw fail(head, 0, m.matrixAxes(MATRIX_AXES));
     if (state.figure.boxes.length !== MATRIX_AREAS) throw fail(head, 0, m.matrixAreas(MATRIX_AREAS));
+    // 軸と課題は軸のブロックと課題のブロックが組む。課題の場所の欄は段を読む間も同じ欄に足す
+    state.figure.root = { ...state.figure.root, matrix: state.figure.matrix };
   },
   read: { axis: readAxis },
   print: {

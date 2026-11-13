@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>`、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>`、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -540,6 +540,44 @@ step 次の週へ
   look -> plan [tag: 残り]
   set 回: 第2週
   set 曜日: 月曜
+```
+
+図の種類の行を `cycle <題> [shape: clock]` と書くと、手順を時計の文字盤に置く。
+手順の `box` には `[time: 25min]` の形で手順の長さ (0 でない数と `ms`、`s`、`min`、`h`、`d` の単位) を書き、手順は 12 時から長さに合わせた弧で並ぶ。
+針は段ごとにその段の手順の弧の始まりを指し、札は針の先に乗って走る。`[shape: clock, turn: left]` で左回りになる。
+
+```dragon
+cycle 集中と休みの時間割 [shape: clock]
+
+box focus as 集中する [time: 25min, color: blue]
+box short as 短く休む [time: 5min, color: green]
+box review as 振り返る [time: 10min, color: amber]
+box long as 長く休む [time: 20min, color: rose]
+
+strip 時間割: 回, 集中した時間
+
+step 集中を始める
+  say 通知を切り、手元の作業に25分集中する。
+  set 回: 1回目
+  set 集中した時間: 0分
+
+step 短く休む
+  say 25分たったら手を止め、5分だけ立って体を伸ばす。
+  focus -> short [tag: 25分]
+  set 集中した時間: 25分
+
+step 振り返る
+  say 休みを終えたら、進んだ所と詰まった所を10分で書き出す。
+  short -> review
+
+step 長く休む
+  say 書き出したら、20分しっかり休んで頭を空ける。
+  review -> long [tag: メモ]
+
+step 次の回へ
+  say 休みを終えて、2回目の集中を始める。
+  long -> focus
+  set 回: 2回目
 ```
 
 考えを広げる地図 (`mind <題>`) では、段の中の `idea` の行で考えを書き、書いた段で考えが濃くなって親からの線が引かれる。

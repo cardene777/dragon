@@ -60,6 +60,12 @@ export interface StepDraft {
 
 /** 宣言の行でブロックが組む、図の原本の欄。parser が図の原本の決まった位置に置く */
 export interface FigureDraft {
+  /**
+   * 描く処理の形の根に置く、図の種類のブロックが確かめてから組んだ欄。記法を読む処理はこの欄をそのまま根に移す。
+   * 量の図は項目のブロック、表どうしの関係の図は表のブロック、2つの軸で置く図は軸のブロック、集合の重なりの図は集まりの円のブロック、
+   * 回り続ける図の見た目と向き (#3638) は輪のブロックが置く。ブロックは前に置かれた欄を残して足す
+   */
+  root?: Partial<Pick<DiagramModel, "chart" | "er" | "matrix" | "venn" | "cycle">>;
   /** 宣言した区画。区画のブロックが `group` の行で足す */
   regions: Region[];
   /** 宣言した箱。箱のブロックが `box` の行で足す */
@@ -199,6 +205,11 @@ export interface ParseState {
    * `end` は線の名前の後ろの位置で、書くべき列が無い時に誤りの位置として示す
    */
   readonly columns: (source: SourceLine, from: string, to: string, attrs: Map<string, Attr>, end: number) => { at?: number; into?: number };
+  /**
+   * 行の頭の語 `word` の行を読む、持っている読み方の処理。図の種類のブロックが、ほかのブロックの行を鍵を足して読ませる時に使う
+   * (回り続ける図の箱の行の手順の長さ、#3638)。ブロックの読み方の file を直に読み込むと、束ねる道具がその file を最初に読む別の file に分けるので、ここから引く
+   */
+  readonly reader: (word: string) => HeadReader | undefined;
   /** 宣言の行でブロックが組む、図の原本の欄 */
   readonly figure: FigureDraft;
 }
