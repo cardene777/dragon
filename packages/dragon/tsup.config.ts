@@ -41,6 +41,26 @@ const SHARED_BLOCKS = {
   __DRAGON_SHARED_TABLER__: JSON.stringify(SHARED.flatMap((b) => (b.icon?.startsWith("tabler:") ? [b.name] : []))),
 };
 
+/**
+ * script の1行の入口の帯がエクスポートで読む書き出す部品 (#3699)。npm の帯と同じく隣の `capture.js` を後から読む。
+ * npm の `dist/capture.js` は動画の道具 (gifenc、mediabunny) を束ねずに読むので jsDelivr の置き場からは読めず、入口の置き場に
+ * 依存ごと束ねた `dist/cdn/capture.js` を置く。本体と同じ設定で束ねると、書き出す部品が読む記法の読み方と再生の部品が本体から
+ * 最初に読む別の file へ分かれるので、別の設定で 1 file に束ねる
+ */
+const CAPTURE_BESIDE = {
+  name: "dragon-capture-beside",
+  setup(build: { onResolve(options: { filter: RegExp }, resolve: () => { path: string; external: boolean }): void }) {
+    // esbuild は filter を Go の正規表現で読み、u の印を受けない
+    build.onResolve({ filter: /^\.\/capture\.js$/ }, () => ({ path: "./capture.js", external: true }));
+  },
+};
+/**
+ * HTML に書き出す時に頁へ埋める再生の script の置き場。書き出す部品の file から見た場所 (#3699)。
+ * npm の入口の書き出す部品 (`dist/capture.js`) は隣に、script の1行の入口が束ねた書き出す部品 (`dist/cdn/`) は1つ上に在る
+ */
+const PLAYER_BESIDE = { __DRAGON_PLAYER_SCRIPT__: JSON.stringify("./player.global.js") };
+const PLAYER_ABOVE = { __DRAGON_PLAYER_SCRIPT__: JSON.stringify("../player.global.js") };
+
 export default defineConfig([
   {
     // 字を読み込む入口 (fonts) は CSS を読むだけなので型を出さない。
@@ -62,7 +82,7 @@ export default defineConfig([
     // 字の package は束ねず、頁を束ねる道具に CSS と字の file を運ばせる
     external: ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono", "@cardenelabs/dragon", "./capture.js"],
     // 命令の `dragon --version` は package の版を出す (#3455)
-    define: { ...SHARED_BLOCKS, __DRAGON_VERSION__: JSON.stringify(VERSION) },
+    define: { ...SHARED_BLOCKS, ...PLAYER_BESIDE, __DRAGON_VERSION__: JSON.stringify(VERSION) },
     outDir: "dist",
     target: "es2022",
   },
@@ -106,9 +126,10 @@ export default defineConfig([
     noExternal: [/.*/],
     minify: true,
     sourcemap: true,
-    clean: ["!dragon.js", "!dragon.js.map"],
+    clean: ["!dragon.js", "!dragon.js.map", "!capture.js"],
     dts: false,
     define: { ...SHARED_BLOCKS, __DRAGON_FONT_VERSIONS__: JSON.stringify(FONT_VERSIONS) },
+    esbuildPlugins: [CAPTURE_BESIDE],
     outDir: "dist/cdn",
     target: "es2022",
   },
@@ -125,6 +146,21 @@ export default defineConfig([
     clean: false,
     dts: false,
     define: { __DRAGON_VERSION__: JSON.stringify(VERSION) },
+    outDir: "dist/cdn",
+    target: "es2022",
+  },
+  {
+    // script の1行の入口の帯が後から読む書き出す部品 (#3699)。動画の道具ごと 1 file に束ねる
+    entry: { capture: "src/capture/index.ts" },
+    format: ["esm"],
+    platform: "browser",
+    splitting: false,
+    noExternal: [/.*/],
+    minify: true,
+    sourcemap: false,
+    clean: false,
+    dts: false,
+    define: { ...SHARED_BLOCKS, ...PLAYER_ABOVE },
     outDir: "dist/cdn",
     target: "es2022",
   },

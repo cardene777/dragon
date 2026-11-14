@@ -1,7 +1,7 @@
 import { createFigureHeader, HEADER_CSS } from './header.mjs';
 import { EDITOR_BASE, editorPasteUrl, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
-import { paintSnippet, SNIPPET_CSS } from './dragon-snippet.mjs';
+import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
 import { createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { FONT_STACK_VARS } from '../look/values';
@@ -103,6 +103,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   const notify=options.notify;
   const actions=createDiagramActions(document,host,source,diagram,notify);
   const sourceText=actions.sourceText;
+  const words=snippetWords(options.words);
   // 帯のボタンは設定`buttons`で帯から外れることがあるので、根から引き直さずに持っておく (#3698)
   const codeToggle=$('.code-toggle'),exportToggle=$('.export-toggle'),expandButton=$('.expand'),editorLink=$('.editor');
   let codeMode='dragon', disposed=false, exporting=false;
@@ -125,7 +126,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
     const open=view==='code';frame.toggleAttribute('data-code-open',open);
     codeToggle.setAttribute('aria-pressed',String(open));
     $('.stage').hidden=false;$('.code').hidden=!open;
-    if(open)paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
+    if(open)paintSnippet($('.code pre'),sourceText[codeMode],codeMode,words);
     closeMenus();
   };
   codeToggle.addEventListener('click',()=>{
@@ -135,7 +136,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   for(const button of root.querySelectorAll('[data-source]'))button.addEventListener('click',()=>{
     codeMode=button.dataset.source;
     for(const b of root.querySelectorAll('[data-source]'))b.setAttribute('aria-pressed',String(b===button));
-    paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
+    paintSnippet($('.code pre'),sourceText[codeMode],codeMode,words);
   });
   $('.copy').addEventListener('click',async()=>{
     try{await actions.copy(codeMode==='dragon'?'source':'json');status(t.copiedCode);}

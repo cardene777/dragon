@@ -47,13 +47,16 @@ const TEXT: Record<NotationLang, { notation: (errors: string[]) => string; playe
   },
 };
 
+/** 再生の script の、この file から見た場所。build が入口ごとに入れる (`tsup.config.ts`、#3699) */
+declare const __DRAGON_PLAYER_SCRIPT__: string;
+
 /** 読んでいる再生の script。読めなかった時は消し、次に呼んだ時に読み直す */
 let player: Promise<string> | undefined;
 
-/** 入口と同じ dir の再生の script を読む */
+/** 再生の script を読む。npm の入口では隣、script の1行の入口では1つ上の dir に在る */
 function loadPlayer(): Promise<string> {
   if (player === undefined) {
-    const reading = fetch(new URL("./player.global.js", import.meta.url)).then((response) => {
+    const reading = fetch(new URL(__DRAGON_PLAYER_SCRIPT__, import.meta.url)).then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.text();
     });

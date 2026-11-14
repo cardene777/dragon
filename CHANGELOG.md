@@ -8,11 +8,19 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **The one-line script entry puts the bar on blocks with `data-header`** (#3699)
+
+  A `<pre class="dragon" data-header>` block now becomes a diagram with the same bar as `mountFramedDiagram`: Code, Editor, Copy, Export and expand. Blocks without the attribute stay plain diagrams. The entry draws the diagram first and then loads the bar as a separate chunk, so pages without `data-header` load no more than before. Exporting HTML, GIF or MP4 from the bar loads `dist/cdn/capture.js`, which bundles the video encoders, only when you export.
+
 - **An SDK entry for tools and services that put diagrams on their pages (`@cardenelabs/dragon/embed`, `mountDragon`)** (#3698)
 
   `mountDragon(host, source, options)` puts a diagram with the bar by default. The `look` option fits the bar color, the bar font, font size, button corners and height, and the line and background of the frame around the diagram to the page. The `buttons` option drops and reorders the bar buttons and adds your own buttons, whose `onClick` receives the placed diagram. `header: false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`). The element you placed it in sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied). The names the entry exports are listed in `src/embed/names.json`, and a test fails when the entry and the list differ. `mountFramedDiagram` takes the same `look`, `buttons` and `notify` options.
 
 ### Changed
+
+- **The one-line script entry loads 3.3 KB less before the first diagram** (#3706)
+
+  Block definitions now sit in one first-load file instead of 18 small ones, so a page with only a sequence diagram loads 86,664 bytes (gzip) in 22 files instead of 89,992 bytes in 39.
 
 - **The editor button packs the notation into the URL, and copies a notation too long for a URL before it opens the editor** (#3697)
 
