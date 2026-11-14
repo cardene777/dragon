@@ -28,6 +28,13 @@ const LIBS: Record<string, string> = {
 const SOURCE = "sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n  a -> b: 注文";
 /** dragonの印が開く見本帳の頁 */
 const GALLERY = "https://cardene777.github.io/dragon/";
+/** 見た目を自分で入れる種類の図。配管の図は呼び出しの欄、試す図は入力の帯、購入操作図は図の内側の影の根に見た目を持つ */
+const KINDS: { kind: string; source: string; styled?: string }[] = [
+  { kind: "sequence", source: SOURCE, styled: ".dg-player" },
+  { kind: "pipe", source: readFileSync(join(ROOT, "examples/swap-retry.dragon"), "utf8"), styled: ".dg-fl" },
+  { kind: "try", source: readFileSync(join(ROOT, "examples/multisig.dragon"), "utf8"), styled: ".dg-try" },
+  { kind: "checkout", source: readFileSync(join(ROOT, "examples/checkout/acp-purchase.dragon"), "utf8") },
+];
 
 interface PageSetup {
   /** `<html>`の`lang`属性。書かない時は属性を置かない */
@@ -133,7 +140,8 @@ describe("帯の並び", () => {
           order: actions.map((el) => el.dataset.action ?? el.className),
           framed: actions.map((el) => {
             const style = getComputedStyle(control(el));
-            return style.borderTopStyle !== "none" && Number.parseFloat(style.borderTopWidth) > 0;
+            const visible = !/^rgba\(.*,\s*0\)$|^transparent$/u.test(style.borderTopColor);
+            return style.borderTopStyle !== "none" && Number.parseFloat(style.borderTopWidth) > 0 && visible;
           }),
         };
       });
@@ -242,7 +250,7 @@ describe("エクスポートの窓", () => {
         const item = page.locator(`[data-menu="export"] [data-format="${format}"]`);
         expect(await item.count(), `エクスポートの窓に${format}が無い`).toBe(1);
         const [download] = await Promise.all([page.waitForEvent("download", { timeout: 4000 }), item.click()]);
-        return { name: download.suggestedFilename(), text: readFileSync((await download.path())!, "utf8") };
+        return { name: download.suggestedFilename(), text: readFileSync(await download.path(), "utf8") };
       };
       const notation = await save("dragon");
       expect(notation.name.endsWith(".dragon")).toBe(true);
@@ -275,16 +283,33 @@ describe("エクスポートの窓", () => {
         await page.locator(`[data-option="background"] [data-value="${background}"]`).click();
         expect(await menuState(page, "export"), "大きさと地を選ぶと窓が閉じた").toBe("open");
         const [download] = await Promise.all([page.waitForEvent("download", { timeout: 5000 }), page.locator('[data-menu="export"] [data-format="png"]').click()]);
-        return PNG.sync.read(readFileSync((await download.path())!));
+        return PNG.sync.read(readFileSync(await download.path()));
       };
-      const alphaAt = (image: PNG, x: number, y: number) => image.data[(y * image.width + x) * 4 + 3];
+      // 図の SVG の範囲で透明な画素の割合。図の地の四角を塗ると、範囲の中は角の丸みのほかに透明な画素が残らない
+      const svg = await page.evaluate(() => {
+        const root = document.querySelector(".dragon-frame")!.shadowRoot!;
+        const host = root.querySelector(".dragon-host")!.getBoundingClientRect();
+        const box = root.querySelector("svg.dg")!.getBoundingClientRect();
+        return { x: box.left - host.left, y: box.top - host.top, w: box.width, h: box.height };
+      });
+      const clearShare = (image: PNG, scale: number) => {
+        let clear = 0;
+        let all = 0;
+        for (let y = Math.ceil(svg.y * scale); y < Math.floor((svg.y + svg.h) * scale); y++) {
+          for (let x = Math.ceil(svg.x * scale); x < Math.floor((svg.x + svg.w) * scale); x++) {
+            all++;
+            if (image.data[(y * image.width + x) * 4 + 3] === 0) clear++;
+          }
+        }
+        return clear / all;
+      };
       const clear = await png("3", "transparent");
       expect(clear.width).toBe(width * 3);
-      expect(alphaAt(clear, 1, 1), "透明を選んだのに角を塗った").toBe(0);
+      expect(clearShare(clear, 3), "透明を選んだのに図の地を塗った").toBeGreaterThan(0.25);
       expect(clear.data.some((value, i) => i % 4 === 3 && value > 0), "透明を選ぶと図まで消えた").toBe(true);
       const filled = await png("1", "fill");
       expect(filled.width).toBe(width);
-      expect(alphaAt(filled, 1, 1)).toBe(255);
+      expect(clearShare(filled, 1), "地を塗るを選んだのに透明な画素が残った").toBe(0);
     }));
 });
 
@@ -344,20 +369,39 @@ describe("帯と図の見た目", () => {
   it("frame-styles-without-style-elements", () =>
     withFrame({ lang: "ja" }, async (page) => {
       const before = await page.evaluate(() => document.querySelectorAll("style").length);
-      await mount(page);
-      const styles = await page.evaluate(() => {
-        const root = document.querySelector(".dragon-frame")!.shadowRoot!;
-        return {
-          page: document.querySelectorAll("style").length,
-          inside: root.querySelectorAll("style").length,
-          adopted: root.adoptedStyleSheets.length,
-          row: getComputedStyle(root.querySelector(".dg-header-row")!).display,
-        };
-      });
-      expect(styles.page, "帯つきの図が頁にstyle要素を足した").toBe(before);
-      expect(styles.inside, "帯の内側にstyle要素を作った").toBe(0);
-      expect(styles.adopted).toBeGreaterThan(0);
-      expect(styles.row).toBe("flex");
+      for (const { kind, source, styled } of KINDS) {
+        const styles = await page.evaluate(
+          async ([text, selector]) => {
+            const host = document.createElement("div");
+            host.style.width = "760px";
+            document.body.append(host);
+            const frame = (window as unknown as { dragonFrame: { mountFramedDiagram(host: HTMLElement, source: string, options: object): unknown } }).dragonFrame;
+            frame.mountFramedDiagram(host, text, {});
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+            const root = host.querySelector(".dragon-frame")!.shadowRoot!;
+            // 帯の内側と、図が内側に持つ影の根を全部たどり、HTML の style要素を数える。図の SVG の`<style>`は書き出しが読むので数えない
+            const roots: ShadowRoot[] = [root];
+            for (let i = 0; i < roots.length; i++) for (const el of roots[i]!.querySelectorAll("*")) if (el.shadowRoot) roots.push(el.shadowRoot);
+            const htmlStyles = (scope: ParentNode) => [...scope.querySelectorAll("style")].filter((el) => el.namespaceURI === "http://www.w3.org/1999/xhtml").length;
+            const target = selector ? root.querySelector(selector) : null;
+            const result = {
+              page: htmlStyles(document),
+              inside: roots.reduce((sum, scope) => sum + htmlStyles(scope), 0),
+              adopted: roots.map((scope) => scope.adoptedStyleSheets.length),
+              row: getComputedStyle(root.querySelector(".dg-header-row")!).display,
+              styled: target ? getComputedStyle(target).display : selector ? "missing" : "",
+            };
+            host.remove();
+            return result;
+          },
+          [source, styled ?? ""] as const,
+        );
+        expect(styles.page, `${kind}の帯つきの図が頁にstyle要素を足した`).toBe(before);
+        expect(styles.inside, `${kind}の帯の内側にstyle要素を作った`).toBe(0);
+        expect(styles.adopted.every((count) => count > 0), `${kind}の影の根に見た目が入っていない`).toBe(true);
+        expect(styles.row).toBe("flex");
+        if (styled) expect(styles.styled, `${kind}の図の見た目が帯の内側に届かない`).toBe("flex");
+      }
     }));
 
   it("frame-player-styled-inside-frame", () =>

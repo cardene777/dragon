@@ -14,7 +14,7 @@ test('official editor receives the complete UTF-8 notation', () => {
   expect(Buffer.from(new URLSearchParams(url.hash.slice(1)).get('n')!, 'base64url').toString('utf8')).toBe(source);
 });
 
-test('frame retains source text and provides all five export formats', () => {
+test('frame retains source text and provides all seven export formats', () => {
   const source = 'sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n a -> b: 注文';
   const parsed = parseNotation(source);
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
@@ -27,7 +27,7 @@ test('frame retains source text and provides all five export formats', () => {
   expect(document.querySelector('dialog')?.parentElement).toBe(document.body);
   expect(root.querySelector('pre')?.textContent).toBe(source);
   expect(root.querySelectorAll('[data-syn]').length).toBeGreaterThan(0);
-  expect([...root.querySelectorAll<HTMLElement>('[data-format]')].map(e => e.dataset.format)).toEqual(['png','svg','html','gif','mp4']);
+  expect([...root.querySelectorAll<HTMLElement>('[data-format]')].map(e => e.dataset.format)).toEqual(['png','svg','html','gif','mp4','dragon','json']);
   controls.destroy(); controls.destroy();
 });
 
@@ -37,7 +37,7 @@ test('header layout and controls remain the same when the embedder changes its c
   const controls = createDragonFrame(document, 'sequence 配色\na -> b: 確認', parsed.diagram, {headerColors:{surface:'#fff',accent:'#a23'}});
   const header = controls.header;
   expect(header.title.textContent).toBe('配色');
-  expect([...header.actions.children].map(el=>el.textContent?.trim())).toEqual(['コード','dragonで開く','書き出すPNG操作図全体を画像で保存SVG操作図全体を保存HTML単独ファイルで操作・初期条件から開始GIF直近の操作を全体で再生MP4直近の操作を全体で再生','拡大']);
+  expect([...header.actions.children].map(el=>el.getAttribute('data-action'))).toEqual(['code','editor','copy','export','expand']);
   expect(header.element.style.getPropertyValue('--dragon-header-accent')).toBe('#a23');
   controls.setHeaderColors({accent:'#246',surface:undefined});
   expect(header.element.style.getPropertyValue('--dragon-header-accent')).toBe('#246');

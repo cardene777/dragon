@@ -18,7 +18,7 @@
   "runtime": [
     {
       "pattern": "[\"'/]dist[\"'/]",
-      "why": "dist の file を読むか、build した命令 (dist/cli.js) を起こす検査は、tsup.config.ts の全ての entry の src を確かめる",
+      "why": "dist の file を読むか、build した命令 (dist/cli.js) を起こす検査は、tsup.config.ts と tsup.frame.config.ts の全ての entry の src を確かめる",
       "to": [
         "packages/dragon/src/index.ts",
         "packages/dragon/src/load-fonts.ts",
@@ -30,7 +30,9 @@
         "packages/dragon/src/player-global.ts",
         "packages/dragon/src/script.ts",
         "packages/dragon/src/script-loader.ts",
-        "packages/dragon/src/script-offline.ts"
+        "packages/dragon/src/script-offline.ts",
+        "packages/dragon/src/frame/index.ts",
+        "packages/dragon/src/frame/header.ts"
       ]
     },
     {

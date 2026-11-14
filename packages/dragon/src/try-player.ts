@@ -23,6 +23,7 @@ import { LOOK, TYPE } from "./look/values";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel, Step, TryPart } from "./schema";
 import { accepts, askFields, fromsOf, intoOf, stopOf, type TryState } from "./try-state";
+import type { Styles } from "./adopt-css";
 import { TRY_TEXT } from "./try-text";
 import type { NotationLang } from "./words";
 
@@ -82,8 +83,9 @@ function tryCss(): string {
   ].join("");
 }
 
-/** 見た目を頁に入れる。再生の部品の見た目 (`dragon-player-css`) の後ろに置く */
-function ensureTryCss(doc: Document): void {
+/** 見た目を入れる。再生の部品の見た目 (`dragon-player-css`) の後ろに置く。口`styles`を渡された時は口で図を置いた所の根へ入れる (#3695) */
+function ensureTryCss(doc: Document, styles?: Styles): void {
+  if (styles) return styles.adopt("dragon-try-css", tryCss());
   if (doc.getElementById("dragon-try-css")) return;
   const style = doc.createElement("style");
   style.id = "dragon-try-css";
@@ -158,12 +160,13 @@ export interface TryControls {
  */
 export function mountTryControls(
   doc: Document,
+  styles: Styles | undefined,
   model: DiagramModel,
   layout: TryLayout,
   lang: NotationLang,
   add: (step: Step) => boolean,
 ): TryControls {
-  ensureTryCss(doc);
+  ensureTryCss(doc, styles);
   const words = TRY_TEXT[lang];
   const parts = model.try?.parts ?? [];
   const ask = parts.find((p): p is Part<"ask"> => p.type === "ask");

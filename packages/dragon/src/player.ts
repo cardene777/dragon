@@ -30,6 +30,7 @@
 import { drawGist } from "./blocks/gist/draw";
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
+import type { Styles } from "./adopt-css";
 import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
@@ -85,6 +86,11 @@ export interface PlayerOptions extends RenderOptions {
    * 書かなければ図の全体を枠の幅に収めて始める。600px 以上の枠と、配管の図でない図には効かない
    */
   zoom?: "readable";
+  /**
+   * 見た目を入れる口 (#3695)。帯つきの図 (`mountFramedDiagram`) は帯の内側の影の根へ`adoptedStyleSheets`で入れ、
+   * 図の SVG の`<style>`に`nonce`を付ける口を渡す。書かない時は今までどおり文書の頭へstyle要素で入れる
+   */
+  styles?: Styles;
 }
 
 export interface Player {
@@ -229,7 +235,9 @@ function startSession(input: Diagram): Diagram {
   return keepParsed(input, { ...copy, steps: copy.steps.slice(0, 1) });
 }
 
-function ensureCss(doc: Document): void {
+/** 再生の部品の見た目を入れる。口`styles`を渡された時は口で図を置いた所の根 (帯の内側) へ入れ、無い時は文書の頭へ入れる (#3695) */
+function ensureCss(doc: Document, styles?: Styles): void {
+  if (styles) return styles.adopt("dragon-player-css", playerCss());
   if (doc.getElementById("dragon-player-css")) return;
   const style = doc.createElement("style");
   style.id = "dragon-player-css";
@@ -284,6 +292,8 @@ export function mountDiagram(
   };
   // 描けない図は頁に何も置く前に断る
   let rendered = renderDiagram(source, isPipeSource(source) ? pipeOptions(hostWidth()) : options);
+  /** 見た目を入れる口。帯つきの図は帯の内側の根へ入れる口を渡し、文書の頭へ入れると見た目が届かない (#3695)。入力を持つ種類は設定から読む */
+  const { styles } = options;
   const inputKind = partsOf(rendered.diagram.kind)?.mountInput;
   if (inputKind) {
     const current = readDiagram(diagram);
@@ -299,7 +309,7 @@ export function mountDiagram(
   /** 配管の図か。描き直しても種類は変わらない */
   const isPipe = rendered.diagram.kind === "pipe";
 
-  ensureCss(doc);
+  ensureCss(doc, styles);
   const root = doc.createElement("div");
   root.className = "dg-player";
   root.dataset.dragon = "player";
@@ -425,6 +435,7 @@ export function mountDiagram(
   const controls = session
     ? kindParts("try", lang).mountTryControls(
         doc,
+        styles,
         rendered.diagram,
         rendered.layout as TryLayout,
         lang,
@@ -432,7 +443,7 @@ export function mountDiagram(
       )
     : undefined;
   // 配管の図の段の矢印と呼び出しの結果は帯の下に置き、段を送る釦を図のすぐ下に保つ (#3418、#3450)。配管の図を描けたので、配管の図の塊は届いている
-  const calls: PipeCalls | undefined = isPipe ? kindParts("pipe", lang).mountPipeCalls(doc, lang) : undefined;
+  const calls: PipeCalls | undefined = isPipe ? kindParts("pipe", lang).mountPipeCalls(doc, styles, lang) : undefined;
   root.append(frame, bar, ...(controls ? [controls.tools] : []), ...(calls ? [calls.element] : []), list);
   host.append(root);
 
@@ -674,7 +685,7 @@ export function mountDiagram(
     let next: SVGSVGElement | null;
     if (markup !== undefined) {
       const holder = doc.createElement("div");
-      holder.innerHTML = markup;
+      holder.innerHTML = styles ? styles.markup(markup) : markup;
       next = holder.querySelector("svg");
     } else {
       next = svg;
