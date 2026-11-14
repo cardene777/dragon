@@ -10,14 +10,15 @@ import { describe, expect, it } from "vitest";
 
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
-import { PATHS } from "../site/routes";
+import { EMBED_PATH, PATHS } from "../site/routes";
 import { builtDir, bundleSizes, firstLoadFiles, pageSources } from "./playground-support";
 
-/** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、カタログの分類から導く (#3157) */
+/** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、埋め込みの頁の経路 (#3700) と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
   const relative = (path: string): string => path.slice(PATHS.home.length);
   return [
     ...Object.values(PATHS).map(relative).filter((path) => path !== ""),
+    relative(EMBED_PATH),
     ...KINDS.map((kind) => `${relative(PATHS.catalog)}/${kind}`),
     ...PARTS.map((part) => `${relative(PATHS.catalog)}/part/${part.id}`),
   ].sort();
@@ -129,7 +130,8 @@ describe("公開する頁 (#2995)", () => {
       // ブロックの置き場の見本帳の分 (`packages/dragon/src/blocks/<名前>/gallery/`) と、その型 (`packages/dragon/src/blocks/gallery.ts`) だけは、見本帳が直に読む。
       // package の入口はこの分を持たないため (#3345)。型の file は型だけを持ち、棚の部品と見本を探す関数に見本帳が渡す道具の形を決める (#3350)
       // 編集画面の書き出すの釦は、図を画像にする入口 (`@cardenelabs/dragon/capture`) を釦を押した時に読む (#3644)
-      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!(?:fonts|light|capture)["'`])|packages\/dragon\/src(?!\/blocks\/(?:[^/"'`\s]+\/gallery\/|gallery["'`]))/u);
+      // 埋め込みの頁は、外の頁に置く図と同じSDKの入口 (`@cardenelabs/dragon/embed`) で図を置く。頁は後から読む塊で、最初に読む script に入らない (#3700)
+      expect(text, `${path} が package の中の file を直に読んでいる`).not.toMatch(/@cardenelabs\/dragon\/(?!(?:fonts|light|capture|embed)["'`])|packages\/dragon\/src(?!\/blocks\/(?:[^/"'`\s]+\/gallery\/|gallery["'`]))/u);
       // 既定の入口を 1 か所でも読むと、全ての種類の部品が頁に入る (型だけの読み込みは消えるので数えない)
       expect(text, `${path} が既定の入口から部品を読んでいる`).not.toMatch(/^import (?!type )[^;]*from\s+["']@cardenelabs\/dragon["']/mu);
       if (/\b(mountDiagram|renderDiagram)\b/u.test(text)) {

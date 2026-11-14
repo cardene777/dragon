@@ -2,6 +2,7 @@
  * サイトの経路 (#3030)。
  *
  * 0.35.0 より前のサイトと同じ経路の 7 画面に、カタログの部品の頁 (`/catalog/part/<部品>`、#3166) を足して出し分ける。
+ * 外の頁がiframeで開く埋め込みの頁 (`/embed`、#3700) も同じ表で読む。埋め込みの頁は上の帯を持たず、帯の行き先にもならない。
  * 帯の行き先は `history.pushState` で移り、頁を読み直さない。
  * build は画面の経路ごとの `.html` と `404.html` をこの頁の写しとして置く (`scripts/copy-404.mjs`)。
  * GitHub Pages は画面の経路にその `.html` を 200 で、表に無い path に `404.html` を 404 で返すので (#3157)、
@@ -11,7 +12,7 @@ import { type MouseEvent, useSyncExternalStore } from "react";
 
 import { hashKind } from "../share";
 
-export type Screen = "home" | "catalog" | "category" | "part" | "editor" | "docs" | "release-notes" | "not-found";
+export type Screen = "home" | "catalog" | "category" | "part" | "editor" | "docs" | "release-notes" | "embed" | "not-found";
 
 export interface Route {
   screen: Screen;
@@ -33,11 +34,14 @@ export const PATHS = {
   "release-notes": `${BASE}release-notes`,
 } as const;
 
+/** 外の頁がiframeで開く埋め込みの頁の経路。`#` の後ろに記法を詰めて開く (#3700) */
+export const EMBED_PATH = `${BASE}embed`;
+
 /** 帯と概要の最後の呼びかけが外へ向ける行き先 */
 export const REPO = "https://github.com/cardene777/dragon";
 
 /** 1 段の経路で開く画面 */
-const SINGLE: Readonly<Record<string, Screen>> = { catalog: "catalog", editor: "editor", docs: "docs", "release-notes": "release-notes" };
+const SINGLE: Readonly<Record<string, Screen>> = { catalog: "catalog", editor: "editor", docs: "docs", "release-notes": "release-notes", embed: "embed" };
 
 /** path を画面にする。末尾の `/` は読まず、表に無い path は見つからない頁にする */
 export function routeOf(pathname: string): Route {

@@ -8,6 +8,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **A Web Component `<dragon-diagram>` and an embed page in the gallery that other pages open in an iframe** (#3700)
+
+  `defineDragonElement()` from `@cardenelabs/dragon/embed` registers `<dragon-diagram>`. The element reads the notation from its text, puts a diagram with the bar in its shadow root, and drops the bar with `header="false"`. It passes the nearest `lang` attribute from the element up and its `nonce` to the diagram, redraws when the attributes or the text change, and removes the diagram when it is taken off the page. The four events reach the page outside the element. The gallery page `/embed` draws the notation after `#z=` or `#n=` in its URL with the bar, takes the bar language from `?lang=ja` or `?lang=en` (English otherwise), and sends the same four events to the page that placed the iframe with `postMessage` as `{ source: "dragon", type, detail }`. A diagram placed with `header: false` now puts the player styles in the root it was placed in, so they also reach a shadow root.
+
 - **The one-line script entry puts the bar on blocks with `data-header`** (#3699)
 
   A `<pre class="dragon" data-header>` block now becomes a diagram with the same bar as `mountFramedDiagram`: Code, Editor, Copy, Export and expand. Blocks without the attribute stay plain diagrams. The entry draws the diagram first and then loads the bar as a separate chunk, so pages without `data-header` load no more than before. Exporting HTML, GIF or MP4 from the bar loads `dist/cdn/capture.js`, which bundles the video encoders, only when you export.

@@ -2,7 +2,7 @@
 /**
  * 頁の `index.html` の写しを、画面の経路ごとの `.html` と、GitHub Pages が無い path に返す `404.html` として作る。
  *
- * 頁は開いた path から 8 画面のどれを出すかを決める (`src/site/routes.ts`、#3030、#3166)。
+ * 頁は開いた path から 8 画面と埋め込みの頁のどれを出すかを決める (`src/site/routes.ts`、#3030、#3166、#3700)。
  * Pages は拡張子の無い経路 (`/dragon/docs`) に同じ名前の `.html` (`docs.html`) を 200 で返すので、
  * 画面の経路を直に開いた人にも同じ頁を 200 で出せる (#3157)。表に無い path は `404.html` の写しで 404 のまま出す (#2995)。
  * 下にも経路を持つ経路 (`catalog`) は、Pages が dir の側を選んだ時のために dir の `index.html` も置く。
@@ -31,10 +31,10 @@ const KIND_DIR = resolve(__dirname, "../../../packages/dragon/src/kinds");
 const KINDS = readdirSync(KIND_DIR, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name);
 
 /**
- * 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表 (`src/site/routes.ts` の `PATHS`) と、
+ * 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表 (`src/site/routes.ts` の `PATHS`) と、埋め込みの頁の経路 (`EMBED_PATH`、#3700) と、
  * カタログの分類 (`src/catalog/catalog.ts` の `KINDS`) と部品の表から導いた一覧と同じかを、頁の検査が突き合わせる
  */
-const ROUTES = ["catalog", "editor", "docs", "release-notes", ...KINDS.map((kind) => `catalog/${kind}`), ...PART_IDS.map((id) => `catalog/part/${id}`)];
+const ROUTES = ["catalog", "editor", "docs", "release-notes", "embed", ...KINDS.map((kind) => `catalog/${kind}`), ...PART_IDS.map((id) => `catalog/part/${id}`)];
 
 const distDir = resolve(process.argv[2] ?? resolve(__dirname, "..", "dist"));
 const indexHtml = resolve(distDir, "index.html");
