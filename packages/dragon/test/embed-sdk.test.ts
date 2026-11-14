@@ -337,3 +337,80 @@ describe("置いた頁への知らせ", () => {
       expect(rendered[1]?.errors?.join("\n") ?? "", "描けなかった知らせの誤りの文").toMatch(/zz/);
     }));
 });
+
+/** 要素`id`の影の根に置いた図の、帯のボタンと、帯のコードのボタンの字と、図を描いたかと、再生の部品の見た目が影の根に届いたか */
+interface ElementShape {
+  buttons: (string | undefined)[];
+  code: string;
+  drawn: boolean;
+  styled: boolean;
+}
+const elementShapes = (page: Page, ids: readonly string[]): Promise<ElementShape[]> =>
+  page.evaluate(
+    (list) =>
+      list.map((id) => {
+        const root = document.getElementById(id)?.shadowRoot ?? null;
+        const frame = root?.querySelector(".dragon-frame")?.shadowRoot ?? null;
+        const player = (frame ?? root)?.querySelector<HTMLElement>('[data-dragon="player"]') ?? null;
+        return {
+          buttons: frame ? [...frame.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]")].map((el) => el.dataset.action) : [],
+          code: frame?.querySelector('.dg-header-actions > [data-action="code"]')?.textContent?.trim() ?? "",
+          drawn: player?.querySelector("svg") != null,
+          // 再生の部品の見た目が届くと、再生の部品の根 (`.dg-player`) は flex で並ぶ。届かない時は既定の block のまま
+          styled: player ? getComputedStyle(player).display === "flex" : false,
+        };
+      }),
+    ids,
+  );
+
+describe("Web Componentの要素 (#3700)", () => {
+  it("element-renders-framed-diagram", () =>
+    withEmbed(async (page) => {
+      const defined = await page.evaluate(() => {
+        const m = (window as unknown as { dragonEmbed: { defineDragonElement?: () => void } }).dragonEmbed;
+        if (typeof m.defineDragonElement !== "function") return false;
+        m.defineDragonElement();
+        return customElements.get("dragon-diagram") !== undefined;
+      });
+      expect(defined, "SDKの入口が要素 dragon-diagram を登録する defineDragonElement を出さない").toBe(true);
+      if (!defined) return;
+      // 中の字を記法として持つ要素と、属性 header="false" で帯を外した要素を置く
+      await page.evaluate((source) => {
+        const framed = document.createElement("dragon-diagram");
+        framed.id = "framed";
+        framed.textContent = source;
+        const plain = document.createElement("dragon-diagram");
+        plain.id = "plain";
+        plain.setAttribute("header", "false");
+        plain.textContent = source;
+        document.getElementById("host")!.append(framed);
+        document.getElementById("host2")!.append(plain);
+      }, SOURCE);
+      await expect
+        .poll(() => elementShapes(page, ["framed", "plain"]), { timeout: 5000 })
+        .toEqual([
+          // 影の根の中でも、帯の言葉は要素から上の lang 属性 (頁の ja) に従う
+          { buttons: ["code", "editor", "copy", "export", "expand"], code: "コード", drawn: true, styled: true },
+          // 帯を出さない図の再生の部品の見た目も、要素の影の根に届く
+          { buttons: [], code: "", drawn: true, styled: true },
+        ]);
+      // 置いた図は要素から呼べる
+      expect(await page.evaluate(() => (document.getElementById("framed") as HTMLElement & { embed?: { source: string } }).embed?.source), "要素の embed が置いた記法を返す").toBe(SOURCE);
+      // 描けた知らせは影の根の外の文書まで届く
+      const rendered = await page.evaluate(() => (window as unknown as EmbedWindow).events.filter((e) => e.type === "dragon-render").map((e) => e.detail));
+      expect(rendered, "2つの要素の描けた知らせ").toEqual([{ ok: true }, { ok: true }]);
+
+      // 属性 header を外すと帯つきの図に置き直し、中の字を変えると記法を読み直す
+      await page.evaluate(() => document.getElementById("plain")!.removeAttribute("header"));
+      await expect.poll(async () => (await elementShapes(page, ["plain"]))[0]?.buttons, { timeout: 5000 }).toEqual(["code", "editor", "copy", "export", "expand"]);
+      const changed = SOURCE.replace("注文", "返品");
+      await page.evaluate((source) => (document.getElementById("framed")!.textContent = source), changed);
+      await expect
+        .poll(() => page.evaluate(() => (document.getElementById("framed") as HTMLElement & { embed?: { source: string } }).embed?.source), { timeout: 5000 })
+        .toBe(changed);
+
+      // 外した要素は図を取り除く
+      await page.evaluate(() => document.getElementById("framed")!.remove());
+      expect(await page.evaluate(() => (document.getElementById("host")!.querySelector("dragon-diagram") === null)), "要素を外した").toBe(true);
+    }));
+});
