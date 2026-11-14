@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **An SDK entry for tools and services that put diagrams on their pages (`@cardenelabs/dragon/embed`, `mountDragon`)** (#3698)
+
+  `mountDragon(host, source, options)` puts a diagram with the bar by default. The `look` option fits the bar color, the bar font, font size, button corners and height, and the line and background of the frame around the diagram to the page. The `buttons` option drops and reorders the bar buttons and adds your own buttons, whose `onClick` receives the placed diagram. `header: false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`). The element you placed it in sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied). The names the entry exports are listed in `src/embed/names.json`, and a test fails when the entry and the list differ. `mountFramedDiagram` takes the same `look`, `buttons` and `notify` options.
+
 ### Changed
 
 - **The bar on a framed diagram gets the dragon mark, copy and export menus, and the language of the page it sits on (`mountFramedDiagram`)** (#3695)

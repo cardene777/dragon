@@ -6,6 +6,12 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **外のツールやサービスが図を置くSDKの入口を足した (`@cardenelabs/dragon/embed`、`mountDragon`)** (#3698)
+
+  `mountDragon(host, source, options)`は記法から図を置き、既定で帯を付ける。設定`look`で帯の色、帯の書体と字の大きさとボタンの角と高さ、図を囲む枠の線と地を置き先に合わせられる。設定`buttons`で帯のボタンを外し、並べ替え、置く側のボタンを足せ、足したボタンの`onClick`は置いた図を受け取る。`header: false`は帯を出さずに図だけを置き、返した物の関数でエクスポート (`export`)、エディタで開く (`openEditor`)、コピー (`copy`) を呼べる。置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを`bubbles`と`composed`で知らせる。入口が出す名前は`src/embed/names.json`に並べ、入口と一覧が食い違うと検査が落ちる。`mountFramedDiagram`も同じ設定`look`と`buttons`と`notify`を受ける。
+
 ### Changed
 
 - **帯つきの図の帯に、dragonの印とコピーとエクスポートの窓を並べ、置いた頁の言葉で出すようにした (`mountFramedDiagram`)** (#3695)

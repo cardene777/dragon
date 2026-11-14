@@ -2,7 +2,7 @@ import { createFigureHeader, HEADER_CSS } from './header.mjs';
 import { EDITOR_BASE, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
 import { paintSnippet, SNIPPET_CSS } from './dragon-snippet.mjs';
-import { snapshotDiagram, snapshotText, snapshotCanvas } from './dragon-snapshot.mjs';
+import { createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { FONT_STACK_VARS } from '../look/values';
 
@@ -21,15 +21,18 @@ const icons = {
 };
 /** 画像の大きさの選び。既定は2倍 */
 const SCALES=[1,2,3];
-/** 地を塗る時の色。図の地と同じ */
-const PAPER='#fffefa';
+/** 帯に初めから在るボタン (#3698) */
+const BUILTIN=['code','editor','copy','export','expand'];
+/** 設定`look`の欄と、帯の内側へ渡す変数 (#3698) */
+const LOOK_VARS={font:'--dragon-header-font',fontSize:'--dragon-header-font-size',radius:'--dragon-header-radius',height:'--dragon-header-height'};
+const FRAME_VARS={border:'--dragon-frame-border',background:'--dragon-frame-background'};
 
 /**
  * 帯と、帯の内側の見た目。図の字の変数は代わりの字の並びで上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695)。
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする
  */
 const FRAME_CSS = `
-:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:1px solid #cfd9cb;border-radius:12px;background:${PAPER};container-type:inline-size;overflow:visible}
+:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
 *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pop{position:relative}[data-dragon-header] .dg-header-actions svg.chevron{width:12px;height:12px}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:220px;margin:0;padding:6px;border:1px solid var(--h-line);border-radius:10px;background:var(--h-bg);color:var(--h-fg);box-shadow:0 12px 35px #0002}
@@ -72,6 +75,8 @@ const barHtml = t => `<div class="bar"><div class="actions">`
  * Shared article chrome; diagram-specific inputs remain in the dragon player.
  * `options.lang` picks the bar language, else the page's `lang`, else English. Styles are adopted into the frame's shadow root;
  * browsers without `adoptedStyleSheets` get `<style>` elements carrying `options.nonce`.
+ * `options.look` fits the bar and the frame to the embedder, `options.buttons` drops, reorders and adds bar buttons, and
+ * `options.notify` hears exports, editor openings and copies (#3698).
  */
 export function createDragonFrame(document, source, diagram, options = {}) {
   const environment = document.defaultView;
@@ -83,8 +88,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   root.innerHTML = barHtml(t);
   adoptStyle(root,'dragon-frame-css',FRAME_CSS+HEADER_CSS+SNIPPET_CSS,options.nonce);
   const $ = selector => root.querySelector(selector);
-  const editorHref=diagramEditorUrl(source);
-  $('.editor').href=editorHref;
+  $('.editor').href=diagramEditorUrl(source);
   const header=createFigureHeader(document,{title:diagram.title,colors:options.headerColors,mark:{href:GALLERY,label:t.mark},label:t.toolbar,styles:false});
   header.actions.append(...$('.actions').childNodes);$('.bar').replaceWith(header.element);
   const icon = (name, target, className = '') => {
@@ -96,11 +100,14 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   icon('code',$('.code-toggle'));icon('open',$('.editor'));icon('copy',$('.copy-toggle'));
   icon('download',$('.export-toggle'));icon('chevron',$('.export-toggle'),'chevron');icon('expand',$('.expand'));
   const host = document.createElement('div');host.className='dragon-host';$('.stage').append(host);
-  const sourceText={dragon:source,json:JSON.stringify(diagram,null,2)};
-  let codeMode='dragon', disposed=false, busy=false;
+  const notify=options.notify;
+  const actions=createDiagramActions(document,host,source,diagram,notify);
+  const sourceText=actions.sourceText;
+  // 帯のボタンは設定`buttons`で帯から外れることがあるので、根から引き直さずに持っておく (#3698)
+  const codeToggle=$('.code-toggle'),exportToggle=$('.export-toggle'),expandButton=$('.expand'),editorLink=$('.editor');
+  let codeMode='dragon', disposed=false, exporting=false;
   let expandedDialog;
   let closeExpandedDialog;
-  const controller=new environment.AbortController();
   const urls=new Set();
   const releases=new Set();
   /** エクスポートの窓で選んだ画像の大きさと地 */
@@ -116,12 +123,12 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   });
   const activateView=view=>{
     const open=view==='code';frame.toggleAttribute('data-code-open',open);
-    $('.code-toggle').setAttribute('aria-pressed',String(open));
+    codeToggle.setAttribute('aria-pressed',String(open));
     $('.stage').hidden=false;$('.code').hidden=!open;
     if(open)paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
     closeMenus();
   };
-  $('.code-toggle').addEventListener('click',()=>{
+  codeToggle.addEventListener('click',()=>{
     const open=!frame.hasAttribute('data-code-open');activateView(open?'code':'diagram');
     if(open&&!expandedDialog?.open)expandInDialog();
   });
@@ -131,30 +138,18 @@ export function createDragonFrame(document, source, diagram, options = {}) {
     paintSnippet($('.code pre'),sourceText[codeMode],codeMode);
   });
   $('.copy').addEventListener('click',async()=>{
-    try{await environment.navigator.clipboard.writeText(sourceText[codeMode]);status(t.copiedCode);}
+    try{await actions.copy(codeMode==='dragon'?'source':'json');status(t.copiedCode);}
     catch{status(t.copyFailed);}
   });
-  /** 図を`scale`倍の画素のPNGにする。`transparent`の時は地を塗らない */
-  const png=async(scale,transparent)=>{
-    const canvas=await snapshotCanvas(snapshotDiagram(host,{transparent}),0,scale,transparent?null:PAPER);
-    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-    if(!blob)throw new Error('PNGを作成できませんでした');
-    return blob;
-  };
   /** コピーの窓で押した物をクリップボードに書く。ブラウザが断った時は写せなかったことを知らせる */
   async function copy(kind){
     closeMenus();
     try{
-      const clipboard=environment.navigator.clipboard;
-      if(kind==='image'){
-        await clipboard.write([new environment.ClipboardItem({'image/png':png(2,false)})]);
-        status(t.copiedImage);
-      }else{
-        await clipboard.writeText(kind==='url'?editorHref:source);
-        status(kind==='url'?t.copiedUrl:t.copiedSource);
-      }
+      await actions.copy(kind);
+      status(kind==='image'?t.copiedImage:kind==='url'?t.copiedUrl:t.copiedSource);
     }catch{status(t.copyFailed);}
   }
+  editorLink.addEventListener('click',()=>notify?.('share',{via:'editor'}));
   for(const button of root.querySelectorAll('[data-copy]'))button.addEventListener('click',()=>void copy(button.dataset.copy));
   for(const option of root.querySelectorAll('[data-option]'))for(const button of option.querySelectorAll('[data-value]'))button.addEventListener('click',()=>{
     const value=button.dataset.value;picked[option.dataset.option]=option.dataset.option==='scale'?Number(value):value;
@@ -168,8 +163,8 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   });
   const fullscreen=()=>{
     const full=document.fullscreenElement===frame||Boolean(expandedDialog?.open);
-    $('.expand').setAttribute('aria-label',full?t.collapse:t.expand);
-    $('.expand').title=full?t.collapse:t.expand;
+    expandButton.setAttribute('aria-label',full?t.collapse:t.expand);
+    expandButton.title=full?t.collapse:t.expand;
   };
   const expandInDialog=()=>{
     const marker=document.createComment('dragon-frame-position');frame.before(marker);
@@ -185,12 +180,12 @@ export function createDragonFrame(document, source, diagram, options = {}) {
       expandedDialog=undefined;
       if(dialog.open)dialog.close();
       marker.replaceWith(frame);frame.style.removeProperty('max-height');frame.style.removeProperty('overflow');dialog.remove();
-      activateView('diagram');fullscreen();if(!disposed)$('.expand').focus();
+      activateView('diagram');fullscreen();if(!disposed)expandButton.focus();
     };
     dialog.addEventListener('close',closeExpandedDialog,{once:true});
-    dialog.showModal();fullscreen();$('.expand').focus();
+    dialog.showModal();fullscreen();expandButton.focus();
   };
-  $('.expand').addEventListener('click',async()=>{
+  expandButton.addEventListener('click',async()=>{
     try{
       if(expandedDialog?.open){closeExpandedDialog();return;}
       if(document.fullscreenElement===frame){await document.exitFullscreen();return;}
@@ -208,80 +203,64 @@ export function createDragonFrame(document, source, diagram, options = {}) {
     const a=document.createElement('a');a.href=url;a.download=`dragon-diagram.${extension}`;a.click();
     const release=environment.setTimeout(()=>{URL.revokeObjectURL(url);urls.delete(url);releases.delete(release);},30000);releases.add(release);
   }
+  /** エクスポートの窓で押した形式を保存する。図の動きの形式は作る間の進みを知らせの欄に出す */
   async function exportDiagram(format){
-    if(busy||disposed)return;
-    closeMenus();
-    if(format==='dragon'||format==='json'){
-      save(new environment.Blob([sourceText[format]],{type:format==='json'?'application/json':'text/plain;charset=utf-8'}),format);
-      status(t.saved);
-      return;
-    }
-    busy=true;$('.export-toggle').disabled=true;status(t.exporting);
+    if(exporting||disposed)return;
+    exporting=true;closeMenus();
+    const notation=format==='dragon'||format==='json';
+    if(!notation){exportToggle.disabled=true;status(t.exporting);}
     try{
-      activateView('diagram');
-      await new Promise(resolve=>environment.requestAnimationFrame(resolve));
-      if(disposed)return;
-      if(format==='html'){
-        const capture=await import('./capture.js');
-        const html=await capture.captureHtml(source);
-        save(new environment.Blob([html],{type:'text/html;charset=utf-8'}),'html');
-        status(t.savedHtml);
-        return;
+      if(!notation){
+        activateView('diagram');
+        await new Promise(resolve=>environment.requestAnimationFrame(resolve));
+        if(disposed)return;
       }
-      const transparent=picked.background==='transparent';
-      if(format==='svg')save(new environment.Blob([snapshotText(snapshotDiagram(host,{transparent}))],{type:'image/svg+xml'}),'svg');
-      else if(format==='png')save(await png(picked.scale,transparent),'png');
-      else{
-        const current=snapshotDiagram(host);
-        const capture=await import('./capture.js');
-        const frames=history.length?[...history]:[{shot:current,time:0}];
-        frames.push({shot:current,time:(frames.at(-1)?.time??0)+900});
-        let total=0;
-        const clips=frames.map((frame,i)=>{
-          const duration=i<frames.length-1?Math.min(1.1,Math.max(.15,(frames[i+1].time-frame.time)/1000)):.8;
-          const clip={...frame,start:total,end:total+duration};total+=duration;return clip;
-        });
-        const width=Math.ceil(Math.max(...clips.map(c=>c.shot.width))/2)*2,height=Math.ceil(Math.max(...clips.map(c=>c.shot.height))/2)*2;
-        const blob=await capture.captureFrames({width,height,total,format,signal:controller.signal,
-          onProgress:fraction=>status(t.progress(Math.round(fraction*100))),
-          draw:async seconds=>{
-            const clip=clips.find(c=>seconds<c.end)??clips.at(-1);
-            const image=await snapshotCanvas(clip.shot,seconds-clip.start);
-            const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
-            const context=canvas.getContext('2d');context.fillStyle=PAPER;context.fillRect(0,0,width,height);context.drawImage(image,0,0);
-            return canvas;
-          }});
-        save(blob,format);
-      }
-      status(t.saved);
+      const blob=await actions.export(format,{scale:picked.scale,background:picked.background,onProgress:fraction=>status(t.progress(Math.round(fraction*100)))});
+      save(blob,format);
+      status(format==='html'?t.savedHtml:t.saved);
     }catch{if(!disposed)status(t.exportFailed);}
-    finally{busy=false;if(!disposed)$('.export-toggle').disabled=false;}
+    finally{exporting=false;if(!disposed)exportToggle.disabled=false;}
   }
   for(const button of root.querySelectorAll('[data-format]'))button.addEventListener('click',()=>void exportDiagram(button.dataset.format));
-  const history=[];
-  let observer,queued=false;
-  function record(){
-    if(disposed||busy||!host.clientWidth)return;
-    try{
-      const shot=snapshotDiagram(host,{animate:true});
-      if(history.length&&history.at(-1).shot.width!==shot.width)history.length=0;
-      const time=environment.performance.now();
-      if(history.length&&time-history.at(-1).time<150)history.pop();
-      history.push({shot,time});if(history.length>12)history.shift();
-    }catch{/* A hidden or detached diagram has no capture area. */}
-  }
-  return {frame,host,header,lang,setHeaderColors:header.setColors,connect(){
-    record();observer=new environment.MutationObserver(()=>{
-      if(queued||disposed||busy)return;queued=true;
-      environment.requestAnimationFrame(()=>{queued=false;record();});
-    });
-    observer.observe(host.shadowRoot??host,{subtree:true,childList:true,characterData:true,attributes:true});
-  },destroy(){
-    if(disposed)return;disposed=true;controller.abort();
-    observer?.disconnect();history.length=0;
+  // 設定`look`を帯と枠の変数に入れる。書かなかった欄は今の見た目のまま (#3698)
+  const look=options.look??{};
+  if(look.colors)header.setColors(look.colors);
+  for(const [key,name] of Object.entries(LOOK_VARS))if(look[key])frame.style.setProperty(name,look[key]);
+  for(const [key,name] of Object.entries(FRAME_VARS))if(look.frame?.[key])frame.style.setProperty(name,look.frame[key]);
+  if(options.buttons!==undefined)arrangeButtons(document,header.actions,options.buttons,actions);
+  return {frame,host,header,lang,actions,setHeaderColors:header.setColors,connect:actions.connect,destroy(){
+    if(disposed)return;disposed=true;actions.destroy();
     closeExpandedDialog?.();
     document.removeEventListener('pointerdown',outside);document.removeEventListener('fullscreenchange',fullscreen);
     for(const url of urls)URL.revokeObjectURL(url);urls.clear();
     for(const release of releases)environment.clearTimeout(release);releases.clear();
   }};
+}
+
+/**
+ * 帯のボタンを設定`buttons`の順に並べ直す (#3698)。初めから在るボタンは名前で、置く側のボタンは`id`と`label`と`onClick`で書く。
+ * 書かなかった初めからのボタンは帯から外す。置く側のボタンを押すと`onClick`が図の処理 (`actions`) を受け取る
+ */
+function arrangeButtons(document,actionsBar,buttons,actions){
+  const builtin=new Map([...actionsBar.children].map(el=>[el.dataset.action,el]));
+  const seen=new Set();
+  const placed=buttons.map(entry=>{
+    if(typeof entry==='string'){
+      if(!BUILTIN.includes(entry))throw new TypeError(`buttons: ${entry} is not a bar button; use ${BUILTIN.join(', ')} or {id, label, onClick}`);
+      if(seen.has(entry))throw new TypeError(`buttons: ${entry} is listed twice`);
+      seen.add(entry);return builtin.get(entry);
+    }
+    const {id,label,icon,onClick}=entry??{};
+    if(typeof id!=='string'||!id||typeof label!=='string'||typeof onClick!=='function')throw new TypeError('buttons: write an added button as {id, label, onClick}');
+    if(BUILTIN.includes(id)||seen.has(id))throw new TypeError(`buttons: the id ${id} is already used`);
+    seen.add(id);
+    const button=document.createElement('button');button.type='button';button.className='custom';button.dataset.action=id;button.textContent=label;
+    if(icon){
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+      const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d',icon);svg.append(path);button.prepend(svg);
+    }
+    button.addEventListener('click',()=>onClick(actions));
+    return button;
+  });
+  actionsBar.replaceChildren(...placed);
 }

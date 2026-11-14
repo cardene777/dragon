@@ -38,6 +38,25 @@ view.frame.setHeaderColors({ accent: '#66408b' });
 同じ名前の`--dragon-header-*`のCSS変数を親から渡すこともできる。
 色はDOMのstyleへ値として設定し、HTMLやCSSの文章へ埋め込まない。
 
+`look`は帯と枠を置き先に合わせる。
+`colors`は`headerColors`と同じ欄を持ってこちらが勝ち、`font`と`fontSize`と`radius`と`height`は帯の書体と字の大きさとボタンの角と行の高さを、`frame`の`border`と`background`は図を囲む枠の線と地を変える。
+値は`--dragon-header-font`、`--dragon-header-font-size`、`--dragon-header-radius`、`--dragon-header-height`、`--dragon-frame-border`、`--dragon-frame-background`のCSS変数として枠に置き、親から渡すこともできる。
+
+```ts
+mountFramedDiagram(host, source, {
+  look: { font: 'Georgia, serif', fontSize: '14px', radius: '2px', height: '56px', frame: { border: '1px solid #333', background: '#111' } },
+  buttons: ['export', 'code', { id: 'share', label: 'Share', onClick: (actions) => navigator.share({ url: actions.editorUrl }) }],
+  notify: (type, detail) => console.log(type, detail),
+});
+```
+
+`buttons`は帯のボタンを書いた順に並べ、書かなかった初めからのボタン (`code`、`editor`、`copy`、`export`、`expand`) を外す。
+置く側のボタンは`id`と`label`と`onClick`で書き、`icon`に24四方のSVGの`path`の`d`を渡せる。
+押すと`onClick`が図の処理 (`view.frame.actions`) を受け取る。
+`notify`はエクスポートした時に`('export', { format })`、エディタで開いた時に`('share', { via: 'editor' })`、コピーした時に`('share', { via: 'copy', kind })`で呼ぶ。
+`view.frame.actions`の`export(format, { scale, background })`と`copy(kind)`と`openEditor()`は、帯のボタンと同じ処理を関数で呼ぶ。
+帯を出さずに図だけを置く時は、SDKの入口`@cardenelabs/dragon/embed`の`mountDragon`に`header: false`を渡す。
+
 `lang`は帯と再生の部品の言葉を`ja`か`en`で決める。
 書かない時は置いた所から上の`lang`属性に従い、`ja-JP`のような値は言葉の部分で読む。
 どちらも無い時と、日本語でも英語でもない時は英語にする。

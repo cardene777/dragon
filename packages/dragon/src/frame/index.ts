@@ -4,8 +4,14 @@ import { createDragonFrame as createFrame, diagramEditorUrl as editorUrl } from 
 import { frameLang } from './frame-text.mjs';
 import { stylesFor } from '../adopt-css';
 import type { HeaderColors, FigureHeader } from './header';
+import type { ActionNotify, DiagramActions } from './diagram-actions.mjs';
+import type { FrameButton } from './dragon-frame.mjs';
+import type { BuiltinButton, EmbedLook } from './types';
 export { createFigureHeader } from './header';
 export type { HeaderColors, FigureHeader, FigureHeaderOptions } from './header';
+export type { ActionNotify, DiagramActions } from './diagram-actions.mjs';
+export type { FrameButton } from './dragon-frame.mjs';
+export type { BuiltinButton, CopyKind, EmbedLook, ExportDetail, ExportFormat, ExportOptions, ShareDetail } from './types';
 
 export interface FrameOptions {
   headerColors?: HeaderColors;
@@ -13,6 +19,12 @@ export interface FrameOptions {
   lang?: "ja" | "en";
   /** `adoptedStyleSheets`を持たないブラウザで帯の内側に作るstyle要素と、図の SVG の`<style>`に付ける`nonce` (#3695) */
   nonce?: string;
+  /** 帯の色と書体と字の大きさと角と高さ、図を囲む枠の線と地 (#3698) */
+  look?: EmbedLook;
+  /** 帯のボタンの並び。書いた順に並び、書かなかった初めからのボタンは外れる。置く側のボタンも足せる (#3698) */
+  buttons?: readonly (BuiltinButton | FrameButton)[];
+  /** エクスポートした時とエディタで開いた・コピーした時に呼ぶ (#3698) */
+  notify?: ActionNotify;
 }
 
 export interface DiagramFrame {
@@ -21,6 +33,8 @@ export interface DiagramFrame {
   header: FigureHeader;
   /** 帯の言葉 */
   lang: "ja" | "en";
+  /** エクスポートとコピーとエディタで開く処理 (#3698) */
+  actions: DiagramActions;
   setHeaderColors(colors: HeaderColors): void;
   connect(): void;
   destroy(): void;
