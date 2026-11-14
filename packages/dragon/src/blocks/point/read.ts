@@ -5,9 +5,8 @@
 import { type Attr, fail, ID, isOneOf, readAttrs, readName } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
+import { AT, type Color, COLORS, type TimePoint } from "../definition-values";
 import { unitAt } from "../scale/read";
-import { AT, type TimePoint } from "./block";
 
 /** 時間軸の図の宣言の行 `point <名札> at <目盛り>` */
 const POINT = new RegExp(`^point\\s+(\\S+)\\s+${AT}\\s+(\\S+)\\s*$`, "du");

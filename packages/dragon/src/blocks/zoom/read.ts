@@ -6,7 +6,7 @@ import { type Attr, fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { range, rangeAt, unitAt } from "../scale/read";
-import { TIME_EDGE_ATTRS } from "./block";
+import { TIME_EDGE_ATTRS } from "../definition-values";
 
 /** 時間軸の図の宣言の行 `zoom <範囲>` */
 const ZOOM = /^zoom\s+(\S+)\s*$/du;

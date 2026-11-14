@@ -10,7 +10,7 @@
 import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { Box } from "../../schema";
 import { type BlockReading, none } from "../block";
-import { EDGE, type EdgeEvent } from "../edge/block";
+import { EDGE, type EdgeEvent } from "../definition-values";
 import { CYCLE_SHAPES, CYCLE_TURNS, type CycleShape, RING_STEPS, timeOf } from "./limits";
 
 export interface RingMessages {

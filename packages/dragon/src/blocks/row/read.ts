@@ -6,7 +6,7 @@ import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readAttrs, readDeclared, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
+import { type Color, COLORS } from "../definition-values";
 import { range, rangeAt, unitAt } from "../scale/read";
 import type { TimeMarkEvent, TimeRow } from "./block";
 

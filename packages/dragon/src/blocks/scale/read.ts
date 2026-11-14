@@ -6,8 +6,7 @@ import { attrs, name, num } from "../../print-kit";
 import { type Attr, fail, isOneOf, list, readAttrs, readName, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
-import { DURATION_UNITS, NOW, SPAN_SHAPES, type TimeSpanEvent } from "./block";
+import { type Color, COLORS, DURATION_UNITS, NOW, SPAN_SHAPES, type TimeSpanEvent } from "../definition-values";
 
 /** 時間軸の図の宣言の行。`scale <単位> <長さ> <数>` と `period <名前> <数>` */
 const SCALE = /^scale\s+(\S+)\s+(\S+)\s+([^\s[]+)/du;

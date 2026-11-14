@@ -12,7 +12,7 @@ import { fail, readAttrs, skipSpaces } from "../../read-kit";
 import type { DiagramModel } from "../../schema";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { ETH } from "../return/block";
+import { ETH } from "../definition-values";
 import type { PipeHold, PipeMove } from "./block";
 
 /** `move` の行の続き。量、送り手、受け手と、後ろの属性 */

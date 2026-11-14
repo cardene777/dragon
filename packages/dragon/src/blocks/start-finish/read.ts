@@ -4,7 +4,7 @@
  */
 import { type BlockReading, none } from "../block";
 import { fail, isOneOf } from "../../read-kit";
-import { STATE_ENDS } from "./block";
+import { STATE_ENDS } from "../definition-values";
 
 export interface StartFinishMessages {
   /** 状態遷移図の箱の名札に、始まりか終わりの印の名前を書いた */

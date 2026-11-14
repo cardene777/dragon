@@ -21,7 +21,7 @@
 | 時系列図だけを描く頁で、1行の入口から最初に読むscriptの合計がgzipで上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3657 |
 | 回り続ける図、表どうしの関係の図、考えを広げる地図、集合の重なりの図、2つの軸で置く図だけが使うブロック (`ring`、`table`、`idea`、`circle`、`axis`、`matrix-item`) の定義は、build した1行の入口で`box`のブロックの定義と同じfileに入り、そのブロックだけの最初に読むfileを作らない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-kind-blocks-share-one-file`が通る | #3657 |
 | 中身の帯を描く処理 (`src/blocks/strip/draw.ts`) と色を読む処理 (`src/blocks/color/read.ts`) は、build した1行の入口で本体 (`dragon-main.js`) に入り、回り続ける図と考えを広げる地図の後から読む塊のためだけの最初に読むfileを作らない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-shared-parts-stay-in-main`が通る | #3657 |
-| 時系列図だけを描く頁は後から読む図の種類の塊を読まず、枝分かれの図を描く頁はその種類の塊を読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3657 |
+| 時系列図だけを描く頁は後から読む図の種類の塊を読まず、枝分かれの図を描く頁はその種類の塊を読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3657 #3706 |
 | 軽い入口の`loadFor`を待ってから描くと、後から読む種類の見本を既定の入口と同じSVGで描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3657 |
 | 見本のSVGは部品を移す前と同じ字の並びで描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3657 |
 | 回り続ける図の輪の真ん中に、中身の帯の値を段ごとに出す | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-centre-shows-strip-values`が通る | #3657 |
@@ -40,3 +40,7 @@
 | scriptの1行の入口は、頁に書いた図の種類だけを後から読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3656 |
 | 軽い入口の`loadFor`は、後から読む全ての見本の種類を読んでから描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3656 |
 | 見本帳が最初に読むscriptとCSSはgzipで184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3656 |
+| buildした1行の入口で、ブロックの定義 (`packages/dragon/src/blocks/<名前>/block.ts`) を持つ最初に読むfileは1つだけになり、定義ごとの小さなfileを作らない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-block-definitions-share-one-file`が通る | #3706 |
+| 時系列図だけの頁で、1行の入口が最初に読むscriptのgzip後の合計は上限90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3706 |
+| 種類だけが使うブロックの定義は、buildした1行の入口で`box`のブロックの定義と同じfileに入る | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-kind-blocks-share-one-file`が通る | #3706 |
+| 後から読む個別ブロックの読み方で読んだ記法の見本は、既定の入口と同じSVGになり、ほかの種類の個別ブロックを読まない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3706 |

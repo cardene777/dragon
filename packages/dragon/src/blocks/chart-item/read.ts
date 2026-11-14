@@ -10,10 +10,9 @@ import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState, ranked } from "../block";
-import { type Color, COLORS } from "../color/block";
+import { CHART_ITEMS_MOST, type ChartItem, type Color, COLORS } from "../definition-values";
 import { BLOCKS } from "../index";
 import type { ChartShape } from "../chart-shape/block";
-import { CHART_ITEMS_MOST, type ChartItem } from "./block";
 
 /** 量の図の `item` の行に書ける属性の鍵 */
 const CHART_ITEM_ATTRS: readonly string[] = ["color"];

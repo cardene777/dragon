@@ -11,7 +11,7 @@
  */
 import { fail, isOneOf, list } from "../../read-kit";
 import { type BlockReading, none } from "../block";
-import { CHART_SHAPES } from "./block";
+import { CHART_SHAPES } from "../definition-values";
 import { isUnit } from "../../dot-count";
 import { DOTS_TEXT } from "./dots";
 

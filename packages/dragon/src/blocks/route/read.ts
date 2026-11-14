@@ -11,7 +11,7 @@ import { fieldAt, needed, refer, valueAt } from "../../try-read";
 import { numberOf, shortestPath } from "../../try-state";
 import type { BlockReading, ParseState } from "../block";
 import { ranked } from "../block";
-import { CHECK_OP, type CheckOp } from "../check/block";
+import { CHECK_OP, type CheckOp } from "../definition-values";
 import { BLOCKS } from "../index";
 import { settleTry } from "../../try-read";
 

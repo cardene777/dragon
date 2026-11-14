@@ -11,10 +11,8 @@ import { fail, isOneOf, readDeclared } from "../../read-kit";
 import { shown } from "../../print-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { EDGE } from "../edge/block";
+import { CHOICE_WAYS, EDGE, type FlowLine, STATE_ENDS, walkLine } from "../definition-values";
 import { line, readLine } from "../edge/read";
-import { STATE_ENDS } from "../start-finish/block";
-import { CHOICE_WAYS, type FlowLine, walkLine } from "./block";
 
 export interface ChoiceMessages {
   /** 手順の図の箱か判断の名札に、始まりか終わりの印の名前を書いた */
