@@ -222,6 +222,22 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-74-0-lists-eight-changes", () => {
+    // 図の見た目の 6 件 (#3637、#3638、#3639、#3640、#3641、#3642) と色付きの絵柄 (#3633) と購入の図 (#3677) を 0.74.0 で出す (#3688)
+    expect(version(), "package の版が 0.74.0 でない").toBe("0.74.0");
+    const issues = ["(#3637)", "(#3638)", "(#3639)", "(#3640)", "(#3641)", "(#3642)", "(#3633)", "(#3677)"];
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.74\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.74.0"), "0.74.0");
+      expect(released, `${file} に日付付きの ## [0.74.0] の節が無い`).not.toBe("");
+      for (const issue of issues) expect(released, `${file} の 0.74.0 の節に ${issue} の項が無い`).toContain(issue);
+      const entry = released.split("\n- ").find((item) => item.includes("(#3677)")) ?? "";
+      expect(entry, `${file} の 0.74.0 の節の #3677 の項が checkout を名指さない`).toContain("`checkout`");
+      // 次の版の項は Unreleased に積まれるので、0.74.0 で出した項が残っていないことだけを見る
+      for (const issue of issues) expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+    }
+  });
+
   it("changelog-0-73-0-lists-four-changes", () => {
     // ブラウザで HTML の頁を作る captureHtml (#3667) と、列の図の作り直し (#3624)、点の見た目 (#3635)、手描きの線 (#3643) を 0.73.0 で出す (#3669)
     expect(version(), "package の版が 0.73.0 でない").toBe("0.73.0");
