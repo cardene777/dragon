@@ -405,6 +405,7 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
         ref={stage}
         className="catalog-preview-stage pg-figure"
         data-catalog="stage"
+        data-kind={diagram?.kind}
         data-phased={phased ? "on" : undefined}
         data-tall={shape ?? undefined}
         hidden={view !== "figure"}
@@ -555,6 +556,7 @@ function Overlay({ sample, lang, theme, palette, onClose }: OverlayProps): React
         </div>
         <div
           className="catalog-overlay-stage pg-figure"
+          data-kind={diagram?.kind}
           style={fit ? ({ "--fig-w": `${fit.width * fit.scale}px` } as CSSProperties) : undefined}
         >
           <KindState kind={diagram?.kind} lang={lang} />
