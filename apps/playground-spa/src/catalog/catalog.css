@@ -844,8 +844,19 @@
   background: var(--d-bg);
 }
 
-/* 購入操作図はShadow DOMへ直接描くため、SVG用の.dg-frameではなく表示枠で送る。 */
-:is(.catalog-preview-stage, .catalog-overlay-stage)[data-kind="checkout"] {
+/* 購入操作図は全体をページで読み、表示枠の内側には縦のスクロールを作らない。 */
+.catalog-preview-stage[data-kind="checkout"] {
+  height: auto;
+  overflow: visible;
+}
+
+/* 描画先を縮めると、Shadow DOMの中身だけがはみ出して背景が途中で切れる。 */
+:is(.catalog-preview-stage, .catalog-overlay-stage)[data-kind="checkout"] > .pg-player {
+  flex: none;
+}
+
+/* 拡大表示は画面の高さに収め、自然な高さの操作図を窓の中で送る。 */
+.catalog-overlay-stage[data-kind="checkout"] {
   overflow: auto;
 }
 
