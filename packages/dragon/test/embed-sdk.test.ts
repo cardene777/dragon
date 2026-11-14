@@ -374,11 +374,12 @@ describe("Web Componentの要素 (#3700)", () => {
       });
       expect(defined, "SDKの入口が要素 dragon-diagram を登録する defineDragonElement を出さない").toBe(true);
       if (!defined) return;
-      // 中の字を記法として持つ要素と、属性 header="false" で帯を外した要素を置く
+      // 中の字を記法として持つ要素と、属性 header="false" で帯を外した要素を置く。
+      // 帯つきの要素は、HTML の入れ子の中で書いた形と同じく全ての行に字下げを付けた記法を持つ
       await page.evaluate((source) => {
         const framed = document.createElement("dragon-diagram");
         framed.id = "framed";
-        framed.textContent = source;
+        framed.textContent = `\n      ${source.split("\n").join("\n      ")}\n    `;
         const plain = document.createElement("dragon-diagram");
         plain.id = "plain";
         plain.setAttribute("header", "false");
@@ -394,8 +395,8 @@ describe("Web Componentの要素 (#3700)", () => {
           // 帯を出さない図の再生の部品の見た目も、要素の影の根に届く
           { buttons: [], code: "", drawn: true, styled: true },
         ]);
-      // 置いた図は要素から呼べる
-      expect(await page.evaluate(() => (document.getElementById("framed") as HTMLElement & { embed?: { source: string } }).embed?.source), "要素の embed が置いた記法を返す").toBe(SOURCE);
+      // 置いた図は要素から呼べ、字下げを外した記法を持つ
+      expect(await page.evaluate(() => (document.getElementById("framed") as HTMLElement & { embed?: { source: string } }).embed?.source), "要素の embed が字下げを外した記法を返す").toBe(SOURCE);
       // 描けた知らせは影の根の外の文書まで届く
       const rendered = await page.evaluate(() => (window as unknown as EmbedWindow).events.filter((e) => e.type === "dragon-render").map((e) => e.detail));
       expect(rendered, "2つの要素の描けた知らせ").toEqual([{ ok: true }, { ok: true }]);
