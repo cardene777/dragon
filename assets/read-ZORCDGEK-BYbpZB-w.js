@@ -1,0 +1,1 @@
+import{d as u}from"./index-BPHQLNKn.js";var A={read:u("limit は箱の行の鍵で、行の頭の語を持たない。箱の行を読む処理が limit の鍵を読む"),print:u("limit は箱の行の鍵で、箱の宣言を書き戻す処理が limit の鍵を書く"),messages:u("limit の誤りの文は、箱の行を読む処理と line の行を読む処理が出すので、箱のブロックと列の並びのブロックが持つ")};export{A as reading};

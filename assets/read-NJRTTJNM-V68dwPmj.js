@@ -1,1 +1,0 @@
-import{laneAt as e}from"./read-JSBAXX5L-Cxxg-oAC.js";import{d as t}from"./index-Bhjjk-iu.js";var r={read:{pick:(u,p)=>{p.inStep(u).events.push({type:"pick",box:e(u,"pick",p).box})}},print:{events:{pick:u=>`${u.type} ${u.box}`}},messages:t("列を名指す行の形の誤りの文は、封のブロックが持つ")};export{r as reading};
