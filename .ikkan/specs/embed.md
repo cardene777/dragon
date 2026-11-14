@@ -32,3 +32,7 @@
 | scriptの1行の入口が最初に読む量は、今の上限を超えない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3699 |
 | Web Componentの要素に記法を入れると帯つきの図が出て、属性で帯を外せる | `pnpm exec vitest run`の検査`element-renders-framed-diagram`が通る | #3700 |
 | 見本帳の埋め込みの頁をiframeで開くと、URLの記法の帯つきの図が出て、置いた頁へ4つの知らせを`postMessage`で送る | `pnpm exec vitest run`の検査`embed-page-renders-hash-notation`と`embed-page-posts-events`が通る | #3700 |
+| `packages/dragon/README.md`と`packages/dragon/README.ja.md`の組み込みの節に、scriptの1行、npmの関数、Web Component、iframeの4つの置き方の書き方が在る | `pnpm exec vitest run`の検査`readme-shows-four-embed-ways`が通る | #3701 |
+| 見本帳の使い方の頁に組み込みの節が在り、4つの置き方ごとに写せるコードを出す | `pnpm exec vitest run`の検査`docs-page-has-embed-section`が通る | #3701 |
+| 見本帳に、4つの置き方で同じ図を置いた見本の頁が在る | `pnpm exec vitest run`の検査`embed-sample-page-shows-four-ways`が通る | #3701 |
+| プラグインの文書に組み込みの節が在り、AIが4つの置き方とSDKの設定を引ける | `pnpm exec vitest run`の検査`plugin-docs-has-embed-section`が通る | #3701 |
