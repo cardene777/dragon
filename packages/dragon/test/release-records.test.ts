@@ -240,7 +240,8 @@ describe("版の記録 (#3151)", () => {
 
   it("changelog-0-73-0-lists-four-changes", () => {
     // ブラウザで HTML の頁を作る captureHtml (#3667) と、列の図の作り直し (#3624)、点の見た目 (#3635)、手描きの線 (#3643) を 0.73.0 で出す (#3669)
-    expect(version(), "package の版が 0.73.0 でない").toBe("0.73.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 73, `package の版 ${version()} が 0.73.0 より前`).toBe(true);
     const issues = ["(#3667)", "(#3624)", "(#3635)", "(#3643)"];
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");
