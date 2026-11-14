@@ -395,8 +395,13 @@ describe("script の1行の入口 (#3343)", () => {
       ]);
       // 帯の HTML のエクスポートは、入口の置き場から書き出す部品を読み、再生の script を埋めた頁を書き出す
       await page.locator('.dg-header-actions > [data-action="export"] > button').click();
-      const item = page.locator('[data-menu="export"] [data-format="html"]');
-      const [download] = await Promise.all([page.waitForEvent("download", { timeout: SETTLE }), item.click()]);
+      const downloaded = page.waitForEvent("download", { timeout: QUICK_SETTLE });
+      await page.locator('[data-menu="export"] [data-format="html"]').click();
+      // 書き出す部品を読めない時は、帯の知らせの欄にエクスポートできなかったと出る
+      const status = page.locator(".dragon-frame .status");
+      await expect.poll(() => status.textContent(), { timeout: QUICK_SETTLE }).toMatch(/^(?!エクスポートしています).+/u);
+      expect(await status.textContent(), "帯の HTML のエクスポートの知らせ").toBe("操作できるHTMLを保存しました。開くと初期条件から始まります。");
+      const download = await downloaded;
       const html = readFileSync(await download.path(), "utf8");
       expect(download.suggestedFilename(), "帯の HTML のエクスポートの file の名前").toMatch(/\.html$/u);
       expect(html.includes("DragonPlayer.mountDiagram"), "書き出した頁が再生の script を埋めて図を置く").toBe(true);
