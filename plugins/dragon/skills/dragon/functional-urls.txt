@@ -1,2 +1,4 @@
 # A value written into generated pages: the script line that loads the dragon renderer from the npm package. Pages do not draw diagrams without it.
 references/setup.md https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<major>.<minor>/dist/cdn/dragon.js
+# The same script line, written into pages that put the bar on a diagram block with `data-header` (#3701).
+references/embed.md https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@<major>.<minor>/dist/cdn/dragon.js

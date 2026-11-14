@@ -1,0 +1,7 @@
+sequence 注文を受ける
+box shop as お店
+box api as 注文の窓口
+step 注文する
+  shop -> api: 注文を送る
+step 受け付ける
+  api -> shop: 受付の番号を返す

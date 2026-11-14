@@ -6,14 +6,14 @@
  * 箱の節の本文の後には、使える絵柄を全て並べた部品「絵」の頁への案内を、節の終わりの札と同じ見た目で置く (#3172)。
  * 決まりの節は決まり 4 つを番号付きで並べ、最後の節は前の形と新しい形の対応表を書き出しの設定と同じ形の表で出す (#3138)。
  * 例の字は `examples/` の file から読み、図はその字をそのまま読んで描く。JSON の節は原本の JSON として読む。
- * 命令は図を描かない囲みに出す。特長の札は同じ頁の節へ移り、札の名前は行き先の節の見出しを使う。
+ * 命令は図を描かない囲みに出す。組み込みの節の囲みは右上のコピーのボタンでコードを写せる (#3701)。特長の札は同じ頁の節へ移り、札の名前は行き先の節の見出しを使う。
  * 見た目は前の `styles/docs-site.css` を `docs.css` に写した。
  */
 import { DEFAULT_PALETTE, PALETTES, type Theme } from "@cardenelabs/dragon/light";
-import { Fragment, type ReactElement, type ReactNode, useEffect } from "react";
+import { Fragment, type ReactElement, type ReactNode, useEffect, useState } from "react";
 
 import { LiveFigure } from "../site/LiveFigure";
-import { follow, PATHS } from "../site/routes";
+import { EMBEDDING_PATH, follow, PATHS } from "../site/routes";
 import { VERSION } from "../site/version";
 import { type Lang, TEXT } from "../text";
 import { CARDS, COMMANDS, DOCS, type Exit, EXITS, type SectionId, SECTIONS } from "./content";
@@ -41,7 +41,29 @@ function inline(text: string): ReactNode[] {
 function exitHref(exit: Exit): string {
   if ("section" in exit) return `#${exit.section}`;
   if ("kind" in exit) return `${PATHS.catalog}/${exit.kind}`;
-  return PATHS[exit.screen];
+  return exit.screen === "embedding" ? EMBEDDING_PATH : PATHS[exit.screen];
+}
+
+/** 囲みのコードを写すボタン。写した後は 2 秒だけ写した知らせの字を出す */
+function CopyButton({ code, lang }: { code: string; lang: Lang }): ReactElement {
+  const words = DOCS[lang].copy;
+  const [state, setState] = useState<"idle" | "done" | "failed">("idle");
+  useEffect(() => {
+    if (state === "idle") return;
+    const timer = setTimeout(() => setState("idle"), 2000);
+    return () => clearTimeout(timer);
+  }, [state]);
+  const copy = (): void => {
+    navigator.clipboard.writeText(code).then(
+      () => setState("done"),
+      () => setState("failed"),
+    );
+  };
+  return (
+    <button type="button" className="docs-copy" data-docs="copy" onClick={copy} aria-live="polite">
+      {state === "done" ? words.done : state === "failed" ? words.failed : words.label}
+    </button>
+  );
 }
 
 /** 節の終わりに置く 2 列の表。書き出しの設定の表と、前の形と新しい形の対応表が同じ形を使う */
@@ -94,11 +116,19 @@ function Section({ id, index, lang, theme, palette }: Look & { id: SectionId; in
           <p className="docs-sec-text" data-docs="text">
             {inline(p)}
           </p>
-          {commands[i] != null && (
-            <pre className="docs-command" data-docs="command">
-              <code>{commands[i]}</code>
-            </pre>
-          )}
+          {commands[i] != null &&
+            (id === "embed" ? (
+              <div className="docs-command-wrap">
+                <pre className="docs-command" data-docs="command">
+                  <code>{commands[i]}</code>
+                </pre>
+                <CopyButton code={commands[i]} lang={lang} />
+              </div>
+            ) : (
+              <pre className="docs-command" data-docs="command">
+                <code>{commands[i]}</code>
+              </pre>
+            ))}
         </Fragment>
       ))}
       {id === "boxes" && (

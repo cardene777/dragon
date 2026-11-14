@@ -99,7 +99,7 @@ describe("見本帳の埋め込みの頁のURL (#3701)", () => {
   // 埋め込みの頁はエディタと同じく #z= を readPackedEditorHash で読み戻し、?lang で帯の言葉を決める (#3700)
   it("embed-url-opens-embed-page", async () => {
     const make = embedUrl();
-    const read = (dragon as unknown as { readPackedEditorHash(hash: string): Promise<string | undefined> }).readPackedEditorHash;
+    const read = (dragon as unknown as { readPackedEditorHash: (hash: string) => Promise<string | undefined> }).readPackedEditorHash;
     for (const source of SOURCES) {
       const url = new URL(await make(source, { lang: "ja" }));
       expect(`${url.origin}${url.pathname}`, "埋め込みの頁の置き場").toBe(`${PUBLISHED}embed`);

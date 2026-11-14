@@ -6,6 +6,7 @@
  * 帯のエディタのボタンは、記法をブラウザの内で`deflate-raw`に縮めてから同じ base64 にし、`#z=` の後ろに詰める (#3697)。
  * 縮めても URL が `EDITOR_URL_LIMIT` を超える記法は、記法をクリップボードに写して `#paste` のエディタを開く。
  * 読み戻す処理 (`readEditorHash`、`readPackedEditorHash`) もここに置き、見本帳のエディタはこれを呼ぶ。
+ * iframe で置く見本帳の埋め込みの頁の URL (`embedUrl`、#3701) も、同じ形で記法を詰める。
  */
 
 /** 公開したエディタの置き場 */
@@ -61,9 +62,21 @@ async function pipe(bytes: Uint8Array, stream: CompressionStream | Decompression
   return out;
 }
 
+/** 記法 `source` を縮めずに詰めた `#` の後ろ (`#n=<記法>`) */
+const plainHash = (source: string): string => `${PLAIN}${toBase64Url(new TextEncoder().encode(source))}`;
+
+/** 記法 `source` を縮めて詰めた `#` の後ろ (`#z=<縮めた記法>`)。縮める処理を持たない環境では `#n=` の形 */
+async function packedHash(source: string): Promise<string> {
+  try {
+    return `${PACKED}${toBase64Url(await pipe(new TextEncoder().encode(source), new CompressionStream(FORMAT)))}`;
+  } catch {
+    return plainHash(source);
+  }
+}
+
 /** 記法 `source` をエディタの `editor` の頁で開く URL (`<置き場>editor#n=<記法>`) */
 export function editorUrl(source: string, options: EditorUrlOptions = {}): string {
-  return `${pageOf(options.base ?? EDITOR_BASE)}${PLAIN}${toBase64Url(new TextEncoder().encode(source))}`;
+  return `${pageOf(options.base ?? EDITOR_BASE)}${plainHash(source)}`;
 }
 
 /**
@@ -71,13 +84,25 @@ export function editorUrl(source: string, options: EditorUrlOptions = {}): strin
  * 縮める処理 (`CompressionStream` の `deflate-raw`) を持たない環境では、縮めない `editorUrl` の形を返す
  */
 export async function packedEditorUrl(source: string, options: EditorUrlOptions = {}): Promise<string> {
-  let packed: Uint8Array;
-  try {
-    packed = await pipe(new TextEncoder().encode(source), new CompressionStream(FORMAT));
-  } catch {
-    return editorUrl(source, options);
-  }
-  return `${pageOf(options.base ?? EDITOR_BASE)}${PACKED}${toBase64Url(packed)}`;
+  return `${pageOf(options.base ?? EDITOR_BASE)}${await packedHash(source)}`;
+}
+
+export interface EmbedUrlOptions {
+  /** 見本帳の置き場。この下の `embed` の頁を開く。書かなければ公開した見本帳 (`EDITOR_BASE`) */
+  base?: string;
+  /** 帯と再生の部品の言葉。書かなければ英語 */
+  lang?: "ja" | "en";
+}
+
+/**
+ * 記法 `source` を縮めて詰めた、見本帳の埋め込みの頁の URL (`<置き場>embed?lang=<言葉>#z=<縮めた記法>`、#3701)。
+ * iframe の `src` に渡すと、埋め込みの頁が記法を帯つきの図にし、4つの知らせを置いた頁へ `postMessage` で送る (#3700)。
+ * 縮める処理を持たない環境では `#n=` の形で詰める
+ */
+export async function embedUrl(source: string, options: EmbedUrlOptions = {}): Promise<string> {
+  const base = options.base ?? EDITOR_BASE;
+  const query = options.lang ? `?lang=${options.lang}` : "";
+  return `${base.endsWith("/") ? base : `${base}/`}embed${query}${await packedHash(source)}`;
 }
 
 /** 記法をクリップボードに写して開くエディタの URL (`<置き場>editor#paste`、#3697) */

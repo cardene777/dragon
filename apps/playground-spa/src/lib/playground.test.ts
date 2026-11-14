@@ -10,15 +10,16 @@ import { describe, expect, it } from "vitest";
 
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
-import { EMBED_PATH, PATHS } from "../site/routes";
+import { EMBED_PATH, EMBEDDING_PATH, PATHS } from "../site/routes";
 import { builtDir, bundleSizes, firstLoadFiles, pageSources } from "./playground-support";
 
-/** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、埋め込みの頁の経路 (#3700) と、カタログの分類から導く (#3157) */
+/** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、埋め込みの頁の経路 (#3700) と、組み込みの見本の頁の経路 (#3701) と、カタログの分類から導く (#3157) */
 const screenRoutes = (): string[] => {
   const relative = (path: string): string => path.slice(PATHS.home.length);
   return [
     ...Object.values(PATHS).map(relative).filter((path) => path !== ""),
     relative(EMBED_PATH),
+    relative(EMBEDDING_PATH),
     ...KINDS.map((kind) => `${relative(PATHS.catalog)}/${kind}`),
     ...PARTS.map((part) => `${relative(PATHS.catalog)}/part/${part.id}`),
   ].sort();
@@ -149,7 +150,10 @@ describe("公開する頁 (#2995)", () => {
     const parents = routes.filter((route) => routes.some((other) => other.startsWith(`${route}/`)));
     const want = [...routes.map((route) => `${route}.html`), ...parents.map((route) => `${route}/index.html`)].sort();
     const dir = builtDir();
-    const copies = (readdirSync(dir, { recursive: true }) as string[]).filter((path) => path.endsWith(".html") && path !== "index.html" && path !== "404.html").sort();
+    // 見本の頁のscriptの1行の置き方が開く頁 (`script/demo.html`、#3701) は、見本帳の頁の写しではなく入口を読む別の頁なので数えない
+    const copies = (readdirSync(dir, { recursive: true }) as string[])
+      .filter((path) => path.endsWith(".html") && path !== "index.html" && path !== "404.html" && path !== "script/demo.html")
+      .sort();
     expect(copies, "build した頁の経路の写しが、経路の表とカタログの分類と部品の表から導いた一覧と違う").toEqual(want);
     const index = readFileSync(join(dir, "index.html"), "utf8");
     for (const copy of copies) expect(readFileSync(join(dir, copy), "utf8") === index, `${copy} が index.html の写しでない`).toBe(true);
