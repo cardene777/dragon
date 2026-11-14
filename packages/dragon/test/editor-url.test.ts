@@ -85,3 +85,30 @@ describe("エディタで開く URL (#3644)", () => {
     }
   });
 });
+
+/** 描く入口が出す `embedUrl`。出ていない時は判定に出してから止める */
+type EmbedUrl = (source: string, options?: { base?: string; lang?: "ja" | "en" }) => Promise<string>;
+function embedUrl(): EmbedUrl {
+  const found = (dragon as Record<string, unknown>).embedUrl;
+  expect(typeof found, "描く入口 (@cardenelabs/dragon) が embedUrl を出していない").toBe("function");
+  return found as EmbedUrl;
+}
+
+describe("見本帳の埋め込みの頁のURL (#3701)", () => {
+  // iframeで図を置く人は、記法を縮めて詰めた見本帳の埋め込みの頁のURLを embedUrl で作る。
+  // 埋め込みの頁はエディタと同じく #z= を readPackedEditorHash で読み戻し、?lang で帯の言葉を決める (#3700)
+  it("embed-url-opens-embed-page", async () => {
+    const make = embedUrl();
+    const read = (dragon as unknown as { readPackedEditorHash(hash: string): Promise<string | undefined> }).readPackedEditorHash;
+    for (const source of SOURCES) {
+      const url = new URL(await make(source, { lang: "ja" }));
+      expect(`${url.origin}${url.pathname}`, "埋め込みの頁の置き場").toBe(`${PUBLISHED}embed`);
+      expect(url.search, "帯の言葉").toBe("?lang=ja");
+      expect(url.hash.startsWith("#z="), `${JSON.stringify(source)} を縮めて詰める`).toBe(true);
+      expect(await read(url.hash), `${JSON.stringify(source)} が同じ記法に戻る`).toBe(source);
+    }
+    // 言葉を渡さない時は ?lang を持たず、置き場を渡すとその下の embed の頁を指す
+    const own = new URL(await make(SOURCES[0] ?? "", { base: "http://localhost/dragon" }));
+    expect(`${own.origin}${own.pathname}${own.search}`, "置き場を渡した埋め込みの頁の URL").toBe("http://localhost/dragon/embed");
+  });
+});
