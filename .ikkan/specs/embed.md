@@ -22,3 +22,7 @@
 | SDKの設定`buttons`で、帯のボタンを外し、並べ替え、置く側のボタンを足せ、足したボタンを押すと置く側の関数が図を受け取って呼ばれる | `pnpm exec vitest run`の検査`sdk-buttons-hide-reorder-and-add`が通る | #3698 |
 | SDKで帯を出さずに図だけを置き、エクスポート、エディタで開く、コピーを関数で呼べる | `pnpm exec vitest run`の検査`sdk-headless-calls-export-editor-copy`が通る | #3698 |
 | SDKで置いた図は、描けた・描けなかった、段が変わった、エクスポートした、エディタで開いた・コピーしたの4つを置いた頁へ知らせる | `pnpm exec vitest run`の検査`sdk-emits-four-events`が通る | #3698 |
+| エディタのボタンは記法を縮めてURLの`#`に詰め、エディタはその記法を同じ字のまま開く | `pnpm exec vitest run`の検査`editor-url-compresses-notation`が通る | #3697 |
+| エディタは今の縮めていない`#n=`のURLも同じ記法で開く | `pnpm exec vitest run`の検査`editor-url-roundtrip`が通る | #3697 |
+| 縮めてもURLの上限を超える記法では、エディタのボタンが記法をクリップボードに写してエディタを開き、エディタに貼るよう知らせる | `pnpm exec vitest run`の検査`editor-open-copies-long-notation`が通る | #3697 |
+| エディタのボタンとコピーの窓は、記法を外のサーバーへ送らない | `pnpm exec vitest run`の検査`editor-open-sends-nothing`が通る | #3697 |

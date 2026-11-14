@@ -9,7 +9,7 @@
  */
 import { type MouseEvent, useSyncExternalStore } from "react";
 
-import { fromHash } from "../share";
+import { hashKind } from "../share";
 
 export type Screen = "home" | "catalog" | "category" | "part" | "editor" | "docs" | "release-notes" | "not-found";
 
@@ -56,10 +56,10 @@ export function routeOf(pathname: string): Route {
  * 前に共有した URL (`/dragon/#n=...`) を編集画面へ寄せる。
  *
  * 0.35.1 までの見本帳は書く欄と図の 1 頁で、書いた記法を頁の置き場の `#` の後ろに入れて共有していた (#2995)。
- * 今は頁の置き場が概要なので、`#` の後ろに記法がある時だけ編集画面の経路に書き換える。
+ * 今は頁の置き場が概要なので、`#` の後ろに記法 (縮めた `#z=` も、#3697) がある時だけ編集画面の経路に書き換える。
  */
 export function redirectSharedLink(): void {
-  if (routeOf(location.pathname).screen === "home" && fromHash(location.hash) !== undefined) {
+  if (routeOf(location.pathname).screen === "home" && hashKind(location.hash) !== undefined) {
     history.replaceState(null, "", `${PATHS.editor}${location.search}${location.hash}`);
   }
 }

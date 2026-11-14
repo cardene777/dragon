@@ -88,6 +88,7 @@ export const EN_TEXT = {
   },
   notation: "Notation",
   editor: "Diagram notation",
+  pasteHere: "Paste the notation from the clipboard here",
   fold: "Hide",
   unfold: "Show",
   split: { shelf: "Border between the shelf and the notation", code: "Border between the notation and the diagram" },

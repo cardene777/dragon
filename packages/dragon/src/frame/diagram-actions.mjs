@@ -1,4 +1,4 @@
-import { editorUrl } from '../editor-url';
+import { EDITOR_URL_LIMIT, editorPasteUrl, packedEditorUrl } from '../editor-url';
 import { snapshotDiagram, snapshotText, snapshotCanvas } from './dragon-snapshot.mjs';
 
 /** 地を塗る時の色。図の地と同じ */
@@ -10,11 +10,13 @@ const KINDS = ['source', 'json', 'image', 'url'];
  * 置いた図のエクスポートとコピーとエディタで開く処理 (#3698)。帯のボタンと、帯を出さずに置いた図の関数が同じ処理を呼ぶ。
  * `host`は再生の部品を持つ要素。`connect()`の後は図の動きを記録し、GIF と MP4 はその記録を流す。
  * `notify`はエクスポートした時 (`export`) とエディタで開いた・コピーした時 (`share`) に呼ぶ。
+ * エディタの URL は記法を縮めて詰め、縮めても`EDITOR_URL_LIMIT`を超える記法は写してから貼るよう頼むエディタを開く (#3697)。
  */
 export function createDiagramActions(document, host, source, diagram, notify) {
   const environment = document.defaultView;
   const sourceText = { dragon: source, json: JSON.stringify(diagram, null, 2) };
-  const url = editorUrl(source);
+  /** 縮めたエディタの URL と、上限を超えるか */
+  const link = packedEditorUrl(source).then(url => ({ url, long: url.length > EDITOR_URL_LIMIT }));
   const controller = new environment.AbortController();
   const history = [];
   let disposed = false, busy = false, observer, queued = false;
@@ -78,13 +80,19 @@ export function createDiagramActions(document, host, source, diagram, notify) {
     if (!KINDS.includes(kind)) throw new RangeError(`kind must be one of ${KINDS.join(', ')}, got ${String(kind)}`);
     const clipboard = environment.navigator.clipboard;
     if (kind === 'image') await clipboard.write([new environment.ClipboardItem({ 'image/png': png(2, false) })]);
-    else await clipboard.writeText(kind === 'url' ? url : kind === 'json' ? sourceText.json : source);
+    else await clipboard.writeText(kind === 'url' ? (await link).url : kind === 'json' ? sourceText.json : source);
     notify?.('share', { via: 'copy', kind });
   }
-  /** 見本帳のエディタを新しいタブで開く */
-  function openEditor() {
-    environment.open(url, '_blank', 'noopener');
+  /**
+   * 見本帳のエディタを新しいタブで開く。縮めても長すぎる記法はクリップボードに写してから、貼るよう頼むエディタを開いて`true`を返す。
+   * タブを先に開くと頁が前に出ず、クリップボードへ書けないので、写してから開く
+   */
+  async function openEditor() {
+    const { url, long } = await link;
+    if (long) await environment.navigator.clipboard.writeText(source);
+    environment.open(long ? editorPasteUrl() : url, '_blank', 'noopener');
     notify?.('share', { via: 'editor' });
+    return long;
   }
   function record() {
     if (disposed || busy || !host.clientWidth) return;
@@ -97,7 +105,9 @@ export function createDiagramActions(document, host, source, diagram, notify) {
     } catch { /* A hidden or detached diagram has no capture area. */ }
   }
   return {
-    source, sourceText, editorUrl: url,
+    source, sourceText,
+    editorUrl: () => link.then(({ url }) => url),
+    editorLink: () => link,
     get busy() { return busy; },
     export: exportDiagram, copy, openEditor,
     connect() {
