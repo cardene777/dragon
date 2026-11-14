@@ -27,6 +27,7 @@ import "./catalog/catalog.css";
  * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、使い方は `docs/Docs.tsx` (#3034)、
  * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。
  * カタログの部品の頁は `catalog/PartPage.tsx` (#3166) が持つ。知らない分類と部品の経路は見つからない頁にする。
+ * 外の頁がiframeで開く埋め込みの頁 (`embed/embed-page.ts`、#3700) は、上の帯とサイトを描かずに図だけを置く。
  * 言葉と明暗と色味はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
  * 英語の字は後から読む英語の塊が持つので、英語で開く頁は塊が届いてから描き、英語に替える時は塊が届くまで今の言葉で描く (#3646)。
  * 色味は選ぶまで紙と墨で、選んだ色味は次に開いた時にも残す (#3033)。
@@ -53,7 +54,8 @@ function screenRoute(path: string): Route {
 /** 頁の題に出す画面の名前。概要は名前を付けず、分類の頁は図の種類の名前に、部品の頁は部品の名前にする */
 function screenName(route: Route, lang: Lang): string | null {
   const t = TEXT[lang];
-  if (route.screen === "home") return null;
+  // 埋め込みの頁はサイトを描かない (`openSite`) ので、題の名前も持たない
+  if (route.screen === "home" || route.screen === "embed") return null;
   if (route.screen === "category") return isKind(route.category) ? t.shelf.kinds[route.category] : null;
   if (route.screen === "part") {
     const part = partOf(route.part);
@@ -173,6 +175,13 @@ function Site({ firstLang }: { firstLang: Lang }): ReactElement {
  * 最上位で待つとこの script の評価が終わらず、塊とこの script が互いを待って頁を描かないため、待つ処理は関数の中に置く
  */
 async function openSite(): Promise<void> {
+  // 外の頁がiframeで開く埋め込みの頁は、上の帯とサイトを描かずに図だけを置く。頁の処理は後から読む塊に置き、最初に読む script に入れない (#3700)
+  if (routeOf(location.pathname).screen === "embed") {
+    void loadFonts();
+    const { openEmbed } = await import("./embed/embed-page");
+    await openEmbed(document.getElementById("root")!);
+    return;
+  }
   // 2 度目からは字の CSS を読み終えてから描く。字の file が cache に在れば端末の字を挟まない (#3292)
   if (fontsSeen()) await loadFonts();
   // 英語で開く頁は英語の塊が届いてから描き、日本語の字を挟まない (#3646)

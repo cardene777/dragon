@@ -13,6 +13,7 @@
  * file は記法 (`blocks 1` で始まる) か JSON (`"format": 1`) で書く。読む file は頁を書いた人が指した所だけで、定義は外の物を読ませない。
  * 定義を読めない時は、全ての塊をその誤りの文に置き換える。
  */
+import { dedent } from "./embed/dedent";
 import { parseNotation } from "./parser";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type Player, type PlayerOptions } from "./player";
@@ -23,14 +24,6 @@ import type { NotationLang } from "./words";
 export type FramedBlock = (host: HTMLElement, drawn: Player, source: string, diagram: Diagram, options: PlayerOptions) => void;
 
 const detail = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
-/** 塊の字から、空でない行に共通の字下げを外す。入れ子の HTML の中で書いた塊は、全ての行に同じ字下げが付くため */
-function dedent(text: string): string {
-  const lines = text.split("\n");
-  const indents = lines.filter((line) => line.trim() !== "").map((line) => /^[ \t]*/u.exec(line)?.[0].length ?? 0);
-  const cut = indents.length === 0 ? 0 : Math.min(...indents);
-  return lines.map((line) => line.slice(cut)).join("\n");
-}
 
 /** 誤りの文を行ごとに並べた要素。読み上げにも誤りと伝える。誤りの文は使える語を並べて長くなるので、枠の幅で折り返して頁の横へはみ出させない */
 function errorBox(doc: Document, lines: string[]): HTMLElement {

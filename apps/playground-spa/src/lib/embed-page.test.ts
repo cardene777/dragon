@@ -11,11 +11,14 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { editorUrl, packedEditorUrl } from "@cardenelabs/dragon/light";
-import type { Frame, Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 
 import { fileChromium } from "../../../../packages/dragon/test/page-needs";
 import { BASE, builtDir } from "./playground-support";
+
+/** 頁と、iframeの中の頁。見本帳は Playwright を依存に持たないので、型は Chromium を起こす関数から引く */
+type Page = Awaited<ReturnType<Awaited<ReturnType<typeof fileChromium>>["newPage"]>>;
+type Frame = ReturnType<Page["mainFrame"]>;
 
 /** 置く図。題は「注文」で、段を2つ持つ */
 const SOURCE = "sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n  a -> b: 注文\nstep 返事\n  b -> a: 受けた";

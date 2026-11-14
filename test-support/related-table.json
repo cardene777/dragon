@@ -11,7 +11,8 @@
         "./fonts": "src/load-fonts.ts",
         "./export": "src/export/index.ts",
         "./node": "src/node.ts",
-        "./capture": "src/capture/index.ts"
+        "./capture": "src/capture/index.ts",
+        "./embed": "src/embed/index.ts"
       }
     }
   ],

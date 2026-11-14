@@ -1,10 +1,11 @@
 {
   "about": "SDKの入口 (@cardenelabs/dragon/embed) が出す関数と型と知らせの名前 (#3698)。検査 sdk-entry-matches-name-list が build した dist/embed.js と dist/embed.d.ts と突き合わせる。名前を変える時は、この一覧と版の真ん中の数と変更の一覧を同じPRで直す (docs/adr/0001-sdk-entry-names.md)",
-  "functions": ["mountDragon"],
+  "functions": ["defineDragonElement", "mountDragon"],
   "types": [
     "BuiltinButton",
     "CopyKind",
     "CustomButton",
+    "DragonDiagramElement",
     "DragonEmbed",
     "DragonEmbedEventMap",
     "EmbedButton",

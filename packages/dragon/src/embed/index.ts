@@ -6,17 +6,31 @@
  * 置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、
  * エディタで開いた・コピーした (`dragon-share`) の4つを`bubbles`と`composed`で知らせる。
  *
+ * `defineDragonElement`はWeb Componentの要素`<dragon-diagram>`を登録し、要素は中の字の記法を同じ形で置く (#3700)。
+ *
  * 出す名前は`src/embed/names.json`が持ち、検査`sdk-entry-matches-name-list`が突き合わせる。
  * 名前を変える時は一覧と版の真ん中の数と変更の一覧を同じPRで直す (`docs/adr/0001-sdk-entry-names.md`)。
  */
 import { parseNotation, mountDiagram, type Diagram, type Player, type PlayerOptions } from '@cardenelabs/dragon';
+import { stylesFor } from '../adopt-css';
 import { createDiagramActions, type DiagramActions } from '../frame/diagram-actions.mjs';
 import { mountFramedDiagram } from '../frame/index';
 import type { HeaderColors } from '../frame/header';
 import type { BuiltinButton, CopyKind, EmbedLook, ExportDetail, ExportFormat, ExportOptions, ShareDetail } from '../frame/types';
+import { registerElement, type DragonDiagramElement } from './element';
 
 export type { HeaderColors };
 export type { BuiltinButton, CopyKind, EmbedLook, ExportDetail, ExportFormat, ExportOptions, ShareDetail };
+export type { DragonDiagramElement };
+
+/**
+ * Web Componentの要素を名前`name`で登録する。書かなければ`dragon-diagram`。
+ * 要素は中の字を記法として帯つきの図を置き、属性`header="false"`で帯を外す。属性`nonce`は設定`nonce`として渡す。
+ * 同じ名前が既に在る時は何もしない
+ */
+export function defineDragonElement(name = 'dragon-diagram'): void {
+  registerElement(name, mountDragon);
+}
 
 /** 帯に足す置く側のボタン。押すと`onClick`が置いた図 (`mountDragon`が返した物) を受け取る */
 export interface CustomButton {
@@ -145,7 +159,8 @@ export function mountDragon(host: HTMLElement, source: string, options: EmbedOpt
     host.append(stage);
     let mountedPlayer: Player;
     try {
-      mountedPlayer = mountDiagram(stage, diagram, { ...playerOptions, onStep });
+      // 再生の部品の見た目は図を置いた所の根へ入れる。要素の影の根に置いた時も見た目が届く
+      mountedPlayer = mountDiagram(stage, diagram, { ...playerOptions, onStep, styles: stylesFor(stage, options.nonce) });
     } catch (error) {
       stage.remove();
       throw error;

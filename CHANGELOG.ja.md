@@ -8,6 +8,10 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **Web Componentの要素`<dragon-diagram>`と、外の頁がiframeで開く見本帳の埋め込みの頁を足した** (#3700)
+
+  `@cardenelabs/dragon/embed`の`defineDragonElement()`は要素`<dragon-diagram>`を登録する。要素は中の字を記法として影の根に帯つきの図を置き、属性`header="false"`で帯を外す。要素から上で最も近い`lang`属性と属性`nonce`を図に渡し、属性と中の字が変わると置き直し、頁から外されると図を取り除く。4つの知らせは要素の外の頁で受けられる。見本帳の埋め込みの頁`/embed`は、URLの`#z=`か`#n=`の後ろの記法を帯つきの図にし、帯の言葉を`?lang=ja`か`?lang=en`で決め (無ければ英語)、同じ4つの知らせを`{ source: "dragon", type, detail }`の形でiframeを置いた頁へ`postMessage`で送る。`header: false`で置いた図は、再生の部品の見た目を置いた所の根へ入れるようにし、影の根の中でも見た目が届く。
+
 - **scriptの1行の入口で、属性`data-header`を持つ塊に帯を付けるようにした** (#3699)
 
   `<pre class="dragon" data-header>`の塊は、`mountFramedDiagram`と同じコード、エディタ、コピー、エクスポート、拡大の帯を持つ図になる。属性を持たない塊は今と同じ帯の無い図のまま。入口は図を先に描いてから帯を別の塊として読むので、`data-header`の無い頁が最初に読む量は増えない。帯でHTMLとGIFとMP4をエクスポートした時だけ、動画の道具ごと束ねた`dist/cdn/capture.js`を読む。
