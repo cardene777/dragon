@@ -1,8 +1,8 @@
 import { defineConfig } from 'tsup';
 
-// Build after the core so the frame's self-reference resolves the public types.
+// Build after the core so the frame's and the SDK entry's (#3698) self-reference resolves the public types.
 export default defineConfig({
-  entry: { frame: 'src/frame/index.ts', header: 'src/frame/header.ts' },
+  entry: { frame: 'src/frame/index.ts', header: 'src/frame/header.ts', embed: 'src/embed/index.ts' },
   format: ['esm','cjs'],
   dts: { resolve: false, compilerOptions: { composite: false } },
   splitting: false,

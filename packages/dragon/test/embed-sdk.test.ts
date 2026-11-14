@@ -118,7 +118,7 @@ function diffNames(actual: readonly string[], listed: readonly string[]): { extr
 
 /** 型のfileが出す型の名前と、知らせの表 (`DragonEmbedEventMap`) の名前 */
 function declaredNames(file: string): { types: string[]; events: string[] } {
-  const program = ts.createProgram([file], { noEmit: true, skipLibCheck: true, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, types: [] });
+  const program = ts.createProgram([file], { noEmit: true, noLib: true, skipLibCheck: true, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, types: [] });
   const checker = program.getTypeChecker();
   const source = program.getSourceFile(file);
   const module = source ? checker.getSymbolAtLocation(source) : undefined;

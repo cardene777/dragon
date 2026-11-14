@@ -32,7 +32,8 @@
         "packages/dragon/src/script-loader.ts",
         "packages/dragon/src/script-offline.ts",
         "packages/dragon/src/frame/index.ts",
-        "packages/dragon/src/frame/header.ts"
+        "packages/dragon/src/frame/header.ts",
+        "packages/dragon/src/embed/index.ts"
       ]
     },
     {
@@ -77,6 +78,11 @@
       "files": ["docs/design/**", "docs/pr-assets/**"],
       "tests": [],
       "why": "見た目の元の .pen と、PR に貼る絵。検査は読まない (字で名前を書く検査は、命令が字から選ぶ)"
+    },
+    {
+      "files": ["docs/adr/**"],
+      "tests": [],
+      "why": "判断の記録 (#3698)。人が読む文で、検査は読まない"
     },
     {
       "files": [".claude/**", ".agents/**", ".github/**"],

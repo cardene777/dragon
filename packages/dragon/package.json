@@ -102,6 +102,16 @@
         "types": "./dist/header.d.cts",
         "default": "./dist/header.cjs"
       }
+    },
+    "./embed": {
+      "import": {
+        "types": "./dist/embed.d.ts",
+        "default": "./dist/embed.js"
+      },
+      "require": {
+        "types": "./dist/embed.d.cts",
+        "default": "./dist/embed.cjs"
+      }
     }
   },
   "files": [
