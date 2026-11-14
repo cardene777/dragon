@@ -30,3 +30,5 @@
 | scriptの1行の入口は、`data-header`を持つ塊が在る頁でだけ、図を描いた後に帯の塊を読む | `pnpm exec vitest run`の検査`script-entry-loads-bar-only-when-asked`が通る | #3699 |
 | scriptの1行の入口だけを置いた頁で、塊が今と同じ動く図に置き換わる | `pnpm exec vitest run`の検査`script-entry-replaces-block-with-figure`が通る | #3699 |
 | scriptの1行の入口が最初に読む量は、今の上限を超えない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3699 |
+| Web Componentの要素に記法を入れると帯つきの図が出て、属性で帯を外せる | `pnpm exec vitest run`の検査`element-renders-framed-diagram`が通る | #3700 |
+| 見本帳の埋め込みの頁をiframeで開くと、URLの記法の帯つきの図が出て、置いた頁へ4つの知らせを`postMessage`で送る | `pnpm exec vitest run`の検査`embed-page-renders-hash-notation`と`embed-page-posts-events`が通る | #3700 |
