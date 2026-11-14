@@ -7,7 +7,7 @@ import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
 import { line, readLine } from "../edge/read";
 import type { StatePath } from "./block";
-import { EDGE } from "../edge/block";
+import { EDGE } from "../definition-values";
 
 export interface SidePathMessages {
   /** 状態遷移図の最初の step より前の線に、属性を書いた */

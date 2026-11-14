@@ -8,7 +8,7 @@ import { attrs, name, quote } from "../../print-kit";
 import { fail, ID, isOneOf, readAttrs, readQuoted, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
+import { type Color, COLORS } from "../definition-values";
 import type { MindIdea } from "./block";
 import { MIND_LEVELS, OF } from "./limits";
 

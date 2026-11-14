@@ -12,10 +12,9 @@ import { attrs } from "../../print-kit";
 import { type Attr, fail, isOneOf, readAttrs } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, type ParseState, ranked } from "../block";
-import { EDGE } from "../edge/block";
+import { CALL_ATTRS, CALL_KINDS, EDGE, ETH, type PipeCall, type PipeCallKind } from "../definition-values";
 import { line, readLine } from "../edge/read";
 import { BLOCKS } from "../index";
-import { CALL_ATTRS, CALL_KINDS, ETH, type PipeCall, type PipeCallKind } from "./block";
 
 export interface ReturnMessages {
   callShape: string;

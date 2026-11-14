@@ -12,8 +12,7 @@ import { type Attr, fail, isOneOf, readAttrs, readDeclared, readName, skipSpaces
 import type { DiagramModel } from "../../schema";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
-import { EDGE } from "../edge/block";
+import { type Color, COLORS, EDGE } from "../definition-values";
 import type { ErField, ErTable } from "./block";
 import { ER_TABLES } from "./limits";
 

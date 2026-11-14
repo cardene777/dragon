@@ -10,10 +10,9 @@ import { attrs, shown } from "../../print-kit";
 import { AS, fail, ID, isOneOf, readAttrs, readQuoted, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
+import { type Color, COLORS, timeLines, type TimeTask } from "../definition-values";
 import { rowLine } from "../row/read";
 import { range, rangeAt } from "../scale/read";
-import { type TimeTask, timeLines } from "./block";
 import type { DiagramModel } from "../../schema";
 
 export interface TaskMessages {

@@ -6,8 +6,7 @@ import { attrs } from "../../print-kit";
 import { type Attr, fail, ID, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { type Color, COLORS } from "../color/block";
-import { LABEL_MOST, type LineupItem } from "./block";
+import { type Color, COLORS, LABEL_MOST, type LineupItem } from "../definition-values";
 import { checkShapeHead, LAYERS_MESSAGES, type LayersMessages, settleShape } from "./layers";
 
 export interface ItemMessages extends LayersMessages {

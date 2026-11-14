@@ -9,7 +9,7 @@ import { inPipeStep, pipeLine, textAt } from "../../pipe-read";
 import { quantityOf } from "../../pipe-run";
 import { type Attr, fail, readAttrs } from "../../read-kit";
 import type { BlockReading } from "../block";
-import { CHECK_OP, type CheckOp, type PipeCheck } from "./block";
+import { CHECK_OP, type CheckOp, type PipeCheck } from "../definition-values";
 
 export interface CheckMessages {
   checkShape: string;

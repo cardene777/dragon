@@ -8,7 +8,7 @@
  * 量は書いた字のまま持ち、足し引きと比べは十進の数で行う。`0.02 + 0.0175 + 0.0125` は `0.05` になり、2 進の数の端数を出さない。
  * 処理を借りる呼び出し (`[call: delegate]`) の内側は呼んだ側の値の上で動き、書き込めない呼び出し (`[call: static]`) の内側は何も変えられない。
  */
-import { ETH } from "./blocks/return/block";
+import { ETH } from "./blocks/definition-values";
 import type { PipeCall, PipeCallKind, PipeCheck, PipeHold, PipeMove, PipeWrite } from "./schema";
 
 /** 量の字。0 以上の十進の数 */

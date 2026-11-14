@@ -7,7 +7,7 @@
  */
 import { fail, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
 import { type BlockReading, none } from "../block";
-import { EDGE, type EdgeEvent } from "../edge/block";
+import { EDGE, type EdgeEvent } from "../definition-values";
 import { amountOf, SANKEY_SHAPES } from "./limits";
 
 export interface BandMessages {

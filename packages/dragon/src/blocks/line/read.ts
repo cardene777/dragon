@@ -6,7 +6,7 @@ import { fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { namesAt } from "../item/read";
-import { LANE_MOST, type LineupOrder } from "./block";
+import { LANE_MOST, type LineupOrder } from "../definition-values";
 
 /** 列の図の `line <列>:` の行の列 */
 const ORDER = /^line\s+([^\s:[]+)\s*:/du;

@@ -7,7 +7,7 @@ import { fail, ID, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { treeHash } from "../leaf/read";
-import { OF, type TreeNode } from "./block";
+import { OF, type TreeNode } from "../definition-values";
 
 /** 木の図の `node` の行の名札と `of` */
 const NODE = new RegExp(`^node\\s+([^\\s[]+)\\s+${OF}\\s+`, "du");

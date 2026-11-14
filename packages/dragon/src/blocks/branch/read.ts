@@ -6,8 +6,7 @@ import { attrs } from "../../print-kit";
 import { fail, readDeclared } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { FROM } from "./block";
-import { HEAD } from "../commit/block";
+import { FROM, HEAD } from "../definition-values";
 
 /** 枝分かれの図の、枝を切る行。枝と `from` と切る commit */
 const CUT = new RegExp(`^([^\\s[]+)\\s+${FROM}(?:\\s+([^\\s[]+))?\\s*$`, "du");

@@ -16,7 +16,7 @@
  * 狭い枠では、図を枠の幅に縮めても槽の残高と今の段の値が読める大きさの字で組み直す。
  * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` とブロックの描き方が持つ (#3418)。
  */
-import { ETH } from "../../blocks/return/block";
+import { ETH } from "../../blocks/definition-values";
 import { joinWords } from "../../figure-text";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";

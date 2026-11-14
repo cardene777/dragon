@@ -7,11 +7,8 @@ import { type Attr, fail, HASH, ID, readAttrs, skipSpaces } from "../../read-kit
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { branchAt } from "../branch/read";
-import { COPY } from "../copy/block";
-import { MERGE } from "../merge/block";
+import { COPY, type GitCommit, HEAD, MERGE, ON } from "../definition-values";
 import { mergedAt } from "../merge/read";
-import { type GitCommit, ON } from "./block";
-import { HEAD } from "./block";
 
 /** 枝分かれの図の `commit` の行。名札と、`on` の枝と、`copy` の当て直しの元と、`merge` の取り込む枝 */
 const COMMIT = new RegExp(`^commit\\s+([^\\s[]+)(?:\\s+${ON}\\s+([^\\s[]+))?(?:\\s+${COPY}\\s+([^\\s[]+))?(?:\\s+${MERGE}\\s+([^\\s[]+))?`, "du");

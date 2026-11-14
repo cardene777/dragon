@@ -20,7 +20,7 @@
 import { queueMost, TRY_LOOK } from "./look/try";
 import { sha256 } from "./sha256";
 import type { DiagramEvent, TryCheck, TryItem, TryPart, TryVerdict } from "./schema";
-import { LANE_MOST } from "./blocks/line/block";
+import { LANE_MOST } from "./blocks/definition-values";
 
 /** 最初のブロックの prev。前のブロックが無いことを 0 が 64 字並んだ値で表す */
 export const GENESIS = "0".repeat(64);
