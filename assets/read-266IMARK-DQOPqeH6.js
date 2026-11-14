@@ -1,1 +1,0 @@
-import{d as u}from"./index-BPHQLNKn.js";var m={read:u("copy の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に読む"),print:u("copy の語は commit の行の中に書くので、commit のブロックが commit の行と一緒に書く"),messages:u("当て直しの元を確かめる誤りの文 (まだ積んでいない commit) は、commit のブロックが持つ")};export{m as reading};
