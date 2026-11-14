@@ -844,6 +844,11 @@
   background: var(--d-bg);
 }
 
+/* 購入操作図はShadow DOMへ直接描くため、SVG用の.dg-frameではなく表示枠で送る。 */
+:is(.catalog-preview-stage, .catalog-overlay-stage)[data-kind="checkout"] {
+  overflow: auto;
+}
+
 /*
  * 寄って追う図は窓の高さが決まっていて、枠に合わせて縮めない。全体図を窓の下に出すと図が高くなり、
  * 枠の高さを決めたままでは窓の下端と全体図が枠の外へ出るので、枠を図の高さまで伸ばす (#3044)。
