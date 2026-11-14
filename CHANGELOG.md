@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.74.0] - 2026-11-14
+
 ### Added
 
 - **A colored icon you have can go on a box in its own colors (`paint`, `view`, `dragon icon`)** (#3633)
@@ -35,6 +37,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **A two-axis matrix can plot items as dots at their scores (`[shape: scatter]`)** (#3637)
 
   A two-axis matrix only put each item's card into one of the four areas, so there was no way to show where in an area an item sits or how close two items are. Give an item scores from 0 to 10 with at most one decimal place as `[x: <across>, y: <up>]`, and `line: <item>` in a step places it without naming an area, into the area its scores fall in; 5 or more counts as the large side on each axis. Start the first line with `matrix <title> [shape: scatter]` to rule both axes from 0 to 10 and plot each item as a dot at its scores, with guide lines from the dot of the step to the axes, its scores in chips on the axes, and a table of the items and their scores on the left. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out and puts each step number in a corner of the area that clears the area name and the dots. `reverse: yes` on an axis line puts large values on the left or at the bottom in either look. Scores outside 0 to 10, scores with two or more decimal places, only one of `x` and `y`, `line: <item>` for an item without scores, and `line <area>: <item>` with an area that does not match the scores are refused when the notation is read. `table` without `[shape: scatter]` is refused when the notation is read and when a JSON source is checked, and `table` outside a two-axis matrix is refused when the notation is read, as is `[shape: scatter]` on a chart, naming the two-axis matrix. At phone width the table sits on top with the plot below it. The catalog has an example in Japanese and English that plots the next features by effort and impact, and the editor shelf has the scatter head line.
+
+- **A checkout diagram where readers change the conditions of a purchase (`checkout`), and entries that put a shared header on article figures (`@cardenelabs/dragon/frame`, `@cardenelabs/dragon/header`)** (#3677)
+
+  `checkout` is a native diagram kind. It separates parties, order flow, product, delivery, budget, approval, payment, order and scenarios into notation blocks, and uses the same parsing, printing and rendering entries as the other kinds. To put a figure with a source view and controls in an article, use `mountFramedDiagram` from `@cardenelabs/dragon/frame`. The top row holds the title, the source, open in dragon, export and zoom, and the bottom row holds controls such as playback and palette. A site with its own light player can place only the header with `createFigureHeader` from `@cardenelabs/dragon/header`, which loads neither the renderer nor the video encoder. The example `examples/checkout/acp-purchase.dragon` and four purchase examples (quantity, retry, shoes and standard) were added in Japanese and English.
 
 ## [0.73.0] - 2026-11-13
 

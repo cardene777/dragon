@@ -519,7 +519,9 @@ export function layoutScatter(diagram: DiagramModel, lang: NotationLang, width?:
     const clear = placed.filter((t) => !taken.some((r) => hits(r, t.rect)) && within(t.rect, plot));
     // 破線は字の端がかすめる程度なら読めるので、字の四角を左右に `graze` だけ縮めて重なりを数える
     const free = clear.filter((t) => !mids.some((r) => hits(r, { ...t.rect, x: t.rect.x + S.dot.graze, w: t.rect.w - S.dot.graze * 2 })));
-    const pick = free.find((t) => within(t.rect, own)) ?? free[0] ?? clear[0] ?? placed.find((t) => within(t.rect, plot)) ?? (placed[0] as { label: MatrixLabel; rect: Rect });
+    const pick = free.find((t) => within(t.rect, own)) ?? free[0] ?? clear[0] ?? placed.find((t) => within(t.rect, plot)) ?? placed[0];
+    // 試す置き方は 7 つ在るので必ず 1 つ選べる。型の検査と lint の型の読み方が違うので、型の断言でなくここで確かめる
+    if (!pick) continue;
     dot.label = pick.label;
     taken.push(pick.rect);
   }
