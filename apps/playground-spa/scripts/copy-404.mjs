@@ -34,7 +34,7 @@ const KINDS = readdirSync(KIND_DIR, { withFileTypes: true }).filter(entry => ent
  * 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表 (`src/site/routes.ts` の `PATHS`) と、埋め込みの頁の経路 (`EMBED_PATH`、#3700) と、
  * カタログの分類 (`src/catalog/catalog.ts` の `KINDS`) と部品の表から導いた一覧と同じかを、頁の検査が突き合わせる
  */
-const ROUTES = ["catalog", "editor", "docs", "release-notes", "embed", ...KINDS.map((kind) => `catalog/${kind}`), ...PART_IDS.map((id) => `catalog/part/${id}`)];
+const ROUTES = ["catalog", "editor", "docs", "release-notes", "embed", "embedding", ...KINDS.map((kind) => `catalog/${kind}`), ...PART_IDS.map((id) => `catalog/part/${id}`)];
 
 const distDir = resolve(process.argv[2] ?? resolve(__dirname, "..", "dist"));
 const indexHtml = resolve(distDir, "index.html");

@@ -69,6 +69,7 @@ export const EN_TEXT = {
       editor: { title: "Editor", lead: "" },
       docs: { title: "Docs" },
       "release-notes": { title: "Release notes" },
+      embedding: { title: "Embedding samples" },
       "not-found": { title: "That page has not been written yet." },
     },
     releaseNotes: {
@@ -84,6 +85,18 @@ export const EN_TEXT = {
       lead: (entries: number) => `The page you are looking for was moved, deleted, or never existed. Try one of dragon's ${entries} entry points.`,
       catalog: "Browse the catalog",
       docs: "Read the docs",
+    },
+    embedding: {
+      eyebrow: "Embedding",
+      lead: "The diagram below, placed on a page in each of the four ways. Every one has the bar with Code, Editor, Copy, Export and expand.",
+      back: "← Back to the embedding section of the docs",
+      notation: "Sample notation",
+      ways: {
+        script: { name: "One script line", note: "Add data-header to a <pre class=\"dragon\"> block and the script puts the bar on that block." },
+        npm: { name: "The SDK function", note: "The SDK function mountDragon puts the diagram with its bar in an element." },
+        element: { name: "Web Component", note: "The <dragon-diagram> element registered by defineDragonElement reads the text inside as the notation." },
+        iframe: { name: "iframe", note: "Open the embed page URL made by embedUrl in an iframe." },
+      },
     },
   },
   notation: "Notation",

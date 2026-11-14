@@ -12,7 +12,7 @@
 | `packages/dragon/src/embed` | 外のツールやサービスが図を置くSDKの入口 `@cardenelabs/dragon/embed` (`index.ts`) と、入口が出す関数と型と知らせの名前の一覧 (`names.json`)。Web Componentの要素 `<dragon-diagram>` (`element.ts`、#3700) と、scriptの1行の入口と要素が共に使う記法の字下げを外す処理 (`dedent.ts`) も置く。帯と枠と、エクスポートとコピーとエディタで開く処理は `packages/dragon/src/frame` のものを使い、共に使う型は `packages/dragon/src/frame/types.ts` に置く (#3698) | `packages/dragon/test/embed-sdk.test.ts` の `sdk-entry-matches-name-list` |
 | `packages/dragon/test` | package と repo の仕組みの検査 | `vitest.config.ts` の `include` |
 | `packages/dragon/scripts` | 入れた依存が公開物と一致するかを確かめる script | `package.json` の `verify:deps` |
-| `apps/playground-spa/src` | 見本帳。経路と上の帯と編集画面のほかの画面を `src/site` に、編集画面を `Playground.tsx` に、外の頁がiframeで開く埋め込みの頁を `src/embed` に (#3700)、頁と配信の仕組みの検査を `src/lib` に置く | `apps/playground-spa/src/main.tsx` |
+| `apps/playground-spa/src` | 見本帳。経路と上の帯と編集画面のほかの画面を `src/site` に、編集画面を `Playground.tsx` に、外の頁がiframeで開く埋め込みの頁と、4つの置き方で同じ図を並べた組み込みの見本の頁を `src/embed` に (#3700、#3701)、頁と配信の仕組みの検査を `src/lib` に置く。buildの設定 `vite.config.ts` が使うpluginは `src` の隣の `vite-*.ts` に置き、見本の頁のscriptの1行の入口を写すpluginは `vite-script-demo.ts` (#3701) | `apps/playground-spa/src/main.tsx` |
 | `apps/playground-spa/scripts` | 公開の build を GitHub Pages へ配る script | `apps/playground-spa/package.json` の `deploy:pages` |
 | `docs/design` | 作り直す前の画面の設計図 (`app.pen`) と、図の種類ごとの記録 | `docs/design/README.md` |
 | `test-support` | vitest の前処理 | `vitest.config.ts` の `globalSetup` |

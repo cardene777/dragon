@@ -1,0 +1,7 @@
+sequence Take an order
+box shop as Shop
+box api as Order API
+step Place the order
+  shop -> api: Send the order
+step Accept it
+  api -> shop: Return the order number

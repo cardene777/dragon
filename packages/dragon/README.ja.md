@@ -202,6 +202,101 @@ mountDiagram(host, parsed.diagram, {
 });
 ```
 
+## 他のツールに組み込む
+
+外のツールやサービスは、帯 (コード、エディタ、コピー、エクスポート、拡大) を持つ図を4つの置き方で頁に置ける。
+4つとも同じ記法から同じ図を描き、図の再生と前後の操作は図の下に残る。
+見本帳の組み込みの見本の頁は、4つの置き方で同じ図を並べて見せる。
+
+### scriptの1行で帯を付ける
+
+`<pre class="dragon">` の塊に属性 `data-header` を付けると、scriptの1行の入口はその塊に帯を付ける。
+属性を持たない塊は帯の無い図のまま。
+入口は図を先に描いてから帯を後から読むので、`data-header` の無い頁が最初に読む量は増えない。
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.74/dist/cdn/dragon.js"></script>
+
+<pre class="dragon" data-header>
+sequence Take an order
+box shop as Shop
+box api as Order API
+step Place the order
+  shop -> api: Send the order
+</pre>
+```
+
+### SDKの関数
+
+`@cardenelabs/dragon/embed` の `mountDragon(host, source, options)` は、要素に帯つきの図を置き、置いた図を返す。
+
+```ts
+import { mountDragon } from "@cardenelabs/dragon/embed";
+
+const source = await (await fetch("order.dragon")).text();
+const host = document.getElementById("figure");
+if (host === null) throw new Error("#figure not found");
+const embed = mountDragon(host, source, {
+  lang: "en",
+  look: { colors: { accent: "#2563eb" }, radius: "6px", frame: { border: "1px solid #e5e7eb" } },
+  buttons: ["code", "copy", "export", { id: "log", label: "Log", onClick: (placed) => console.log(placed.source) }],
+});
+host.addEventListener("dragon-export", (event) => console.log(event.detail.format));
+```
+
+`look` は、帯の色 (`colors`)、帯の書体 (`font`)、字の大きさ (`fontSize`)、ボタンの角 (`radius`)、高さ (`height`) と、図を囲む枠の線と地 (`frame`) を頁に合わせる。
+`buttons` は帯のボタンを並べる順に書き、書かなかった初めからのボタンは外れ、物を書くと置く側のボタンを足す。足したボタンの `onClick` は置いた図を受け取る。
+`header`を`false`にすると帯を出さずに図だけを置き、返した物でエクスポート (`export`)、エディタで開く (`openEditor`)、コピー (`copy`) を呼べる。
+`lang` は帯の言葉 (`ja` か `en`) を決め、書かない時は要素から上で最も近い `lang` 属性に従い、それも無い時は英語にする。
+`nonce` は、`adoptedStyleSheets` を持たないブラウザで作る style要素に付ける。
+置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを `bubbles` と `composed` で知らせる。
+
+### Web Component
+
+`defineDragonElement()` は要素 `<dragon-diagram>` を登録する。
+要素は中の字を記法として読み、影の根に帯つきの図を置く。
+属性 `header="false"` で帯を外し、属性 `nonce` は同じ名前の設定として渡し、帯の言葉は要素から上で最も近い `lang` 属性に従う。
+属性と中の字が変わると置き直し、頁から外されると図を取り除き、4つの知らせは要素の外の頁で受けられる。
+Reactなどの部品からも、要素をそのまま使える。
+
+```html
+<script type="module">
+  import { defineDragonElement } from "@cardenelabs/dragon/embed";
+  defineDragonElement();
+</script>
+
+<dragon-diagram>
+  sequence Take an order
+  box shop as Shop
+  box api as Order API
+  step Place the order
+    shop -> api: Send the order
+</dragon-diagram>
+```
+
+### iframe
+
+頁で packageを動かせない置き先では、見本帳の埋め込みの頁を iframeで開く。
+`embedUrl(source, { lang })` は、ブラウザがサーバーへ送らない `#` の後ろに記法を詰めた埋め込みの頁の URLを返す。
+埋め込みの頁は同じ4つの知らせを、`{ source: "dragon", type, detail }` の形で置いた頁へ `postMessage` で送る。
+iframeの中でコピーのボタンを使えるよう、`clipboard-write` を許す。
+
+```html
+<iframe id="figure" title="Take an order" allow="clipboard-write" style="width: 100%; height: 560px; border: 0"></iframe>
+
+<script type="module">
+  import { embedUrl } from "@cardenelabs/dragon";
+
+  const source = await (await fetch("order.dragon")).text();
+  const frame = document.getElementById("figure");
+  frame.src = await embedUrl(source, { lang: "en" });
+  addEventListener("message", (event) => {
+    if (event.source !== frame.contentWindow || event.data?.source !== "dragon") return;
+    console.log(event.data.type, event.data.detail);
+  });
+</script>
+```
+
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。

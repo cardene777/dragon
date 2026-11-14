@@ -1,0 +1,189 @@
+/* ================================================================
+ * 組み込みの見本の頁 (#3701)。
+ *
+ * 頁の幅と頭の並びは使い方の頁 (`docs/docs.css`) に揃え、色はサイトの値の表 (`site/site.css` の `--d-*`) だけを読む。
+ * 札は 4 つの置き方を縦に積み、札の中は左にコード、右に置いた図を並べる。狭い画面ではコードの下に図を積む。
+ * 図の欄は外の頁と同じ既定の見た目で描くので、明暗に関わらず白い地に置く。
+ * ================================================================ */
+
+.embedding h1,
+.embedding h2,
+.embedding p,
+.embedding pre {
+  margin: 0;
+}
+
+.embedding {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--d-gutter) 110px;
+  box-sizing: border-box;
+}
+
+/* ── 頁の頭 ── */
+
+.embedding-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 58px 0 36px;
+}
+
+.embedding-eyebrow {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  color: var(--d-accent);
+}
+
+.embedding-hero h1 {
+  font-size: clamp(30px, 3.8vw, 46px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--d-text-primary);
+}
+
+.embedding-lead {
+  max-width: 760px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.embedding-back {
+  padding-block: 4px;
+  font-size: 13.5px;
+  color: var(--d-accent);
+  text-decoration: none;
+}
+
+.embedding-back:hover {
+  text-decoration: underline;
+}
+
+/* ── 見本の記法 ── */
+
+.embedding-notation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 48px;
+}
+
+.embedding-notation h2,
+.embedding-way-head h2 {
+  font-size: clamp(19px, 2vw, 23px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--d-text-primary);
+}
+
+.embedding-notation pre,
+.embedding-code {
+  padding: 16px 20px;
+  border: 1px solid var(--d-border);
+  border-radius: 4px;
+  background: var(--d-code-bg);
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+.embedding-notation code,
+.embedding-code code {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--d-text-primary);
+  white-space: pre;
+}
+
+/* ── 4 つの置き方の札 ── */
+
+.embedding-ways {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.embedding-way {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.embedding-way-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 6px 12px;
+}
+
+.embedding-way-no {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--d-accent);
+}
+
+.embedding-way-head p {
+  grid-column: 2;
+  max-width: 64ch;
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--d-text-secondary);
+}
+
+.embedding-way-body {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.embedding-code {
+  min-width: 0;
+}
+
+.embedding-figure {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--d-border);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+/* iframe の高さは中の頁を読んだ後に中の図に合わせる (`SameSiteFrame`)。読むまでは帯と図が収まる高さで待つ */
+.embedding-frame {
+  display: block;
+  width: 100%;
+  height: 520px;
+  border: 0;
+}
+
+/* ── 狭い画面。札の中のコードの下に図を積む ── */
+
+@media (max-width: 860px) {
+  .embedding-hero {
+    padding: 36px 0 28px;
+  }
+
+  .embedding {
+    padding-bottom: 64px;
+  }
+
+  .embedding-way-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 指で触る時は、戻る札の押せる範囲を高さ 44px 以上に広げる (#3079 と同じ扱い) */
+@media (pointer: coarse) {
+  .embedding-back {
+    padding-block: 12px;
+    margin-block: -8px;
+  }
+}

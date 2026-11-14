@@ -14,9 +14,9 @@ import type { Lang } from "../text";
 
 /**
  * 節の並び。最初の図の後に宣言と段を省いた短い書き方 (#3438) を置き、記法の決まりの後に記法の要素を書く順に並べ、
- * 図を外で使う 2 つの形 (頁に置く、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
+ * 図を外で使う形 (頁に置く、他のツールに組み込む、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "export", "line", "migrate"] as const;
+export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "embed", "export", "line", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -31,7 +31,7 @@ function blockParagraphs(section: SectionId, lang: Lang): string[] {
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" | "embedding" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -60,7 +60,8 @@ export const EXITS: Record<SectionId, Exit> = {
   strip: { kind: "sequence" },
   carry: { section: "json" },
   json: { screen: "editor" },
-  place: { section: "export" },
+  place: { section: "embed" },
+  embed: { screen: "embedding" },
   export: { screen: "editor" },
   line: { screen: "editor" },
   migrate: { screen: "editor" },
@@ -117,6 +118,64 @@ export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = 
     null,
     null,
   ],
+  // 組み込みの節の code は package の README の組み込みの節と同じ物 (#3701、検査が突き合わせる)
+  embed: [
+    null,
+    [
+      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.74/dist/cdn/dragon.js"></script>',
+      "",
+      '<pre class="dragon" data-header>',
+      "sequence Take an order",
+      "box shop as Shop",
+      "box api as Order API",
+      "step Place the order",
+      "  shop -> api: Send the order",
+      "</pre>",
+    ].join("\n"),
+    [
+      'import { mountDragon } from "@cardenelabs/dragon/embed";',
+      "",
+      'const source = await (await fetch("order.dragon")).text();',
+      'const host = document.getElementById("figure");',
+      'if (host === null) throw new Error("#figure not found");',
+      "const embed = mountDragon(host, source, {",
+      '  lang: "en",',
+      '  look: { colors: { accent: "#2563eb" }, radius: "6px", frame: { border: "1px solid #e5e7eb" } },',
+      '  buttons: ["code", "copy", "export", { id: "log", label: "Log", onClick: (placed) => console.log(placed.source) }],',
+      "});",
+      'host.addEventListener("dragon-export", (event) => console.log(event.detail.format));',
+    ].join("\n"),
+    [
+      '<script type="module">',
+      '  import { defineDragonElement } from "@cardenelabs/dragon/embed";',
+      "  defineDragonElement();",
+      "</script>",
+      "",
+      "<dragon-diagram>",
+      "  sequence Take an order",
+      "  box shop as Shop",
+      "  box api as Order API",
+      "  step Place the order",
+      "    shop -> api: Send the order",
+      "</dragon-diagram>",
+    ].join("\n"),
+    [
+      '<iframe id="figure" title="Take an order" allow="clipboard-write" style="width: 100%; height: 560px; border: 0"></iframe>',
+      "",
+      '<script type="module">',
+      '  import { embedUrl } from "@cardenelabs/dragon";',
+      "",
+      '  const source = await (await fetch("order.dragon")).text();',
+      '  const frame = document.getElementById("figure");',
+      '  frame.src = await embedUrl(source, { lang: "en" });',
+      '  addEventListener("message", (event) => {',
+      '    if (event.source !== frame.contentWindow || event.data?.source !== "dragon") return;',
+      "    console.log(event.data.type, event.data.detail);",
+      "  });",
+      "</script>",
+    ].join("\n"),
+    null,
+  ],
   export: ["npm install @cardenelabs/dragon", "pnpm add -D playwright-core\npnpm exec playwright-core install chromium", "dragon export login.dragon --out out"],
 };
 
@@ -130,6 +189,8 @@ interface DocsText {
   sections: Record<SectionId, { title: string; text: readonly string[]; exit: string }>;
   /** 箱の節から、使える絵柄を全て並べた部品「絵」の頁へ移る案内 (#3172) */
   iconLink: string;
+  /** 組み込みの節の囲みのコピーのボタンと、写した後の字 (#3701) */
+  copy: { label: string; done: string; failed: string };
   cards: Record<(typeof CARDS)[number], string>;
   /** 書き出しの設定の表。`palettes` は色味の名前の並び、`fallback` は既定の色味 */
   options: { head: readonly [string, string]; rows: (palettes: string, fallback: string) => readonly (readonly [string, string])[] };
@@ -149,6 +210,7 @@ export const DOCS: Record<Lang, DocsText> = {
     start: "5 分で始める →",
     browse: "カタログで図を見る",
     iconLink: "使える絵柄を部品「絵」の頁で全て見る →",
+    copy: { label: "コピー", done: "コピーしました", failed: "コピーできませんでした" },
     sections: {
       start: {
         title: "5 分で動かす",
@@ -337,7 +399,19 @@ export const DOCS: Record<Lang, DocsText> = {
           "字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。",
           "`mountDiagram` が返す `player` で段を動かす (`next`、`prev`、`play`、`pause`、`destroy`)。3 つめの引数には、色味や段が替わった時に呼ぶ関数などの設定 (`PlayerOptions`) を渡す。",
         ],
-        exit: "続き → 書き出し",
+        exit: "続き → 他のツールに組み込む",
+      },
+      embed: {
+        title: "他のツールに組み込む",
+        text: [
+          "外のツールやサービスは、帯 (コード、エディタ、コピー、エクスポート、拡大) を持つ図を4つの置き方で頁に置ける。4つとも同じ記法から同じ図を描き、図の再生と前後の操作は図の下に残る。下のコードは package の README と同じ物で、囲みの右上のボタンで写せる。",
+          "scriptの1行の入口では、`<pre class=\"dragon\">`の塊に属性`data-header`を付けると、その塊に帯が付く。属性を持たない塊は帯の無い図のまま。",
+          "npmで入れた頁では、`@cardenelabs/dragon/embed`の`mountDragon`が要素に帯つきの図を置き、置いた図を返す。",
+          "Web Componentでは、`defineDragonElement()`が要素`<dragon-diagram>`を登録し、要素は中の字を記法として帯つきの図を置く。属性`header=\"false\"`で帯を外せる。",
+          "頁でpackageを動かせない置き先では、見本帳の埋め込みの頁をiframeで開く。`embedUrl`が、ブラウザがサーバーへ送らない`#`の後ろに記法を詰めたURLを返す。",
+          "設定`look`で帯の色と書体と角と高さと図を囲む枠を、`buttons`で帯のボタンの並びと置く側のボタンを、`lang`で帯の言葉を決める。`header`を`false`にすると帯を出さずに図だけを置く。置いた図は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを知らせ、iframeは同じ4つを`postMessage`で置いた頁へ送る。",
+        ],
+        exit: "4つの置き方の見本を見る →",
       },
       export: {
         title: "書き出し",
@@ -430,6 +504,7 @@ export const DOCS: Record<Lang, DocsText> = {
     start: "Start in five minutes →",
     browse: "Browse the catalog",
     iconLink: "See every icon on the Icon part page →",
+    copy: { label: "Copy", done: "Copied", failed: "Could not copy" },
     sections: {
       start: {
         title: "Up and running in five minutes",
@@ -618,7 +693,19 @@ export const DOCS: Record<Lang, DocsText> = {
           "The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing. Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels. A bundler (such as Vite) carries the CSS and font files to the page.",
           "Use the `player` returned by `mountDiagram` to move through the steps (`next`, `prev`, `play`, `pause`, `destroy`). The third argument takes settings such as the palette and a function called when the step changes (`PlayerOptions`).",
         ],
-        exit: "Next → Export",
+        exit: "Next → Embed it in other tools",
+      },
+      embed: {
+        title: "Embed it in other tools",
+        text: [
+          "Tools and services can put a diagram with the bar (Code, Editor, Copy, Export and expand) on their pages in four ways. All four draw the same diagram from the same notation, and the player's step controls stay under the diagram. The code below is the same as in the package README, and the button at the top right of each block copies it.",
+          "With the one-line script entry, add `data-header` to a `<pre class=\"dragon\">` block and that block gets the bar. Blocks without the attribute stay plain diagrams.",
+          "On a page that installs the package, `mountDragon` from `@cardenelabs/dragon/embed` puts a diagram with the bar in an element and returns the placed diagram.",
+          "As a Web Component, `defineDragonElement()` registers `<dragon-diagram>`, which reads the notation from its text and puts a diagram with the bar. `header=\"false\"` drops the bar.",
+          "Where the page cannot run the package, open the gallery's embed page in an iframe. `embedUrl` returns its URL with the notation after `#`, which browsers do not send to the server.",
+          "`look` sets the bar color, font, corners and height and the frame around the diagram, `buttons` sets the order of the bar buttons and adds your own, and `lang` picks the bar language. Setting `header` to `false` puts only the diagram. The placed diagram sends four events: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied), and the iframe sends the same four to your page with `postMessage`.",
+        ],
+        exit: "See the four ways side by side →",
       },
       export: {
         title: "Export",

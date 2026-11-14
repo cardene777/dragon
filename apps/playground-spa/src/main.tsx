@@ -10,7 +10,7 @@ import { Playground } from "./Playground";
 import { ReleaseNotes } from "./release-notes/ReleaseNotes";
 import { fontsSeen, loadFonts } from "./site/fonts";
 import { KIND_CHUNKS } from "./site/kinds";
-import { startWhenIdle } from "./site/later";
+import { laterChunk, startWhenIdle } from "./site/later";
 import { LATER_CATALOG, LATER_DOCS, LaterPage } from "./site/pages";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
@@ -28,12 +28,16 @@ import "./catalog/catalog.css";
  * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。
  * カタログの部品の頁は `catalog/PartPage.tsx` (#3166) が持つ。知らない分類と部品の経路は見つからない頁にする。
  * 外の頁がiframeで開く埋め込みの頁 (`embed/embed-page.ts`、#3700) は、上の帯とサイトを描かずに図だけを置く。
+ * 4つの置き方で同じ図を置いた組み込みの見本の頁 (`embed/EmbedSample.tsx`、#3701) は、使い方の頁と同じく後から読む塊で描く。
  * 言葉と明暗と色味はサイト全体で 1 つ持ち、帯の切替で替える。明暗は選ぶまで端末の設定に従う。
  * 英語の字は後から読む英語の塊が持つので、英語で開く頁は塊が届いてから描き、英語に替える時は塊が届くまで今の言葉で描く (#3646)。
  * 色味は選ぶまで紙と墨で、選んだ色味は次に開いた時にも残す (#3033)。
  * 頁の色は色味と明暗から `site/site-colors.ts` で引いて html に置き、図も同じ色味で描く。
  */
 const DARK = "(prefers-color-scheme: dark)";
+
+/** 組み込みの見本の頁。図を置くSDKの部品ごと後から読み、最初に読む script に入れない (#3701) */
+const LATER_EMBEDDING = laterChunk(() => import("./embed/EmbedSample"));
 
 function subscribeDevice(listener: () => void): () => void {
   const media = matchMedia(DARK);
@@ -158,6 +162,10 @@ function Site({ firstLang }: { firstLang: Lang }): ReactElement {
         ) : route.screen === "docs" ? (
           <LaterPage chunk={LATER_DOCS} lang={lang}>
             {({ Docs }) => <Docs lang={lang} theme={theme} palette={palette} />}
+          </LaterPage>
+        ) : route.screen === "embedding" ? (
+          <LaterPage chunk={LATER_EMBEDDING} lang={lang}>
+            {({ EmbedSample }) => <EmbedSample lang={lang} />}
           </LaterPage>
         ) : route.screen === "release-notes" ? (
           <ReleaseNotes lang={lang} />

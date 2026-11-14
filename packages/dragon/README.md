@@ -197,6 +197,101 @@ mountDiagram(host, parsed.diagram, {
 });
 ```
 
+## Embed it in other tools
+
+Tools and services can put a diagram with the bar (Code, Editor, Copy, Export and expand) on their pages in four ways.
+All four draw the same diagram from the same notation, and the player's step controls stay under the diagram.
+The gallery's embedding page shows the four ways side by side with the same diagram.
+
+### One script line with the bar
+
+Add `data-header` to a `<pre class="dragon">` block, and the one-line script entry puts the bar on that block.
+Blocks without the attribute stay plain diagrams.
+The entry draws the diagram first and loads the bar afterwards, so pages without `data-header` load no more than before.
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.74/dist/cdn/dragon.js"></script>
+
+<pre class="dragon" data-header>
+sequence Take an order
+box shop as Shop
+box api as Order API
+step Place the order
+  shop -> api: Send the order
+</pre>
+```
+
+### The SDK function
+
+`mountDragon(host, source, options)` from `@cardenelabs/dragon/embed` puts a diagram with the bar in an element, and returns the placed diagram.
+
+```ts
+import { mountDragon } from "@cardenelabs/dragon/embed";
+
+const source = await (await fetch("order.dragon")).text();
+const host = document.getElementById("figure");
+if (host === null) throw new Error("#figure not found");
+const embed = mountDragon(host, source, {
+  lang: "en",
+  look: { colors: { accent: "#2563eb" }, radius: "6px", frame: { border: "1px solid #e5e7eb" } },
+  buttons: ["code", "copy", "export", { id: "log", label: "Log", onClick: (placed) => console.log(placed.source) }],
+});
+host.addEventListener("dragon-export", (event) => console.log(event.detail.format));
+```
+
+`look` fits the bar color (`colors`), the bar font (`font`), font size (`fontSize`), button corners (`radius`) and height (`height`), and the line and background of the frame around the diagram (`frame`) to your page.
+`buttons` lists the bar buttons in order; built-in buttons you leave out are dropped, and an object adds your own button whose `onClick` receives the placed diagram.
+Setting `header` to `false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`).
+`lang` picks the bar language (`ja` or `en`); without it the bar follows the nearest `lang` attribute above the element, and English otherwise.
+`nonce` is put on the style element made for browsers without `adoptedStyleSheets`.
+The element sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied).
+
+### The Web Component
+
+`defineDragonElement()` registers `<dragon-diagram>`.
+The element reads the notation from its text and puts a diagram with the bar in its shadow root.
+`header="false"` drops the bar, `nonce` passes the setting of the same name, and the element follows the nearest `lang` attribute above it.
+It redraws when the attributes or the text change, removes the diagram when it is taken off the page, and the four events reach the page outside the element.
+React and other frameworks can use the element as it is.
+
+```html
+<script type="module">
+  import { defineDragonElement } from "@cardenelabs/dragon/embed";
+  defineDragonElement();
+</script>
+
+<dragon-diagram>
+  sequence Take an order
+  box shop as Shop
+  box api as Order API
+  step Place the order
+    shop -> api: Send the order
+</dragon-diagram>
+```
+
+### An iframe
+
+Where your page cannot run the package, open the gallery's embed page in an iframe.
+`embedUrl(source, { lang })` returns the embed page URL with the notation packed after `#`, which browsers do not send to the server.
+The embed page sends the same four events to your page with `postMessage` as `{ source: "dragon", type, detail }`.
+Allow `clipboard-write` so the Copy button works inside the iframe.
+
+```html
+<iframe id="figure" title="Take an order" allow="clipboard-write" style="width: 100%; height: 560px; border: 0"></iframe>
+
+<script type="module">
+  import { embedUrl } from "@cardenelabs/dragon";
+
+  const source = await (await fetch("order.dragon")).text();
+  const frame = document.getElementById("figure");
+  frame.src = await embedUrl(source, { lang: "en" });
+  addEventListener("message", (event) => {
+    if (event.source !== frame.contentWindow || event.data?.source !== "dragon") return;
+    console.log(event.data.type, event.data.detail);
+  });
+</script>
+```
+
 ## Load diagram kinds on demand
 
 To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
