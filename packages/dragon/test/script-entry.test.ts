@@ -28,6 +28,8 @@ const EXAMPLES = join(ROOT, "examples");
 
 const PAGE = "http://localhost/";
 const LOCAL_ROOT = "http://localhost/cdn/";
+/** 入口の置き場の 1 つ上に在る、HTML に埋める再生の script */
+const PLAYER_SCRIPT = "http://localhost/player.global.js";
 /** jsDelivr の package の置き場。版の範囲 (`@0.50`) か版を全て書いた形 (`@0.50.0`) を後ろに付ける */
 const CDN_PACKAGE = "https://cdn.jsdelivr.net/npm/@cardenelabs/dragon";
 /** 図の字の CSS。jsDelivr の fontsource の版ごとの `index.css` */
@@ -117,8 +119,11 @@ interface Requests {
 }
 
 
-/** 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す */
-async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL): Promise<T> {
+/**
+ * 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す。
+ * `hold` を渡すと、置き場の file を渡す前にその file の名前で呼び、返った約束が済むまで渡さない
+ */
+async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL, hold?: (file: string) => Promise<void>): Promise<T> {
   // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
   const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
@@ -131,9 +136,15 @@ async function withPage<T>(body: string, run: (page: Page, requests: Requests) =
       requests.urls.push(url);
       if (file === null) return route.fulfill({ status: 404, body: "" });
       requests.scripts.push(file);
+      await hold?.(file);
       const path = join(CDN, file);
       if (!existsSync(path)) return route.fulfill({ status: 404, body: "" });
       return route.fulfill({ contentType: file.endsWith(".js") ? "text/javascript" : "application/json", body: readFileSync(path) });
+    }
+    // 帯の HTML のエクスポートは、入口の置き場の 1 つ上の再生の script を頁に埋める (#3699)
+    if (url === PLAYER_SCRIPT) {
+      requests.urls.push(url);
+      return route.fulfill({ contentType: "text/javascript", body: readFileSync(join(ROOT, "dist/player.global.js")) });
     }
     if (FONT_CSS.test(url)) {
       requests.fonts.push(url);
@@ -362,6 +373,73 @@ describe("script の1行の入口 (#3343)", () => {
       const total = Object.values(sizes).reduce((sum, size) => sum + size, 0);
       expect(total, `最初に読む script の gzip 後の合計 (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(FIRST_LOAD_BUDGET);
     });
+  });
+
+  it("script-entry-adds-bar-with-data-header", async () => {
+    if (!entryBuilt()) return;
+    await withPage(`<pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page) => {
+      await settle(page, 2);
+      await page.waitForFunction(() => document.querySelector(".dragon-figure .dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
+      const figures = await page.evaluate(() =>
+        [...document.querySelectorAll(".dragon-figure")].map((figure) => {
+          const root = figure.querySelector(".dragon-frame")?.shadowRoot;
+          return {
+            buttons: root ? [...root.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]")].map((el) => el.dataset.action) : [],
+            drawn: (root ?? figure).querySelector('[data-dragon="player"] svg') !== null,
+          };
+        }),
+      );
+      expect(figures, "data-header を持つ塊は帯つきの図、持たない塊は帯の無い図").toEqual([
+        { buttons: ["code", "editor", "copy", "export", "expand"], drawn: true },
+        { buttons: [], drawn: true },
+      ]);
+      // 帯の HTML のエクスポートは、入口の置き場から書き出す部品を読み、再生の script を埋めた頁を書き出す
+      await page.locator('.dg-header-actions > [data-action="export"] > button').click();
+      const downloaded = page.waitForEvent("download", { timeout: QUICK_SETTLE });
+      await page.locator('[data-menu="export"] [data-format="html"]').click();
+      // 書き出す部品を読めない時は、帯の知らせの欄にエクスポートできなかったと出る
+      const status = page.locator(".dragon-frame .status");
+      await expect.poll(() => status.textContent(), { timeout: QUICK_SETTLE }).toMatch(/^(?!エクスポートしています).+/u);
+      expect(await status.textContent(), "帯の HTML のエクスポートの知らせ").toBe("操作できるHTMLを保存しました。開くと初期条件から始まります。");
+      const download = await downloaded;
+      const html = readFileSync(await download.path(), "utf8");
+      expect(download.suggestedFilename(), "帯の HTML のエクスポートの file の名前").toMatch(/\.html$/u);
+      expect(html.includes("DragonPlayer.mountDiagram"), "書き出した頁が再生の script を埋めて図を置く").toBe(true);
+    });
+  });
+
+  it("script-entry-loads-bar-only-when-asked", async () => {
+    if (!entryBuilt()) return;
+    const barFiles = filesHolding("src/frame/dragon-frame.mjs");
+    expect(barFiles.length, "帯を持つ後から読む塊の file の数").toBeGreaterThan(0);
+    expect(barFiles.filter((file) => entryFiles().has(file)), "最初に読む file に入った帯").toEqual([]);
+    // data-header を持たない塊だけの頁は、帯の塊を読まない
+    await withPage(`<pre class="dragon">${escape(SEQUENCE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect((await counts(page)).drawn, "時系列図を描く").toBe(1);
+      expect(requests.scripts.filter((file) => barFiles.includes(file)), "data-header の無い頁で読んだ帯の塊").toEqual([]);
+    });
+    // data-header を持つ塊は、帯の塊が届く前に帯の無い図を描き、届いた後に帯を付ける
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await withPage(
+      `<pre class="dragon" data-header>${escape(SEQUENCE)}</pre>`,
+      async (page, requests) => {
+        try {
+          await settle(page, 1);
+          await expect.poll(() => requests.scripts.filter((file) => barFiles.includes(file)).length, { message: "図を描いた後に読みに行った帯の塊", timeout: QUICK_SETTLE }).toBeGreaterThan(0);
+          const before = await page.evaluate(() => ({ frames: document.querySelectorAll(".dragon-frame").length, drawn: document.querySelectorAll('.dragon-figure [data-dragon="player"] svg').length }));
+          expect(before, "帯の塊が届く前の data-header の塊").toEqual({ frames: 0, drawn: 1 });
+        } finally {
+          release();
+        }
+        await page.waitForFunction(() => document.querySelector(".dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
+        expect(await page.evaluate(() => document.querySelectorAll(".dragon-frame").length), "帯の塊が届いた後の帯の数").toBe(1);
+      },
+      "ja",
+      LOCAL,
+      (file) => (barFiles.includes(file) ? held : Promise.resolve()),
+    );
   });
 
   it("script-entry-kind-blocks-share-one-file", () => {

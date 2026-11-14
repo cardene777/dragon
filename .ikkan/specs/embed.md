@@ -26,3 +26,7 @@
 | エディタは今の縮めていない`#n=`のURLも同じ記法で開く | `pnpm exec vitest run`の検査`editor-url-roundtrip`が通る | #3697 |
 | 縮めてもURLの上限を超える記法では、エディタのボタンが記法をクリップボードに写してエディタを開き、エディタに貼るよう知らせる | `pnpm exec vitest run`の検査`editor-open-copies-long-notation`が通る | #3697 |
 | エディタのボタンとコピーの窓は、記法を外のサーバーへ送らない | `pnpm exec vitest run`の検査`editor-open-sends-nothing`が通る | #3697 |
+| scriptの1行の入口は、属性`data-header`を持つ記法の塊を帯つきの図にし、持たない塊を今と同じ帯の無い図にする | `pnpm exec vitest run`の検査`script-entry-adds-bar-with-data-header`が通る | #3699 |
+| scriptの1行の入口は、`data-header`を持つ塊が在る頁でだけ、図を描いた後に帯の塊を読む | `pnpm exec vitest run`の検査`script-entry-loads-bar-only-when-asked`が通る | #3699 |
+| scriptの1行の入口だけを置いた頁で、塊が今と同じ動く図に置き換わる | `pnpm exec vitest run`の検査`script-entry-replaces-block-with-figure`が通る | #3699 |
+| scriptの1行の入口が最初に読む量は、今の上限を超えない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3699 |

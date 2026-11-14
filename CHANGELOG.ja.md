@@ -8,11 +8,19 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- **scriptの1行の入口で、属性`data-header`を持つ塊に帯を付けるようにした** (#3699)
+
+  `<pre class="dragon" data-header>`の塊は、`mountFramedDiagram`と同じコード、エディタ、コピー、エクスポート、拡大の帯を持つ図になる。属性を持たない塊は今と同じ帯の無い図のまま。入口は図を先に描いてから帯を別の塊として読むので、`data-header`の無い頁が最初に読む量は増えない。帯でHTMLとGIFとMP4をエクスポートした時だけ、動画の道具ごと束ねた`dist/cdn/capture.js`を読む。
+
 - **外のツールやサービスが図を置くSDKの入口を足した (`@cardenelabs/dragon/embed`、`mountDragon`)** (#3698)
 
   `mountDragon(host, source, options)`は記法から図を置き、既定で帯を付ける。設定`look`で帯の色、帯の書体と字の大きさとボタンの角と高さ、図を囲む枠の線と地を置き先に合わせられる。設定`buttons`で帯のボタンを外し、並べ替え、置く側のボタンを足せ、足したボタンの`onClick`は置いた図を受け取る。`header: false`は帯を出さずに図だけを置き、返した物の関数でエクスポート (`export`)、エディタで開く (`openEditor`)、コピー (`copy`) を呼べる。置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを`bubbles`と`composed`で知らせる。入口が出す名前は`src/embed/names.json`に並べ、入口と一覧が食い違うと検査が落ちる。`mountFramedDiagram`も同じ設定`look`と`buttons`と`notify`を受ける。
 
 ### Changed
+
+- **scriptの1行の入口が最初に読む量を3.3KB減らした** (#3706)
+
+  ブロックの定義を18個の小さなfileに分けず、最初に読む1つのfileに入れた。時系列図だけの頁で最初に読む量は、39個の89,992 byte (gzip) から22個の86,664 byteになった。
 
 - **エディタのボタンが記法を縮めてURLに詰め、URLに入らない長い記法はコピーしてからエディタを開くようにした** (#3697)
 
