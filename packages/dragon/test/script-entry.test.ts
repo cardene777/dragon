@@ -374,6 +374,16 @@ describe("script の1行の入口 (#3343)", () => {
     expect(apart, `box のブロックの定義 (${box.join()}) と別の file に入った、種類だけが使うブロックの定義`).toEqual([]);
   });
 
+  it("script-entry-block-definitions-share-one-file", () => {
+    // 本体の記法の読み方と後から読む個別ブロックの読み方が、それぞれ別の定義から数と語の決まりを読むと、esbuild は読む塊の組ごとに
+    // 定義を最初に読む小さな file へ分ける。分けた file は別々に圧縮されて最初に読む量が増えるので、定義は 1 つの file に入る (#3706)
+    if (!entryBuilt()) return;
+    const holding = [...entryFiles()].filter((name) =>
+      (JSON.parse(readFileSync(join(CDN, `${name}.map`), "utf8")) as { sources: string[] }).sources.some((source) => /src\/blocks\/[^/]+\/block\.ts$/u.test(source)),
+    );
+    expect(holding.sort(), "ブロックの定義を持つ、最初に読む file").toHaveLength(1);
+  });
+
   it("script-entry-shared-parts-stay-in-main", () => {
     // 回り続ける図の描く部品が中身の帯を描く処理を読み、考えの読み方が色を読む処理を読むと、どちらも本体から最初に読む別の file へ分かれる (#3657)。
     // どちらも本体だけが読み、本体に入る
