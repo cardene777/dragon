@@ -12,7 +12,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import type { Page } from "playwright-core";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -54,10 +53,10 @@ interface EmbedWindow {
 }
 interface EmbedHandle {
   source: string;
-  editorUrl: string;
+  editorUrl(): Promise<string>;
   player: { next(): void };
   export(format: string, options?: object): Promise<Blob>;
-  openEditor(): unknown;
+  openEditor(): Promise<boolean>;
   copy(kind: string): Promise<void>;
 }
 
@@ -116,29 +115,41 @@ function diffNames(actual: readonly string[], listed: readonly string[]): { extr
   return { extra: actual.filter((name) => !listed.includes(name)).sort(), missing: listed.filter((name) => !actual.includes(name)).sort() };
 }
 
-/** 型のfileが出す型の名前と、知らせの表 (`DragonEmbedEventMap`) の名前 */
-function declaredNames(file: string): { types: string[]; events: string[] } {
-  const program = ts.createProgram([file], { noEmit: true, noLib: true, skipLibCheck: true, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, types: [] });
-  const checker = program.getTypeChecker();
-  const source = program.getSourceFile(file);
-  const module = source ? checker.getSymbolAtLocation(source) : undefined;
-  if (!module) return { types: [], events: [] };
-  const resolveSymbol = (symbol: ts.Symbol): ts.Symbol => (symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol);
-  const exported = checker.getExportsOfModule(module);
-  const types = exported
-    .filter((symbol) => {
-      const flags = resolveSymbol(symbol).flags;
-      return (flags & (ts.SymbolFlags.Interface | ts.SymbolFlags.TypeAlias)) !== 0 && (flags & ts.SymbolFlags.Value) === 0;
-    })
-    .map((symbol) => symbol.name)
+/** build した入口の file の最後の`export { ... }`が出す名前。本体を読み込まずに字で読む */
+function exportedValues(file: string): string[] {
+  const list = /export\s*\{([^}]*)\}\s*;?\s*(?:\/\/# sourceMappingURL=\S*\s*)?$/u.exec(readFileSync(file, "utf8"))?.[1] ?? "";
+  return list
+    .split(",")
+    .map((entry) => entry.trim().split(/\s+as\s+/u).pop() ?? "")
+    .filter((name) => name !== "")
     .sort();
-  const map = exported.find((symbol) => symbol.name === "DragonEmbedEventMap");
-  const events = map ? checker.getDeclaredTypeOfSymbol(resolveSymbol(map)).getProperties().map((property) => property.name).sort() : [];
-  return { types, events };
+}
+
+/**
+ * 型のfileが出す名前を字の並びの形で読む。`declare function`で書いた名前は関数、ほかの名前は型。
+ * 知らせの表 (`DragonEmbedEventMap`) の欄の名前も読む。本体の型のfileを読み込まないので、混んだ機械でも速い
+ */
+function declaredNames(file: string): { functions: string[]; types: string[]; events: string[] } {
+  const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest);
+  const exported: string[] = [];
+  const functions = new Set<string>();
+  let events: string[] = [];
+  for (const node of source.statements) {
+    if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) exported.push(...node.exportClause.elements.map((element) => element.name.text));
+    if (ts.isFunctionDeclaration(node) && node.name) functions.add(node.name.text);
+    if (ts.isInterfaceDeclaration(node) && node.name.text === "DragonEmbedEventMap") {
+      events = node.members.flatMap((member) => (member.name && (ts.isStringLiteral(member.name) || ts.isIdentifier(member.name)) ? [member.name.text] : []));
+    }
+  }
+  return {
+    functions: exported.filter((name) => functions.has(name)).sort(),
+    types: exported.filter((name) => !functions.has(name)).sort(),
+    events: events.sort(),
+  };
 }
 
 describe("SDKの入口の名前", () => {
-  it("sdk-entry-matches-name-list", async () => {
+  it("sdk-entry-matches-name-list", () => {
     const listed = JSON.parse(readFileSync(join(ROOT, "src/embed/names.json"), "utf8")) as Names;
     // 陰性でない対照。一覧に無い名前と、出していない名前を見分ける
     expect(diffNames(["a", "b"], ["a"]), "一覧に無い名前を見分ける").toEqual({ extra: ["b"], missing: [] });
@@ -150,11 +161,12 @@ describe("SDKの入口の名前", () => {
     expect(existsSync(join(DIST, "embed.d.ts")), "SDKの入口の型のfile (dist/embed.d.ts) が無い").toBe(true);
     if (!existsSync(ENTRY) || !existsSync(join(DIST, "embed.d.ts"))) return;
 
-    const loaded = (await import(/* @vite-ignore */ pathToFileURL(ENTRY).href)) as Record<string, unknown>;
-    const values = Object.keys(loaded).filter((name) => name !== "default");
-    expect(values.filter((name) => typeof loaded[name] !== "function"), "入口が出す関数でない値").toEqual([]);
+    const values = exportedValues(ENTRY);
     const declared = declaredNames(join(DIST, "embed.d.ts"));
+    expect(values.length, "build した入口から読めた名前の数").toBeGreaterThan(0);
     expect(declared.types.length, "型のfileから読めた型の数").toBeGreaterThan(0);
+    // 入口が出す値は、型のfileで全て関数として書かれている
+    expect(values, "入口が出す値と型のfileの関数").toEqual(declared.functions);
     expect(
       { functions: diffNames(values, listed.functions), types: diffNames(declared.types, listed.types), events: diffNames(declared.events, listed.events) },
       "入口が出す名前と名前の一覧の食い違い",
@@ -265,10 +277,10 @@ describe("帯を出さない置き方", () => {
       });
       expect(exported, "帯を出さない図のエクスポート").toEqual({ png: "image/png", ratio: 2, svg: "image/svg+xml", notation: SOURCE });
 
-      const editor = await page.evaluate(() => {
+      const editor = await page.evaluate(async () => {
         const w = window as unknown as EmbedWindow;
-        w.embed.openEditor();
-        return { opened: w.opened, url: w.embed.editorUrl };
+        await w.embed.openEditor();
+        return { opened: w.opened, url: await w.embed.editorUrl() };
       });
       expect(editor.url.startsWith(`${GALLERY}editor#`), "エディタのURLが見本帳のエディタを指す").toBe(true);
       expect(editor.opened, "エディタで開いたURL").toEqual([editor.url]);

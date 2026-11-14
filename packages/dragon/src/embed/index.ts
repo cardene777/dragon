@@ -73,12 +73,12 @@ export interface DragonEmbed {
   readonly player: Player;
   /** 帯つきの図の枠。帯を出さない時は無い */
   readonly frame: HTMLElement | undefined;
-  /** 見本帳のエディタで同じ記法を開く URL */
-  readonly editorUrl: string;
+  /** 見本帳のエディタで同じ記法を開く URL。記法を縮めて詰める */
+  editorUrl(): Promise<string>;
   /** 図を形式`format`のファイルの中身にする */
   export(format: ExportFormat, options?: ExportOptions): Promise<Blob>;
-  /** 見本帳のエディタを新しいタブで開く */
-  openEditor(): void;
+  /** 見本帳のエディタを新しいタブで開く。縮めても長すぎる記法はクリップボードに写してから貼るよう頼むエディタを開き、`true`で終わる */
+  openEditor(): Promise<boolean>;
   /** 物`kind`をクリップボードに書く。ブラウザが断った時は投げる */
   copy(kind: CopyKind): Promise<void>;
   /** 図と帯を取り除く */
@@ -124,7 +124,7 @@ export function mountDragon(host: HTMLElement, source: string, options: EmbedOpt
     diagram,
     player,
     frame: placed.frame,
-    editorUrl: actions.editorUrl,
+    editorUrl: () => actions.editorUrl(),
     export: (format, exportOptions) => actions.export(format, exportOptions),
     openEditor: () => actions.openEditor(),
     copy: (kind) => actions.copy(kind),

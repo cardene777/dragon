@@ -26,7 +26,7 @@ function longSource(): string {
   const next = (): number => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
   const word = (): string => Array.from({ length: 8 }, () => String.fromCharCode(97 + Math.floor(next() * 26))).join("");
   const lines = ["sequence 長い図", "box a as あなた", "box b as 店"];
-  for (let i = 0; i < 600; i += 1) lines.push(`step ${word()}`, `  a -> b: ${word()} ${word()} ${word()}`);
+  for (let i = 0; i < 300; i += 1) lines.push(`step ${word()}`, `  a -> b: ${word()} ${word()} ${word()}`);
   return lines.join("\n");
 }
 
@@ -89,7 +89,8 @@ describe("エディタのボタンとコピーの窓の通信 (#3697)", () => {
         await page.locator(".copy-toggle").first().click();
         await page.locator(`[data-menu="copy"] [data-copy="${kind}"]`).first().click();
       }
-      await page.waitForTimeout(300);
+      // 最後に押したエディタのURLが届くまで待つ。コピーの窓のエディタのURLも縮めた形
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), { timeout: 3000 }).toBe(short);
 
       // 陰性でない対照。新しいタブの頁の読み込みを記録している (記録が空振りしていない)
       const gallery = sent.filter((request) => request.url().startsWith(GALLERY));

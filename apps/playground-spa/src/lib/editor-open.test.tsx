@@ -53,7 +53,7 @@ function longSource(): string {
   const next = (): number => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
   const word = (): string => Array.from({ length: 8 }, () => String.fromCharCode(97 + Math.floor(next() * 26))).join("");
   const lines = ["sequence 長い図", "box a as あなた", "box b as 店"];
-  for (let i = 0; i < 600; i += 1) lines.push(`step ${word()}`, `  a -> b: ${word()} ${word()} ${word()}`);
+  for (let i = 0; i < 300; i += 1) lines.push(`step ${word()}`, `  a -> b: ${word()} ${word()} ${word()}`);
   return lines.join("\n");
 }
 
@@ -136,7 +136,13 @@ describe("エディタのボタンが開くURL (#3697)", () => {
     const written: string[] = [];
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
-      value: { writeText: async (text: string) => void (order.push("copy"), written.push(text)) },
+      value: {
+        writeText: (text: string): Promise<void> => {
+          order.push("copy");
+          written.push(text);
+          return Promise.resolve();
+        },
+      },
     });
     const opened: string[] = [];
     vi.spyOn(window, "open").mockImplementation((url) => {
@@ -160,6 +166,6 @@ describe("エディタのボタンが開くURL (#3697)", () => {
 
     // 貼るよう頼むURLで開いた編集画面は、書く欄を空にして貼るよう出す
     const area = await openEditor("#paste");
-    expect({ value: area.value, placeholder: area.placeholder.includes("貼") }, "貼るよう頼むURLで開いた書く欄").toEqual({ value: "", placeholder: true });
+    expect({ value: area.value, placeholder: area.placeholder.includes("クリップボード") }, "貼るよう頼むURLで開いた書く欄").toEqual({ value: "", placeholder: true });
   });
 });

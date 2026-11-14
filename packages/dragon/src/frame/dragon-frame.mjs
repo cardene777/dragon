@@ -1,5 +1,5 @@
 import { createFigureHeader, HEADER_CSS } from './header.mjs';
-import { EDITOR_BASE, editorUrl } from '../editor-url';
+import { EDITOR_BASE, editorPasteUrl, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
 import { paintSnippet, SNIPPET_CSS } from './dragon-snippet.mjs';
 import { createDiagramActions, PAPER } from './diagram-actions.mjs';
@@ -149,7 +149,14 @@ export function createDragonFrame(document, source, diagram, options = {}) {
       status(kind==='image'?t.copiedImage:kind==='url'?t.copiedUrl:t.copiedSource);
     }catch{status(t.copyFailed);}
   }
-  editorLink.addEventListener('click',()=>notify?.('share',{via:'editor'}));
+  // エディタのボタンは縮めた URL ができたら`href`に入れる。上限を超える記法とまだ縮めている間は、押すと処理が写してから開く (#3697)
+  let editorLong=null;
+  void actions.editorLink().then(({url,long})=>{editorLong=long;editorLink.href=long?editorPasteUrl():url;});
+  editorLink.addEventListener('click',event=>{
+    if(editorLong===false){notify?.('share',{via:'editor'});return;}
+    event.preventDefault();
+    void actions.openEditor().then(pasted=>{if(pasted)status(t.pasteInEditor);},()=>status(t.copyFailed));
+  });
   for(const button of root.querySelectorAll('[data-copy]'))button.addEventListener('click',()=>void copy(button.dataset.copy));
   for(const option of root.querySelectorAll('[data-option]'))for(const button of option.querySelectorAll('[data-value]'))button.addEventListener('click',()=>{
     const value=button.dataset.value;picked[option.dataset.option]=option.dataset.option==='scale'?Number(value):value;

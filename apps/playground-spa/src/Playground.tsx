@@ -38,7 +38,7 @@ import { SplitHandle } from "./editor/SplitHandle";
 import { Stage } from "./editor/Stage";
 import { useEditorBand } from "./editor/useEditorBand";
 import { type ExampleKey, exampleText, FIRST_EXAMPLE, firstScreenText, LATER_EXAMPLES, NEW_FILE_NAME, TEMPLATE, whichExample } from "./examples";
-import { fromHash, toHash } from "./share";
+import { fromHash, fromPackedHash, hashKind, toHash } from "./share";
 import { definitionsFailed, definitionsReady, kindFailed, kindReady, onDefinitionsSettled, onKindSettled, onValidatorSettled, validatorFailed, validatorReady } from "./site/kinds";
 import { useLater } from "./site/later";
 import { type CountedPart, type Lang, TEXT } from "./text";
@@ -189,8 +189,13 @@ interface Start {
   outcome: Outcome;
 }
 
-/** URL の `#` の後ろに書いた中身があればそれを、無ければ頁の言葉の最初の見本を開く */
+/**
+ * URL の `#` の後ろに書いた中身があればそれを、無ければ頁の言葉の最初の見本を開く。
+ * 縮めた記法 (`#z=`) は読み終えてから書く欄に入れ、記法を写して開いた URL (`#paste`) は書く欄を空にする (#3697)
+ */
 function start(lang: Lang): Start {
+  const kind = hashKind(location.hash);
+  if (kind === "packed" || kind === "paste") return { text: "", example: null, outcome: fromNotation("", lang) };
   const shared = fromHash(location.hash);
   const text = shared ?? firstScreenText(FIRST_EXAMPLE, lang);
   return { text, example: shared === undefined ? FIRST_EXAMPLE : (whichExample(text)?.key ?? null), outcome: fromNotation(text, lang) };
@@ -458,6 +463,24 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
     }
   };
 
+  // 縮めた記法の URL で開いた時は、読み終えた記法を書く欄に入れる。読めない時は最初の見本を開く (#3697)
+  const writeShared = useRef<(next: string | undefined) => void>(() => undefined);
+  useLayoutEffect(() => {
+    writeShared.current = (next) =>
+      next === undefined ? replace(firstScreenText(FIRST_EXAMPLE, lang), FIRST_EXAMPLE, `${FIRST_EXAMPLE}.dragon`, lang) : writeNotation(next);
+  });
+  useEffect(() => {
+    if (hashKind(location.hash) !== "packed") return undefined;
+    let live = true;
+    void fromPackedHash(location.hash).then((next) => {
+      if (live) writeShared.current(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const [pasteAsked] = useState(() => hashKind(location.hash) === "paste");
+
   // 図の種類の塊が届いたら、書いてある中身を読み直す。待っていた種類の図に替わり、読めなかった種類は誤りを出す (#3248)
   const reread = useRef<() => void>(() => undefined);
   useLayoutEffect(() => {
@@ -598,6 +621,7 @@ export function Playground({ lang, theme, palette: sitePalette, onBeforeLang }: 
               className="pg-text"
               data-playground="editor"
               aria-label={t.editor}
+              placeholder={pasteAsked && tab === "notation" ? t.pasteHere : undefined}
               spellCheck={false}
               wrap="off"
               value={value}

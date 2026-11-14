@@ -14,6 +14,8 @@ view.destroy();
 上段には、題の左にdragonの印を置き、コード、エディタ、コピー、エクスポート、拡大のボタンをこの順に並べる。
 ボタンは全部枠を持ち、拡大は字を持たずにアイコンと読み上げの名前だけを持つ。
 dragonの印は見本帳の頁を新しいタブで開き、エディタは同じ記法をdragonエディタで開く。
+エディタは記法をブラウザの内で縮めてURLの`#z=`に詰め、記法を外のサーバーへ送らない。
+縮めてもURLが8000字 (`EDITOR_URL_LIMIT`) を超える記法は、記法をクリップボードにコピーしてから貼るよう頼むエディタ (`#paste`) を開き、知らせの欄に貼るよう出す。
 コードは拡大窓の左に図、右に構文色を付けた記法とJSONを並べ、閉じると元の場所へ戻す。
 下段は再生や配色など、埋め込み先の操作を置く領域とする。
 操作の無い下段は隠す。
@@ -55,6 +57,7 @@ mountFramedDiagram(host, source, {
 押すと`onClick`が図の処理 (`view.frame.actions`) を受け取る。
 `notify`はエクスポートした時に`('export', { format })`、エディタで開いた時に`('share', { via: 'editor' })`、コピーした時に`('share', { via: 'copy', kind })`で呼ぶ。
 `view.frame.actions`の`export(format, { scale, background })`と`copy(kind)`と`openEditor()`は、帯のボタンと同じ処理を関数で呼ぶ。
+`openEditor()`は長い記法をコピーして開いた時に`true`で終わり、`editorUrl()`は縮めたエディタのURLを返す。
 帯を出さずに図だけを置く時は、SDKの入口`@cardenelabs/dragon/embed`の`mountDragon`に`header: false`を渡す。
 
 `lang`は帯と再生の部品の言葉を`ja`か`en`で決める。

@@ -3,7 +3,7 @@
  * 図の種類の部品を読むかだけが 2 つの入口で違うので、ここでは種類の部品を読まない。
  */
 // 記法をエディタで開く URL (#3644)。依存を持たないので、描く入口と軽い入口の両方が出す
-export { editorUrl, type EditorUrlOptions } from "./editor-url";
+export { EDITOR_PASTE_HASH, EDITOR_URL_LIMIT, editorHashKind, editorPasteUrl, editorUrl, packedEditorUrl, readEditorHash, readPackedEditorHash, type EditorUrlOptions } from "./editor-url";
 export { extractDiagrams, type Fence } from "./markdown";
 export { type LineError, type ParseOptions, type Parsed, parseNotation } from "./parser";
 export { type PrintOptions, printNotation } from "./printer";
