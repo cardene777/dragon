@@ -7,7 +7,7 @@ const BUDGET = Object.fromEntries(['min','max','step','initial'].map(key => [key
 const UNIT_PRICE = Number(PRODUCT.options.price);
 const DELIVERY = Object.freeze(Object.fromEntries(definition.blocks.filter(block => block.kind === 'option').map(block => [block.id, { name: block.name, fee: Number(block.options.fee), note: block.options.note, icon: block.options.icon }])));
 const PARTIES = Object.fromEntries(definition.blocks.filter(block => block.kind === 'party').map(block => [block.options.role, block]));
-const locked = s => ['processing', 'unknown', 'ordered'].includes(s.phase);
+const locked = s => ['processing', 'unknown', 'reconciling', 'ordered'].includes(s.phase);
 const quoted = (s, qty = s.qty, delivery = s.delivery) => ({
   revision: s.revision, qty, delivery, subtotal: UNIT_PRICE * qty,
   fee: DELIVERY[delivery].fee, total: UNIT_PRICE * qty + DELIVERY[delivery].fee,
@@ -86,7 +86,7 @@ function transition(previous, event) {
     case 'REVOKE':
       if (locked(s) || !s.approval) return previous;
       s.approval = null; s.token = null; s.phase = resting(s);
-      s.notice = '承認を取り消しました。購入するには、もう一度承認します。';
+      s.notice = '承認を取り消しました。購入するにはもう一度承認してください。';
       add(s, '購入者', '購入条件の承認を取り消しました。');
       return s;
     case 'MODE':
@@ -96,7 +96,7 @@ function transition(previous, event) {
     case 'BUY':
       if (!['approved', 'declined'].includes(s.phase) || !approvalValid(s)) return previous;
       s.phase = 'processing'; s.attempt++; s.token = null; s.notice = '';
-      add(s, 'エージェント', '承認済みの購入内容で、支払い委任を要求しました。');
+      add(s, 'エージェント', '承認済みの購入内容で支払い委任を要求しました。');
       return s;
     case 'TOKEN_READY':
       if (s.phase !== 'processing' || event.attempt !== s.attempt || s.token) return previous;
@@ -118,8 +118,13 @@ function transition(previous, event) {
       if (s.mode === 'lost') add(s, 'エージェント', '注文完了の応答が届かず、購入結果を確認できません。');
       else add(s, 'エージェント', '成立した注文を購入者へ伝えました。');
       return s;
-    case 'RECONCILE':
+    case 'RECONCILE_START':
       if (s.phase !== 'unknown' || !s.order) return previous;
+      s.phase = 'reconciling';
+      add(s, 'エージェント', '同じ購入の最新状態を販売事業者に問い合わせています。');
+      return s;
+    case 'RECONCILE':
+      if (!['unknown', 'reconciling'].includes(s.phase) || !s.order) return previous;
       s.phase = 'ordered';
       add(s, 'エージェント', '同じ購入の最新状態を取得しました。既存の注文を確認し、追加の決済はしていません。');
       return s;
@@ -134,14 +139,15 @@ function viewOf(s) {
   const gap = s.budget - s.quote.total;
   const lockedInputs = locked(s);
   const titles = {
-    over_budget: ['送料を含めると、予算を超えています', '配送方法か数量を変えるか、予算を調整してください。'],
-    quoting: ['販売事業者が、条件を計算し直しています', 'エージェントが変更を伝え、最新の購入内容が返るのを待っています。'],
-    ready: [s.invalidated ? '条件が変わりました。もう一度、承認を。' : '予算内です。購入は、まだ確定していません', '合計と配送方法を確認し、この条件で購入するか決めてください。'],
-    approved: ['この条件を、購入者が承認しました', '支払いに使える金額は、会話で伝えた予算ではなく、今回承認した金額です。'],
-    processing: [s.token ? '承認した範囲で、決済を処理しています' : 'この購入に限った支払いを準備しています', '実際の課金は行わない、説明用の処理です。'],
-    declined: ['決済が拒否されました。注文はありません', '最新条件の承認と、決済が成功したかどうかは別です。上のケースを切り替えて再度試せます。'],
-    unknown: ['購入結果を、まだ確認できません', '店側では注文が作成済みです。新たに購入を送り直さず、同じ購入の状態を確認してください。'],
-    ordered: ['購入条件の確認から、注文成立まで進みました', '注文は1件。購入の完了と、発送・配達の完了は別です。'],
+    over_budget: ['送料を含めると予算を超えています', '配送方法や数量を変えるか、予算を調整してください。'],
+    quoting: ['販売事業者が購入条件を再計算しています', '変更を販売事業者に伝えました。最新の購入条件が返るのを待っています。'],
+    ready: [s.invalidated ? '条件が変わりました。もう一度承認してください' : '予算内です。購入はまだ確定していません', '合計と配送方法を確認して、この条件で購入するか決めてください。'],
+    approved: ['購入者がこの条件を承認しました', '支払いの上限は今回承認した金額です。'],
+    processing: [s.token ? '承認した範囲で決済を処理しています' : 'この購入に限った支払いを準備しています', '購入の仕組みを説明するための処理です。実際の課金は行いません。'],
+    declined: ['決済が拒否されました。注文はありません', '購入条件の承認と決済の成功は別です。上のケースを切り替えて再度試せます。'],
+    unknown: ['購入結果をまだ確認できません', '店側では注文が作成済みです。新たに購入を送り直さず、同じ購入の状態を確認してください。'],
+    reconciling: ['販売事業者に注文の結果を確認しています', '同じ購入の最新状態を問い合わせています。決済は繰り返しません。'],
+    ordered: ['購入条件の確認から注文成立まで進みました', '注文は1件です。購入の完了と発送・配達の完了は別です。'],
   };
   return { pending, approved, gap, lockedInputs, title: titles[s.phase][0], description: titles[s.phase][1],
     canApprove: !lockedInputs && !pending && !approved && gap >= 0,

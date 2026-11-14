@@ -16,7 +16,7 @@ export const template = String.raw`
   <header class="page-header">
     <div>
     <h1>条件を変える。<br class="small-only">購入の判断が変わる。</h1>
-    <p class="intro">配送や数量を変えて、最新の購入条件を承認してみてください。</p></div>
+    <p class="intro">配送や数量を変えて最新の購入条件を承認してみてください。</p></div>
     <div class="header-actions">
       <button id="reset" class="reset" type="button"><svg><use href="#i-refresh"/></svg>最初の条件に戻す</button>
       <fieldset id="modes" class="scenario-tabs"><legend class="sr-only">試すケース</legend><label><input type="radio" name="mode" value="normal" checked><span>通常の購入</span></label><label><input type="radio" name="mode" value="decline"><span>決済拒否</span></label><label><input type="radio" name="mode" value="lost"><span>応答不達</span></label></fieldset>
@@ -24,7 +24,7 @@ export const template = String.raw`
   </header>
 
   <section class="board" aria-label="購入条件と購入の状態を操作する図">
-    <div class="scene-heading"><div class="flow-heading"><span class="flow-heading-icon"><svg><use href="#i-refresh"/></svg></span><div><h2>注文フロー</h2><p>条件の変更が、誰の処理につながるか</p></div></div><span class="scene-pill" id="phase-label">購入条件を確認</span></div>
+    <div class="scene-heading"><div class="flow-heading"><span class="flow-heading-icon"><svg><use href="#i-refresh"/></svg></span><div><h2>注文フロー</h2><p>条件の変更が誰の処理につながるか</p></div></div><span class="scene-pill" id="phase-label">購入条件を確認</span></div>
     <div class="flow-map" id="flow-map">
       <div id="flow-svg" class="flow-svg" aria-hidden="true"></div>
       <button class="actor" data-actor="buyer" type="button" aria-pressed="false"><span class="actor-top"><span class="avatar"><svg><use href="#i-user"/></svg></span><span><strong>あなた</strong><small>購入の判断</small></span></span><span class="actor-state" id="actor-buyer"></span></button>
@@ -32,10 +32,10 @@ export const template = String.raw`
       <button class="actor" data-actor="seller" type="button" aria-pressed="false"><span class="actor-top"><span class="avatar"><svg><use href="#i-shop"/></svg></span><span><strong>販売事業者</strong><small>条件と注文</small></span></span><span class="actor-state" id="actor-seller"></span></button>
       <button class="actor" data-actor="payment" type="button" aria-pressed="false"><span class="actor-top"><span class="avatar"><svg><use href="#i-card"/></svg></span><span><strong>決済事業者</strong><small>支払いの処理</small></span></span><span class="actor-state" id="actor-payment"></span></button>
     </div>
-    <div id="transfer" class="transfer" role="status">条件を変えると、購入に関わるやり取りがここに現れます。</div>
+    <div id="transfer" class="transfer" role="status">条件を変えると購入に関わるやり取りがここに現れます。</div>
     <div id="actor-note" class="actor-note"></div>
 
-    <div class="coach" id="coach" role="status" aria-live="polite"><span class="coach-dot"></span><div><h2 id="scene-title"></h2><p id="scene-description"></p></div></div>
+    <div class="coach" id="coach" role="status" aria-live="polite"><span class="coach-dot" aria-hidden="true"></span><div><h2 id="scene-title"></h2><p id="scene-description"></p></div></div>
 
     <div class="workspace">
       <section class="merchant-panel" aria-labelledby="merchant-title">
@@ -51,8 +51,8 @@ export const template = String.raw`
           <div class="quote-total"><div><span>販売事業者が返した合計</span><small id="quote-detail"></small></div><strong id="total"></strong></div>
           <p id="budget-gap" class="budget-gap"></p>
         </div>
-        <div class="merchant-order" id="merchant-order" hidden><svg><use href="#i-check"/></svg><div><strong>販売事業者側では、注文が1件できています</strong><span id="merchant-order-detail"></span></div></div>
-        <p class="panel-foot">価格は説明用の設定です。図では、販売事業者が変更を受けて最新の合計を返します。</p>
+        <div class="merchant-order" id="merchant-order" hidden><svg><use href="#i-check"/></svg><div><strong>販売事業者側では注文が1件できています</strong><span id="merchant-order-detail"></span></div></div>
+        <p class="panel-foot">価格は説明用の設定です。販売事業者は変更を受けて最新の合計を返します。</p>
       </section>
 
       <section class="buyer-panel" aria-labelledby="buyer-title">

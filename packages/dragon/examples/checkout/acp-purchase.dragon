@@ -1,4 +1,4 @@
-checkout acp as 条件を変える。購入の判断が変わる。 [version: 1, note: 配送や数量を変えて、最新の購入条件を承認してみてください。]
+checkout acp as 条件を変える。購入の判断が変わる。 [version: 1, note: 配送や数量を変えて最新の購入条件を承認してみてください。]
 
 // 注文フローの4者。商品や配送とは独立したブロック。
 party buyer as あなた [role: buyer, note: 購入の判断, icon: user]
