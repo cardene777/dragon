@@ -2,7 +2,7 @@ import type { CheckoutDefinition, CheckoutBlock } from "./read";
 export interface CheckoutQuote { revision: number; qty: number; delivery: string; subtotal: number; fee: number; total: number; merchant: string }
 export interface CheckoutState {
   session: number; revision: number; qty: number; delivery: string; budget: number;
-  phase: "over_budget" | "quoting" | "ready" | "approved" | "processing" | "declined" | "unknown" | "ordered";
+  phase: "over_budget" | "quoting" | "ready" | "approved" | "processing" | "declined" | "unknown" | "reconciling" | "ordered";
   quote: CheckoutQuote; approval: CheckoutQuote | null;
   token: { maxAmount: number; merchant: string; session: number } | null;
   order: (CheckoutQuote & { number: string }) | null;

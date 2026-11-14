@@ -18,6 +18,7 @@ let pulseVersion = 0;
 let inspectedActor = false;
 const reduceMotion = environment.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 let state = initialState();
+$('lab').dataset.reducedMotion = String(reduceMotion);
 
 const heading = scope.querySelector('h1'); heading.textContent = definition.title;
 scope.querySelector('.intro').textContent = definition.note;
@@ -109,7 +110,7 @@ function dispatch(event) {
     effects.clear();
     for (const actor of scope.querySelectorAll('[data-actor]')) delete actor.dataset.transfer;
     delete $('transfer').dataset.active;
-    $('transfer').textContent = '条件を変えると、購入に関わるやり取りがここに現れます。';
+    $('transfer').textContent = '条件を変えると購入に関わるやり取りがここに現れます。';
   }
   render();
   const { session, revision, attempt } = state;
@@ -144,9 +145,11 @@ function dispatch(event) {
       sendLater('agent', 'buyer', 1800, '#518563', '注文成立を知らせる', state.order.total);
       emphasize('order-result');
     }
-  } else if (event.type === 'RECONCILE') {
+  } else if (event.type === 'RECONCILE_START') {
     pulse('agent', 'seller', '#518563', '同じ購入の結果を問い合わせる');
-    sendLater('seller', 'agent', 900, '#518563', '既存の注文を返す', state.order.total);
+    later(() => dispatch({ type: 'RECONCILE', session }), 1200);
+  } else if (event.type === 'RECONCILE') {
+    pulse('seller', 'agent', '#518563', '既存の注文を返す', state.order.total);
     emphasize('order-result');
   } else if (event.type === 'BUDGET' && before.approval && !state.approval) {
     pulse('buyer', 'agent', '#c58d4c');
@@ -156,19 +159,22 @@ function dispatch(event) {
 function actorDescriptions(s, v) {
   return {
     buyer: v.approved ? `あなたが承認したのは${yen(s.approval.total)}・${DELIVERY[s.approval.delivery].name}です。予算を増やしても、承認した金額が自動で増えるわけではありません。` : `あなたの予算は${yen(s.budget)}です。予算内でも、購入条件を確認して承認するまでは購入を進めません。`,
-    agent: s.phase === 'unknown' ? '店からの応答が届いていません。新しい購入を送るのではなく、同じ購入の状態を確認します。' : s.phase === 'ordered' ? '店が返した注文を購入者へ伝えました。注文の確認と、配送が完了したことは別です。' : v.pending ? '数量や配送の変更を販売事業者へ伝えています。販売事業者の新しい返答を待ち、手元の古い金額で確定しません。' : v.gap < 0 ? '返された合計が予算を超えているため、購入の完了を要求しません。条件の変更を待っています。' : v.approved ? '最新の購入条件への承認があります。これから、その購入に使う支払い情報を用意できます。' : '販売事業者が返した最新の購入内容を示し、購入者の承認を待っています。',
+    agent: s.phase === 'unknown' ? '店からの応答が届いていません。新しい購入を送るのではなく、同じ購入の状態を確認します。' : s.phase === 'reconciling' ? '同じ購入の最新状態を販売事業者に問い合わせています。追加の決済は行いません。' : s.phase === 'ordered' ? '店が返した注文を購入者へ伝えました。注文の確認と配送の完了は別です。' : v.pending ? '数量や配送の変更を販売事業者へ伝えています。販売事業者の新しい返答を待ち、手元の古い金額で確定しません。' : v.gap < 0 ? '返された合計が予算を超えているため、購入の完了を要求しません。条件の変更を待っています。' : v.approved ? '最新の購入条件が承認されています。この購入に使う支払い情報を用意できます。' : '販売事業者が返した最新の購入内容を示し、購入者の承認を待っています。',
     seller: s.order ? `店側では${yen(s.order.total)}の注文が1件成立しています。エージェントへ応答が届いたかどうかとは別の状態です。` : v.pending ? `変更を受けて販売条件を計算し直しています。この例では商品${yen(UNIT_PRICE)}×数量に、選んだ配送方法の送料を加えます。` : `商品と配送方法を確認し、合計${yen(s.quote.total)}を返しています。正式な購入内容を計算するのは販売事業者です。`,
-    payment: s.token ? `今回の購入・${s.token.merchant}・上限${yen(s.token.maxAmount)}という条件で支払いを扱います。トークンの発行と決済の成功は別です。` : s.phase === 'declined' ? 'この決済は拒否しました。購入者の承認があっても、決済が成功したことにはなりません。' : 'まだ支払いは要求されていません。購入者の承認を得た後に、この購入に限った支払いを処理します。',
+    payment: s.token ? `今回の購入・${s.token.merchant}・上限${yen(s.token.maxAmount)}という条件で支払いを扱います。トークンの発行と決済の成功は別です。` : s.phase === 'declined' ? 'この決済は拒否しました。購入者が承認していても、決済が成功したことにはなりません。' : 'まだ支払いは要求されていません。購入者の承認を得た後にこの購入に限った支払いを処理します。',
   };
 }
 
 function render() {
   const s = state;
   const v = viewOf(s);
+  const reconciling = s.phase === 'reconciling';
+  const busy = v.pending || s.phase === 'processing' || reconciling;
   $('scene-title').textContent = v.title;
   $('scene-description').textContent = v.description;
   $('coach').dataset.tone = ['over_budget', 'unknown'].includes(s.phase) ? 'warning' : s.phase === 'declined' ? 'error' : ['approved', 'ordered'].includes(s.phase) ? 'good' : 'neutral';
-  $('phase-label').textContent = { quoting: '購入条件を更新', over_budget: '購入条件を確認', ready: '購入者の承認待ち', approved: '最新条件を承認済み', processing: '支払いを処理', declined: '決済が失敗', unknown: '購入結果を確認', ordered: '注文成立' }[s.phase];
+  $('coach').dataset.busy = String(busy);
+  $('phase-label').textContent = { quoting: '購入条件を更新', over_budget: '購入条件を確認', ready: '購入者の承認待ち', approved: '最新条件を承認済み', processing: '支払いを処理', declined: '決済が失敗', unknown: '購入結果は未確認', reconciling: '注文結果を確認中', ordered: '注文成立' }[s.phase];
 
   $('quantity').textContent = `${s.qty}${PRODUCT.options.unit}`;
   $('qty-down').disabled = v.lockedInputs || s.qty === QUANTITY.min;
@@ -177,6 +183,7 @@ function render() {
     input.checked = input.value === s.delivery; input.disabled = v.lockedInputs;
   }
   $('quote').dataset.pending = String(v.pending);
+  $('quote').setAttribute('aria-busy', String(v.pending));
   $('quote-badge').dataset.pending = String(v.pending);
   $('quote-badge').textContent = v.pending ? '更新中' : '最新';
   $('subtotal').textContent = v.pending ? '再計算中' : yen(s.quote.subtotal);
@@ -184,7 +191,7 @@ function render() {
   $('total').innerHTML = v.pending ? '···' : `${s.quote.total.toLocaleString('ja-JP')}<small>円</small>`;
   $('quote-detail').textContent = v.pending ? '最新の返答を待っています' : `${DELIVERY[s.quote.delivery].name}・${s.quote.qty}${PRODUCT.options.unit}・税込み`;
   $('budget-gap').dataset.over = String(v.gap < 0);
-  $('budget-gap').textContent = v.pending ? 'エージェントが変更を伝えています' : v.gap < 0 ? `予算を${yen(-v.gap)}超えています` : v.gap === 0 ? '送料込みで、予算ちょうどです' : `予算まで${yen(v.gap)}あります`;
+  $('budget-gap').textContent = v.pending ? 'エージェントが変更を伝えています' : v.gap < 0 ? `予算を${yen(-v.gap)}超えています` : v.gap === 0 ? '送料込みで予算ちょうどです' : `予算まで${yen(v.gap)}あります`;
   $('budget').value = s.budget;
   $('budget').disabled = v.lockedInputs;
   $('budget').setAttribute('aria-valuetext', yen(s.budget));
@@ -192,33 +199,38 @@ function render() {
   $('budget-value').innerHTML = `${s.budget.toLocaleString('ja-JP')}<small>円</small>`;
 
   $('approval').dataset.approved = String(v.approved);
-  $('approval-status').textContent = v.approved ? `${yen(s.approval.total)}の条件を承認済み` : '最新の購入条件は、まだ未承認';
+  $('approval-status').textContent = v.approved ? `${yen(s.approval.total)}の条件を承認済み` : '最新の購入条件はまだ未承認';
   $('approval-mark').textContent = v.approved ? '✓ 承認済み' : '承認待ち';
-  $('approval-detail').textContent = v.approved ? `${s.approval.qty}${PRODUCT.options.unit}・${DELIVERY[s.approval.delivery].name}を承認しています。数量や配送を変えると、この承認は使えなくなります。` : v.pending ? '販売事業者が返す新しい購入条件を待っています。' : `合計${yen(s.quote.total)}・${DELIVERY[s.quote.delivery].name}を確認して承認します。`;
+  $('approval-detail').textContent = v.approved ? `${s.approval.qty}${PRODUCT.options.unit}・${DELIVERY[s.approval.delivery].name}を承認しています。数量や配送を変えると承認が無効になります。` : v.pending ? '販売事業者が返す新しい購入条件を待っています。' : `合計${yen(s.quote.total)}・${DELIVERY[s.quote.delivery].name}を確認して承認します。`;
   $('revoke').hidden = !v.approved || v.lockedInputs;
   $('approval-notice').hidden = !s.notice;
   $('approval-notice').textContent = s.notice;
   $('approve').disabled = !v.canApprove;
   $('approve').dataset.done = String(v.approved);
+  $('approve').setAttribute('aria-busy', String(v.pending));
   $('approve').textContent = v.approved ? '✓ この購入条件は承認済み' : v.pending ? '購入条件を更新しています' : v.gap < 0 ? '予算を超えるため承認できません' : `${yen(s.quote.total)}の条件を承認する`;
 
   $('permit').dataset.issued = String(Boolean(s.token));
   $('permit-title').textContent = s.token ? `この購入・上限${yen(s.token.maxAmount)}` : 'この購入に限った支払い';
-  $('permit-detail').textContent = s.token ? `${s.token.merchant}に限り、有効期限内に使うトークンです。会話の予算${yen(s.budget)}とは別の制約です。` : v.approved ? `購入を試すと、承認した${yen(s.approval.total)}に限定した支払いを用意します。` : '購入条件が承認された後に、支払いに使う情報を用意します。';
+  $('permit-detail').textContent = s.token ? `${s.token.merchant}で有効期限内に使えるトークンです。会話の予算${yen(s.budget)}とは別の制約です。` : v.approved ? `承認した${yen(s.approval.total)}に限定した支払いを用意します。` : '購入条件が承認された後に支払いに使う情報を用意します。';
   $('buy').disabled = !v.canBuy;
-  $('buy').hidden = ['unknown', 'ordered'].includes(s.phase);
-  $('buy').textContent = s.phase === 'processing' ? s.token ? '利用条件を照合し、決済しています…' : '支払いの準備をしています…' : s.phase === 'declined' ? '同じ購入条件で、もう一度試す' : v.approved ? `${yen(s.approval.total)}で購入を試す` : '承認してから、購入を試す';
-  $('reconcile').hidden = s.phase !== 'unknown';
+  $('buy').hidden = ['unknown', 'reconciling', 'ordered'].includes(s.phase);
+  $('buy').setAttribute('aria-busy', String(s.phase === 'processing'));
+  $('buy').textContent = s.phase === 'processing' ? s.token ? '利用条件を照合して決済しています' : '支払いを準備しています' : s.phase === 'declined' ? '同じ購入条件でもう一度試す' : v.approved ? `${yen(s.approval.total)}で購入を試す` : '承認して購入を試す';
+  $('reconcile').hidden = !['unknown', 'reconciling'].includes(s.phase);
+  $('reconcile').disabled = reconciling;
+  $('reconcile').setAttribute('aria-busy', String(reconciling));
+  $('reconcile').textContent = reconciling ? '注文の結果を確認しています' : '同じ購入の結果を確認する';
   $('order-result').hidden = s.phase !== 'ordered';
   $('order-result').replaceChildren();
   if (s.phase === 'ordered') {
-    const title = document.createElement('strong'); title.textContent = '注文が1件、成立しました';
-    const description = document.createElement('p'); description.textContent = `${yen(s.order.total)}・${DELIVERY[s.order.delivery].name}・${s.order.qty}${PRODUCT.options.unit}。発送と配達は、この後です。`;
+    const title = document.createElement('strong'); title.textContent = '注文が1件成立しました';
+    const description = document.createElement('p'); description.textContent = `${yen(s.order.total)}・${DELIVERY[s.order.delivery].name}・${s.order.qty}${PRODUCT.options.unit}。発送と配達はこの後です。`;
     $('order-result').append(title, description);
   }
   $('merchant-order').hidden = !s.order;
   $('merchant-order-detail').textContent = s.order ? `${yen(s.order.total)}・${DELIVERY[s.order.delivery].name} / 決済の成立は${s.chargeCount}回` : '';
-  $('button-hint').textContent = s.phase === 'unknown' ? '結果の確認で、追加の決済は行いません。' : s.phase === 'ordered' ? '別の条件を試す時は、右上から最初に戻せます。' : s.phase === 'processing' ? '処理中は、数量や配送を変更できません。' : v.approved ? '条件を変えたら、改めて承認します。' : '予算内でも、承認なしには購入を進めません。';
+  $('button-hint').textContent = ['unknown', 'reconciling'].includes(s.phase) ? '結果を確認しても追加の決済は行いません。' : s.phase === 'ordered' ? '別の条件を試す時は右上から最初に戻せます。' : s.phase === 'processing' ? '処理中は数量や配送を変更できません。' : v.approved ? '条件を変えたら改めて承認します。' : '予算内でも承認なしには購入を進めません。';
   for (const input of scope.querySelectorAll('input[name="mode"]')) {
     input.checked = input.value === s.mode; input.disabled = v.lockedInputs;
   }
@@ -229,7 +241,7 @@ function render() {
 function renderActors(s, v) {
   const actorStates = {
     buyer: [s.phase === 'ordered' ? '注文を確認済み' : v.approved ? '最新条件を承認済み' : v.gap < 0 ? '予算を超過' : '条件を確認', s.phase === 'unknown' ? 'warning' : v.approved ? 'good' : v.gap < 0 ? 'warning' : 'neutral'],
-    agent: [{ quoting: '条件を伝える', over_budget: '購入を止める', ready: '承認を待つ', approved: '購入の準備', processing: '支払いを依頼', declined: '失敗を伝える', unknown: '結果を未確認', ordered: '注文を伝える' }[s.phase], ['over_budget', 'unknown', 'declined'].includes(s.phase) ? 'warning' : ['quoting', 'processing'].includes(s.phase) ? 'busy' : v.approved ? 'good' : 'neutral'],
+    agent: [{ quoting: '条件を伝える', over_budget: '購入を止める', ready: '承認を待つ', approved: '購入の準備', processing: '支払いを依頼', declined: '失敗を伝える', unknown: '結果は未確認', reconciling: '注文を確認中', ordered: '注文を伝える' }[s.phase], ['over_budget', 'unknown', 'declined'].includes(s.phase) ? 'warning' : ['quoting', 'processing', 'reconciling'].includes(s.phase) ? 'busy' : v.approved ? 'good' : 'neutral'],
     seller: [s.order ? '注文が1件成立' : v.pending ? '合計を再計算' : `合計${yen(s.quote.total)}`, v.pending ? 'busy' : 'good'],
     payment: [s.order ? '決済済み' : s.phase === 'declined' ? '決済を拒否' : s.phase === 'processing' ? s.token ? '利用条件を照合' : 'トークンを発行' : 'まだ呼ばれない', s.order ? 'good' : s.phase === 'declined' ? 'warning' : s.phase === 'processing' ? 'busy' : 'muted'],
   };
@@ -325,7 +337,7 @@ $('budget').addEventListener('input', event => dispatch({ type: 'BUDGET', value:
 $('approve').addEventListener('click', () => dispatch({ type: 'APPROVE' }));
 $('revoke').addEventListener('click', () => dispatch({ type: 'REVOKE' }));
 $('buy').addEventListener('click', () => dispatch({ type: 'BUY' }));
-$('reconcile').addEventListener('click', () => dispatch({ type: 'RECONCILE' }));
+$('reconcile').addEventListener('click', () => dispatch({ type: 'RECONCILE_START' }));
 $('reset').addEventListener('click', () => dispatch({ type: 'RESET' }));
 for (const input of scope.querySelectorAll('input[name="mode"]')) input.addEventListener('change', () => dispatch({ type: 'MODE', mode: input.value }));
 for (const button of scope.querySelectorAll('[data-actor]')) button.addEventListener('click', () => {
