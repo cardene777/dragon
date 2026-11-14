@@ -6,7 +6,9 @@ const document = host.ownerDocument;
 const environment = document.defaultView;
 if (!environment) throw new Error('checkout requires a browser document');
 const scope = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
-scope.innerHTML = `<style>${skin}</style>${template}`;
+// 見た目は再生の部品が渡す口で図の影の根へ入れ、style要素を作らない (#3695)。口を渡さずに直に置いた時は影の根にstyle要素で入れる
+scope.innerHTML = options.styles ? template : `<style>${skin}</style>${template}`;
+options.styles?.adopt('dragon-checkout-css', skin, scope);
 const { UNIT_PRICE, DELIVERY, QUANTITY, BUDGET, PRODUCT, PARTIES, initialState, transition, viewOf } = createCheckoutModel(definition);
 let disposed = false;
 const $ = id => scope.querySelector(`[id="${id}"]`);
@@ -276,7 +278,7 @@ function drawLinks() {
   if (key === flowDrawKey) return;
   flowDrawKey = key;
   const output = options.drawFlow(ports, activeRoute);
-  $('flow-svg').innerHTML = output.svg;
+  $('flow-svg').innerHTML = options.styles ? options.styles.markup(output.svg) : output.svg;
   const svg = $('flow-svg').firstElementChild;
   svg.setAttribute('width', $('flow-map').clientWidth);
   svg.setAttribute('height', $('flow-map').clientHeight);

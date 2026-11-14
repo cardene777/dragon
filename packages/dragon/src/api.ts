@@ -162,6 +162,8 @@ export type { DotBox, DotGroup, DotPlan, DotSize, DotText, DotTextRole, PlacedDo
 export { type Family, FONTS } from "./look/fonts";
 export { type ColorKey, type ColorName, type Colors, type Corner, DEFAULT_PALETTE, type Palette, PALETTES, READABLE_PX, resolvePalette, type TextStyle, type Theme } from "./look/values";
 export { mountDiagram, type Player, type PlayerOptions } from "./player";
+// 再生の部品の設定`styles`が名指す、見た目を入れる口の型 (#3695)
+export type { StyleRoot, Styles } from "./adopt-css";
 export { ICONS } from "./blocks/icon/icons";
 export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from "./render/ink";
 export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./render/breaks";

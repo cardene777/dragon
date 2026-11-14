@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The bar on a framed diagram gets the dragon mark, copy and export menus, and the language of the page it sits on (`mountFramedDiagram`)** (#3695)
+
+  The bar now puts the dragon mark left of the title, which opens the gallery in a new tab, and lines up boxed Code, Editor, Copy, Export and an icon-only expand button. Copy writes the notation, a PNG of the diagram or the editor URL to the clipboard. Export groups PNG and SVG under Images, HTML, GIF and MP4 under Motion, and dragon notation (`.dragon`) and JSON under Notation, and lets you pick the size (1x, 2x, 3x) and the background (fill, transparent) for images. Only one menu opens at a time, and clicking anywhere else closes it. The bar speaks the `lang` option, else the `lang` attribute above where it sits, else English. The bar, the player, pipe calls, try inputs and checkout styles now go into the frame's shadow root through `adoptedStyleSheets` instead of `<style>` elements in the page head, so the player inside the frame is styled and pages that block `<style>` elements still work; browsers without `adoptedStyleSheets` get `<style>` elements carrying the `nonce` option. Text inside the frame falls back to sans-serif fonts instead of a serif face when the bundled fonts are not loaded.
+
 ## [0.74.0] - 2026-11-14
 
 ### Added

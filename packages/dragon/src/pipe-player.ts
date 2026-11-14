@@ -22,6 +22,7 @@ import { FIGURE_TEXT, joinWords } from "./figure-text";
 import { OP_TEXT } from "./kinds/pipe/layout";
 import { LOOK, TYPE } from "./look/values";
 import { checkPasses, isFault, PipeRun } from "./pipe-run";
+import type { Styles } from "./adopt-css";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel } from "./schema";
 import type { NotationLang } from "./words";
@@ -260,7 +261,9 @@ function callsCss(): string {
   ].join("");
 }
 
-function ensureCallsCss(doc: Document): void {
+/** 呼び出しの見た目を入れる。口`styles`を渡された時は口で図を置いた所の根 (帯の内側) へ入れ、無い時は文書の頭へ入れる (#3695) */
+function ensureCallsCss(doc: Document, styles?: Styles): void {
+  if (styles) return styles.adopt("dragon-pipe-css", callsCss());
   if (doc.getElementById("dragon-pipe-css")) return;
   const style = doc.createElement("style");
   style.id = "dragon-pipe-css";
@@ -276,8 +279,8 @@ export interface PipeCalls {
 }
 
 /** 段の矢印と要点の札と呼び出しの結果を作る。置く所は再生の部品が決める */
-export function mountPipeCalls(doc: Document, lang: NotationLang): PipeCalls {
-  ensureCallsCss(doc);
+export function mountPipeCalls(doc: Document, styles: Styles | undefined, lang: NotationLang): PipeCalls {
+  ensureCallsCss(doc, styles);
   const w = FIGURE_TEXT[lang];
   const element = doc.createElement("div");
   element.className = "dg-calls";

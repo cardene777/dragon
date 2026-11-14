@@ -125,6 +125,12 @@ export function paletteVars(palette: Palette, theme: Theme): string {
 /** 字の変数。同梱した 2 つの字を 1 度だけ名指し、字を使う所はどれもこの変数を読む。 */
 export const FONT_VARS = `--sans:"${FONTS.sans}";--mono:"${FONTS.mono}"`;
 
+/**
+ * 帯つきの図で動かす図の字の変数 (#3695)。同梱した字の後に代わりの字の並びを持ち、同梱した字を読まない頁に置いても明朝に落ちない。
+ * 書き出す SVG と帯を付けない図は`FONT_VARS`のまま代わりの字を持たず、同梱した字を埋められない時に端末の字へ黙って落ちない
+ */
+export const FONT_STACK_VARS = `--sans:"${FONTS.sans}","Noto Sans JP","Hiragino Sans",sans-serif;--mono:"${FONTS.mono}","JetBrains Mono",ui-monospace,monospace`;
+
 /** 区画や箱を分ける色の役。灰 (slate) と硬貨 (coin) は分類の色として順に配らない。 */
 export const COLOR_ORDER = ["blue", "amber", "green", "violet", "rose"] as const;
 export type ColorKey = (typeof COLOR_ORDER)[number] | "slate" | "coin";

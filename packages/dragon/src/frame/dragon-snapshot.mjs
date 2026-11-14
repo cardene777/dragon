@@ -2,8 +2,11 @@ const SVG='http://www.w3.org/2000/svg';
 const HTML='http://www.w3.org/1999/xhtml';
 const PROPERTIES=['display','position','inset','top','right','bottom','left','z-index','box-sizing','width','height','min-width','min-height','max-width','max-height','margin','padding','border','border-radius','border-top','border-right','border-bottom','border-left','box-shadow','background','color','opacity','overflow','overflow-x','overflow-y','font','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','text-decoration','text-transform','white-space','word-break','overflow-wrap','vertical-align','flex','flex-direction','flex-wrap','flex-grow','flex-shrink','flex-basis','align-items','align-self','justify-content','gap','row-gap','column-gap','grid-template-columns','grid-template-rows','grid-column','grid-row','grid-auto-flow','transform','transform-origin','isolation','object-fit','fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','stroke-opacity','fill-opacity','filter','visibility','appearance','accent-color','clip-path'];
 
-/** Capture the complete rendered stage, including its shadow DOM and input values. */
-export function snapshotDiagram(host, {animate=false}={}) {
+/**
+ * Capture the complete rendered stage, including its shadow DOM and input values.
+ * `transparent` leaves out the diagram's background shape (`dg-bg`) so only the boxes, lines and text are drawn.
+ */
+export function snapshotDiagram(host, {animate=false,transparent=false}={}) {
   const document=host.ownerDocument,win=document.defaultView;
   const rect=host.getBoundingClientRect();
   if(rect.width<=0||rect.height<=0)throw new Error('図を表示してから書き出してください');
@@ -13,6 +16,7 @@ export function snapshotDiagram(host, {animate=false}={}) {
     if(['SCRIPT','LINK'].includes(node.tagName))return null;
     const inSvg=node.namespaceURI===SVG;
     if(node.tagName==='STYLE'&&!inSvg)return null;
+    if(transparent&&inSvg&&node.classList.contains('dg-bg'))return null;
     const copy=document.createElementNS(inSvg?SVG:HTML,node.localName);
     for(const attr of node.attributes){if(!/^on/i.test(attr.name)&&attr.name!=='style')copy.setAttribute(attr.name,attr.value);}
     const style=win.getComputedStyle(node);
@@ -76,12 +80,14 @@ export function snapshotText(snapshot,at=0) {
   return new snapshot.svg.ownerDocument.defaultView.XMLSerializer().serializeToString(copy);
 }
 
-export async function snapshotCanvas(snapshot,at=0,scale=1) {
+/** Draw the snapshot at `scale` times its CSS pixels. `fill` paints the canvas first; pass `null` to keep it transparent. */
+export async function snapshotCanvas(snapshot,at=0,scale=1,fill='#fffefa') {
   const document=snapshot.svg.ownerDocument,win=document.defaultView;
   const image=new win.Image();image.src=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(snapshotText(snapshot,at))}`;
   await image.decode();
   const canvas=document.createElement('canvas');canvas.width=Math.ceil(snapshot.width*scale);canvas.height=Math.ceil(snapshot.height*scale);
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('画像を描画できませんでした');
-  ctx.fillStyle='#fffefa';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+  if(fill){ctx.fillStyle=fill;ctx.fillRect(0,0,canvas.width,canvas.height);}
+  ctx.drawImage(image,0,0,canvas.width,canvas.height);
   return canvas;
 }
