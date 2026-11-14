@@ -17,3 +17,8 @@
 | 図の書体の変数は、dragonの書体の後に代わりの書体の並びを持ち、書体を読まない頁でも明朝に落ちない | `pnpm exec vitest run`の検査`diagram-font-has-fallback-stack`が通る | #3695 |
 | 帯の色は今と同じく設定`headerColors`と`--dragon-header-*`の変数で変えられる | `pnpm exec vitest run`の検査`"header layout and controls remain the same when the embedder changes its colors"`が通る | #3695 |
 | 今と同じ`mountFramedDiagram(host, source)`の呼び方で、帯つきの図が置け、`destroy()`で取り除ける | `pnpm exec vitest run`の検査`"shared frame mounts the native checkout player and destroys its input view"`が通る | #3695 |
+| SDKの入口が出す関数と型と知らせの名前が、名前の一覧のfileと一致し、一覧に無い名前を出すか一覧の名前を出さないと検査が落ちる | `pnpm exec vitest run`の検査`sdk-entry-matches-name-list`が通る | #3698 |
+| SDKの設定`look`で、帯の色、帯の書体と字の大きさと角と高さ、図を囲む枠の線と地を変えられる | `pnpm exec vitest run`の検査`sdk-look-sets-colors-font-radius-density-frame`が通る | #3698 |
+| SDKの設定`buttons`で、帯のボタンを外し、並べ替え、置く側のボタンを足せ、足したボタンを押すと置く側の関数が図を受け取って呼ばれる | `pnpm exec vitest run`の検査`sdk-buttons-hide-reorder-and-add`が通る | #3698 |
+| SDKで帯を出さずに図だけを置き、エクスポート、エディタで開く、コピーを関数で呼べる | `pnpm exec vitest run`の検査`sdk-headless-calls-export-editor-copy`が通る | #3698 |
+| SDKで置いた図は、描けた・描けなかった、段が変わった、エクスポートした、エディタで開いた・コピーしたの4つを置いた頁へ知らせる | `pnpm exec vitest run`の検査`sdk-emits-four-events`が通る | #3698 |
