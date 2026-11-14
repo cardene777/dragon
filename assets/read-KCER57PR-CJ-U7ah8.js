@@ -1,1 +1,0 @@
-import{d as u}from"./index-CyY9P-Ux.js";var A={read:u("凡例の説明はチップの行の鍵で、行の頭の語を持たない。チップの行を読む処理が note の鍵を読む"),print:u("凡例の説明はチップの行の鍵で、チップの宣言を書き戻す処理が note の鍵を書く"),messages:u("凡例の説明は字を自由に書けるので、誤りの文を持たない")};export{A as reading};
