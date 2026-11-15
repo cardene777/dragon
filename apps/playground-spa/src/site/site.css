@@ -87,13 +87,16 @@ textarea:focus-visible {
   text-decoration: none;
 }
 
-/* 前の帯の印 (`M2 15l9-14 9 14-9-4.5z`) を 22 × 16 の枠の割合で切り抜く */
+/*
+ * dragonの印の段の鱗 (#3713)。頁の側で SVG を組まないので、ファビコンの画像の形で強調の色を切り抜く。
+ * ファビコンは図の帯の印 (`@cardenelabs/dragon/header`) と同じ形を描く
+ */
 .site-mark {
   display: block;
-  width: 19px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   background: var(--d-accent);
-  clip-path: polygon(9.09% 93.75%, 50% 6.25%, 90.91% 93.75%, 50% 65.63%);
+  mask: url("/icon.svg") center / contain no-repeat;
 }
 
 .site-name {

@@ -668,68 +668,54 @@
   display: none;
 }
 
-.catalog-preview-head {
-  padding: 20px 22px;
+/*
+ * 見本の札の帯 (#3713)。帯の形と見た目は図を組み込んだ先と同じ帯の頭 (`@cardenelabs/dragon/header`) が持ち、
+ * ここでは色を頁の色味の変数に、字をサイトの書体に合わせる。2 行目は色味の切替と拡大縮小を左から詰めて並べる
+ */
+.catalog-bar {
+  --dragon-header-surface: var(--d-surface-2);
+  --dragon-header-background: var(--d-surface);
+  --dragon-header-foreground: var(--d-text-primary);
+  --dragon-header-muted: var(--d-text-secondary);
+  --dragon-header-border: var(--d-border);
+  --dragon-header-accent: var(--d-accent);
+  --dragon-header-hover: var(--d-accent-soft);
+  --dragon-header-font: var(--sans), sans-serif;
+  --dragon-header-font-size: 13px;
+  --dragon-header-height: 54px;
 }
 
-.catalog-preview-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.35;
+/* 帯の頭の見た目は帯の中の style 要素が後から入れるので、帯の頭の名前を足して強さで上回る */
+.catalog-bar [data-dragon-header] .dg-header-title {
+  font-size: 15px;
 }
 
-.catalog-preview-sub {
-  max-width: 720px;
-  margin: 9px 0 0;
-  font-size: 14px;
-  line-height: 1.85;
-  color: var(--d-text-secondary);
+.catalog-bar [data-dragon-header] .dg-header-settings {
+  justify-content: flex-start;
 }
 
-/* 見出しは押す先の名前なので折らず、空きが足りない時は道具の列の側を折り返す */
-.catalog-preview-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 8px 18px;
-  border-top: 1px solid var(--d-border);
+.catalog-bar .pg-icon {
+  width: 15px;
+  height: 15px;
+  mask-size: 15px 15px;
 }
 
-.catalog-tablist {
-  display: flex;
-  gap: 4px;
+.pg-icon[data-icon="code"] {
+  mask-image: url("./icons/code.svg");
+}
+.pg-icon[data-icon="open"] {
+  mask-image: url("./icons/open.svg");
+}
+.pg-icon[data-icon="copy"] {
+  mask-image: url("./icons/copy.svg");
+}
+.pg-icon[data-icon="expand"] {
+  mask-image: url("./icons/expand.svg");
 }
 
-/* 下線で選択を示す。枠で囲むと記法の切替と見分けが付かない */
-.catalog-preview-tab {
-  flex-shrink: 0;
-  padding: 7px 14px 8px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  font-size: 13px;
-  color: var(--d-text-secondary);
-  white-space: nowrap;
-}
-
-.catalog-preview-tab:hover {
-  color: var(--d-text-primary);
-}
-
-.catalog-preview-tab[aria-selected="true"] {
-  border-bottom-color: var(--d-accent);
-  color: var(--d-text-primary);
-}
-
-.catalog-preview-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-left: auto;
+/* コピーの窓の項目は形の名前でなく言葉なので、書き出す窓の等幅の字を使わない */
+.catalog-copy-menu .pg-export-item {
+  font-family: inherit;
 }
 
 .catalog-option {
@@ -812,23 +798,6 @@
   font-size: 11.5px;
   color: var(--d-text-secondary);
   text-align: center;
-}
-
-.catalog-expand-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 12px;
-  border: 1px solid var(--d-border-strong);
-  border-radius: var(--d-r-1);
-  background: transparent;
-  font-size: 12.5px;
-  color: var(--d-text-primary);
-}
-
-.catalog-expand-btn:hover {
-  border-color: var(--d-accent);
-  color: var(--d-accent);
 }
 
 /*
@@ -1061,13 +1030,6 @@
   color: var(--d-text-secondary);
 }
 
-.catalog-preview-foot {
-  display: flex;
-  justify-content: flex-end;
-  padding: 14px 22px;
-  border-top: 1px solid var(--d-border);
-}
-
 .catalog-preview-link {
   font-size: 13px;
   font-weight: 600;
@@ -1207,19 +1169,21 @@
   .catalog-hero {
     padding: 36px 0 32px;
   }
-  .catalog-preview-actions {
-    margin-left: 0;
-  }
   .catalog-overlay {
     padding: 8px;
   }
 }
 
-/* 狭い幅では読むのは重ね窓で行うので、入口を指で押せる大きさにする。指で触る時は幅に関わらず同じ大きさにする (#3078) */
+/* 狭い幅では読むのは重ね窓で行うので、帯のボタンを指で押せる大きさにする。指で触る時は幅に関わらず同じ大きさにする (#3078、#3713) */
 @media (max-width: 860px), (pointer: coarse) {
-  .catalog-expand-btn {
+  .catalog-bar [data-dragon-header] .dg-header-actions > :is(button, a),
+  .catalog-bar [data-dragon-header] .dg-header-actions > div > button {
+    min-width: 44px;
     min-height: 44px;
-    padding: 6px 14px;
+  }
+  .catalog-bar [data-dragon-header] .dg-mark {
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -1240,8 +1204,8 @@
 
 /*
  * 携帯の幅と指で触る時は、押せる部品を指で押す的の目安の 44 × 44px にする (#3067、#3078)。編集画面の携帯の幅 (#3065) と揃え、
- * 携帯の幅の縮小と拡大の組は全体に合わせるの釦を出さずに倍率を釦にして (`CategoryPage.tsx`)、360px でも拡大の釦と同じ段に収める。
- * 指で触る広い幅は合わせるの釦も残し、見本の枠の上の帯に収まらない時は道具を 2 段目へ折り返す
+ * 携帯の幅の縮小と拡大の組は全体に合わせるの釦を出さずに倍率を釦にして (`CategoryPage.tsx`)、360px でも帯の 2 行目に色味の切替と並べて収める。
+ * 指で触る広い幅は合わせるの釦も残し、帯の 2 行目に収まらない時は折り返す
  */
 @media (max-width: 439px), (pointer: coarse) {
   .catalog-search-wrap {
@@ -1261,11 +1225,6 @@
   }
 
   .catalog-list-item {
-    min-height: 44px;
-  }
-
-  .catalog-preview-tab {
-    min-width: 44px;
     min-height: 44px;
   }
 
@@ -1301,12 +1260,7 @@
     min-height: 44px;
   }
 
-  /* 編集画面で開くは字の見た目のまま押せる高さを取り、その分だけ枠の下の余白を詰める */
-  .catalog-preview-foot {
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-
+  /* 部品の頁の編集画面で開くは、字の見た目のまま押せる高さを取る */
   .catalog-preview-link {
     display: inline-flex;
     align-items: center;

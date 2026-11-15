@@ -1,20 +1,24 @@
 /**
  * カタログの分類の頁 (#3033)。0.35.0 より前のサイトの分類の頁 (`pages/CategoryPage.tsx`) と同じ形にする。
  *
- * 左に検索と見本の一覧、右に選んだ見本 1 つを置く。右の見本は名前と説明、図とコードの見出し、色味の切替、
- * 縮小と拡大と全体に合わせる、拡大の釦、段の札、動く図、進み具合の帯、段の本文、編集画面で開くを持つ。
+ * 左に検索と見本の一覧、右に選んだ見本 1 つを置く。右の見本は帯、段の札、動く図、進み具合の帯、段の本文を持つ。
+ * 帯は図を組み込んだ先と同じ帯の頭 (`@cardenelabs/dragon/header`) で作り、1 行目に段の鱗の印と見本の題と、
+ * コード、エディタ、コピー、エクスポート、拡大のボタンを並べ、2 行目に色味の切替と、縮小と拡大と全体に合わせるを置く (#3713)。
  * 携帯の幅では部品を指で押せる大きさ (44px) にし、編集画面と同じく全体に合わせるの釦を出さず、
  * 倍率を縮小と拡大の間の釦にして、押すと全体に合わせる (#3067)。
- * 図とコードはどちらも残したまま表示だけを入れ替え、切り替えるたびに図を描き直さない。
- * コードの見出しは記法と JSON の切替と写す釦と本文を持ち、拡大の釦は画面を覆う重ね窓に同じ図を大きく出す。
+ * 図とコードはどちらも残したまま、帯のコードのボタンで表示だけを入れ替え、切り替えるたびに図を描き直さない。
+ * コードの側は記法と JSON の切替と写す釦と本文を持ち、帯の拡大のボタンは画面を覆う重ね窓に同じ図を大きく出す。
  * 色味の切替は「サイトと同じ」と色味の表の全ての色味で、この頁の図だけを替える。帯の色味が替わると「サイトと同じ」に戻る。
  * 前の頁にあった cdl だけの道具 (パターン、描き方、速さ) は、今の記法に無いので置かない。
  * 2 面の下には、この図の種類で使える部品の札を部品の表の並びで置き、部品の頁へ飛べるようにする (#3166)。
  * 経路の `#` の後ろに分類の見本の名前がある時 (`/catalog/sequence#payment`) は、その見本を選んだ状態で開く (#3167)。
  */
-import { type Diagram, PALETTES, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
-import { type CSSProperties, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
+import { createFigureHeader, type FigureHeader } from "@cardenelabs/dragon/header";
+import { type Diagram, PALETTES, parseNotation, readDiagram, renderDiagram, type Theme } from "@cardenelabs/dragon/light";
+import { type CSSProperties, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
+import { ExportMenu } from "../editor/ExportMenu";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "../editor/fit";
 import { useFittedFigure } from "../editor/useFittedFigure";
 import { type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
@@ -330,76 +334,98 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
       () => undefined,
     );
   };
+  const editorHref = `${PATHS.editor}${toHash(text)}`;
+  /** 今描いている図の SVG。帯の書き出す窓と画像のコピーが撮る */
+  const figure = (): SVGSVGElement | null => host.current?.querySelector<SVGSVGElement>('svg[data-dragon="figure"]') ?? null;
+
+  // 帯の頭は図を組み込んだ先と同じ物を package に作らせ、印と題を描かせる。ボタンと 2 行目の中身は下で差し込む (#3713)
+  const barHost = useRef<HTMLDivElement>(null);
+  const [bar, setBar] = useState<FigureHeader | null>(null);
+  useLayoutEffect(() => {
+    const el = barHost.current;
+    if (!el) return;
+    const header = createFigureHeader(document, { title, mark: { href: PATHS.home, label: c.mark }, label: c.toolbar });
+    el.append(header.element);
+    setBar(header);
+    return () => {
+      header.element.remove();
+      setBar(null);
+    };
+  }, [title, c.mark, c.toolbar]);
 
   return (
     <article className="catalog-preview-card">
-      <header className="catalog-preview-head">
-        <h2 className="catalog-preview-title">{title}</h2>
-        {info?.about && (
-          <p className="catalog-preview-sub" data-catalog="about">
-            {info.about}
-          </p>
-        )}
-      </header>
-
-      <div className="catalog-preview-tabs">
-        <div className="catalog-tablist" role="tablist" aria-label={c.views}>
-          {(["figure", "code"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              className="catalog-preview-tab"
-              data-catalog={`tab-${v}`}
-              aria-selected={view === v}
-              onClick={() => onView(v)}
-            >
-              {v === "figure" ? c.figure : c.code}
+      <div className="catalog-bar" data-catalog="bar" ref={barHost} />
+      {bar &&
+        createPortal(
+          <>
+            <button type="button" data-action="code" aria-pressed={view === "code"} onClick={() => onView(view === "code" ? "figure" : "code")}>
+              <span className="pg-icon" data-icon="code" aria-hidden="true" />
+              {c.code}
             </button>
-          ))}
-        </div>
-        <div className="catalog-preview-actions">
-          <label className="catalog-option">
-            <span className="catalog-option-label">{t.palette}</span>
-            <span className="catalog-select-field">
-              <select className="catalog-select" data-catalog="palette" value={choice} onChange={(e) => onChoice(e.target.value)}>
-                <option value={SAME}>{c.sameAsSite}</option>
-                {Object.values(PALETTES).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {t.paletteNames[p.id] ?? p.name}
-                  </option>
-                ))}
-              </select>
-            </span>
-          </label>
-          <div className="catalog-zoom" role="group" aria-label={t.stage.zoom}>
-            <ZoomButton name="zoom-out" icon="zoom-out" label={t.stage.zoomOut} disabled={!zoomable || scale === ZOOM_RANGE[0]} onClick={() => zoomBy(1 / ZOOM_STEP)} />
-            {phone ? (
-              <button
-                type="button"
-                className="catalog-zoom-btn catalog-zoom-fit"
-                data-catalog="zoom-level"
-                aria-label={`${t.stage.fit} (${level})`}
-                title={t.stage.fit}
-                disabled={!zoomable}
-                onClick={() => setFactor(1)}
-              >
-                {level}
-              </button>
-            ) : (
-              <span className="catalog-zoom-value" data-catalog="zoom-level">
-                {level}
+            <a data-action="editor" href={editorHref} onClick={(e) => follow(e)}>
+              <span className="pg-icon" data-icon="open" aria-hidden="true" />
+              {c.editor}
+            </a>
+            <CopyMenu lang={lang} text={text} editorHref={editorHref} figure={figure} />
+            <ExportMenu
+              t={t.stage}
+              lang={lang}
+              figure={figure}
+              timeline={() => (diagram ? renderDiagram(diagram, { palette, theme, lang }).timeline : undefined)}
+              source={() => text}
+              palette={palette}
+              theme={theme}
+              name={sample}
+              barLabel={c.export}
+            />
+            <button type="button" data-action="expand" aria-label={c.expandLabel(title)} title={c.expandLabel(title)} onClick={onExpand}>
+              <span className="pg-icon" data-icon="expand" aria-hidden="true" />
+            </button>
+          </>,
+          bar.actions,
+        )}
+      {bar &&
+        createPortal(
+          <>
+            <label className="catalog-option">
+              <span className="catalog-option-label">{t.palette}</span>
+              <span className="catalog-select-field">
+                <select className="catalog-select" data-catalog="palette" value={choice} onChange={(e) => onChoice(e.target.value)}>
+                  <option value={SAME}>{c.sameAsSite}</option>
+                  {Object.values(PALETTES).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {t.paletteNames[p.id] ?? p.name}
+                    </option>
+                  ))}
+                </select>
               </span>
-            )}
-            <ZoomButton name="zoom-in" icon="zoom-in" label={t.stage.zoomIn} disabled={!zoomable || scale === ZOOM_RANGE[1]} onClick={() => zoomBy(ZOOM_STEP)} />
-            {!phone && <ZoomButton name="fit" icon="fit" label={t.stage.fit} disabled={!zoomable} onClick={() => setFactor(1)} />}
-          </div>
-          <button type="button" className="catalog-expand-btn" data-catalog="expand" aria-label={c.expandLabel(title)} onClick={onExpand}>
-            <span className="pg-icon" data-icon="fullscreen" aria-hidden="true" />
-            <span>{c.expand}</span>
-          </button>
-        </div>
-      </div>
+            </label>
+            <div className="catalog-zoom" role="group" aria-label={t.stage.zoom}>
+              <ZoomButton name="zoom-out" icon="zoom-out" label={t.stage.zoomOut} disabled={!zoomable || scale === ZOOM_RANGE[0]} onClick={() => zoomBy(1 / ZOOM_STEP)} />
+              {phone ? (
+                <button
+                  type="button"
+                  className="catalog-zoom-btn catalog-zoom-fit"
+                  data-catalog="zoom-level"
+                  aria-label={`${t.stage.fit} (${level})`}
+                  title={t.stage.fit}
+                  disabled={!zoomable}
+                  onClick={() => setFactor(1)}
+                >
+                  {level}
+                </button>
+              ) : (
+                <span className="catalog-zoom-value" data-catalog="zoom-level">
+                  {level}
+                </span>
+              )}
+              <ZoomButton name="zoom-in" icon="zoom-in" label={t.stage.zoomIn} disabled={!zoomable || scale === ZOOM_RANGE[1]} onClick={() => zoomBy(ZOOM_STEP)} />
+              {!phone && <ZoomButton name="fit" icon="fit" label={t.stage.fit} disabled={!zoomable} onClick={() => setFactor(1)} />}
+            </div>
+          </>,
+          bar.settings,
+        )}
 
       <div
         ref={stage}
@@ -462,13 +488,105 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
           <code>{body}</code>
         </pre>
       </div>
-
-      <footer className="catalog-preview-foot">
-        <a className="catalog-preview-link" data-catalog="open-editor" href={`${PATHS.editor}${toHash(text)}`} onClick={(e) => follow(e)}>
-          {c.openEditor}
-        </a>
-      </footer>
     </article>
+  );
+}
+
+interface CopyMenuProps {
+  lang: Lang;
+  /** 見本の記法 */
+  text: string;
+  /** 見本の記法を入れたエディタの経路 */
+  editorHref: string;
+  /** 今描いている図の SVG。画像のコピーが撮る */
+  figure: () => SVGSVGElement | null;
+}
+
+/**
+ * 帯のコピーのボタンと窓 (#3713)。図を組み込んだ先の帯と同じく、記法と画像とエディタの URL を選んでクリップボードに写す。
+ * 窓は札に切られないよう、ボタンの下の画面の位置に置く (`position: fixed`)。Esc か窓の外を押すと閉じる。
+ * 画像は書き出す入口 (`@cardenelabs/dragon/capture`) で PNG にし、入口は押した時に初めて読む。写した結果はボタンの字で知らせる
+ */
+function CopyMenu({ lang, text, editorHref, figure }: CopyMenuProps): ReactElement {
+  const c = CATALOG_TEXT[lang];
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  /** 窓を置く画面の位置。ボタンの下の端に右を揃える */
+  const [spot, setSpot] = useState<CSSProperties>({});
+  const button = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    const hide = (): void => setOpen(false);
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      hide();
+      button.current?.focus();
+    };
+    const onDown = (event: PointerEvent): void => {
+      const target = event.target as Node | null;
+      if (target && !menu.current?.contains(target) && !button.current?.contains(target)) hide();
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    // 窓は画面の位置に置くので、画面の大きさが替わったら閉じる
+    window.addEventListener("resize", hide);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("resize", hide);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (note === null) return;
+    const timer = window.setTimeout(() => setNote(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [note]);
+
+  const toggle = (): void => {
+    if (!open) {
+      const box = button.current?.getBoundingClientRect();
+      if (box) setSpot({ top: box.bottom + 4, right: Math.max(8, window.innerWidth - box.right) });
+    }
+    setOpen(!open);
+  };
+
+  const copy = async (kind: "source" | "image" | "url"): Promise<void> => {
+    setOpen(false);
+    try {
+      if (kind === "image") {
+        const svg = figure();
+        if (!svg) throw new Error("no figure");
+        const capture = await import("@cardenelabs/dragon/capture");
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": await capture.capturePng(svg, { lang }) })]);
+      } else {
+        await navigator.clipboard.writeText(kind === "source" ? text : new URL(editorHref, location.href).href);
+      }
+      setNote(c.barCopied);
+    } catch {
+      setNote(c.copyFailed);
+    }
+  };
+
+  return (
+    <div data-action="copy">
+      <button type="button" ref={button} aria-haspopup="menu" aria-expanded={open} onClick={toggle}>
+        <span className="pg-icon" data-icon="copy" aria-hidden="true" />
+        <span aria-live="polite">{note ?? c.barCopy}</span>
+      </button>
+      {open && (
+        <div className="pg-export-menu catalog-copy-menu" role="menu" aria-label={c.barCopy} data-menu="copy" ref={menu} style={spot}>
+          {(["source", "image", "url"] as const).map((kind) => (
+            <button key={kind} type="button" role="menuitem" className="pg-export-item" data-copy={kind} onClick={() => void copy(kind)}>
+              {kind === "source" ? c.copySource : kind === "image" ? c.copyImage : c.copyUrl}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
