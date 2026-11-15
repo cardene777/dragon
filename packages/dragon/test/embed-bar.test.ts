@@ -28,6 +28,14 @@ const LIBS: Record<string, string> = {
 const SOURCE = "sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n  a -> b: 注文";
 /** dragonの印が開く見本帳の頁 */
 const GALLERY = "https://cardene777.github.io/dragon/";
+/** dragonの印の段の鱗 (#3713)。Codexが描いた形で、`viewBox`が`0 0 48 48`の2つの面。帯はこの形を描き直さずに写す */
+const SCALE_MARK = {
+  viewBox: "0 0 48 48",
+  paths: [
+    "M6 6.75A0.75 0.75 0 0 1 6.75 6L41.25 6A0.75 0.75 0 0 1 42 6.75L42 11.25A0.75 0.75 0 0 1 41.25 12L28.75 12A0.75 0.75 0 0 0 28 12.75L28 21.25A0.75 0.75 0 0 1 27.25 22L16.75 22A0.75 0.75 0 0 0 16 22.75L16 29.25A0.75 0.75 0 0 1 15.25 30L10.3107 30A0.75 0.75 0 0 1 9.7803 29.7803L6.2197 26.2197A0.75 0.75 0 0 1 6 25.6893Z",
+    "M41.25 18A0.75 0.75 0 0 1 42 18.75L42 25.6893A0.75 0.75 0 0 1 41.7803 26.2197L24.5303 43.4697A0.75 0.75 0 0 1 23.4697 43.4697L17.2803 37.2803A0.75 0.75 0 0 1 17.8107 36L21.25 36A0.75 0.75 0 0 0 22 35.25L22 28.75A0.75 0.75 0 0 1 22.75 28L33.25 28A0.75 0.75 0 0 0 34 27.25L34 18.75A0.75 0.75 0 0 1 34.75 18Z",
+  ],
+};
 /** 見た目を自分で入れる種類の図。配管の図は呼び出しの欄、試す図は入力の帯、購入操作図は図の内側の影の根に見た目を持つ */
 const KINDS: { kind: string; source: string; styled?: string }[] = [
   { kind: "sequence", source: SOURCE, styled: ".dg-player" },
@@ -159,6 +167,30 @@ describe("帯の並び", () => {
       expect(await mark.getAttribute("rel")).toContain("noopener");
       const [popup] = await Promise.all([page.waitForEvent("popup", { timeout: 4000 }), mark.click()]);
       expect(popup.url()).toBe(GALLERY);
+    }));
+
+  // 印は段の鱗のアイコンだけを描き、`dragon`の字を持たず、読み上げの名前を持つ (#3713)
+  it("bar-mark-is-icon-only", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      await mount(page);
+      const mark = await page.evaluate(() => {
+        const el = document.querySelector(".dragon-frame")!.shadowRoot!.querySelector<HTMLElement>(".dg-header-row a.dg-mark");
+        if (!el) return undefined;
+        const svg = el.querySelector("svg");
+        return {
+          text: el.textContent?.trim() ?? "",
+          label: el.getAttribute("aria-label") ?? "",
+          icons: el.querySelectorAll("svg").length,
+          viewBox: svg?.getAttribute("viewBox") ?? "",
+          paths: [...(svg?.querySelectorAll("path") ?? [])].map((path) => path.getAttribute("d")),
+        };
+      });
+      expect(mark, "帯にdragonの印が無い").toBeDefined();
+      expect(mark!.text, "印が字を持つ").toBe("");
+      expect(mark!.label, "印が読み上げの名前を持たない").not.toBe("");
+      expect(mark!.icons).toBe(1);
+      expect(mark!.viewBox).toBe(SCALE_MARK.viewBox);
+      expect(mark!.paths).toEqual(SCALE_MARK.paths);
     }));
 
   it("bar-expand-is-icon-only", () =>

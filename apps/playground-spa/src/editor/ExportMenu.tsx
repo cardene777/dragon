@@ -8,6 +8,7 @@
  * 書き出す入口は詰める道具を持ち重いので、最初に読む script に入れず、釦を押した時に読む。
  * mp4 は WebCodecs の H.264 が無いブラウザでは作れないので、窓を開いた時に確かめ、作れない時は MP4 を並べない。
  * 書き出している間は釦を押せない。書き出せなかった時は、釦の下に訳を出す。
+ * カタログの見本の札の帯では、図を組み込んだ先の帯と同じく、絵と字の釦を窓と一緒に`data-action="export"`の入れ物に入れる (#3713)。
  */
 import type { LineStyle, Theme, Timeline } from "@cardenelabs/dragon/light";
 import { type CSSProperties, type ReactElement, useEffect, useRef, useState } from "react";
@@ -40,10 +41,12 @@ interface Props {
   /** 今の図の色味と明るさ。HTML の頁を同じ色で描く */
   palette: string;
   theme: Theme;
-  /** 今の図の線の描き方。HTML の頁を同じ描き方で描く (#3643)。画像と動画は描いた図をそのまま撮るので要らない */
-  line: LineStyle;
+  /** 今の図の線の描き方。HTML の頁を同じ描き方で描く (#3643)。画像と動画は描いた図をそのまま撮るので要らない。書かない時は既定の描き方 */
+  line?: LineStyle;
   /** 保存させる file の名前 (拡張子を除く) */
   name: string;
+  /** 帯に置く時の釦の字 (#3713)。書かない時は編集画面の道具の列に置く絵だけの釦にする */
+  barLabel?: string;
 }
 
 /** Blob を `name` の file として保存させる */
@@ -57,7 +60,7 @@ function save(blob: Blob, name: string): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, line, name }: Props): ReactElement {
+export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, line, name, barLabel }: Props): ReactElement {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mp4, setMp4] = useState<boolean | undefined>(undefined);
@@ -128,7 +131,7 @@ export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, 
       const film = { lang, timeline: timeline() };
       const made =
         format === "html"
-          ? new Blob([await capture.captureHtml(notation, { lang, palette, theme, line })], { type: "text/html" })
+          ? new Blob([await capture.captureHtml(notation, { lang, palette, theme, ...(line ? { line } : {}) })], { type: "text/html" })
           : format === "png"
           ? await capture.capturePng(svg, { lang })
           : format === "svg"
@@ -145,23 +148,9 @@ export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, 
     }
   };
 
-  return (
+  const bar = barLabel !== undefined;
+  const windows = (
     <>
-      <button
-        type="button"
-        ref={button}
-        className="pg-tool"
-        data-playground="export-figure"
-        aria-label={t.export}
-        title={t.export}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-busy={busy}
-        disabled={busy}
-        onClick={toggle}
-      >
-        <span className="pg-icon" data-icon="export" aria-hidden="true" />
-      </button>
       {open && (
         <div className="pg-export-menu" role="menu" aria-label={t.exportMenu} data-playground="export-menu" ref={menu} style={spot}>
           {FORMATS.filter((f) => f.id !== "mp4" || mp4 !== false).map((f) => (
@@ -176,6 +165,35 @@ export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, 
           {failed}
         </p>
       )}
+    </>
+  );
+  const trigger = (
+    <button
+      type="button"
+      ref={button}
+      className={bar ? undefined : "pg-tool"}
+      data-playground={bar ? undefined : "export-figure"}
+      aria-label={bar ? undefined : t.export}
+      title={bar ? undefined : t.export}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-busy={busy}
+      disabled={busy}
+      onClick={toggle}
+    >
+      <span className="pg-icon" data-icon="export" aria-hidden="true" />
+      {barLabel}
+    </button>
+  );
+  return bar ? (
+    <div data-action="export">
+      {trigger}
+      {windows}
+    </div>
+  ) : (
+    <>
+      {trigger}
+      {windows}
     </>
   );
 }

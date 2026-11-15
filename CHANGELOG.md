@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The dragon mark is the scale icon alone, and the catalog cards have the same bar as an embedded diagram** (#3713)
+
+  The mark left of the title in a diagram's bar draws the scale icon only and no longer has the `dragon` text; its accessible name stays. The gallery header mark and the favicon draw the same scale. On a catalog kind page, the example card replaces its title, the Diagram and Code tabs and the Enlarge button with the bar: the first row has the mark, the title and the Code, Editor, Copy, Export and expand buttons, and the second row has the palette picker and the zoom controls. Copy offers the notation, an image and the editor URL, Export offers PNG, SVG, GIF, MP4 and HTML, and expand opens the same enlarged view as before. At narrow widths the bar keeps the mark and the title on one row.
+
 ## [0.75.0] - 2026-11-15
 
 ### Added
