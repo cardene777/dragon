@@ -36,3 +36,14 @@
 | 見本帳の使い方の頁に組み込みの節が在り、4つの置き方ごとに写せるコードを出す | `pnpm exec vitest run`の検査`docs-page-has-embed-section`が通る | #3701 |
 | 見本帳に、4つの置き方で同じ図を置いた見本の頁が在る | `pnpm exec vitest run`の検査`embed-sample-page-shows-four-ways`が通る | #3701 |
 | プラグインの文書に組み込みの節が在り、AIが4つの置き方とSDKの設定を引ける | `pnpm exec vitest run`の検査`plugin-docs-has-embed-section`が通る | #3701 |
+| 帯つきの図の帯の印は、段の鱗のアイコンだけを描き、`dragon`の字を持たず、読み上げの名前を持つ | `pnpm exec vitest run`の検査`bar-mark-is-icon-only`が通る | #3713 |
+| 帯つきの図の帯は、題の左に印を置き、コード、エディタ、コピー、エクスポート、拡大のボタンをこの順に並べ、ボタンは全部枠を持つ | `pnpm exec vitest run`の検査`bar-lists-mark-and-five-buttons-in-order`が通る | #3713 |
+| 帯の印を押すと、見本帳の頁を新しいタブで開く | `pnpm exec vitest run`の検査`bar-mark-opens-gallery`が通る | #3713 |
+| 見本帳の見出しの印とファビコンは、帯の印と同じ段の鱗の形を描き、今の矢じりと波線を描かない | `pnpm exec vitest run`の検査`site-mark-and-favicon-match-the-bar-mark`が通る | #3713 |
+| カタログの種類の頁の見本の札は帯を持ち、帯の1行目に段の鱗の印と見本の題と、コード、エディタ、コピー、エクスポート、拡大のボタンをこの順に並べる | `pnpm exec vitest run`の検査`catalog-card-has-the-bar`が通る | #3713 |
+| カタログの帯の2行目に色味の切替と拡大縮小を置き、札は図とコードのタブと、帯の外の拡大のボタンを持たない | `pnpm exec vitest run`の検査`catalog-bar-holds-theme-and-zoom`が通る | #3713 |
+| カタログの帯のコードのボタンを押すと記法の本文を出し、もう一度押すと図に戻る | `pnpm exec vitest run`の検査`catalog-bar-code-toggles-source`が通る | #3713 |
+| カタログの帯のエディタのボタンは、その見本の記法を入れたエディタを開く | `pnpm exec vitest run`の検査`catalog-bar-editor-opens-notation`が通る | #3713 |
+| カタログの帯のコピーのボタンで、その見本の記法をクリップボードに写せる | `pnpm exec vitest run`の検査`catalog-bar-copies-notation`が通る | #3713 |
+| カタログの帯のエクスポートのボタンを押すと、書き出す形を選ぶ窓を開く | `pnpm exec vitest run`の検査`catalog-bar-export-opens-menu`が通る | #3713 |
+| カタログの帯の拡大のボタンを押すと、今の拡大の重ね窓を開く | `pnpm exec vitest run`の検査`catalog-bar-fullscreen-opens-overlay`が通る | #3713 |
