@@ -222,10 +222,26 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-76-0-lists-the-scale-mark", () => {
+    // 帯の印を段の鱗のアイコンだけにし、見本帳の印とカタログの帯を揃えた変更 (#3713) を 0.76.0 で出す (#3715)
+    expect(version(), "package の版が 0.76.0 でない").toBe("0.76.0");
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.76\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.76.0"), "0.76.0");
+      expect(released, `${file} に日付付きの ## [0.76.0] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3713)")) ?? "";
+      expect(entry, `${file} の 0.76.0 の節に #3713 の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.76.0 の節の #3713 の項が dragon の字を名指さない`).toContain("`dragon`");
+      // 次の版の項は Unreleased に積まれるので、0.76.0 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 #3713 が残る`).not.toContain("(#3713)");
+    }
+  });
+
   it("changelog-0-75-0-lists-nine-changes", () => {
     // 外のツールに図を組み込む 6 件 (#3695、#3697、#3698、#3699、#3700、#3701) と 1 行の入口を軽くした #3706 と、
     // 項の無かった購入操作図の直し (#3691) と見本帳のカタログの 2 件の直し (#3693, #3696) を 0.75.0 で出す (#3711)
-    expect(version(), "package の版が 0.75.0 でない").toBe("0.75.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 75, `package の版 ${version()} が 0.75.0 より前`).toBe(true);
     const issues = ["(#3695)", "(#3697)", "(#3698)", "(#3699)", "(#3700)", "(#3701)", "(#3706)", "(#3691)", "(#3693, #3696)"];
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");

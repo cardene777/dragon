@@ -14,4 +14,4 @@
 | `配った後の確かめ`は、npmの最新の版が包んだ版と違う時と、入れた`dragon --version`が違う時と、GitHub Pagesの頁が200を返さない時に落とす | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts`の検査`release-after-judges-npm-and-pages`が通る | #3589 |
 | `.claude/skills/dragon-extend/SKILL.md`が、版を出す前に確かめる物を`.ikkan/checks.md`の欄が持つと書く | `pnpm exec vitest run packages/dragon/test/extend-skill.test.ts`の検査`extend-skill-release-checks-in-checks-md`が通る | #3589 |
 | `一式`の欄は今の命令のままで、最後に依存の脆弱性を1回見る | `pnpm exec vitest run packages/dragon/test/dependency-vulnerability-check.test.ts`の検査`checks-suite-ends-with-real-vuln-check`が通る | #3589 |
-| READMEと使い方の頁とプラグインの文書が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`pinned-script-lines-follow-package-version`が通る | #3711 |
+| READMEと使い方の頁とプラグインの文書が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`pinned-script-lines-follow-package-version`が通る | #3711 #3715 |
