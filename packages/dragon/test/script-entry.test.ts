@@ -9,6 +9,7 @@
  * 入口の file は build した `dist/cdn` から読む。頁は `http://localhost/` に置き、入口と塊も同じ置き場から渡す。
  * 外への通信は全て止め、何を取りに行ったかを数える。
  */
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -593,5 +594,24 @@ describe("script の1行の入口 (#3343)", () => {
       expect(text, `${file} に記法の塊の書き方が無い`).toContain('<pre class="dragon">');
       expect(text, `${file} に dragon embed の書き方が無い`).toMatch(/dragon embed /u);
     }
+  });
+
+  it("pinned-script-lines-follow-package-version", () => {
+    // 版を固定した入口の1行は README の頁に置く節と組み込みの節、使い方の頁、プラグインの組み込みの文書に在る (#3701)。
+    // 上の検査は1行が在るかしか見ないので、版を上げた時に古い版の行が残っても落ちない。repo が追跡する全ての file から行を導き、どれも今の版を指すかを見る (#3711)
+    const [major, minor] = version().split(".");
+    const pinned = /@cardenelabs\/dragon@(\d+\.\d+)\/dist\/cdn\/dragon\.js/gu;
+    const repo = join(ROOT, "../..");
+    const files = execFileSync("git", ["-C", repo, "grep", "-l", "-E", "@cardenelabs/dragon@[0-9]+\\.[0-9]+/dist/cdn/dragon\\.js", "--", "."], { encoding: "utf8" })
+      .split("\n")
+      .filter((line) => line !== "");
+    // 走査が空振りした時に通らないよう、今の行を持つ file を下限として名指す
+    for (const known of ["packages/dragon/README.md", "packages/dragon/README.ja.md", "apps/playground-spa/src/docs/content.ts", "plugins/dragon/skills/dragon/references/embed.md"]) {
+      expect(files, `版を固定した入口の1行を持つ file に ${known} が無い`).toContain(known);
+    }
+    const stale = files.flatMap((file) =>
+      [...readFileSync(join(repo, file), "utf8").matchAll(pinned)].map((match) => match[1]).filter((pin) => pin !== `${major}.${minor}`).map((pin) => `${file}: ${pin}`),
+    );
+    expect(stale, `入口の1行が package の版 ${major}.${minor} 以外を指す`).toEqual([]);
   });
 });

@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.75.0] - 2026-11-15
+
 ### Added
 
 - **`embedUrl` for the gallery's embed page, and how to embed a diagram in the README, the docs page, a sample page and the plugin** (#3701)
@@ -37,6 +39,16 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **The bar on a framed diagram gets the dragon mark, copy and export menus, and the language of the page it sits on (`mountFramedDiagram`)** (#3695)
 
   The bar now puts the dragon mark left of the title, which opens the gallery in a new tab, and lines up boxed Code, Editor, Copy, Export and an icon-only expand button. Copy writes the notation, a PNG of the diagram or the editor URL to the clipboard. Export groups PNG and SVG under Images, HTML, GIF and MP4 under Motion, and dragon notation (`.dragon`) and JSON under Notation, and lets you pick the size (1x, 2x, 3x) and the background (fill, transparent) for images. Only one menu opens at a time, and clicking anywhere else closes it. The bar speaks the `lang` option, else the `lang` attribute above where it sits, else English. The bar, the player, pipe calls, try inputs and checkout styles now go into the frame's shadow root through `adoptedStyleSheets` instead of `<style>` elements in the page head, so the player inside the frame is styled and pages that block `<style>` elements still work; browsers without `adoptedStyleSheets` get `<style>` elements carrying the `nonce` option. Text inside the frame falls back to sans-serif fonts instead of a serif face when the bundled fonts are not loaded.
+
+### Fixed
+
+- **The checkout diagram's wording reads naturally, and waiting shows as motion** (#3691)
+
+  While the seller recalculates the purchase conditions, the payment is processed or the order is looked up, the heading and the action button show a spinner. Waiting for the buyer's approval, and a lost response before the lookup starts, do not spin. With reduced motion the spinner stops and the waiting circle and text stay. Looking up the order now goes through its own state: the purchase conditions cannot be changed during the lookup, repeating the lookup does not add orders or payments, and a late reply after the session changed is ignored. The notices and log lines no longer break sentences with extra commas.
+
+- **The gallery catalog shows the checkout diagram at its natural height and scrolls to its bottom** (#3693, #3696)
+
+  The checkout diagram in the catalog was cut off at the bottom of its frame. It now shows at the height it needs on its own background, and the page scrolls to its last line.
 
 ## [0.74.0] - 2026-11-14
 
