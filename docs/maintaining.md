@@ -364,6 +364,16 @@ gh release create v0.46.4 --repo cardene777/dragon --title v0.46.4 --notes-file 
 
 `v0.8.0` から `v0.34.0` は作り直す前の版で、変更履歴も `CHANGELOG.ja.md` にしか無いので、Release を作っていない (#3335)。
 
+## npmへ出す時の検査
+
+`packages/dragon`で`pnpm publish`を打つと、出す前に`prepublishOnly`が型の検査とbuildと`check:pack`をこの順に回す。
+buildはnpmへ出す`dist`を組み、`check:pack`は組んだ物を包んで空のdirに入れ、入口と型と命令を確かめる。
+どちらもnpmへ出す時にしかできないので、出す時に回す。
+
+一式は配る前の関門 (`deployable.sh`) が版を出す前に1回だけ回し、npmへ出す時は回し直さない (#3717)。
+一式は負荷の無い時でも1回の実行の上限300秒のうち約230秒を使い、別の作業で機械が混むと出す時の2回目が時間切れで止まるため (#3715)。
+取り込んだcommitと配る前の関門が確かめたcommitの中身が同じかは、印を付ける前に`git diff`で確かめる。
+
 ## 版を出した後に確かめる
 
 npm へ出して見本帳を配ったら、ikkan の配った後の関門 (`deployed.sh`) で `.ikkan/checks.md` の `配った後の確かめ` を回す (#3589)。
