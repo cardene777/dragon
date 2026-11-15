@@ -1,0 +1,2 @@
+var t=n=>`"${n.replace(/\\/g,"\\\\").replace(/"/g,'\\"')}"`,g=n=>n.includes("[")||n.startsWith('"')?t(n):n,o=n=>n.includes(",")||n.includes("]")||n.startsWith('"')?t(n):n,a=(n,r=[])=>{let i=[...n.filter(s=>s[1]!==void 0).map(([s,e])=>`${s}: ${o(e)}`),...r];return i.length===0?"":` [${i.join(", ")}]`},p=n=>n===void 0?void 0:`${n}`,l=(n,r)=>r===n?"":` as ${g(r)}`;export{t as a,g as b,o as c,a as d,p as e,l as f};
+//# sourceMappingURL=chunk-4ZY2LVPO.js.map

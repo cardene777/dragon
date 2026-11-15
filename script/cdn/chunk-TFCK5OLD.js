@@ -1,0 +1,2 @@
+function p(a,r){return{...r,carriers:r.carriers.map(e=>{let i=r.steps[e.step];return{...e,start:e.depart,end:Math.max(e.arrive,i?.end??e.end)}})}}export{p as a};
+//# sourceMappingURL=chunk-TFCK5OLD.js.map

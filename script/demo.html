@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>dragon script demo</title>
+    <style>
+      html, body { margin: 0; background: transparent; }
+    </style>
+  </head>
+  <body>
+    <pre class="dragon" data-header>
+sequence 注文を受ける
+box shop as お店
+box api as 注文の窓口
+step 注文する
+  shop -&gt; api: 注文を送る
+step 受け付ける
+  api -&gt; shop: 受付の番号を返す
+</pre>
+    <script>
+      // ?lang=en なら英語の記法と帯にする。入口は module なので、この行の後で塊を読む
+      if (new URLSearchParams(location.search).get("lang") === "en") {
+        document.documentElement.lang = "en";
+        document.querySelector("pre.dragon").textContent = "sequence Take an order\nbox shop as Shop\nbox api as Order API\nstep Place the order\n  shop -> api: Send the order\nstep Accept it\n  api -> shop: Return the order number";
+      }
+    </script>
+    <script type="module" src="cdn/dragon.js"></script>
+  </body>
+</html>

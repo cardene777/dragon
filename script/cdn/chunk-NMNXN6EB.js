@@ -1,0 +1,2 @@
+var r={aim:100,most:200};function m(n){let t=1,e=Number.POSITIVE_INFINITY;for(let o=1;n>0;o*=10){for(let b of[1,2,5]){let u=b*o,s=Math.abs(n/u-r.aim);s<e&&(t=u,e=s)}if(n/o<r.aim)break}return t}var a=(n,t)=>Math.round(n/t),d=(n,t)=>t??m(Math.max(0,...n)),x=(n,t)=>n.map(e=>a(e,t)).find(e=>e>r.most),i=/^[0-9]+(?:\.[0-9]+)?$/u,l=n=>i.test(n)&&Number(n)>0;export{r as a,a as b,d as c,x as d,l as e};
+//# sourceMappingURL=chunk-NMNXN6EB.js.map
