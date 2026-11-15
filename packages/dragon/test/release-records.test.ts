@@ -240,7 +240,8 @@ describe("版の記録 (#3151)", () => {
   it("changelog-0-75-0-lists-nine-changes", () => {
     // 外のツールに図を組み込む 6 件 (#3695、#3697、#3698、#3699、#3700、#3701) と 1 行の入口を軽くした #3706 と、
     // 項の無かった購入操作図の直し (#3691) と見本帳のカタログの 2 件の直し (#3693, #3696) を 0.75.0 で出す (#3711)
-    expect(version(), "package の版が 0.75.0 でない").toBe("0.75.0");
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 75, `package の版 ${version()} が 0.75.0 より前`).toBe(true);
     const issues = ["(#3695)", "(#3697)", "(#3698)", "(#3699)", "(#3700)", "(#3701)", "(#3706)", "(#3691)", "(#3693, #3696)"];
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
       const text = readFileSync(join(ROOT, file), "utf8");

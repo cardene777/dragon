@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.76.0] - 2026-11-15
+
 ### Changed
 
 - **The dragon mark is the scale icon alone, and the catalog cards have the same bar as an embedded diagram** (#3713)
