@@ -4,8 +4,16 @@
  * ikkan の配る前の関門 (`deployable.sh`) と配った後の関門 (`deployed.sh`) は、`.ikkan/checks.md` の欄に書いた命令を回す。
  * 配る先との整合、配る前のセキュリティ、戻す確かめ、配った後の確かめの 4 欄は `scripts/release-checks.mjs` を回す。
  * npm と GitHub に問い合わせる所は命令の外側に置き、ここでは問い合わせた答えから何を落とすかを確かめる。
+ *
+ * npmへ出す時の検査 (`prepublishOnly`) は一式を回さず、型の検査とbuildと`check:pack`だけを回す (#3717)。
+ * 一式は配る前の関門が版を出す前に1回だけ回すため。
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 interface ReleaseChecks {
   previousVersion: (tags: string[], version: string) => string | undefined;
@@ -84,5 +92,40 @@ describe("版を出す前と出した後の確かめ (#3589)", () => {
     expect(judgeAfter({ ...good, installedVersion: "0.70.0\n" }), "答えの末尾の改行で版が違うと読んだ").toEqual([]);
     expect(judgeAfter({ ...good, installedVersion: "0.69.0" }).join("\n"), "入れた dragon の版が違う回を通した").toContain("--version");
     expect(judgeAfter({ ...good, pagesStatus: 404 }).join("\n"), "GitHub Pages が 404 を返した回を通した").toContain("404");
+  });
+});
+
+/** npmへ出す時の検査の命令を `&&` で区切った段 */
+function prepublishSteps(): string[] {
+  const pkg = JSON.parse(readFileSync(join(ROOT, "packages/dragon/package.json"), "utf8")) as { scripts: Record<string, string> };
+  const command = pkg.scripts.prepublishOnly;
+  expect(command, "packages/dragon/package.json が prepublishOnly を持たない").toBeTypeOf("string");
+  return command.split("&&").map((step) => step.trim());
+}
+
+describe("npmへ出す時の検査 (#3717)", () => {
+  it("prepublish-skips-the-whole-suite", () => {
+    const steps = prepublishSteps();
+    // `pnpm run test` は `cd ../.. && vitest run packages/dragon` で一式を回す。`test:related` のような別の名前は一式ではない
+    expect(steps.filter((step) => /^pnpm (run )?test$/u.test(step)), "npmへ出す時に一式 (pnpm run test) を回す").toEqual([]);
+    expect(steps.filter((step) => /\bvitest\b/u.test(step)), "npmへ出す時に vitest を直に回す").toEqual([]);
+  });
+
+  it("prepublish-builds-and-checks-pack", () => {
+    const steps = prepublishSteps();
+    const at = (name: string): number => steps.indexOf(`pnpm run ${name}`);
+    expect(at("typecheck"), "npmへ出す時に型の検査を回さない").toBeGreaterThanOrEqual(0);
+    expect(at("build"), "npmへ出す時に build を回さない").toBeGreaterThan(at("typecheck"));
+    // check:pack は組んだ dist を包んで読むので、build の後に回る
+    expect(at("check:pack"), "npmへ出す時に build の後で check:pack を回さない").toBeGreaterThan(at("build"));
+  });
+
+  it("maintaining-says-suite-runs-once-before-release", () => {
+    const doc = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
+    const section = /^## npmへ出す時の検査\n([\s\S]*?)(?=^## |(?![\s\S]))/mu.exec(doc)?.[1];
+    expect(section, "docs/maintaining.md に節 npmへ出す時の検査 が無い").toBeDefined();
+    for (const word of ["`prepublishOnly`", "`check:pack`", "一式は配る前の関門", "回し直さない"]) {
+      expect(section, `節 npmへ出す時の検査 が ${word} を書かない`).toContain(word);
+    }
   });
 });
