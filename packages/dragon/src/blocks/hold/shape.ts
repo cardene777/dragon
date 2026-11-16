@@ -41,7 +41,7 @@ export const shape: BlockShape = {
   events: {
     move: {
       description:
-        "トークンの Contract box が、送り手 from の残高から受け手 to へ量 amount を移す。from を省くと受け手の残高だけを増やす発行 (mint)、to を省くと送り手の残高だけを減らす焼却 (burn) で、どちらか片方は必ず書く。tokenId は NFT と ERC-1155 のトークンの番号。配管の図だけが書ける",
+        "トークンの Contract box が、送り手 from の残高から受け手 to へ量 amount を移す。from を省くと受け手の残高だけを増やす発行 (mint)、to を省くと送り手の残高だけを減らして焼く (burn) で、どちらか片方は必ず書く。tokenId は NFT と ERC-1155 のトークンの番号。配管の図だけが書ける",
       type: "object",
       additionalProperties: false,
       required: ["type", "box", "amount"],
