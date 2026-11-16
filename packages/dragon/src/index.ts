@@ -23,4 +23,4 @@ export { type PipeBreakage, PIPE_RULES, type PipeRule, type PipeViolation, pipeV
 // 止め絵から流し直す時刻の決まり (Tracelyth #99)。置いた側が自分の再生の釦から流し直す時に、再生の部品と同じ時刻を使う
 export { resumeFrom } from "./player";
 // 寄って追う形の SVG を画面を開かずに描く (Tracelyth #91)。置いた側が狭い枠の図の全体図の小窓と列の頭の留め方を確かめる
-export { followSvg } from "./render/draw";
+export { type FollowFrame, followSvg } from "./render/draw";

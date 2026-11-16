@@ -564,12 +564,18 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     };
     rebuild();
     const GAP = 8;
-    const hit = (r: Rect, more: readonly Obst[], own?: number): number => [...obst, ...more].reduce((sum, o) => {
-      if (own !== undefined && o.call === own) return sum;
-      const ix = Math.min(r.x + r.w, o.x + o.w + GAP) - Math.max(r.x, o.x - GAP);
-      const iy = Math.min(r.y + r.h, o.y + o.h + GAP) - Math.max(r.y, o.y - GAP);
-      return ix > 0 && iy > 0 ? sum + ix * iy : sum;
-    }, 0);
+    // 札の候補ごとに呼ぶので、障りの物を写した配列を作らずに同じ順で足す (#3720)
+    const hit = (r: Rect, more: readonly Obst[], own?: number): number => {
+      let sum = 0;
+      for (const list of [obst, more])
+        for (const o of list) {
+          if (own !== undefined && o.call === own) continue;
+          const ix = Math.min(r.x + r.w, o.x + o.w + GAP) - Math.max(r.x, o.x - GAP);
+          const iy = Math.min(r.y + r.h, o.y + o.h + GAP) - Math.max(r.y, o.y - GAP);
+          if (ix > 0 && iy > 0) sum += ix * iy;
+        }
+      return sum;
+    };
     const far = (r: Rect, [px, py]: Point): number => Math.hypot(px - Math.max(r.x, Math.min(px, r.x + r.w)), py - Math.max(r.y, Math.min(py, r.y + r.h)));
     /** 2つの四角の間の隔たり。重なる時は 0。四角 `b` の中のどの点から `a` までの隔たりもこれより短くならない */
     const gapOf = (a: Rect, b: Rect): number =>
@@ -935,8 +941,16 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         for (let y = Math.min(...ys) - tag.h - 200; y <= Math.max(...ys) + 200; y += 8) {
           const r = { x, y, w: tag.w, h: tag.h };
           if (r.x < 8 || r.y < 8 || r.x + r.w > layout.width - 8 || r.y + r.h > layout.height - 8) continue;
-          const near3 = Math.min(...along.map((p) => far(r, p)));
-          const nearest = along.reduce((bp, p) => (far(r, p) < far(r, bp) ? p : bp), along[0] as Point);
+          // 一番近い道の点と隔たりを 1 度の走査で求める。同じ隔たりの点は先の点を取る
+          let nearest = along[0] as Point;
+          let near3 = far(r, nearest);
+          for (const p of along) {
+            const d = far(r, p);
+            if (d < near3) {
+              near3 = d;
+              nearest = p;
+            }
+          }
           const e0: Point = [Math.max(r.x, Math.min(nearest[0], r.x + r.w)), Math.max(r.y, Math.min(nearest[1], r.y + r.h))];
           const crosses = near3 > 28 && layout.parties.some((o) => cross(e0, nearest, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 4 }));
           const score = hit(r, more) * 50 + near3 + far(r, entry) * 0.25 + (crosses ? 4e3 : 0);

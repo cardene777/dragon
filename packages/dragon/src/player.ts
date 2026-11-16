@@ -37,6 +37,7 @@ import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
 import { FONT_VARS, LOOK, PIPE_FIRST, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
+import { lookOf } from "./render/look-store";
 import { drawLines } from "./render/pen-store";
 import {
   drawSvg,
@@ -287,13 +288,14 @@ export const stepNo = (step: number, count: number): string => `${pad(step + 1)}
 
 /**
  * 再生を始める時刻とステップ (Tracelyth #99)。止めた絵 (`stills`、そのステップを描き終えた時刻) から再生する時は、そのステップの始まりから動かす。
- * 途中で止めた所からは続きから動かす。1回だけ再生する図 (`once`) は、最後のステップを描き終えた後に再生するとステップ1の始まりから動かす
+ * 途中で止めた所からは続きから動かす。1回だけ再生する図 (`once`) は、最後のステップを描き終えた後に再生するとステップ1の始まりから動かす。
+ * `fromStill` に偽を渡すと、止めた絵からも続きから動かす。再生の部品は配管の図と配管の見た目の時系列図の外でこれを渡し、ほかの図の流し直し方を変えない (#3720)
  */
-export function resumeFrom(at: number, step: number, timeline: Pick<Timeline, "steps" | "stills">, once: boolean): { step: number; at: number } {
+export function resumeFrom(at: number, step: number, timeline: Pick<Timeline, "steps" | "stills">, once: boolean, fromStill = true): { step: number; at: number } {
   const lastStill = timeline.stills[timeline.steps.length - 1] ?? 0;
   if (once && at >= lastStill) return { step: 0, at: 0 };
   const still = timeline.stills[step];
-  if (still !== undefined && Math.abs(at - still) < 1e-9) return { step, at: timeline.steps[step]?.start ?? at };
+  if (fromStill && still !== undefined && Math.abs(at - still) < 1e-9) return { step, at: timeline.steps[step]?.start ?? at };
   return { step, at };
 }
 
@@ -348,6 +350,8 @@ export function mountDiagram(
   let count = steps.length;
   /** 配管の図か。描き直しても種類は変わらない */
   const isPipe = rendered.diagram.kind === "pipe";
+  /** 止めた絵から流す時に段の始まりから動かす図 (Tracelyth #99)。配管の図と、配管の部品で描く時系列図 (#3720) だけで、ほかの図は続きから動かす */
+  const fromStill = isPipe || lookOf(rendered.diagram) !== undefined;
 
   ensureCss(doc, styles);
   const root = doc.createElement("div");
@@ -584,11 +588,12 @@ export function mountDiagram(
   /**
    * 槽の残高の字が画面で `PIPE_FIRST.narrowPx` 以上に見える、配管の図の最も細い幅 (px) (#3450)。
    * 狭い枠で組み直しても字の倍率が届かない図 (箱を開いた広い図) は、これより細く置くと字が読めない。
-   * 残高の字を持たない図は 0 を返し、幅を縛らない
+   * 残高の字を持たない図は 0 を返し、幅を縛らない。
+   * 1px 単位へ切り上げる。電話の幅でも広い枠と同じ並びで描く図 (Tracelyth #87) はちょうどこの幅で置くので、割り算の誤差で字が下限をわずかに下回らないようにする (#3720)
    */
   const readableWidth = (): number => {
     const heights = ((rendered.layout as PipeLayout).levels ?? []).map((level) => level.text.h).filter((h) => h > 0);
-    return heights.length > 0 ? (rendered.layout.width * PIPE_FIRST.narrowPx) / Math.min(...heights) : 0;
+    return heights.length > 0 ? Math.ceil((rendered.layout.width * PIPE_FIRST.narrowPx) / Math.min(...heights)) : 0;
   };
   /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
@@ -828,9 +833,12 @@ export function mountDiagram(
     restart(playing ? span.start : (timeline.stills[step] ?? span.start), playing);
   };
 
-  /** 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す。止め絵からはその段の始まりから流す (Tracelyth #99) */
+  /**
+   * 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す。
+   * 配管の図と配管の見た目の時系列図は、止め絵からはその段の始まりから流す (Tracelyth #99)
+   */
   const resume = (): void => {
-    ({ step, at } = resumeFrom(at, step, timeline, once));
+    ({ step, at } = resumeFrom(at, step, timeline, once, fromStill));
     held = false;
     restart(at, true);
   };
@@ -927,16 +935,17 @@ export function mountDiagram(
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? restart(now(), false) : resume());
-  /**
-   * 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば段 1 の始まりへ戻す (#3398)。
-   * 段 1 の止め絵へ戻すと、段 1 で変わった後の値が出る (Tracelyth #131)
-   */
-  const toStart = (play: boolean): void => {
+  /** 段 1 へ戻す。流す時は時刻 0 から流し、止める時は時刻 `still` で止める */
+  const toStart = (play: boolean, still: number): void => {
     held = false;
     step = 0;
-    restart(play ? 0 : startOf(), play);
+    restart(play ? 0 : still, play);
   };
-  const onRestart = (): void => toStart(playing);
+  /**
+   * 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば段 1 の止め絵で止める (#3398)。
+   * 配管の図と配管の見た目の時系列図は、止めていれば段 1 の始まりへ戻す。段 1 の止め絵へ戻すと、段 1 で変わった後の値が出る (Tracelyth #131)
+   */
+  const onRestart = (): void => toStart(playing, fromStill ? startOf() : (timeline.stills[0] ?? 0));
   const onProgress = (event: Event): void => {
     const s = Number((event.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-dragon=\"segment\"]")?.dataset.step);
     if (Number.isInteger(s)) go(s);
@@ -1104,7 +1113,7 @@ export function mountDiagram(
       playing = false;
       go(target);
     },
-    rewind: () => toStart(false),
+    rewind: () => toStart(false, startOf()),
     setSpeed: (next: number) => {
       const t = now();
       speed = checkSpeed(next);

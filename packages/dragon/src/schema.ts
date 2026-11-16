@@ -45,7 +45,7 @@ import type { StepSource } from "./blocks/source/block";
 import type { PipeCalc } from "./blocks/calc/block";
 import type { CheckOp, PipeCheck } from "./blocks/check/block";
 import type { PipeEmit } from "./blocks/emit/block";
-import type { PipeHold, PipeMove } from "./blocks/hold/block";
+import type { PipeHold, PipeHoldLink, PipeMove } from "./blocks/hold/block";
 import type { PipeCall, PipeCallKind, PipeReturn } from "./blocks/return/block";
 import type { PipeRevert } from "./blocks/revert/block";
 import type { PipeWrite } from "./blocks/write/block";
@@ -314,7 +314,7 @@ export type { LabelSide };
 /** 線の上を走る物の型は運ぶ物のブロックが持つ (#3345) */
 export type { Carry };
 /** 配管の図 (#3389) の始めの値と、段の中の出来事 */
-export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeMove, PipeReturn, PipeRevert, PipeWrite };
+export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeHoldLink, PipeMove, PipeReturn, PipeRevert, PipeWrite };
 
 export interface Step {
   title: string;
