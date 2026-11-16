@@ -378,7 +378,7 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
   const shaped = boxes.filter((b) => outlines.has(b.id));
   // 運ぶ物が見えている所と間 (#3518)。運ぶ物は箱の名札と段の番号の印を持たない字として残り、置き場の枠の中に中心を持つ字は運ぶ物だけ
   const seats = inks.flatMap((ink) =>
-    ink.box === undefined && ink.badge !== true ? ink.shown.map(([a, b]): Seat => [...centerOf(ink.rect), a, b]) : [],
+    ink.box === undefined && ink.badge !== true ? ink.shown.map(([a, b]): Seat => [...centerOf(ink.rect), a, b, ink.rect.w / 2]) : [],
   );
   for (const ink of badges) {
     const center = centerOf(ink.rect);
