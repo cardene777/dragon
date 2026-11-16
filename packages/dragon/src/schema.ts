@@ -94,7 +94,7 @@ export interface Box {
 export type ViewMode = "fixed" | "follow";
 
 export type DiagramEvent =
-  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; op?: number; labelSide?: LabelSide; at?: number; into?: number; block?: string }
+  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide; at?: number; into?: number; block?: string }
   | { type: "action"; box: string; label: string }
   | { type: "swap"; box: string; text: string; color?: Color }
   | { type: "strip"; field: string; value?: string; tag?: string }
@@ -382,8 +382,6 @@ export interface Diagram {
   checkout?: Omit<import("./checkout/read").CheckoutDefinition, "blocks">;
   title: string;
   view?: ViewMode;
-  /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
-  layout?: PipeLayoutName;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
@@ -413,8 +411,6 @@ export interface DiagramModel {
   checkout?: import("./checkout/read").CheckoutDefinition;
   title: string;
   view?: ViewMode;
-  /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
-  layout?: PipeLayoutName;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   regions?: Region[];
@@ -553,13 +549,6 @@ const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramE
 /** 配管の図でない図に、配管の図だけの出来事を書いた時の決まりの場所 (#3389) */
 const PIPE_EVENT = "#/definitions/notPipeEvent/not";
 /** 配管の図だけが書ける出来事 */
-/**
- * パイプ図の置き方の名前 (Tracelyth #165、#166、#168)。`auto` は形を機械に任せる名前で、`top` と `bottom` と箱の並びから点数の低い組を選ぶ。
- * `ledger` (帳簿型) と `mesh` (網型) と `bus` (母線型) は、槽をトークンごとの行に並べる形
- */
-export const PIPE_LAYOUTS = ["top", "bottom", "ledger", "mesh", "bus", "auto"] as const;
-export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
-
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 量の図でない図に、量の図だけの出来事を書いた時の決まりの場所 (#3560) */
 const CHART_EVENT = "#/definitions/notChartEvent/not";

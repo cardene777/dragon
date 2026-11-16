@@ -128,7 +128,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import { type Diagram, type DiagramModel, type LineupShape, PIPE_LAYOUTS, type PipeLayoutName, type Step } from "./schema";
+import type { Diagram, DiagramModel, LineupShape, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -207,23 +207,6 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
 const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
-
-/** パイプ図の置き方の行 (`layout <形>`) を読めない時の文 (Tracelyth #165、#166、#168) */
-const PIPE_LAYOUT_TEXT: Record<NotationLang, { pipeOnly: string; twice: string; head: string; bad: (shape: string) => string }> = {
-  ja: {
-    pipeOnly: "layout の行はパイプ図 (pipe) だけに書ける",
-    twice: "layout の行は1つの図に1行だけ書ける",
-    head: "layout の行は最初の step より前に書く",
-    bad: (shape) =>
-      shape === "" ? "layout の後に形の名前 (top、bottom、ledger、mesh、bus、auto のどれか) を書く" : `layout の形「${shape}」は書けない。top、bottom、ledger、mesh、bus、auto のどれかを書く`,
-  },
-  en: {
-    pipeOnly: "Write a layout line only in a pipe diagram",
-    twice: "Write at most one layout line in a diagram",
-    head: "Write the layout line before the first step",
-    bad: (shape) => (shape === "" ? "Write a shape name (top, bottom, ledger, mesh, bus or auto) after layout" : `The layout shape "${shape}" is unknown. Write top, bottom, ledger, mesh, bus or auto`),
-  },
-};
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 /**
@@ -305,17 +288,6 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const nameOf = (id: string): string => boxes.find((box) => box.id === id)?.name ?? id;
   /** 全ての宣言を読んでから確かめる宣言を、もう確かめたか */
   let settled = false;
-  // パイプ図の置き方の行 (layout <形>)。書いた図だけ、呼び方を替えても箱と槽の置き場所を変えない形で描く (Tracelyth #165)
-  let pipeLayout: PipeLayoutName | undefined;
-  const readPipeLayout = (source: SourceLine): void => {
-    const said = PIPE_LAYOUT_TEXT[lang] ?? PIPE_LAYOUT_TEXT.en;
-    if (kind !== "pipe") throw fail(source, 0, said.pipeOnly);
-    if (pipeLayout !== undefined) throw fail(source, 0, said.twice);
-    if (building !== undefined || steps.length > 0) throw fail(source, 0, said.head);
-    const shape = source.text.slice("layout".length).trim();
-    if (!isOneOf(PIPE_LAYOUTS, shape)) throw fail(source, 0, said.bad(shape));
-    pipeLayout = shape;
-  };
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     // 箱を導いた後の宣言は、箱を宣言した図の宣言の無い名前として、最初に導いた名前を示して止める (#3438)
@@ -498,15 +470,10 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       continue;
     }
     const { word } = line;
-    if (word === "layout") {
-      readPipeLayout(source);
-      continue;
-    }
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
     if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
     const only = ONLY_HEADS.get(word);
-    // 残高と書き換える値の hold の行は、シーケンスの列の頭の下の器と札にも使う (Tracelyth #93)
-    const refuse = only === undefined || only === kind || (word === "hold" && kind === "sequence") ? undefined : onlyIn[only];
+    const refuse = only === undefined || only === kind ? undefined : onlyIn[only];
     if (refuse) throw fail(source, 0, refuse(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
@@ -545,7 +512,6 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     kind,
     title,
     ...(view ? { view } : {}),
-    ...(pipeLayout !== undefined ? { layout: pipeLayout } : {}),
     ...(define.length > 0 ? { define: { format: 1, blocks: define } } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,

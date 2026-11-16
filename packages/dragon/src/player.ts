@@ -52,7 +52,7 @@ import type { PipeCalls } from "./pipe-player";
 import { readDiagram } from "./version";
 import { partsOf } from "./kinds/registry";
 import type { Diagram, Step, ViewMode } from "./schema";
-import type { Span, Timeline } from "./timeline";
+import type { Span } from "./timeline";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
 
@@ -73,8 +73,6 @@ export interface PlayerOptions extends RenderOptions {
   fitOverview?: boolean;
   /** 置いた時に流さず、段 `pausedAt` (0 から) の止め絵で止めて置く。段の数を超えた時は最後の段で止める。書かなければ置いた時から流す (#3200) */
   pausedAt?: number;
-  /** 置いた時に流さず、段 1 の始まり (図を描き終えた時刻) で止めて置く。止め絵と違い、段 1 で変わる前の値を見せる。`pausedAt` より先に効く (Tracelyth #131) */
-  pausedAtStart?: boolean;
   /** 流した時に最後の段の止め絵で止め、繰り返さない。最後の段で止まった図を流すと、最初の段から流し直す (#3200) */
   playOnce?: boolean;
   /**
@@ -88,24 +86,6 @@ export interface PlayerOptions extends RenderOptions {
    * 書かなければ図の全体を枠の幅に収めて始める。600px 以上の枠と、配管の図でない図には効かない
    */
   zoom?: "readable";
-  /**
-   * 600px 以上の枠に置いた配管の図で、原寸の幅が枠より広い時に、図の全体を枠の幅に収めて始める (Tracelyth #177)。
-   * 「+」で原寸より大きく寄せ、「−」で全体の大きさまで戻す。書かなければ原寸で始め、原寸より縮めない。
-   * 原寸が枠に収まる図と、600px より狭い枠には効かない
-   */
-  fitWide?: boolean;
-  /**
-   * 「−」で小さくできる下限を、始めの大きさに対する割合で渡す (Tracelyth #179)。0 より大きく 1 より小さい数だけを読み、
-   * それ以外と書かない時は始めの大きさより小さくしない。拡大と縮小のボタンは始めの大きさをまたぐ時に始めの大きさで 1 度止まる
-   */
-  minZoom?: number;
-  /**
-   * 始めの拡大の度合いを、始めの大きさに対する割合で渡す (Tracelyth #181)。置き直す前の図で選んでいた度合いを渡し返すと、
-   * 描き直した図も同じ度合いで始まる。`minZoom` と 4 の間に収め、枠の幅が変わっても戻さない。書かなければ今と同じ度合いで始める
-   */
-  startZoom?: number;
-  /** 「+」「−」と回し方と2度押しで拡大の度合いが変わるたびに、新しい度合い (始めの大きさに対する割合) を受け取る (Tracelyth #181) */
-  onZoom?: (zoom: number) => void;
   /**
    * 見た目を入れる口 (#3695)。帯つきの図 (`mountFramedDiagram`) は帯の内側の影の根へ`adoptedStyleSheets`で入れ、
    * 図の SVG の`<style>`に`nonce`を付ける口を渡す。書かない時は今までどおり文書の頭へstyle要素で入れる
@@ -121,21 +101,12 @@ export interface Player {
   readonly step: number;
   /** 動いているか */
   readonly playing: boolean;
-  /**
-   * 見る人が図を送るか拡大と縮小をした後で、段が進んでも枠を今の段の関係者の所へ送らない間か (Tracelyth #183)。
-   * 段を選ぶか、流し始めるか、最初へ戻すと偽に戻り、また関係者の所へ送る
-   */
-  readonly held: boolean;
-  /** 図の外で見る人が送った時 (図を入れた枠を回して縦に送った時など) に呼び、段が進んでも枠を関係者の所へ送らない間にする (Tracelyth #183) */
-  hold(): void;
   next(): void;
   prev(): void;
   play(): void;
   pause(): void;
   /** 段 `step` (0 から) へ移って止める。段の数を超えた時は最後の段で止める (#3178) */
   goTo(step: number): void;
-  /** 段 1 の始まり (図を描き終えた時刻) へ移って止める。`goTo(0)` は段 1 の止め絵 (変わった後の値) で止める (Tracelyth #131) */
-  rewind(): void;
   /**
    * 流す速さの倍率を変える (#3568)。流していれば今の位置から新しい速さで続け、止めていれば止めたまま次に流す時の速さにする。
    * 0 より大きい有限の数を受け、それ以外は `RangeError` を投げて今の速さのまま続ける
@@ -285,18 +256,6 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const pad = (n: number): string => String(n).padStart(2, "0");
 /** 段の番号の札 (`01/12`)。`step` は 0 から数える。 */
 export const stepNo = (step: number, count: number): string => `${pad(step + 1)}/${pad(count)}`;
-
-/**
- * 再生を始める時刻とステップ (Tracelyth #99)。止めた絵 (`stills`、そのステップを描き終えた時刻) から再生する時は、そのステップの始まりから動かす。
- * 途中で止めた所からは続きから動かす。1回だけ再生する図 (`once`) は、最後のステップを描き終えた後に再生するとステップ1の始まりから動かす
- */
-export function resumeFrom(at: number, step: number, timeline: Pick<Timeline, "steps" | "stills">, once: boolean): { step: number; at: number } {
-  const lastStill = timeline.stills[timeline.steps.length - 1] ?? 0;
-  if (once && at >= lastStill) return { step: 0, at: 0 };
-  const still = timeline.stills[step];
-  if (still !== undefined && Math.abs(at - still) < 1e-9) return { step, at: timeline.steps[step]?.start ?? at };
-  return { step, at };
-}
 
 export function mountDiagram(
   host: HTMLElement,
@@ -537,14 +496,11 @@ export function mountDiagram(
   let height = frameHeight();
   let visible = overviewHeight();
   let svg: SVGSVGElement | null = null;
-  // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く。試す図は読み手が押すまで流さない。
-  // 止め絵は段を描き終えた後の絵なので、段 1 で変わる前の値を見せる時は段 1 の始まりで止めて置く。
-  // 段 1 の始まりは図を描き終えた時刻 (MOTION.intro) で、時刻 0 では図をまだ描いていない (Tracelyth #131)
-  const startOf = (): number => timeline.steps[0]?.start ?? 0;
-  const atStart = options.pausedAtStart === true;
-  let step = atStart || options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
-  let playing = !reduce && !atStart && options.pausedAt === undefined && !session;
-  let at = playing ? 0 : atStart ? startOf() : (timeline.stills[step] ?? 0);
+  // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く。試す図は読み手が押すまで流さない
+  let step =
+    options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
+  let playing = !reduce && options.pausedAt === undefined && !session;
+  let at = playing ? 0 : (timeline.stills[step] ?? 0);
   /** 1 度だけ流すか。試す図は足した段を流した後に最初の段へ戻らない */
   const once = options.playOnce === true || session !== undefined;
   /** 1 度だけ流す図が止まる時刻 (最後の段の止め絵) */
@@ -580,8 +536,6 @@ export function mountDiagram(
 
   /** 配管の図の拡大の度合い (#3418)。1 が拡大していない図 */
   let zoom = 1;
-  // 見る人が図を送るか拡大と縮小をした後は、段が進んでも枠を関係者の所へ送らない。段を選ぶか、流し始めるか、最初へ戻すと送り直す (Tracelyth #183)
-  let held = false;
   /**
    * 槽の残高の字が画面で `PIPE_LOOK.narrow.px` 以上に見える、配管の図の最も細い幅 (px) (#3450)。
    * 狭い枠で組み直しても字の倍率が届かない図 (箱を開いた広い図) は、これより細く置くと字が読めない。
@@ -595,13 +549,11 @@ export function mountDiagram(
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
    * ただし収めると残高の字が読めない図は、字が読める幅で置いて横に送る (#3450)。
    * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
-   * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)。
-   * `fitWide` を渡した時は、600px 以上の枠でも枠より広い図を枠の幅に収め、「+」で寄せ「−」で全体へ戻す (Tracelyth #177)
+   * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)
    */
   const baseWidth = (): number => {
     const w = frameWidth();
-    if (w < ZOOM.fit) return Math.min(rendered.layout.width, Math.max(w, options.zoom ? 0 : readableWidth()));
-    return options.fitWide ? Math.min(rendered.layout.width, w) : rendered.layout.width;
+    return w < ZOOM.fit ? Math.min(rendered.layout.width, Math.max(w, options.zoom ? 0 : readableWidth())) : rendered.layout.width;
   };
   /**
    * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で
@@ -615,12 +567,7 @@ export function mountDiagram(
     const need = (READABLE_PX * rendered.layout.width) / (Math.min(...names) * baseWidth());
     return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.ceil(need * 100) / 100));
   };
-  /** 「−」で小さくできる下限。`minZoom` を渡した時は始めの大きさより小さくできる (Tracelyth #179) */
-  const lowest = (): number =>
-    typeof options.minZoom === "number" && options.minZoom > 0 && options.minZoom < ZOOM.min ? options.minZoom : ZOOM.min;
-  /** 置き直す前の図で選んでいた拡大の度合い。`startZoom` を渡した時はその度合いで始め、枠の幅が変わっても戻さない (Tracelyth #181) */
-  const kept = typeof options.startZoom === "number" && Number.isFinite(options.startZoom) && options.startZoom > 0;
-  zoom = kept ? Math.min(ZOOM.max, Math.max(lowest(), options.startZoom as number)) : readableZoom();
+  zoom = readableZoom();
   /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
   const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);
   /** 図の座標を、置いた図の px にする倍率 */
@@ -649,10 +596,6 @@ export function mountDiagram(
    */
   const panTo = (): void => {
     if (frame.dataset.dragon !== "pan") return;
-    if (held) {
-      follow();
-      return;
-    }
     const k = scale();
     const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
     if (focus) {
@@ -670,7 +613,7 @@ export function mountDiagram(
   /** 拡大の度合いの札と、拡大と縮小の釦を押せるかを今の度合いに合わせる */
   const showZoom = (): void => {
     zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
-    zoomOutButton.disabled = zoom <= lowest();
+    zoomOutButton.disabled = zoom <= ZOOM.min;
     zoomInButton.disabled = zoom >= ZOOM.max;
   };
   /**
@@ -705,10 +648,9 @@ export function mountDiagram(
    */
   const zoomTo = (target: number, at?: { x: number; y: number }): void => {
     if (!isPipe || !svg) return;
-    const next = Math.min(ZOOM.max, Math.max(lowest(), target));
+    const next = Math.min(ZOOM.max, Math.max(ZOOM.min, target));
     const ratio = next / zoom;
     if (ratio === 1) return;
-    held = true;
     const box = frame.getBoundingClientRect();
     const ax = at ? at.x - box.left : frame.clientWidth / 2;
     const ay = at ? at.y - box.top : frame.clientHeight / 2;
@@ -721,8 +663,6 @@ export function mountDiagram(
     frame.scrollLeft = Math.max(0, inset() + x * ratio - ax);
     frame.scrollTop = Math.max(0, y * ratio - ay);
     follow();
-    // 置いた側へ新しい拡大の度合いを知らせる。置き直す時に `startZoom` で渡し返せる (Tracelyth #181)
-    options.onZoom?.(zoom);
   };
 
   /**
@@ -824,16 +764,17 @@ export function mountDiagram(
     show();
   };
   const go = (target: number): void => {
-    held = false;
     step = Math.min(count - 1, Math.max(0, target));
     const span = timeline.steps[step] as Span;
     restart(playing ? span.start : (timeline.stills[step] ?? span.start), playing);
   };
 
-  /** 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す。止め絵からはその段の始まりから流す (Tracelyth #99) */
+  /** 流し始める。1 度だけ流す図が最後の段の止め絵まで来ていれば、最初の段から流し直す */
   const resume = (): void => {
-    ({ step, at } = resumeFrom(at, step, timeline, once));
-    held = false;
+    if (once && at >= lastStill) {
+      step = 0;
+      at = 0;
+    }
     restart(at, true);
   };
 
@@ -929,14 +870,10 @@ export function mountDiagram(
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? restart(now(), false) : resume());
-  /**
-   * 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば段 1 の始まりへ戻す (#3398)。
-   * 段 1 の止め絵へ戻すと、段 1 で変わった後の値が出る (Tracelyth #131)
-   */
+  /** 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば最初の段の止め絵で止める (#3398) */
   const onRestart = (): void => {
-    held = false;
     step = 0;
-    restart(playing ? 0 : startOf(), playing);
+    restart(playing ? 0 : (timeline.stills[0] ?? 0), playing);
   };
   const onProgress = (event: Event): void => {
     const s = Number((event.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-dragon=\"segment\"]")?.dataset.step);
@@ -962,15 +899,10 @@ export function mountDiagram(
   };
   // 配管の図の拡大 (#3418)。釦は 1 回で `ZOOM.step` 倍、Ctrl か Command を押しながらのホイールは指した所を中心に拡大する。
   // 押さないホイールは今どおり枠か頁を送る
-  // 釦で始めの大きさをまたぐ時は、始めの大きさで1度止める (Tracelyth #179)
-  const stepTo = (target: number): number => (zoom < ZOOM.min !== target < ZOOM.min && zoom !== ZOOM.min ? ZOOM.min : target);
-  const onZoomIn = (): void => zoomTo(stepTo(zoom * ZOOM.step));
-  const onZoomOut = (): void => zoomTo(stepTo(zoom / ZOOM.step));
+  const onZoomIn = (): void => zoomTo(zoom * ZOOM.step);
+  const onZoomOut = (): void => zoomTo(zoom / ZOOM.step);
   const onWheel = (event: WheelEvent): void => {
-    if (!isPipe) return;
-    // 押さないホイールで送った時も、段が進んでも枠を関係者の所へ送らない (Tracelyth #183)
-    held = true;
-    if (!(event.ctrlKey || event.metaKey)) return;
+    if (!isPipe || !(event.ctrlKey || event.metaKey)) return;
     event.preventDefault();
     // 行と頁の単位で送るホイールは、px に直してから度合いにする
     const unit = event.deltaMode === 1 ? TYPE.stepBody.size : event.deltaMode === 2 ? frame.clientHeight : 1;
@@ -998,7 +930,6 @@ export function mountDiagram(
     if (!drag.moved) {
       if (Math.hypot(dx, dy) < ZOOM.drag) return;
       drag.moved = true;
-      held = true;
       frame.dataset.drag = "";
       // 動き始めてから捕まえる。押しただけの時に捕まえると、押した先が枠に替わって段の番号と畳んだ箱を押せない
       try {
@@ -1016,10 +947,6 @@ export function mountDiagram(
     dragged = drag.moved;
     drag = undefined;
     delete frame.dataset.drag;
-  };
-  // 指で送る時はブラウザが枠を送るので、触れた時から送った扱いにする。軽く触って段を選んだ時は、選んだ段で送り直す (Tracelyth #183)
-  const onTouch = (): void => {
-    held = true;
   };
   // 引いて送った後の押下は、段の番号や畳んだ箱を押したことにしない
   const onDragClick = (event: Event): void => {
@@ -1046,7 +973,6 @@ export function mountDiagram(
     frame.addEventListener("pointerup", onPointerUp);
     frame.addEventListener("pointercancel", onPointerUp);
     frame.addEventListener("click", onDragClick, true);
-    frame.addEventListener("touchstart", onTouch, { passive: true });
   }
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも、全体図を収める時は見える高さも) で決まるので、変われば描き直す
@@ -1060,7 +986,7 @@ export function mountDiagram(
         const rearranged = arrange(w);
         // 読める大きさで始める図は、枠の幅が変わって描き直した時に度合いを求め直す。600px 以上へ広がると拡大を外す。
         // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)
-        if (rearranged && options.zoom && !kept) zoom = readableZoom();
+        if (rearranged && options.zoom) zoom = readableZoom();
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height && v === visible))) {
@@ -1088,12 +1014,6 @@ export function mountDiagram(
     get playing() {
       return playing;
     },
-    get held() {
-      return held;
-    },
-    hold: () => {
-      held = true;
-    },
     next: onNext,
     prev: onPrev,
     play: () => {
@@ -1105,11 +1025,6 @@ export function mountDiagram(
     goTo: (target: number) => {
       playing = false;
       go(target);
-    },
-    rewind: () => {
-      held = false;
-      step = 0;
-      restart(startOf(), false);
     },
     setSpeed: (next: number) => {
       const t = now();
@@ -1144,7 +1059,6 @@ export function mountDiagram(
       frame.removeEventListener("pointerup", onPointerUp);
       frame.removeEventListener("pointercancel", onPointerUp);
       frame.removeEventListener("click", onDragClick, true);
-      frame.removeEventListener("touchstart", onTouch);
       root.remove();
     },
   };

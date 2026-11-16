@@ -101,7 +101,6 @@
     "edge": [
       "carry",
       "tag",
-      "op",
       "side",
       "at",
       "into",

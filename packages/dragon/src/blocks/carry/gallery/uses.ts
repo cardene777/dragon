@@ -5,6 +5,4 @@ export const uses = {
   "attr:edge.carry": (v) => v.edges.some((e) => e.carry.kind === "coin" || e.carry.kind === "none"),
   /** 枝分かれの図の線は書かなければ送る側の名前の札を運ぶので、その札は書いた札に数えない */
   "attr:edge.tag": (v) => v.edges.some((e) => e.carry.kind === "tag" && !(v.diagram.kind === "git" && e.carry.text === e.from)),
-  /** 線を起こした操作の番号 (Tracelyth #86)。シーケンス図の線と赤い×が `data-op` で持つ */
-  "attr:edge.op": (v) => v.edges.some((e) => e.op !== undefined),
 } satisfies BlockUses;

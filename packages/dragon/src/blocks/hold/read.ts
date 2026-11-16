@@ -13,7 +13,7 @@ import type { DiagramModel } from "../../schema";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
 import { ETH } from "../definition-values";
-import type { PipeHold, PipeHoldLink, PipeMove } from "./block";
+import type { PipeHold, PipeMove } from "./block";
 
 /** `move` の行の続き。量、送り手、受け手と、後ろの属性 */
 const MOVE = /^(\S+)\s+([^\s[]+?)\s*->\s*([^\s[]+)\s*(\[.*)?$/du;
@@ -67,42 +67,10 @@ function readHold(source: SourceLine, state: ParseState): void {
     return;
   }
   const named = readValueName(source, rest, state);
-  const tail = named ? holdLinkTail(text, named.end) : undefined;
-  const value = named ? text.slice(named.end, tail ?? text.length).trim() : "";
+  const value = named ? text.slice(named.end).trim() : "";
   if (!named || value === "") throw fail(source, 0, m.holdShape);
   if (state.figure.pipe.holds.some((h) => "name" in h && h.box === box && h.name === named.name)) throw fail(source, rest, m.holdTwice(box, named.name));
-  const link = tail === undefined ? undefined : readHoldLink(source, tail, state);
-  state.figure.pipe.holds.push({ box, name: named.name, value, ...(link ? { link } : {}) });
-}
-
-/** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
-const HOLD_LINK_KEYS = ["from", "to", "on", "unit"];
-/** 値の後ろに置いた持ち分の線の属性 (`[from: a, to: b]` か `[on: a]`) の頭の位置。無ければ undefined */
-function holdLinkTail(text: string, from: number): number | undefined {
-  const found = /\s(\[\s*(?:from|to|on|unit)\s*:[^[\]]*\])$/u.exec(text.slice(from));
-  return found ? from + found.index + 1 : undefined;
-}
-/** 持ち分の線の属性を読む。別の2人の `from` と `to` か、1人の `on` だけを通す */
-function readHoldLink(source: SourceLine, at: number, state: ParseState): PipeHoldLink {
-  const { m } = state;
-  const attrs = readAttrs(source, at, HOLD_LINK_KEYS, m);
-  const box = (key: string): string | undefined => {
-    const a = attrs.get(key);
-    return a ? state.boxAt(source, a.value, a.at) : undefined;
-  };
-  const from = box("from");
-  const to = box("to");
-  const on = box("on");
-  const unit = attrs.get("unit")?.value;
-  if (on !== undefined && from === undefined && to === undefined) return { on, ...(unit ? { unit } : {}) };
-  if (on === undefined && from !== undefined && to !== undefined && from !== to) return { from, to, ...(unit ? { unit } : {}) };
-  throw fail(source, at, m.holdShape);
-}
-/** 持ち分の線の属性を書き戻す字。線を持たない値は空 */
-function holdLinkText(link: PipeHoldLink | undefined): string {
-  if (!link) return "";
-  const unit = link.unit ? `, unit: ${link.unit}` : "";
-  return link.on !== undefined ? ` [on: ${link.on}${unit}]` : ` [from: ${link.from}, to: ${link.to}${unit}]`;
+  state.figure.pipe.holds.push({ box, name: named.name, value });
 }
 
 /** `move` の行。トークンの Contract の管を通して、送り手の残高から受け手へ移す */
@@ -140,7 +108,7 @@ function holdLines(diagram: DiagramModel): string[] {
     if (last) lines.push(`hold ${last.box}: ${last.balances.join(", ")}`);
     last = undefined;
     if ("token" in hold) last = { box: hold.box, balances: [`${hold.amount} ${hold.token}`] };
-    else lines.push(`hold ${hold.box}: ${valueName(hold.name)} ${hold.value}${holdLinkText(hold.link)}`);
+    else lines.push(`hold ${hold.box}: ${valueName(hold.name)} ${hold.value}`);
   }
   if (last) lines.push(`hold ${last.box}: ${last.balances.join(", ")}`);
   return lines.length === 0 ? [] : [lines.join("\n")];

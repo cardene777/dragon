@@ -49,8 +49,6 @@ const FRAMES = [
   "dg-pp-housing",
   "dg-pp-pbox",
   "dg-pp-cbr",
-  // 配管の図のトークンの箱の下に敷く地 (#3720)。トークンの箱と同じ形で落とす
-  "dg-pp-tokbg",
   // 表どうしの関係の図の表の光る枠と式の札 (#3618)
   "dg-er-frame",
   "dg-er-note",

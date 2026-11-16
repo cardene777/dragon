@@ -73,8 +73,6 @@ export interface SceneEdge {
   settle?: Point;
   /** 走り出す前に運ぶ物が待つ点 (#3176)。運ぶ物はここから線の始まりへ出て線を走る。無ければ線の始まり */
   wait?: Point;
-  /** 線の太さ (Tracelyth #86)。シーケンス図の線だけが持ち、お金の矢印は呼び出しの線より太い。無ければ決まった太さ */
-  width?: number;
 }
 
 export interface SceneLabel extends Rect {

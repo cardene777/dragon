@@ -117,11 +117,9 @@ export function isColorValue(value: unknown): value is string {
 
 /** 色味の値を CSS の変数として並べる。 */
 export function paletteVars(palette: Palette, theme: Theme): string {
-  // 今のステップの帯と生存線の帯の地 (Tracelyth #91)。明るいテーマの地 (--bg) は色を持つため、混ぜると灰色に寄る。
-  // 明暗で地を替えない色味 (arcade) は明るい表示でも暗い地なので、白でなく面の色を使う
-  const light = theme === "light" && palette.light.bg !== palette.dark.bg;
-  const wash = light ? "#ffffff" : "var(--surf)";
-  return [...Object.entries(palette[theme]).map(([key, value]) => `--${key}:${value}`), `--wash:${wash}`].join(";");
+  return Object.entries(palette[theme])
+    .map(([key, value]) => `--${key}:${value}`)
+    .join(";");
 }
 
 /** 字の変数。同梱した 2 つの字を 1 度だけ名指し、字を使う所はどれもこの変数を読む。 */
@@ -308,9 +306,6 @@ export const LOOK = {
     tail: 10,
     selfW: 34,
     selfH: 18,
-    // 呼ばれた側の生存線に立てる帯の幅と、お金の矢印 (硬貨で運ぶ線) の太さ (Tracelyth #86)
-    bar: 10,
-    money: 5,
   },
   /**
    * 状態遷移図 (#3163)。状態は `columns` つずつ並べて次の段へ折り返し、段の間 (`rowGap`) の真ん中を、段をまたぐ線が通る。

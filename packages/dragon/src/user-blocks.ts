@@ -217,6 +217,3 @@ export function drawUserBlocks(boxes: Map<string, UserBlock>, edges: Map<string,
 export const userBoxOf = (id: string): UserBlock | undefined => drawing.boxes.get(id);
 /** 描いている図で、段 `step` の `event` 番目の線が足した線のブロックなら、その定義 */
 export const userEdgeOf = (step: number, event: number): UserBlock | undefined => drawing.edges.get(`${step}:${event}`);
-
-/** 使う人が足した線のブロックの、線の形ごとの点線の模様 (#3399)。実線は模様を持たない。線の描き方とシーケンス図の並べ方が読む */
-export const USER_DASH: Readonly<Record<string, string>> = { dashed: "8 6", dotted: "1.5 5" };

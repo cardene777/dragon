@@ -18,7 +18,3 @@ export * from "./api";
 export { readBlocks } from "./user-blocks-read";
 // 配管の図の置き場所の決まりの表と、違反を数える処理 (#3418)。配管の図の部品と同じく、全部を持つ入口だけが出す
 export { type PipeBreakage, PIPE_RULES, type PipeRule, type PipeViolation, pipeViolations } from "./pipe-rules";
-// 止め絵から流し直す時刻の決まり (Tracelyth #99)。置いた側が自分の再生の釦から流し直す時に、再生の部品と同じ時刻を使う
-export { resumeFrom } from "./player";
-// 寄って追う形の SVG を画面を開かずに描く (Tracelyth #91)。置いた側が狭い枠の図の全体図の小窓と列の頭の留め方を確かめる
-export { followSvg } from "./render/draw";
