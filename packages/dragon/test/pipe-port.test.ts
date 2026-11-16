@@ -254,7 +254,7 @@ describe("置き方の形", () => {
     expect(fixed?.order.filter((id) => five.includes(id)), "箱が5つの図の auto が箱の並びを変えた").toEqual(five);
 
     // パイプ図の外の layout の行と、2行目の layout の行と、知らない形と、形の無い layout の行は読まずに断る
-    expect(refused("sequence 題\nlayout top\nbox a as A\nbox b as B\nstep s\n  say 呼ぶ\n  a -> b: hi\n"), "シーケンス図の layout の行").toMatch(/パイプ図 \(pipe\) だけ/u);
+    expect(refused("sequence 題\nlayout top\nbox a as A\nbox b as B\nstep s\n  say 呼ぶ\n  a -> b: hi\n"), "シーケンス図の layout の行").toMatch(/pipe \(配管の図\) でだけ/u);
     expect(refused(pipeText({ layout: "top\nlayout bottom" })), "2行目の layout の行").toMatch(/1行だけ/u);
     expect(refused(pipeText({ layout: "nope" })), "知らない形").toMatch(/「nope」は書けない/u);
     expect(refused(pipeText().replace("\n\nbox", "\nlayout\n\nbox")), "形の無い layout の行").toMatch(/layout の後に形の名前/u);

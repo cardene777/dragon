@@ -517,7 +517,7 @@
     "tag rx=9": 16,
     "(none) rx=12": 18,
     "dg-pp-glass dg-pp-glass-on rx=18": 7,
-    "dg-pp-gulp rx=16": 1
+    "dg-pp-gulp rx=16": 2
   },
   "swap-retry.json": {
     "dg-bg rx=14": 1,
@@ -537,7 +537,7 @@
     "tag rx=9": 16,
     "(none) rx=12": 18,
     "dg-pp-glass dg-pp-glass-on rx=18": 7,
-    "dg-pp-gulp rx=16": 1
+    "dg-pp-gulp rx=16": 2
   },
   "swap-revert.en.json": {
     "dg-bg rx=14": 1,
@@ -587,14 +587,14 @@
     "dg-pp-shine rx=3.5": 78,
     "dg-pp-cabr rx=12": 39,
     "dg-pp-lab rx=4": 59,
-    "dg-pp-lcard rx=10": 32,
+    "dg-pp-lcard rx=10": 29,
     "dg-pp-tpill rx=11": 50,
     "dg-pp-ring rx=10": 3,
     "box rx=10": 25,
     "tag rx=9": 25,
-    "(none) rx=12": 14,
     "dg-pp-glass dg-pp-glass-on rx=18": 6,
-    "dg-pp-gulp rx=16": 1
+    "dg-pp-gulp rx=16": 3,
+    "(none) rx=12": 14
   },
   "swap-two-hops.json": {
     "dg-bg rx=14": 1,
@@ -606,14 +606,14 @@
     "dg-pp-shine rx=3.5": 78,
     "dg-pp-cabr rx=12": 39,
     "dg-pp-lab rx=4": 59,
-    "dg-pp-lcard rx=10": 32,
+    "dg-pp-lcard rx=10": 29,
     "dg-pp-tpill rx=11": 50,
     "dg-pp-ring rx=10": 3,
     "box rx=10": 25,
     "tag rx=9": 25,
-    "(none) rx=12": 14,
     "dg-pp-glass dg-pp-glass-on rx=18": 6,
-    "dg-pp-gulp rx=16": 1
+    "dg-pp-gulp rx=16": 3,
+    "(none) rx=12": 14
   },
   "swap.en.json": {
     "dg-bg rx=14": 1,

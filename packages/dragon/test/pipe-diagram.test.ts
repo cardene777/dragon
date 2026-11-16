@@ -1470,15 +1470,6 @@ function coinMoves(rendered: PipeRendered, motion: Motion, s: number): boolean {
   return partsOf(motion, ".dg-pp-coin").some((el) => movesWith(motion, el, "transform", start, still) && times.some((t) => seenOf(motion, el, t) > 0.5));
 }
 
-/** 段 `s` の中の時刻 (始まりから止め絵まで、0.05 秒ごと) */
-function timesIn(rendered: PipeRendered, s: number): number[] {
-  const start = rendered.timeline.steps[s]?.start ?? Number.NaN;
-  const still = stillOf(rendered, s);
-  const out: number[] = [];
-  for (let t = start; t <= still; t += 0.05) out.push(t);
-  return out;
-}
-
 /** 見本 aggregator の箱を全て開き、幅 1200 の枠で描いた図 */
 const openedAggregator = (lang: "ja" | "en" = "ja"): PipeRendered => render(exampleJson(lang === "ja" ? "aggregator.json" : "aggregator.en.json"), lang, 1200, [2]);
 
@@ -2484,28 +2475,20 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
 
   it("pipe-narrow-shows-balances-and-current-value", () => {
     const source = exampleJson("swap-two-hops.json");
-    const frame = 390;
-    const rendered = render(source, "ja", frame);
-    const layout = composed(rendered);
-    const scale = frame / layout.width;
+    // 電話の幅でも広い枠と同じ並びで描き、縮めずに送る枠で見せる (Tracelyth #87、#3720)。残高と札は広い枠と同じ字の大きさと数で出る
+    const phone = composed(render(source, "ja", 390));
+    const wide = composed(render(source, "ja", 1280));
+    expect((phone as { narrow?: boolean }).narrow ?? false, "電話の幅の並び").toBe(false);
     const last = lastStep(source);
     for (let s = 0; s <= last; s++) {
-      // 全ての槽の残高を、画面で 10px 以上に見える字で出す
-      for (const l of layout.levels.filter((k) => k.step === s)) expect(l.text.h * scale, `段 ${s + 1} の ${l.party} の ${l.token} の残高の字の大きさ (画面)`).toBeGreaterThanOrEqual(10);
-      const chips = layout.chips.filter((c) => c.step === s);
-      // 今の段で動いた値 (流れた量、確認の式) だけを図の札に出す。済んだ段の値と、計算とイベントと戻り値と槽の下の増減は出さない
-      for (const c of chips) {
-        expect(["amount", "formula", "io"], `段 ${s + 1} の狭い枠に ${c.kind} の札がある`).toContain(c.kind);
-        if (c.kind !== "io") expect(c.size * scale, `段 ${s + 1} の ${c.kind} の札の字の大きさ (画面)`).toBeGreaterThanOrEqual(10);
-      }
-      const moved = (source as unknown as Source).steps[s]?.events.some((e) => e.type === "move");
-      const amounts = chips.filter((c) => c.kind === "amount");
-      expect(amounts.length, `段 ${s + 1} の流れた量の札の数`).toBe(moved ? 1 : 0);
+      // 全ての槽の残高を、10px 以上の字で出す
+      for (const l of phone.levels.filter((k) => k.step === s)) expect(l.text.h, `段 ${s + 1} の ${l.party} の ${l.token} の残高の字の大きさ`).toBeGreaterThanOrEqual(10);
+      for (const c of phone.chips.filter((k) => k.step === s && k.kind !== "io")) expect(c.size, `段 ${s + 1} の ${c.kind} の札の字の大きさ`).toBeGreaterThanOrEqual(10);
     }
-    expect(layout.levels.every((l) => (l as Level & { delta?: Writing }).delta === undefined), "狭い枠に槽の下の増減がある").toBe(true);
-    // 広い枠では今どおり、済んだ段の流れた量も札に残る
-    const wide = composed(render(source, "ja", 1280));
-    expect(wide.chips.filter((c) => c.kind === "amount" && c.step === last).length, "広い枠の最後の段の流れた量の札の数").toBe(3);
+    expect(phone.levels, "電話の幅の槽の残高と増減").toEqual(wide.levels);
+    expect(phone.chips, "電話の幅の札").toEqual(wide.chips);
+    // 済んだ段の流れた量も札に残る
+    expect(phone.chips.filter((c) => c.kind === "amount" && c.step === last).length, "最後の段の流れた量の札の数").toBe(3);
   });
 
   it("pipe-swap-keeps-approved-arrangement", () => {

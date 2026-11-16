@@ -1086,10 +1086,19 @@ interface Plan {
   outer: number;
   /** 最後の組み方。値の管がほかの値の管を越えてよい (決まりの表が違反に数える) */
   last: boolean;
+  /**
+   * 下の段の囲いを横へずらす幅。下の段を持つ図だけが試す。
+   * 下の段は上の段の真ん中の下へ寄せるため、上の段の幹の筋と下の段の口の筋の隔たりが箱の幅で決まり、
+   * 同じ組の管が並べない隔たりになると、間を広げても管が通らない。筋 1 本分ずらすと隔たりが変わる (#3720)。
+   * 間を広げる組み方より先に試す。間を広げて組むと管の道が長くなり、通らない組み方を組む時間が延びる
+   */
+  shift?: number;
 }
 
 const PLANS: Plan[] = [
   { gap: 0, lanes: 1, rows: 0, outer: 2, last: false },
+  { gap: 0, lanes: 1, rows: 0, outer: 2, last: false, shift: P.lane.pitch },
+  { gap: 0, lanes: 1, rows: 0, outer: 2, last: false, shift: -P.lane.pitch },
   { gap: P.lane.pitch, lanes: 2, rows: P.lane.pitch, outer: 3, last: false },
   { gap: P.lane.pitch * 2, lanes: 3, rows: P.lane.pitch, outer: P.lane.outer, last: false },
   { gap: P.lane.pitch * 2, lanes: 3, rows: P.lane.pitch, outer: P.lane.outer, last: true },
@@ -1334,7 +1343,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   const said = `${lang}|${JSON.stringify(options.words ?? {})}`;
   const key = `${said}|${narrow ? frame : "wide"}|${JSON.stringify(diagram)}`;
   const hit = CACHE.get(key);
-  if (hit) return hit;
+  if (hit) return copyOf(hit);
   const remember = (k: string, layout: PipeLayout): PipeLayout => {
     if (CACHE.size >= CACHE_SIZE) CACHE.delete(CACHE.keys().next().value as string);
     CACHE.set(k, layout);
@@ -1357,8 +1366,14 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     sizes = { amount: Math.max(T.amount.size, want), chip: Math.max(T.chip.size, want) };
     out = compose(diagram, words, sizes, true, PLAN_OF.get(out) ?? 0);
   }
-  return narrow ? remember(key, out) : out;
+  return copyOf(narrow ? remember(key, out) : out);
 }
+
+/**
+ * 覚えた置き場所の写し。描く処理は札の通り道を空けるために置き場所をずらし、図の幅と高さを伸ばし、描いた札の置き場所を書く。
+ * 覚えた物をそのまま渡すと、2 度目からは前に描いた時に書き換えた置き場所から描き始め、同じ図でも描くたびに置き場所が変わる (#3720)
+ */
+const copyOf = (layout: PipeLayout): PipeLayout => structuredClone(layout);
 
 /** 値の管の定め。同じトークンの、同じ 2 人の間の流れは 1 本の管を通る */
 interface Def {
@@ -1887,6 +1902,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const cramped = new Map<string, number>();
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
+    if (plan.shift !== undefined && band1.length === 0) continue;
     cramped.clear();
     result = attempt(plan);
     if (result && cramped.size > 0) {
@@ -1962,6 +1978,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       if (shift < 0) for (const h of lower) {
         const c = cols.get(h) as Col;
         cols.set(h, { ...c, x: c.x + shift, hx: c.hx + shift });
+      }
+      if (plan.shift !== undefined) for (const h of lower) {
+        const c = cols.get(h) as Col;
+        cols.set(h, { ...c, x: c.x + plan.shift, hx: c.hx + plan.shift });
       }
     }
 
@@ -2558,10 +2578,13 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           const same = (p: PortChoice, q: Point): boolean => Math.abs(p.exit[0] - q[0]) < 0.5 && Math.abs(p.exit[1] - q[1]) < 0.5;
           // 口から外の点までの線は道を探さずに引くため、先に引いた管がその線を越える口は使わない
           const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token), ...(home ? (ownObs.get(`b:${home.box}`) ?? []) : [])]);
-          const clear = (p: PortChoice): boolean => same(p, [p.port.x, p.port.y]) || valueRouter.passable(stubAsk, [p.port.x, p.port.y], p.exit);
+          // 線は流れの向きに測る。同じ組の管は同じ向きの時だけ重なるため、受ける側の口は外の点から口へ向かう線で測る。
+          // 口から外へ向かう向きで測ると、先に同じ口へ入った同じ組の管と逆向きになり、幹の管が根の口を共に使えない (#3720)
+          const clear = (p: PortChoice, into: boolean): boolean =>
+            same(p, [p.port.x, p.port.y]) || (into ? valueRouter.passable(stubAsk, p.exit, [p.port.x, p.port.y]) : valueRouter.passable(stubAsk, [p.port.x, p.port.y], p.exit));
           for (const loose of [false, true]) {
-            const xa = sa.filter((p) => (loose || !p.inner) && clear(p));
-            const xb = sb.filter((p) => (loose || !p.inner) && clear(p));
+            const xa = sa.filter((p) => (loose || !p.inner) && clear(p, false));
+            const xb = sb.filter((p) => (loose || !p.inner) && clear(p, true));
             if (xa.length === 0 || xb.length === 0 || (loose && xa.every((p) => !p.inner) && xb.every((p) => !p.inner))) continue;
             // 内側の口は槽の間を上か下へ抜ける。外側の口は外の点から横に進むほか、外の点で上か下へ折れてよい。
             // 外の点の筋を同じ組の幹が通る時は、外の点で幹に入る。1 つ先の点まで出てから折れると、幹の際で行って戻る段差になる

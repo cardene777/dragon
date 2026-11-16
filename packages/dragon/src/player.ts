@@ -615,11 +615,10 @@ export function mountDiagram(
     return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.ceil(need * 100) / 100));
   };
   /** 「−」で小さくできる下限。`minZoom` を渡した時は始めの大きさより小さくできる (Tracelyth #179) */
-  const lowest = (): number =>
-    typeof options.minZoom === "number" && options.minZoom > 0 && options.minZoom < ZOOM.min ? options.minZoom : ZOOM.min;
+  const lowest = typeof options.minZoom === "number" && options.minZoom > 0 && options.minZoom < ZOOM.min ? options.minZoom : ZOOM.min;
   /** 置き直す前の図で選んでいた拡大の度合い。`startZoom` を渡した時はその度合いで始め、枠の幅が変わっても戻さない (Tracelyth #181) */
   const kept = typeof options.startZoom === "number" && Number.isFinite(options.startZoom) && options.startZoom > 0;
-  zoom = kept ? Math.min(ZOOM.max, Math.max(lowest(), options.startZoom as number)) : readableZoom();
+  zoom = kept ? Math.min(ZOOM.max, Math.max(lowest, options.startZoom as number)) : readableZoom();
   /** 置いた図の幅 (px)。配管の図は拡大の度合いを掛ける */
   const shownWidth = (): number => (isPipe ? baseWidth() * zoom : rendered.layout.width);
   /** 図の座標を、置いた図の px にする倍率 */
@@ -669,7 +668,7 @@ export function mountDiagram(
   /** 拡大の度合いの札と、拡大と縮小の釦を押せるかを今の度合いに合わせる */
   const showZoom = (): void => {
     zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
-    zoomOutButton.disabled = zoom <= lowest();
+    zoomOutButton.disabled = zoom <= lowest;
     zoomInButton.disabled = zoom >= ZOOM.max;
   };
   /**
@@ -704,7 +703,7 @@ export function mountDiagram(
    */
   const zoomTo = (target: number, at?: { x: number; y: number }): void => {
     if (!isPipe || !svg) return;
-    const next = Math.min(ZOOM.max, Math.max(lowest(), target));
+    const next = Math.min(ZOOM.max, Math.max(lowest, target));
     const ratio = next / zoom;
     if (ratio === 1) return;
     held = true;
@@ -932,11 +931,12 @@ export function mountDiagram(
    * 最初の段へ戻る。流していれば最初の段から流し直し、止めていれば段 1 の始まりへ戻す (#3398)。
    * 段 1 の止め絵へ戻すと、段 1 で変わった後の値が出る (Tracelyth #131)
    */
-  const onRestart = (): void => {
+  const toStart = (play: boolean): void => {
     held = false;
     step = 0;
-    restart(playing ? 0 : startOf(), playing);
+    restart(play ? 0 : startOf(), play);
   };
+  const onRestart = (): void => toStart(playing);
   const onProgress = (event: Event): void => {
     const s = Number((event.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-dragon=\"segment\"]")?.dataset.step);
     if (Number.isInteger(s)) go(s);
@@ -1016,7 +1016,8 @@ export function mountDiagram(
     drag = undefined;
     delete frame.dataset.drag;
   };
-  // 指で送る時はブラウザが枠を送るので、触れた時から送った扱いにする。軽く触って段を選んだ時は、選んだ段で送り直す (Tracelyth #183)
+  // 指で送る時はブラウザが枠を送るので、触れた時から送った扱いにする。軽く触って段を選んだ時は、選んだ段で送り直す (Tracelyth #183)。
+  // 図の外で送った時に置いた側が呼ぶ `hold` も同じ処理を使う
   const onTouch = (): void => {
     held = true;
   };
@@ -1090,9 +1091,7 @@ export function mountDiagram(
     get held() {
       return held;
     },
-    hold: () => {
-      held = true;
-    },
+    hold: onTouch,
     next: onNext,
     prev: onPrev,
     play: () => {
@@ -1105,11 +1104,7 @@ export function mountDiagram(
       playing = false;
       go(target);
     },
-    rewind: () => {
-      held = false;
-      step = 0;
-      restart(startOf(), false);
-    },
+    rewind: () => toStart(false),
     setSpeed: (next: number) => {
       const t = now();
       speed = checkSpeed(next);

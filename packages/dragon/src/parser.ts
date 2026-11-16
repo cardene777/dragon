@@ -209,12 +209,6 @@ const LINEUP_OR_TRY = ["item", "line"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
-/**
- * パイプ図の外に書いた置き方の行 (`layout <形>`) を断る文 (Tracelyth #165)。行を読む処理と、配管の図の中で出るほかの誤りの文は、
- * 後から読む槽のブロック (`blocks/hold/read.ts`) が持つ。この文はその読み方を読まない図で出るので、記法を読む処理が持つ (#3720)
- */
-const LAYOUT_PIPE_ONLY: Record<NotationLang, string> = { ja: "layout の行はパイプ図 (pipe) だけに書ける", en: "Write a layout line only in a pipe diagram" };
-
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
 /**
  * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
@@ -480,8 +474,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       continue;
     }
     const { word } = line;
-    // パイプ図の置き方の行 (Tracelyth #165) は槽のブロックが読む。パイプ図の外では、その読み方を読まない図でも同じ文で断る
-    if (word === "layout" && kind !== "pipe") throw fail(source, 0, LAYOUT_PIPE_ONLY[lang] ?? LAYOUT_PIPE_ONLY.en);
+    // パイプ図の置き方の行 (Tracelyth #165) は槽のブロックが読む。パイプ図の外では、その読み方を読まない図でも、
+    // パイプ図だけの行と同じ文で断る (#3720)
+    if (word === "layout" && kind !== "pipe") throw fail(source, 0, m.pipeOnly(word));
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
     if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
     const only = ONLY_HEADS.get(word);
