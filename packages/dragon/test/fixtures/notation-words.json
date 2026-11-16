@@ -61,6 +61,8 @@
     "side",
     "hold",
     "move",
+    "mint",
+    "burn",
     "write",
     "return",
     "check",
