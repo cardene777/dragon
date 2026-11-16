@@ -15,7 +15,8 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 |---|---|
 | `box <id> as <name>` | A party: a sender, a contract, a token contract or an account. The role comes from the lines, so it is not written |
 | `hold <owner>: <amount> <token>, <amount> <token>` | Starting balances. Name a token by the shown name of its party (`box usdc as USDC`, then `hold alice: 100 USDC`). `ETH` needs no party |
-| `hold <contract>: <name> <value>` | A stored value plate. Wrap names that read as amounts or contain `[` in `"` (`hold usdc: "allowance[alice][router]" 100`) |
+| `hold <owner>: <count> #<id> <token>` | A starting balance of an NFT or ERC-1155 token ID. Without a count it is one (`hold alice: #1 ART`, `hold alice: 5 #1 ITEMS`). Each ID gets its own tank, shown as `ART #1` |
+| `hold <contract>: <name> <value>` | A stored value plate. Wrap names that read as amounts, start with `#` or contain `[` in `"` (`hold usdc: "allowance[alice][router]" 100`) |
 
 ## Lines in a step
 
@@ -28,7 +29,10 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 | `... [fold]` | Folds the call's inner steps into one box the reader can open |
 | `return <party>: <value>` | Closes the innermost open call. `<party>` is that call's callee |
 | `revert <party>: <reason>` | Fails the innermost open call and rolls back only the changes inside it |
-| `move <token party>: <amount> <from> -> <to>` | Moves a balance through the token's pipe |
+| `move <token party>: <amount> <from> -> <to>` | Moves a balance through the token's pipe (`move usdc: 100 alice -> bob`) |
+| `move <token party>: <count> #<id> <from> -> <to>` | Moves an NFT or ERC-1155 token ID through its own pipe. Without a count it is one (`move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`) |
+| `mint <token party>: <amount> -> <to>` | Mints: only the receiver's tank fills (`mint usdc: 100 -> alice`, `mint art: #3 -> alice`). No zero address is drawn |
+| `burn <token party>: <amount> <holder>` | Burns: only the holder's tank drains (`burn usdc: 100 alice`, `burn art: #3 alice`). No zero address is drawn |
 | `write <party>: <name> <value>` | Rewrites a value plate |
 | `check <party>: <left> <op> <right>` | A check with `>=`, `<=`, `==`, `!=`, `>`, `<`. Numbers are compared for you. Add `[fail]` to make a check on other values fail |
 | `emit <party>: <Name>(<arg>, ...)` | An event |
@@ -38,9 +42,11 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 ## Rules the parser checks
 
 - Every call is closed by `return` or `revert`, innermost first, and `return`/`revert` name the innermost callee.
-- An owner needs a tank before a `move` touches it. Declare `hold <owner>: 0 <token>`.
-- An owner cannot send more than it holds.
-- `move` starts with a token party: a party whose shown name is a unit on a `hold` line.
+- An owner needs a tank before a `move`, `mint` or `burn` touches it. Declare `hold <owner>: 0 <token>`, or `hold <owner>: 0 #<id> <token>` for a token ID.
+- An owner cannot send or burn more than it holds.
+- `move`, `mint` and `burn` start with a token party: a party whose shown name is a unit on a `hold` line.
+- A `#` must be followed by a token ID written as digits. `move art: # alice -> bob` is refused.
+- Write a mint or burn as `mint` or `burn`, not as a move from or to a zero address party.
 - Inside a `[call: static]` call, no balance, value, event or ETH can change.
 - `note`, `act`, `strip`, `set` and `color` do not exist in pipe.
 
