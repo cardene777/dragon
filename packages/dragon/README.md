@@ -787,6 +787,8 @@ Declare the parties with `box`. Whether each party is a sender, a contract, a to
 - `<caller> -> <callee>: <text>` is a call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` borrows the callee's code and writes to the caller's values, `[call: static]` cannot write, and `[fold]` folds the call's inner steps into one box that opens when pressed
 - `return <party>: <value>` closes the innermost open call, and `revert <party>: <reason>` fails it and rolls back only the changes inside it
 - `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
+- `mint <token>: <amount> -> <to>` fills only the receiver's tank, and `burn <token>: <amount> <holder>` drains only the holder's tank, so no zero address party is drawn
+- For NFTs and ERC-1155, write the token ID after `#` and the count before it, as in `move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`, `mint art: #3 -> alice`, and `hold alice: 5 #1 ITEMS`. Without a count it is one, and each ID gets its own tank. A `#` with no ID after it is refused
 - `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
 - `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
 - `gist <key point>` is the key point of the step, shown in a note after the step's arrows under the figure. A pipe diagram does not show the step body under the figure, so write here a point the body alone would carry. A step takes at most one, and other kinds of diagram cannot take it

@@ -98,6 +98,24 @@ export function rateOf(input: string, output: string): string {
 /** 残高と値の鍵。持ち主と、トークンか値の名前 */
 export const keyOf = (owner: string, what: string): string => `${owner}|${what}`;
 
+/**
+ * 槽のトークンの名前。NFT と ERC-1155 の番号を持つ残高は `<トークン> #<番号>` (`ART #1`) の槽にし、番号ごとに量を持つ (#3722)。
+ * トークンの名前は空白を含まないので、番号を持たない残高の槽と取り違えない
+ */
+export const tankToken = (token: string, tokenId?: string): string => (tokenId === undefined ? token : `${token} #${tokenId}`);
+
+/** 量を記法に書く形。数が 1 で番号を持つ量は `#<番号>` だけ、数と番号を持つ量は `<数> #<番号>` (#3722) */
+export const quantityText = (amount: string, tokenId?: string): string =>
+  tokenId === undefined ? amount : amount === "1" ? `#${tokenId}` : `${amount} #${tokenId}`;
+
+/** 槽のトークンの名前を、記法に書く形 (`ART #1` は `#1 ART`) にする。誤りの文が `hold <持ち主>: 0 <この字>` を勧めるため */
+export const writtenToken = (token: string): string => token.replace(/^(\S+) (#\S+)$/u, "$2 $1");
+
+/** 始めの値を、槽の鍵で読む形にする。番号を持つ残高はトークンの名前を `tankToken` の名前に替える */
+export function tankHolds(holds: readonly PipeHold[]): PipeHold[] {
+  return holds.map((h) => ("token" in h && h.tokenId !== undefined ? { box: h.box, amount: h.amount, token: tankToken(h.token, h.tokenId) } : h));
+}
+
 /** ある時点の残高と値と、出ているイベントの番号 */
 export interface PipeSnapshot {
   balances: Map<string, string>;
@@ -153,7 +171,7 @@ export class PipeRun {
   constructor(boxes: readonly Named[], holds: readonly PipeHold[]) {
     for (const hold of holds) {
       if ("token" in hold) {
-        this.balances.set(keyOf(hold.box, hold.token), hold.amount);
+        this.balances.set(keyOf(hold.box, tankToken(hold.token, hold.tokenId)), hold.amount);
         const owner = boxes.find((b) => b.name === hold.token);
         if (hold.token !== ETH && owner) this.tokens.set(owner.id, hold.token);
       } else this.values.set(keyOf(hold.box, hold.name), hold.value);
@@ -226,11 +244,25 @@ export class PipeRun {
     return top;
   }
 
+  /** 量を移す。送り手が無ければ受け手の槽だけを増やす発行、受け手が無ければ送り手の槽だけを減らす焼却 (#3722) */
   move(event: PipeMove): PipeFault | undefined {
     if (this.readOnly()) return { fault: "readOnly" };
-    const token = this.tokens.get(event.box);
-    if (token === undefined) return { fault: "notToken" };
-    return this.transfer(token, event.from, event.to, event.amount);
+    const name = this.tokens.get(event.box);
+    if (name === undefined) return { fault: "notToken" };
+    const token = tankToken(name, event.tokenId);
+    const { from, to, amount } = event;
+    if (from !== undefined && to !== undefined) return this.transfer(token, from, to, amount);
+    if (to !== undefined) {
+      const into = this.balances.get(keyOf(to, token));
+      if (into === undefined) return { fault: "noTank", owner: to, token };
+      this.balances.set(keyOf(to, token), plus(into, amount));
+      return undefined;
+    }
+    if (from === undefined) return undefined;
+    const fault = this.short(from, token, amount);
+    if (fault) return fault;
+    this.balances.set(keyOf(from, token), minus(this.balances.get(keyOf(from, token)) ?? "0", amount));
+    return undefined;
   }
 
   /** 値を書き替え、書き替えた値の持ち主を返す */

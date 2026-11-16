@@ -6,6 +6,12 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- **パイプ図に発行と焼却と、NFTとERC-1155のトークンの番号の書き方を足した** (#3722)
+
+  `mint usdc: 100 -> alice`は受け手の槽だけを増やし、`burn usdc: 100 alice`は持ち主の槽だけを減らす。ゼロのアドレスを関係者として書かずに描け、残高も持たせない。原本では送り手か受け手を省いた`move`として持つ。NFTとERC-1155は`#`の後をトークンの番号、前を数にし (`move art: #1 alice -> bob`、`move items: 2 #1 alice -> bob`、`mint art: #3 -> alice`、`burn art: #3 alice`)、数を省くと1つになる。番号の付いた残高も`hold alice: #1 ART`、`hold alice: 5 #1 ITEMS`と書き、番号ごとに`ART #1`の槽を持ち、持ち主から受け取る人へ移る線を描く。`#`の後に番号の無い行は読む時に止まる。`#`で始まる値の名前は`"`で囲んで書き戻す。数を移す`move usdc: 100 alice -> bob`の読み方と描き方は変えていない。
+
 ## [0.76.0] - 2026-11-15
 
 ### Changed
