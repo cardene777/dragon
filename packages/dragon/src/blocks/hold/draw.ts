@@ -10,16 +10,18 @@
  * 角を落とす色味 (#3344) では、槽とトークンの箱の右上と左下を落とし、つやと取っ手の角を丸めない。
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
  */
-import type { PipeFlow, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
+import type { PipeFlow, PipeLedger, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
+import { simplifyPath } from "../../kinds/pipe/place";
 import type { Point, Rect } from "../../layout/scene";
-import { PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import { valveLever, valvePivot } from "../../pipe-valve";
+import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
+import { valveLever } from "../../pipe-valve";
 import { EASE, MOTION, type TextStyle } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
 import type { Frame } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
+import { dashMovers, maskOf, STREAM } from "../return/draw";
 import { undoneMark } from "../revert/draw";
 
 const P = PIPE_LOOK;
@@ -78,7 +80,7 @@ export function sizedText(ctx: Ctx, cls: string, t: PipeText, style: TextStyle, 
 const rect = (cls: string, r: Rect, radius: number, extra = ""): string =>
   `<rect class="${cls}" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(Math.max(0, r.w))}" height="${r1(Math.max(0, r.h))}" rx="${radius}"${extra}/>`;
 /** 箱の形。角を落とす色味では右上と左下を落とした形で描く */
-const frame = (ctx: Ctx, cls: string, r: Rect, radius: number, extra = ""): string => frameShape(ctx.corner, ` class="${cls}"${extra}`, r, rect(cls, r, radius, extra));
+export const frame = (ctx: Ctx, cls: string, r: Rect, radius: number, extra = ""): string => frameShape(ctx.corner, ` class="${cls}"${extra}`, r, rect(cls, r, radius, extra));
 
 /**
  * 槽。ガラスと、中に入れる水 (`inside`) と、液の深さの陰と、つやと目盛りとトークンの名前。
@@ -141,9 +143,10 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
   else if (lv.h > 0) parts.push(body(now));
   const water = `<g clip-path="url(#${clipId(ctx, t)})">${parts.join("")}</g>`;
   const marks: string[] = [];
+  // 前の水位の印は槽の内側だけに引く (Tracelyth #168)
   if (old !== undefined && lv.state === "provisional")
-    marks.push(`<line class="dg-pp-mark" x1="${r1(t.x - P.tank.markOut)}" y1="${r1(old)}" x2="${r1(t.x + t.w + P.tank.markOut)}" y2="${r1(old)}"/>`);
-  if (old !== undefined && lv.state === "rolled") marks.push(undoneMark(t.x - P.tank.markOut, t.x + t.w + P.tank.markOut, old));
+    marks.push(`<line class="dg-pp-mark" x1="${r1(t.x + P.tank.pad)}" y1="${r1(old)}" x2="${r1(t.x + t.w - P.tank.pad)}" y2="${r1(old)}"/>`);
+  if (old !== undefined && lv.state === "rolled") marks.push(undoneMark(t.x + P.tank.pad, t.x + t.w - P.tank.pad, old));
   const sub =
     (lv.delta ? write(ctx.ink, "dg-pp-dlt", lv.delta.x, lv.delta.base, lv.delta.text, T.delta, shown) : "") +
     (lv.tag ? write(ctx.ink, "dg-pp-tagw", lv.tag.x, lv.tag.base, lv.tag.text, T.tag, shown) : "");
@@ -153,32 +156,26 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
   );
 }
 
-/** 値の管。持ち主の槽の横の口どうしを結ぶ折れ線を、外の管と中の管の 2 本で描く。`attrs` は部品の印 (`data-pipe-value` など) */
+/**
+ * 値の管。持ち主の槽の横の口どうしを結ぶ折れ線を、壁 (`dg-pp-pcase`) と空洞 (`dg-pp-pbore`) の 2 本の線で描き、流れる値は空洞の中を通す (Tracelyth #168)。
+ * `attrs` は部品の印 (`data-pipe-value` など)
+ */
 export function valuePipe(points: readonly Point[], attrs = ""): string {
   const d = `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
-  return `<g${attrs}><path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pcore" d="${d}"/></g>`;
+  return `<g${attrs}><path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pbore" d="${d}"/></g>`;
 }
 
 /**
- * 弁。2 つの三角を向かい合わせた形と、軸と取っ手。`vertical` は縦に走る管の弁。
- * 取っ手は閉じた時に管と直角に立ち、開いた時に管の向きに倒れる。`turn` を渡すと取っ手がその style の動きで回り、`open` を渡すとその style の間だけ弁が開いた色になる。
- * `under` は軸と取っ手を管の下 (縦の管は左) に立てる。
- * `ctx` は取っ手の角の形を読む。
- * `attrs` は取っ手の印 (`data-pipe-lever` など)
+ * 弁。2 つの三角を向かい合わせた形。`vertical` は縦に走る管の弁。軸と取っ手は描かず、胴だけを描く (Tracelyth #168)。
+ * `open` を渡すとその style の間だけ弁が開いた色になる。`turn`、`under`、`ctx`、`attrs` は取っ手を描いていた時の取り決めとして受け取るが、胴の形には使わない
  */
-export function valve(x: number, y: number, vertical: boolean, opened: boolean, attrs: string, ctx: Ctx, turn = "", open = "", under = false): string {
+export function valve(x: number, y: number, vertical: boolean, opened: boolean, _attrs: string, _ctx: Ctx, _turn = "", open = "", _under = false): string {
   const V = P.valve;
   const body = vertical
     ? `M ${r1(x - V.half)} ${r1(y - V.r)} L ${r1(x + V.half)} ${r1(y - V.r)} L ${r1(x)} ${r1(y)} Z M ${r1(x - V.half)} ${r1(y + V.r)} L ${r1(x + V.half)} ${r1(y + V.r)} L ${r1(x)} ${r1(y)} Z`
     : `M ${r1(x - V.r)} ${r1(y - V.half)} L ${r1(x - V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z M ${r1(x + V.r)} ${r1(y - V.half)} L ${r1(x + V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z`;
-  const [px, py] = valvePivot(x, y, vertical, under);
-  const angle = leverAngle(vertical, opened, under);
-  const origin = `transform-origin:${r1(px)}px ${r1(py)}px`;
-  const lever = `<rect class="dg-pp-lever" x="${r1(px - V.leverH / 2)}" y="${r1(py - V.leverH / 2)}" width="${V.lever}" height="${V.leverH}" rx="${partRadius(ctx.corner, V.leverH / 2)}"/>`;
-  const turned = turn ? `<g${attrs} class="dg-a" style="${origin};${turn}">${lever}</g>` : `<g${attrs} transform="rotate(${angle} ${r1(px)} ${r1(py)})">${lever}</g>`;
   return (
-    `<g class="dg-pp-vlv"><line class="dg-pp-vstem" x1="${r1(x)}" y1="${r1(y)}" x2="${r1(px)}" y2="${r1(py)}"/>${turned}` +
-    `<circle class="dg-pp-pivot" cx="${r1(px)}" cy="${r1(py)}" r="${V.pivot}"/><path class="dg-pp-vbody" d="${body}"/>` +
+    `<g class="dg-pp-vlv"><path class="dg-pp-vbody" d="${body}"/>` +
     (open ? `<path class="dg-pp-vbody dg-pp-vopen dg-a" style="${open}" d="${body}"/>` : opened ? `<path class="dg-pp-vbody dg-pp-vopen" d="${body}"/>` : "") +
     `</g>`
   );
@@ -187,14 +184,50 @@ export function valve(x: number, y: number, vertical: boolean, opened: boolean, 
 /** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き。向きの決め方は弁の形と共に `pipe-valve.ts` が持つ */
 export const leverAngle = (vertical: boolean, opened: boolean, under = false): number => valveLever(vertical, opened, under);
 
-/** トークンの箱。名前と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。名前は関係者の名前と同じく `dg-sn` も持つ */
-export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string): string {
+/**
+ * トークンの箱。名前と、名前の下の小さな字 (`balanceOf`、Tracelyth #175) と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。
+ * 名前は関係者の名前と同じく `dg-sn` も持つ。`bare` を立てると箱の枠を描かず名前だけを描く (帳簿型の箱、Tracelyth #168)
+ */
+export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string, bare = false): string {
   const cx = p.x + p.w / 2;
   const stem = valveAt ? `<line class="dg-pp-tstem" x1="${r1(cx)}" y1="${r1(valveAt[1] - P.bus.valveUp)}" x2="${r1(cx)}" y2="${r1(p.y + p.h / 2)}"/>` : "";
+  const sub = p.sub ? write(ctx.ink, "dg-pp-tsub", p.sub.x, p.sub.base, p.sub.text, T.boxSub, shown) : "";
   return (
-    `<g${attrs} class="dg-pp-tokv${on ? " dg-pp-on" : ""}">${stem}${frame(ctx, "dg-pp-act", p, P.token.radius)}` +
-    `${write(ctx.ink, "dg-sn dg-pp-actn", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
+    `<g${attrs} class="dg-pp-tokv${on ? " dg-pp-on" : ""}">${stem}${bare ? "" : frame(ctx, "dg-pp-act", p, P.token.radius)}` +
+    `${write(ctx.ink, "dg-sn dg-pp-actn", p.label.x, p.label.base, p.label.text, T.party, shown)}${sub}</g>`
   );
+}
+
+/** 帳簿型の囲みと、囲みの上の辺から張り出した所を 1 つの輪郭にする (Tracelyth #168)。角は半径 10 で丸める */
+export function ledgerOutline(l: PipeLedger): string {
+  const e = l.enclosure;
+  const t = l.tab;
+  // 張り出しが囲みの縁と揃う側は段を作らないので、重なる点と一直線の上の点を除く
+  const raw: Point[] = [
+    [e.x, e.y + e.h],
+    [e.x, e.y],
+    [t.x, e.y],
+    [t.x, t.y],
+    [t.x + t.w, t.y],
+    [t.x + t.w, e.y],
+    [e.x + e.w, e.y],
+    [e.x + e.w, e.y + e.h],
+  ];
+  const pts = simplifyPath(raw);
+  const r = 10;
+  const at = (p: Point, q: Point, d: number): Point => {
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+    const k = Math.min(d, len / 2) / len;
+    return [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+  };
+  const parts = pts.map((p, i) => {
+    const prev = pts[(i + pts.length - 1) % pts.length] as Point;
+    const next = pts[(i + 1) % pts.length] as Point;
+    const a = at(p, prev, r);
+    const b = at(p, next, r);
+    return `${i === 0 ? "M" : "L"} ${r1(a[0])} ${r1(a[1])} Q ${r1(p[0])} ${r1(p[1])} ${r1(b[0])} ${r1(b[1])}`;
+  });
+  return `${parts.join(" ")} Z`;
 }
 
 /** 点の並びの上の、始まりから `d` 進んだ所 */
@@ -214,39 +247,28 @@ export function pointAlong(points: readonly Point[], d: number): Point {
 }
 
 /**
- * 流れた分。管に沿った点線と向きの印。暫定の分は点線、確定した分は実線、取り消した分は桃色で描く。
- * `at` を渡すと、その時刻に斜線の液の塊が管の始まりから終わりへ通り抜ける。塊は `data-pipe-slug` と段の番号を持つ。`attrs` は部品の印。
- * 塊は管の道筋を長さ 1 と数えた破線の 1 本で、破線のずれを動かして送る。折れた管でも向きを計算せずに道筋どおり曲がるため (試作の4配管と同じ作り)
+ * 流れた分。流れなかった段は、管の空洞の太さの薄い跡 (`dg-pp-tpast`) で描き、取り消した分は桃色で描く。
+ * `at` を渡すと、その時刻に流れの先が管の始まりから終わりへ進み、進んだ所の中を 2 本の筋が流れる (Tracelyth #168)。`attrs` は部品の印。
+ * `plan` は流れの先が道の頭から進んだ割合 (0 から 1) の時刻の組。移す額の札と同じ時刻に角を通し、札を流れの先に載せる
  */
-export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number): string {
+export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: readonly (readonly [number, number])[]): string {
   const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
-  const a = P.flow.chevron;
-  const { x, y, dir, vertical } = f.arrow;
-  const chevron = vertical
-    ? `M ${r1(x - a)} ${r1(y - a * dir * 0.7)} l ${a} ${r1(a * dir * 1.15)} l ${a} ${r1(-a * dir * 1.15)}`
-    : `M ${r1(x - a * dir * 0.7)} ${r1(y - a)} l ${r1(a * dir * 1.15)} ${a} l ${r1(-a * dir * 1.15)} ${a}`;
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
-  let blob = "";
-  if (at !== undefined) {
-    // 塊が管の始まりの手前に隠れている時のずれと、終わりの先へ抜けた時のずれ
-    const before = P.flow.slug;
-    const after = -1;
-    const end = at + MOTION.pipe.slug;
-    const frames: Frame[] = [
-      [0, { opacity: 0, "stroke-dashoffset": before }],
-      [at, { opacity: 0, "stroke-dashoffset": before }, EASE.inOut],
-      [at + MOTION.pipe.slug * 0.15, { opacity: 1 }],
-      [end - MOTION.pipe.slug * 0.15, { opacity: 1 }],
-      [end, { "stroke-dashoffset": after }],
-      [end + MOTION.fade, { opacity: 0 }],
-      [ctx.m.total, { opacity: 0, "stroke-dashoffset": after }],
-    ];
-    blob = `<path class="dg-pp-slug dg-a" data-pipe-slug="" data-pipe-step="${f.step}" pathLength="1" stroke="url(#${defId(ctx, `h${f.tone}`)})" style="${tone};${ctx.m.kf(frames)}" d="${d}"/>`;
-  }
-  return (
-    `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">` +
-    `<path class="dg-pp-tline" d="${d}"/><path class="dg-pp-chev" d="${chevron}"/>${blob}</g>`
-  );
+  const head = `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">`;
+  if (at === undefined) return `${head}<path class="dg-pp-tpast" d="${d}"/></g>`;
+  const id = `dg-stream-${++STREAM.n}`;
+  const frames: Frame[] = plan
+    ? [[0, { "stroke-dashoffset": 1 }], ...plan.map(([t, frac]): Frame => [t, { "stroke-dashoffset": +(1 - frac).toFixed(4) }]), [ctx.m.total, { "stroke-dashoffset": 0 }]]
+    : [
+        [0, { "stroke-dashoffset": 1 }],
+        [at, { "stroke-dashoffset": 1 }, EASE.inOut],
+        [Math.min(at + FLOW_MOVE.travel, ctx.m.total), { "stroke-dashoffset": 0 }],
+        [ctx.m.total, { "stroke-dashoffset": 0 }],
+      ];
+  const reveal = ctx.m.kf(frames);
+  const g = { m: ctx.m, t0: at, tEnd: Math.min(ctx.m.total, at + 8), w: 1.4 };
+  const look = "--k:var(--pp-t);--w:1.4";
+  return `${head}${maskOf(id, d, reveal)}<g mask="url(#${id})" style="${look}"><path class="dg-pp-mtrack" d="${d}"/>${dashMovers(d, g)}</g></g>`;
 }
 
 /** 点の並びの最後を `cut` だけ手前で止める。矢じりの先と線の端を重ねないため */

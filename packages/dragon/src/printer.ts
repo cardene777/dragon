@@ -221,7 +221,7 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
       ["table", diagram.matrix?.table],
       ["turn", diagram.cycle?.turn],
       ["view", diagram.view],
-    ])}`,
+    ])}${diagram.layout !== undefined ? `\nlayout ${diagram.layout}` : ""}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
     ...(diagram.define ? [defineLines(diagram.define)] : []),
     ...(diagram.try ? [tryParts(diagram.try.parts)] : []),

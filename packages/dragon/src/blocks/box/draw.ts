@@ -170,13 +170,14 @@ export interface PipeLook {
  * その段の出来事に出る者 (`on`) は外に光の輪を出す。`attrs` は部品の印。
  * 名前は他の図の箱の名前と同じ `dg-sn` も持つ。置いた頁は図の名前をこの印で読み、図を縮める下限の字の大きさもこの字で測る
  */
-export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook, fill: string): string {
+export function avatar(p: PipeParty, on: boolean, ctx: Ctx, shown: Shown[], attrs: string, look: PipeLook, _fill: string): string {
   const { P, T } = look;
   const cx = p.x + p.w / 2;
   const cy = p.y + p.h / 2;
   return (
     `<g${attrs} class="dg-pp-who${on ? " dg-pp-on" : ""}"><circle class="dg-pp-halo" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.halo}"/>` +
-    `<circle class="dg-pp-avu" fill="${fill}" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.r}"/>` +
+    // 丸の色は描く部品の決まり (`.dg-pp-avu`) が持つ (Tracelyth #168)
+    `<circle class="dg-pp-avu" cx="${r1(cx)}" cy="${r1(cy)}" r="${P.avatar.r}"/>` +
     `<text class="dg-pp-glyph" x="${r1(cx)}" y="${r1(cy + P.avatar.initialY)}" text-anchor="middle">${esc(([...p.name][0] ?? "").toUpperCase())}</text>` +
     `${write(ctx.ink, "dg-sn dg-pp-pname", p.label.x, p.label.base, p.label.text, T.party, shown)}</g>`
   );

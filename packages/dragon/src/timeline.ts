@@ -26,6 +26,7 @@
  */
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
+import { FLOW_MOVE } from "./look/pipe";
 import { MOTION } from "./look/values";
 import type { DiagramModel } from "./schema";
 import { STATE_ENDS } from "./words";
@@ -195,9 +196,11 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
     }
     // 配管の図の出来事 (#3389) は、前の出来事から決まった間を置いて起こす
     if (PIPE_EVENTS.has(event.type)) {
+      // 移す額の札が道を進んで止まり終えるまで、次の出来事を待たせる (Tracelyth #168)
+      const hold = event.type === "move" ? Math.max(beat, FLOW_MOVE.travel + FLOW_MOVE.pause + 0.3) : beat;
       out.events.push({ event: e, at: cursor });
-      out.busy = Math.max(out.busy, cursor + beat);
-      cursor += beat;
+      out.busy = Math.max(out.busy, cursor + hold);
+      cursor += hold;
       return;
     }
     // 試す図の出来事 (#3337) は、前の出来事が済んでから起こす
@@ -309,6 +312,11 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
       if (later) label.end = Math.min(label.end, later.start);
     });
     for (const label of named) {
+      // シーケンスの札は、出たステップの後も最後のステップまで残す (Tracelyth #91)
+      if (diagram.kind === "sequence") {
+        label.end = last;
+        continue;
+      }
       if (whole && label.end > whole.start) label.end = whole.end;
       else {
         if ((diagram.kind === "state" || diagram.kind === "flow") && label.end < faint) label.after = { start: label.end, end: faint };
