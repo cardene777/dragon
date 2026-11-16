@@ -96,7 +96,7 @@ interface Rendered<L> {
   layout: L;
   timeline: Timeline;
 }
-type Parsed = { ok: true; diagram: Record<string, unknown> } | { ok: false; errors: { line: number; message: string }[] };
+type Parsed = { ok: true; diagram: Record<string, unknown> } | { ok: false; errors: { line: number; column: number; message: string }[] };
 interface Player {
   readonly step: number;
   readonly playing: boolean;
@@ -110,6 +110,7 @@ interface Player {
 }
 interface Api {
   parseNotation(text: string, options?: { lang?: string }): Parsed;
+  printNotation(diagram: unknown): string;
   renderDiagram(input: unknown, options?: Record<string, unknown>): Rendered<unknown>;
   readDiagram(input: unknown): { ok: boolean; errors?: unknown[] };
   mountDiagram(host: HTMLElement, diagram: unknown, options?: Record<string, unknown>): Player;
@@ -194,6 +195,17 @@ const places = (layout: PipeLayout): string =>
 /** SVGの、`attr="id"` を持つ部品の開きタグ */
 const tagsWith = (svg: string, attr: string, id: string): string[] => [...svg.matchAll(new RegExp(`<g [^>]*${attr}="${id}"[^>]*>`, "gu"))].map((m) => m[0]);
 const countOf = (svg: string, cls: string): number => [...svg.matchAll(new RegExp(`class="${cls}[" ]`, "gu"))].length;
+/** SVGの、`class="cls"` で始まる最初の `<g>` の開きタグから、対になる閉じタグまで。無い時は空 */
+function groupOf(svg: string, cls: string): string {
+  const start = svg.indexOf(`<g class="${cls}"`);
+  if (start < 0) return "";
+  let depth = 0;
+  for (const tag of svg.slice(start).matchAll(/<g[\s>]|<\/g>/gu)) {
+    depth += tag[0] === "</g>" ? -1 : 1;
+    if (depth === 0) return svg.slice(start, start + (tag.index ?? 0) + tag[0].length);
+  }
+  return "";
+}
 const byScore = (a: { crossings: number; length: number }, b: { crossings: number; length: number }): number => a.crossings - b.crossings || a.length - b.length;
 
 describe("置き方の形", () => {
@@ -507,8 +519,12 @@ describe("再生の部品", () => {
 });
 
 describe("シーケンス図", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+  /** パイプ図の部品で描く見た目を種類の行の `[shape: pipe]` で選んだ記法 */
   const SEQ = [
-    "sequence USDCを送る",
+    "sequence USDCを送る [shape: pipe]",
     "blocks 1",
     "block +call",
     "  base edge",
@@ -548,8 +564,60 @@ describe("シーケンス図", () => {
     const money = layout.edges.find((e) => e.block === "+money");
     const call = layout.edges.find((e) => e.block === "+call");
     expect(money?.width ?? 0, "お金の矢印が呼び出しの線より太くない").toBeGreaterThan(call?.width ?? Number.POSITIVE_INFINITY);
-    // 数でない操作の番号は読まずに断る
-    expect(refused(SEQ.replace("op: 3", "op: x")), "数でない操作の番号").not.toBe("");
+    // 見た目を選んだ記法を書き戻すと、同じ見た目の指定と操作の番号が戻る
+    const printed = api.printNotation(parse(SEQ));
+    expect(printed.split("\n")[0], "書き戻した種類の行").toBe("sequence USDCを送る [shape: pipe]");
+    expect(printed, "書き戻した操作の番号").toContain("op: 4");
+    // 知らない見た目の名前は読まずに断る
+    expect(refused(SEQ.replace("[shape: pipe]", "[shape: ledger]")), "知らない見た目").toMatch(/shape/u);
+    // 原本 (版2) の時系列図の欄 `sequence.shape` でも同じ見た目で描く
+    const original = { ...(example("payment.json") as Record<string, unknown>), sequence: { shape: "pipe" } };
+    const drawn = api.renderDiagram(original, { lang: "ja" });
+    expect(countOf(drawn.svg, "dg-sqtube"), "原本で選んだ見た目の生存線の管").toBeGreaterThan(0);
+    // 見た目を書かない時系列図に書いた操作の番号も、線が data-op で持つ
+    const plain = api.renderDiagram(parse(SEQ.replace(" [shape: pipe]", "")), { lang: "ja" });
+    expect([...plain.svg.matchAll(/data-op="(\d+\/\d+)"/gu)].map((m) => m[1]).sort(), "既定の見た目の線の操作の番号").toEqual(["0/3", "0/4", "1/5"]);
+  });
+
+  it("port-sequence-default-look-kept", () => {
+    // 見た目を書かない時系列図は、生存線を共通の部品の線で描き、パイプ図の部品の生存線の管と今の段の帯を描かない
+    const plain = SEQ.replace(" [shape: pipe]", "").replace(/, op: \d+/gu, "");
+    const { svg, layout } = api.renderDiagram(parse(plain), { lang: "ja" }) as Rendered<SequenceLayout>;
+    expect(countOf(svg, "dg-ll"), "共通の部品の生存線").toBe(3);
+    expect(countOf(svg, "dg-sqtube"), "生存線の管").toBe(0);
+    expect(countOf(svg, "dg-row"), "今の段の帯").toBe(0);
+    expect(layout.rows, "今の段の帯の置き場").toBeUndefined();
+    // 寄って追う形も、窓の上端の頭の列 (#3118) に頭の箱だけを描き、パイプ図の部品の列の頭と器を描かない
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { configurable: true, get: () => 360 });
+    document.body.appendChild(host);
+    const player = api.mountDiagram(host, parse(plain.replace("sequence USDCを送る", "sequence USDCを送る [view: follow]")), { lang: "ja" });
+    const shown = host.querySelector("svg")?.outerHTML ?? "";
+    player.destroy();
+    expect(shown, "寄って追う形で描いていない").toContain('data-view="follow"');
+    expect(countOf(groupOf(shown, "dg-hd"), "dg-sn"), "頭の列の頭の箱").toBe(3);
+    expect(countOf(shown, "dg-sqc-head") + countOf(shown, "dg-sqtube"), "パイプ図の部品の列の頭と生存線の管").toBe(0);
+  });
+
+  it("port-op-refused-outside-sequence", () => {
+    // 時系列図の外の種類の線に書いた操作の番号は、その行とopの列を示して断る
+    const arch = ["architecture 決済", "", "box shop as 店", "box pay as 決済", "", "step 払う", "  shop -> pay: 払う [op: 3]", ""].join("\n");
+    const pipe = pipeText({ steps: SENT.map((line) => (line.includes("bob -> usdc") ? `${line} [op: 3]` : line)) });
+    for (const [name, text] of [
+      ["構成図", arch],
+      ["配管の図", pipe],
+    ] as const) {
+      const parsed = api.parseNotation(text, { lang: "ja" });
+      expect(parsed.ok, `${name}の線のop`).toBe(false);
+      const error = parsed.ok ? undefined : parsed.errors[0];
+      const lines = text.split("\n");
+      const at = lines.findIndex((line) => line.includes("[op: 3]")) + 1;
+      expect(error?.line, `${name}の誤りの行`).toBe(at);
+      expect(Array.from(lines[at - 1] ?? "").slice((error?.column ?? 0) - 1).join(""), `${name}の誤りの列`).toMatch(/^op:/u);
+      expect(error?.message ?? "", `${name}の誤りの文が時系列図だけと示していない`).toMatch(/sequence/u);
+    }
+    // 数でない操作の番号は、時系列図の線でも読まずに断る
+    expect(refused(SEQ.replace("op: 3", "op: x")), "数でない操作の番号").toMatch(/op/u);
   });
 });
 
