@@ -771,7 +771,8 @@ function fadedPeople(diagram: DiagramModel, parties: ReadonlyMap<string, unknown
         const inside = /\((.*)\)/su.exec(e.label ?? "")?.[1] ?? "";
         for (const word of inside.match(/[\p{L}\p{N}_.-]+/gu) ?? []) if (parties.has(word)) lit.add(word);
       }
-      if (e.type === "move") lit.add(e.from).add(e.to);
+      // 発行は受け手だけ、焼却は持ち主だけを持つ (#3722)
+      if (e.type === "move") for (const id of [e.from, e.to]) if (id !== undefined) lit.add(id);
       if (e.type === "write") {
         const hold = holdsOf.find((h) => "name" in h && h.box === e.box && h.name === e.name);
         const link = hold && "name" in hold ? hold.link : undefined;

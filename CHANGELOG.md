@@ -20,6 +20,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
   `pausedAtStart` and `rewind()` stop at the values before step 1 changes them. `fitWide` starts a figure wider than its frame with the whole figure in view, `minZoom` lets the reader zoom out below the starting size, and `startZoom` and `onZoom` pass the zoom in and out. Once the reader drags or zooms the figure, moving to the next step no longer moves the frame to the parties, and choosing a step moves it again.
 
+- **Pipe diagrams can mint, burn, and move NFT and ERC-1155 token IDs** (#3722)
+
+  `mint usdc: 100 -> alice` fills only the receiver's tank, and `burn usdc: 100 alice` drains only the holder's tank, so a diagram no longer needs a zero address party with a balance. In the JSON source they are a `move` without `from` or without `to`. For NFTs and ERC-1155, the token ID follows `#` and the count goes before it (`move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`, `mint art: #3 -> alice`, `burn art: #3 alice`); without a count it is one. Balances with an ID are written the same way (`hold alice: #1 ART`, `hold alice: 5 #1 ITEMS`), each ID gets its own tank such as `ART #1`, and a move draws the line from the holder to the receiver. A `#` with no ID after it is refused when read. Value names that start with `#` are written back in `"`. Moving an amount with `move usdc: 100 alice -> bob` reads and draws as before.
+
 ### Changed
 
 - **Pipe diagrams place valves at the middle of their straight runs and let calls leave from the bottom of a contract** (#3720)

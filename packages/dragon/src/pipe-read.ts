@@ -7,7 +7,7 @@
  * 訳の誤りの文は、配管の図なら必ず読む呼び出しの管のブロック (`return`) が持つ。
  */
 import type { ParseState, StepDraft } from "./blocks/block";
-import { isAmount, type PipeFault, PipeRun } from "./pipe-run";
+import { isAmount, type PipeFault, PipeRun, writtenToken } from "./pipe-run";
 import { type Attr, fail, type NotationError, readQuoted, skipSpaces } from "./read-kit";
 import type { SourceLine } from "./tokenize";
 
@@ -58,9 +58,12 @@ export function readValueName(source: SourceLine, at: number, state: ParseState)
   return name === undefined ? undefined : { name, end: at + name.length };
 }
 
-/** 値の名前を書き戻す。空白か `"` か `[` か `,` を含む名前と、量として読める名前は `"` で囲む */
+/**
+ * 値の名前を書き戻す。空白か `"` か `[` か `,` を含む名前と、量として読める名前と、`#` で始まる名前は `"` で囲む。
+ * `hold` の続きの最初の語が `#` で始まると、トークンの番号を持つ残高として読むため (#3722)
+ */
 export function valueName(name: string): string {
-  return /[\s"[\],]/u.test(name) || isAmount(name) ? `"${name.replace(/\\/gu, "\\\\").replace(/"/gu, '\\"')}"` : name;
+  return /[\s"[\],]/u.test(name) || isAmount(name) || name.startsWith("#") ? `"${name.replace(/\\/gu, "\\\\").replace(/"/gu, '\\"')}"` : name;
 }
 
 /** 属性 `attr` の値の位置。値が見つからなければ鍵の位置 */
@@ -90,9 +93,9 @@ export function faultAt(source: SourceLine, fault: PipeFault, state: ParseState,
     case "valueOnDelegate":
       return fail(source, where, m.valueOnDelegate);
     case "noTank":
-      return fail(source, where, m.noTank(fault.owner, fault.token));
+      return fail(source, where, m.noTank(fault.owner, writtenToken(fault.token)));
     case "short":
-      return fail(source, where, m.short(fault.owner, fault.token, fault.have));
+      return fail(source, where, m.short(fault.owner, writtenToken(fault.token), fault.have));
     case "notToken":
       return fail(source, where, m.notTokenContract);
     case "noPlate":

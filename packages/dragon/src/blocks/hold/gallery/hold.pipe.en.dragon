@@ -14,6 +14,14 @@ step USDC moves a balance
   alice -> usdc: send
   move usdc: 10 alice -> bob
 
+step USDC mints
+  say USDC mints 5 to Alice. A mint fills only the receiver's tank.
+  mint usdc: 5 -> alice
+
+step USDC burns
+  say USDC burns 3 of Bob's. A burn drains only the holder's tank.
+  burn usdc: 3 bob
+
 step The call returns
   say The outermost call returns, and the move becomes final.
   return usdc: true

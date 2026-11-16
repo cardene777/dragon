@@ -21,7 +21,7 @@
 import { FIGURE_TEXT, joinWords } from "./figure-text";
 import { OP_TEXT } from "./kinds/pipe/layout";
 import { LOOK, TYPE } from "./look/values";
-import { checkPasses, isFault, PipeRun } from "./pipe-run";
+import { checkPasses, isFault, PipeRun, quantityText } from "./pipe-run";
 import type { Styles } from "./adopt-css";
 import { cssFont as font } from "./render/parts";
 import type { DiagramModel } from "./schema";
@@ -93,6 +93,12 @@ export interface CallList {
   flows: StepFlow[][];
 }
 
+/** 段の矢印の、発行と焼却の札 (#3722)。書き出した頁の字の file には `pipeTexts` が矢印の札から入れる */
+const SUPPLY_TAGS: Record<NotationLang, { mint: string; burn: string }> = {
+  ja: { mint: "発行する", burn: "焼く" },
+  en: { mint: "mints", burn: "burns" },
+};
+
 /** 図 `model` の段を頭から当て、記録の行を出てきた順に作り、段ごとの矢印を作る */
 export function callList(model: DiagramModel, lang: NotationLang): CallList {
   const w = FIGURE_TEXT[lang];
@@ -147,10 +153,14 @@ export function callList(model: DiagramModel, lang: NotationLang): CallList {
           else rest[at] = back;
           break;
         }
-        case "move":
-          if (!run.move(e))
-            main.push({ kind: "move", line: "solid", from: name(e.from), amount: joinWords(e.amount, run.tokens.get(e.box) ?? name(e.box)), to: name(e.to), tag: w.flowTags.move });
+        case "move": {
+          if (run.move(e)) break;
+          const amount = joinWords(quantityText(e.amount, e.tokenId), run.tokens.get(e.box) ?? name(e.box));
+          // 発行はトークンの Contract から受け手へ、焼却は持ち主からトークンの Contract へ向けて出す (#3722)
+          const tag = e.from === undefined ? SUPPLY_TAGS[lang].mint : e.to === undefined ? SUPPLY_TAGS[lang].burn : w.flowTags.move;
+          main.push({ kind: "move", line: "solid", from: name(e.from ?? e.box), amount, to: name(e.to ?? e.box), tag });
           break;
+        }
         case "emit":
           if (!isFault(run.emit())) rest.push({ kind: "emit", line: "none", from: actor(), amount: `${e.name}(${(e.args ?? []).join(", ")})`, to: "", tag: w.flowTags.emit });
           break;

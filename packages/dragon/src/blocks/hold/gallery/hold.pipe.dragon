@@ -14,6 +14,14 @@ step USDCが残高を移す
   alice -> usdc: 送る
   move usdc: 10 alice -> bob
 
+step USDCが発行する
+  say USDCがAliceに5を発行する。発行は受け手の槽だけを増やす。
+  mint usdc: 5 -> alice
+
+step USDCが焼く
+  say USDCがBobの3を焼く。焼くと持ち主の槽だけが減る。
+  burn usdc: 3 bob
+
 step 呼び出しが戻る
   say 一番外の呼び出しが戻り、移した分が確定する。
   return usdc: true

@@ -24,7 +24,7 @@ import type { Layout, Point, Rect } from "../../layout/scene";
 import { LINK, PIPE_LOOK, PIPE_ROWS, PIPE_TYPE } from "../../look/pipe";
 import type { TextStyle } from "../../look/values";
 import { type Ask, type Dir, type End, gridLines, type Laid, type Obstacle, Router, simplify, unjog } from "../../pipe-route";
-import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf } from "../../pipe-run";
+import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf, tankHolds, tankToken } from "../../pipe-run";
 import { valveRects } from "../../pipe-valve";
 import { placeLayout } from "../../layout/pipe-place";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, PipeLayoutName, Step } from "../../schema";
@@ -660,11 +660,11 @@ export function foldPipe(diagram: DiagramModel, open: readonly number[] = [], la
   return { ...diagram, steps, pipe: { holds: diagram.pipe?.holds ?? [], folds } };
 }
 
-/** 出来事に出る関係者。呼び出しの両端と、行の頭の者と、`move` の送り手と受け手 */
+/** 出来事に出る関係者。呼び出しの両端と、行の頭の者と、`move` の送り手と受け手 (発行は受け手だけ、焼却は送り手だけ) */
 export function partiesOf(e: Step["events"][number]): string[] {
   if (e.type === "call") return [e.from, e.to];
   if (!("box" in e)) return [];
-  return e.type === "move" ? [e.box, e.from, e.to] : [e.box];
+  return e.type === "move" ? [e.box, ...(e.from !== undefined ? [e.from] : []), ...(e.to !== undefined ? [e.to] : [])] : [e.box];
 }
 
 // ---- 段ごとの値を当てる
@@ -830,11 +830,13 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
         }
         case "move": {
           if (run.move(e)) break;
-          const token = run.tokens.get(e.box) ?? "";
+          const token = tankToken(run.tokens.get(e.box) ?? "", e.tokenId);
+          if (e.from !== undefined) touch(`b${keyOf(e.from, token)}`, ei);
+          if (e.to !== undefined) touch(`b${keyOf(e.to, token)}`, ei);
+          // 発行と焼却は片方の槽だけを変え、管を流れる分を持たない (#3722)
+          if (e.from === undefined || e.to === undefined) break;
           const id = out.flows.length;
           out.flows.push({ id, step: s, event: ei, token, from: e.from, to: e.to, amount: e.amount });
-          touch(`b${keyOf(e.from, token)}`, ei);
-          touch(`b${keyOf(e.to, token)}`, ei);
           touch(`f${id}`, ei);
           break;
         }
@@ -1378,7 +1380,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const sim = simulate(diagram, foldSteps);
   const steps = diagram.steps.length;
   const stepList = Array.from({ length: steps }, (_, s) => s);
-  const holds = diagram.pipe?.holds ?? [];
+  // 番号を持つ残高は `<トークン> #<番号>` の槽に並べる (#3722)
+  const holds = tankHolds(diagram.pipe?.holds ?? []);
   const names = new Map(diagram.boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
   const declaredAt = new Map(diagram.boxes.map((b, i) => [b.id, i]));
