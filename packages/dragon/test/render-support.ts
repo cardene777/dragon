@@ -21,6 +21,8 @@ export interface LaidBox extends Rect {
   id: string;
   /** 箱の名前。時系列図では頭の箱に出る */
   name: string;
+  /** 運ぶ物の置き場 (#3176)。運ぶ物を出し入れする箱だけが持つ */
+  slot?: Rect;
 }
 
 /** 線の名前の札。`step` と `event` は原本の `steps[step].events[event]` を指す。 */

@@ -365,7 +365,11 @@ describe("置き場の枠をその間に座る物の幅にする (#3723)", () =>
   it("single-kind-slot-frame-unchanged", () => {
     const m = motionOf(diagram(WIDTHS));
     const list = carried(m);
-    const slotOf = (id: string): Rect => (m.rendered.layout.boxes.find((b) => b.id === id) as { slot: Rect }).slot;
+    const slotOf = (id: string): Rect => {
+      const slot = m.rendered.layout.boxes.find((b) => b.id === id)?.slot;
+      if (!slot) throw new Error(`${id} に置き場が無い`);
+      return slot;
+    };
     const near = (a: Rect, b: Rect): boolean => (["x", "y", "w", "h"] as const).every((k) => Math.abs(a[k] - b[k]) <= 0.1);
     // 1 種類の物だけが通る箱は、その物の幅で取った置き場をそのまま枠にする。送り手は走り出す前の封筒を、受け手は段 2 に着いた札を持つ
     const letter = list.find((c) => c.step === 0) as Carried;
