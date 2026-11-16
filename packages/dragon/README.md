@@ -315,6 +315,7 @@ To read a diagram's title and kind without drawing it, await `loadReadings`, whi
 Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
 If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.
+The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await one of them.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
 
 ## Add your own blocks
@@ -789,6 +790,7 @@ Declare the parties with `box`. Whether each party is a sender, a contract, a to
 - `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
 - `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
 - `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
+- `layout <shape>` before the first step chooses how to place the token boxes and tanks. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. The places come only from the `box` and `hold` lines, so changing who calls or the arguments moves no box or tank, and people and boxes outside the calls are drawn faint
 - `gist <key point>` is the key point of the step, shown in a note after the step's arrows under the figure. A pipe diagram does not show the step body under the figure, so write here a point the body alone would carry. A step takes at most one, and other kinds of diagram cannot take it
 
 Tank levels are drawn to scale for each token. Changes stay provisional (hatched) until the outermost call returns, and then they all turn final (green). Changes that a `revert` rolls back are marked in red.
@@ -847,6 +849,35 @@ step The swap ends
   write ex: "swaps[alice]" 1
   emit ex: Swapped(alice, 3200)
   return ex: 3200 USDC
+```
+
+### Pipe look of a sequence diagram
+
+Add `[shape: pipe]` to the first line of a sequence diagram to draw it with the parts of the pipe diagram: each lifeline becomes a pipe, and each box sits on top of its pipe.
+In this look, `hold <owner>: <amount> <token>` lines before the first step put each owner's balance under its box. A sequence diagram without `[shape: pipe]` refuses `hold`.
+A sequence diagram without the attribute keeps the current look.
+With `@cardenelabs/dragon/light`, `loadFor` loads this look as a separate chunk, so a page that draws only the current look loads nothing more.
+
+A line of a sequence diagram takes `[op: <number>]` in either look, the number of the operation that raised the line. The drawn line carries the step and the number in `data-op`, as in `0/3`, so the page that shows the diagram can link the line to a record or a line of code. Lines of other kinds of diagram refuse it.
+
+```dragon
+sequence Send USDC [shape: pipe]
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+
+hold alice: 100 USDC
+hold bob: 0 USDC
+
+step Alice calls transfer
+  say Alice calls transfer on USDC to send 10 to Bob.
+  alice -> usdc: transfer(to: bob, amount: 10) [carry: none, op: 3]
+  alice -> bob: 10 USDC [carry: coin, op: 4]
+
+step USDC returns
+  say USDC returns true.
+  usdc -> alice: true [carry: none, op: 5]
 ```
 
 ### Chart

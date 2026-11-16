@@ -16,6 +16,7 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 | `box <id> as <name>` | A party: a sender, a contract, a token contract or an account. The role comes from the lines, so it is not written |
 | `hold <owner>: <amount> <token>, <amount> <token>` | Starting balances. Name a token by the shown name of its party (`box usdc as USDC`, then `hold alice: 100 USDC`). `ETH` needs no party |
 | `hold <contract>: <name> <value>` | A stored value plate. Wrap names that read as amounts or contain `[` in `"` (`hold usdc: "allowance[alice][router]" 100`) |
+| `layout <shape>` | How to place the token boxes and tanks, at most one line before the first step. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. Without it the diagram keeps the current placement |
 
 ## Lines in a step
 

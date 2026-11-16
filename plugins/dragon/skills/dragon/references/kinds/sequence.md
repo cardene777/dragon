@@ -20,6 +20,9 @@ Pick `architecture` instead when the point is where the parts live, and `state` 
 | `note <id>: <text>` | Rewrites the caption under a party from this step on |
 | `code <command>` | The request or call shown for the step |
 | `strip <title>: <field>, ...` and `set <field>: <value>` | Values that a party holds and that change over the steps |
+| `sequence <title> [shape: pipe]` | Draws the diagram with the parts of the pipe diagram: each lifeline is a pipe and each box sits on top of it. Without it the diagram keeps the current look |
+| `hold <owner>: <amount> <token>, ...` | Before the first step, the balance shown under the owner's box. Only with `[shape: pipe]` |
+| `<from> -> <to>: <label> [op: <number>]` | The number of the operation that raised the line. The drawn line carries `data-op="<step>/<number>"` in either look |
 
 ## How to write it well
 
@@ -29,6 +32,8 @@ Pick `architecture` instead when the point is where the parts live, and `state` 
 - Use `act` for checks and computations that matter to the reader (`act app: compare the state`).
 - Use a strip for values that travel or change (tokens, codes, state), and `set` them in the step where they change.
 - Use `[tag: ...]` to show what rides on a message (`[tag: code]`), and `[carry: coin]` when money moves.
+- Use `[shape: pipe]` when the point is the balances the parties hold, and declare them with `hold`. Keep the current look for requests and replies.
+- Add `[op: <number>]` only when a page links each line to a record or a line of code. A trace that names its operations can keep `[carry: none, op: <number>]` as it is.
 - Up to about 6 parties stay readable. Merge minor parties or split the diagram.
 
 ## Example
