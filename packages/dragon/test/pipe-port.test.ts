@@ -575,13 +575,16 @@ describe("シーケンス図", () => {
     const drawn = api.renderDiagram(original, { lang: "ja" });
     expect(countOf(drawn.svg, "dg-sqtube"), "原本で選んだ見た目の生存線の管").toBeGreaterThan(0);
     // 見た目を書かない時系列図に書いた操作の番号も、線が data-op で持つ
-    const plain = api.renderDiagram(parse(SEQ.replace(" [shape: pipe]", "")), { lang: "ja" });
+    const plain = api.renderDiagram(parse(SEQ.replace(" [shape: pipe]", "").replace("hold alice: 100 USDC\n", "")), { lang: "ja" });
     expect([...plain.svg.matchAll(/data-op="(\d+\/\d+)"/gu)].map((m) => m[1]).sort(), "既定の見た目の線の操作の番号").toEqual(["0/3", "0/4", "1/5"]);
   });
 
   it("port-sequence-default-look-kept", () => {
+    // 見た目を書かない時系列図は値の持ち分の行 (hold) を描かないので、今どおり読まずに断る
+    const bare = SEQ.replace(" [shape: pipe]", "").replace(/, op: \d+/gu, "");
+    expect(refused(bare), "見た目を書かない時系列図の hold の行").toMatch(/hold/u);
     // 見た目を書かない時系列図は、生存線を共通の部品の線で描き、パイプ図の部品の生存線の管と今の段の帯を描かない
-    const plain = SEQ.replace(" [shape: pipe]", "").replace(/, op: \d+/gu, "");
+    const plain = bare.replace("hold alice: 100 USDC\n", "");
     const { svg, layout } = api.renderDiagram(parse(plain), { lang: "ja" }) as Rendered<SequenceLayout>;
     expect(countOf(svg, "dg-ll"), "共通の部品の生存線").toBe(3);
     expect(countOf(svg, "dg-sqtube"), "生存線の管").toBe(0);
