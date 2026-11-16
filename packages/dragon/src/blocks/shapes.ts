@@ -40,6 +40,7 @@ import { shape as matrixItemShape } from "./matrix-item/shape";
 import { shape as mergeShape } from "./merge/shape";
 import { shape as nodeShape } from "./node/shape";
 import { shape as noteShape } from "./note/shape";
+import { shape as opShape } from "./op/shape";
 import { shape as orderShape } from "./order/shape";
 import { shape as pickShape } from "./pick/shape";
 import { shape as pointShape } from "./point/shape";
@@ -109,6 +110,7 @@ export const SHAPES = {
   "merge": mergeShape,
   "node": nodeShape,
   "note": noteShape,
+  "op": opShape,
   "order": orderShape,
   "pick": pickShape,
   "point": pointShape,

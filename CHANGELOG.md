@@ -8,9 +8,27 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Added
 
+- **A pipe look for sequence diagrams (`[shape: pipe]`) and the operation number of a line (`[op: <number>]`), taken from the fixes Tracelyth applied** (#3720)
+
+  `[shape: pipe]` on the first line of a sequence diagram draws it with the parts of the pipe diagram: each lifeline is a pipe, each box sits on top of its pipe, `hold <owner>: <amount> <token>` lines before the first step put the balances under the boxes, and each step draws a band for the current step and arrows for the money it moves. A sequence diagram without the attribute keeps the current look and refuses `hold`. With `@cardenelabs/dragon/light`, `loadFor` or `loadLook("pipe")` loads this look as a separate chunk, so the gallery's first load does not grow. A line of a sequence diagram takes `[op: <number>]` in either look, and the drawn line carries the step and the number in `data-op`. `op` on a line of another kind of diagram is refused with its line and column. Tracelyth's `[carry: none, op: <number>]` reads as it is.
+
+- **A `layout` line in pipe diagrams that chooses how to place the token boxes and tanks** (#3720)
+
+  `layout top` and `layout bottom` put the token boxes above or below the row of people, `layout ledger`, `layout mesh` and `layout bus` set the tanks in one row per token, and `layout auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. The places come only from the `box` and `hold` lines, so changing who calls or the arguments moves no box or tank, and people and boxes outside the calls are drawn faint. A token box lists each holder's balance on a row marked with the holder's initial, and a row whose value changed shows the old value, an arrow and the new value. A write that is not a transfer, such as an approval, is drawn as a line between the two parties with a tag that keeps clear of the check needle, the call cards and the wallets.
+
+- **Player options to start before step 1 and to start the whole figure and zoom out further** (#3720)
+
+  `pausedAtStart` and `rewind()` stop at the values before step 1 changes them. `fitWide` starts a figure wider than its frame with the whole figure in view, `minZoom` lets the reader zoom out below the starting size, and `startZoom` and `onZoom` pass the zoom in and out. Once the reader drags or zooms the figure, moving to the next step no longer moves the frame to the parties, and choosing a step moves it again.
+
 - **Pipe diagrams can mint, burn, and move NFT and ERC-1155 token IDs** (#3722)
 
   `mint usdc: 100 -> alice` fills only the receiver's tank, and `burn usdc: 100 alice` drains only the holder's tank, so a diagram no longer needs a zero address party with a balance. In the JSON source they are a `move` without `from` or without `to`. For NFTs and ERC-1155, the token ID follows `#` and the count goes before it (`move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`, `mint art: #3 -> alice`, `burn art: #3 alice`); without a count it is one. Balances with an ID are written the same way (`hold alice: #1 ART`, `hold alice: 5 #1 ITEMS`), each ID gets its own tank such as `ART #1`, and a move draws the line from the holder to the receiver. A `#` with no ID after it is refused when read. Value names that start with `#` are written back in `"`. Moving an amount with `move usdc: 100 alice -> bob` reads and draws as before.
+
+### Changed
+
+- **Pipe diagrams place valves at the middle of their straight runs and let calls leave from the bottom of a contract** (#3720)
+
+  A valve is looked for from the middle of the straight run it sits on outward. A call may leave a contract from the bottom edge, and the gap between two stacked parties widens by the width of a return tag when the tag has no free place on the call pipe between them. A phone-wide frame draws the same arrangement as a wide one, and the player moves to the current step. A shared HTML file draws a diagram with holdings without stopping.
 
 ## [0.76.0] - 2026-11-15
 

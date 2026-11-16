@@ -1,0 +1,12 @@
+sequence 操作の番号
+
+box 財布
+box 店
+
+step 注文
+  say op で、線を起こした操作の番号を線に持たせる。
+  財布 -> 店: 注文 [op: 1]
+
+step 払う
+  say 描いた線は data-op に段と番号を持ち、図の見た目は変わらない。
+  財布 -> 店: 払う [carry: coin, op: 2]

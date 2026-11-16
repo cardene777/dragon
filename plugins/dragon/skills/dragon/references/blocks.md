@@ -36,6 +36,7 @@ The parser enforces these rules.
 - A path takes only path syntax: the command letters `M L H V C S Q T A Z` (either case), numbers and separators, starting with `M`, at most 2000 characters. No URLs, code or SVG elements, so reading a definition someone else wrote runs nothing.
 - Color roles are `blue`, `amber`, `green`, `violet`, `rose`, `slate`, `coin`.
 - A block is written only where its base goes. A box block on an arrow, for example, is an error.
+- A line written with an edge block takes the same attributes as `->`, including `[op: <number>]` on a line of a `sequence` diagram.
 
 ```dragon
 architecture Move a token across a bridge

@@ -19,6 +19,7 @@ export const shape: BlockShape = {
         to: { $ref: "#/definitions/id" },
         label: { $ref: "#/definitions/text" },
         carry: { $ref: "#/definitions/carry" },
+        op: { description: "線を起こした記録の操作の番号 (Tracelyth #93)。描いた部品が data-op で持ち、外の画面がコードの行と結ぶ", type: "integer", minimum: 0 },
         labelSide: { description: "線の名前を置く側 (寄せの指示)", enum: ["above", "below", "left", "right"] },
         at: { description: "時間軸の図の拡大の帯で、線を引く列の目盛り", $ref: "#/definitions/unit" },
         into: { description: "時間軸の図の拡大の帯で、受ける箱を選ぶ列の目盛り。書かなければ at の列", $ref: "#/definitions/unit" },

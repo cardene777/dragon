@@ -11,10 +11,7 @@ import type { Frame } from "../../render/motion";
 import { arrowHead, type Ctx, pathOf } from "../../render/parts";
 import { cs } from "../color/draw";
 import type { EdgeTime } from "../../timeline";
-import { userEdgeOf } from "../../user-blocks";
-
-/** 使う人が足した線のブロックの、線の形ごとの点線の模様 (#3399)。実線は模様を持たない */
-const USER_DASH: Readonly<Record<string, string>> = { dashed: "8 6", dotted: "1.5 5" };
+import { USER_DASH, userEdgeOf } from "../../user-blocks";
 
 /**
  * 線。点線で道を見せておき、その段で色の線を引いて、段の終わりまで流れる点で向きを見せる。
@@ -67,7 +64,9 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
   const added = userEdgeOf(e.step, e.event);
   const dash = added?.shape === undefined ? undefined : USER_DASH[added.shape];
   const dashed = dash === undefined ? "" : ` stroke-dasharray="${dash}"`;
-  const path = `<path class="dg-e" d="${d}"${dashed}/><path class="dg-eh" d="${head}"/>`;
+  // 線を起こした操作の番号 (`op`、#3720) を持つ線は、`data-op="段/番号"` で持つ。外の画面がコードの行と結ぶ
+  const op = e.op === undefined ? "" : ` data-op="${e.step}/${e.op}"`;
+  const path = `<path class="dg-e" d="${d}"${dashed}${op}/><path class="dg-eh" d="${head}"/>`;
   const on =
     dash === undefined
       ? `<path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/>`

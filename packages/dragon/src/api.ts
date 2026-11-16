@@ -56,6 +56,8 @@ export {
   type PipeEmit,
   type PipeFold,
   type PipeHold,
+  type PipeHoldLink,
+  type PipeLayoutName,
   type PipeMove,
   type PipeReturn,
   type PipeRevert,
@@ -119,24 +121,35 @@ export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./kinds/tree/lay
 export type { TryChainPlaced, TryLayout, TryLogPlaced, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";
 export type { TryBlock, TryRecord, TryState, TryTrip } from "./try-state";
 export type {
+  PipeArgRow,
   PipeAt,
+  PipeBadge,
   PipeBranch,
+  PipeBridge,
   PipeBus,
   PipeBusAt,
+  PipeBusLine,
+  PipeCallCard,
   PipeCallLane,
   PipeChip,
   PipeColumn,
   PipeConverter,
   PipeCrossing,
   PipeEventChip,
+  PipeFixed,
   PipeFlow,
   PipeFoldBox,
   PipeGauge,
   PipeGlass,
+  PipeGulp,
   PipeHousing,
   PipeLane,
   PipeLayout,
+  PipeLedger,
   PipeLevel,
+  PipeLink,
+  PipeLinkLabel,
+  PipeLogCard,
   PipeMain,
   PipeParty,
   PipePill,
@@ -151,6 +164,7 @@ export type {
   PipeText,
   PipeTie,
   PipeValuePipe,
+  PipeWords,
   PipeWordsInput,
   PipeWrite as PipeWritePlaced,
 } from "./kinds/pipe/layout";
@@ -171,6 +185,9 @@ export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
 export { LINE_STYLES, type LineStyle, penLoaded } from "./render/pen-store";
+// 時系列図の見た目 (#3720)。図が選んだ見た目と、パイプ図の部品で描く見た目の部品を読んだかを返す
+export { lookOf, sequenceLookLoaded } from "./render/look-store";
+export { SEQUENCE_SHAPES, type SequenceShape } from "./schema";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */

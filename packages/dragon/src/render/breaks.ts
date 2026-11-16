@@ -32,8 +32,7 @@
 import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { PipeLayout } from "../kinds/pipe/layout";
 import { along, crossesRect, distanceToRect, distanceToSegment, type Layout, lineGap, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
-import { PIPE_LOOK } from "../look/pipe";
-import { APART, LOOK } from "../look/values";
+import { APART, LOOK, PIPE_FIRST } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Stroke, type Trace, visible } from "./ink";
 import { pipeBreaks } from "./pipe-breaks";
 
@@ -226,7 +225,7 @@ function straddles(r: Rect, frame: Rect): boolean {
  */
 const LABEL_GAP = Math.max(LOOK.label.offset - LOOK.label.h / 2, LOOK.label.side);
 /** 配管の図の流れた量の札を描く処理が最初に置く、札の四角から管の真ん中までの間。管の太さの半分と、管から札までの離れを足す */
-const CHIP_GAP = PIPE_LOOK.bus.case / 2 + PIPE_LOOK.chip.off;
+const CHIP_GAP = PIPE_FIRST.busCase / 2 + PIPE_FIRST.chipOff;
 
 /** 輪の辺を、閉じる辺も含めて 1 本ずつ */
 function* edgesOf(rings: Point[][]): Generator<[Point, Point]> {

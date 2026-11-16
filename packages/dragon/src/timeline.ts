@@ -26,7 +26,7 @@
  */
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
-import { MOTION } from "./look/values";
+import { MOTION, PIPE_FIRST } from "./look/values";
 import type { DiagramModel } from "./schema";
 import { STATE_ENDS } from "./words";
 
@@ -195,9 +195,11 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
     }
     // 配管の図の出来事 (#3389) は、前の出来事から決まった間を置いて起こす
     if (PIPE_EVENTS.has(event.type)) {
+      // 移す額の札が道を進んで止まり終えるまで、次の出来事を待たせる (Tracelyth #168)
+      const hold = event.type === "move" ? Math.max(beat, PIPE_FIRST.moveTravel + PIPE_FIRST.movePause + 0.3) : beat;
       out.events.push({ event: e, at: cursor });
-      out.busy = Math.max(out.busy, cursor + beat);
-      cursor += beat;
+      out.busy = Math.max(out.busy, cursor + hold);
+      cursor += hold;
       return;
     }
     // 試す図の出来事 (#3337) は、前の出来事が済んでから起こす

@@ -40,6 +40,7 @@ import { uses as matrixItemUses } from "../../../../packages/dragon/src/blocks/m
 import { uses as mergeUses } from "../../../../packages/dragon/src/blocks/merge/gallery/uses";
 import { uses as nodeUses } from "../../../../packages/dragon/src/blocks/node/gallery/uses";
 import { uses as noteUses } from "../../../../packages/dragon/src/blocks/note/gallery/uses";
+import { uses as opUses } from "../../../../packages/dragon/src/blocks/op/gallery/uses";
 import { uses as orderUses } from "../../../../packages/dragon/src/blocks/order/gallery/uses";
 import { uses as pickUses } from "../../../../packages/dragon/src/blocks/pick/gallery/uses";
 import { uses as pointUses } from "../../../../packages/dragon/src/blocks/point/gallery/uses";
@@ -109,6 +110,7 @@ export const BLOCK_USES = {
   "merge": mergeUses,
   "node": nodeUses,
   "note": noteUses,
+  "op": opUses,
   "order": orderUses,
   "pick": pickUses,
   "point": pointUses,

@@ -45,7 +45,7 @@ import type { StepSource } from "./blocks/source/block";
 import type { PipeCalc } from "./blocks/calc/block";
 import type { CheckOp, PipeCheck } from "./blocks/check/block";
 import type { PipeEmit } from "./blocks/emit/block";
-import type { PipeHold, PipeMove } from "./blocks/hold/block";
+import type { PipeHold, PipeHoldLink, PipeMove } from "./blocks/hold/block";
 import type { PipeCall, PipeCallKind, PipeReturn } from "./blocks/return/block";
 import type { PipeRevert } from "./blocks/revert/block";
 import type { PipeWrite } from "./blocks/write/block";
@@ -94,7 +94,7 @@ export interface Box {
 export type ViewMode = "fixed" | "follow";
 
 export type DiagramEvent =
-  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; labelSide?: LabelSide; at?: number; into?: number; block?: string }
+  | { type: "edge"; from: string; to: string; label?: string; carry: Carry; op?: number; labelSide?: LabelSide; at?: number; into?: number; block?: string }
   | { type: "action"; box: string; label: string }
   | { type: "swap"; box: string; text: string; color?: Color }
   | { type: "strip"; field: string; value?: string; tag?: string }
@@ -314,7 +314,7 @@ export type { LabelSide };
 /** 線の上を走る物の型は運ぶ物のブロックが持つ (#3345) */
 export type { Carry };
 /** 配管の図 (#3389) の始めの値と、段の中の出来事 */
-export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeMove, PipeReturn, PipeRevert, PipeWrite };
+export type { CheckOp, PipeCalc, PipeCall, PipeCallKind, PipeCheck, PipeEmit, PipeHold, PipeHoldLink, PipeMove, PipeReturn, PipeRevert, PipeWrite };
 
 export interface Step {
   title: string;
@@ -382,6 +382,8 @@ export interface Diagram {
   checkout?: Omit<import("./checkout/read").CheckoutDefinition, "blocks">;
   title: string;
   view?: ViewMode;
+  /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
+  layout?: PipeLayoutName;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
@@ -396,6 +398,8 @@ export interface Diagram {
   cycle?: CycleLook;
   /** 量の行き先の図の見た目 (#3641)。量の行き先の図だけが書き、出どころと行き先は `blocks` の箱 (`box`) に持つ */
   sankey?: SankeyLook;
+  /** 時系列図の見た目 (#3720)。時系列図だけが書き、書かない図は今の見た目で描く */
+  sequence?: { shape: SequenceShape };
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -411,13 +415,16 @@ export interface DiagramModel {
   checkout?: import("./checkout/read").CheckoutDefinition;
   title: string;
   view?: ViewMode;
+  /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
+  layout?: PipeLayoutName;
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   regions?: Region[];
   boxes: Box[];
   strip?: Strip;
   steps: Step[];
-  sequence?: { lifelines: string[] };
+  /** 時系列図の生存線の並びと、見た目 (#3720)。見た目は版2の原本の根の `sequence` の欄から移す */
+  sequence?: { lifelines: string[]; shape?: SequenceShape };
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
@@ -549,6 +556,20 @@ const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramE
 /** 配管の図でない図に、配管の図だけの出来事を書いた時の決まりの場所 (#3389) */
 const PIPE_EVENT = "#/definitions/notPipeEvent/not";
 /** 配管の図だけが書ける出来事 */
+/**
+ * パイプ図の置き方の名前 (Tracelyth #165、#166、#168)。`auto` は形を機械に任せる名前で、`top` と `bottom` と箱の並びから点数の低い組を選ぶ。
+ * `ledger` (帳簿型) と `mesh` (網型) と `bus` (母線型) は、槽をトークンごとの行に並べる形
+ */
+export const PIPE_LAYOUTS = ["top", "bottom", "ledger", "mesh", "bus", "auto"] as const;
+export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
+
+/**
+ * 時系列図の見た目の名前 (#3720)。`pipe` はパイプ図の部品で並べて描く見た目で、種類の行の `[shape: pipe]` で選ぶ (Tracelyth #86、#91、#93、#97)。
+ * 書かない時系列図は今の見た目で描く
+ */
+export const SEQUENCE_SHAPES = ["pipe"] as const;
+export type SequenceShape = (typeof SEQUENCE_SHAPES)[number];
+
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 量の図でない図に、量の図だけの出来事を書いた時の決まりの場所 (#3560) */
 const CHART_EVENT = "#/definitions/notChartEvent/not";

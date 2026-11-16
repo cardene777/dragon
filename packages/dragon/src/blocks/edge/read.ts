@@ -14,6 +14,8 @@ import type { EdgeEvent } from "./block";
 export interface EdgeMessages {
   edgeShape: string;
   lineupNoEdge: string;
+  /** 線を起こした操作の番号 `op` を、時系列図の外の種類の線に書いたか、0 以上の整数でない値で書いた (#3720) */
+  opBad: string;
 }
 
 /** 線の行の両端と、`:` の後ろの線の名前。`at` は名前の後ろの位置 */
@@ -36,6 +38,9 @@ function readEdge(source: SourceLine, edge: RegExpExecArray, state: ParseState):
     if (mark) throw fail(source, mark.at, m.pipeOnlyAttr(key));
   }
   const carry = readCarry(source, attrs, from, state.kind, m);
+  // 線を起こした記録の操作の番号 (Tracelyth #93)。時系列図の線だけが書け、描いた線が data-op で持ち、外の画面がコードの行と結ぶ (#3720)
+  const opMark = attrs.get("op");
+  if (opMark && (state.kind !== "sequence" || !/^\d+$/u.test(opMark.value))) throw fail(source, opMark.at, m.opBad);
   const side = readSide(source, attrs, m);
   const columns = state.columns(source, from, to, attrs, at);
   return {
@@ -44,6 +49,7 @@ function readEdge(source: SourceLine, edge: RegExpExecArray, state: ParseState):
     to,
     ...(label !== undefined ? { label } : {}),
     carry,
+    ...(opMark ? { op: Number(opMark.value) } : {}),
     ...(side ? { labelSide: side } : {}),
     ...columns,
   };
@@ -67,17 +73,19 @@ export const reading: BlockReading<EdgeMessages> = {
   print: {
     events: {
       // 枝分かれの図の線は、送る側の名前の札を書かない時の運ぶ物にする
-      edge: (e, kind) => `${line(e.from, e.to, e.label, e.block)}${attrs([...carryAttrs(e, kind), ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`,
+      edge: (e, kind) => `${line(e.from, e.to, e.label, e.block)}${attrs([...carryAttrs(e, kind), ["op", num(e.op)], ["side", e.labelSide], ["at", num(e.at)], ["into", num(e.into)]])}`,
     },
   },
   messages: {
     ja: {
       edgeShape: "線は <名札> -> <名札>: <線の名前> [<属性>] の形で書く",
       lineupNoEdge: "lineup (列の図) には線の行を書けない。チップは line の行で列の並びを書くと動く",
+      opBad: "op は sequence (時系列図) の線にだけ、0 以上の整数で書ける",
     },
     en: {
       edgeShape: "Write a line as <id> -> <id>: <label> [<attributes>]",
       lineupNoEdge: "A lineup diagram takes no edge lines. Chips move when a line line rewrites a lane",
+      opBad: "op can be written only on lines of sequence diagrams, as a whole number of 0 or more",
     },
   },
 };

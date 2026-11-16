@@ -10,6 +10,8 @@
 import "./kinds/all";
 // 手描きの線 (#3643) に描き替える処理。全部を持つ入口は待たずに描けるよう、読み込みの時に置く
 import "./render/pen-all";
+// パイプ図の部品で描く時系列図の見た目 (#3720) の部品。全部を持つ入口は待たずに描けるよう、読み込みの時に置く
+import "./render/look-all";
 // 絵柄集の絵柄 (`tabler:<名前>`) の表 (#3493)。全部を持つ入口は待たずに描けるよう、読み込みの時に登録する
 import "./blocks/icon/sets-all";
 
@@ -18,3 +20,7 @@ export * from "./api";
 export { readBlocks } from "./user-blocks-read";
 // 配管の図の置き場所の決まりの表と、違反を数える処理 (#3418)。配管の図の部品と同じく、全部を持つ入口だけが出す
 export { type PipeBreakage, PIPE_RULES, type PipeRule, type PipeViolation, pipeViolations } from "./pipe-rules";
+// 止め絵から流し直す時刻の決まり (Tracelyth #99)。置いた側が自分の再生の釦から流し直す時に、再生の部品と同じ時刻を使う
+export { resumeFrom } from "./player";
+// 寄って追う形の SVG を画面を開かずに描く (Tracelyth #91)。置いた側が狭い枠の図の全体図の小窓と列の頭の留め方を確かめる
+export { type FollowFrame, followSvg } from "./render/draw";

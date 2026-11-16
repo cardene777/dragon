@@ -40,6 +40,7 @@ import { desc as matrixItemDesc } from "../../../../packages/dragon/src/blocks/m
 import { desc as mergeDesc } from "../../../../packages/dragon/src/blocks/merge/gallery/desc";
 import { desc as nodeDesc } from "../../../../packages/dragon/src/blocks/node/gallery/desc";
 import { desc as noteDesc } from "../../../../packages/dragon/src/blocks/note/gallery/desc";
+import { desc as opDesc } from "../../../../packages/dragon/src/blocks/op/gallery/desc";
 import { desc as orderDesc } from "../../../../packages/dragon/src/blocks/order/gallery/desc";
 import { desc as pickDesc } from "../../../../packages/dragon/src/blocks/pick/gallery/desc";
 import { desc as pointDesc } from "../../../../packages/dragon/src/blocks/point/gallery/desc";
@@ -109,6 +110,7 @@ export const BLOCK_DESC = {
   "merge": mergeDesc,
   "node": nodeDesc,
   "note": noteDesc,
+  "op": opDesc,
   "order": orderDesc,
   "pick": pickDesc,
   "point": pointDesc,

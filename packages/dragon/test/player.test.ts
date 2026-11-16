@@ -980,13 +980,14 @@ describe("携帯の幅で配管の図の字を読める大きさに置く (#3450
     });
   });
 
-  // 字が読める図は今どおり枠の幅に収める。見本ごとに件を分ける
+  // 配管の図は電話の幅でも広い枠と同じ並びで描くので (Tracelyth #87、#3720)、箱を開かない図も枠に収めると残高の字が読めない。
+  // 字を読める幅で置いて横に送る。見本ごとに件を分ける
   const FITTING = ["swap.json", "swap-revert.json", "swap-two-hops.json", "swap-retry.json", "vault-proxy.json", "aggregator.json"] as const;
   describe.for(FITTING)("%s", (file) => {
     it("player-pipe-narrow-fits-readable-figures", () => {
       const { shown, px, frame } = placeOnPhone(file, "ja");
-      expect(frame?.dataset.dragon, `${file} を幅 ${PHONE} に置いた枠が横に送る形になる`).toBe("zoom-frame");
-      expect(shown, `${file} を幅 ${PHONE} に置いた図の幅`).toBeCloseTo(PHONE, 0);
+      expect(frame?.dataset.dragon, `${file} を幅 ${PHONE} に置いた枠が横に送る形にならない`).toBe("pan");
+      expect(shown, `${file} を幅 ${PHONE} に置いた図の幅`).toBeGreaterThan(PHONE);
       expect(px, `${file} を幅 ${PHONE} に置いた残高の字`).toBeGreaterThanOrEqual(READABLE_PX);
     });
   });

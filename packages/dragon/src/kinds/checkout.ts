@@ -52,9 +52,9 @@ export const parts: KindParts<PurchaseLayout> = {
       return { svg:rendered.svg, timeline:rendered.timeline };
     } });
     const player: Player = {
-      get step(){return input.getState().eventCount;}, get playing(){return false;}, diagram,
+      get step(){return input.getState().eventCount;}, get playing(){return false;}, get held(){return false;}, diagram,
       dispatch:event=>input.dispatch(event), getState:()=>input.getState(),
-      next(){},prev(){},play(){},pause(){},goTo(){},setSpeed(){},mark(){},destroy:()=>input.destroy(),
+      next(){},prev(){},play(){},pause(){},hold(){},rewind(){},goTo(){},setSpeed(){},mark(){},destroy:()=>input.destroy(),
     };
     mounted.set(host,player);
     return player;

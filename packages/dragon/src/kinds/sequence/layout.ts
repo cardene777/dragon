@@ -149,7 +149,7 @@ export function layoutSequence(diagram: DiagramModel): Layout {
           seats.wait = [xf - out * reach, p0[1]];
           seats.settle = [xt + into * reach, q1[1]];
         }
-        edges.push({ step: s, event: e, from: event.from, to: event.to, points, color, carry: event.carry, ...seats });
+        edges.push({ step: s, event: e, from: event.from, to: event.to, points, color, carry: event.carry, ...(event.op !== undefined ? { op: event.op } : {}), ...seats });
         if (event.label !== undefined) {
           requests.push({
             step: s,

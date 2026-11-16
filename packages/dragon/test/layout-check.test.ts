@@ -717,30 +717,17 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
   });
 
   it("amount-chip-near-flow-in-swap-retry", () => {
-    // 英語の字では値の札の下の語 (Pending) が長く、管の際の空きが日本語の字より狭い
+    // 移す額の札は、線の傍でなく箱の下の札入れに入れる (Tracelyth #168、#3720)。札入れの札は流れを名指さず、崩れの確かめは線との離れを測らない
     for (const lang of ["ja", "en"] as const) {
       const layout = drawnLayout(SWAP_RETRY, lang) as {
         chips: (Box & { kind: string; text: string; step: number; flow?: number })[];
-        flows: { id: number; step: number; from: string; to: string; points: Point[] }[];
-        housings: (Box & { party: string })[];
+        wallets?: Box[];
       };
-      const flowOf = (chip: { step: number; flow?: number }) => layout.flows.find((f) => f.id === chip.flow && f.step === chip.step);
-      const amounts = layout.chips.filter((c) => c.kind === "amount" && flowOf(c) !== undefined);
-      // 段4 (0 から数えて 3) の、Router から Pool1 への流れの札
-      const target = amounts.find((c) => c.step === 3 && flowOf(c)?.from === "router" && flowOf(c)?.to === "pool1");
-      expect(target, `${lang} の字で、段4の Router から Pool1 への流れの札が、その流れを名指さない`).toBeDefined();
-      if (!target) return;
-      expect(target.text).toBe("100 USDC");
-      const gap = lineGap(flowOf(target)?.points ?? [], target);
-      // 同じ流れの札は後の段にも残るので、ほかの流れの札と比べる
-      const others = amounts.filter((c) => c.flow !== target.flow).map((c) => lineGap(flowOf(c)?.points ?? [], c));
-      expect(others.length, "比べるほかの流れの札が無い").toBeGreaterThan(0);
-      expect(gap, `${lang} の字で、札と流れの間 (ほかの流れの札と流れの間の最大は ${Math.max(...others)})`).toBeLessThanOrEqual(Math.max(...others));
-      const inside = (r: Box, h: Box): boolean => r.x >= h.x && r.y >= h.y && r.x + r.w <= h.x + h.w && r.y + r.h <= h.y + h.h;
-      expect(
-        layout.housings.filter((h) => inside(target, h)).map((h) => h.party),
-        `${lang} の字で、札 ${JSON.stringify([target.x, target.y, target.w, target.h])} が囲みの内側に無い`,
-      ).not.toEqual([]);
+      const amounts = layout.chips.filter((c) => c.kind === "amount");
+      // 段4 (0 から数えて 3) の、Router から Pool1 へ移す額の札
+      expect(amounts.find((c) => c.step === 3 && c.text === "100 USDC"), `${lang} の字で、段4の 100 USDC の札が無い`).toBeDefined();
+      expect(amounts.filter((c) => c.flow !== undefined).map((c) => `段${c.step + 1} ${c.text}`), `${lang} の字で、札入れに入れた額の札が流れを名指す`).toEqual([]);
+      expect(layout.wallets?.length ?? 0, `${lang} の字で、札を入れる札入れが無い`).toBeGreaterThan(0);
     }
   });
 

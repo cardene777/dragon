@@ -73,6 +73,8 @@ export interface SceneEdge {
   settle?: Point;
   /** 走り出す前に運ぶ物が待つ点 (#3176)。運ぶ物はここから線の始まりへ出て線を走る。無ければ線の始まり */
   wait?: Point;
+  /** 線を起こした操作の番号 (#3720)。時系列図の線だけが持ち、描いた線が `data-op` で持つ */
+  op?: number;
 }
 
 export interface SceneLabel extends Rect {

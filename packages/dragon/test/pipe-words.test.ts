@@ -2,8 +2,8 @@
 /**
  * 配管の図の語を呼ぶ側が渡す (#3584)。
  *
- * 槽の下に添える語 (暫定、確定、取り消し)、始めた人と受け取った人の槽の札 (入力、出力)、内側の段をまとめた枠の文は、
- * 描く言葉ごとの表 (`PIPE_TEXT`) から引く。画面を持つ側が自分の語 (成功、リバートなど) で描けるよう、
+ * 槽の下に添える語 (暫定、確定、リバート)、始めた人と受け取った人の槽の札 (入力、出力)、内側の段をまとめた枠の文は、
+ * 描く言葉ごとの表 (`PIPE_TEXT`) から引く。画面を持つ側が自分の語 (成功、保留など) で描けるよう、
  * `renderDiagram` と `mountDiagram` の指定 (`words.pipe`) で一部だけ渡せるようにする。
  * 数と名前が入る文は `{steps}`、`{parties}`、`{name}` の所に差し込む。
  */
@@ -39,7 +39,8 @@ function render(source: unknown, words?: PipeWordsInput): Rendered {
   return renderDiagram(source, options);
 }
 
-const TAGS = { provisional: "保留", final: "成功", rolled: "リバート" };
+// リバートで戻った値の語の既定は、Tracelythの用語集の語 (リバート) にした (Tracelyth #111、#3720)。渡す語は既定と違う語にする
+const TAGS = { provisional: "保留", final: "成功", rolled: "差し戻し" };
 
 interface Box {
   x: number;
@@ -68,9 +69,9 @@ describe("配管の図の語を呼ぶ側が渡す (#3584)", () => {
     const revert = json("swap-revert.json");
     const rolledBefore = render(revert).svg;
     const rolledAfter = render(revert, { tags: TAGS }).svg;
-    expect(count(rolledBefore, "取り消し"), "見本の取り消しの図に取り消しの語が無い (走査の空振り)").toBeGreaterThan(0);
-    expect(count(rolledAfter, "取り消し"), "渡した語の図に取り消しの語が残る").toBe(0);
-    expect(count(rolledAfter, "リバート"), "取り消しの語を描いた所の数だけ渡した語を描かない").toBe(count(rolledBefore, "取り消し"));
+    expect(count(rolledBefore, "リバート"), "見本の取り消しの図にリバートの語が無い (走査の空振り)").toBeGreaterThan(0);
+    expect(count(rolledAfter, "リバート"), "渡した語の図にリバートの語が残る").toBe(0);
+    expect(count(rolledAfter, "差し戻し"), "リバートの語を描いた所の数だけ渡した語を描かない").toBe(count(rolledBefore, "リバート"));
   });
 
   it("pipe-words-mount-keeps-words", () => {

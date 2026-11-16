@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。階段の見た目 (stairs) の列の図は層の見た目と同じ決まりを持ち、層の時間 (time) を全ての箱に持つかどの箱にも持たない。ほかの列の図の箱は time を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図だけが持つ。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。階段の見た目 (stairs) の列の図は層の見た目と同じ決まりを持ち、層の時間 (time) を全ての箱に持つかどの箱にも持たない。ほかの列の図の箱は time を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図と、根の sequence の欄に見た目を書いたシーケンス図が持ち、置き方 (layout) は配管の図だけが持つ。シーケンス図は見た目を根の sequence の欄に持てる。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -49,6 +49,17 @@
         "follow"
       ]
     },
+    "layout": {
+      "description": "パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持てる。top は箱を人の列の上、bottom は下に集め、ledger と mesh と bus は槽をトークンごとの行に並べ、auto は top と bottom と箱の並びから点数の低い組を選ぶ。書いた図は呼び方を替えても箱と槽の置き場所を変えない",
+      "enum": [
+        "top",
+        "bottom",
+        "ledger",
+        "mesh",
+        "bus",
+        "auto"
+      ]
+    },
     "define": {
       "description": "図の頭に書いた、使う人が足すブロックの定義",
       "$ref": "#/definitions/define"
@@ -76,6 +87,10 @@
     "sankey": {
       "description": "量の行き先の図の見た目。量の行き先の図だけが書け、出どころと行き先は blocks の box に、量は段の中の線の名前に書く",
       "$ref": "#/definitions/sankeyLook"
+    },
+    "sequence": {
+      "description": "時系列図の見た目。時系列図だけが書け、pipe はパイプ図の部品で並べて描く。書いた図だけが始めの値 (blocks.hold) を持てる",
+      "$ref": "#/definitions/sequenceLook"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -745,6 +760,64 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "pipe"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "layout": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "sequence"
+          }
+        }
+      },
+      "then": {
+        "if": {
+          "not": {
+            "required": [
+              "sequence"
+            ]
+          }
+        },
+        "then": {
+          "properties": {
+            "blocks": {
+              "properties": {
+                "hold": {
+                  "$ref": "#/definitions/absent"
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "sequence": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
     }
   ],
   "definitions": {
@@ -1293,6 +1366,11 @@
             },
             "carry": {
               "$ref": "#/definitions/carry"
+            },
+            "op": {
+              "description": "線を起こした記録の操作の番号 (Tracelyth #93)。描いた部品が data-op で持ち、外の画面がコードの行と結ぶ",
+              "type": "integer",
+              "minimum": 0
             },
             "labelSide": {
               "description": "線の名前を置く側 (寄せの指示)",
@@ -2829,6 +2907,22 @@
         }
       }
     },
+    "sequenceLook": {
+      "description": "時系列図の見た目。pipe は生存線を管で描くパイプ図の部品で並べて描き、列の頭の下に値の持ち分 (hold) の器と札を置く。書かない図は今の見た目で描く",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape"
+      ],
+      "properties": {
+        "shape": {
+          "description": "時系列図の見た目の名前",
+          "enum": [
+            "pipe"
+          ]
+        }
+      }
+    },
     "plainStrip": {
       "description": "時間軸の図でない図の中身の帯。物差しを書けない",
       "properties": {
@@ -3412,6 +3506,50 @@
             },
             "value": {
               "$ref": "#/definitions/text"
+            },
+            "link": {
+              "$ref": "#/definitions/holdLink"
+            }
+          }
+        }
+      ]
+    },
+    "holdLink": {
+      "description": "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "from",
+            "to"
+          ],
+          "properties": {
+            "from": {
+              "$ref": "#/definitions/id"
+            },
+            "to": {
+              "$ref": "#/definitions/id"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "on"
+          ],
+          "properties": {
+            "on": {
+              "$ref": "#/definitions/id"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
@@ -3933,9 +4071,6 @@
               "$ref": "#/definitions/absent"
             },
             "part": {
-              "$ref": "#/definitions/absent"
-            },
-            "hold": {
               "$ref": "#/definitions/absent"
             },
             "side": {

@@ -63,6 +63,7 @@
     "move",
     "mint",
     "burn",
+    "layout",
     "write",
     "return",
     "check",
@@ -103,6 +104,7 @@
     "edge": [
       "carry",
       "tag",
+      "op",
       "side",
       "at",
       "into",

@@ -64,6 +64,7 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
+import { type SequenceLook, sequenceLookFor } from "./look-store";
 import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
 import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
@@ -373,6 +374,8 @@ export function drawSvg(
   const m = new Motion(`dg${id}`, timeline.total, timeline.last);
   // 後から読む種類の部品の組。最初から読む種類 (時系列図と構成図) は持たない (#3656)
   const parts = partsOf(layout.kind);
+  // 種類の行に `[shape: pipe]` を書いた時系列図は、後から読んだ見た目の部品の組が列の頭と線と札と段の番号と処理の札を描く (#3720)
+  const look = sequenceLookFor(diagram, follow?.lang ?? DEFAULT_LANG);
   // 運ぶ物の見えている間は、種類の部品が描く間だけ直せる (木の図の運ぶ物は着いた所で消える)
   const carried: CarrierTime[] = parts?.carried?.(timeline) ?? timeline.carriers;
   const ctx: Ctx = {
@@ -428,7 +431,8 @@ export function drawSvg(
   const drawStrip = (s: SceneStrip): string => strip(s, fields, ctx, isState, arrivals, gauge);
   // 寄って追う図の表は窓の下に置くので、窓の中身には描かない (#3270)
   if (layout.strip && !follow) L.band.push(drawStrip(layout.strip));
-  for (const line of layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
+  for (const line of look ? [] : layout.lifelines) L.base.push(lifeline(line.x, line.y1, line.y2));
+  if (look) look.draw(layout, timeline, ctx, L);
   // 後から読む種類の物は、種類の部品の組が描いて図の層ごとに返す。見た目の規則もその種類の図の SVG にだけ書く (#3656)
   const drawn = parts?.draw?.(layout, diagram, ctx, subs, follow !== undefined, fields);
   for (const layer of ["base", "lit", "node", "top"] as const) {
@@ -436,7 +440,7 @@ export function drawSvg(
     if (text) L[layer].push(text);
   }
   const on = drawn?.on ?? involved(diagram);
-  for (const e of layout.edges) {
+  for (const e of look ? [] : layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     // 種類の部品は、共通の線を描かない線と、線を出し始める時刻を決められる
     const since = drawn?.edge ? drawn.edge(e) : 0;
@@ -454,7 +458,7 @@ export function drawSvg(
     ),
   );
   const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
-  for (const box of parts?.ownBoxes ? [] : layout.boxes) {
+  for (const box of parts?.ownBoxes || look ? [] : layout.boxes) {
     if (box.ghost) {
       L.node.push(linked(box.id, ghostCard(box, ink, ctx.corner)));
       continue;
@@ -474,15 +478,15 @@ export function drawSvg(
     );
     if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
   }
-  for (const b of layout.badges)
+  for (const b of look ? [] : layout.badges)
     if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
-  for (const l of layout.labels) {
+  for (const l of look ? [] : layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
   }
   // 止め絵を選んだ図は、全ての段の名前を出す間にも処理の札を出す。その間に見えている札は繰り返す前まで延ばす (#3200)
   const { whole } = timeline;
-  for (const a of layout.actions) {
+  for (const a of look ? [] : layout.actions) {
     const time = timeline.events.find((t) => t.step === a.step && t.event === a.event);
     if (!time) continue;
     const until = (timeline.steps[a.step] as Span).end;
@@ -502,9 +506,13 @@ export function drawSvg(
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
-  // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない
-  const heads =
-    follow && layout.kind === "sequence"
+  // 寄って追う時系列図は、頭の箱を窓の上端に貼る頭の列にも描く (#3118)。頭の列の箱はアイコンを外した 2 段 (#3120)。止めて見せる図では描かない。
+  // 見た目を選んだ時系列図は、見た目の部品の組が列の頭と器と札を留める帯を描く (#3720)
+  const heads = !follow
+    ? ""
+    : look
+      ? look.band(layout, timeline, m, LOOK.follow.head.pad, ctx.corner)
+      : layout.kind === "sequence"
       ? layout.boxes
           .map((box) =>
             linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])),
@@ -528,9 +536,9 @@ export function drawSvg(
     `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>`,
   );
   const view = follow
-    ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner)
+    ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}}${PART_CSS}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
@@ -625,6 +633,7 @@ function followView(
   heads: string,
   drawTable: (s: SceneStrip, from: SceneStrip) => string,
   corner: Corner,
+  look: SequenceLook | undefined,
 ): { body: string; w: number; h: number } {
   const F = LOOK.follow;
   const M = LOOK.mini;
@@ -653,11 +662,13 @@ function followView(
       beside: mh > mw,
     };
   };
-  const natural = sized(Math.min(worldH, Math.max(F.minH, full * F.aspect)));
+  // 見た目を選んだ時系列図の窓は電話の縦の画面を使い、留めた列の頭と器の下に今のステップの行を収める (#86 の問い3と問い4の案A、Tracelyth #93)
+  const natural = sized(Math.min(worldH, Math.max(F.minH, full * (look ? look.followAspect : F.aspect))));
   // 携帯の幅では縦長の全体図の列が枠の幅の 3 割を取り、窓が図の横の 3 割ほどしか見せない。その時は全体図を出さない。
   // 横長の全体図は窓の下に出して幅を取らないので、狭い枠でも出す。
   // ただし値の表を持つ図は、窓の下に全体図と表が重なって段を送る釦を最初の画面の外へ押し出すので、狭い枠では全体図を出さない (#3274)
-  const bare = frameWidth < F.narrow && (natural.beside || layout.strip !== undefined);
+  // 見た目を選んだ時系列図は、選んだ絵 (#86 の問い3と問い4) と同じく全体図の小窓を出さない (Tracelyth #91)
+  const bare = look !== undefined || (frameWidth < F.narrow && (natural.beside || layout.strip !== undefined));
   const tableH = layout.strip ? rewrapStrip(layout.strip, 0, 0, full).h + M.inset : 0;
   // 窓の右の全体図は窓の高さの中に収まり、窓の下の全体図と表は窓の高さに足される
   const room =
@@ -685,11 +696,17 @@ function followView(
   // 線は図の頭の箱の下 `top` から見せ始め、図の頭の箱は頭の列の下か窓の上に隠す (#3120)
   // 後から読む種類は、見せ始める高さを種類の部品の組が決める (列の図は描かない見出しの文の下、#3365)
   const parts = partsOf(layout.kind);
-  const top = heads !== "" ? Math.max(...layout.boxes.map((b) => b.y + b.h)) + F.headRoom : (parts?.top?.(layout) ?? 0);
-  const strip = heads === "" ? 0 : F.head.pad * 2 + F.head.h;
+  // 見た目を選んだ時系列図の留める帯は、列の頭の下の器と札まで入れる (Tracelyth #93)
+  const headLow = look ? look.shelf(layout) : Math.max(...layout.boxes.map((b) => b.y + b.h));
+  const top = heads !== "" ? headLow + F.headRoom : (parts?.top?.(layout) ?? 0);
+  const strip = heads === "" ? 0 : look ? look.bandHeight(layout, F.head.pad) : F.head.pad * 2 + F.head.h;
   const below = vh - strip;
-  /** 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める */
-  const clampY = (y: number): number => Math.min(worldH - below / 2, Math.max(top + below / 2, y));
+  /**
+   * 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める。
+   * 見た目を選んだ時系列図は、図が窓の高さに収まる時も元の列の頭を留めた帯の下に隠すため、上の限りを下の限りより優先し、窓の下に余りが出るのを許す (Tracelyth #86)
+   */
+  const clampY = (y: number): number =>
+    look ? Math.max(top + below / 2, Math.min(worldH - below / 2, y)) : Math.min(worldH - below / 2, Math.max(top + below / 2, y));
   const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, worldH / 2];
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
@@ -700,6 +717,11 @@ function followView(
       return [clampX(prev[0]), clampY(prev[1])] as [number, number];
     }
     const f = focusOf(layout, diagram, s);
+    // 見た目を選んだ時系列図は、見た目の部品の組が窓の真ん中を決め、番号の丸へ寄せ直さない (Tracelyth #91)
+    if (look) {
+      prev = look.follow(layout, s, f, prev, vw, below);
+      return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+    }
     prev = f ? [f.x + f.w / 2, f.y + f.h / 2] : prev;
     const at: [number, number] = [clampX(prev[0]), clampY(prev[1])];
     // 動く物を全部囲んだ所が窓より大きいと、その端に在る番号の丸が窓から外れる。その段だけ丸の近くへ寄せ直す (#3046)。
@@ -813,6 +835,14 @@ export function paletteOf(options: RenderOptions, theme: Theme): Palette {
   return { ...palette, [theme]: { ...palette[theme], ...options.colors } };
 }
 
+/**
+ * 寄って追う形の SVG を描く (Tracelyth #91)。`renderDiagram` が返した図の原本と並びと時刻の表を渡す。`palette` はパレットの名前かパレット。
+ * 再生の部品が狭い枠に置いた図をこの形で描くので、全体図の小窓と列の頭の留め方を画面を開かずに確かめるのに使う
+ */
+export function followSvg(diagram: DiagramModel, layout: Layout, timeline: Timeline, palette: string | Palette, theme: Theme, follow: FollowFrame): string {
+  return drawSvg(diagram, layout, timeline, typeof palette === "string" ? resolvePalette(palette) : palette, theme, follow);
+}
+
 /** 原本の JSON から図を描く。原本が形に合わない時は、誤りの場所を添えて断る。 */
 export function renderDiagram(input: unknown, options: RenderOptions = {}): Rendered {
   return drawDiagram(input, options);
@@ -899,9 +929,14 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   const parts = partsOf(model.kind, lang);
   const diagram = parts?.fold?.(model, options, lang) ?? model;
   // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) は部品の組の並べ方で並べ、
-  // 知らない種類は構成図の並べ方で並べる
+  // 知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
   const folder = FOLDERS[diagram.kind];
-  const layout = folder?.layout ? folder.layout(diagram, lang) : (parts?.layout(diagram, lang, options) ?? KIND_FOLDERS.architecture.layout(diagram, lang));
+  const look = sequenceLookFor(diagram, lang);
+  const layout = look
+    ? look.layout(diagram, lang)
+    : folder?.layout
+      ? folder.layout(diagram, lang)
+      : (parts?.layout(diagram, lang, options) ?? KIND_FOLDERS.architecture.layout(diagram, lang));
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };

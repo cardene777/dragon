@@ -790,6 +790,21 @@ export const MOTION = {
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */
 export const READABLE_PX = 10.5;
 
+/**
+ * 配管の図の値のうち、最初に読む処理が使う物 (#3720)。`narrowPx` は再生の部品が狭い枠で槽の残高の字を読める大きさにする字の大きさ (px)、
+ * `busCase` と `chipOff` は崩れの確かめが流れの札を管から離す間、`moveTravel` と `movePause` は時系列の計画が移す額の札を待つ秒。
+ * 配管の図の見た目の値 (`look/pipe.ts`) は後から読む塊に入れるので、最初に読む処理はここから読み、`look/pipe.ts` も同じ値をここから持つ
+ */
+export const PIPE_FIRST = { narrowPx: 10.5, busCase: 24, chipOff: 10, moveTravel: 1.5, movePause: 0.45 } as const;
+
+/**
+ * 配管の図の拡大 (#3418)。度合いの下限と上限、釦 1 回の倍率、ダブルクリックの倍率と 100% へ戻す度合い、
+ * 100% の図を枠の幅に収める枠の幅の上限、ホイールの 1px で変わる度合いの割合、引いて動かすと見る動きの下限 (px)、
+ * 押せない拡大の釦の濃さ。
+ * 再生の部品 (`player.ts`) と、後から読む塊に入る拡大の動きの受け手 (`pipe-player.ts`、#3720) の両方が読むので、ここに置く
+ */
+export const ZOOM = { min: 1, max: 4, step: 1.25, double: 1.6, reset: 2.5, fit: 600, wheel: 0.002, drag: 3, dim: 0.4 } as const;
+
 /** 動きの緩急。 */
 export const EASE = {
   inOut: "cubic-bezier(.65,0,.35,1)",

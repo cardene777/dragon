@@ -40,6 +40,7 @@ import { reading as matrixItemReading } from "./matrix-item/read";
 import { reading as mergeReading } from "./merge/read";
 import { reading as nodeReading } from "./node/read";
 import { reading as noteReading } from "./note/read";
+import { reading as opReading } from "./op/read";
 import { reading as orderReading } from "./order/read";
 import { reading as pickReading } from "./pick/read";
 import { reading as pointReading } from "./point/read";
@@ -109,6 +110,7 @@ export const READINGS = {
   "merge": mergeReading,
   "node": nodeReading,
   "note": noteReading,
+  "op": opReading,
   "order": orderReading,
   "pick": pickReading,
   "point": pointReading,

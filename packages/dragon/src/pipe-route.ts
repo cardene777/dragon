@@ -215,6 +215,9 @@ interface Work {
   vHug: Uint8Array;
   hJoin: Int32Array;
   vJoin: Int32Array;
+  /** 辺で重なって走る同じ組の線の向き (`lastWay` と同じ値) */
+  hWay: Int8Array;
+  vWay: Int8Array;
   /** 点ごとの終わりまでの見積もりと、それを求めた探しの番号 */
   guessSeen: Uint32Array;
   guessVal: Float64Array;
@@ -241,6 +244,8 @@ function workFor(cells: number): Work {
     vHug: new Uint8Array(cells),
     hJoin: new Int32Array(cells),
     vJoin: new Int32Array(cells),
+    hWay: new Int8Array(cells),
+    vWay: new Int8Array(cells),
     guessSeen: new Uint32Array(cells),
     guessVal: new Float64Array(cells),
   };
@@ -267,6 +272,11 @@ export class Router {
   private lastRail = false;
   /** `edgeCost` が最後に見た辺が、同じ組の置いた線と重なって走るか */
   private lastShared = false;
+  /**
+   * `edgeCost` が最後に見た辺で重なって走る、同じ組の置いた線の向き。1 は x か y が増える向き、-1 は減る向き、
+   * 向きの違う線が両方在れば 2、重なる線が無ければ 0。同じ組の線は同じ向きの時だけ重ねる (逆向きに重なると1本の管に見える)
+   */
+  private lastWay = 0;
   /** `edgeCost` が最後に見た辺が直角に越えるか触れる、同じ組の置いた線分の番号。無ければ -1 */
   private lastJoin = -1;
 
@@ -370,6 +380,7 @@ export class Router {
     let extra = 0;
     this.lastRail = ((horizontal ? this.hRail : this.vRail)[index] as number) === 1;
     this.lastShared = false;
+    this.lastWay = 0;
     this.lastJoin = -1;
     /** この辺で越える値を足した組。幹を共に通る何本もの線を越える時も、1 本を越える値だけを足す */
     let charged: string[] | undefined;
@@ -379,7 +390,11 @@ export class Router {
         // 同じ組の線は重ねて共に通ってよいが、少しずれて並ぶと二重の線に見えるため、重ならない時は間を取る
         if (m.rel === "along") {
           if (m.d > 0.5 && m.d < (l.width + ask.width) / 2 + ask.gap) return undefined;
-          if (m.d <= 0.5) this.lastShared = true;
+          if (m.d <= 0.5) {
+            this.lastShared = true;
+            const way = Math.sign(horizontal ? l.b[0] - l.a[0] : l.b[1] - l.a[1]);
+            this.lastWay = this.lastWay === 0 || this.lastWay === way ? way : 2;
+          }
         } else if (m.d === 0 && this.lastJoin < 0) this.lastJoin = m.laid;
         continue;
       }
@@ -414,6 +429,8 @@ export class Router {
       const horizontal = d === 0 || d === 2;
       const index = horizontal ? j * this.nx + Math.min(i, ni) : Math.min(j, nj) * this.nx + i;
       if (this.edgeCost(ask, horizontal, index) === undefined) return false;
+      // 同じ組の線とは同じ向きの時だけ重なる
+      if (this.lastWay !== 0 && this.lastWay !== (d < 2 ? 1 : -1)) return false;
       // 同じ組の線を突き抜けない
       if (this.lastJoin >= 0 && this.lastJoin === join) return false;
       join = this.lastJoin;
@@ -429,7 +446,7 @@ export class Router {
    */
   route(ask: Ask): Point[] | undefined {
     const { nx, ny } = this;
-    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug, hJoin, vJoin, guessSeen, guessVal } = workFor(nx * ny);
+    const { seen, best, from, goal, goalCost, hSeen, hCost, vSeen, vCost, hHug, vHug, hJoin, vJoin, hWay, vWay, guessSeen, guessVal } = workFor(nx * ny);
     const hug = ask.hug ?? 0;
     const share = ask.share ?? 1;
     const ep = ++epoch;
@@ -480,6 +497,7 @@ export class Router {
       // 辺の走り方。0 はほかの線から離れて走る、1 は縁かほかの線の隣の筋に寄り添う、2 は同じ組の線と重なって走る
       (horizontal ? hHug : vHug)[index] = this.lastShared ? 2 : this.lastRail ? 1 : 0;
       (horizontal ? hJoin : vJoin)[index] = this.lastJoin;
+      (horizontal ? hWay : vWay)[index] = this.lastWay;
       return cost[index];
     };
     /** 辺の長さに掛ける割合 */
@@ -493,6 +511,9 @@ export class Router {
       const index = horizontal ? j * nx + Math.min(i, ni) : Math.min(j, nj) * nx + i;
       const extra = edge(horizontal, index);
       if (extra < 0) return -1;
+      // 同じ組の線と逆向きに重ならない
+      const way = (horizontal ? hWay : vWay)[index] as number;
+      if (way !== 0 && way !== (d < 2 ? 1 : -1)) return -1;
       const len = horizontal ? Math.abs((this.xs[ni] as number) - (this.xs[i] as number)) : Math.abs((this.ys[nj] as number) - (this.ys[j] as number));
       return len * rate((horizontal ? hHug : vHug)[index] as number) + extra;
     };
