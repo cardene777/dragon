@@ -6,6 +6,8 @@
  * 残高でない値は `hold <持つ Contract>: <名前> <値>` で宣言し、値の札のブロック (`write`) が札に描く。
  * トークンは `box usdc as USDC` の名前 (`USDC`) で書き、ETH だけは宣言しない決まった名前で、`move` では動かさず呼び出しの `[value]` で送る。
  * 量は書いた字のまま持ち、足し引きは桁を落とさない十進の数で行う (`pipe-run.ts`)。
+ * 最初の `step` より前の `layout <形>` の行は、トークンの箱と槽の置き方を選ぶ (Tracelyth #165、#166、#168)。
+ * 置き方の誤りの文を後から読むこの読み方に置き、最初に読む量を増やさないため、宣言の行の 1 つとしてここに持つ (#3720)
  */
 import type { Block } from "../block";
 
@@ -31,5 +33,5 @@ export const block: Block = {
   name: "hold",
   rank: 120,
   attach: { how: "place", only: "pipe" },
-  words: { heads: ["hold", "move"] },
+  words: { heads: ["hold", "move", "layout"] },
 };

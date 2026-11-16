@@ -546,7 +546,8 @@ function drawSequenceParts(layout: SequenceLayout, timeline: Timeline, ctx: Ctx,
   for (const l of layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
     if (!time) continue;
-    const drawn = seqLabel(l, time, m, ctx.corner);
+    // この見た目の札は、出た段の後も最後の段まで残す (Tracelyth #91)。時刻の表は見た目を問わず組むので、ここで終わりを最後に替える (#3720)
+    const drawn = seqLabel(l, { ...time, end: m.last }, m, ctx.corner);
     L.base.push(drawn.ghost);
     L.top.push(drawn.shown);
   }

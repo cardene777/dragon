@@ -25,7 +25,7 @@
  * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
  * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
  * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
- * ただし狭い枠に収めると槽の残高の字が `PIPE_LOOK.narrow.px` に届かない図は、字が届く幅で置いて横に送る (#3450)。
+ * ただし狭い枠に収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
 import { drawGist } from "./blocks/gist/draw";
 import { drawSources } from "./blocks/source/draw";
@@ -35,8 +35,7 @@ import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
-import { PIPE_LOOK } from "./look/pipe";
-import { FONT_VARS, LOOK, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
+import { FONT_VARS, LOOK, PIPE_FIRST, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
 import { partRadius } from "./render/corner";
 import { drawLines } from "./render/pen-store";
 import {
@@ -583,13 +582,13 @@ export function mountDiagram(
   // 見る人が図を送るか拡大と縮小をした後は、段が進んでも枠を関係者の所へ送らない。段を選ぶか、流し始めるか、最初へ戻すと送り直す (Tracelyth #183)
   let held = false;
   /**
-   * 槽の残高の字が画面で `PIPE_LOOK.narrow.px` 以上に見える、配管の図の最も細い幅 (px) (#3450)。
+   * 槽の残高の字が画面で `PIPE_FIRST.narrowPx` 以上に見える、配管の図の最も細い幅 (px) (#3450)。
    * 狭い枠で組み直しても字の倍率が届かない図 (箱を開いた広い図) は、これより細く置くと字が読めない。
    * 残高の字を持たない図は 0 を返し、幅を縛らない
    */
   const readableWidth = (): number => {
     const heights = ((rendered.layout as PipeLayout).levels ?? []).map((level) => level.text.h).filter((h) => h > 0);
-    return heights.length > 0 ? (rendered.layout.width * PIPE_LOOK.narrow.px) / Math.min(...heights) : 0;
+    return heights.length > 0 ? (rendered.layout.width * PIPE_FIRST.narrowPx) / Math.min(...heights) : 0;
   };
   /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。

@@ -3,9 +3,10 @@
  *
  * ほかの値と同じく値の表の層 (`look/`) に置き、配管の図の並べ方と描き方 (`kinds/pipe/layout.ts` と `render/pipe.ts` とブロックの描き方) だけが読む。
  * どれも後から読む塊にあるので、`values.ts` の `LOOK` と `TYPE` に入れず別の file に分ける (列の図の `look/lineup.ts` と同じ訳)。
+ * 最初に読む処理 (再生の部品、時系列の計画、崩れの確かめ) が使う値は `values.ts` の `PIPE_FIRST` が持ち、ここはそこから写す (#3720)。
  * 部品の寸法は試作の `swap` を全ての図の正にし、込み合う図でも小さくせず、間を広げて図を大きくする (#3418)。
  */
-import type { TextStyle } from "./values";
+import { PIPE_FIRST, type TextStyle } from "./values";
 
 const text = (size: number, weight: number, family: TextStyle["family"] = "sans"): TextStyle => ({ size, weight, family });
 
@@ -47,7 +48,7 @@ export const PIPE_TYPE = {
  * 値のパイプを流れる値と移す額の札の動き (Tracelyth #168)。`dots` と `call` は流れの点線の間合い、`coinH` と `coinPad` は額の札の高さと左右の余白、
  * `travel` は札が道を進む秒、`linger` は着いた後に残る秒、`scale` は札を大きく描く倍率、`pause` は着いた後に止まる秒
  */
-export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: 1.5, linger: 0.15, scale: 1.3, pause: 0.45 } as const;
+export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: PIPE_FIRST.moveTravel, linger: 0.15, scale: 1.3, pause: PIPE_FIRST.movePause } as const;
 
 /**
  * 色味に依らない白 (Tracelyth #168)。`reveal` は流れの先を見せる mask の線で、mask は白の明るさだけを読むので色味を混ぜない。
@@ -135,7 +136,7 @@ export const PIPE_LOOK = {
   edge: 60,
   radius: 8,
   grid: { step: 24, dot: 1 },
-  chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: 10, beside: 12, slide: 4 },
+  chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: PIPE_FIRST.chipOff, beside: 12, slide: 4 },
   row: { pitch: 84, top: 48 },
   avatar: { size: 80, r: 32, halo: 40, nameY: 64, initialY: 10 },
   cabinet: { h: 80, pad: 52, end: 22, mark: 26, name: 46, radius: 12, icon: 1, gap: 16 },
@@ -171,11 +172,11 @@ export const PIPE_LOOK = {
   housing: { pad: 18, top: 34, text: 84, gap: 72 },
   band: { tag: 18, next: 30, tags: 76 },
   lane: { pitch: 38, clear: 12, outer: 6 },
-  bus: { case: 24, core: 16, stub: 6, valveUp: 14 },
+  bus: { case: PIPE_FIRST.busCase, core: 16, stub: 6, valveUp: 14 },
   flow: { width: 4, track: 8, dash: "2 9", chevron: 7, stripe: 9, slug: 0.34 },
   write: { turn: 24 },
   card: { top: 16, h: 46, padX: 12, gap: 10, icon: 22, titleY: 18, valueY: 36 },
   ring: { width: 3 },
   dim: 0.35,
-  narrow: { frame: 600, px: 10.5, gap: 28 },
+  narrow: { frame: 600, px: PIPE_FIRST.narrowPx, gap: 28 },
 } as const;

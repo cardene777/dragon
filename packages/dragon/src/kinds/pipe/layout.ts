@@ -1256,6 +1256,43 @@ function along(points: readonly Point[], d: number): Point {
 }
 
 /**
+ * 戻り値の札が呼び出しの管 `back` (呼ばれた側から呼んだ側への点の並び) を伝って動く道筋 (#3523)。
+ * 呼ばれた側の名前の字 `callee` に札が掛からない所まで管に沿って進んでから動き出す。横から入る管では、縁の真ん中が名前の字の隣に在る。
+ * 着く所は、呼んだ側から管を遡り、`avoid` (箱と弁と計器とその段に置いた札) のどれからも離れた最初の所にする。
+ * 呼んだ側の名札の手前には呼び出しの弁と計器が並ぶため、名札の手前で止めた札はそれらを隠していた。
+ * 離れた所が無い短い管では、部品の縁に触れても重ならない所にする。どこにも空きが無い時は呼んだ側の名札 `caller` に札が載らない手前で止め、
+ * `cramped` を立てる。崩れの確かめが札と部品の重なりを知らせる。
+ * 今の並べ方と `layout` の行の置き直し (`layout/pipe-place.ts`、#3720) が、同じ探し方で札を止める
+ */
+export function returnRoute(
+  back: Point[],
+  rectAt: (p: Point) => Rect,
+  callee: Rect | undefined,
+  caller: () => Rect,
+  avoid: readonly Rect[],
+): { path: Point[]; cramped: boolean } {
+  let d = 0;
+  while (callee && d < lengthOf(back) / 2 && !apart(rectAt(along(back, d)), callee, PART_GAP / 2)) d += 2;
+  const started = d > 0 ? fromAlong(back, d) : back;
+  const whole = lengthOf(started);
+  /** 呼んだ側から遡り、どの部品からも `gap` 離れた最初の所までの長さ。無い時は `whole` */
+  const backTo = (gap: number): number => {
+    let at = 0;
+    while (at < whole && !avoid.every((o) => apart(rectAt(along(started, whole - at)), o, gap))) at += 2;
+    return at;
+  };
+  let e = backTo(PART_GAP / 2);
+  if (e >= whole) e = backTo(0);
+  const cramped = e >= whole;
+  if (cramped) {
+    const near = caller();
+    e = 0;
+    while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), near, 2)) e += 2;
+  }
+  return { path: e > 0 ? fromAlong([...started].reverse(), e).reverse() : started, cramped };
+}
+
+/**
  * 縦と横の折れ線を、進む向きの左へ `d` だけずらす。角は 2 本のずらした線の交わる所に置く。
  * 同じ管を同じ段に流れた分をずらして重ねない時に使う
  */
@@ -4267,37 +4304,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (!points) continue;
         const back = [...points].reverse();
         const w = chipW(ret.value);
-        // 呼ばれた側の名前の字に札がかからない所まで管に沿って進み、そこから動き出す。横から入る管では、縁の真ん中が名前の字の隣に在る
-        const name = parties.find((p) => p.id === c.to)?.label;
         const rectAt = ([x, y]: Point): Rect => ({ x: x - w / 2, y: y - chipH / 2, w, h: chipH });
-        let d = 0;
-        while (name && d < lengthOf(back) / 2 && !apart(rectAt(along(back, d)), name, PART_GAP / 2)) d += 2;
-        const started = d > 0 ? fromAlong(back, d) : back;
-        // 着く所は、呼んだ側から管を遡り、箱と弁と計器とその段に置いた札のどれからも離れた最初の所にする (#3523)。
-        // 呼んだ側の名札の手前には呼び出しの弁と計器が並ぶため、名札の手前で止めた札はそれらを隠していた
-        const whole = lengthOf(started);
-        const avoid = blocks(ret.step);
-        /** 呼んだ側から遡り、どの部品からも `gap` 離れた最初の所までの長さ。無い時は `whole` */
-        const backTo = (gap: number): number => {
-          let at = 0;
-          while (at < whole && !avoid.every((o) => apart(rectAt(along(started, whole - at)), o, gap))) at += 2;
-          return at;
-        };
-        // 離れた所が無い短い管では、部品の縁に触れても重ならない所にする
-        let e = backTo(PART_GAP / 2);
-        if (e >= whole) e = backTo(0);
-        // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる
-        if (e >= whole) {
-          // 次の組みで、この管の2人の間を札の幅だけ広げる
-          cramped.set(
-            `${c.from}>${c.to}`,
-            Math.max(cramped.get(`${c.from}>${c.to}`) ?? 0, w + PART_GAP),
-          );
-          const caller = labelOf(c.from);
-          e = 0;
-          while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, 2)) e += 2;
-        }
-        const path = e > 0 ? fromAlong([...started].reverse(), e).reverse() : started;
+        const { path, cramped: full } = returnRoute(back, rectAt, parties.find((p) => p.id === c.to)?.label, () => labelOf(c.from), blocks(ret.step));
+        // 次の組みで、この管の2人の間を札の幅だけ広げる
+        if (full) cramped.set(`${c.from}>${c.to}`, Math.max(cramped.get(`${c.from}>${c.to}`) ?? 0, w + PART_GAP));
         chips.push(chipOf("return", ret.value, rectAt(path[0] as Point), ret.step, { party: c.to, path, call: c.index, event: ret.event }));
       }
 

@@ -5,4 +5,6 @@ export const uses = {
   "kind:pipe": (v) => v.diagram.kind === "pipe",
   "head:hold": (v) => (v.diagram.blocks.hold ?? []).length > 0,
   "head:move": (v) => v.events.some((e) => e.type === "move"),
+  // 置き方を選ぶ `layout` の行は、読む処理をこのブロックが持つ (#3720)
+  "head:layout": (v) => v.diagram.layout !== undefined,
 } satisfies BlockUses;

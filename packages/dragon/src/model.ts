@@ -94,7 +94,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
     ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
     // 時系列図の見た目 (#3720) も根の欄 (`sequence`) に移す。生存線の並びは箱の並びから組み直せるので書かない
-    ...(model.kind === "sequence" && model.sequence?.shape !== undefined ? { sequence: { shape: model.sequence.shape } } : {}),
+    ...(model.sequence?.shape !== undefined ? { sequence: { shape: model.sequence.shape } } : {}),
     blocks: blocks as DiagramBlocks,
     steps: model.steps,
   };
@@ -156,7 +156,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.strip !== undefined ? { strip: b.strip } : {}),
     steps: diagram.steps,
     // 時系列図の生存線は箱の並びから組み、見た目 (#3720) は原本の根の `sequence` の欄から移す
-    ...(diagram.kind === "sequence" ? { sequence: { ...lifelinesOf(boxes), ...(diagram.sequence !== undefined ? { shape: diagram.sequence.shape } : {}) } } : {}),
+    ...(diagram.kind === "sequence" ? { sequence: { ...lifelinesOf(boxes), ...diagram.sequence } } : {}),
     ...rooted(diagram),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),

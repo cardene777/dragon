@@ -8,10 +8,10 @@
  */
 import { faultAt, inPipeStep, pipeLine, readValueName, textAt, valueName } from "../../pipe-read";
 import { isAmount } from "../../pipe-run";
-import { fail, readAttrs, skipSpaces } from "../../read-kit";
-import type { DiagramModel } from "../../schema";
+import { fail, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
+import { type DiagramModel, PIPE_LAYOUTS, type PipeLayoutName } from "../../schema";
 import type { SourceLine } from "../../tokenize";
-import type { BlockReading, ParseState } from "../block";
+import type { BlockReading, FigureDraft, ParseState } from "../block";
 import { ETH } from "../definition-values";
 import type { PipeHold, PipeHoldLink, PipeMove } from "./block";
 
@@ -29,6 +29,10 @@ export interface HoldMessages {
   holdTwice: (owner: string, what: string) => string;
   /** ETH を move で動かそうとした */
   moveEth: string;
+  /** 置き方の行 (`layout`) を 2 行書いた (Tracelyth #165) */
+  layoutTwice: string;
+  /** 置き方の行に知らない形の名前 `shape` を書いたか、形を書かなかった (Tracelyth #165、#166、#168) */
+  layoutBad: (shape: string) => string;
 }
 
 /** 残高の並び (`<量> <トークン>, <量> <トークン>`) を 1 つずつ読む */
@@ -73,6 +77,21 @@ function readHold(source: SourceLine, state: ParseState): void {
   if (state.figure.pipe.holds.some((h) => "name" in h && h.box === box && h.name === named.name)) throw fail(source, rest, m.holdTwice(box, named.name));
   const link = tail === undefined ? undefined : readHoldLink(source, tail, state);
   state.figure.pipe.holds.push({ box, name: named.name, value, ...(link ? { link } : {}) });
+}
+
+/**
+ * 配管の図の置き方の行 (`layout <形>`、Tracelyth #165、#166、#168)。最初の段より前に 1 行だけ書く。
+ * 置き方は描く処理の形の根の欄 `layout` に置く。根の欄の型 (`FigureDraft["root"]`) は図の種類のブロックが組む欄だけを名指すので、型を広げて足す (#3720)。
+ * 配管の図の外に書いた行は、この読み方を読まない図でも断れるよう記法を読む処理が断る
+ */
+function readLayout(source: SourceLine, state: ParseState): void {
+  const { m } = state;
+  state.beforeSteps(source);
+  const root: (FigureDraft["root"] & { layout?: PipeLayoutName }) | undefined = state.figure.root;
+  if (root?.layout !== undefined) throw fail(source, 0, m.layoutTwice);
+  const shape = source.text.slice("layout".length).trim();
+  if (!isOneOf(PIPE_LAYOUTS, shape)) throw fail(source, 0, m.layoutBad(shape));
+  state.figure.root = { ...root, layout: shape } as FigureDraft["root"];
 }
 
 /** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
@@ -149,6 +168,7 @@ function holdLines(diagram: DiagramModel): string[] {
 export const reading: BlockReading<HoldMessages> = {
   read: {
     hold: readHold,
+    layout: readLayout,
     move: (source, state) => {
       const event = readMove(source, state);
       state.inStep(source).events.push(event);
@@ -168,6 +188,9 @@ export const reading: BlockReading<HoldMessages> = {
       noToken: (token) => `${token} という名前の関係者が無い。トークンは box <名札> as ${token} で宣言した名前か ETH で書く`,
       holdTwice: (owner, what) => `${owner} の ${what} は 2 度宣言している`,
       moveEth: "ETH は move で動かせない。呼び出しの行に [value: <量> ETH] を付けて送る",
+      layoutTwice: "layout の行は1つの図に1行だけ書ける",
+      layoutBad: (shape) =>
+        shape === "" ? "layout の後に形の名前 (top、bottom、ledger、mesh、bus、auto のどれか) を書く" : `layout の形「${shape}」は書けない。top、bottom、ledger、mesh、bus、auto のどれかを書く`,
     },
     en: {
       holdShape: "Write hold as hold <owner>: <amount> <token>, <amount> <token> or hold <contract>: <name> <value>",
@@ -176,6 +199,8 @@ export const reading: BlockReading<HoldMessages> = {
       noToken: (token) => `No party is named ${token}. Write a token as a name declared with box <id> as ${token}, or as ETH`,
       holdTwice: (owner, what) => `${what} of ${owner} is declared twice`,
       moveEth: "ETH cannot be moved with move. Send it with [value: <amount> ETH] on a call line",
+      layoutTwice: "Write at most one layout line in a diagram",
+      layoutBad: (shape) => (shape === "" ? "Write a shape name (top, bottom, ledger, mesh, bus or auto) after layout" : `The layout shape "${shape}" is unknown. Write top, bottom, ledger, mesh, bus or auto`),
     },
   },
 };

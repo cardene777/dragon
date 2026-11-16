@@ -4,8 +4,7 @@
  */
 import { type BlockReading, none } from "../block";
 
-export const reading: BlockReading = {
-  read: none("op の番号は線の行の属性で、線のブロックが線の行と一緒に読む"),
-  print: none("op の番号は線のブロックが線の行の属性として書き戻す"),
-  messages: none("op の番号の誤りの文は、どの図でも必ず読む線のブロックが持つ"),
-};
+/** 読む処理と書き戻す処理と誤りの文は、どれも線のブロックが持つ */
+const BY_EDGE = none("線のブロックが持つ");
+
+export const reading: BlockReading = { read: BY_EDGE, print: BY_EDGE, messages: BY_EDGE };

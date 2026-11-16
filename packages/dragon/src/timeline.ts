@@ -26,9 +26,7 @@
  */
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
-import { FLOW_MOVE } from "./look/pipe";
-import { lookOf } from "./render/look-store";
-import { MOTION } from "./look/values";
+import { MOTION, PIPE_FIRST } from "./look/values";
 import type { DiagramModel } from "./schema";
 import { STATE_ENDS } from "./words";
 
@@ -198,7 +196,7 @@ function plan(step: DiagramModel["steps"][number], needle?: Needle, trip = false
     // 配管の図の出来事 (#3389) は、前の出来事から決まった間を置いて起こす
     if (PIPE_EVENTS.has(event.type)) {
       // 移す額の札が道を進んで止まり終えるまで、次の出来事を待たせる (Tracelyth #168)
-      const hold = event.type === "move" ? Math.max(beat, FLOW_MOVE.travel + FLOW_MOVE.pause + 0.3) : beat;
+      const hold = event.type === "move" ? Math.max(beat, PIPE_FIRST.moveTravel + PIPE_FIRST.movePause + 0.3) : beat;
       out.events.push({ event: e, at: cursor });
       out.busy = Math.max(out.busy, cursor + hold);
       cursor += hold;
@@ -313,11 +311,6 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
       if (later) label.end = Math.min(label.end, later.start);
     });
     for (const label of named) {
-      // パイプ図の部品で描く時系列図 (`[shape: pipe]`) の札は、出たステップの後も最後のステップまで残す (Tracelyth #91、#3720)
-      if (lookOf(diagram) !== undefined) {
-        label.end = last;
-        continue;
-      }
       if (whole && label.end > whole.start) label.end = whole.end;
       else {
         if ((diagram.kind === "state" || diagram.kind === "flow") && label.end < faint) label.after = { start: label.end, end: faint };

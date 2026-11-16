@@ -47,21 +47,15 @@ function readJson(text: string): Diagram | null {
   return read.ok ? read.diagram : null;
 }
 
-/** 記法か原本の JSON の字の図の種類。読む前に、どの種類の塊を待つかを決める。JSON として読めない時は `undefined` */
-function kindOfText(text: string, json: boolean): string | undefined {
-  if (!json) return diagramKind(text);
+/**
+ * 記法の字か、原本の JSON の字を読んだ物。読む前に、どの塊 (図の種類と時系列図の見た目) を待つかを決める (#3720)。
+ * JSON として読めない時は `undefined`
+ */
+function sourceOfText(text: string, json: boolean): string | object | undefined {
+  if (!json) return text;
   try {
     const input: unknown = JSON.parse(text);
-    return typeof input === "object" && input !== null ? diagramKind(input) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/** 記法か原本の JSON の字が選んだ時系列図の見た目 (#3720)。読めない時と選ばない時は `undefined` */
-function lookOfText(text: string, json: boolean): ReturnType<typeof lookOf> {
-  try {
-    return lookOf(json ? (JSON.parse(text) as unknown) : text);
+    return typeof input === "object" && input !== null ? input : undefined;
   } catch {
     return undefined;
   }
@@ -75,7 +69,8 @@ function readNotation(text: string): Diagram | null {
 
 export function LiveFigure({ notation, lang, theme, palette, line, whole = false, json = false, onStep, pausedAt, className }: Props): ReactElement {
   const host = useRef<HTMLDivElement>(null);
-  const kind = useMemo(() => kindOfText(notation, json), [notation, json]);
+  const source = useMemo(() => sourceOfText(notation, json), [notation, json]);
+  const kind = source === undefined ? undefined : diagramKind(source);
   // 原本の JSON は原本の形の検査の塊も待つ。記法から読んだ図は検査を要らない (#3400)
   const checked = useValidator(json).status === "ready";
   // 足したブロックの定義を持つ記法は、定義を読む処理の塊も待つ (#3407)
@@ -83,7 +78,7 @@ export function LiveFigure({ notation, lang, theme, palette, line, whole = false
   // 手描きの線を選んだ図は、描き替える処理の塊も待つ (#3643)
   const drawn = useLine(line).status === "ready";
   // 種類の行に `[shape: pipe]` を書いた時系列図は、パイプ図の部品で描く見た目の塊も待つ (#3720)
-  const looked = useLook(useMemo(() => lookOfText(notation, json), [notation, json])).status === "ready";
+  const looked = useLook(lookOf(source)).status === "ready";
   const ready = useKind(kind).status === "ready" && checked && defined && drawn && looked;
   const diagram = useMemo((): Diagram | null => {
     if (!ready) return null;

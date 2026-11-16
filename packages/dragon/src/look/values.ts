@@ -790,6 +790,13 @@ export const MOTION = {
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */
 export const READABLE_PX = 10.5;
 
+/**
+ * 配管の図の値のうち、最初に読む処理が使う物 (#3720)。`narrowPx` は再生の部品が狭い枠で槽の残高の字を読める大きさにする字の大きさ (px)、
+ * `busCase` と `chipOff` は崩れの確かめが流れの札を管から離す間、`moveTravel` と `movePause` は時系列の計画が移す額の札を待つ秒。
+ * 配管の図の見た目の値 (`look/pipe.ts`) は後から読む塊に入れるので、最初に読む処理はここから読み、`look/pipe.ts` も同じ値をここから持つ
+ */
+export const PIPE_FIRST = { narrowPx: 10.5, busCase: 24, chipOff: 10, moveTravel: 1.5, movePause: 0.45 } as const;
+
 /** 動きの緩急。 */
 export const EASE = {
   inOut: "cubic-bezier(.65,0,.35,1)",

@@ -4,6 +4,8 @@ box alice as Alice
 box usdc as USDC
 box bob as Bob
 
+layout auto
+
 hold alice: 100 USDC
 hold bob: 0 USDC
 

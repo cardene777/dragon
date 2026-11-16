@@ -23,8 +23,10 @@ import {
   type PipeTank,
   type PipeValuePipe,
   partiesOf,
+  returnRoute,
   simulate,
 } from "../kinds/pipe/layout";
+import { valveRects } from "../pipe-valve";
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
@@ -1419,6 +1421,11 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
 // 箱が5つ以上の時は `box` の行の順のまま2つの形を比べる
 const AUTO_MAX_BOXES = 4;
 export function placeLayout(composed: PipeLayout, diagram: DiagramModel): PipeLayout {
+  const placed = pickPlace(composed, diagram);
+  if (placed !== composed) settleReturns(placed);
+  return placed;
+}
+function pickPlace(composed: PipeLayout, diagram: DiagramModel): PipeLayout {
   if (diagram.layout === "ledger" || diagram.layout === "mesh" || diagram.layout === "bus") return placeRows(composed, diagram, diagram.layout);
   if (diagram.layout !== "auto") return placeTop(composed, diagram, diagram.layout);
   const ids = new Set(composed.parties.filter((p) => p.shape === "token").map((p) => p.id));
@@ -1433,4 +1440,50 @@ export function placeLayout(composed: PipeLayout, diagram: DiagramModel): PipeLa
       if (!best || s.crossings < best.fixed.score.crossings || s.crossings === best.fixed.score.crossings && s.length < best.fixed.score.length) best = placed;
     }
   return best ?? composed;
+}
+
+/**
+ * 置き直した図の戻り値の札を、今の並べ方と同じ探し方 (`returnRoute`) で止める (#3720)。
+ * 置き直しは札の道筋を呼び出しの管の全長に引き直すので、止めないと札が呼んだ側の箱と、管の口の弁に載る。
+ * 避けるのは人と箱とその名前の字、槽、箱の札入れ、弁、その段の計器と札
+ */
+function settleReturns(out: PipeLayout): void {
+  const box = (r: Rect): Rect => ({ x: r.x, y: r.y, w: r.w, h: r.h });
+  const V = P.valve;
+  const fixed: Rect[] = [
+    ...out.parties.flatMap((p) => [box(p), box(p.label)]),
+    ...out.tanks.map(box),
+    ...out.plates.map(box),
+    ...out.mains.flatMap((m) => m.branches.flatMap((b) => valveRects(b.valve.x, b.valve.y, b.valve.vertical, b.valve.under))),
+    ...out.buses.flatMap((b) => (b.valve ? valveRects(b.valve.x, b.valve.y, false, false) : [])),
+    // 帳簿型の枝の弁は縦の管の上の胴だけを描く
+    ...out.valuePipes.flatMap((v) => (v.valve ? [{ x: v.valve.x - V.half, y: v.valve.y - V.r, w: V.half * 2, h: V.r * 2 }] : [])),
+  ];
+  /** 人か箱と、その名前の字を囲む四角 */
+  const outline = (id: string | undefined): Rect | undefined => {
+    const p = out.parties.find((x) => x.id === id);
+    if (!p) return undefined;
+    const x = Math.min(p.x, p.label.x);
+    const y = Math.min(p.y, p.label.y);
+    return { x, y, w: Math.max(p.x + p.w, p.label.x + p.label.w) - x, h: Math.max(p.y + p.h, p.label.y + p.label.h) - y };
+  };
+  for (const c of out.chips) {
+    if (c.kind !== "return" || !c.path || c.path.length < 2) continue;
+    const avoid = [
+      ...fixed,
+      ...out.gauges
+        .filter((g) => g.step === c.step)
+        .flatMap((g) => [box(g), { x: g.lamp.x - g.lamp.r, y: g.lamp.y - g.lamp.r, w: g.lamp.r * 2, h: g.lamp.r * 2 }, ...(g.stem ? [{ x: g.cx - 2, y: g.stem.y1, w: 4, h: g.stem.y2 - g.stem.y1 }] : [])]),
+      ...out.chips.filter((x) => x.step === c.step && x.kind !== "return").map(box),
+    ];
+    const rectAt = ([x, y]: Point): Rect => ({ x: x - c.w / 2, y: y - c.h / 2, w: c.w, h: c.h });
+    const from = out.calls.find((x) => x.index === c.call)?.from;
+    const end = c.path[c.path.length - 1] as Point;
+    const callee = out.parties.find((x) => x.id === c.party)?.label;
+    const { path } = returnRoute(c.path, rectAt, callee, () => outline(from) ?? rectAt(end), avoid);
+    const [ox, oy] = c.path[0] as Point;
+    const head = path[0] as Point;
+    c.path = path;
+    moveParts(c, head[0] - ox, head[1] - oy, new WeakSet<object>([c.path]));
+  }
 }

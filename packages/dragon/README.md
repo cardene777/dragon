@@ -315,7 +315,7 @@ To read a diagram's title and kind without drawing it, await `loadReadings`, whi
 Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
 If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.
-The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await one of them.
+The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await `loadLook`.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
 
 ## Add your own blocks

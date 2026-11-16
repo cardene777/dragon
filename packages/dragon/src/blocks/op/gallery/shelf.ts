@@ -4,4 +4,4 @@
  */
 import type { BlockShelf } from "../../gallery";
 
-export const shelf = { none: "棚の部品の一覧に操作の番号の部品は無く、線の行に属性を書いて付ける" } satisfies BlockShelf;
+export const shelf = { none: "線の行の属性で付ける" } satisfies BlockShelf;

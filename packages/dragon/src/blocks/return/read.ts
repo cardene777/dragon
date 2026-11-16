@@ -68,7 +68,7 @@ function readCall(source: SourceLine, state: ParseState): void {
   const marks = at < text.length ? readAttrs(source, at, [...CALL_ATTRS, "op"], m, ["fold"]) : new Map<string, Attr>();
   // 線を起こした操作の番号 (#3720) は時系列図の線だけが書けるので、配管の図の呼び出しの行に書いた番号はその文で断る
   const op = marks.get("op");
-  if (op) throw fail(source, op.at, m.opSequenceOnly);
+  if (op) throw fail(source, op.at, m.opBad);
   const kind = marks.get("call");
   if (kind && kind.value === "create") throw fail(source, valueAt(source, kind), m.callCreate);
   if (kind && !isOneOf(CALL_KINDS, kind.value)) throw fail(source, valueAt(source, kind), m.callKind(kind.value));

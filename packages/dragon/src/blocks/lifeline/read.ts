@@ -20,8 +20,8 @@ export const reading: BlockReading<LifelineMessages> = {
   read: none("生存線の行は無い。描く処理の形へ組み直す時に、toModel が lifelinesOf で箱の並びから組む"),
   print: none("生存線の並びは箱の並びと同じなので書かない。読み直す時に箱の宣言から組み直す。種類の行の shape は書き戻す処理が根の欄から書く"),
   messages: {
-    ja: { sequenceBadShape: "時系列図の shape は pipe だけを書ける。書かない図は今の見た目で描く" },
-    en: { sequenceBadShape: "The shape of a sequence diagram can only be pipe. A diagram without shape is drawn in the default look" },
+    ja: { sequenceBadShape: "時系列図の shape は pipe だけを書ける" },
+    en: { sequenceBadShape: "The shape of a sequence diagram can only be pipe" },
   },
   settle: (state, head) => {
     const shape = state.head.get("shape");
