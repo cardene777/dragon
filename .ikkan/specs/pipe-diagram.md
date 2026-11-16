@@ -108,3 +108,12 @@
 | 配管の見本の全ての言語と幅と開いた箱で、置き場所の指紋が記録した指紋と同じで、管の線を1本も変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3603 |
 | 配管の見本の全てで決まりの表の違反が0で、狭い幅で再生した配管の図の字が読める大きさで描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と検査`player-pipe-narrow-keeps-text-readable`が通る | #3603 |
 | 変えたfileを確かめる2つの検査のfileが全て通り、packageの検査の一式 (`pnpm exec vitest run packages/`) も全て通る | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`が終わり方0で終わる | #3603 |
+| `mint usdc: 100 -> alice`を読み、aliceの槽が100増える | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-mint-fills-receiver`が通る | #3722 |
+| `burn usdc: 100 alice`を読み、aliceの槽が100減る | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-burn-drains-holder`が通る | #3722 |
+| 発行と焼却を書いた図は、ゼロのアドレスを人として描かず、残高も持たせない | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-mint-burn-draw-no-zero-address`が通る | #3722 |
+| `move art: #1 alice -> bob`を読み、aliceからbobへ移る線を描き、番号1の持ち主をbobにする | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-nft-move-draws-line`が通る | #3722 |
+| `move items: 2 #1 alice -> bob`を読み、aliceの番号1を2減らしてbobに2足し、移る線を描く | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-erc1155-move-draws-line`が通る | #3722 |
+| `mint art: #3 -> alice`と`burn art: #3 alice`を読み、番号3の持ち主を変える | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-nft-mint-burn`が通る | #3722 |
+| `#`の後に番号の無い`move art: # alice -> bob`を、読む時に誤りとして拒む | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-nft-move-refuses-missing-id`が通る | #3722 |
+| 数を移す`move usdc: 100 alice -> bob`の読み方と描き方は今のまま | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-move-amount-unchanged`が通る | #3722 |
+| 記法の説明の`plugins/dragon/skills/dragon/references/kinds/pipe.md`が、`mint`と`burn`と`#`の番号の書き方を載せる | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-notation-docs-list-mint-burn-nft`が通る | #3722 |
