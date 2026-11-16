@@ -11,10 +11,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // 状態遷移図と枝分かれの図の記法を読むので、全部入りの入口と同じく全てのブロックの読み方を登録する (#3349)
 import "../src/kinds/all";
+import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
-import { badgeRect, cardOf, carried, carrierRect, doneRect, overlap, seatedAt, slotFrameOf, waiting } from "./carrier-support";
+import { badgeRect, type Carried, cardOf, carried, carrierRect, doneRect, overlap, seatedAt, shownSlots, slotFramesOf, waiting } from "./carrier-support";
 import { api } from "./diagram-support";
 import { type Motion, motionOf } from "./motion-support";
+import type { Rect } from "./render-support";
 
 const diagram = (lines: string[]): unknown => {
   const parsed = parseNotation(lines.join("\n"));
@@ -246,12 +248,15 @@ function fixture(file: string): Motion {
   return motionOf(parsed.diagram);
 }
 
-/** 止め絵の時刻 `t` に、置き場を持つ箱ごとの枠の見える濃さと、運ぶ物が座っているか */
+/**
+ * 止め絵の時刻 `t` に、置き場を持つ箱ごとの枠の見える濃さと、運ぶ物が座っているか。
+ * 幅の違う物が出入りする箱は幅ごとに枠を持つので (#3723)、その箱の枠で一番濃いものを見る
+ */
 function frames(m: Motion, t: number): { name: string; shown: number; seated: boolean }[] {
   const list = carried(m);
   return m.rendered.layout.boxes.flatMap((box) => {
-    const frame = slotFrameOf(m, box.id);
-    return frame ? [{ name: box.name, shown: m.opacity(frame, t), seated: seatedAt(list, box.id, t) }] : [];
+    const all = slotFramesOf(m, box.id);
+    return all.length > 0 ? [{ name: box.name, shown: Math.max(...all.map((el) => m.opacity(el, t))), seated: seatedAt(list, box.id, t) }] : [];
   });
 }
 
@@ -305,5 +310,76 @@ describe("空の置き場の枠を見せない (#3518)", () => {
     // 3 つの図の最後の段は、空の置き場 8 つと、運ぶ物が座る置き場 4 つを持つ
     expect(empty, "最後の段の空の置き場の数").toBe(8);
     expect(seated, "最後の段に運ぶ物が座る置き場の数").toBe(4);
+  });
+});
+
+/** 細い封筒と字の長い札が、別の段で同じ箱 (中継) を通る構成図 (#3723)。送り手は封筒だけを、受け手は札だけを出し入れする */
+const WIDTHS = [
+  "architecture 手紙と札が同じ箱を通る",
+  "",
+  "box 送り手 [note: 手紙を出す, icon: app]",
+  "box 中継 [note: 受けて渡す, icon: router]",
+  "box 受け手 [note: 札を返す, icon: app]",
+  "",
+  "step 手紙を送る",
+  "  say 送り手が中継に手紙を送る。中継は手紙だけを持つ。",
+  "  送り手 -> 中継: 手紙",
+  "",
+  "step 札を渡す",
+  "  say 中継が受け手に字の長い札を渡す。",
+  "  中継 -> 受け手: 渡す [tag: 長い名前の証明書の札]",
+  "",
+  "step 札が戻る",
+  "  say 受け手が札を中継に戻す。中継は札を持つ。",
+  "  受け手 -> 中継: 戻す [tag: 長い名前の証明書の札]",
+];
+
+/** 四角 `inner` が四角 `outer` の内に収まる。描いた座標の丸め (0.1) を許す */
+const within = (inner: Rect, outer: Rect): boolean =>
+  inner.x >= outer.x - 0.1 && inner.y >= outer.y - 0.1 && inner.x + inner.w <= outer.x + outer.w + 0.1 && inner.y + inner.h <= outer.y + outer.h + 0.1;
+
+describe("置き場の枠をその間に座る物の幅にする (#3723)", () => {
+  it("slot-frame-fits-held-carrier", () => {
+    const m = motionOf(diagram(WIDTHS));
+    const { stills } = m.rendered.timeline;
+    const list = carried(m);
+    const letter = list.find((c) => c.step === 0) as Carried;
+    const tag = list.find((c) => c.step === 2) as Carried;
+    const pad = LOOK.slot.pad;
+    expect(tag.half[0], "札が封筒より広くない").toBeGreaterThan(letter.half[0]);
+    const one = (id: string, t: number, where: string): Rect => {
+      const shown = shownSlots(m, id, t);
+      expect(shown, `${where}に見える置き場の枠の数`).toHaveLength(1);
+      return shown[0] as Rect;
+    };
+    // 段 1 の中継は封筒だけを持つ。枠は封筒の幅に余白を足した幅で、後で通る札の幅にしない
+    const narrow = one("中継", stills[0] as number, "封筒だけを持つ段 1 の中継");
+    expect(Math.abs(narrow.w - (letter.half[0] * 2 + pad * 2)), `封筒だけを持つ段 1 の中継の枠の幅 ${narrow.w} が、封筒の幅に余白を足した値でない`).toBeLessThanOrEqual(0.1);
+    expect(within(carrierRect(m, letter, stills[0] as number), narrow), "段 1 の封筒が中継の枠に収まらない").toBe(true);
+    // 段 3 の中継は札を持つ。枠は札の幅に余白を足した幅
+    const wide = one("中継", stills[2] as number, "札を持つ段 3 の中継");
+    expect(Math.abs(wide.w - (tag.half[0] * 2 + pad * 2)), `札を持つ段 3 の中継の枠の幅 ${wide.w} が、札の幅に余白を足した値でない`).toBeLessThanOrEqual(0.1);
+    expect(within(carrierRect(m, tag, stills[2] as number), wide), "段 3 の札が中継の枠に収まらない").toBe(true);
+  });
+
+  it("single-kind-slot-frame-unchanged", () => {
+    const m = motionOf(diagram(WIDTHS));
+    const list = carried(m);
+    const slotOf = (id: string): Rect => {
+      const slot = m.rendered.layout.boxes.find((b) => b.id === id)?.slot;
+      if (!slot) throw new Error(`${id} に置き場が無い`);
+      return slot;
+    };
+    const near = (a: Rect, b: Rect): boolean => (["x", "y", "w", "h"] as const).every((k) => Math.abs(a[k] - b[k]) <= 0.1);
+    // 1 種類の物だけが通る箱は、その物の幅で取った置き場をそのまま枠にする。送り手は走り出す前の封筒を、受け手は段 2 に着いた札を持つ
+    const letter = list.find((c) => c.step === 0) as Carried;
+    const before = waiting(letter);
+    expect(before, "送り手から出る封筒が走り出す前に待たない").toBeDefined();
+    const sender = shownSlots(m, "送り手", before as number);
+    expect(sender, "封筒が待つ間の送り手の枠の数").toHaveLength(1);
+    expect(near(sender[0] as Rect, slotOf("送り手")), "送り手の枠が置き場の四角と違う").toBe(true);
+    const receiver = shownSlots(m, "受け手", m.rendered.timeline.stills[1] as number);
+    expect(receiver, "札が着いた段 2 の受け手の枠の数").toHaveLength(1);
+    expect(near(receiver[0] as Rect, slotOf("受け手")), "受け手の枠が置き場の四角と違う").toBe(true);
   });
 });
