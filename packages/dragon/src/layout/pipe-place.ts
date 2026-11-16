@@ -5,11 +5,11 @@
  * 槽をトークンごとの行に並べる3つの形 (`ledger`、`mesh`、`bus`) へ移す。`auto` は上と下の形と箱の並びを試し、線の交わりが最も少ない形を選ぶ。
  * 置き場所は `box` と `hold` の行だけで決まるので、呼ぶ人や引数を替えても箱と槽は動かない。呼び出しに関わらない人は薄く描く
  */
-import { ETH } from "../../blocks/definition-values";
-import { textWidth } from "../../layout/measure";
-import type { Point, Rect } from "../../layout/scene";
-import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import type { DiagramModel } from "../../schema";
+import { ETH } from "../blocks/definition-values";
+import { textWidth } from "./measure";
+import type { Point, Rect } from "./scene";
+import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../look/pipe";
+import type { DiagramModel } from "../schema";
 import {
   type PipeBridge,
   type PipeBusLine,
@@ -24,7 +24,7 @@ import {
   type PipeValuePipe,
   partiesOf,
   simulate,
-} from "./layout";
+} from "../kinds/pipe/layout";
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;

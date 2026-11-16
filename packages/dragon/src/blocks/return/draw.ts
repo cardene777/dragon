@@ -9,7 +9,7 @@
  */
 import type { PipeMain } from "../../kinds/pipe/layout";
 import type { Point } from "../../layout/scene";
-import { PIPE_TYPE } from "../../look/pipe";
+import { PIPE_PAINT, PIPE_TYPE } from "../../look/pipe";
 import type { Motion } from "../../render/motion";
 import { cssFont, r1 } from "../../render/parts";
 import { kindCore } from "../call/draw";
@@ -77,7 +77,7 @@ export const FLOW_CSS = [
   ".dg-pp-log .hr{fill:none;stroke:var(--hair);stroke-width:1.5}",
   ".dg-pp-gulp{fill:none;stroke:var(--t-amber);stroke-width:4}",
   `.dg-pp-fn text{${cssFont({ ...PIPE_TYPE.chip, size: 13, weight: 700 })};fill:var(--c-blue)}`,
-  ".dg-pp-avu{fill:color-mix(in srgb,var(--c-blue) 13%,#fff)}",
+  `.dg-pp-avu{fill:color-mix(in srgb,var(--c-blue) 13%,${PIPE_PAINT.badge})}`,
   ".dg-pp-glyph{fill:var(--c-blue)}",
   ".dg-pp-deep{display:none}",
   ".dg-pp-shine{fill:color-mix(in srgb,var(--ink) 4%,transparent)}",

@@ -148,17 +148,6 @@ export function card(
   return markup;
 }
 
-/**
- * 寄って追う時系列図の窓の上端に貼る頭の箱 (#3120)。図の頭の箱と同じ横の位置と縁で、アイコンを外して名前と下の字の 2 段にする。
- * 携帯の幅では窓が低く、図の頭の箱のままでは窓の高さの 3 割を頭の列が取るため。
- */
-export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChange[]): string {
-  const { pad, h, nameY, subY } = LOOK.follow.head;
-  const subs = subLines(box, ctx.m, changes, pad + subY);
-  const act = on.length > 0 ? activeKf(ctx, on) : undefined;
-  return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
-}
-
 /** 配管の図の名札を描く時に呼ぶ側が渡す、配管の図の値の表 (#3398) */
 export interface PipeLook {
   P: typeof PIPE_LOOK;

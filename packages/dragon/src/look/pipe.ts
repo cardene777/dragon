@@ -50,6 +50,12 @@ export const PIPE_TYPE = {
 export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: 1.5, linger: 0.15, scale: 1.3, pause: 0.45 } as const;
 
 /**
+ * 色味に依らない白 (Tracelyth #168)。`reveal` は流れの先を見せる mask の線で、mask は白の明るさだけを読むので色味を混ぜない。
+ * `badge` はトークンの箱の行の頭の印と人の丸の地に混ぜる白
+ */
+export const PIPE_PAINT = { reveal: "#fff", badge: "#fff" } as const;
+
+/**
  * 2人をキーに持つ値の線 (#107)。札は列の上の段に置き、値の名前の頭と、変わった段は前と後の値、変わらない段は今の値と単位を書く。
  * `h` は札の高さ、`padX` は札の左右の余白、`gap` は線の段どうしの間、`deltaGap` と `deltaPadX` は増減の札との間と余白、
  * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ

@@ -40,7 +40,7 @@ import {
 } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
-import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../look/pipe";
+import { FLOW_MOVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
@@ -106,7 +106,7 @@ const PIPE_CSS = [
   ".dg-pp-core{fill:none;stroke:var(--bg);stroke-linecap:round;stroke-linejoin:round}",
   `.dg-pp-vbody{fill:var(--surf);stroke:var(--line);stroke-width:${S.edgeOn};stroke-linejoin:round}`,
   // 流れの先を道の頭から見せる切り抜きと、流れ終えた跡と、移す額の札 (Tracelyth #168)
-  `.dg-pp-reveal{fill:none;stroke:#fff;stroke-width:44;stroke-dasharray:1 1}`,
+  `.dg-pp-reveal{fill:none;stroke:${PIPE_PAINT.reveal};stroke-width:44;stroke-dasharray:1 1}`,
   `.dg-pp-cdone{fill:none;stroke:var(--c);stroke-width:12;opacity:.3;stroke-linejoin:round}`,
   `.dg-pp-tpast{fill:none;stroke:var(--pp-t);stroke-width:8;opacity:.32;stroke-linejoin:round}`,
   ".dg-pp-trace-rolled .dg-pp-tpast{stroke:var(--c-rose)}",
@@ -126,7 +126,7 @@ const PIPE_CSS = [
   // トークンの箱の見出しの下の字と残高の行 (Tracelyth #175)。行の頭の印は図の人の丸と同じ色、値が変わった行の札は状態の色を薄く塗る
   `.dg-pp-tsub,.dg-pp-tcap{${font(T.boxSub)};fill:var(--mute)}`,
   `.dg-pp-tname{${font(T.rowName)};fill:var(--ink2)}`,
-  ".dg-pp-tbadge{fill:color-mix(in srgb,var(--c-blue) 13%,#fff);stroke:var(--c-blue);stroke-width:1.5}",
+  `.dg-pp-tbadge{fill:color-mix(in srgb,var(--c-blue) 13%,${PIPE_PAINT.badge});stroke:var(--c-blue);stroke-width:1.5}`,
   `.dg-pp-tini{${font(T.badge)};fill:var(--c-blue)}`,
   `.dg-pp-tpill{fill:${mix("var(--c)", 24, "var(--bg)")}}`,
   ".dg-pp-tsep{stroke:var(--line);stroke-width:1}",
@@ -374,7 +374,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const color = e.state === "none" ? "rose" : STATE_COLOR[e.state];
     const tagW = textWidth("ログ", LF.tag) + 14;
     const base = (yy: number, size: number): number => r1(yy + size * 0.36);
-    return `<g${attrs} class="dg-pp-log dg-pp-log-${e.state}" style="${cs(color)}"><rect class="box" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="10"/>` + `<rect class="tag" x="${r1(x + 10)}" y="${r1(y + 7)}" width="${r1(tagW)}" height="18" rx="9"/><text class="tagt" x="${r1(x + 10 + tagW / 2)}" y="${base(y + 16, 11)}" text-anchor="middle">ログ</text>` + `<text x="${r1(x + 10 + tagW + 8)}" y="${base(y + 16, 13)}"><tspan class="k">${esc(party)}.</tspan><tspan class="f">${esc(e.name)}</tspan></text>` + `<text class="st" x="${r1(x + w - 12)}" y="${base(y + 16, 11)}" text-anchor="end">${esc(LOG_STATE[e.state] ?? "")}</text>` + (rows.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + 32)} H ${r1(x + w - 1)}"/>` : "") + rows.map((r, i) => {
+    return `<g${attrs} class="dg-pp-log dg-pp-log-${e.state}" style="${cs(color)}"><rect class="box" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, 10)}"/>` + `<rect class="tag" x="${r1(x + 10)}" y="${r1(y + 7)}" width="${r1(tagW)}" height="18" rx="${partRadius(ctx.corner, 9)}"/><text class="tagt" x="${r1(x + 10 + tagW / 2)}" y="${base(y + 16, 11)}" text-anchor="middle">ログ</text>` + `<text x="${r1(x + 10 + tagW + 8)}" y="${base(y + 16, 13)}"><tspan class="k">${esc(party)}.</tspan><tspan class="f">${esc(e.name)}</tspan></text>` + `<text class="st" x="${r1(x + w - 12)}" y="${base(y + 16, 11)}" text-anchor="end">${esc(LOG_STATE[e.state] ?? "")}</text>` + (rows.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + 32)} H ${r1(x + w - 1)}"/>` : "") + rows.map((r, i) => {
       const yy = y + 32 + 4 + 21 * i + 10.5;
       return `<text x="${r1(x + 12)}" y="${base(yy, 12)}"><tspan class="n">${esc(r.name)}</tspan></text><text x="${r1(x + w - 12)}" y="${base(yy, 12)}" text-anchor="end"><tspan class="v">${esc(r.value)}</tspan></text>`;
     }).join("") + `</g>`;
@@ -506,7 +506,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const valW = Math.max(0, ...vals.map((v) => W(v.value, "v")));
       const w = Math.max(two ? Math.max(W(who, "k"), W(fn, "f")) : runW(head), nameW + 22 + valW) + pad * 2;
       const h = headH + (vals.length > 0 ? vals.length * rowH + 8 : 0);
-      return { w, h, title: `${who}.${fn}`, rows: vals, draw: (x: number, y: number) => `<g class="dg-pp-fn"><rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="12"/>${two ? `<text x="${r1(x + pad)}" y="${r1(y + 17 + BASE)}">${tsp("k", who)}</text><text x="${r1(x + pad)}" y="${r1(y + 36 + 14 * 0.36)}">${tsp("f", fn)}</text>` : `<text x="${r1(x + pad)}" y="${r1(y + headH / 2 + 14 * 0.36)}">${runOf(head)}</text>`}` + (vals.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + headH)} H ${r1(x + w - 1)}"/>` : "") + vals.map((v, i) => {
+      return { w, h, title: `${who}.${fn}`, rows: vals, draw: (x: number, y: number) => `<g class="dg-pp-fn"><rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, 12)}"/>${two ? `<text x="${r1(x + pad)}" y="${r1(y + 17 + BASE)}">${tsp("k", who)}</text><text x="${r1(x + pad)}" y="${r1(y + 36 + 14 * 0.36)}">${tsp("f", fn)}</text>` : `<text x="${r1(x + pad)}" y="${r1(y + headH / 2 + 14 * 0.36)}">${runOf(head)}</text>`}` + (vals.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + headH)} H ${r1(x + w - 1)}"/>` : "") + vals.map((v, i) => {
         const yy = y + headH + 4 + rowH * i + rowH / 2 + BASE;
         return `<text x="${r1(x + pad)}" y="${r1(yy)}">${tsp("n", v.name)}</text><text x="${r1(x + w - pad)}" y="${r1(yy)}" text-anchor="end">${tsp("v", v.value)}</text>`;
       }).join("") + `</g>` };
@@ -1129,7 +1129,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const [sx, sy] = path2[0] as Point;
       // 札は流れの先と同じ時刻に角を通る (Tracelyth #168)
       const frames: Frame[] = [
-        [0, { transform: "translate(0px,0px)" }],
+        [0, { transform: "translate(0,0)" }],
         ...planOf(fl, t0).map(([t], i): Frame => [t, { transform: `translate(${r1((path2[i] as Point)[0] - sx)}px,${r1((path2[i] as Point)[1] - sy)}px)` }]),
       ];
       const [ex, ey] = path2[path2.length - 1] as Point;
@@ -1148,15 +1148,15 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         const from0 = -dir * 12;
         const stop = ex - sx + dir * 14;
         frames.length = 0;
-        frames.push([0, { transform: `translate(${r1(from0)}px,0px)` }], [t0, { transform: `translate(${r1(from0)}px,0px)` }, EASE.inOut], [tIn, { transform: `translate(${r1(inX - sx)}px,0px)` }], [tOut, { transform: `translate(${r1(outX - sx)}px,0px)` }, EASE.inOut], [Math.min(tOut + move / 2, m.total), { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }], [m.total, { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }]);
+        frames.push([0, { transform: `translate(${r1(from0)}px,0)` }], [t0, { transform: `translate(${r1(from0)}px,0)` }, EASE.inOut], [tIn, { transform: `translate(${r1(inX - sx)}px,0)` }], [tOut, { transform: `translate(${r1(outX - sx)}px,0)` }, EASE.inOut], [Math.min(tOut + move / 2, m.total), { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }], [m.total, { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }]);
         const tEnd = Math.min(tOut + move / 2, m.total);
         squeeze = m.kf([[0, { transform: "scale(0.25)", opacity: 0 }], [t0, { transform: "scale(0.25)", opacity: 0 }], [t0 + 0.16, { transform: "scale(1)", opacity: 1 }], [tIn - 0.14, { transform: "scale(1)", opacity: 1 }], [tIn, { transform: "scale(0.25)", opacity: 0 }], [tOut, { transform: "scale(0.25)", opacity: 0 }], [tOut + 0.14, { transform: "scale(1)", opacity: 1 }], [tEnd - 0.16, { transform: "scale(1)", opacity: 1 }], [tEnd, { transform: "scale(0.25)", opacity: 0 }], [m.total, { transform: "scale(0.25)", opacity: 0 }]]);
-        const ring = `<rect class="dg-pp-gulp" x="${r1(gulpBox.x - 8)}" y="${r1(gulpBox.y - 8)}" width="${r1(gulpBox.w + 16)}" height="${r1(gulpBox.h + 16)}" rx="16"/>`;
+        const ring = `<rect class="dg-pp-gulp" x="${r1(gulpBox.x - 8)}" y="${r1(gulpBox.y - 8)}" width="${r1(gulpBox.w + 16)}" height="${r1(gulpBox.h + 16)}" rx="${partRadius(ctx.corner, 16)}"/>`;
         HANDED.push({ step: s, token: fl.token, box: gulpBox.id, w: w * FLOW_MOVE.scale, from: [sx, sy], to: [ex, ey], hidden: [tIn, tOut] });
         GULPS.push(`<g class="dg-a" style="${m.kf([[0, { opacity: 0 }], [tIn - 0.1, { opacity: 0 }], [tIn + 0.05, { opacity: 1 }], [tOut, { opacity: 1 }], [tOut + 0.25, { opacity: 0 }], [m.total, { opacity: 0 }]])}">${ring}</g>`);
       }
       const h = FLOW_MOVE.coinH;
-      const coin = `<g class="dg-pp-coin" style="--pp-t:var(--pp-tone${fl.tone})"><rect x="${r1(sx - w / 2)}" y="${r1(sy - h / 2)}" width="${r1(w)}" height="${h}" rx="${h / 2}"/><text x="${r1(sx)}" y="${r1(sy + T.chip.size * 0.36)}" text-anchor="middle">${esc(label)}</text></g>`;
+      const coin = `<g class="dg-pp-coin" style="--pp-t:var(--pp-tone${fl.tone})"><rect x="${r1(sx - w / 2)}" y="${r1(sy - h / 2)}" width="${r1(w)}" height="${h}" rx="${partRadius(ctx.corner, h / 2)}"/><text x="${r1(sx)}" y="${r1(sy + T.chip.size * 0.36)}" text-anchor="middle">${esc(label)}</text></g>`;
       const inner = `<g transform="translate(${r1(sx)} ${r1(sy)}) scale(${FLOW_MOVE.scale}) translate(${r1(-sx)} ${r1(-sy)})">${coin}</g>`;
       const shown3 = gulpBox ? m.vis(t0, t1 + FLOW_MOVE.linger) : coinShown(fl, t0, t1, w, s);
       (squeeze ? GULPS : parts).push(`<g class="dg-a" style="${shown3}"><g class="dg-a" style="${m.kf(frames)}">${squeeze ? `<g class="dg-a" style="transform-origin:${r1(sx)}px ${r1(sy)}px;${squeeze}">${inner}</g>` : inner}</g></g>`);
@@ -1261,7 +1261,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const offPrev: Stack = s > 0 ? stackOf(s - 1) : { map: new Map(), cards: [] };
     const shifted = (o: { dx: number; dy: number } | undefined, markup: string): string => (o ? `<g transform="translate(${r1(o.dx)} ${r1(o.dy)})">${markup}</g>` : markup);
     for (const card of offs.cards) {
-      const rect = `<rect class="dg-pp-lcard" x="${r1(card.x)}" y="${r1(card.y)}" width="${r1(card.w)}" height="${r1(card.h)}" rx="10"/>`;
+      const rect = `<rect class="dg-pp-lcard" x="${r1(card.x)}" y="${r1(card.y)}" width="${r1(card.w)}" height="${r1(card.h)}" rx="${partRadius(ctx.corner, 10)}"/>`;
       parts.push(card.until === undefined ? appear(card.t, rect) : vanish(card.until, appear(card.t, rect)));
     }
     // イベントの記録の札。札入れの中に、引数を 1 つずつの行に並べて出す (Tracelyth #107)

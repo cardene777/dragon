@@ -10,7 +10,7 @@
 import type { PipeBadge, PipeLink, PipePlate, PipeWrite } from "../../kinds/pipe/layout";
 import type { Rect } from "../../layout/scene";
 import { LINK, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import { frameShape } from "../../render/corner";
+import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
 import { type Ctx, esc, pathOf, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
@@ -32,7 +32,7 @@ export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string): st
     const badge = (b: PipeBadge): string =>
       `<circle class="dg-pp-tbadge" cx="${r1(b.cx)}" cy="${r1(b.cy)}" r="${b.r}"/><text class="dg-pp-tini" x="${r1(b.cx)}" y="${r1(b.cy + T.badge.size * 0.35)}" text-anchor="middle">${esc(b.text)}</text>`;
     const sep = p.divider ? `<line class="dg-pp-tsep" x1="${r1(p.divider.x1)}" y1="${r1(p.divider.y)}" x2="${r1(p.divider.x2)}" y2="${r1(p.divider.y)}"/>` : "";
-    const pill = p.pill ? `<rect class="dg-pp-tpill" x="${r1(p.pill.x)}" y="${r1(p.pill.y)}" width="${r1(p.pill.w)}" height="${r1(p.pill.h)}" rx="${r1(p.pill.h / 2)}"/>` : "";
+    const pill = p.pill ? `<rect class="dg-pp-tpill" x="${r1(p.pill.x)}" y="${r1(p.pill.y)}" width="${r1(p.pill.w)}" height="${r1(p.pill.h)}" rx="${r1(partRadius(ctx.corner, p.pill.h / 2))}"/>` : "";
     const badges =
       [...(p.badge ? [p.badge] : []), ...(p.badges ?? [])].map(badge).join("") +
       (p.keyArrow ? write(ctx.ink, "dg-pp-tva", p.keyArrow.x, p.keyArrow.base, p.keyArrow.text, T.rowWas, shown) : "");
@@ -93,13 +93,13 @@ export function linkLabel(l: PipeLink, ctx: Ctx, shown: Shown[], attrs: string):
   const r = l.label;
   const base = (box: Rect): number => box.y + box.h / 2 + T.keyValue.size * 0.36;
   const delta = l.delta
-    ? `<g class="dg-pp-reld"><rect x="${r1(l.delta.x)}" y="${r1(l.delta.y)}" width="${r1(l.delta.w)}" height="${r1(l.delta.h)}" rx="${r1(l.delta.h / 2)}"/>` +
+    ? `<g class="dg-pp-reld"><rect x="${r1(l.delta.x)}" y="${r1(l.delta.y)}" width="${r1(l.delta.w)}" height="${r1(l.delta.h)}" rx="${r1(partRadius(ctx.corner, l.delta.h / 2))}"/>` +
       write(ctx.ink, "dg-pp-reldt", l.delta.x + l.delta.w / 2, base(l.delta), l.delta.text, T.delta, shown, "middle") +
       `</g>`
     : "";
   // リバートで戻った線の札は、値の札のリバートと同じ赤で描く (Tracelyth #111)
   return (
-    `<g${attrs} class="dg-pp-relp" style="${cs(l.undo ? "rose" : "violet")}"><rect class="dg-pp-relb" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${r1(r.h / 2)}"/>` +
+    `<g${attrs} class="dg-pp-relp" style="${cs(l.undo ? "rose" : "violet")}"><rect class="dg-pp-relb" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${r1(partRadius(ctx.corner, r.h / 2))}"/>` +
     write(ctx.ink, `dg-pp-relt${wide(r.text)}`, r.x + r.w / 2, base(r), r.text, T.keyValue, shown, "middle") +
     delta +
     `</g>`

@@ -11,7 +11,7 @@
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
  */
 import type { PipeFlow, PipeLedger, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
-import { simplifyPath } from "../../kinds/pipe/place";
+import { simplifyPath } from "../../layout/pipe-place";
 import type { Point, Rect } from "../../layout/scene";
 import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import { valveLever } from "../../pipe-valve";

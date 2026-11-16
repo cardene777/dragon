@@ -8,7 +8,7 @@
  * 前の段の番号と名前が後の段と同じ時刻に見えていないことは、同じ所に置いたうえで重なり (`overlaps`) が 0 件であることで確かめる。
  *
  * 同じ線を 1 度しか通らない段の番号は、今までどおり済んだ後も縁取りで残す。
- * 時系列図は同じ 2 つの箱の間を何度行き来しても行が分かれるので、番号はそれぞれの行の線に置く。
+ * 時系列図は同じ 2 つの箱の間を何度行き来しても行が分かれるので、番号はそれぞれの段の左の列に、段の最初の線と同じ高さで置く (Tracelyth #91)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,19 +37,6 @@ const fixture = (file: string): Diagram => parse(readFileSync(join(FIXTURES, fil
 const report = (overlaps: Overlap[]): string[] => overlaps.map((o) => `段 ${o.step + 1}: ${describeOverlap(o)}`);
 
 const sameSpot = (a: Spot, b: Spot): boolean => Math.hypot(a.x - b.x, a.y - b.y) <= 0.5;
-
-/** 点から折れ線までの最短の距離 */
-function distanceToLine([px, py]: Point, points: Point[]): number {
-  let best = Number.POSITIVE_INFINITY;
-  for (let i = 1; i < points.length; i++) {
-    const [ax, ay] = points[i - 1] as Point;
-    const [bx, by] = points[i] as Point;
-    const length = (bx - ax) ** 2 + (by - ay) ** 2;
-    const t = length === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / length));
-    best = Math.min(best, Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay))));
-  }
-  return best;
-}
 
 /** 画面が API に注文を送り、状態を 2 回聞く時系列図。同じ向きの線を 3 段で引く */
 const SEQUENCE = [
@@ -171,7 +158,9 @@ describe("同じ所の段の番号を入れ替える (#3184)", () => {
       const line = edges.find((e) => e.step === badge.step);
       expect(line, `${badge.step + 1} 段目の線が無い`).toBeDefined();
       if (!line) continue;
-      expect(distanceToLine([badge.x, badge.y], line.points), `段の番号 ${badge.step + 1} がその段の線の上に無い`).toBeLessThanOrEqual(0.5);
+      // 段の番号は左の列に置き、段の最初の線と同じ高さにする (Tracelyth #91)
+      expect(badge.x, `段の番号 ${badge.step + 1} が左の列に無い`).toBeCloseTo(LOOK.margin + LOOK.badge.r, 5);
+      expect(badge.y, `段の番号 ${badge.step + 1} がその段の最初の線と同じ高さに無い`).toBeCloseTo((line.points[0] as Point)[1], 5);
     }
     badges.forEach((a, i) => {
       for (const b of badges.slice(i + 1)) expect(sameSpot(a, b), `段の番号 ${a.step + 1} と ${b.step + 1} が同じ所に在る`).toBe(false);

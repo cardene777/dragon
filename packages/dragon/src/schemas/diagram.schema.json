@@ -50,7 +50,7 @@
       ]
     },
     "layout": {
-      "description": "パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持てる。top は箱を人の列の上、bottom は下に集め、ledger (帳簿型) と mesh (網型) と bus (母線型) は槽をトークンごとの行に並べ、auto は top と bottom と箱の並びから点数の低い組を選ぶ。書いた図は呼び方を替えても箱と槽の置き場所を変えない",
+      "description": "パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持てる。top は箱を人の列の上、bottom は下に集め、ledger と mesh と bus は槽をトークンごとの行に並べ、auto は top と bottom と箱の並びから点数の低い組を選ぶ。書いた図は呼び方を替えても箱と槽の置き場所を変えない",
       "enum": [
         "top",
         "bottom",

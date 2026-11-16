@@ -18,6 +18,7 @@
  */
 import { ETH } from "../../blocks/definition-values";
 import { joinWords } from "../../figure-text";
+import { grouped, linkDelta, UNDONE_TAG } from "../../layout/amount";
 import { textWidth } from "../../layout/measure";
 import type { Layout, Point, Rect } from "../../layout/scene";
 import { LINK, PIPE_LOOK, PIPE_ROWS, PIPE_TYPE } from "../../look/pipe";
@@ -25,7 +26,7 @@ import type { TextStyle } from "../../look/values";
 import { type Ask, type Dir, type End, gridLines, type Laid, type Obstacle, Router, simplify, unjog } from "../../pipe-route";
 import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf } from "../../pipe-run";
 import { valveRects } from "../../pipe-valve";
-import { placeLayout } from "./place";
+import { placeLayout } from "../../layout/pipe-place";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, PipeLayoutName, Step } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 
@@ -50,7 +51,8 @@ export interface PipeWords {
 
 export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   ja: {
-    tags: { provisional: "暫定", final: "確定", rolled: "取り消し" },
+    // リバートで戻った値の札は、Tracelythの用語集の語 (リバート) で書く (Tracelyth #111)
+    tags: { provisional: "暫定", final: "確定", rolled: UNDONE_TAG.ja },
     io: { in: "入力", out: "出力" },
     fold: (steps, parties) => `内側の${steps}段と${parties}人`,
     open: "押すと開く",
@@ -58,7 +60,7 @@ export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
     join: (titles) => `${titles.join("。")}。`,
   },
   en: {
-    tags: { provisional: "Pending", final: "Final", rolled: "Undone" },
+    tags: { provisional: "Pending", final: "Final", rolled: UNDONE_TAG.en },
     io: { in: "In", out: "Out" },
     fold: (steps, parties) => `${steps} ${steps === 1 ? "step" : "steps"} and ${parties} ${parties === 1 ? "party" : "parties"} inside`,
     open: "Click to open",
@@ -905,37 +907,10 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
 
 // ---- 字の形
 
-/** 量の字を 3 桁ごとに区切る (#3398)。数でない字はそのまま */
-export function grouped(amount: string): string {
-  const m = /^(-?)(\d+)(\.\d+)?$/u.exec(amount);
-  return m ? `${m[1] ?? ""}${(m[2] ?? "").replace(/\B(?=(\d{3})+(?!\d))/gu, ",")}${m[3] ?? ""}` : amount;
-}
-
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
 
 // ---- 2人を結ぶ線
-
-
-const decimalOf = (v: string): { neg: boolean; int: string; frac: string } | undefined => {
-  const m = /^(-?)(\d+)(?:\.(\d+))?$/u.exec(v.replace(/,/gu, ""));
-  return m ? { neg: m[1] === "-", int: m[2] ?? "0", frac: m[3] ?? "" } : undefined;
-};
-
-/** 前の値から今の値への差 (`+20`、`−5.5`)。どちらかが数でないか、差が無い時は持たない */
-export function linkDelta(was: string, now: string): string | undefined {
-  const a = decimalOf(was);
-  const b = decimalOf(now);
-  if (!a || !b) return undefined;
-  const places = Math.max(a.frac.length, b.frac.length);
-  const big = (d: { neg: boolean; int: string; frac: string }): bigint => (d.neg ? -1n : 1n) * BigInt(d.int + d.frac.padEnd(places, "0"));
-  const diff = big(b) - big(a);
-  if (diff === 0n) return undefined;
-  const digits = (diff < 0n ? -diff : diff).toString().padStart(places + 1, "0");
-  const whole = places > 0 ? digits.slice(0, -places) : digits;
-  const frac = places > 0 ? digits.slice(-places).replace(/0+$/u, "") : "";
-  return `${diff < 0n ? "−" : "+"}${grouped(whole)}${frac ? `.${frac}` : ""}`;
-}
 
 /** 線の段ごとの札。`delta` は増減の札の字、`undo` はリバートで戻った段の札 */
 export interface LinkState {
