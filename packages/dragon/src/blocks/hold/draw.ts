@@ -14,14 +14,13 @@ import type { PipeFlow, PipeLedger, PipeLevel, PipeParty, PipeState, PipeTank, P
 import { simplifyPath } from "../../layout/pipe-place";
 import type { Point, Rect } from "../../layout/scene";
 import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
-import { valveLever } from "../../pipe-valve";
 import { EASE, MOTION, type TextStyle } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
 import type { Frame } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
-import { dashMovers, maskOf, STREAM } from "../return/draw";
+import { dashMovers, maskOf, streamId } from "../return/draw";
 import { undoneMark } from "../revert/draw";
 
 const P = PIPE_LOOK;
@@ -167,22 +166,20 @@ export function valuePipe(points: readonly Point[], attrs = ""): string {
 
 /**
  * 弁。2 つの三角を向かい合わせた形。`vertical` は縦に走る管の弁。軸と取っ手は描かず、胴だけを描く (Tracelyth #168)。
- * `open` を渡すとその style の間だけ弁が開いた色になる。`turn`、`under`、`ctx`、`attrs` は取っ手を描いていた時の取り決めとして受け取るが、胴の形には使わない
+ * `attrs` は部品の印で、弁と開いた色の胴が持つ。`open` を渡すとその style の間だけ弁が開いた色になる
  */
-export function valve(x: number, y: number, vertical: boolean, opened: boolean, _attrs: string, _ctx: Ctx, _turn = "", open = "", _under = false): string {
+export function valve(x: number, y: number, vertical: boolean, attrs = "", open = ""): string {
   const V = P.valve;
   const body = vertical
     ? `M ${r1(x - V.half)} ${r1(y - V.r)} L ${r1(x + V.half)} ${r1(y - V.r)} L ${r1(x)} ${r1(y)} Z M ${r1(x - V.half)} ${r1(y + V.r)} L ${r1(x + V.half)} ${r1(y + V.r)} L ${r1(x)} ${r1(y)} Z`
     : `M ${r1(x - V.r)} ${r1(y - V.half)} L ${r1(x - V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z M ${r1(x + V.r)} ${r1(y - V.half)} L ${r1(x + V.r)} ${r1(y + V.half)} L ${r1(x)} ${r1(y)} Z`;
   return (
-    `<g class="dg-pp-vlv"><path class="dg-pp-vbody" d="${body}"/>` +
-    (open ? `<path class="dg-pp-vbody dg-pp-vopen dg-a" style="${open}" d="${body}"/>` : opened ? `<path class="dg-pp-vbody dg-pp-vopen" d="${body}"/>` : "") +
+    `<g class="dg-pp-vlv"${attrs}><path class="dg-pp-vbody" d="${body}"/>` +
+    (open ? `<path class="dg-pp-vbody dg-pp-vopen dg-a"${attrs} style="${open}" d="${body}"/>` : "") +
     `</g>`
   );
 }
 
-/** 取っ手の向き (度)。閉じた取っ手は管と直角、開いた取っ手は管の向き。向きの決め方は弁の形と共に `pipe-valve.ts` が持つ */
-export const leverAngle = (vertical: boolean, opened: boolean, under = false): number => valveLever(vertical, opened, under);
 
 /**
  * トークンの箱。名前と、名前の下の小さな字 (`balanceOf`、Tracelyth #175) と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。
@@ -256,7 +253,7 @@ export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: r
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
   const head = `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">`;
   if (at === undefined) return `${head}<path class="dg-pp-tpast" d="${d}"/></g>`;
-  const id = `dg-stream-${++STREAM.n}`;
+  const id = streamId();
   const frames: Frame[] = plan
     ? [[0, { "stroke-dashoffset": 1 }], ...plan.map(([t, frac]): Frame => [t, { "stroke-dashoffset": +(1 - frac).toFixed(4) }]), [ctx.m.total, { "stroke-dashoffset": 0 }]]
     : [

@@ -142,7 +142,9 @@ function distanceTo(p: Point, points: readonly Point[]): number {
 function linesOf(layout: PipeLayout): Line[] {
   const out: Line[] = [];
   for (const p of layout.valuePipes) {
-    const own = new Set(p.ports.flatMap((port) => [`tank:${port.party}:${port.token}`, `housing:${port.party}`]));
+    // 値の管は、そのトークンの箱を通り、箱が移す額を受け渡す (Tracelyth #168、#3720)。箱を結ぶ短い管と同じく、そのトークンの箱を自分の部品に数える
+    const box = layout.buses.find((b) => b.token === p.token)?.valve?.party;
+    const own = new Set([...p.ports.flatMap((port) => [`tank:${port.party}:${port.token}`, `housing:${port.party}`]), ...(box === undefined ? [] : [`party:${box}`])]);
     // 幹を共に通る組の管は、組の名前を同じにする
     out.push({ name: `value:${p.token}:${p.from}>${p.to}`, kind: "value", points: p.points, half: P.bus.case / 2, group: `value:${p.group}`, own });
   }

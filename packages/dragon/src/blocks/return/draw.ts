@@ -18,8 +18,13 @@ import { cs } from "../color/draw";
 /** 点の並びの道。角は丸めず、管の継ぎ目の形のまま描く */
 const lineOf = (points: readonly Point[]): string => `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
 
-/** 流れを見せる切り抜きの番号。1 枚の頁に置いた図どうしで名前がぶつからないよう、描くたびに増やす */
-export const STREAM = { n: 0 };
+/** 流れを見せる切り抜きの番号と、番号を数えている図の名前 */
+export const STREAM = { n: 0, of: "" };
+/**
+ * 次の流れる帯の mask の名札。配管の図を描く部品 (`render/pipe.ts`) が図ごとに数えを 0 へ戻し、図の名前 (`of`) を渡す (#3720)。
+ * 同じ図はいつ何度描いても同じ名札になり、同じ頁に置いた別の図の名札とぶつからない
+ */
+export const streamId = (): string => `dg-stream${++STREAM.n}-${STREAM.of}`;
 /** 道を `style` の動きで頭から見せていく切り抜き (Tracelyth #168) */
 export const maskOf = (id: string, d: string, style: string): string =>
   `<mask id="${id}" maskUnits="userSpaceOnUse" x="-9999" y="-9999" width="29999" height="29999"><path class="dg-pp-reveal dg-a" pathLength="1" style="${style}" d="${d}"/></mask>`;
@@ -103,7 +108,7 @@ export function litPipe(lane: { kind: string; width: number; points: Point[] }, 
   const d = lineOf(lane.points);
   const tone = cs(good ? "green" : "blue");
   if (good || !run) return `<g class="dg-a" style="${shown}"><path${attrs} class="dg-pp-cdone" style="${tone}" d="${d}"/></g>`;
-  const id = `dg-stream-${++STREAM.n}`;
+  const id = streamId();
   const mask = draw ? maskOf(id, d, draw) : "";
   const g: StreamRun = { m: run.m, t0: run.t0, tEnd: run.tEnd, w: 1, ...(run.pre !== undefined ? { pre: run.pre } : {}) };
   const look = `${tone};--k:var(--c);--w:1`;

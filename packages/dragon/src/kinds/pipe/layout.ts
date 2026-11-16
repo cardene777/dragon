@@ -2230,6 +2230,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const y = t.y + (P.tank.ports[m.slot] as number);
       let x1: number;
       let x2: number;
+      // 箱は真ん中を管の高さに揃えて管が通り抜けるため (#3720)、管が箱の際で折れると箱の周りの空きに掛かり、出口から先の道が無い。
+      // 管が道を探し始める出口は、箱の周りに空ける幅の外に置く
+      const box = labelOf(m.box);
+      const out = P.bus.case / 2 + P.lane.clear;
       if (m.gap) {
         const d = defs[m.def as number] as Def;
         const other = d.from === m.party ? d.to : d.from;
@@ -2237,9 +2241,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         x2 = tankOf(other, m.token).x;
       } else if (m.side === "right") {
         x1 = t.x + t.w;
-        x2 = left + m.w + (m.def === undefined ? 0 : P.lane.clear);
+        x2 = m.def === undefined ? left + m.w : Math.max(left + m.w + P.lane.clear, box.x + box.w + out);
       } else {
-        x1 = left - (m.def === undefined ? 0 : P.lane.clear);
+        x1 = m.def === undefined ? left : Math.min(left - P.lane.clear, box.x - out);
         x2 = t.x;
       }
       let gx = left + PART_GAP;
@@ -2402,7 +2406,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     const vPad = vHalf + P.lane.clear;
     for (const id of order) {
       if (!visible.has(id) || (isBox(id) && !homeOfBox.has(id) && !xOf.has(id))) continue;
-      addObs(labelOf(id), vPad);
+      // 槽に載る箱は、箱を載せる管が通り抜ける (#3720)。その管の口から出口までの線だけが箱を越えてよい
+      addObs(labelOf(id), vPad, homeOfBox.has(id) ? `b:${id}` : undefined);
     }
     for (const h of housings) addObs(h, vPad, `h:${h.party}`);
     for (const [k, t] of tankRect) {
@@ -2549,7 +2554,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         const join = (sa: PortChoice[], sb: PortChoice[]): { points: Point[]; a: PipePort; b: PipePort } | undefined => {
           const same = (p: PortChoice, q: Point): boolean => Math.abs(p.exit[0] - q[0]) < 0.5 && Math.abs(p.exit[1] - q[1]) < 0.5;
           // 口から外の点までの線は道を探さずに引くため、先に引いた管がその線を越える口は使わない
-          const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token)]);
+          const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token), ...(home ? (ownObs.get(`b:${home.box}`) ?? []) : [])]);
           const clear = (p: PortChoice): boolean => same(p, [p.port.x, p.port.y]) || valueRouter.passable(stubAsk, [p.port.x, p.port.y], p.exit);
           for (const loose of [false, true]) {
             const xa = sa.filter((p) => (loose || !p.inner) && clear(p));

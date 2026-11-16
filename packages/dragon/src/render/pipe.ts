@@ -20,8 +20,8 @@ import { gauge } from "../blocks/check/draw";
 import { cs } from "../blocks/color/draw";
 import { ring } from "../blocks/emit/draw";
 import { foldBox } from "../blocks/fold/draw";
-import { defId, flow, frame, grid, ledgerOutline, level, pipeDefs, sizedText, STATE_COLOR, tank, tokenBox, valuePipe } from "../blocks/hold/draw";
-import { callCase, FLOW_CSS, litPipe } from "../blocks/return/draw";
+import { defId, flow, frame, grid, ledgerOutline, level, pipeDefs, sizedText, STATE_COLOR, tank, tokenBox, valuePipe, valve } from "../blocks/hold/draw";
+import { callCase, FLOW_CSS, litPipe, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   anchorLinks,
@@ -307,6 +307,9 @@ const edgeOf = (lv: PipeLevel | undefined): "final" | "rolled" | "" => (lv?.stat
 
 export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { base: string; css: string } {
   const { m } = ctx;
+  // 流れる帯の切り抜きの名札は、図ごとに 1 から数えて図の名前を付ける (#3720)
+  STREAM.n = 0;
+  STREAM.of = ctx.id;
   const f = MOTION.fade;
   const lastStep = timeline.steps.length - 1;
   const parties = new Map(layout.parties.map((p) => [p.id, p]));
@@ -1122,12 +1125,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       if (!v.valve) continue;
       const fl = here.find((x) => x.fresh && x.points.length > 1 && usesPipe(x, k));
       const t = fl ? timeOf(s, fl.event) ?? a : undefined;
-      const V2 = P.valve;
-      const { x, y } = v.valve;
       const holder = v.holder ?? "";
-      const body = `M ${r1(x - V2.half)} ${r1(y - V2.r)} L ${r1(x + V2.half)} ${r1(y - V2.r)} L ${r1(x)} ${r1(y)} Z M ${r1(x - V2.half)} ${r1(y + V2.r)} L ${r1(x + V2.half)} ${r1(y + V2.r)} L ${r1(x)} ${r1(y)} Z`;
-      const open2 = t === undefined ? "" : `<path class="dg-pp-vbody dg-pp-vopen dg-a"${on({ valve: holder })} style="${m.vis(t, b)}" d="${body}"/>`;
-      parts.push(dimmed(moved(k), `<g${on({ holder })}><g class="dg-pp-vlv"${on({ valve: holder })}><path class="dg-pp-vbody" d="${body}"/>${open2}</g></g>`));
+      // 帳簿型の枝は縦に走るので、弁は縦の管の弁で描く
+      parts.push(dimmed(moved(k), `<g${on({ holder })}>${valve(v.valve.x, v.valve.y, true, on({ valve: holder }), t === undefined ? "" : m.vis(t, b))}</g>`));
     }
     // 移す額の札は、槽の下の差の文字と状態の文字に重ねない (Tracelyth #171)。札が文字の高さを通る間は札を消し、抜けてから出し直す。
     // 流れの先は消さないので、値がパイプを進むことは見えたままになる
