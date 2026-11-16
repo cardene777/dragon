@@ -3,8 +3,10 @@
  *
  * 部品どうしは 10px 以上離す。隣の列を横に結ぶ線の名前が箱の間より長い時は、名前が収まるまで列の間を広げる (#3528)。
  * ほかの線の名前が箱に掛かる時は線の脇へ寄せ、書き手が寄せの指示 (`labelSide`) で側を書いた時はその側へ置く。
+ * 時系列図の呼び出しの札は寄せの指示を読まず、呼び出しの管の上に置く (Tracelyth #93)。
  */
 import { describe, expect, it } from "vitest";
+import { SEQ_LOOK } from "../src/look/sequence";
 import { exampleJson, type Json } from "./diagram-support";
 import { draw, gap, type Layout, longestSegment } from "./render-support";
 
@@ -153,11 +155,9 @@ function architectureSides(side: "left" | "right"): Json {
 
 describe("寄せの指示", () => {
   it("layout-honors-label-side-hint", () => {
+    // 時系列図の呼び出しの札は、寄せの指示に依らず呼び出しの管の上に、札の下の離れ (`callLift`) を空けて置く (Tracelyth #93)
     const seq = layoutOf(sequenceSides());
-    for (const [step, side] of [
-      [0, "above"],
-      [1, "below"],
-    ] as const) {
+    for (const step of [0, 1]) {
       const line = seq.edges.find((e) => e.step === step);
       const label = seq.labels.find((l) => l.step === step);
       expect(line && label, `段 ${step + 1} の線と名前`).toBeTruthy();
@@ -165,9 +165,7 @@ describe("寄せの指示", () => {
       const segment = longestSegment(line.points);
       expect(segment.vertical, "時系列図の線は横").toBe(false);
       const y = segment.a[1];
-      // 名前は線から 6px 離す。離れすぎると名前がどの線のものか分からなくなり (#3099)、図も縦に長くなる (#3177)
-      const apart = side === "above" ? y - (label.y + label.h) : label.y - y;
-      expect(apart, `${side === "above" ? "上" : "下"}の名前と線の間が 6px でない`).toBeCloseTo(6, 5);
+      expect(y - (label.y + label.h), `段 ${step + 1} の札と呼び出しの管の間が ${SEQ_LOOK.callLift}px でない`).toBeCloseTo(SEQ_LOOK.callLift, 5);
     }
 
     // 指示した側が図の左端でも、名前はその側に置かれ、図の外へ出ない

@@ -36,6 +36,9 @@ function readEdge(source: SourceLine, edge: RegExpExecArray, state: ParseState):
     if (mark) throw fail(source, mark.at, m.pipeOnlyAttr(key));
   }
   const carry = readCarry(source, attrs, from, state.kind, m);
+  // 線を起こした記録の操作の番号 (Tracelyth #93)。描いた部品が data-op で持ち、外の画面がコードの行と結ぶ
+  const opMark = attrs.get("op");
+  if (opMark && !/^\d+$/u.test(opMark.value)) throw fail(source, opMark.at, m.edgeShape);
   const side = readSide(source, attrs, m);
   const columns = state.columns(source, from, to, attrs, at);
   return {
@@ -44,6 +47,7 @@ function readEdge(source: SourceLine, edge: RegExpExecArray, state: ParseState):
     to,
     ...(label !== undefined ? { label } : {}),
     carry,
+    ...(opMark ? { op: Number(opMark.value) } : {}),
     ...(side ? { labelSide: side } : {}),
     ...columns,
   };

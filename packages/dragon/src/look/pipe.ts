@@ -33,6 +33,62 @@ export const PIPE_TYPE = {
   cardTitle: text(10.5, 600),
   cardValue: text(14, 700, "mono"),
   fold: text(12.5, 700),
+  // トークンの箱の見出しの下の字と残高の行 (Tracelyth #175)。`boxSub` は見出しの下の `balanceOf` と値の行の頭の字、`badge` は行の頭の印の頭文字、
+  // `rowName` は持つ人の名前、`rowValue` は今の値、`rowWas` は線を引いた前の値と矢印、`rowNow` は変わった後の値
+  boxSub: text(11, 500, "mono"),
+  badge: text(11, 700, "mono"),
+  rowName: text(14, 500),
+  rowValue: text(14, 600, "mono"),
+  rowWas: text(13, 500, "mono"),
+  rowNow: text(14, 700, "mono"),
+} as const;
+
+/**
+ * 値のパイプを流れる値と移す額の札の動き (Tracelyth #168)。`dots` と `call` は流れの点線の間合い、`coinH` と `coinPad` は額の札の高さと左右の余白、
+ * `travel` は札が道を進む秒、`linger` は着いた後に残る秒、`scale` は札を大きく描く倍率、`pause` は着いた後に止まる秒
+ */
+export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: 1.5, linger: 0.15, scale: 1.3, pause: 0.45 } as const;
+
+/**
+ * 色味に依らない白 (Tracelyth #168)。`reveal` は流れの先を見せる mask の線で、mask は白の明るさだけを読むので色味を混ぜない。
+ * `badge` はトークンの箱の行の頭の印と人の丸の地に混ぜる白
+ */
+export const PIPE_PAINT = { reveal: "#fff", badge: "#fff" } as const;
+
+/**
+ * 2人をキーに持つ値の線 (#107)。札は列の上の段に置き、値の名前の頭と、変わった段は前と後の値、変わらない段は今の値と単位を書く。
+ * `h` は札の高さ、`padX` は札の左右の余白、`gap` は線の段どうしの間、`deltaGap` と `deltaPadX` は増減の札との間と余白、
+ * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ
+ */
+export const LINK = { h: 26, padX: 10, gap: 10, deltaGap: 6, deltaPadX: 8, side: 12, arrow: 6, lift: 12 } as const;
+
+/**
+ * トークンの箱の残高の行 (Tracelyth #171、#175)。`head` は箱の上の辺から最初の行までの見出しの高さ、`subY` は見出しの下の字の基準線、`pitch` は行の送り、
+ * `mid` は行の上の辺から行の真ん中まで、`pill` は値が変わった行の札の高さ、`sep` は残高の行の札の下の辺から値の行の上の区切りの線まで、
+ * `afterSep` は区切りの線から値の行の真ん中まで、`bottom` は最後の行の札の下の辺から箱の下の辺まで、`badge` は行の頭の印の真ん中の横の位置と半径、
+ * `keyArrow` と `badge2` は値の行の2人の印を結ぶ矢印と2つ目の印の横の位置、`nameX` は名前の左の端、`capX` は値の行の頭の字の左の端 (印が0、1、2つ)、
+ * `right` は値の右の端から箱の右の辺まで、`pillL` と `pillR` は札の左と右の余白、`gap` は名前と値の間、`edge` は行の枠の左右の余白、`arrowGap` は矢印の左右の間
+ */
+export const PIPE_ROWS = {
+  head: 40,
+  subY: 38,
+  pitch: 28,
+  mid: 16,
+  pill: 22,
+  sep: 5,
+  afterSep: 20,
+  bottom: 7,
+  badge: { x: 24, r: 10 },
+  keyArrow: 38,
+  badge2: 60,
+  nameX: 42,
+  capX: [14, 42, 76],
+  right: 14,
+  pillL: 10,
+  pillR: 8,
+  gap: 16,
+  edge: 6,
+  arrowGap: 6,
 } as const;
 
 /**
@@ -86,7 +142,7 @@ export const PIPE_LOOK = {
   token: { w: 84, nameW: 36, keyW: 28, h: 38, line: 34, nameY: 25, keyY: 44, valueY: 16, radius: 6, plateX: 8, arrowGap: 6, up: 58 },
   tie: { gap: 6 },
   call: { case: 12, flow: 6, core: 0.45, valveAt: 30, room: 16 },
-  valve: { r: 15, half: 13, stem: 18, lever: 30, leverH: 8, pivot: 4, turn: 0.35 },
+  valve: { r: 10, half: 9, stem: 18, lever: 30, leverH: 8, pivot: 4, turn: 0.35 },
   gauge: { r: 24, up: 62, lampGap: 12, lamp: 10, needle: 7, hub: 4, zone: 5, unseen: -118, ok: 58, fail: -64, stemGap: 10 },
   converter: { r: 24 },
   tank: {

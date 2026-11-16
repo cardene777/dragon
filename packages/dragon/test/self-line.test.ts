@@ -7,12 +7,13 @@
  * 輪を持つ箱から出入りするほかの線は、輪と名前の置き場を通らず、箱の脇から列の間へ回る。
  * 列の間を回る線は、列で一番幅の広い箱の外を通る。
  *
- * 状態遷移図の同じ状態へ戻る輪と、時系列図の自分への矢印は今のまま。
+ * 状態遷移図の同じ状態へ戻る輪は今のまま。時系列図の自分への線は、生存線の管から右へ出す短い管で描く (Tracelyth #93)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { type Layout, LOOP_ROOM, type Point, type Rect, type SceneEdge } from "../src/layout/scene";
+import { SEQ_LOOK } from "../src/look/sequence";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { describeOverlap, type Overlap } from "../src/render/ink";
@@ -173,16 +174,17 @@ describe("構成図で同じ箱へ戻る線を箱の下の輪で描く (#3186)",
     expect(segmentsOf(edge.points).some((segment) => bites(segment, inner)), "脇を回る線が幅の広い箱の中を通る").toBe(false);
   });
 
-  it("sequence-self-message-unchanged", () => {
+  it("sequence-self-message-stub", () => {
+    // 時系列図の自分への線は、生存線の管の縁から右へ短い管を出し、その先に札を置く (Tracelyth #93)
     const rendered = renderDiagram(parse(SEQUENCE));
     const edge = rendered.layout.edges.find((e) => e.from === "API" && e.to === "API");
     const lifeline = rendered.layout.lifelines.find((l) => l.id === "API");
-    if (!edge || !lifeline) throw new Error("API の自分への矢印か生存線が無い");
+    if (!edge || !lifeline) throw new Error("API の自分への線か生存線が無い");
     const [first, last] = [edge.points[0] as Point, edge.points[edge.points.length - 1] as Point];
-    expect(Math.abs(first[0] - lifeline.x), "自分への矢印が生存線から出ない").toBeLessThanOrEqual(LOOK.edge.inset + 0.5);
-    expect(Math.abs(last[0] - lifeline.x), "自分への矢印が生存線へ戻らない").toBeLessThanOrEqual(LOOK.edge.inset + 0.5);
-    expect(rightmost(edge.points) - lifeline.x, "自分への矢印が生存線の右へ出ない").toBeCloseTo(LOOK.sequence.selfW, 1);
-    expect(last[1], "自分への矢印が下で戻らない").toBeGreaterThan(first[1]);
+    expect(first[0] - lifeline.x, "自分への線が生存線の管の縁から出ない").toBeCloseTo(SEQ_LOOK.pipeW / 2, 5);
+    expect(last[0] - first[0], "自分への線の短い管の長さ").toBeCloseTo(SEQ_LOOK.stubW, 5);
+    expect(rightmost(edge.points), "自分への線が右へ出ない").toBeGreaterThan(lifeline.x);
+    expect(last[1], "自分への線が横に出ない").toBeCloseTo(first[1], 5);
     expect(report(rendered.overlaps)).toEqual([]);
   });
 });

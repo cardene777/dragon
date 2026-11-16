@@ -31,6 +31,32 @@ export const shape: BlockShape = {
             box: { $ref: "#/definitions/id" },
             name: { $ref: "#/definitions/text" },
             value: { $ref: "#/definitions/text" },
+            link: { $ref: "#/definitions/holdLink" },
+          },
+        },
+      ],
+    },
+    holdLink: {
+      description:
+        "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる",
+      oneOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["from", "to"],
+          properties: {
+            from: { $ref: "#/definitions/id" },
+            to: { $ref: "#/definitions/id" },
+            unit: { type: "string", minLength: 1 },
+          },
+        },
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["on"],
+          properties: {
+            on: { $ref: "#/definitions/id" },
+            unit: { type: "string", minLength: 1 },
           },
         },
       ],

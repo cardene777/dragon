@@ -9,8 +9,14 @@
  */
 import type { Block } from "../block";
 
+/**
+ * 値の持ち分の線 (Tracelyth #107)。2人をキーに持つ値は別の2人の `from` と `to` を持ち、2人を結ぶ点線と札で描く。
+ * 1人をキーに持つ値は `on` を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 `unit` を足せる
+ */
+export type PipeHoldLink = { from: string; to: string; unit?: string; on?: undefined } | { on: string; unit?: string; from?: undefined; to?: undefined };
+
 /** 始めの値。残高は持ち主とトークンと量、残高でない値は持ち主と名前と値。量と値は書いた字のまま */
-export type PipeHold = { box: string; amount: string; token: string } | { box: string; name: string; value: string };
+export type PipeHold = { box: string; amount: string; token: string } | { box: string; name: string; value: string; link?: PipeHoldLink };
 
 /** 段の中の、トークンの Contract `box` が送り手 `from` の残高から受け手 `to` へ `amount` を移す出来事 */
 export interface PipeMove {
