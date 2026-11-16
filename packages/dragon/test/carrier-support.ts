@@ -93,12 +93,21 @@ export function cardOf(m: Motion, id: string): Card | undefined {
   return { id, name: box.name, cx: box.x + box.w / 2, ...(icon ? { icon } : {}), ...(slot ? { slot } : {}), nameTop: num(text, "y") - 13 * 0.8 };
 }
 
-/** 箱 `id` の置き場の枠の四角の部品。置き場を持たない箱は `undefined` (#3518) */
-export function slotFrameOf(m: Motion, id: string): Element | undefined {
+/**
+ * 箱 `id` の置き場の枠の四角の部品 (#3518)。置き場を持たない箱は空。
+ * 枠はその間に座る物の幅に沿わせるので、幅の違う物が出入りする箱は幅ごとに枠の四角を持つ (#3723)
+ */
+export function slotFramesOf(m: Motion, id: string): Element[] {
   const box = m.rendered.layout.boxes.find((b) => b.id === id);
   const text = [...m.doc.querySelectorAll("text.dg-sn")].find((t) => t.textContent === box?.name);
-  return text?.parentElement?.querySelector("rect.dg-slot") ?? undefined;
+  return [...(text?.parentElement?.querySelectorAll("rect.dg-slot") ?? [])];
 }
+
+/** 時刻 `t` 秒に見えている、箱 `id` の置き場の枠の四角 (#3723) */
+export const shownSlots = (m: Motion, id: string, t: number): Rect[] =>
+  slotFramesOf(m, id)
+    .filter((el) => m.opacity(el, t) > 0.5)
+    .map((el) => rectOf(el) as Rect);
 
 /** 時刻 `t` 秒に、運ぶ物が箱 `id` の置き場に座っているか。着いて留まる間と、走り出す前に待つ間を数える (#3518) */
 export const seatedAt = (list: Carried[], id: string, t: number): boolean =>
