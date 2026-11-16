@@ -117,3 +117,21 @@
 | `#`の後に番号の無い`move art: # alice -> bob`を、読む時に誤りとして拒む | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-nft-move-refuses-missing-id`が通る | #3722 |
 | 数を移す`move usdc: 100 alice -> bob`の読み方と描き方は今のまま | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-move-amount-unchanged`が通る | #3722 |
 | 記法の説明の`plugins/dragon/skills/dragon/references/kinds/pipe.md`が、`mint`と`burn`と`#`の番号の書き方を載せる | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-notation-docs-list-mint-burn-nft`が通る | #3722 |
+| 記法の`layout`の行で、箱を上に置く形と、箱を人の列の下に集める形を含む4つの置き方を選べ、`auto`はトークンの箱が4つまでの図で形と箱の並びを点数で選ぶ (Tracelyth #165、#166) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-four-shapes-and-auto`が通る | #3720 |
+| 記法の`layout`の行で、槽をトークンごとの行に並べる帳簿型と網型と母線型を選べる (Tracelyth #168) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-ledger-grid-bus`が通る | #3720 |
+| 呼び出しに関わらない人と箱を薄く描き、呼び方を替えても人と箱と槽の置き場所を変えない (Tracelyth #165) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-faint-uninvolved-keeps-places`が通る | #3720 |
+| トークンの箱の中に、持つ人ごとの残高を人の頭文字の印つきの行で並べ、値が変わった行に前の値と矢印と今の値を出す (Tracelyth #171、#175) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-token-box-balance-rows`が通る | #3720 |
+| 許可のような送金でない書き換えを2人を結ぶ線と札で描き、線の札はrequireの針と呼び出しの札と札入れに重ならない (Tracelyth #107、#111、#113、#115) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-write-links-clear-of-chips`が通る | #3720 |
+| 描いた置き場所が、今の呼び出しの札 (`callCards`)、札入れ (`wallets`)、ログの札 (`logCards`)、移す額の受け渡し (`gulps`) を持つ | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-exposes-cards-and-gulps`が通る | #3720 |
+| 再生の部品が、`pausedAtStart`と`rewind`で段1の変わる前の値を見せて止まる (Tracelyth #131) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-pauses-at-start`が通る | #3720 |
+| 再生の部品が、`fitWide`で枠より広い図を全体で始め、`minZoom`で始めの大きさより小さくでき、`startZoom`と`onZoom`で拡大の度合いを渡し返せる (Tracelyth #177、#179、#181) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-zoom-options`が通る | #3720 |
+| 見る人が図を送るか拡大と縮小をした後は、段が進んでも枠を関係者の所へ送らず、段を選ぶと送り直す (Tracelyth #183) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-holds-after-user-pan`が通る | #3720 |
+| 共有のHTMLが、値の持ち分を書いた図を止まらずに描く (Tracelyth #133) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-shared-html-draws-holdings`が通る | #3720 |
+| 電話の幅でも広い枠と同じ並びで描き、再生の部品が今の段へ寄せる (Tracelyth #87) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-phone-width-same-arrangement`が通る | #3720 |
+| 図の種類の行に見た目の指定`[shape: pipe]`を書いたシーケンス図が、パイプ図の部品で描き、線を起こした操作の番号を`data-op`で持ち、今の段の帯とお金の矢印を描く (Tracelyth #86、#91、#93、#97) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-sequence-ops-band-money`が通る | #3720 |
+| 弁を、載せた真っすぐな所の真ん中から探して置く | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-valve-centered-on-straight`が通る | #3720 |
+| 見た目を書かないシーケンス図は今の見た目で描き、パイプ図の部品の生存線の管と今の段の帯を描かない | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-sequence-default-look-kept`が通る | #3720 |
+| シーケンス図の外の種類の線に書いた操作の番号`op`を、読む処理が行と列を示して拒む | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-op-refused-outside-sequence`が通る | #3720 |
+| 見本帳の部品の図 (配管の図の呼び出しの部品を含む) が、崩れの検査に1つも掛からない | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figures-have-no-breaks`が通る | #3720 |
+| 見本帳の頁が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3720 |
+| 最初に読む script の大きさは今の上限 (gzip 後の合計90000バイト) に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3720 |
