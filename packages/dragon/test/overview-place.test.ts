@@ -19,18 +19,17 @@ const SAMPLES = [
   ["ccip", "ccip.json"],
 ] as const;
 /**
- * 全体図を出す見本と枠の幅。試す図 (tx-block) は縦長の全体図を、構成図 (ccip) は横長の全体図を持つ。
- * 時系列図は全体図を出さない (Tracelyth #91) ので、縦長の全体図は枠の幅より広く縦に長い試す図で見る。
- * 縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、tx-block は境目の 440px と、記法と並べた編集画面の図の枠の幅 560px で見る。
+ * 全体図を出す見本と枠の幅。時系列図 (oauth) は縦長の全体図を、構成図 (ccip) は横長の全体図を持つ。
+ * 縦長の全体図は枠の幅が 440px より狭いと出さない (#3055) ので、oauth は境目の 440px と、記法と並べた編集画面の図の枠の幅 560px で見る。
  * 横長の全体図は表を持たない図ならどの幅でも出す。表を持つ図は狭い枠で全体図を出さない (#3274) ので、ccip は表を外して携帯の幅 390px で、表を持ったまま 560px で見る
  */
 const CASES = [
-  ["tx-block", "tx-block.json", 440],
-  ["tx-block", "tx-block.json", 560],
+  ["oauth", "oauth.json", 440],
+  ["oauth", "oauth.json", 560],
   ["ccip", "ccip.json#bare", 390],
   ["ccip", "ccip.json", 560],
 ] as const;
-/** 幅 1440px の画面の重ね窓の図の枠の幅。tx-block の原寸の幅と全体図の列を並べても余る */
+/** 幅 1440px の画面の重ね窓の図の枠の幅。oauth の原寸の幅と全体図の列を並べても余る */
 const WIDE = 1200;
 
 const players: Player[] = [];
@@ -56,19 +55,23 @@ function mountSource(name: string, source: Json, width: number, lang?: Lang): SV
 
 const mount = (file: string, width: number, lang?: Lang): SVGSVGElement => mountSource(file, exampleSource(file), width, lang);
 
-/** 12 個の箱を 1 本の道で順に辿る手順の図。高さが幅の 4 倍を超え、全体図の大きさを窓の高さが決める */
-function tallFlow(): Json {
-  const ids = Array.from({ length: 12 }, (_, i) => `s${i + 1}`);
+/** 2 本の生存線の間を 20 段行き来する時系列図。高さが幅の 4 倍を超え、全体図の大きさを窓の高さが決める */
+function tallSequence(): Json {
+  const steps = Array.from({ length: 20 }, (_, i) => ({
+    title: `${i + 1} 回目`,
+    body: "送って返す。",
+    events: [i % 2 === 0 ? { type: "edge", from: "a", to: "b", carry: { kind: "envelope" } } : { type: "edge", from: "b", to: "a", carry: { kind: "envelope" } }],
+  }));
   return {
-    version: 2,
-    kind: "flow",
-    title: "縦に長い手順の図",
-    blocks: { box: ids.map((id, i) => ({ id, name: `${i + 1} 番目` })) },
-    steps: ids.map((id, i) => ({
-      title: `${i + 1} 番目`,
-      body: "次へ進む。",
-      events: [{ type: "edge", from: i === 0 ? "start" : (ids[i - 1] as string), to: id, carry: { kind: "envelope" } }],
-    })),
+    version: 1,
+    kind: "sequence",
+    title: "縦に長い時系列図",
+    boxes: [
+      { id: "a", name: "送る側" },
+      { id: "b", name: "受ける側" },
+    ],
+    steps,
+    sequence: { lifelines: ["a", "b"] },
   };
 }
 
@@ -103,7 +106,7 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
       const { svg, window, overview } = parts(file, width);
       const world = rectOf(svg, ".dg-mm-world") as Rect;
       const tall = world.h > world.w;
-      expect(tall, `${name} の全体図の縦横`).toBe(name === "tx-block");
+      expect(tall, `${name} の全体図の縦横`).toBe(name === "oauth");
       const right = window.x + window.w;
       const bottom = window.y + window.h;
       if (tall) {
@@ -115,12 +118,11 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
         expect(overview.x + overview.w, `${name} / ${width}px の横長の全体図が窓の右へはみ出す`).toBeLessThanOrEqual(right + 1);
       }
       // 窓と全体図の間は 12px。縦長は窓の上端に、横長は窓の右端から 12px 内に揃え、図の幅は窓と全体図をちょうど包む (#3099)。
-      // 図の高さは窓と全体図の下の値の表までを包み (#3270)、表を持たない図は横長の全体図の下端か、縦長の全体図を右に置く窓の下端までを包む。
-      // 図の幅と高さは端数を切り上げて書く。表の四角は 0.5px 内側に書かれる
+      // 図の高さは窓と全体図の下の値の表までを包み (#3270)、表を持たない図は横長の全体図の下端までを包む。図の幅と高さは端数を切り上げて書く。表の四角は 0.5px 内側に書かれる
       const view = rectOf(svg, ".dg-vp-bg") as Rect;
       const size = { w: Number(svg.getAttribute("width")), h: Number(svg.getAttribute("height")) };
       const table = rectOf(svg, ".dg-strip");
-      const tableEnd = table ? Math.ceil(table.y + table.h + 0.5) : Math.ceil(tall ? view.y + view.h : overview.y + overview.h);
+      const tableEnd = table ? Math.ceil(table.y + table.h + 0.5) : Math.ceil(overview.y + overview.h);
       const place = tall
         ? { gap: overview.x - (view.x + view.w), edge: overview.y - view.y, w: size.w - Math.ceil(overview.x + overview.w), h: size.h - tableEnd }
         : { gap: overview.y - (view.y + view.h), edge: view.x + view.w - (overview.x + overview.w), w: size.w - Math.ceil(view.x + view.w), h: size.h - tableEnd };
@@ -143,33 +145,24 @@ describe("寄って追う図の全体図の置き場所 (#3042)", () => {
 
   it("follow-window-takes-figure-width", () => {
     // 窓と全体図を図の原寸の幅に収めていたため、枠が余っても窓は図より狭く、右端の登場する物の札が切れていた (#3053)
-    const figureWidth = draw("renderDiagram")(exampleJson("tx-block.json")).layout.width;
-    const { svg, window, overview } = parts("tx-block.json", WIDE);
-    expect(window.w + 1, `枠の幅 ${WIDE}px の tx-block の窓の幅が、図の原寸の幅と違う`).toBeCloseTo(figureWidth, 5);
-    expect(gap(window, overview), `枠の幅 ${WIDE}px の tx-block の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
-    expect(overview.x, `枠の幅 ${WIDE}px の tx-block の全体図が窓の右に無い`).toBeGreaterThanOrEqual(window.x + window.w);
-    expect(Number(svg.getAttribute("width")), `枠の幅 ${WIDE}px の tx-block の図の幅が枠を超える`).toBeLessThanOrEqual(WIDE);
+    const figureWidth = draw("renderDiagram")(exampleJson("oauth.json")).layout.width;
+    const { svg, window, overview } = parts("oauth.json", WIDE);
+    expect(window.w + 1, `枠の幅 ${WIDE}px の oauth の窓の幅が、図の原寸の幅と違う`).toBeCloseTo(figureWidth, 5);
+    expect(gap(window, overview), `枠の幅 ${WIDE}px の oauth の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
+    expect(overview.x, `枠の幅 ${WIDE}px の oauth の全体図が窓の右に無い`).toBeGreaterThanOrEqual(window.x + window.w);
+    expect(Number(svg.getAttribute("width")), `枠の幅 ${WIDE}px の oauth の図の幅が枠を超える`).toBeLessThanOrEqual(WIDE);
   });
 
   it("tall-overview-fits-beside-window", () => {
     // 窓の高さに比べてとても縦に長い図でも、窓の右の全体図は窓の高さの中に収まる (全体図の高さは窓の高さの 4 割まで)
-    const svg = mountSource("縦に長い手順の図", tallFlow(), 560);
+    const svg = mountSource("縦に長い時系列図", tallSequence(), 560);
     const window = rectOf(svg, ".dg-vp-frame") as Rect;
     const overview = rectOf(svg, ".dg-mm-bg") as Rect;
     const world = rectOf(svg, ".dg-mm-world") as Rect;
-    expect(window && overview && world, "縦に長い手順の図に窓の枠か全体図が無い").toBeTruthy();
-    expect(world.h, "縦に長い手順の図の全体図が縦長でない").toBeGreaterThan(world.w);
-    expect(overview.x, "縦に長い手順の図の全体図が窓の右に無い").toBeGreaterThanOrEqual(window.x + window.w);
-    expect(overview.y + overview.h, "縦に長い手順の図の全体図が窓の下へはみ出す").toBeLessThanOrEqual(window.y + window.h + 1);
-  });
-
-  it("sequence-follow-has-no-overview", () => {
-    // 時系列図は選んだ絵 (#86 の問い3と問い4) と同じく、寄って追う形でも全体図の小窓を出さず、窓は枠の幅を使う (Tracelyth #91)
-    for (const width of [440, 560, WIDE]) {
-      const svg = mount("oauth.json", width);
-      expect(rectOf(svg, ".dg-vp-frame"), `oauth / ${width}px に窓の枠が無い`).toBeDefined();
-      expect(svg.querySelectorAll(".dg-mm-bg").length, `oauth / ${width}px に全体図が在る`).toBe(0);
-    }
+    expect(window && overview && world, "縦に長い時系列図に窓の枠か全体図が無い").toBeTruthy();
+    expect(world.h, "縦に長い時系列図の全体図が縦長でない").toBeGreaterThan(world.w);
+    expect(overview.x, "縦に長い時系列図の全体図が窓の右に無い").toBeGreaterThanOrEqual(window.x + window.w);
+    expect(overview.y + overview.h, "縦に長い時系列図の全体図が窓の下へはみ出す").toBeLessThanOrEqual(window.y + window.h + 1);
   });
 
   it("overview-shows-viewport-box", () => {

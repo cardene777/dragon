@@ -2068,9 +2068,11 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           const ax = xOf.get(a) ?? 0;
           const bx = xOf.get(b) ?? 0;
           if (Math.abs(ax - bx) < (roomOf(a) + roomOf(b)) / 2 + P.lane.clear * 4) {
-            need = Math.max(need, belowOf(a) + aboveOf(b) + P.lane.clear * 3 + plan.rows);
+            // 前の組みで戻り値の札が収まらなかった2人は、上下の間も札の幅だけ広げる。名札の下から出る管 (Tracelyth #111) は2人の間を縦に下りる
+            const run = returnRun(a, b);
+            need = Math.max(need, belowOf(a) + aboveOf(b) + P.lane.clear * 3 + plan.rows + run);
             // 真下の者を呼ぶ管は、名札の下の側の高さから出て下りる。下りる所に自分の弁を縦に置ける高さを取る
-            if (shown.some((c) => c.from === a && c.to === b)) need = Math.max(need, P.call.case + LINE_GAP + VALVE_DROP + aboveOf(b) + plan.rows);
+            if (shown.some((c) => c.from === a && c.to === b)) need = Math.max(need, P.call.case + LINE_GAP + VALVE_DROP + aboveOf(b) + plan.rows + run);
           }
         }
       if (rowsWith.has(r - 1)) need = Math.max(need, P.gauge.r + Math.max(...here.map(aboveOf), 0) + P.lane.clear * 2);

@@ -1,15 +1,16 @@
 /**
- * シーケンス図を、#93 で選んだ試作の案C (パイプ図の部品) で描く (Tracelyth #91、#93、#97、#107)。
+ * 種類の行に `[shape: pipe]` を書いたシーケンス図を、#93 で選んだ試作の案C (パイプ図の部品) で描く (Tracelyth #91、#93、#97、#107、#3720)。
  *
  * 生存線は管で描き、呼ばれている間はその列の管に紺の管を重ねる。呼び出しは横の管と動く印、お金は太い管とトークンの色の液、
  * requireと書き換えとログは生存線から札へ出る短い管、戻りとリバートは破線で描く。列の頭の下に器と札と2人を結ぶ値の矢印を置き、
  * 段ごとに今の段の帯を敷く。後の段の線と札は先に薄く見せ (`dg-ghost`)、その段の始まりで消える。
  * 線を起こした操作の番号を持つ線とリバートの×は、`data-op="段/番号"` を持つ。
- * 見た目の規則 (`SEQ_CSS`) はシーケンス図の SVG にだけ書く。
+ * 見た目の規則 (`SEQ_CSS`) はこの見た目のシーケンス図の SVG にだけ書く。
+ * 並べ方と描き方は後から読む塊に入り、見た目の部品の組 (`SEQUENCE_PIPE`) として置き場 (`look-store.ts`) へ置く。
  */
 import { cs } from "../blocks/color/draw";
 import {
-  isSequenceLayout,
+  layoutSequencePipe,
   type SeqCard,
   seqCardPill,
   type SeqLinkState,
@@ -21,21 +22,20 @@ import {
   type SequenceEdge,
   type SequenceLabel,
   type SequenceLayout,
-} from "../kinds/sequence/layout";
+} from "../layout/sequence-pipe";
 import { textWidth } from "../layout/measure";
-import type { Point } from "../layout/scene";
+import type { Point, Rect } from "../layout/scene";
 import { SEQ_CARD, SEQ_FONT, SEQ_LINK, SEQ_LINK_FONT, SEQ_LOOK, SEQ_TYPE, SEQC_F, SEQC_N, SEQC_O, SEQC_O1, SEQC_V } from "../look/sequence";
-import { type Corner, EASE, LOOK, MOTION } from "../look/values";
+import { type Corner, EASE, LOOK, MOTION, type Palette, type Theme } from "../look/values";
 import { partRadius } from "./corner";
+import type { SequenceLook } from "./look-store";
 import type { EdgeTime, LabelTime, Timeline } from "../timeline";
 import { USER_DASH, userEdgeOf } from "../user-blocks";
 import type { Frame, Motion } from "./motion";
 import { type Ctx, cssFont, esc, pathOf, r1 } from "./parts";
 
-export { isSequenceLayout };
-
 /** シーケンス図の部品の見た目 (Tracelyth #91、#93、#97、#111) */
-export const SEQ_CSS = [
+const SEQ_CSS = [
   ".dg-strike{stroke:var(--c-rose);stroke-width:1.6;stroke-linecap:round}",
   // シーケンスの部品 (Tracelyth #91)
   ".dg-row{fill:color-mix(in srgb,var(--c-blue) 15%,var(--wash,var(--bg)))}",
@@ -126,14 +126,7 @@ export const SEQ_CSS = [
 ].join("");
 
 /** 描いた部品を積む層。下から順に帯、線と生存線、光る線、列の頭、段の番号、札 */
-export interface SeqLayers {
-  band: string[];
-  base: string[];
-  lit: string[];
-  node: string[];
-  badge: string[];
-  top: string[];
-}
+type SeqLayers = Parameters<SequenceLook["draw"]>[3];
 
 /** 札の字を描く。太字の所は `dg-b` の tspan にする */
 function seqText(runs: readonly SeqRun[], x: number, y: number, anchor?: "middle"): string {
@@ -465,17 +458,17 @@ function seqShelf(layout: SequenceLayout, timeline: Timeline, m: Motion, corner:
 }
 
 /** 寄って追う形の上に留める列の頭と器と札。`pad` は留める帯の上の余白 */
-export function seqBand(layout: SequenceLayout, timeline: Timeline, m: Motion, pad: number, corner: Corner): string {
+function seqBand(layout: SequenceLayout, timeline: Timeline, m: Motion, pad: number, corner: Corner): string {
   const top = Math.min(...layout.boxes.map((b) => b.y));
   const body = layout.boxes.map((box) => seqHead(box, box.y, corner)).join("") + seqShelf(layout, timeline, m, corner);
   return `<g transform="translate(0 ${r1(pad - top)})">${body}</g>`;
 }
 
 /** 留める帯の高さ。列の頭と器と札の全部が入る */
-export const seqBandHeight = (layout: SequenceLayout, pad: number): number => pad * 2 + (layout.shelf - Math.min(...layout.boxes.map((b) => b.y)));
+const seqBandHeight = (layout: SequenceLayout, pad: number): number => pad * 2 + (layout.shelf - Math.min(...layout.boxes.map((b) => b.y)));
 
 /** シーケンスの部品を、層ごとに積む (Tracelyth #91、#93) */
-export function drawSequenceParts(layout: SequenceLayout, timeline: Timeline, ctx: Ctx, L: SeqLayers): void {
+function drawSequenceParts(layout: SequenceLayout, timeline: Timeline, ctx: Ctx, L: SeqLayers): void {
   const { m } = ctx;
   const S = SEQ_LOOK;
   for (const r of layout.rows) {
@@ -579,3 +572,37 @@ export function drawSequenceParts(layout: SequenceLayout, timeline: Timeline, ct
     L.top.push(`<g class="dg-a" style="${m.vis(from)}">${veil}<line class="dg-strike" x1="${r1(k.x)}" y1="${r1(k.y + k.h / 2)}" x2="${r1(k.x + k.w)}" y2="${r1(k.y + k.h / 2)}"/></g>`);
   }
 }
+
+/**
+ * 段 `step` を見せる寄って追う窓の真ん中 (Tracelyth #91)。中心に寄せると、窓より広いステップは左右の両方が切れるので、
+ * 選んだ絵 (#86 の問い3の案A) と同じく、ステップを始めた線から読ませる。段で動く物が無い段は前の段の真ん中のまま
+ */
+function seqFollow(layout: SequenceLayout, step: number, focus: Rect | undefined, prev: [number, number], vw: number, below: number): [number, number] {
+  if (!focus) return prev;
+  const first = Math.min(...[...layout.edges, ...layout.actions].filter((p) => p.step === step).map((p) => p.event));
+  const starts = layout.edges.filter((e) => e.step === step && e.event === first).flatMap((e) => e.points.map((p) => p[0]));
+  const left = Math.max(focus.x, (starts.length > 0 ? Math.min(...starts) : focus.x) - SEQ_LOOK.followLead);
+  return [focus.w <= vw ? focus.x + focus.w / 2 : left + vw / 2, focus.h <= below ? focus.y + focus.h / 2 : focus.y - SEQ_LOOK.followLead / 2 + below / 2];
+}
+
+/**
+ * 今のステップの帯と生存線の帯の地 (Tracelyth #91)。明るいテーマの地 (--bg) は色を持つため、混ぜると灰色に寄るので白にする。
+ * 明暗で地を替えない色味 (arcade) は明るい表示でも暗い地なので、白でなく面の色を使う
+ */
+function seqVars(palette: Palette, theme: Theme): string {
+  const light = theme === "light" && palette.light.bg !== palette.dark.bg;
+  return `--wash:${light ? "#ffffff" : "var(--surf)"}`;
+}
+
+/** パイプ図の部品で描く時系列図の見た目の組。後から読む塊が置き場へ置く (#3720) */
+export const SEQUENCE_PIPE: SequenceLook = {
+  layout: (diagram, lang) => layoutSequencePipe(diagram, lang),
+  draw: (layout, timeline, ctx, layers) => drawSequenceParts(layout as SequenceLayout, timeline, ctx, layers),
+  band: (layout, timeline, m, pad, corner) => seqBand(layout as SequenceLayout, timeline, m, pad, corner),
+  bandHeight: (layout, pad) => seqBandHeight(layout as SequenceLayout, pad),
+  shelf: (layout) => (layout as SequenceLayout).shelf,
+  follow: (layout, step, focus, prev, vw, below) => seqFollow(layout as SequenceLayout, step, focus, prev, vw, below),
+  followAspect: SEQ_LOOK.followAspect,
+  css: SEQ_CSS,
+  vars: seqVars,
+};

@@ -40,22 +40,22 @@
     "(none) rx=12": 9
   },
   "api.en.json": {
+    "(none) rx=10": 4,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 4,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 3,
-    "(none) rx=3": 4,
-    "dg-env rx=3": 4
+    "dg-env rx=3": 4,
+    "dg-halo rx=12": 3,
+    "dg-ic rx=7": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3
   },
   "api.json": {
+    "(none) rx=10": 4,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 4,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 3,
-    "(none) rx=3": 4,
-    "dg-env rx=3": 4
+    "dg-env rx=3": 4,
+    "dg-halo rx=12": 3,
+    "dg-ic rx=7": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3
   },
   "auction.en.json": {
     "dg-a dg-lb-lit rx=16": 5,
@@ -236,22 +236,22 @@
     "dg-tm-slot rx=1.5": 192
   },
   "intro.en.json": {
+    "(none) rx=10": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 1,
-    "dg-sqpulse rx=4.5": 1,
-    "dg-sqh-on dg-a rx=23": 1,
-    "dg-sqh-fr rx=23": 2,
-    "(none) rx=3": 1,
-    "dg-env rx=3": 1
+    "dg-env rx=3": 1,
+    "dg-halo rx=12": 2,
+    "dg-ic rx=7": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 2
   },
   "intro.json": {
+    "(none) rx=10": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 1,
-    "dg-sqpulse rx=4.5": 1,
-    "dg-sqh-on dg-a rx=23": 1,
-    "dg-sqh-fr rx=23": 2,
-    "(none) rx=3": 1,
-    "dg-env rx=3": 1
+    "dg-env rx=3": 1,
+    "dg-halo rx=12": 2,
+    "dg-ic rx=7": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 2
   },
   "login-all-paths.en.json": {
     "(none) rx=10": 5,
@@ -336,34 +336,32 @@
     "dg-tree-card rx=9": 8
   },
   "oauth.en.json": {
-    "dg-bg rx=14": 1,
-    "dg-strip rx=14": 1,
-    "dg-bi rx=7": 1,
+    "(none) rx=10": 12,
+    "(none) rx=11": 4,
     "(none) rx=7.5": 6,
-    "dg-row dg-a rx=8": 12,
-    "dg-ghost-mask rx=5": 4,
-    "(none) rx=5": 8,
-    "dg-sqpulse rx=4.5": 12,
-    "dg-sqh-on dg-a rx=23": 12,
-    "dg-sqh-fr rx=23": 4,
-    "(none) rx=3": 12,
+    "dg-bg rx=14": 1,
+    "dg-bi rx=7": 1,
+    "dg-car rx=9": 7,
     "dg-env rx=3": 5,
-    "dg-car rx=9": 7
+    "dg-halo rx=12": 4,
+    "dg-ic rx=7": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4,
+    "dg-strip rx=14": 1
   },
   "oauth.json": {
-    "dg-bg rx=14": 1,
-    "dg-strip rx=14": 1,
-    "dg-bi rx=7": 1,
+    "(none) rx=10": 12,
+    "(none) rx=11": 4,
     "(none) rx=7.5": 6,
-    "dg-row dg-a rx=8": 12,
-    "dg-ghost-mask rx=5": 4,
-    "(none) rx=5": 8,
-    "dg-sqpulse rx=4.5": 12,
-    "dg-sqh-on dg-a rx=23": 12,
-    "dg-sqh-fr rx=23": 4,
-    "(none) rx=3": 12,
+    "dg-bg rx=14": 1,
+    "dg-bi rx=7": 1,
+    "dg-car rx=9": 7,
     "dg-env rx=3": 5,
-    "dg-car rx=9": 7
+    "dg-halo rx=12": 4,
+    "dg-ic rx=7": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4,
+    "dg-strip rx=14": 1
   },
   "order-total.en.json": {
     "dg-bg rx=14": 1,
@@ -420,34 +418,30 @@
     "dg-ch-sw rx=3": 3
   },
   "payment.en.json": {
-    "dg-bg rx=14": 1,
-    "dg-strip rx=14": 1,
-    "dg-bi rx=7": 1,
+    "(none) rx=10": 5,
     "(none) rx=7.5": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 3,
-    "(none) rx=3": 4,
+    "dg-bg rx=14": 1,
+    "dg-bi rx=7": 1,
+    "dg-car rx=9": 1,
     "dg-env rx=3": 2,
-    "dg-car rx=9": 1
+    "dg-halo rx=12": 3,
+    "dg-ic rx=7": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3,
+    "dg-strip rx=14": 1
   },
   "payment.json": {
-    "dg-bg rx=14": 1,
-    "dg-strip rx=14": 1,
-    "dg-bi rx=7": 1,
+    "(none) rx=10": 5,
     "(none) rx=7.5": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 3,
-    "(none) rx=3": 4,
+    "dg-bg rx=14": 1,
+    "dg-bi rx=7": 1,
+    "dg-car rx=9": 1,
     "dg-env rx=3": 2,
-    "dg-car rx=9": 1
+    "dg-halo rx=12": 3,
+    "dg-ic rx=7": 3,
+    "dg-on rx=12": 3,
+    "dg-st rx=12": 3,
+    "dg-strip rx=14": 1
   },
   "rebase.en.json": {
     "(none) rx=10": 2,
@@ -486,26 +480,24 @@
     "dg-tm-tb rx=5": 4
   },
   "retry.en.json": {
+    "(none) rx=10": 4,
+    "(none) rx=11": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 2,
-    "(none) rx=3": 4,
-    "dg-env rx=3": 4
+    "dg-env rx=3": 4,
+    "dg-halo rx=12": 2,
+    "dg-ic rx=7": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 2
   },
   "retry.json": {
+    "(none) rx=10": 4,
+    "(none) rx=11": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 4,
-    "dg-sqh-on dg-a rx=23": 4,
-    "dg-sqh-fr rx=23": 2,
-    "(none) rx=3": 4,
-    "dg-env rx=3": 4
+    "dg-env rx=3": 4,
+    "dg-halo rx=12": 2,
+    "dg-ic rx=7": 2,
+    "dg-on rx=12": 2,
+    "dg-st rx=12": 2
   },
   "swap-retry.en.json": {
     "dg-bg rx=14": 1,
@@ -770,28 +762,26 @@
     "dg-vn-frame rx=18": 1
   },
   "wallet.en.json": {
+    "(none) rx=10": 5,
+    "(none) rx=11": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 5,
-    "dg-sqh-on dg-a rx=23": 5,
-    "dg-sqh-fr rx=23": 4,
-    "(none) rx=3": 5,
+    "dg-car rx=9": 1,
     "dg-env rx=3": 4,
-    "dg-car rx=9": 1
+    "dg-halo rx=12": 4,
+    "dg-ic rx=7": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4
   },
   "wallet.json": {
+    "(none) rx=10": 5,
+    "(none) rx=11": 1,
     "dg-bg rx=14": 1,
-    "dg-row dg-a rx=8": 5,
-    "dg-ghost-mask rx=5": 1,
-    "(none) rx=5": 2,
-    "dg-sqpulse rx=4.5": 5,
-    "dg-sqh-on dg-a rx=23": 5,
-    "dg-sqh-fr rx=23": 4,
-    "(none) rx=3": 5,
+    "dg-car rx=9": 1,
     "dg-env rx=3": 4,
-    "dg-car rx=9": 1
+    "dg-halo rx=12": 4,
+    "dg-ic rx=7": 4,
+    "dg-on rx=12": 4,
+    "dg-st rx=12": 4
   },
   "withdraw.en.json": {
     "(none) rx=10": 1,

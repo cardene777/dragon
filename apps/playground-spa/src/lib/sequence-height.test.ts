@@ -4,7 +4,6 @@
  * 部品「絵」の時系列図の見本 (英語) は、詰める前は高さ 302 だった。
  * 見本帳の部品の見本、使い方の頁の例、`packages/dragon/examples` の時系列図を全て描き、札が自分の線にも他の線にも食い込まないかを見る。
  * 札は線を隠すので、エンジンが返す重なりの一覧 (`overlaps`) には出ない。ここで置き場所から確かめる。
- * お金の線は金額の札を自分の管の真ん中に重ねて描く (Tracelyth #93) ので、お金の線とその札の組だけは食い込みに数えない。
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -27,13 +26,6 @@ function draw(dir: string, file: string): Rendered {
   if (!parsed.ok) throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return renderDiagram(parsed.diagram, { lang });
 }
-
-/** 線の形。お金の線は部品 `+money` を持つか、硬貨を運ぶ */
-type Line = Rendered["layout"]["edges"][number] & { block?: string };
-
-/** お金の線と、その線の金額の札の組か。札は管の真ん中に重ねて置く (Tracelyth #93) */
-const ownMoney = (label: { step: number; event: number }, line: Line): boolean =>
-  label.step === line.step && label.event === line.event && (line.block === "+money" || line.carry.kind === "coin");
 
 /** 折れ線が四角の内側を通るか */
 function crosses(rect: Rect, points: Point[]): boolean {
@@ -65,7 +57,7 @@ describe("見本の時系列図を縦に詰める (#3177)", () => {
         if (layout.kind !== "sequence") continue;
         seen++;
         for (const label of layout.labels) {
-          for (const line of layout.edges as Line[]) if (!ownMoney(label, line) && crosses(label, line.points)) found.push(`${file} 段 ${label.step + 1}: 札「${label.text}」が線 ${line.from} → ${line.to} (段 ${line.step + 1}) に食い込む`);
+          for (const line of layout.edges) if (crosses(label, line.points)) found.push(`${file} 段 ${label.step + 1}: 札「${label.text}」が線 ${line.from} → ${line.to} (段 ${line.step + 1}) に食い込む`);
         }
       }
     }

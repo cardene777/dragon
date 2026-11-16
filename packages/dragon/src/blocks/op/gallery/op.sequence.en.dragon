@@ -1,0 +1,12 @@
+sequence Operation number
+
+box wallet as Wallet
+box shop as Shop
+
+step Order
+  say op gives a line the number of the operation that raised it.
+  wallet -> shop: order [op: 1]
+
+step Pay
+  say The drawn line carries the step and the number in data-op, and the diagram looks the same.
+  wallet -> shop: pay [carry: coin, op: 2]

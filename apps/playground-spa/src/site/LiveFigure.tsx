@@ -9,11 +9,11 @@
  * 後から読む種類の図は、種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届いてから読む。塊が届くまでは枠に読み込み中を出す。
  * 足したブロックの定義を持つ記法は、定義を読む処理の塊 (#3399) が届いてから読む (#3407)。
  */
-import { type Diagram, diagramKind, type LineStyle, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
+import { type Diagram, diagramKind, type LineStyle, lookOf, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
-import { useDefinitions, useKind, useLine, useValidator } from "./kinds";
+import { useDefinitions, useKind, useLine, useLook, useValidator } from "./kinds";
 import { KindState } from "./KindState";
 
 interface Props {
@@ -58,6 +58,15 @@ function kindOfText(text: string, json: boolean): string | undefined {
   }
 }
 
+/** 記法か原本の JSON の字が選んだ時系列図の見た目 (#3720)。読めない時と選ばない時は `undefined` */
+function lookOfText(text: string, json: boolean): ReturnType<typeof lookOf> {
+  try {
+    return lookOf(json ? (JSON.parse(text) as unknown) : text);
+  } catch {
+    return undefined;
+  }
+}
+
 /** 記法の字を読む。読めない時は `null` */
 function readNotation(text: string): Diagram | null {
   const parsed = parseNotation(text);
@@ -73,7 +82,9 @@ export function LiveFigure({ notation, lang, theme, palette, line, whole = false
   const defined = useDefinitions(json ? "" : notation).status === "ready";
   // 手描きの線を選んだ図は、描き替える処理の塊も待つ (#3643)
   const drawn = useLine(line).status === "ready";
-  const ready = useKind(kind).status === "ready" && checked && defined && drawn;
+  // 種類の行に `[shape: pipe]` を書いた時系列図は、パイプ図の部品で描く見た目の塊も待つ (#3720)
+  const looked = useLook(useMemo(() => lookOfText(notation, json), [notation, json])).status === "ready";
+  const ready = useKind(kind).status === "ready" && checked && defined && drawn && looked;
   const diagram = useMemo((): Diagram | null => {
     if (!ready) return null;
     const read = json ? readJson(notation) : readNotation(notation);

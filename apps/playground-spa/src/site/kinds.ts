@@ -6,7 +6,7 @@
  * 読み込みの状態は見本の塊と同じ形で持ち (`later.ts`)、読めなかった時は失敗のまま持つ。
  * 時系列図と構成図の部品は最初に読む script に在るので、待たずに描ける。
  */
-import { definesBlocks, LATER_KINDS, type LineStyle, loadKind, loadLine, loadReadings, loadValidator } from "@cardenelabs/dragon/light";
+import { definesBlocks, LATER_KINDS, type LineStyle, loadKind, loadLine, loadLook, loadReadings, loadValidator, type SequenceShape } from "@cardenelabs/dragon/light";
 
 import { useSyncExternalStore } from "react";
 
@@ -49,6 +49,12 @@ const PEN = laterChunk(() => loadLine("pen"));
 
 /** 線の描き方 `line` で描くのに要る塊の状態。定規の線は待たずに届いた扱いにし、塊を読み始めない */
 export const useLine = (line: LineStyle | undefined): Later<void> => useLater(line === "pen" ? PEN : KEPT);
+
+/** パイプ図の部品で描く時系列図の見た目 (#3720) の塊。種類の行に `[shape: pipe]` を書いた時系列図だけが待つ */
+const PIPE_LOOK = laterChunk(() => loadLook("pipe"));
+
+/** 時系列図の見た目 `shape` で描くのに要る塊の状態。見た目を書かない図は待たずに届いた扱いにし、塊を読み始めない */
+export const useLook = (shape: SequenceShape | undefined): Later<void> => useLater(shape === "pipe" ? PIPE_LOOK : KEPT);
 
 /** 原本の形の検査の塊の状態。`want` が偽の時は待たずに届いた扱いにし、塊を読み始めない */
 export const useValidator = (want: boolean): Later<void> => useLater(want ? VALIDATOR : KEPT);

@@ -1,13 +1,10 @@
 /**
  * 時系列図を縦に詰める (#3177)。
  *
- * 時系列図の行の間は、パイプ図の部品で描く見た目の値 (`look/sequence.ts` の `SEQ_LOOK`、Tracelyth #93) で決まる。
- * 呼び出しの線は札の高さと札の下の離れの分だけ下げ、行と行の間、段の帯の上下の余白と帯の間、頭の箱から最初の行まで、最後の行から生存線の終わりまでを値の表から取る。
+ * 時系列図は、線の名前の札と線の離れを 6 にし、行と行の間、段の切れ目、頭の箱から最初の線まで、最後の線から生存線の終わりまでを詰める。
  * 構成図と状態遷移図の線の名前の離れは変えない。
  */
 import { describe, expect, it } from "vitest";
-import { SEQ_LOOK } from "../src/look/sequence";
-import { LOOK } from "../src/look/values";
 import type { Json } from "./diagram-support";
 import { draw, type Layout } from "./render-support";
 
@@ -84,14 +81,10 @@ describe("時系列図を縦に詰める (#3177)", () => {
     const ys = layout.edges.map((e) => (e.points[0] as [number, number])[1]);
     expect(ys, "線が 3 本無い").toHaveLength(3);
     const [first = 0, second = 0, third = 0] = ys;
-    const S = SEQ_LOOK;
-    // 名前を持つ呼び出しの線は、行の頭から札の高さと札の下の離れだけ下げる。線の下は管の太さと行の間を空ける
-    const named = S.callH + S.callLift;
-    const row = S.callW + S.rowGap;
-    expect(first - (head.y + head.h), "頭の箱の下端から、上に名前を持つ最初の線まで").toBeCloseTo(S.shelfGap + S.firstRow + named, 5);
-    expect(second - first, "同じ段の名前の無い線と、前の線の間").toBeCloseTo(row, 5);
-    expect(third - second, "上に名前を持つ次の段の線と、前の線の間").toBeCloseTo(S.callW + S.rowPad * 2 + S.stepGap + named, 5);
-    expect(lifeline.y2 - third, "最後の線から生存線の終わりまで").toBeCloseTo(S.callW + S.rowPad + LOOK.sequence.tail, 5);
+    expect(first - (head.y + head.h), "頭の箱の下端から、上に名前を持つ最初の線まで").toBeCloseTo(36, 5);
+    expect(second - first, "同じ段の名前の無い線と、前の線の間").toBeCloseTo(32, 5);
+    expect(third - second, "上に名前を持つ次の段の線と、前の線の間").toBeCloseTo(48, 5);
+    expect(lifeline.y2 - third, "最後の線から生存線の終わりまで").toBeCloseTo(20, 5);
   });
 
   it("architecture-and-state-label-gap-unchanged", () => {

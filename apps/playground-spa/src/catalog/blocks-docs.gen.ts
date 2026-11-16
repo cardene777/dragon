@@ -40,6 +40,7 @@ import { docs as matrixItemDocs } from "../../../../packages/dragon/src/blocks/m
 import { docs as mergeDocs } from "../../../../packages/dragon/src/blocks/merge/gallery/docs";
 import { docs as nodeDocs } from "../../../../packages/dragon/src/blocks/node/gallery/docs";
 import { docs as noteDocs } from "../../../../packages/dragon/src/blocks/note/gallery/docs";
+import { docs as opDocs } from "../../../../packages/dragon/src/blocks/op/gallery/docs";
 import { docs as orderDocs } from "../../../../packages/dragon/src/blocks/order/gallery/docs";
 import { docs as pickDocs } from "../../../../packages/dragon/src/blocks/pick/gallery/docs";
 import { docs as pointDocs } from "../../../../packages/dragon/src/blocks/point/gallery/docs";
@@ -109,6 +110,7 @@ export const BLOCK_DOCS = {
   "merge": mergeDocs,
   "node": nodeDocs,
   "note": noteDocs,
+  "op": opDocs,
   "order": orderDocs,
   "pick": pickDocs,
   "point": pointDocs,

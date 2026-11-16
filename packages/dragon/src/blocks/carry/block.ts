@@ -18,5 +18,5 @@ export const block: Block = {
   name: "carry",
   rank: 84,
   attach: { how: "ride-on-line", except: ["pipe"] },
-  words: { attrs: { edge: ["carry", "tag", "op"] } },
+  words: { attrs: { edge: ["carry", "tag"] } },
 };

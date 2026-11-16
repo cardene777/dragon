@@ -54,8 +54,7 @@ describe("色味", () => {
 /** 仮名と漢字。英語の断りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 /** 図の名前の class に色と並んで書く、色でない変数 (字と 1 周の長さ) */
-/** 図の変数のうち色味の色でない物。`wash` は今の段の帯と生存線の帯の地で、色味から作る (Tracelyth #91) */
-const NOT_COLORS = new Set(["sans", "mono", "T", "wash"]);
+const NOT_COLORS = new Set(["sans", "mono", "T"]);
 
 /** `colors` を渡して小さな時系列図を描いた時の断りの文。描けた時は空 */
 function colorsRefusal(colors: Record<string, unknown>, lang?: Lang): string {
@@ -110,9 +109,6 @@ describe("色の値 (#3198)", () => {
         const vars = figureVars(rendered.svg);
         for (const [name, value] of Object.entries(palette[theme])) expect(vars[name], `${palette.id} ${theme} の ${name}`).toBe(value);
         expect(Object.keys(vars).filter((name) => !NOT_COLORS.has(name)).sort(), `${palette.id} ${theme} の色の名前`).toEqual(Object.keys(palette[theme]).sort());
-        // 帯の地は、明るいテーマは白、暗いテーマと明暗で地を替えない色味 (arcade) は面の色。明るいテーマの地 (bg) は色を持ち、混ぜると灰色に寄るため
-        const light = theme === "light" && palette.light.bg !== palette.dark.bg;
-        expect(vars.wash, `${palette.id} ${theme} の帯の地`).toBe(light ? "#ffffff" : "var(--surf)");
         expect(rendered.palette).toBe(palette.id);
       }
     }

@@ -12,8 +12,9 @@ import { FORMAT_VERSION, fromModel } from "../model";
 import { pipeTexts } from "../pipe-player";
 import { BUTTON_TEXT, stepNo, ZOOM_TEXT } from "../player";
 import { drawSvg, type Rendered, redrawWithBlocks, renderDiagram } from "../render/svg";
-// 書き出しは命令とブラウザの書き出す入口の両方で、手描きの線の処理を初めから持つ (#3643)
+// 書き出しは命令とブラウザの書き出す入口の両方で、手描きの線の処理 (#3643) とパイプ図の部品で描く時系列図の見た目 (#3720) を初めから持つ
 import "../render/pen-all";
+import "../render/look-all";
 import { drawLines, type LineStyle } from "../render/pen-store";
 import type { Diagram } from "../schema";
 import { tryTexts } from "../try-player";

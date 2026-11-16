@@ -398,6 +398,8 @@ export interface Diagram {
   cycle?: CycleLook;
   /** 量の行き先の図の見た目 (#3641)。量の行き先の図だけが書き、出どころと行き先は `blocks` の箱 (`box`) に持つ */
   sankey?: SankeyLook;
+  /** 時系列図の見た目 (#3720)。時系列図だけが書き、書かない図は今の見た目で描く */
+  sequence?: { shape: SequenceShape };
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -421,7 +423,8 @@ export interface DiagramModel {
   boxes: Box[];
   strip?: Strip;
   steps: Step[];
-  sequence?: { lifelines: string[] };
+  /** 時系列図の生存線の並びと、見た目 (#3720)。見た目は版2の原本の根の `sequence` の欄から移す */
+  sequence?: { lifelines: string[]; shape?: SequenceShape };
   state?: { paths: StatePath[] };
   git?: { branches: GitBranch[] };
   time?: TimeSpec;
@@ -559,6 +562,13 @@ const PIPE_EVENT = "#/definitions/notPipeEvent/not";
  */
 export const PIPE_LAYOUTS = ["top", "bottom", "ledger", "mesh", "bus", "auto"] as const;
 export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
+
+/**
+ * 時系列図の見た目の名前 (#3720)。`pipe` はパイプ図の部品で並べて描く見た目で、種類の行の `[shape: pipe]` で選ぶ (Tracelyth #86、#91、#93、#97)。
+ * 書かない時系列図は今の見た目で描く
+ */
+export const SEQUENCE_SHAPES = ["pipe"] as const;
+export type SequenceShape = (typeof SEQUENCE_SHAPES)[number];
 
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
 /** 量の図でない図に、量の図だけの出来事を書いた時の決まりの場所 (#3560) */

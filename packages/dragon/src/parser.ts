@@ -117,6 +117,7 @@
  */
 import type { BlockReading, FigureDraft, HeadReader, KindName, LineView, ParseState, StepDraft } from "./blocks/block";
 import { EDGE, EDGE_WITHOUT_TARGET, type EdgeEvent } from "./blocks/edge/block";
+import { lifelinesOf } from "./blocks/lifeline/read";
 import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
@@ -128,7 +129,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import { type Diagram, type DiagramModel, type LineupShape, PIPE_LAYOUTS, type PipeLayoutName, type Step } from "./schema";
+import { type Diagram, type DiagramModel, type LineupShape, PIPE_LAYOUTS, type PipeLayoutName, type SequenceShape, type Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -230,7 +231,7 @@ const PIPE_LAYOUT_TEXT: Record<NotationLang, { pipeOnly: string; twice: string; 
  * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
  * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
 
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -250,9 +251,12 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const title = titled.value === "" ? kind : titled.value;
   const headAttrs = titled.rest < head.text.length ? readAttrs(head, titled.rest, ATTRS.diagram ?? [], m) : new Map<string, Attr>();
   const view = viewOf(head, headAttrs.get("view"), m);
+  // 時系列図の見た目 (#3720)。値は生存線のブロックが最初の段を始める時に確かめ、書いた図だけが値の持ち分の行 (hold) を書ける
+  const sequenceShape = kind === "sequence" ? (headAttrs.get("shape")?.value as SequenceShape | undefined) : undefined;
   // 図の種類の行の属性は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
   // 値は図の種類のブロックが確かめる。量の図の見た目は見た目のブロック、列の図の見た目はチップのブロック、集合の重なりの図の見た目は集まりの円のブロック、
-  // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロック、量の行き先の図の見た目は量の帯のブロックが確かめる
+  // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロック、量の行き先の図の見た目は量の帯のブロック、
+  // 時系列図の見た目 (#3720) は生存線のブロックが確かめる
   for (const [key, kinds] of Object.entries(HEAD_KINDS)) {
     const attr = headAttrs.get(key);
     if (attr && !kinds.includes(kind)) throw fail(head, attr.at, m.headOnlyAttr(key, kinds));
@@ -505,8 +509,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
     if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
     const only = ONLY_HEADS.get(word);
-    // 残高と書き換える値の hold の行は、シーケンスの列の頭の下の器と札にも使う (Tracelyth #93)
-    const refuse = only === undefined || only === kind || (word === "hold" && kind === "sequence") ? undefined : onlyIn[only];
+    // 残高と書き換える値の hold の行は、パイプ図の部品で描く時系列図 (`[shape: pipe]`) の列の頭の下の器と札にも使う (Tracelyth #93、#3720)。
+    // 見た目を書かない時系列図は値の持ち分を描かないので、今どおり断る
+    const refuse = only === undefined || only === kind || (word === "hold" && sequenceShape !== undefined) ? undefined : onlyIn[only];
     if (refuse) throw fail(source, 0, refuse(word));
     if (!isOneOf(HEADS, word)) {
       const old = oldForm(text, building !== undefined);
@@ -570,6 +575,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     // 図の種類のブロックが確かめてから組んだ欄。量の図 (#3560) と表どうしの関係の図 (#3618) と2つの軸で置く図 (#3622) と集合の重なりの図 (#3620) の欄と、
     // 回り続ける図の見た目と向き (#3638)。組むのは後から読むブロックの読み方なので、最初に読む記法を読む処理に種類ごとの組み方を持たない
     ...figure.root,
+    // 時系列図の見た目 (#3720)。値は生存線のブロックが最初の段を始める時に確かめた
+    ...(sequenceShape !== undefined ? { sequence: { ...lifelinesOf(figure.boxes), shape: sequenceShape } } : {}),
     ...(isTime && time.scale
       ? {
           time: {

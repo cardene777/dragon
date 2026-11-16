@@ -171,6 +171,9 @@ export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
 export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
 export { LINE_STYLES, type LineStyle, penLoaded } from "./render/pen-store";
+// 時系列図の見た目 (#3720)。図が選んだ見た目と、パイプ図の部品で描く見た目の部品を読んだかを返す
+export { lookOf, sequenceLookLoaded } from "./render/look-store";
+export { SEQUENCE_SHAPES, type SequenceShape } from "./schema";
 export type { CarrierTime, EdgeTime, EventTime, LabelTime, MarkTime, Span, StateTime, Timeline } from "./timeline";
 export { chooseView } from "./view";
 /** ブロックを使える図の種類。ブロックの付け方と図の種類が受け付ける付け方から導く (#3348) */

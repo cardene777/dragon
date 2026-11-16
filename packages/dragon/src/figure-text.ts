@@ -13,6 +13,7 @@ export interface FigureText {
   kindNotLoaded: (kind: string) => string;
   /** 軽い入口で、手描きの線 (`line: "pen"`) の処理を読まずに描いた時の誤り (#3643) */
   penNotLoaded: string;
+  sequenceLookNotLoaded: string;
   /** 描く設定の `colors` (#3198) の誤り。色味に無い色の名前と、色の値として読めない値の色の名前 */
   unknownColor: (name: string) => string;
   unreadableColor: (name: string) => string;
@@ -125,6 +126,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     cannotDraw: (detail) => `図を描けない: ${detail}`,
     kindNotLoaded: (kind) => `${kind} の図の部品を読んでいない。描く前に loadKind を待つ`,
     penNotLoaded: '手描きの線 (line: "pen") の部品を読んでいない。描く前に loadLine を待つ',
+    sequenceLookNotLoaded: "パイプ図の部品で描く時系列図 ([shape: pipe]) の部品を読んでいない。描く前に loadFor か loadLook を待つ",
     unknownColor: (name) => `colors の ${name} は色味に無い色の名前`,
     unreadableColor: (name) => `colors の ${name} の値を色として読めない`,
     overview: "全体図",
@@ -184,6 +186,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     cannotDraw: (detail) => `Cannot draw the diagram: ${detail}`,
     kindNotLoaded: (kind) => `The ${kind} diagram parts are not loaded. Await loadKind before drawing`,
     penNotLoaded: 'The pen line (line: "pen") parts are not loaded. Await loadLine before drawing',
+    sequenceLookNotLoaded: "The parts that draw a sequence diagram with pipe parts ([shape: pipe]) are not loaded. Await loadFor or loadLook before drawing",
     unknownColor: (name) => `colors.${name} is not a color name of the palette`,
     unreadableColor: (name) => `colors.${name} cannot be read as a color`,
     overview: "Overview",

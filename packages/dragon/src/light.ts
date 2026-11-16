@@ -10,6 +10,8 @@
  * - `diagramKind(<記法か原本>)` は、読む前に図の種類を返す。どの種類の `loadKind` を待つかを決める時に使う
  * - `definesBlocks(<記法>)` は、記法が足すブロックの定義の行 (`blocks 1`) を持つかを返す。持つ記法は `loadReadings` か `loadFor` を待ってから読む (#3399、#3407)
  * - `loadLine(<線の描き方>)` を待つと、その描き方で描くのに要る部品を読む。手描きの線 (`pen`、#3643) の時だけ、描き替える処理を読む
+ * - `loadLook(<時系列図の見た目>)` を待つと、その見た目で並べて描く部品を読む。パイプ図の部品で描く見た目 (`pipe`、#3720) の時だけ読む。
+ *   `loadFor` は、種類の行に `[shape: pipe]` を書いた時系列図の時にこれも待つ。`lookOf(<記法か原本>)` は図が選んだ見た目を返す
  * - `loadValidator()` を待つと、原本の形の検査だけを読む。`parseNotation` で記法から読んだ図は描く時に検査を省くので、原本の JSON を読む頁だけが要る (#3400)
  * - 箱と区画の `icon` に絵柄集の絵柄 (`tabler:<名前>`) を書いた図は、`loadFor` と `loadReadings` が絵柄集の表も読む。`iconSetLoaded("tabler")` は読んだかを返す (#3493)
  *
@@ -26,9 +28,10 @@ import { kindLoaded, LATER_KINDS, type LaterKind, type LaterKinds, registerKind 
 import { FORMAT_VERSION, isVersion1, upgrade } from "./model";
 import { printNotation } from "./printer";
 import { isParsed } from "./parsed";
-import { type Diagram, registerValidator, validatorLoaded } from "./schema";
+import { type Diagram, registerValidator, type SequenceShape, validatorLoaded } from "./schema";
 import { iconSetLoaded, registerTabler, usesTabler } from "./blocks/icon/sets";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
+import { lookOf, registerSequenceLook, sequenceLookLoaded } from "./render/look-store";
 import { type LineStyle, penLoaded, registerPen } from "./render/pen-store";
 
 export * from "./api";
@@ -156,6 +159,14 @@ export async function loadLine(line: LineStyle | undefined): Promise<void> {
 }
 
 /**
+ * 時系列図の見た目 `shape` (#3720) で並べて描くのに要る部品を読む。パイプ図の部品で描く見た目 (`pipe`) の時だけ読み、読んでいれば何もしない。
+ * 並べ方と描き方はパイプ図の部品を使って大きいので、最初に読む量に入れず後から読む。読み込みが落ちると拒否され、次に呼ぶと読み直す
+ */
+export async function loadLook(shape: SequenceShape | undefined): Promise<void> {
+  if (shape === "pipe" && !sequenceLookLoaded()) registerSequenceLook((await import("./render/sequence")).SEQUENCE_PIPE);
+}
+
+/**
  * 原本の形の検査を読む (#3400)。読んでいれば何もしない。
  * 記法から読んだ図は検査を要らないので、`loadFor` は原本の JSON を渡した時だけこれを待つ。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
@@ -170,5 +181,6 @@ export async function loadValidator(): Promise<void> {
 export async function loadFor(source: string | object): Promise<void> {
   // 原本の JSON は、読む前に原本の形の検査も読む。記法と、記法から読んだ図は検査を要らない (#3400)
   const json = typeof source !== "string" && !isParsed(source);
-  await Promise.all([loadParts(diagramKind(source)), loadReadings(source), json ? loadValidator() : undefined]);
+  // 種類の行に `[shape: pipe]` を書いた時系列図は、その見た目で並べて描く部品も読む (#3720)
+  await Promise.all([loadParts(diagramKind(source)), loadReadings(source), loadLook(lookOf(current(source))), json ? loadValidator() : undefined]);
 }

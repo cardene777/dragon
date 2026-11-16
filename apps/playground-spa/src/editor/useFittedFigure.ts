@@ -9,10 +9,10 @@
  * その時の字の下限は、再生の部品が見せ方を選ぶ字の大きさ (`@cardenelabs/dragon` の `READABLE_PX`) にそろえる。
  * `fitOverview` では見せ方を変えず、寄って追う図の窓の下の全体図だけを枠の高さに収める (編集画面、#3554)。
  */
-import { type Diagram, type LineStyle, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon/light";
+import { type Diagram, type LineStyle, lookOf, mountDiagram, type Player, READABLE_PX as VIEW_READABLE_PX, type Theme } from "@cardenelabs/dragon/light";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
-import { useKind, useLine } from "../site/kinds";
+import { useKind, useLine, useLook } from "../site/kinds";
 import type { Lang } from "../text";
 import { fitScale } from "./fit";
 
@@ -61,7 +61,9 @@ export function useFittedFigure(
   // 図の種類の部品と、手描きの線を選んだ時は描き替える処理 (#3643) が届くまでは置かない (#3248)
   const kindReady = useKind(diagram?.kind).status === "ready";
   const lineReady = useLine(line).status === "ready";
-  const ready = kindReady && lineReady;
+  // 種類の行に `[shape: pipe]` を書いた時系列図は、パイプ図の部品で描く見た目の塊 (#3720) も届くまで置かない
+  const lookReady = useLook(lookOf(diagram)).status === "ready";
+  const ready = kindReady && lineReady && lookReady;
   // 段の知らせ先は描くたびに替わりうるので、置き直さずに最新の物を呼ぶ
   const stepTo = useRef(onStep);
   const playerTo = useRef(onPlayer);

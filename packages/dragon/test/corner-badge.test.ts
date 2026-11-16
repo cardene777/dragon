@@ -5,7 +5,6 @@
  * 箱の左上には絵柄が在るので、番号が絵柄の角に掛かって重なっていた。
  * 番号の中心を箱の角に置き、半分を箱の外へ出して絵柄から離す。
  * 中身の帯だけを書き換える段の番号は、帯の左上の角の丸みの中に置き、帯の枠線に掛けない (#3525)。
- * 時系列図は線の無い段の番号も、ほかの段と同じく左の列のその段の帯の中に置く (Tracelyth #91)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,6 +31,7 @@ const CORNERS: { file: string; step: number; box: string }[] = [
   { file: "corner-note.dragon", step: 1, box: "支払い待ち" },
   { file: "corner-empty.dragon", step: 1, box: "支払い待ち" },
   { file: "corner-slot.dragon", step: 0, box: "画面" },
+  { file: "corner-seq.dragon", step: 1, box: "API" },
   { file: "repeat-corner.dragon", step: 1, box: "画面" },
 ];
 
@@ -80,16 +80,6 @@ describe("線の無い段の番号を箱の左上の角に置く (#3187)", () =>
       const { r } = LOOK.badge;
       expect(badge.x - r >= 0 && badge.x + r <= layout.width && badge.y - r >= 0 && badge.y + r <= layout.height, `段 ${step + 1} の番号が図の枠の外へはみ出す`).toBe(true);
     }
-  });
-
-  it("sequence-lineless-badge-in-left-column", () => {
-    // 時系列図は段ごとに帯を敷き、番号を左の列に置く。線の無い段も箱の角でなくその段の帯の中に置く (Tracelyth #91)
-    const { layout } = renderDiagram(fixture("corner-seq.dragon"));
-    const badge = layout.badges.find((b) => b.step === 1);
-    const row = (layout as { rows?: { step: number; y: number; h: number }[] }).rows?.find((r) => r.step === 1);
-    if (!badge || !row) throw new Error("corner-seq.dragon の段 2 の番号か帯が無い");
-    expect(badge.x, "corner-seq.dragon の段 2 の番号が左の列に無い").toBeCloseTo(LOOK.margin + LOOK.badge.r, 5);
-    expect(badge.y >= row.y && badge.y <= row.y + row.h, `corner-seq.dragon の段 2 の番号 (${badge.y}) がその段の帯 (${row.y} から ${row.y + row.h}) の中に無い`).toBe(true);
   });
 
   it("corner-badge-inside-figure", () => {

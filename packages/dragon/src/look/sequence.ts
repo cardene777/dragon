@@ -1,8 +1,8 @@
 /**
  * シーケンス図 (`sequence`) をパイプ図の部品で描く時の見た目の値 (Tracelyth #91、#93、#97、#107)。
  *
- * #93 で選んだ試作の案C (パイプ図の部品) に揃え、シーケンス図の並べ方と描き方 (`kinds/sequence/layout.ts` と `render/sequence.ts`) だけが読む。
- * パイプ図の値 (`look/pipe.ts`) と同じく、`values.ts` の `LOOK` と `TYPE` に入れず別の file に分ける。
+ * #93 で選んだ試作の案C (パイプ図の部品) に揃え、種類の行に `[shape: pipe]` を書いた時系列図の並べ方と描き方 (`layout/sequence-pipe.ts` と `render/sequence.ts`) だけが読む (#3720)。
+ * 2 つは後から読む塊に入るので、パイプ図の値 (`look/pipe.ts`) と同じく、最初に読む `values.ts` の `LOOK` と `TYPE` に入れず別の file に分ける。
  */
 import type { TextStyle } from "./values";
 
@@ -12,6 +12,7 @@ const text = (size: number, weight: number, family: TextStyle["family"] = "sans"
  * シーケンスの見た目の値。
  * `gutter` はステップの番号を置く左の列の幅、`head*` は列の頭、`mark*` は列の頭の頭文字の印、`columnGap` は列の頭どうしの間。
  * `shelfGap` は列の頭と器と札の間、`tank*` は器 (上にトークンの名前、下に数)、`tankFill` は一番多い量の時の水位、`slot*` は書き換える値の札。
+ * `bar` は呼ばれた側の生存線に立てる帯の幅。
  * `pipeW` は生存線の管、`liveW` は呼ばれている間に重ねる紺の管、`callW` は呼び出しの管、`moneyW` と `liquidW` はお金の管と液の太さ。
  * `chip*` は線の上と生存線の横に置く枠付きの札、`call*` は呼び出しの管の上の札、`stubW` は生存線から横の札へ出す短い管、`markR` はリバートの×の丸、`pill*` はログの印。
  * `rowGap` は行の間、`rowPad` は今のステップの帯の上下の余白、`stepGap` はステップの帯どうしの間
@@ -35,6 +36,7 @@ export const SEQ_LOOK = {
   tankLeast: 0.08,
   slotLine: 11,
   slotGap: 6,
+  bar: 10,
   pipeW: 9,
   liveW: 5,
   callW: 5,

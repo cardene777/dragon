@@ -100,14 +100,11 @@ function bodies(): Json {
   };
 }
 
-/**
- * 線が着いた後に、受ける側の箱の下の字を続けて 2 度書き換える構成図。
- * 時系列図の列の頭は下の字を書き換えない (Tracelyth #93) ので、箱の下の字を描く構成図で確かめる
- */
+/** 線が着いた後に、受ける側の箱の下の字を続けて 2 度書き換える時系列図。 */
 function quickSwaps(): Json {
   return {
     version: 1,
-    kind: "architecture",
+    kind: "sequence",
     title: "続けて書き換える図",
     boxes: [
       { id: "a", name: "送る側", sub: "待つ" },
@@ -120,6 +117,7 @@ function quickSwaps(): Json {
         events: [edge("a", "b", { kind: "envelope" }), { type: "swap", box: "b", text: "すぐ替わる字" }, { type: "swap", box: "b", text: "残る字" }],
       },
     ],
+    sequence: { lifelines: ["a", "b"] },
   };
 }
 
@@ -170,7 +168,7 @@ describe("見える物の数", () => {
   });
 
   it("labels-show-only-during-their-step", () => {
-    for (const [name, diagram] of [["CCIP", ccip()]] as const) {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["名前が 2 つ並ぶ図", twoLabels()], ["名前が 3 つ並ぶ図", threeLabels()]] as const) {
       const { timeline } = render(diagram);
       const source = diagram as unknown as Source;
       const named = source.steps.flatMap((step) => step.events.filter((event) => event.type === "edge" && event.label)).length;
@@ -182,21 +180,6 @@ describe("見える物の数", () => {
       for (const t of sampleTimes(timeline)) {
         const shown = timeline.labels.filter((span) => covers(span, t)).length;
         expect(shown, `${name} の ${t} 秒に見える線の名前`).toBeLessThanOrEqual(2);
-      }
-    }
-  });
-
-  it("sequence-labels-stay-until-last-step", () => {
-    // 時系列図の札は、出た段から最後の段まで残す。前の段の呼び出しを読みながら今の段を追えるようにする (Tracelyth #91)
-    for (const [name, diagram] of [["OAuth", oauth()], ["名前が 2 つ並ぶ図", twoLabels()], ["名前が 3 つ並ぶ図", threeLabels()]] as const) {
-      const { timeline } = render(diagram);
-      const source = diagram as unknown as Source;
-      const named = source.steps.flatMap((step) => step.events.filter((event) => event.type === "edge" && event.label)).length;
-      expect(timeline.labels, `${name} の線の名前の数`).toHaveLength(named);
-      for (const label of timeline.labels) {
-        const span = timeline.steps[label.step];
-        expect(span !== undefined && label.start >= span.start - 1e-9 && label.start < span.end, `${name} の段 ${label.step + 1} の名前が段の間に出る`).toBe(true);
-        expect(label.end, `${name} の段 ${label.step + 1} の名前が最後の段まで残る`).toBeCloseTo(timeline.last, 6);
       }
     }
   });
@@ -336,7 +319,6 @@ describe("段の番号の置き場 (#3017)", () => {
   });
 
   it("action-step-badge-on-lifeline", () => {
-    // 時系列図の段の番号は、左の列の、段の最初の行 (処理だけの段は処理の札) の高さに置く (Tracelyth #91)
     for (const [name, diagram] of [["OAuth", oauth()], ["静かな段を持つ図", quiet()]] as const) {
       const { layout } = render(diagram);
       const steps = actionOnlySteps(layout);
@@ -344,7 +326,8 @@ describe("段の番号の置き場 (#3017)", () => {
       for (const s of steps) {
         const badge = layout.badges.find((b) => b.step === s);
         const action = layout.actions.find((a) => a.step === s);
-        expect(Boolean(badge && near(badge.x, LOOK.margin + BADGE_R)), `${name} の段 ${s + 1} の丸が左の列に在る (丸 ${badge?.x})`).toBe(true);
+        const lifeline = layout.lifelines.find((l) => l.id === action?.box);
+        expect(Boolean(badge && lifeline && near(badge.x, lifeline.x)), `${name} の段 ${s + 1} の丸が ${action?.box} の生存線の上に在る (丸 ${badge?.x}、生存線 ${lifeline?.x})`).toBe(true);
         expect(Boolean(badge && action && near(badge.y, action.y + action.h / 2)), `${name} の段 ${s + 1} の丸が札と同じ高さに在る`).toBe(true);
       }
     }
@@ -356,28 +339,14 @@ describe("段の番号の置き場 (#3017)", () => {
       for (const s of actionOnlySteps(layout)) {
         const badge = layout.badges.find((b) => b.step === s);
         const action = layout.actions.find((a) => a.step === s);
-        // 処理の札は、左の列の丸より右の生存線の右に置き、丸に重ねない (Tracelyth #93)
-        expect(badge && action && action.x - (badge.x + BADGE_R), `${name} の段 ${s + 1} の札の左端 ${action?.x} が丸の右端 ${badge && badge.x + BADGE_R} より右に無い`).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it("sequence-step-badge-beside-its-row", () => {
-    // 線を持つ段の番号も左の列に置き、段の最初の線と同じ高さにする (Tracelyth #91)
-    for (const [name, diagram] of [["OAuth", oauth()], ["静かな段を持つ図", quiet()]] as const) {
-      const { layout } = render(diagram);
-      for (const badge of layout.badges) {
-        const first = [...layout.edges, ...layout.actions].filter((p) => p.step === badge.step).sort((u, v) => u.event - v.event)[0];
-        if (!first) continue;
-        const y = "points" in first ? (first.points[0] as [number, number])[1] : first.y + first.h / 2;
-        expect(near(badge.x, LOOK.margin + BADGE_R), `${name} の段 ${badge.step + 1} の丸が左の列に無い`).toBe(true);
-        expect(near(badge.y, y), `${name} の段 ${badge.step + 1} の丸が段の最初の行と同じ高さに無い`).toBe(true);
+        // 札は丸の右端から 4px の所に置く。離れると札がどの丸のものか分からなくなる (#3099)
+        expect(badge && action && action.x - (badge.x + BADGE_R), `${name} の段 ${s + 1} の札の左端 ${action?.x} が丸の右端 ${badge && badge.x + BADGE_R} から 4px の所に無い`).toBeCloseTo(4, 5);
       }
     }
   });
 
   it("edge-step-badge-on-its-line", () => {
-    for (const [name, diagram] of [["CCIP", ccip()]] as const) {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["静かな段を持つ図", quiet()]] as const) {
       const { layout } = render(diagram);
       for (const badge of layout.badges) {
         const edge = layout.edges.find((e) => e.step === badge.step);
@@ -393,7 +362,7 @@ describe("線の形と模様 (#3171)", () => {
 
   it("lines-round-their-bends", () => {
     let rounded = 0;
-    for (const [name, diagram] of [["CCIP", ccip()], ["注文", order()]] as const) {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()], ["注文", order()]] as const) {
       const { svg } = render(diagram);
       const ds = [...svg.matchAll(/class="dg-(?:e|e-on dg-a|path)"[^>]*? d="([^"]*)"/gu)].map((m) => m[1] as string);
       expect(ds.length, `${name} に線が無い`).toBeGreaterThan(0);
@@ -406,7 +375,7 @@ describe("線の形と模様 (#3171)", () => {
   });
 
   it("non-state-lines-keep-dotted-texture", () => {
-    for (const [name, diagram] of [["CCIP", ccip()]] as const) {
+    for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()]] as const) {
       const { svg, layout, timeline } = render(diagram);
       const taken = layout.edges.filter((e) => e.points.length > 0).length;
       expect((svg.match(/class="dg-e-on dg-a"/gu) ?? []).length, `${name} の色の線の数`).toBe(taken);

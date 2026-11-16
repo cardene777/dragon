@@ -27,6 +27,7 @@
 import { type CarrierTime, carrierTimes, type Departure } from "./blocks/carry/timing";
 import { ratioOf } from "./layout/scene";
 import { FLOW_MOVE } from "./look/pipe";
+import { lookOf } from "./render/look-store";
 import { MOTION } from "./look/values";
 import type { DiagramModel } from "./schema";
 import { STATE_ENDS } from "./words";
@@ -312,8 +313,8 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
       if (later) label.end = Math.min(label.end, later.start);
     });
     for (const label of named) {
-      // シーケンスの札は、出たステップの後も最後のステップまで残す (Tracelyth #91)
-      if (diagram.kind === "sequence") {
+      // パイプ図の部品で描く時系列図 (`[shape: pipe]`) の札は、出たステップの後も最後のステップまで残す (Tracelyth #91、#3720)
+      if (lookOf(diagram) !== undefined) {
         label.end = last;
         continue;
       }

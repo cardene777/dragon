@@ -93,6 +93,8 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.lineup?.shape !== undefined ? { lineup: { shape: model.lineup.shape } } : {}),
     // 集合の重なりの図の見た目 (#3635) も同じく根の欄 (`venn`) に移す。集まりは `HOMES` の `circle` が移す
     ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
+    // 時系列図の見た目 (#3720) も根の欄 (`sequence`) に移す。生存線の並びは箱の並びから組み直せるので書かない
+    ...(model.kind === "sequence" && model.sequence?.shape !== undefined ? { sequence: { shape: model.sequence.shape } } : {}),
     blocks: blocks as DiagramBlocks,
     steps: model.steps,
   };
@@ -153,7 +155,8 @@ export function toModel(diagram: Diagram): DiagramModel {
     boxes,
     ...(b.strip !== undefined ? { strip: b.strip } : {}),
     steps: diagram.steps,
-    ...(diagram.kind === "sequence" ? { sequence: lifelinesOf(boxes) } : {}),
+    // 時系列図の生存線は箱の並びから組み、見た目 (#3720) は原本の根の `sequence` の欄から移す
+    ...(diagram.kind === "sequence" ? { sequence: { ...lifelinesOf(boxes), ...(diagram.sequence !== undefined ? { shape: diagram.sequence.shape } : {}) } } : {}),
     ...rooted(diagram),
     ...(b.path !== undefined ? { state: { paths: b.path } } : {}),
     ...(b.branch !== undefined ? { git: { branches: b.branch } } : {}),
@@ -184,12 +187,17 @@ export function toModel(diagram: Diagram): DiagramModel {
  * 版1の原本を、検査の前に版2の形へ移す。形を確かめる前に呼ぶので、知らない欄と形の違う値と空の並びはそのまま移し、検査に任せる
  * (版1で誤りだった原本は、版2でも同じ値の誤りになる)。空の並びを外して欄を整えるのは、検査を通った後の `fromModel` が行う。
  * 図の種類の欄 (`state`、`git`、`time`、`lineup`) は、中の欄を全て移せた時だけ消す。時系列図の生存線の欄 (`sequence`) は、箱の並びから組み直せるので書かない。
+ * 時系列図の見た目 (`sequence.shape`、#3720) だけは版2の根の `sequence` の欄に残す。
  * 時系列図でない図の生存線の欄は版1でも書けなかったので、根に残して検査に断らせる
  */
 export function upgrade(input: Obj, version: number): Obj {
   const rest: Obj = { ...input };
   delete rest.version;
-  if (rest.kind === "sequence") delete rest.sequence;
+  if (rest.kind === "sequence") {
+    const shape = isObject(rest.sequence) ? rest.sequence.shape : undefined;
+    delete rest.sequence;
+    if (shape !== undefined) rest.sequence = { shape };
+  }
   const out: Obj = {};
   const blocks: Obj = {};
   const moved = new Set<string>();

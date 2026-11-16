@@ -566,6 +566,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       return ix > 0 && iy > 0 ? sum + ix * iy : sum;
     }, 0);
     const far = (r: Rect, [px, py]: Point): number => Math.hypot(px - Math.max(r.x, Math.min(px, r.x + r.w)), py - Math.max(r.y, Math.min(py, r.y + r.h)));
+    /** 2つの四角の間の隔たり。重なる時は 0。四角 `b` の中のどの点から `a` までの隔たりもこれより短くならない */
+    const gapOf = (a: Rect, b: Rect): number =>
+      Math.hypot(Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w)), Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h)));
     // 呼び出しごとの時間。開いてから戻るまでのうち、子の呼び出しが開いていない間がその呼び出しの「今」
     const calls1 = [...layout.calls].filter((c) => c.label).sort((u, v) => u.index - v.index);
     const laneOf = (c: PipeCallLane): PipeLane | undefined => layout.lanes.find((x) => x.call === c.index && x.step === c.step) ?? layout.lanes.find((x) => x.call === c.index);
@@ -783,19 +786,76 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         });
         const xs = pts.map((p) => p[0]);
         const ys = pts.map((p) => p[1]);
+        const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+        // 札の置き場は格子の点ごとに選ぶので、選ぶ札を変えずに 1 点の手間を減らす (#3720)。
+        // 道の区間の点は区間の外枠の中に在るので、どの区間の外枠からも NEAR より離れた札はどの点からも NEAR より離れる。端の丸めの差で選ぶ札が変わらないよう 1px 余して外す
+        const reach = NEAR + 1;
+        const spans = pts.slice(1).map((q, i): Rect => {
+          const p = pts[i] as Point;
+          return { x: Math.min(p[0], q[0]), y: Math.min(p[1], q[1]), w: Math.abs(q[0] - p[0]), h: Math.abs(q[1] - p[1]) };
+        });
+        // 道の点と障りの物を 1 辺 CELL の升目に分ける。札を reach だけ広げた枠の外の点は札から reach より離れるので、
+        // 枠に掛かる升目の点だけで測った一番近い隔たりが NEAR 以下なら、全ての点で測った値と同じになる。
+        // 障りの物は隙間 GAP だけ広げた枠が掛かる升目に置き、札と重なる物は札が掛かる升目のどれかに必ず在る
+        const CELL = 64;
+        const cellKey = (cx: number, cy: number): number => (cx + 4096) * 8192 + (cy + 4096);
+        const cellsOf = (left: number, top: number, right: number, bottom: number): number[] => {
+          const keys: number[] = [];
+          for (let cx = Math.floor(left / CELL); cx <= Math.floor(right / CELL); cx++) for (let cy = Math.floor(top / CELL); cy <= Math.floor(bottom / CELL); cy++) keys.push(cellKey(cx, cy));
+          return keys;
+        };
+        const points = new Map<number, Point[]>();
+        for (const p of along) {
+          const key = cellKey(Math.floor(p[0] / CELL), Math.floor(p[1] / CELL));
+          const list = points.get(key);
+          if (list) list.push(p);
+          else points.set(key, [p]);
+        }
+        const walls = new Map<number, Obst[]>();
+        // 升目に置けない物 (数でない寸法の物と、升目を 64 を超えて跨ぐ大きな物) は札ごとに全て確かめる
+        const loose: Obst[] = [];
+        for (const o of obst) {
+          if (![o.x, o.y, o.w, o.h].every(Number.isFinite) || o.w + GAP * 2 > CELL * 64 || o.h + GAP * 2 > CELL * 64) {
+            loose.push(o);
+            continue;
+          }
+          for (const key of cellsOf(o.x - GAP, o.y - GAP, o.x + o.w + GAP, o.y + o.h + GAP)) {
+            const list = walls.get(key);
+            if (list) list.push(o);
+            else walls.set(key, [o]);
+          }
+        }
+        const meets2 = (r: Rect, o: Obst): boolean =>
+          Math.min(r.x + r.w, o.x + o.w + GAP) - Math.max(r.x, o.x - GAP) > 0 && Math.min(r.y + r.h, o.y + o.h + GAP) - Math.max(r.y, o.y - GAP) > 0;
+        /** 札 `r` から道の点までの一番近い隔たり。NEAR より離れる時は NEAR より大きい値 */
+        const nearest = (r: Rect): number => {
+          let near = Number.POSITIVE_INFINITY;
+          for (const key of cellsOf(r.x - reach, r.y - reach, r.x + r.w + reach, r.y + r.h + reach)) for (const p of points.get(key) ?? []) near = Math.min(near, far(r, p));
+          return near;
+        };
+        /** 札 `r` が障りの物か `more` の物に隙間 GAP の内まで重なるか (`hit(r, more) > 0` と同じ答え) */
+        const blockedAt = (r: Rect): boolean =>
+          cellsOf(r.x, r.y, r.x + r.w, r.y + r.h).some((key) => (walls.get(key) ?? []).some((o) => meets2(r, o))) ||
+          loose.some((o) => meets2(r, o)) ||
+          more.some((o) => meets2(r, o));
+        // 横の区間 (呼び出しの管の札を上に置ける所) は札ごとに同じなので先に並べる
+        const flats = pts.slice(1).flatMap((q, i): [Point, Point][] => {
+          const p = pts[i] as Point;
+          return Math.abs(q[1] - p[1]) >= 1 || Math.abs(q[0] - p[0]) < 1 ? [] : [[p, q]];
+        });
         let best: { r: Rect; score: number; above: boolean } | undefined;
-        for (let x = Math.min(...xs) - it.tag.w - 60; x <= Math.max(...xs) + 60; x += 6) {
-          for (let y = Math.min(...ys) - it.tag.h - 60; y <= Math.max(...ys) + 60; y += 6) {
+        for (let x = x0 - it.tag.w - 60; x <= x1 + 60; x += 6) {
+          for (let y = y0 - it.tag.h - 60; y <= y1 + 60; y += 6) {
             const r = { x, y, w: it.tag.w, h: it.tag.h };
             if (r.x < 8 || r.y < 8 || r.x + r.w > layout.width - 8 || r.y + r.h > layout.height - 8) continue;
-            if (hit(r, more) > 0) continue;
-            const near3 = Math.min(...along.map((p) => far(r, p)));
+            // 選ぶ札は道に近く、どの物にも重ならない札。安い判定から先に当て、重なりは道に近い札だけで確かめる
+            if (spans.every((b) => gapOf(r, b) > reach)) continue;
+            const near3 = nearest(r);
             if (near3 > NEAR) continue;
+            if (blockedAt(r)) continue;
             let above = false;
             let flatD = Infinity;
-            for (const [i, q] of pts.slice(1).entries()) {
-              const p = pts[i] as Point;
-              if (Math.abs(q[1] - p[1]) >= 1 || Math.abs(q[0] - p[0]) < 1) continue;
+            for (const [p, q] of flats) {
               const d2 = far(r, [Math.max(Math.min(p[0], q[0]), Math.min(r.x + r.w / 2, Math.max(p[0], q[0]))), p[1]]);
               if (d2 < flatD) {
                 flatD = d2;
