@@ -35,7 +35,7 @@ import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
-import { FONT_VARS, LOOK, PIPE_FIRST, paletteVars, READABLE_PX, type TextStyle, TYPE } from "./look/values";
+import { FONT_VARS, LOOK, PIPE_FIRST, paletteVars, READABLE_PX, type TextStyle, TYPE, ZOOM } from "./look/values";
 import { partRadius } from "./render/corner";
 import { lookOf } from "./render/look-store";
 import { drawLines } from "./render/pen-store";
@@ -158,13 +158,6 @@ function checkSpeed(speed: number): number {
 
 const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
 const px = (v: number): string => `${v}px`;
-
-/**
- * 配管の図の拡大 (#3418)。度合いの下限と上限、釦 1 回の倍率、ダブルクリックの倍率と 100% へ戻す度合い、
- * 100% の図を枠の幅に収める枠の幅の上限、ホイールの 1px で変わる度合いの割合、引いて動かすと見る動きの下限 (px)、
- * 押せない拡大の釦の濃さ
- */
-const ZOOM = { min: 1, max: 4, step: 1.25, double: 1.6, reset: 2.5, fit: 600, wheel: 0.002, drag: 3, dim: 0.4 } as const;
 
 function playerCss(): string {
   const P = LOOK.player;
@@ -968,74 +961,9 @@ export function mountDiagram(
     const s = target ? Number(target.getAttribute("data-step")) : Number.NaN;
     if (Number.isInteger(s)) go(s);
   };
-  // 配管の図の拡大 (#3418)。釦は 1 回で `ZOOM.step` 倍、Ctrl か Command を押しながらのホイールは指した所を中心に拡大する。
-  // 押さないホイールは今どおり枠か頁を送る
-  // 釦で始めの大きさをまたぐ時は、始めの大きさで1度止める (Tracelyth #179)
-  const stepTo = (target: number): number => (zoom < ZOOM.min !== target < ZOOM.min && zoom !== ZOOM.min ? ZOOM.min : target);
-  const onZoomIn = (): void => zoomTo(stepTo(zoom * ZOOM.step));
-  const onZoomOut = (): void => zoomTo(stepTo(zoom / ZOOM.step));
-  const onWheel = (event: WheelEvent): void => {
-    if (!isPipe) return;
-    // 押さないホイールで送った時も、段が進んでも枠を関係者の所へ送らない (Tracelyth #183)
+  // 見る人が送った後は、段が進んでも枠を関係者の所へ送らない (Tracelyth #183)。図の外で送った時に置いた側が呼ぶ `hold` も同じ処理を使う
+  const hold = (): void => {
     held = true;
-    if (!(event.ctrlKey || event.metaKey)) return;
-    event.preventDefault();
-    // 行と頁の単位で送るホイールは、px に直してから度合いにする
-    const unit = event.deltaMode === 1 ? TYPE.stepBody.size : event.deltaMode === 2 ? frame.clientHeight : 1;
-    zoomTo(zoom * Math.exp(-event.deltaY * unit * ZOOM.wheel), { x: event.clientX, y: event.clientY });
-  };
-  // ダブルクリックは押した所を中心に `ZOOM.double` 倍にし、`ZOOM.reset` まで拡大した図は 100% に戻す
-  const onDouble = (event: MouseEvent): void => {
-    if (!isPipe) return;
-    event.preventDefault();
-    zoomTo(zoom >= ZOOM.reset ? ZOOM.min : zoom * ZOOM.double, { x: event.clientX, y: event.clientY });
-  };
-  /** 引いている指。`ZOOM.drag` より動いた後は枠を送り、離した後の押下を図に渡さない */
-  let drag: { id: number; x: number; y: number; left: number; top: number; moved: boolean } | undefined;
-  let dragged = false;
-  // マウスとペンで引くと枠を送る。指は枠をそのまま送れるので受けない
-  const onPointerDown = (event: PointerEvent): void => {
-    if (!isPipe || event.button !== 0 || event.pointerType === "touch") return;
-    dragged = false;
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: frame.scrollLeft, top: frame.scrollTop, moved: false };
-  };
-  const onPointerMove = (event: PointerEvent): void => {
-    if (!drag || event.pointerId !== drag.id) return;
-    const dx = event.clientX - drag.x;
-    const dy = event.clientY - drag.y;
-    if (!drag.moved) {
-      if (Math.hypot(dx, dy) < ZOOM.drag) return;
-      drag.moved = true;
-      held = true;
-      frame.dataset.drag = "";
-      // 動き始めてから捕まえる。押しただけの時に捕まえると、押した先が枠に替わって段の番号と畳んだ箱を押せない
-      try {
-        frame.setPointerCapture(drag.id);
-      } catch {
-        // 捕まえられない指でも、枠の上で動く間は送れる
-      }
-    }
-    frame.scrollLeft = Math.max(0, drag.left - dx);
-    frame.scrollTop = Math.max(0, drag.top - dy);
-    follow();
-  };
-  const onPointerUp = (event: PointerEvent): void => {
-    if (!drag || event.pointerId !== drag.id) return;
-    dragged = drag.moved;
-    drag = undefined;
-    delete frame.dataset.drag;
-  };
-  // 指で送る時はブラウザが枠を送るので、触れた時から送った扱いにする。軽く触って段を選んだ時は、選んだ段で送り直す (Tracelyth #183)。
-  // 図の外で送った時に置いた側が呼ぶ `hold` も同じ処理を使う
-  const onTouch = (): void => {
-    held = true;
-  };
-  // 引いて送った後の押下は、段の番号や畳んだ箱を押したことにしない
-  const onDragClick = (event: Event): void => {
-    if (!dragged) return;
-    dragged = false;
-    event.preventDefault();
-    event.stopImmediatePropagation();
   };
   prevButton.addEventListener("click", onPrev);
   nextButton.addEventListener("click", onNext);
@@ -1044,19 +972,10 @@ export function mountDiagram(
   progress.addEventListener("click", onProgress);
   frame.addEventListener("click", onFigure);
   frame.addEventListener("scroll", onPan);
-  if (isPipe) {
-    zoomInButton.addEventListener("click", onZoomIn);
-    zoomOutButton.addEventListener("click", onZoomOut);
-    // ホイールの既定の動き (頁の拡大) を止めるので、受け身でない受け方で受ける
-    frame.addEventListener("wheel", onWheel, { passive: false });
-    frame.addEventListener("dblclick", onDouble);
-    frame.addEventListener("pointerdown", onPointerDown);
-    frame.addEventListener("pointermove", onPointerMove);
-    frame.addEventListener("pointerup", onPointerUp);
-    frame.addEventListener("pointercancel", onPointerUp);
-    frame.addEventListener("click", onDragClick, true);
-    frame.addEventListener("touchstart", onTouch, { passive: true });
-  }
+  // 配管の図の拡大と縮小と引いて送る動き (#3418) は、配管の図の塊の受け手が受ける。最初に読む量に入れないため (#3720)
+  const unbindZoom = isPipe
+    ? kindParts("pipe", lang).bindPipeZoom(frame, zoomInButton, zoomOutButton, { zoom: () => zoom, zoomTo, hold, follow })
+    : undefined;
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも、全体図を収める時は見える高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
@@ -1100,7 +1019,7 @@ export function mountDiagram(
     get held() {
       return held;
     },
-    hold: onTouch,
+    hold,
     next: onNext,
     prev: onPrev,
     play: () => {
@@ -1138,16 +1057,7 @@ export function mountDiagram(
       progress.removeEventListener("click", onProgress);
       frame.removeEventListener("click", onFigure);
       frame.removeEventListener("scroll", onPan);
-      zoomInButton.removeEventListener("click", onZoomIn);
-      zoomOutButton.removeEventListener("click", onZoomOut);
-      frame.removeEventListener("wheel", onWheel);
-      frame.removeEventListener("dblclick", onDouble);
-      frame.removeEventListener("pointerdown", onPointerDown);
-      frame.removeEventListener("pointermove", onPointerMove);
-      frame.removeEventListener("pointerup", onPointerUp);
-      frame.removeEventListener("pointercancel", onPointerUp);
-      frame.removeEventListener("click", onDragClick, true);
-      frame.removeEventListener("touchstart", onTouch);
+      unbindZoom?.();
       root.remove();
     },
   };
