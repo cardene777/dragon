@@ -375,7 +375,7 @@ export function drawSvg(
   // 後から読む種類の部品の組。最初から読む種類 (時系列図と構成図) は持たない (#3656)
   const parts = partsOf(layout.kind);
   // 種類の行に `[shape: pipe]` を書いた時系列図は、後から読んだ見た目の部品の組が列の頭と線と札と段の番号と処理の札を描く (#3720)
-  const look = sequenceLookFor(diagram, follow?.lang ?? "ja");
+  const look = sequenceLookFor(diagram, follow?.lang ?? DEFAULT_LANG);
   // 運ぶ物の見えている間は、種類の部品が描く間だけ直せる (木の図の運ぶ物は着いた所で消える)
   const carried: CarrierTime[] = parts?.carried?.(timeline) ?? timeline.carriers;
   const ctx: Ctx = {

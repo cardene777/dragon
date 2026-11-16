@@ -63,6 +63,8 @@ export const SEQ_LOOK = {
   followAspect: 1.6,
   // 窓より広いステップを寄せる時に、最初の線の始まりの左に残す幅
   followLead: 20,
+  // 明るいテーマで今のステップの帯と生存線の帯に敷く地の色 (Tracelyth #91)。明るいテーマの地 (--bg) は色を持ち、混ぜると灰色に寄るので白にする
+  wash: "#ffffff",
 } as const;
 
 /**

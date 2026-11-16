@@ -381,7 +381,7 @@ interface SeqShape {
 
 type EdgeEvent = Extract<DiagramModel["steps"][number]["events"][number], { type: "edge" }>;
 
-export function layoutSequencePipe(diagram: DiagramModel, lang: NotationLang = "ja"): SequenceLayout {
+export function layoutSequencePipe(diagram: DiagramModel, lang: NotationLang): SequenceLayout {
   const { sequence: Q, margin, gap } = LOOK;
   const S = SEQ_LOOK;
   const colors = boxColors(diagram);

@@ -333,7 +333,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   const pipeOfFlow = (fl: { token: string; from: string; to: string }): number =>
     layout.valuePipes.findIndex((p) => p.token === fl.token && ((p.from === fl.from && p.to === fl.to) || (p.from === fl.to && p.to === fl.from)));
   const LF = { tag: { ...T.chip, size: 11, weight: 700 }, k: { ...T.chip, size: 12, weight: 600 }, f: { ...T.chip, size: 13, weight: 700 }, n: { ...T.chip, size: 12, weight: 500 }, v: { ...T.chip, size: 12, weight: 700 } };
-  const LOG_STATE: Record<PipeEventChip["state"], string> = { provisional: "暫定", final: "確定", rolled: "リバート", none: "" };
+  // 記録の札の見出しと状態の語は、組んだ図が描く言葉の語に呼ぶ側が渡した語を重ねて持つ (#3584、#3720)
+  const LOG_STATE: Record<PipeEventChip["state"], string> = { ...layout.logWords.states, none: "" };
+  const LOG_HEAD = layout.logWords.head;
   // 引数は一番外の , で分ける。[ ] と ( ) と " " の中の , は値の一部として残す (配列の引数 `path: [usdc, weth]`)
   const splitArgs = (body: string): string[] => {
     const parts: string[] = [];
@@ -365,7 +367,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   const logSize = (e: PipeEventChip): { w: number; h: number; rows: ArgRow[]; party: string } => {
     const rows = logArgsOf(e);
     const party = layout.parties.find((p) => p.id === e.party)?.name ?? e.party;
-    const head = textWidth("ログ", LF.tag) + 14 + 8 + textWidth(`${party}.`, LF.k) + textWidth(e.name, LF.f) + 12 + textWidth(LOG_STATE[e.state] ?? "", LF.tag);
+    const head = textWidth(LOG_HEAD, LF.tag) + 14 + 8 + textWidth(`${party}.`, LF.k) + textWidth(e.name, LF.f) + 12 + textWidth(LOG_STATE[e.state] ?? "", LF.tag);
     const nameW = Math.max(0, ...rows.map((r) => textWidth(r.name, LF.n)));
     const valW = Math.max(0, ...rows.map((r) => textWidth(r.value, LF.v)));
     return { w: Math.max(head, nameW + 22 + valW) + 24, h: 32 + (rows.length > 0 ? rows.length * 21 + 8 : 0), rows, party };
@@ -375,9 +377,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const x = e.x;
     const y = e.y;
     const color = e.state === "none" ? "rose" : STATE_COLOR[e.state];
-    const tagW = textWidth("ログ", LF.tag) + 14;
+    const tagW = textWidth(LOG_HEAD, LF.tag) + 14;
     const base = (yy: number, size: number): number => r1(yy + size * 0.36);
-    return `<g${attrs} class="dg-pp-log dg-pp-log-${e.state}" style="${cs(color)}"><rect class="box" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, 10)}"/>` + `<rect class="tag" x="${r1(x + 10)}" y="${r1(y + 7)}" width="${r1(tagW)}" height="18" rx="${partRadius(ctx.corner, 9)}"/><text class="tagt" x="${r1(x + 10 + tagW / 2)}" y="${base(y + 16, 11)}" text-anchor="middle">ログ</text>` + `<text x="${r1(x + 10 + tagW + 8)}" y="${base(y + 16, 13)}"><tspan class="k">${esc(party)}.</tspan><tspan class="f">${esc(e.name)}</tspan></text>` + `<text class="st" x="${r1(x + w - 12)}" y="${base(y + 16, 11)}" text-anchor="end">${esc(LOG_STATE[e.state] ?? "")}</text>` + (rows.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + 32)} H ${r1(x + w - 1)}"/>` : "") + rows.map((r, i) => {
+    return `<g${attrs} class="dg-pp-log dg-pp-log-${e.state}" style="${cs(color)}"><rect class="box" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, 10)}"/>` + `<rect class="tag" x="${r1(x + 10)}" y="${r1(y + 7)}" width="${r1(tagW)}" height="18" rx="${partRadius(ctx.corner, 9)}"/><text class="tagt" x="${r1(x + 10 + tagW / 2)}" y="${base(y + 16, 11)}" text-anchor="middle">${esc(LOG_HEAD)}</text>` + `<text x="${r1(x + 10 + tagW + 8)}" y="${base(y + 16, 13)}"><tspan class="k">${esc(party)}.</tspan><tspan class="f">${esc(e.name)}</tspan></text>` + `<text class="st" x="${r1(x + w - 12)}" y="${base(y + 16, 11)}" text-anchor="end">${esc(LOG_STATE[e.state] ?? "")}</text>` + (rows.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + 32)} H ${r1(x + w - 1)}"/>` : "") + rows.map((r, i) => {
       const yy = y + 32 + 4 + 21 * i + 10.5;
       return `<text x="${r1(x + 12)}" y="${base(yy, 12)}"><tspan class="n">${esc(r.name)}</tspan></text><text x="${r1(x + w - 12)}" y="${base(yy, 12)}" text-anchor="end"><tspan class="v">${esc(r.value)}</tspan></text>`;
     }).join("") + `</g>`;

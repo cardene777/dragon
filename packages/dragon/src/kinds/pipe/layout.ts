@@ -47,12 +47,15 @@ export interface PipeWords {
   open: string;
   foldTitle: (name: string) => string;
   join: (titles: readonly string[]) => string;
+  /** 記録の札の見出し (Tracelyth #107) */
+  log: string;
 }
 
 export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   ja: {
     // リバートで戻った値の札は、Tracelythの用語集の語 (リバート) で書く (Tracelyth #111)
     tags: { provisional: "暫定", final: "確定", rolled: UNDONE_TAG.ja },
+    log: "ログ",
     io: { in: "入力", out: "出力" },
     fold: (steps, parties) => `内側の${steps}段と${parties}人`,
     open: "押すと開く",
@@ -61,6 +64,7 @@ export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   },
   en: {
     tags: { provisional: "Pending", final: "Final", rolled: UNDONE_TAG.en },
+    log: "Log",
     io: { in: "In", out: "Out" },
     fold: (steps, parties) => `${steps} ${steps === 1 ? "step" : "steps"} and ${parties} ${parties === 1 ? "party" : "parties"} inside`,
     open: "Click to open",
@@ -102,6 +106,7 @@ export function pipeWords(lang: NotationLang, given?: PipeWordsInput): PipeWords
     open: given.open ?? base.open,
     foldTitle: foldTitle === undefined ? base.foldTitle : (name) => fill(foldTitle, { name }),
     join: base.join,
+    log: base.log,
   };
 }
 
@@ -545,6 +550,11 @@ export interface PipeLayout extends Layout {
   wallets?: Rect[];
   /** 描いた記録の札と、段を通して替わった状態の語 (Tracelyth #107)。描く時に書く */
   logCards?: PipeLogCard[];
+  /**
+   * 記録の札の見出しの語と状態の語 (#3720)。描く言葉の語 (`PIPE_TEXT`) に、呼ぶ側が渡した語 (`words.pipe.tags`、#3584) を重ねた物。
+   * 槽の下の札と同じ語で描き、描く処理は語を自分で持たない
+   */
+  logWords: { head: string; states: PipeWords["tags"] };
   /** 移す額の札がトークンの箱に入って出る所 (Tracelyth #168)。描く時に書く */
   gulps?: PipeGulp[];
   /** 狭い枠に合わせて並べたか。狭い枠は図を枠の幅に縮めて全体を出す */
@@ -1385,6 +1395,11 @@ interface Def {
 
 /** 組んだ図がどの組み方 (`PLANS` の番号) で組めたか */
 const PLAN_OF = new WeakMap<PipeLayout, number>();
+/**
+ * 戻り値の札が管に収まらない時に、札の幅を足して組み直す回数の上限 (#3607、#3720)。
+ * 弁を真っすぐな所の真ん中に置くので、札の幅を2度足せば弁の片側が札の幅に届く
+ */
+const RETURN_WIDENINGS = 2;
 /** 狭い枠の字を、要る大きさよりどれだけ大きく組むか */
 const NARROW_OVER = 1.06;
 
@@ -1893,8 +1908,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const groupOfDef = (k: number): string => trunkOf.get(k) ?? `v${k}`;
 
   // ---- 組む。管が通らない時は、間を広げて組み直す
-  // 戻り値の札が管に収まらなかった時は、その管の2人の間を札の幅だけ広げ、同じ組み方で1度だけ組み直す (#3607)。
-  // 札の幅を全ての戻り値の管に前もって足すと、収まっていた図まで広がるので、収まらなかった管だけに足す
+  // 戻り値の札が管に収まらなかった時は、その管の2人の間を札の幅だけ広げ、同じ組み方で組み直す (#3607)。
+  // 札の幅を全ての戻り値の管に前もって足すと、収まっていた図まで広がるので、収まらなかった管だけに足す。
+  // 弁は真っすぐな所の真ん中に置くので (Tracelyth #111)、1度広げても弁の両側が札の幅に届かない時がある。まだ収まらない時は札の幅をもう1度だけ足す (#3720)
 
   /** 戻り値の札が収まらなかった管 (`呼んだ者>呼ばれた者`) と、2人の間に足す長さ */
   const roomFor = new Map<string, number>();
@@ -1905,8 +1921,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     if (plan.shift !== undefined && band1.length === 0) continue;
     cramped.clear();
     result = attempt(plan);
-    if (result && cramped.size > 0) {
-      for (const [pipe, room] of cramped) roomFor.set(pipe, Math.max(roomFor.get(pipe) ?? 0, room));
+    for (let widened = 0; result && cramped.size > 0 && widened < RETURN_WIDENINGS; widened++) {
+      for (const [pipe, room] of cramped) roomFor.set(pipe, (roomFor.get(pipe) ?? 0) + room);
       cramped.clear();
       result = attempt(plan) ?? result;
     }
@@ -4444,6 +4460,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       gauges,
       checks: [],
       events,
+      logWords: { head: words.log, states: words.tags },
       converters,
       housings,
       ties,

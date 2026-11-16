@@ -592,7 +592,7 @@ function seqFollow(layout: SequenceLayout, step: number, focus: Rect | undefined
  */
 function seqVars(palette: Palette, theme: Theme): string {
   const light = theme === "light" && palette.light.bg !== palette.dark.bg;
-  return `--wash:${light ? "#ffffff" : "var(--surf)"}`;
+  return `--wash:${light ? SEQ_LOOK.wash : "var(--surf)"}`;
 }
 
 /** パイプ図の部品で描く時系列図の見た目の組。後から読む塊が置き場へ置く (#3720) */

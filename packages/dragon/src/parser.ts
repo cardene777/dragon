@@ -117,7 +117,6 @@
  */
 import type { BlockReading, FigureDraft, HeadReader, KindName, LineView, ParseState, StepDraft } from "./blocks/block";
 import { EDGE, EDGE_WITHOUT_TARGET, type EdgeEvent } from "./blocks/edge/block";
-import { lifelinesOf } from "./blocks/lifeline/read";
 import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
@@ -545,8 +544,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     // 図の種類のブロックが確かめてから組んだ欄。量の図 (#3560) と表どうしの関係の図 (#3618) と2つの軸で置く図 (#3622) と集合の重なりの図 (#3620) の欄と、
     // 回り続ける図の見た目と向き (#3638)。組むのは後から読むブロックの読み方なので、最初に読む記法を読む処理に種類ごとの組み方を持たない
     ...figure.root,
-    // 時系列図の見た目 (#3720)。値は生存線のブロックが最初の段を始める時に確かめた
-    ...(sequenceShape !== undefined ? { sequence: { ...lifelinesOf(figure.boxes), shape: sequenceShape } } : {}),
+    // 時系列図の見た目 (#3720)。値は生存線のブロックが最初の段を始める時に確かめた。生存線の並びは、短い記法が段の中で導いた箱まで含めた箱の並び。
+    // 生存線のブロックの組み方 (`lifelinesOf`) と同じ並びで、記法を読む処理は時系列図だけのブロックを読まない (#3350)
+    ...(sequenceShape !== undefined ? { sequence: { lifelines: figure.boxes.map((box) => box.id), shape: sequenceShape } } : {}),
     ...(isTime && time.scale
       ? {
           time: {
