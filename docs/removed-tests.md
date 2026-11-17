@@ -58,6 +58,7 @@
 | `common-parts-draw-state` | `apps/playground-spa/src/lib/state-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
 | `common-parts-draw-tree` | `apps/playground-spa/src/lib/tree-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
 | `common-parts-draw-git` | `apps/playground-spa/src/lib/git-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
+| `related-split-cases-start-one-command` | `packages/dragon/test/test-related.test.ts` | このrepoを読む件が命令を1回ずつ起こすことを確かめていた (#3602)。命令は起こすたびにrepoの全てのfileを読み直し、混んだ機械で1件10秒を超えたので、このrepoを読む件は命令を起こさず、fileを読み込む時に1度だけ作った索引から選ぶ形にした (#3733) | `related-repo-cases-start-no-command`、`related-cases-follow-inputs` |
 
 ## 速くした検査
 
@@ -83,3 +84,7 @@
 件の名前は元の名前のまま変えず、組は件を包む `describe` の名前に出る。
 確かめる組と中身は変わらない。
 見本帳の頁の検査は、111 件を 1 つの file に並べていたので、話題ごとの 6 つの file (`site-*.test.ts`) に分けて同時に回す。
+
+全ての見本を 1 件で描いていた検査 (時系列図の札、字の重なり、手描きの線の崩れ、arcade の角の大きさ、arcade で描く見本、配管の図の戻り値の札) は、見本ごとの件に分けた (#3733)。
+時系列図の札の検査は、描く前に記法から種類を読み、時系列図の見本だけを描く。
+分けたことは、件の名前を見本の一覧と比べる検査 (`sequence-cases-follow-sequence-examples` など) が確かめる。

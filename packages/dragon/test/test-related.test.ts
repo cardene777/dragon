@@ -7,8 +7,10 @@
  * import でたどれない材料 (見本、README、変更履歴、build の設定) は、表がその材料に結ぶ検査の file を選ぶ。
  * どれにも当たらない file を変えた時は、検査を回さずに名前を出して止まる。
  *
- * 命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
  * 規則は、この repo そのものと、検査の中で作る小さな repo の 2 つで確かめる。
+ * 小さな repo では命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
+ * この repo では、file を読み込む時に 1 度だけ作った索引から選ぶ。命令は起こすたびに repo の全ての file を読み直し、
+ * 件ごとに起こすと混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -45,6 +47,27 @@ function listed(code: number | null, stdout: string, stderr: string): Listed {
   return { code, stdout, stderr, files: lines.slice(1).map((line) => line.trim()) };
 }
 
+/** 選ぶ命令が書き出す関数のうち、この repo の索引から選ぶのに使う物 */
+interface Runner {
+  indexRepo?: (root: string) => unknown;
+  choose?: (index: unknown, changed: string[]) => { chosen: string[]; unmapped: string[] };
+}
+
+/**
+ * この repo の索引。file を読み込む時に 1 度だけ作り、この repo で選ぶ検査を確かめる件で使い回す (#3733)。
+ * file の読み込みは 1 件の上限の外で、1 回の実行の上限 (5 分) の中に入る
+ */
+const runner = (await import(RUNNER)) as Runner;
+const repoIndex = runner.indexRepo?.(ROOT);
+
+/** この repo で、変えた file から選ぶ検査の file。命令を子の process で起こさず、索引から選ぶ */
+function listRepo(changed: string[]): Listed {
+  if (repoIndex === undefined || runner.choose === undefined) return { code: null, stdout: "", stderr: "scripts/test-related.mjs が indexRepo と choose を書き出さない", files: [] };
+  const { chosen, unmapped } = runner.choose(repoIndex, changed);
+  if (unmapped.length > 0) return { code: 1, stdout: "", stderr: `表にも import にも当たらない file\n${unmapped.join("\n")}`, files: [] };
+  return { code: 0, stdout: `関係する検査 ${chosen.length} file\n${chosen.map((path) => `  ${path}\n`).join("")}`, stderr: "", files: chosen };
+}
+
 /** repo の検査の file と中身。材料の名前を書く検査を数える時に、file で 1 度だけ読む */
 let sources: Map<string, string> | undefined;
 function testSources(): Map<string, string> {
@@ -56,6 +79,8 @@ function testSources(): Map<string, string> {
   );
   return sources;
 }
+// 件の上限の外で、file を読み込む時に読んでおく (#3733)
+testSources();
 
 /** 検査の中で使う小さな repo を作る。`files` は repo の根からの path と中身 */
 function fixture(files: Record<string, string>): string {
@@ -86,7 +111,7 @@ const git = (root: string, ...args: string[]): string => execFileSync("git", ["-
 describe("関係する検査を選ぶ命令 (#3381)", () => {
   it("related-runs-changed-test-file", () => {
     const changed = "packages/dragon/test/release-records.test.ts";
-    const listed = list([changed]);
+    const listed = listRepo([changed]);
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files, "変えた検査の file を選んでいない").toContain(changed);
     // ほかに選ぶのは、変えた検査の file の名前を字で書く検査の file だけ (名前が変わると落ちる)
@@ -121,7 +146,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     { changed: "apps/playground-spa/src/main.tsx", reader: "apps/playground-spa/src/lib/playground.test.ts", says: "build した頁の中身を読む検査 (playground.test.ts) を選んでいない" },
   ])("$changed", ({ changed, reader, says }) => {
     it("related-follows-package-and-built-entries", () => {
-      const chosen = list([changed]);
+      const chosen = listRepo([changed]);
       expect(chosen.code, chosen.stderr).toBe(0);
       expect(chosen.files, says).toContain(reader);
     });
@@ -134,7 +159,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     { changed: "packages/dragon/examples/auction.dragon", picks: [["packages/dragon/test/lineup-diagram.test.ts", "見本を読む検査 (lineup-diagram.test.ts) を選んでいない"]], skips: [] },
   ])("$changed", ({ changed, picks, skips }) => {
     it("related-maps-materials-by-table", () => {
-      const chosen = list([changed]);
+      const chosen = listRepo([changed]);
       expect(chosen.code, chosen.stderr).toBe(0);
       for (const [file, says] of picks) expect(chosen.files, says).toContain(file);
       for (const [file, says] of skips) expect(chosen.files, says).not.toContain(file);
@@ -155,7 +180,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
       const readers = [...testSources()].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
       // 名前を書く検査の file を 1 件も数えられない時は、確かめていないので落とす
       expect(readers.length, `${material} の名前を書く検査の file を 1 件も数えていない`).toBeGreaterThan(0);
-      const chosen = list([material]);
+      const chosen = listRepo([material]);
       expect(chosen.code, `${material} を変えた時に命令が止まった: ${chosen.stderr}`).toBe(0);
       expect(readers.filter((reader) => !chosen.files.includes(reader)), `${material} の名前を書く検査の file のうち、選ばれなかった物`).toEqual([]);
     });

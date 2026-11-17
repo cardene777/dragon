@@ -60,15 +60,20 @@ function sourcesUnder(dir: string): string[] {
 }
 
 /**
+ * 描画の src の全ての file と中身。file を読み込む時に 1 度だけ読み、種類とブロックごとに読み直さない (#3733)。
+ * 字の並びは改行を含まないので、file ごとに探しても、全ての file をつないで探した時と同じ答えになる
+ */
+const SOURCES = sourcesUnder(SRC).map((path) => ({ path, text: readFileSync(path, "utf8") }));
+
+/** `own` の外の src の file のどれかが `text` を持つか */
+const elsewhere = (own: readonly string[], text: string): boolean => SOURCES.some((source) => !own.includes(source.path) && source.text.includes(text));
+
+/**
  * その種類の部品の file だけが持つ字の並び。minify しても字の並びは残るので、script の中に部品が入っているかを字の並びで見る。
  * 手で選ぶと部品を直した時に空振りするので、元の file から導く
  */
 function markersOf(kind: string): string[] {
   const own = (LATER_KINDS[kind] ?? []).map((file) => join(SRC, file));
-  const others = sourcesUnder(SRC)
-    .filter((path) => !own.includes(path))
-    .map((path) => readFileSync(path, "utf8"))
-    .join("\n");
   const found = own.flatMap((path) => {
     const code = readFileSync(path, "utf8")
       .replace(/\/\*[\s\S]*?\*\//gu, "")
@@ -77,7 +82,7 @@ function markersOf(kind: string): string[] {
       .join("\n");
     return [...code.matchAll(/["`]([^"`\\\n$]*data-[^"`\\\n$]*)["`]/gu)].map((m) => m[1] ?? "");
   });
-  return [...new Set(found)].filter((text) => text.trim().length > 0 && !others.includes(text));
+  return [...new Set(found)].filter((text) => text.trim().length > 0 && !elsewhere(own, text));
 }
 
 /**
@@ -96,13 +101,9 @@ function readingMarkers(): { block: string; markers: string[] }[] {
     const own = join(blocksDir, block, "read.ts");
     // 束ねた script は注釈を残さないので、注釈を外した字から探す
     const code = readFileSync(own, { encoding: "utf8", flag: "r" }).replace(/\/\*[\s\S]*?\*\//gu, "").replace(/^\s*\/\/.*$/gmu, "");
-    const others = sourcesUnder(SRC)
-      .filter((path) => path !== own)
-      .map((path) => readFileSync(path, "utf8"))
-      .join("\n");
     // 字の並びは、誤りの文の引用の中の、引用の始まりか `${...}` の後ろから、次の `${` か引用の終わりまでの 8 字以上の日本語を含む部分
     const found = [...code.matchAll(/[`"}]([^`"$\\\n]*[\u3040-\u30ff\u4e00-\u9fff][^`"$\\\n]*)/gu)].map((m) => (m[1] ?? "").trim());
-    return { block, markers: [...new Set(found)].filter((text) => text.length >= 8 && !others.includes(text)) };
+    return { block, markers: [...new Set(found)].filter((text) => text.length >= 8 && !elsewhere([own], text)) };
   });
 }
 

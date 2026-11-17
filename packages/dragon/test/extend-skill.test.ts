@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import * as blockIndex from "../src/blocks/index";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const SKILL = join(ROOT, ".claude/skills/dragon-extend");
@@ -88,8 +89,9 @@ function premiseSection(title: string): string {
  * 個別ブロックを並べて持つ file は、個別ブロックを足すと並びに足すので、ブロックを足す時に触る。
  * 1 つだけを名指す file はそのブロックを使う所で、ほかのブロックを足しても触らない。書き出した一覧は数えない
  */
-async function handLists(): Promise<string[]> {
-  const { BLOCKS } = (await import("../src/blocks/index")) as unknown as { BLOCKS: Record<string, { name: string; attach: { only?: string } }> };
+function handLists(): string[] {
+  // ブロックの置き場は file を読み込む時に読む。件の中で読むと、全てのブロックを組み立てる手間で混んだ機械の 1 件の上限 (10 秒) を超えた (#3733)
+  const { BLOCKS } = blockIndex as unknown as { BLOCKS: Record<string, { name: string; attach: { only?: string } }> };
   const individual = Object.values(BLOCKS).filter((block) => block.attach.only !== undefined).map((block) => block.name);
   return git("ls-files", "packages/dragon/src", "packages/dragon/scripts", "packages/dragon/test", "apps/playground-spa/src")
     .filter((file) => /\.(?:ts|tsx|mjs)$/u.test(file) && !file.startsWith("packages/dragon/src/blocks/"))
@@ -196,7 +198,7 @@ describe("記法と図の種類とブロックを足す skill (#3245)", () => {
 });
 
 describe("ブロックを足す時の登録先 (#3350)", () => {
-  it("extend-registry-block-rows-shrink", async () => {
+  it("extend-registry-block-rows-shrink", () => {
     const rows = rowsOf(BLOCK_TABLE);
     expect(rows.length, `登録先の一覧に「${BLOCK_TABLE}」の表の行が無い`).toBeGreaterThan(0);
     expect(rows.length, "ブロックを足す時の表の行の数").toBeLessThanOrEqual(BLOCK_ROWS_MOST);
@@ -204,7 +206,7 @@ describe("ブロックを足す時の登録先 (#3350)", () => {
     const absent = rows.filter((path) => (/<[^>]+>/u.test(path) ? !tracked.some((file) => patternOf(path).test(file)) : !existsSync(join(ROOT, path))));
     expect(absent, "ブロックを足す時の表が名指すが repo に無い path").toEqual([]);
     // 個別ブロックを並べて持つ file は、ブロックを足す時に触るので、表のどれかの行に当たる
-    const lists = await handLists();
+    const lists = handLists();
     expect(lists.length, "個別ブロックを並べて持つ file が無い (走査の空振り)").toBeGreaterThan(0);
     const patterns = rows.map(patternOf);
     expect(lists.filter((file) => !patterns.some((p) => p.test(file))), "個別ブロックを並べて持つが、表のどの行にも当たらない file").toEqual([]);

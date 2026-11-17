@@ -10,8 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
-import { casesNamed } from "./cases-support";
-import { runCli } from "./export-support";
+import { casesNamed, runCli } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
 
 const ROOT = process.cwd();
@@ -76,29 +75,16 @@ describe("arcade の値 (#3341)", () => {
   });
 });
 
-describe("arcade で描く (#3341)", () => {
-  it("arcade-renders-every-example", () => {
-    const palettes = draw("PALETTES");
-    const renderDiagram = draw("renderDiagram");
-    const files = readdirSync(EXAMPLES).filter((file) => file.endsWith(".json"));
-    expect(files.length, "packages/dragon/examples の見本の数").toBeGreaterThan(0);
-    const others = Object.values(palettes)
-      .filter((palette) => palette.id !== "arcade")
-      .flatMap((palette) => THEMES.map((theme) => ({ where: `${palette.id} の ${theme} の地`, value: (palette[theme].bg ?? "").toLowerCase() })));
-    expect(others.length, "arcade のほかの色味の地の数").toBe(8);
+/** arcade のほかの色味の、明暗ごとの地の色 */
+function otherGrounds(): { where: string; value: string }[] {
+  return Object.values(draw("PALETTES"))
+    .filter((palette) => palette.id !== "arcade")
+    .flatMap((palette) => THEMES.map((theme) => ({ where: `${palette.id} の ${theme} の地`, value: (palette[theme].bg ?? "").toLowerCase() })));
+}
 
-    for (const file of files) {
-      const diagram = JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as unknown;
-      for (const theme of THEMES) {
-        const rendered = renderDiagram(diagram, { palette: "arcade", theme });
-        const svg = rendered.svg.toLowerCase();
-        expect(rendered.palette, `${file} を arcade の ${theme} で描いた色味`).toBe("arcade");
-        expect(svg, `${file} の ${theme} に arcade の地が入らない`).toContain(BITSUMI.bg);
-        expect(svg, `${file} の ${theme} に arcade の緑が入らない`).toContain(BITSUMI["c-green"]);
-        const leaked = others.filter((other) => svg.includes(other.value)).map((other) => other.where);
-        expect(leaked, `${file} の ${theme} にほかの色味の地が入る`).toEqual([]);
-      }
-    }
+describe("arcade で描く (#3341)", () => {
+  it("arcade-other-palette-grounds-counted", () => {
+    expect(otherGrounds().length, "arcade のほかの色味の地の数").toBe(8);
   });
 
   // 全ての見本を arcade で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
@@ -118,6 +104,23 @@ describe("arcade で描く (#3341)", () => {
     const html = readFileSync(join(out, written[0] ?? ""), "utf8").toLowerCase();
     expect(html, "書き出した HTML に arcade の地が入らない").toContain(BITSUMI.bg);
     expect(html, "書き出した HTML に arcade の緑が入らない").toContain(BITSUMI["c-green"]);
+  });
+});
+
+describe.for(readdirSync(EXAMPLES).filter((file) => file.endsWith(".json")).sort())("arcade で描く見本 (#3341) %s", (file) => {
+  it("arcade-renders-every-example", () => {
+    const renderDiagram = draw("renderDiagram");
+    const others = otherGrounds();
+    const diagram = JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as unknown;
+    for (const theme of THEMES) {
+      const rendered = renderDiagram(diagram, { palette: "arcade", theme });
+      const svg = rendered.svg.toLowerCase();
+      expect(rendered.palette, `${file} を arcade の ${theme} で描いた色味`).toBe("arcade");
+      expect(svg, `${file} の ${theme} に arcade の地が入らない`).toContain(BITSUMI.bg);
+      expect(svg, `${file} の ${theme} に arcade の緑が入らない`).toContain(BITSUMI["c-green"]);
+      const leaked = others.filter((other) => svg.includes(other.value)).map((other) => other.where);
+      expect(leaked, `${file} の ${theme} にほかの色味の地が入る`).toEqual([]);
+    }
   });
 });
 

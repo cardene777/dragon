@@ -11,7 +11,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
-import { casesNamed } from "./cases-support";
+import { casesNamed } from "./export-support";
 import { draw, type Player, type Rect, type Theme } from "./render-support";
 
 const ROOT = process.cwd();
@@ -248,20 +248,8 @@ describe("arcade の角 (#3344)", () => {
     expect(casesNamed(task.file, "arcade-cut-is-8-or-a-quarter"), "見本ごとの件").toEqual(FILES.map((file) => `arcade の角の大きさ (#3344) ${file}`));
   });
 
-  it("arcade-cut-is-8-or-a-quarter", async () => {
-    const wrong: string[] = [];
-    for (const file of FILES) {
-      for (const theme of THEMES) {
-        for (const { paper, arcade } of framePairs(file, theme)) {
-          const box = boxOf(paper);
-          if (!sameRing(ring(arcade.getAttribute("d") ?? ""), cutRing(box, cutOf(box))))
-            wrong.push(`${file} の ${theme} の ${where(arcade)} を ${cutOf(box)} 落としていない`);
-        }
-      }
-    }
-    expect(wrong).toEqual([]);
-
-    // 見本の箱はどれも幅と高さが 32 以上で 8 落とすため、小さい形を縮める所は形を作る関数で確かめる
+  // 見本の箱はどれも幅と高さが 32 以上で 8 落とすため、小さい形を縮める所は形を作る関数で確かめる
+  it("arcade-cut-shape-shrinks-small-boxes", async () => {
     // 関数がまだ無い時もこの file の他の検査を走らせるため、置き場を変数で渡して読めない時は無いと判定する
     const modulePath = "../src/render/corner";
     const corner = (await import(/* @vite-ignore */ modulePath).catch(() => undefined)) as
@@ -284,6 +272,20 @@ describe("arcade の角 (#3344)", () => {
         `${w} × ${h} の形を ${cutOf(box)} 落としていない`,
       ).toBe(true);
     }
+  });
+});
+
+describe.for(FILES)("arcade の角の大きさ (#3344) %s", (file) => {
+  it("arcade-cut-is-8-or-a-quarter", () => {
+    const wrong: string[] = [];
+    for (const theme of THEMES) {
+      for (const { paper, arcade } of framePairs(file, theme)) {
+        const box = boxOf(paper);
+        if (!sameRing(ring(arcade.getAttribute("d") ?? ""), cutRing(box, cutOf(box))))
+          wrong.push(`${file} の ${theme} の ${where(arcade)} を ${cutOf(box)} 落としていない`);
+      }
+    }
+    expect(wrong).toEqual([]);
   });
 });
 
