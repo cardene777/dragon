@@ -98,8 +98,8 @@ describe("版を出す前と出した後の確かめ (#3589)", () => {
 /** npmへ出す時の検査の命令を `&&` で区切った段 */
 function prepublishSteps(): string[] {
   const pkg = JSON.parse(readFileSync(join(ROOT, "packages/dragon/package.json"), "utf8")) as { scripts: Record<string, string> };
-  const command = pkg.scripts.prepublishOnly;
-  expect(command, "packages/dragon/package.json が prepublishOnly を持たない").toBeTypeOf("string");
+  const command = pkg.scripts.prepublishOnly ?? "";
+  expect(command, "packages/dragon/package.json が prepublishOnly を持たない").not.toBe("");
   return command.split("&&").map((step) => step.trim());
 }
 

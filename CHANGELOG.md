@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.77.0] - 2026-11-17
+
 ### Added
 
 - **A `route` line in pipe diagrams that passes the call paths the placement keeps open, and a placement that keeps cards and lines apart and leaves no empty band for any number of people and boxes** (#3721)
@@ -33,6 +35,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **Pipe diagrams place valves at the middle of their straight runs and let calls leave from the bottom of a contract** (#3720)
 
   A valve is looked for from the middle of the straight run it sits on outward. A call may leave a contract from the bottom edge, and the gap between two stacked parties widens by the width of a return tag when the tag has no free place on the call pipe between them. A phone-wide frame draws the same arrangement as a wide one, and the player moves to the current step. A shared HTML file draws a diagram with holdings without stopping.
+
+### Fixed
+
+- **A box's slot frame fits the carriers it holds at the moment, even when a wider carrier passes the same box in another step** (#3723)
+
+  The frame around a box's slot (`rect.dg-slot`) wraps the carriers sitting in the box during each span, with the slot padding on both sides. A box that holds only a thin letter in one step and a long-labelled tag in another shows the narrow frame while it holds the letter, instead of the tag's width in every step. The box width and the place of the slot still follow the widest carrier, so the box does not jump between steps. A box that only one kind of carrier passes draws its frame at the same place and size as before.
 
 ## [0.76.0] - 2026-11-15
 
