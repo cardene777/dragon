@@ -716,7 +716,9 @@ describe("札と印", () => {
         expect(at.every((d) => Number.isFinite(d)), `${fl.token} ${fl.from}>${fl.to} の矢じりが道の上に無い`).toBe(true);
         for (let i = 1; i < at.length; i++) expect(Math.abs((at[i] as number) - (at[i - 1] as number) - 44), `${fl.token} ${fl.from}>${fl.to} の矢じりの間`).toBeLessThan(1);
       }
-      expect((f.svg.match(/class="dg-pp-chev[" ]/gu) ?? []).length, `${shape ?? "既定"} の矢じりを描いていない`).toBeGreaterThanOrEqual(flows.reduce((s, fl) => s + (fl.chevrons?.length ?? 0), 0));
+      // 1 本の流れの矢じりは 1 つの path の区切った道 (`M` で始まる 1 つずつ) にまとめて描く
+      const drawn = [...f.svg.matchAll(/class="dg-pp-chev" d="([^"]*)"/gu)].reduce((s, m) => s + ((m[1] ?? "").match(/M/gu) ?? []).length, 0);
+      expect(drawn, `${shape ?? "既定"} の矢じりを描いていない`).toBeGreaterThanOrEqual(flows.reduce((s, fl) => s + (fl.chevrons?.length ?? 0), 0));
     }
   });
 

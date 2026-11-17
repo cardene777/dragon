@@ -1061,16 +1061,21 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         }),
       ];
     };
-    /** 流れの道の上の向きの矢じり (#3721)。どこを切り取っても流れる向きが読める */
-    const chevrons = (fl: PipeFlow): string =>
-      (fl.chevrons ?? [])
+    /**
+     * 流れの道の上の向きの矢じり (#3721)。どこを切り取っても流れる向きが読める。
+     * 1 本の流れの矢じりは 1 つの path の区切った道にまとめる。矢じりごとに要素を作ると、長い管を持つ図 (見本 `aggregator`) で要素が段ごとに数千増え、置く時の読み込みが遅くなる
+     */
+    const chevrons = (fl: PipeFlow): string => {
+      const a = P.flow.chevron / 2;
+      const d = (fl.chevrons ?? [])
         .map((c) => {
-          const a = P.flow.chevron / 2;
           const [bx, by] = [c.x - c.dx * a * 0.5, c.y - c.dy * a * 0.5];
           const [nx, ny] = [-c.dy * a, c.dx * a];
-          return `<path class="dg-pp-chev" d="M ${r1(bx + nx)} ${r1(by + ny)} L ${r1(c.x + c.dx * a * 0.5)} ${r1(c.y + c.dy * a * 0.5)} L ${r1(bx - nx)} ${r1(by - ny)}"/>`;
+          return `M ${r1(bx + nx)} ${r1(by + ny)} L ${r1(c.x + c.dx * a * 0.5)} ${r1(c.y + c.dy * a * 0.5)} L ${r1(bx - nx)} ${r1(by - ny)}`;
         })
-        .join("");
+        .join(" ");
+      return d === "" ? "" : `<path class="dg-pp-chev" d="${d}"/>`;
+    };
     // 値の管を流れた分。この段で流れた分は、出来事の時刻に流れの先が管を進む
     for (const fl of here) {
       const attrs = on({ flow: `${fl.from}>${fl.to}`, token: fl.token, state: fl.state });
