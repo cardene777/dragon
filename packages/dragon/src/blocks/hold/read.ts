@@ -14,7 +14,7 @@ import { isAmount, quantityText } from "../../pipe-run";
 import { fail, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
 import { type DiagramModel, PIPE_LAYOUTS, type PipeLayoutName } from "../../schema";
 import type { SourceLine } from "../../tokenize";
-import type { BlockReading, FigureDraft, ParseState } from "../block";
+import type { BlockReading, FigureDraft, LineView, ParseState } from "../block";
 import { ETH } from "../definition-values";
 import type { PipeHold, PipeHoldLink, PipeMove } from "./block";
 
@@ -26,6 +26,8 @@ const MINT = /^(\S+?)(?:\s+(#\S*?))?\s*->\s*([^\s[]+)\s*(\[.*)?$/du;
 const BURN = /^(\S+)(?:\s+(#\S*))?\s+([^\s[]+)\s*(\[.*)?$/du;
 /** トークンの番号。`#` の後の数字 */
 const TOKEN_ID = /^#(\d+)$/u;
+/** `route` の行。呼ぶ人と呼ばれる箱 */
+const ROUTE = /^route\s+([^\s[\]]+)\s*->\s*([^\s[\]]+)\s*$/du;
 
 export interface HoldMessages {
   holdShape: string;
@@ -46,6 +48,12 @@ export interface HoldMessages {
   layoutTwice: string;
   /** 置き方の行に知らない形の名前 `shape` を書いたか、形を書かなかった (Tracelyth #165、#166、#168) */
   layoutBad: (shape: string) => string;
+  /** 通り道の組の行 (`route`) の形が違う (#3721) */
+  routeLineShape: string;
+  /** 通り道の組の行に、宣言していない名札 `id` を書いた (#3721) */
+  routeLineUnknown: (id: string) => string;
+  /** 同じ通り道の組を 2 度書いたか、呼ぶ人と呼ばれる箱に同じ名札を書いた (#3721) */
+  routeLineTwice: (from: string, to: string) => string;
 }
 
 /** 読んだ量。番号を持つ時は NFT と ERC-1155 のトークンの番号 */
@@ -138,6 +146,48 @@ function readLayout(source: SourceLine, state: ParseState): void {
   state.figure.root = { ...root, layout: shape } as FigureDraft["root"];
 }
 
+/** 置き方が通り道を空ける、呼ぶ人 `from` と呼ばれる箱 `to` の組 */
+type PipeRoute = NonNullable<DiagramModel["routes"]>[number];
+/** 根の欄に通り道の組を持つ図の形 */
+type RoutedRoot = FigureDraft["root"] & { routes?: PipeRoute[] };
+/** 読んだ通り道の組の行。名札は箱の行を読み終えてから確かめるので、誤りを指す行と位置を組ごとに残す */
+const routeSources = new WeakMap<ParseState, { source: SourceLine; route: PipeRoute; fromAt: number; toAt: number }[]>();
+
+/**
+ * 通り道の組の行 (`route <人> -> <箱>`、#3721)。最初の段より前に、置き方が通り道を空ける呼び出しの組を 1 組 1 行で書く。
+ * `route` は試す図の網の行の頭の語でもあるので、頭の語でなく行の形で読み、配管の図の行だけを読む。
+ * 箱の行より前に書いても読めるよう、名札は読み終えた時 (`finish`) に確かめる
+ */
+function takeRoute(source: SourceLine, state: ParseState, view: LineView): boolean {
+  if (state.kind !== "pipe" || view.word !== "route") return false;
+  const { m } = state;
+  state.beforeSteps(source);
+  const found = ROUTE.exec(source.text);
+  if (!found) throw fail(source, 0, m.routeLineShape);
+  const from = found[1] ?? "";
+  const to = found[2] ?? "";
+  const root: RoutedRoot | undefined = state.figure.root;
+  const routes = root?.routes ?? [];
+  const fromAt = found.indices?.[1]?.[0] ?? 0;
+  if (from === to || routes.some((r) => r.from === from && r.to === to)) throw fail(source, fromAt, m.routeLineTwice(from, to));
+  state.figure.root = { ...root, routes: [...routes, { from, to }] } as FigureDraft["root"];
+  const seen = routeSources.get(state) ?? [];
+  seen.push({ source, route: { from, to }, fromAt, toAt: found.indices?.[2]?.[0] ?? 0 });
+  routeSources.set(state, seen);
+  return true;
+}
+
+/** 通り道の組の名札が、宣言した箱を指すかを確かめる */
+function verifyRoutes(state: ParseState): void {
+  const { m } = state;
+  for (const { source, route, fromAt, toAt } of routeSources.get(state) ?? [])
+    for (const [id, at] of [
+      [route.from, fromAt],
+      [route.to, toAt],
+    ] as const)
+      if (!state.figure.boxes.some((b) => b.id === id)) throw fail(source, at, m.routeLineUnknown(id));
+}
+
 /** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
 const HOLD_LINK_KEYS = ["from", "to", "on", "unit"];
 /** 値の後ろに置いた持ち分の線の属性 (`[from: a, to: b]` か `[on: a]`) の頭の位置。無ければ undefined */
@@ -220,6 +270,9 @@ function readMove(source: SourceLine, state: ParseState, form: MoveForm): PipeMo
   return event;
 }
 
+/** 通り道の組の塊 (#3721)。書いた順に 1 組 1 行 */
+const routeLines = (diagram: DiagramModel): string[] => (diagram.routes?.length ? [diagram.routes.map((r) => `route ${r.from} -> ${r.to}`).join("\n")] : []);
+
 /** 始めの値の塊。続けて宣言した同じ持ち主の残高は 1 行に並べる */
 function holdLines(diagram: DiagramModel): string[] {
   const holds = diagram.pipe?.holds ?? [];
@@ -236,7 +289,7 @@ function holdLines(diagram: DiagramModel): string[] {
     else lines.push(`hold ${hold.box}: ${valueName(hold.name)} ${hold.value}${holdLinkText(hold.link)}`);
   }
   if (last) lines.push(`hold ${last.box}: ${last.balances.join(", ")}`);
-  return lines.length === 0 ? [] : [lines.join("\n")];
+  return [...routeLines(diagram), ...(lines.length === 0 ? [] : [lines.join("\n")])];
 }
 
 /** 量を移す行を書き戻す。送り手が無ければ `mint`、受け手が無ければ `burn` */
@@ -263,6 +316,8 @@ export const reading: BlockReading<HoldMessages> = {
     mint: moveReader(FORMS.mint),
     burn: moveReader(FORMS.burn),
   },
+  take: takeRoute,
+  finish: (state) => verifyRoutes(state),
   print: {
     figure: holdLines,
     events: {
@@ -283,6 +338,9 @@ export const reading: BlockReading<HoldMessages> = {
       layoutTwice: "layout の行は1つの図に1行だけ書ける",
       layoutBad: (shape) =>
         shape === "" ? "layout の後に形の名前 (top、bottom、ledger、mesh、bus、auto のどれか) を書く" : `layout の形「${shape}」は書けない。top、bottom、ledger、mesh、bus、auto のどれかを書く`,
+      routeLineShape: "route は route <呼ぶ人> -> <呼ばれる箱> の形で 1 組 1 行に書く",
+      routeLineUnknown: (id) => `route の ${id} という名札の箱が無い。box ${id} で宣言した名札を書く`,
+      routeLineTwice: (from, to) => (from === to ? `route の呼ぶ人と呼ばれる箱に同じ ${from} を書いている` : `route ${from} -> ${to} を 2 度書いている`),
     },
     en: {
       holdShape: "Write hold as hold <owner>: <amount> <token>, <amount> <token> or hold <contract>: <name> <value>",
@@ -296,6 +354,9 @@ export const reading: BlockReading<HoldMessages> = {
       moveEth: "ETH cannot be moved with move. Send it with [value: <amount> ETH] on a call line",
       layoutTwice: "Write at most one layout line in a diagram",
       layoutBad: (shape) => (shape === "" ? "Write a shape name (top, bottom, ledger, mesh, bus or auto) after layout" : `The layout shape "${shape}" is unknown. Write top, bottom, ledger, mesh, bus or auto`),
+      routeLineShape: "Write route as route <caller> -> <called box>, one pair per line",
+      routeLineUnknown: (id) => `route names ${id}, but no box has that id. Write an id declared with box ${id}`,
+      routeLineTwice: (from, to) => (from === to ? `route names ${from} as both the caller and the called box` : `route ${from} -> ${to} is written twice`),
     },
   },
 };

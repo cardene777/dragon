@@ -384,6 +384,8 @@ export interface Diagram {
   view?: ViewMode;
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
+  /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */
+  routes?: { from: string; to: string }[];
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
@@ -417,6 +419,8 @@ export interface DiagramModel {
   view?: ViewMode;
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
+  /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */
+  routes?: { from: string; to: string }[];
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   regions?: Region[];

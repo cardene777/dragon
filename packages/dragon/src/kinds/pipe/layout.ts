@@ -41,6 +41,8 @@ export type PipeShape = "round" | "cabinet" | "token";
 /** 配管の図の言葉。図の原本は語を持たないので、描く時の言葉で引く */
 export interface PipeWords {
   tags: Record<Exclude<PipeState, "none">, string>;
+  /** 値の箱の下の前の値に添える語 (#3721) */
+  before: string;
   /** 始めた人が払った槽の印と、受け取った槽の印 */
   io: { in: string; out: string };
   fold: (steps: number, parties: number) => string;
@@ -55,6 +57,7 @@ export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   ja: {
     // リバートで戻った値の札は、Tracelythの用語集の語 (リバート) で書く (Tracelyth #111)
     tags: { provisional: "暫定", final: "確定", rolled: UNDONE_TAG.ja },
+    before: "前",
     log: "ログ",
     io: { in: "入力", out: "出力" },
     fold: (steps, parties) => `内側の${steps}段と${parties}人`,
@@ -64,6 +67,7 @@ export const PIPE_TEXT: Record<NotationLang, PipeWords> = {
   },
   en: {
     tags: { provisional: "Pending", final: "Final", rolled: UNDONE_TAG.en },
+    before: "Was",
     log: "Log",
     io: { in: "In", out: "Out" },
     fold: (steps, parties) => `${steps} ${steps === 1 ? "step" : "steps"} and ${parties} ${parties === 1 ? "party" : "parties"} inside`,
@@ -101,6 +105,7 @@ export function pipeWords(lang: NotationLang, given?: PipeWordsInput): PipeWords
   const { fold, foldTitle } = given;
   return {
     tags: { ...base.tags, ...given.tags },
+    before: base.before,
     io: { ...base.io, ...given.io },
     fold: fold === undefined ? base.fold : (steps, parties) => fill(fold, { steps, parties }),
     open: given.open ?? base.open,
@@ -271,10 +276,51 @@ export interface PipeFlow extends PipeAt {
   points: Point[];
   /** 向きの印の場所と向き。`vertical` は縦に走る所の印で、`dir` は右か下へ流れる時 1、左か上へ -1 */
   arrow: { x: number; y: number; dir: 1 | -1; vertical: boolean };
+  /**
+   * 管の上に並べる向きの矢じり (#3721)。道に沿って `PIPE_CHEVRON` ごとに置き、`dx` と `dy` は流れる向きの単位の向き。
+   * 描く処理は札入れと札を置く時に道を伸ばすので、描く時に道が決まってから書く
+   */
+  chevrons?: { x: number; y: number; dx: number; dy: number }[];
   tone: number;
   /** この段で流れたか。流れた段は斜線の液の塊が管を通り抜ける */
   fresh: boolean;
 }
+/** 値の管の上の向きの矢じり 1 つ */
+type PipeChevron = NonNullable<PipeFlow["chevrons"]>[number];
+/** 矢じりの間 (px、道に沿った長さ) */
+export const PIPE_CHEVRON = 44;
+/** 角の手前と先でこの長さより角に近い矢じりは、角の手前の線分の終わりに置く。折れた所でどちらの線分の向きか迷わないため */
+const CORNER_SNAP = 1;
+
+/**
+ * 流れの道 `points` の上に、道の始まりから半分の間を空けて `PIPE_CHEVRON` ごとに置く向きの矢じり (#3721)。
+ * どこを切り取っても流れる向きが読めるよう、短い道にも 1 つは置く
+ */
+export function chevronsOf(points: readonly Point[]): PipeChevron[] {
+  const segs = points.slice(1).map((b, i) => [points[i] as Point, b] as const).filter(([a, b]) => a[0] !== b[0] || a[1] !== b[1]);
+  const lens = segs.map(([a, b]) => Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]));
+  const total = lens.reduce((s, x) => s + x, 0);
+  if (total <= 0) return [];
+  const out: PipeChevron[] = [];
+  for (let d = Math.min(PIPE_CHEVRON / 2, total / 2); d < total; d += PIPE_CHEVRON) {
+    let walked = 0;
+    for (let k = 0; k < segs.length; k++) {
+      const len = lens[k] as number;
+      const [a, b] = segs[k] as readonly [Point, Point];
+      if (walked + len + CORNER_SNAP < d && k < segs.length - 1) {
+        walked += len;
+        continue;
+      }
+      const at = Math.min(len, d - walked);
+      const dx = Math.sign(b[0] - a[0]);
+      const dy = Math.sign(b[1] - a[1]);
+      out.push({ x: a[0] + dx * at, y: a[1] + dy * at, dx, dy });
+      break;
+    }
+  }
+  return out;
+}
+
 export interface PipeCallLane {
   index: number;
   step: number;
@@ -333,11 +379,14 @@ export interface PipePlate extends Rect, PipeAt {
   label: PipeText;
   text: PipeText;
   was?: PipeText;
+  /** 前の値を消す線。トークンの箱の中の値だけが持つ */
   strike?: Rect;
   /** 前の値と今の値の間の矢印。トークンの箱の中の値だけが持つ */
   arrow?: PipeText;
   /** 前の値に添える語。トークンの箱の外の値だけが持つ */
   tag?: PipeText;
+  /** 前の値の前に置く語 (`前`)。トークンの箱の外の値だけが持つ (#3721) */
+  before?: PipeText;
   /** トークンの箱の残高の行か (Tracelyth #171) */
   row?: boolean;
   /** 残高の行の頭の、持つ人の頭文字の印 */
@@ -403,6 +452,8 @@ export interface PipeEventChip extends Rect, PipeAt {
   state: PipeState;
   text: PipeText;
   args?: PipeText;
+  /** 札の帯に置いた札から発した箱へ結ぶ点線 (#3721) */
+  tether?: Point[];
 }
 /** 変換器。`calc` を行う関係者の 2 つの槽の間に、全ての段で置き、計算した段だけ `active` */
 export interface PipeConverter extends Rect {
@@ -462,6 +513,10 @@ export interface PipeFixed {
   cards?: "above" | "below";
   ceiling?: { y: number };
   ceilings?: Record<string, { y: number }>;
+  /** 置き方が通り道を空けた、人から箱への呼び出しの組 (#3721)。`route` の行で渡した組か、渡さない図は段に出る人からの呼び出しの組 */
+  routes?: [string, string][];
+  /** 札の帯とログの点線の帯の下端 (#3721)。札入れと呼び出しの札はこれより下に置き、ログの札は札入れに入れない */
+  band?: { bottom: number };
 }
 /** 帳簿型の、トークンの行の囲みと、箱を載せる張り出しと、分配管 */
 export interface PipeLedger {
@@ -581,6 +636,96 @@ export interface PipeLogCard extends Rect {
   title: string;
   states: string[];
   rows: PipeArgRow[];
+  /** 札を発した段と、その段で発した出来事の番号 (#3721)。札の帯は段の順、段の中は発した順に左から並ぶ */
+  step?: number;
+  event?: number;
+  /** 札から発した箱へ結ぶ点線 (#3721)。札の下の縁から出て、発した箱の上の縁に着く */
+  tether?: Point[];
+}
+
+/** ログの札の字の形 (#3721)。描く処理 (`render/pipe.ts`) と、札の帯を置く置き直し (`layout/pipe-place.ts`) が同じ大きさで測る */
+export const LOG_TYPE = {
+  tag: { ...PIPE_TYPE.chip, size: 11, weight: 700 },
+  k: { ...PIPE_TYPE.chip, size: 12, weight: 600 },
+  f: { ...PIPE_TYPE.chip, size: 13, weight: 700 },
+  n: { ...PIPE_TYPE.chip, size: 12, weight: 500 },
+  v: { ...PIPE_TYPE.chip, size: 12, weight: 700 },
+} satisfies Record<string, TextStyle>;
+
+/** 引数を一番外の , で分ける。[ ] と ( ) と " " の中の , は値の一部として残す (配列の引数 `path: [usdc, weth]`) */
+export function splitArgs(body: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote = false;
+  let start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i];
+    if (c === '"' && body[i - 1] !== "\\") quote = !quote;
+    else if (quote) continue;
+    else if (c === "[" || c === "(") depth++;
+    else if (c === "]" || c === ")") depth--;
+    else if (c === "," && depth === 0) {
+      parts.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(body.slice(start));
+  return parts.map((x) => x.trim());
+}
+
+/** 参加者の id を名前にする。配列の値は要素ごとに名前にする */
+export function partyNameOf(layout: Pick<PipeLayout, "parties">, v: string): string {
+  return /^\[.*\]$/su.test(v) ? `[${splitArgs(v.slice(1, -1)).map((x) => partyNameOf(layout, x)).join(", ")}]` : (layout.parties.find((p) => p.id === v)?.name ?? v);
+}
+
+/** 引数の並びを、名前と値の行にする。参加者の id は名前にする */
+export function argRowsOf(layout: Pick<PipeLayout, "parties">, body: string): PipeArgRow[] {
+  const partyName = (v: string): string => partyNameOf(layout, v);
+  return body.trim() === ""
+    ? []
+    : splitArgs(body).map((x) => {
+        const k = x.indexOf(":");
+        return k < 0 ? { name: "", value: partyName(x) } : { name: x.slice(0, k).trim(), value: partyName(x.slice(k + 1).trim()) };
+      });
+}
+
+/** ログの札の大きさと引数の行と、見出しに出す発した者の名前 (#3721)。引数を持たない段の札は、同じ出来事を発した段の引数を引く */
+export function logCardSize(layout: Pick<PipeLayout, "parties" | "events" | "logWords">, e: PipeEventChip): { w: number; h: number; rows: PipeArgRow[]; party: string } {
+  const args = e.args?.text ?? layout.events.find((x) => x !== e && x.party === e.party && x.name === e.name && x.emitted === e.emitted && x.args)?.args?.text ?? "";
+  const rows = argRowsOf(layout, args);
+  const party = layout.parties.find((p) => p.id === e.party)?.name ?? e.party;
+  const states: Record<PipeEventChip["state"], string> = { ...layout.logWords.states, none: "" };
+  const head =
+    textWidth(layout.logWords.head, LOG_TYPE.tag) + 14 + 8 + textWidth(`${party}.`, LOG_TYPE.k) + textWidth(e.name, LOG_TYPE.f) + 12 + textWidth(states[e.state] ?? "", LOG_TYPE.tag);
+  const nameW = Math.max(0, ...rows.map((r) => textWidth(r.name, LOG_TYPE.n)));
+  const valW = Math.max(0, ...rows.map((r) => textWidth(r.value, LOG_TYPE.v)));
+  return { w: Math.max(head, nameW + 22 + valW) + 24, h: 32 + (rows.length > 0 ? rows.length * 21 + 8 : 0), rows, party };
+}
+/** 呼び出しの札の字。頭の呼ばれた者 (`k`)、関数名 (`f`)、引数の名前 (`n`) と値 (`v`) */
+export const CALL_TYPE = {
+  k: { ...PIPE_TYPE.chip, size: 13, weight: 600 },
+  f: { ...PIPE_TYPE.chip, size: 14, weight: 700 },
+  p: { ...PIPE_TYPE.chip, size: 13, weight: 500 },
+  n: { ...PIPE_TYPE.chip, size: 13, weight: 500 },
+  v: { ...PIPE_TYPE.chip, size: 13, weight: 700 },
+} satisfies Record<string, TextStyle>;
+/**
+ * 呼び出しの札の大きさと中身 (#3721)。`label` は呼び出しの文 (`run(amount: 5)`)、`to` は呼ばれた者。
+ * 頭 (`呼ばれた者.関数名`) が 200px を超える札は、呼ばれた者と関数名を 2 行に分ける (`two`)。描く処理と置き直しが同じ大きさを使う
+ */
+export function callCardSize(layout: Pick<PipeLayout, "parties">, label: string, to: string): { w: number; h: number; two: boolean; who: string; fn: string; rows: PipeArgRow[] } {
+  const hit = /^([^()]+?)\s*\((.*)\)\s*$/u.exec(label);
+  const fn = hit ? (hit[1] ?? "").trim() : label.trim();
+  const rows = hit ? argRowsOf(layout, hit[2] ?? "") : [];
+  const who = partyNameOf(layout, to);
+  const W = (t: string, style: TextStyle): number => textWidth(t, style);
+  const head = W(`${who}.`, CALL_TYPE.k) + W(fn, CALL_TYPE.f);
+  const two = head > 200;
+  const nameW = Math.max(0, ...rows.map((v) => W(v.name, CALL_TYPE.n)));
+  const valW = Math.max(0, ...rows.map((v) => W(v.value, CALL_TYPE.v)));
+  const w = Math.max(two ? Math.max(W(who, CALL_TYPE.k), W(fn, CALL_TYPE.f)) : head, nameW + 22 + valW) + 14 * 2;
+  const h = (two ? 52 : 36) + (rows.length > 0 ? rows.length * 25 + 8 : 0);
+  return { w, h, two, who, fn, rows };
 }
 /** 移す額の札がトークンの箱 (`box`) に入って出る所。`hidden` は札が箱の中に隠れている時刻の窓 */
 export interface PipeGulp {
@@ -1118,8 +1263,17 @@ const PLANS: Plan[] = [
 const CACHE = new Map<string, PipeLayout>();
 const CACHE_SIZE = 48;
 
-/** 札の高さ。入力と出力の印は囲いの上の余白に収める */
+/** 札の高さ */
 const IO_H = 20;
+/**
+ * 囲いの帯の上の端から、描く点線の枠の上の縁までの高さ (#3721)。入力と出力の印は枠の外の上に置くので、枠を帯より下げて印の場所を空ける。
+ * 枠の中の槽の上の余白は、横の余白 (`P.housing.pad`) と揃う
+ */
+const FRAME_DROP = 16;
+/** 枠の外の上に置く入力と出力の印の上の端。帯の上の端からの高さで、印の下の縁は枠の上の縁より 1px 上に来る */
+const IO_TOP = FRAME_DROP - IO_H - 2;
+/** 書き込む管が札の上で折れる高さ。帯の上の端から、枠の上の縁と槽の上の縁の真ん中 */
+const WRITE_TURN = FRAME_DROP + 9;
 /** 平行な管の縁どうしの間と、管と部品の間 */
 const LINE_GAP = 10;
 /** 呼び出しの管の上の弁と計器の間 */
@@ -1283,6 +1437,7 @@ function along(points: readonly Point[], d: number): Point {
  * 呼んだ側の名札の手前には呼び出しの弁と計器が並ぶため、名札の手前で止めた札はそれらを隠していた。
  * 離れた所が無い短い管では、部品の縁に触れても重ならない所にする。どこにも空きが無い時は呼んだ側の名札 `caller` に札が載らない手前で止め、
  * `cramped` を立てる。崩れの確かめが札と部品の重なりを知らせる。
+ * `lines` (ほかの線の四角) は、札の字 `textAt` が掛からない所を探す。札の地は線を隠すので、字が線に掛からなければ読める (#3721)。
  * 今の並べ方と `layout` の行の置き直し (`layout/pipe-place.ts`、#3720) が、同じ探し方で札を止める
  */
 export function returnRoute(
@@ -1291,6 +1446,8 @@ export function returnRoute(
   callee: Rect | undefined,
   caller: () => Rect,
   avoid: readonly Rect[],
+  lines: readonly Rect[] = [],
+  textAt: (p: Point) => Rect = rectAt,
 ): { path: Point[]; cramped: boolean } {
   let d = 0;
   while (callee && d < lengthOf(back) / 2 && !apart(rectAt(along(back, d)), callee, PART_GAP / 2)) d += 2;
@@ -1299,7 +1456,8 @@ export function returnRoute(
   /** 呼んだ側から遡り、どの部品からも `gap` 離れた最初の所までの長さ。無い時は `whole` */
   const backTo = (gap: number): number => {
     let at = 0;
-    while (at < whole && !avoid.every((o) => apart(rectAt(along(started, whole - at)), o, gap))) at += 2;
+    const clear = (q: Point): boolean => avoid.every((o) => apart(rectAt(q), o, gap)) && lines.every((o) => apart(textAt(q), o, gap));
+    while (at < whole && !clear(along(started, whole - at))) at += 2;
     return at;
   };
   let e = backTo(PART_GAP / 2);
@@ -1404,6 +1562,11 @@ const RETURN_WIDENINGS = 2;
 const NARROW_OVER = 1.06;
 
 function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: boolean, from = 0): PipeLayout {
+  /**
+   * `layout` の行を持つ図か (#3721)。置き直し (`layout/pipe-place.ts`) が人と箱を並べ直して値の管と呼び出しの管を引き直すので、
+   * ここでは道を探さずに諦めの道で結ぶ。道を探すと、捨てる道のために 3人8箱の図で 1 分を超えた
+   */
+  const rough = diagram.layout !== undefined;
   const folds = diagram.pipe?.folds ?? [];
   const foldSteps = new Set(folds.map((f) => f.step));
   const hidden = new Set(folds.flatMap((f) => f.hidden));
@@ -1436,8 +1599,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const callers = new Set(sim.calls.flatMap((c) => [c.from, c.to]));
   const callees = new Set(sim.calls.map((c) => c.to));
   const sender = sim.calls[0]?.from;
-  const roleOf = (id: string): PipeRole => (isBox(id) ? "token" : id === sender ? "sender" : callers.has(id) ? "contract" : "account");
-  const shapeOf = (id: string): PipeShape => (isBox(id) ? "token" : id === sender || !callees.has(id) ? "round" : "cabinet");
+  // 残高でない値 (ストレージ) を持つ者はコントラクトなので、どの段でも呼ばれない図でも四角の箱で描く (#3721)
+  const storing = new Set(holds.flatMap((h) => ("name" in h ? [h.box] : [])));
+  const roleOf = (id: string): PipeRole => (isBox(id) ? "token" : id === sender ? "sender" : callers.has(id) || storing.has(id) ? "contract" : "account");
+  const shapeOf = (id: string): PipeShape => (isBox(id) ? "token" : id === sender || !(callees.has(id) || storing.has(id)) ? "round" : "cabinet");
   const depthOf = new Map<string, number>(sender === undefined ? [] : [[sender, 0]]);
   for (const c of sim.calls) if (!depthOf.has(c.to)) depthOf.set(c.to, c.depth);
   const rowOf = (id: string): number => (shapeOf(id) === "cabinet" ? (depthOf.get(id) ?? 0) : 0);
@@ -1737,7 +1902,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
 
   // ---- 囲いの中身。槽を並べ、値の札を後ろに置く
 
-  const housingH = P.housing.top + P.tank.h + Math.max(P.housing.text, narrow ? Math.ceil(sizes.amount * 1.25) + P.housing.pad : 0);
+  // 槽も値の札も持つ人がいない図は囲いの帯を取らない。取ると、図の下に高さ 200px を超える空き帯が残る (#3721)
+  const housingH = holders.length === 0 ? 0 : P.housing.top + P.tank.h + Math.max(P.housing.text, narrow ? Math.ceil(sizes.amount * 1.25) + P.housing.pad : 0);
   interface Inner {
     tanks: { token: string; dx: number; w: number }[];
     plates: { name: string; dx: number; w: number }[];
@@ -2468,17 +2634,33 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       return { x: b.left, y: top, w: b.home.w, h: b.y - vHalf - LINE_GAP - top };
     };
     for (const b of bays) addObs(bayRect(b), 0);
-    /** 入力と出力の印。始めた人が払った槽と受け取った槽の、囲いの上の余白に置く。値の管はこの印を避ける */
-    function ioMarks(): { token: string; text: string; r: Rect }[] {
+    /**
+     * 入力と出力の印。始めた人が払った槽に入力を、受け取った槽に出力を付け、持ち主の点線の枠の外の上に置く (#3721)。
+     * 受け取った分を別の人へ送る交換 (始めた人が受け取る槽を持たない) は、増えた人の槽に出力を付けて、入力と出力を対で読ませる。
+     * 印は名札から枠へ下りる点線を避けて横にずらす。値の管はこの印を避ける
+     */
+    function ioMarks(): { party: string; token: string; text: string; r: Rect }[] {
       if (sender === undefined || !holding.has(sender)) return [];
-      return (tanksOf.get(sender) ?? []).flatMap((token) => {
-        const first = amountNumber(holds.flatMap((h) => ("token" in h && h.box === sender && h.token === token ? [h.amount] : []))[0]);
-        const last = amountNumber(snapOf(steps - 1).balances.get(keyOf(sender, token)));
-        if (first === last) return [];
-        const text = first > last ? words.io.in : words.io.out;
-        const t = tankOf(sender, token);
+      /** 最初の持ち分から最後の段までに減ったか (-1)、増えたか (1)、変わらないか (0) */
+      const sign = (h: string, token: string): number => {
+        const first = amountNumber(holds.flatMap((x) => ("token" in x && x.box === h && x.token === token ? [x.amount] : []))[0]);
+        const last = amountNumber(snapOf(steps - 1).balances.get(keyOf(h, token)));
+        return first === last ? 0 : first > last ? -1 : 1;
+      };
+      const marks = (tanksOf.get(sender) ?? []).flatMap((token) => {
+        const d = sign(sender, token);
+        return d === 0 ? [] : [{ party: sender, token, text: d < 0 ? words.io.in : words.io.out }];
+      });
+      if (marks.some((x) => x.text === words.io.in) && !marks.some((x) => x.text === words.io.out))
+        for (const h of holders)
+          if (h !== sender && shapeOf(h) === "round") for (const token of tanksOf.get(h) ?? []) if (sign(h, token) > 0) marks.push({ party: h, token, text: words.io.out });
+      return marks.map(({ party, token, text }) => {
+        const t = tankOf(party, token);
         const w = chipW(text, T.io);
-        return [{ token, text, r: { x: t.x + t.w / 2 - w / 2, y: yOfBand(sender) + (P.housing.top - IO_H) / 2 - 2, w, h: IO_H } }];
+        const tie = rectOf(party).x + rectOf(party).w / 2;
+        let x = t.x + t.w / 2 - w / 2;
+        if (x < tie + PART_GAP && x + w > tie - PART_GAP) x = t.x + t.w / 2 < tie ? tie - PART_GAP - w : tie + PART_GAP;
+        return { party, token, text, r: { x, y: yOfBand(party) + IO_TOP, w, h: IO_H } };
       });
     }
     for (const m of ioMarks()) addObs(m.r, vPad);
@@ -2487,7 +2669,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     const ties: PipeTie[] = holders.map((h) => {
       const r = rectOf(h);
       const top = shapeOf(h) === "round" ? r.y + r.h / 2 + belowOf(h) + P.tie.gap : r.y + r.h + P.tie.gap;
-      return { party: h, x: r.x + r.w / 2, y1: top, y2: yOfBand(h) };
+      return { party: h, x: r.x + r.w / 2, y1: top, y2: yOfBand(h) + FRAME_DROP };
     });
     const tieLines = (router: Router): void => {
       for (const t of ties)
@@ -2591,6 +2773,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       } else {
         /** 口の候補どうしを結ぶ。外側の口だけで道が無い時に限り、内側の口と囲いの中を使う */
         const join = (sa: PortChoice[], sb: PortChoice[]): { points: Point[]; a: PipePort; b: PipePort } | undefined => {
+          // 置き直す図は、置き直しが管を引き直すので道を探さない
+          if (rough) return undefined;
           const same = (p: PortChoice, q: Point): boolean => Math.abs(p.exit[0] - q[0]) < 0.5 && Math.abs(p.exit[1] - q[1]) < 0.5;
           // 口から外の点までの線は道を探さずに引くため、先に引いた管がその線を越える口は使わない
           const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token), ...(home ? (ownObs.get(`b:${home.box}`) ?? []) : [])]);
@@ -2705,7 +2889,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     );
     const valuesFailed = best.got.failed.length;
     // 道が無いか曲がりすぎた管が残る時は、間を広げた組み方で組み直す
-    if (valuesFailed + best.got.bent.length > 0 && !plan.last) return undefined;
+    if (valuesFailed + best.got.bent.length > 0 && !plan.last && !rough) return undefined;
     if (best.list !== ran || valuesFailed > 0) routeValues(best.list, valuesFailed > 0);
 
     // ---- 呼び出しの管の道
@@ -2828,7 +3012,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     callYs.add(topRow - APPROACH - P.call.case);
     // 書き込む管が札の上で折れる所
     for (const h of holders) {
-      callYs.add(yOfBand(h) + (P.housing.top - IO_H) / 2 - 2);
+      callYs.add(yOfBand(h) + WRITE_TURN);
       for (const name of platesOf.get(h) ?? []) {
         const pr = plateRect(h, name);
         if (pr) callXs.add(pr.x + pr.w / 2);
@@ -3178,7 +3362,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const key = `${c.from}>${c.to}`;
       const { a, b, bx, toward, ysR, ysL, startsAt, starts, ask, ownAsk, edgeOf, callFinish, finish, allow } = planOf(c);
       const ay0 = cyOf(c.from);
-      let found = fewerBends(callRouter, ask, callFinish);
+      let found = rough ? undefined : fewerBends(callRouter, ask, callFinish);
       // 弁を載せる長さの所で上か下へ折れられず、曲がりすぎた時は、別の長さで出る始まりも加えて探し直す。
       // 短い始まりは先の管と同じ所で折れて共に通り、弁は共に通らない所へ置く。折れが減った時だけ採る
       if (found && bendsOf(found.points) > MAX_BENDS) {
@@ -3206,7 +3390,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       }
       const path =
         found?.raw ??
-        callRouter.route({ ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]), starts: starts.filter((st) => st.dir === 0 || st.dir === 2).map((st) => ({ ...st, at: edgeOf(st) })) });
+        (rough ? undefined : callRouter.route({ ...ask, allow: new Set([...allow, ...(callOwn.get(c.from) ?? [])]), starts: starts.filter((st) => st.dir === 0 || st.dir === 2).map((st) => ({ ...st, at: edgeOf(st) })) }));
       if (!path) {
         failedCalls.push(key);
         if (!fallback) continue;
@@ -3483,7 +3667,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       );
       const callsFailed = bestCalls.got.failed.length;
       // 道が無いか、曲がりすぎたか、1 本の値の管を 2 度越えたか、弁を置けなかった管が残る時は、間を広げた組み方で組み直す
-      if (bestCalls.score.reduce((s, v) => s + v, 0) > 0 && !plan.last) return undefined;
+      if (bestCalls.score.reduce((s, v) => s + v, 0) > 0 && !plan.last && !rough) return undefined;
       if (bestCalls.list !== ranCalls || callsFailed > 0) routeCalls(bestCalls.list, callsFailed > 0);
     }
 
@@ -3505,10 +3689,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (!plate) return [];
         const writer = rectOf(w.from);
         const px = plate.x + plate.w / 2;
-        const turn = yOfBand(w.to) + (P.housing.top - IO_H) / 2 - 2;
+        const turn = yOfBand(w.to) + WRITE_TURN;
         if (w.from === w.to) {
           const hs = housingOf.get(w.to) as PipeHousing;
-          return [{ ...w, points: [[px, hs.y + P.housing.top - P.write.turn], [px, plate.y]] as Point[] }];
+          return [{ ...w, points: [[px, hs.y + FRAME_DROP + 4], [px, plate.y]] as Point[] }];
         }
         const wx = writer.x + writer.w / 2;
         const start = shapeOf(w.from) === "round" ? writer.y + writer.h / 2 + belowOf(w.from) : writer.y + writer.h;
@@ -4045,15 +4229,16 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           const p = spot0 as Rect;
           const cx = p.x + p.w / 2;
           let was: PipeText | undefined;
-          let strike: Rect | undefined;
+          let before: PipeText | undefined;
           let tag: PipeText | undefined;
           if (old !== undefined && state !== "none") {
-            // 前の値と語は槽の数字と同じ行に置く。札のすぐ下は、槽の右の口から出る管が札の下を通る所
-            const base = tankTop(party) + P.tank.h + P.tank.numberY;
-            const ww = textWidth(old, T.sub);
-            const total = ww + PART_GAP + textWidth(words.tags[state], T.tag);
-            was = textAt(old, cx - total / 2, base, T.sub);
-            strike = { x: was.x - 1, y: was.y + was.h * 0.55, w: was.w + 2, h: 1.5 };
+            // 前の値は線で消さず、`前` の語と前の値と確定かの語を 1 行に並べ、札の下の縁のすぐ下に置く (#3721)。
+            // 行は札の下端から 4px 空けて置き、札の下を通る値の管の縁 (`P.plate.short` の説明) より上で終える
+            const base = p.y + p.h + 15;
+            const lead = textWidth(words.before, T.tag);
+            const total = lead + PART_GAP + textWidth(old, T.sub) + PART_GAP + textWidth(words.tags[state], T.tag);
+            before = textAt(words.before, cx - total / 2, base, T.tag);
+            was = textAt(old, before.x + before.w + PART_GAP, base, T.sub);
             tag = textAt(words.tags[state], was.x + was.w + PART_GAP, base, T.tag);
           }
           plates.push({
@@ -4067,7 +4252,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
             // 名前は字の間を含む幅の真ん中を札の真ん中に置く (#3526)
             label: { ...textAt(name, cx, p.y + P.plate.nameY, T.tankTitle), x: cx - titleW(name) / 2, w: titleW(name) },
             text: textAt(shownValue, cx, p.y + p.h / 2 + P.plate.valueY, T.plateValue, "middle"),
-            ...(was && strike && tag ? { was, strike, tag } : {}),
+            ...(was && before && tag ? { was, before, tag } : {}),
             ...at,
           });
         }
@@ -4188,14 +4373,13 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     /** 狭い枠の、図の下の帯に出す札。置き場所は図の大きさを決めた後に決める */
     const banded: { kind: "amount" | "formula"; text: string; step: number; extra: Partial<PipeChip> }[] = [];
 
-    // 入力と出力の印。始めた人が払った槽と受け取った槽の、囲いの上の余白に置く
-    if (sender !== undefined)
-      for (const { token, text, r } of ioMarks()) {
-        for (const s of stepList) {
-          chips.push(chipOf("io", text, r, s, { party: sender, token }));
-          placedAt[s]?.push(r);
-        }
+    // 入力と出力の印。持ち主の点線の枠の外の上に置く
+    for (const { party, token, text, r } of ioMarks()) {
+      for (const s of stepList) {
+        chips.push(chipOf("io", text, r, s, { party, token }));
+        placedAt[s]?.push(r);
       }
+    }
 
     // 計器の式。値の管の計器は確かめた段から後も残し、呼び出しの管の計器は確かめた段だけ出す。狭い枠は確かめた段だけ
     for (const party of checkers) {
@@ -4462,7 +4646,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       events,
       logWords: { head: words.log, states: words.tags },
       converters,
-      housings,
+      // 描く枠は帯の上の端から下げ、空いた所に入力と出力の印を置く。通り道は帯の上の端からの囲いで決めてある
+      housings: housings.map((h) => ({ ...h, y: h.y + FRAME_DROP, h: h.h - FRAME_DROP })),
       ties,
       folds: foldBoxes,
       rings,

@@ -21,6 +21,7 @@ export const parts: KindParts<PipeLayout> = {
 
 /**
  * 配管の図の再生の部品の、図の下の段の矢印と呼び出しの結果 (#3418、#3450) と、拡大と縮小と引いて送る動きの受け手 (#3720)。
+ * 拡大していない図を置く幅と読める大きさで始める度合い (#3721) も同じく持つ。
  * 再生の部品は配管の図を描けた後に、登録簿から引いて置く。最初に読む量に入れないため、この塊に置く
  */
-export { bindPipeZoom, mountPipeCalls, type PipeCalls, type PipeZoomCalls } from "../pipe-player";
+export { bindPipeZoom, mountPipeCalls, type PipeCalls, pipeBaseWidth, pipeReadableZoom, type PipeZoomCalls } from "../pipe-player";

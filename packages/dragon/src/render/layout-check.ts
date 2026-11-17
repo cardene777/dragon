@@ -14,6 +14,7 @@ import { diamondPoints, type Point } from "../layout/scene";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
+import { EMPTY_BAND } from "./pipe-breaks";
 
 /**
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
@@ -119,6 +120,11 @@ interface BreakText {
   stampOf: (text: string) => string;
   spanOf: (text: string) => string;
   crosses: (part: string, text: string) => string;
+  tankOf: (name: string) => string;
+  flowOf: (name: string) => string;
+  overlaps: (a: string, b: string) => string;
+  overText: (line: string, text: string) => string;
+  emptyBand: (a: string, b: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -152,6 +158,11 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     stampOf: (text) => `印「${text}」`,
     spanOf: (text) => `範囲の囲み「${text}」`,
     crosses: (part, text) => `${spaced(part)}が${spaced(text)}を横切る`,
+    tankOf: (name) => `槽「${name}」`,
+    flowOf: (name) => `値の管「${name}」`,
+    overlaps: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
+    overText: (line, text) => `${spaced(line)}が${spaced(text)}の上を通る`,
+    emptyBand: (a, b) => `${spaced(a)}と${spaced(b)}の間に、何も描かない帯が高さ${EMPTY_BAND}px以上空く`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -183,6 +194,11 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     stampOf: (text) => `the stamp "${text}"`,
     spanOf: (text) => `the span frame "${text}"`,
     crosses: (part, text) => capital(`${part} crosses ${text}`),
+    tankOf: (name) => `the tank "${name}"`,
+    flowOf: (name) => `the value pipe "${name}"`,
+    overlaps: (a, b) => capital(`${a} and ${b} overlap`),
+    overText: (line, text) => capital(`${line} runs over ${text}`),
+    emptyBand: (a, b) => capital(`an empty band of ${EMPTY_BAND}px or more is left between ${a} and ${b}`),
   },
 };
 
@@ -232,6 +248,10 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.stampOf(part.text);
       case "span":
         return w.spanOf(part.text);
+      case "tank":
+        return w.tankOf(part.name);
+      case "flow":
+        return w.flowOf(part.name);
     }
   };
   const [a, b2] = b.parts;
@@ -268,6 +288,12 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                               ? w.touchesBorder(name(a), name(b2))
                               : b.kind === "badge-on-frame" || b.kind === "label-on-frame"
                                 ? w.onBorder(name(a), name(b2))
-                                : w.runClose(name(a), name(b2));
+                                : b.kind === "parts-overlap"
+                                  ? w.overlaps(name(a), name(b2))
+                                  : b.kind === "line-over-text"
+                                    ? w.overText(name(a), name(b2))
+                                    : b.kind === "empty-band"
+                                      ? w.emptyBand(name(a), name(b2))
+                                      : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

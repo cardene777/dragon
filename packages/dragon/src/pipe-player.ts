@@ -20,8 +20,8 @@
  * 再生の部品は配管の図を描けた後に登録簿から引いて置く。見た目は置く時に頁へ 1 度だけ入れる。
  */
 import { FIGURE_TEXT, joinWords } from "./figure-text";
-import { OP_TEXT } from "./kinds/pipe/layout";
-import { LOOK, TYPE, ZOOM } from "./look/values";
+import { OP_TEXT, type PipeLayout } from "./kinds/pipe/layout";
+import { LOOK, PIPE_FIRST, READABLE_PX, TYPE, ZOOM } from "./look/values";
 import { checkPasses, isFault, PipeRun, quantityText } from "./pipe-run";
 import type { Styles } from "./adopt-css";
 import { cssFont as font } from "./render/parts";
@@ -435,6 +435,57 @@ export function mountPipeCalls(doc: Document, styles: Styles | undefined, lang: 
       lines.replaceChildren(...parts);
     },
   };
+}
+
+/*
+ * 拡大していない配管の図を置く幅と、読める大きさで始める拡大の度合い (#3418、#3450、#3483、#3721)。
+ * 配管の図にしか要らないので、段の動きと同じくこの塊に置き、軽い入口が最初に読む量に入れない。再生の部品は配管の図を描けた後に登録簿から引く
+ */
+
+/** 幅と度合いを決める再生の部品の設定 */
+interface PipeFitOptions {
+  /** 枠より広い図を縮めて始める (Tracelyth #177) */
+  fitWide?: boolean;
+  /** 読める大きさで始める (#3483) */
+  zoom?: "readable";
+}
+
+/**
+ * 図の字の高さ `heights` のうち最も小さい字が、画面で `size` px 以上に見える図の幅 (px)。高さが 0 の字は数えない。
+ * 電話の幅でも広い枠と同じ並びで描く図 (Tracelyth #87) はちょうどこの幅で置くので、割り算の誤差で字が下限をわずかに下回らないよう 1px 単位へ切り上げる (#3720)。
+ * 字を持たない図は 0 を返し、幅を縛らない
+ */
+function widthFor(layout: PipeLayout, heights: number[], size: number): number {
+  const shown = heights.filter((h) => h > 0);
+  return shown.length > 0 ? Math.ceil((layout.width * size) / Math.min(...shown)) : 0;
+}
+
+/**
+ * 拡大していない配管の図の幅 (px)。`frame` は枠の幅。
+ * 枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。ただし収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
+ * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)。
+ * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
+ * `fitWide` を渡した時は、枠の幅に依らず枠より広い図を縮めて始め、「+」で寄せ「−」で全体へ戻す (Tracelyth #177)。
+ * ただし全体を収めると関係者の名前の字が `READABLE_PX` を下回る図は、名前の字が `READABLE_PX` に見える幅より細くしない (#3721)
+ */
+export function pipeBaseWidth(layout: PipeLayout, frame: number, options: PipeFitOptions): number {
+  if (options.fitWide) return Math.min(layout.width, Math.max(frame, widthFor(layout, (layout.parties ?? []).map((p) => p.label.h), READABLE_PX)));
+  if (frame < ZOOM.fit)
+    return Math.min(layout.width, Math.max(frame, options.zoom ? 0 : widthFor(layout, (layout.levels ?? []).map((level) => level.text.h), PIPE_FIRST.narrowPx)));
+  return layout.width;
+}
+
+/**
+ * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で
+ * `READABLE_PX` 以上に見える度合いを拡大の上限までで求め、計算の誤差で下回らないよう 0.01 刻みで切り上げる。
+ * 字の大きさは並べた図の名札から読み、字の表を引き込まない。
+ * 設定を渡さない図と、枠が `ZOOM.fit` 以上の図は拡大しない。名前を持たない図は求める度合いが 0 になり、拡大しない
+ */
+export function pipeReadableZoom(layout: PipeLayout, frame: number, options: PipeFitOptions): number {
+  if (!options.zoom || frame >= ZOOM.fit) return ZOOM.min;
+  const names = (layout.parties ?? []).map((party) => party.label.h);
+  const need = (READABLE_PX * layout.width) / (Math.min(...names) * pipeBaseWidth(layout, frame, options));
+  return Math.min(ZOOM.max, Math.max(ZOOM.min, Math.ceil(need * 100) / 100));
 }
 
 /*

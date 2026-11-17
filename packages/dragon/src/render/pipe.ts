@@ -25,6 +25,10 @@ import { callCase, FLOW_CSS, litPipe, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   anchorLinks,
+  callCardSize,
+  chevronsOf,
+  LOG_TYPE,
+  logCardSize,
   type PipeArgRow,
   type PipeCallLane,
   type PipeChip,
@@ -37,17 +41,18 @@ import {
   type PipeLevel,
   type PipeLogCard,
   type PipeParty,
+  type PipePlate,
 } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
 import { FLOW_MOVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
-import { type ColorKey, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
+import { type ColorKey, EASE, LOOK, MOTION } from "../look/values";
 import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
 import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, esc, cssFont as font, r1 } from "./parts";
+import { type Ctx, esc, cssFont as font, r1, write } from "./parts";
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
@@ -183,6 +188,10 @@ const PIPE_CSS = [
   `.dg-pp-ring{fill:none;stroke:var(--c);stroke-width:${P.ring.width}}`,
   // イベントの札
   `.dg-pp-chip{fill:var(--surf);stroke:var(--c);stroke-width:${S.on}}`,
+  // 値の管の流れの上の向きの矢じり (#3721)。液の上に地の色で描く
+  ".dg-pp-chev{fill:none;stroke:var(--surf);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}",
+  // 札の帯の札から発した箱へ結ぶ点線 (#3721)
+  `.dg-pp-tether{fill:none;stroke:var(--c);stroke-width:${S.on};stroke-dasharray:2 4;stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-pp-chip-provisional{stroke-dasharray:3 2}",
   `.dg-pp-ct{${font(T.chip)};fill:var(--ct)}`,
   `.dg-pp-ca{${font(T.args)};fill:var(--mute)}`,
@@ -224,7 +233,7 @@ const gaugeRects = (g: PipeGauge) => [
 ];
 
 /**
- * 段ごとに変わらない部品 (名札、呼び出しの管、弁) を、崩れの確かめのために `pieces` へ記録する (#3523)。
+ * 段ごとに変わらない部品 (名札、呼び出しの管、弁、槽、値の管) を、崩れの確かめのために `pieces` へ記録する (#3523、#3721)。
  * 呼び出しの管と弁の段は、その管が呼び出しを初めて運ぶ段にする
  */
 function recordPieces(layout: PipeLayout, pieces: NonNullable<Ctx["pieces"]>): void {
@@ -234,6 +243,9 @@ function recordPieces(layout: PipeLayout, pieces: NonNullable<Ctx["pieces"]>): v
     const corner = p.shape === "round" ? p.w / 2 : p.shape === "token" ? P.token.radius : P.cabinet.radius;
     pieces.push({ kind: "box", name: p.name, rect: { x: p.x, y: p.y, w: p.w, h: p.h }, corner, shown: ALWAYS });
   }
+  for (const t of layout.tanks) pieces.push({ kind: "tank", name: `${nameOf(t.party)} ${t.token}`, rect: { x: t.x, y: t.y, w: t.w, h: t.h }, shown: ALWAYS });
+  for (const v of layout.valuePipes)
+    if (v.points.length > 1) pieces.push({ kind: "line", name: `${v.token} ${nameOf(v.from)} → ${nameOf(v.to)}`, points: v.points, half: P.bus.case / 2, shown: ALWAYS });
   for (const main of layout.mains)
     for (const br of main.branches) {
       const steps = layout.lanes.filter((x) => x.from === main.from && x.to === br.to).map((x) => x.step + 1);
@@ -328,50 +340,15 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       .map(([k, v]) => ` data-pipe-${k}="${String(v).replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;").replace(/>/gu, "&gt;")}"`)
       .join("");
   /** その段で動かなかった部品を薄く描く */
-  const dimmed = (lit: boolean, markup: string): string => (lit ? markup : `<g opacity="${P.dim}" style="filter:grayscale(1)">${markup}</g>`);
+  const dimmed = (lit: boolean, markup: string): string => (lit ? markup : `<g opacity="${ctx.dark ? P.dimDark : P.dim}" style="filter:grayscale(1)">${markup}</g>`);
   /** 流れた分が通る値の管の番号 */
   const pipeOfFlow = (fl: { token: string; from: string; to: string }): number =>
     layout.valuePipes.findIndex((p) => p.token === fl.token && ((p.from === fl.from && p.to === fl.to) || (p.from === fl.to && p.to === fl.from)));
-  const LF = { tag: { ...T.chip, size: 11, weight: 700 }, k: { ...T.chip, size: 12, weight: 600 }, f: { ...T.chip, size: 13, weight: 700 }, n: { ...T.chip, size: 12, weight: 500 }, v: { ...T.chip, size: 12, weight: 700 } };
+  const LF = LOG_TYPE;
   // 記録の札の見出しと状態の語は、組んだ図が描く言葉の語に呼ぶ側が渡した語を重ねて持つ (#3584、#3720)
   const LOG_STATE: Record<PipeEventChip["state"], string> = { ...layout.logWords.states, none: "" };
   const LOG_HEAD = layout.logWords.head;
-  // 引数は一番外の , で分ける。[ ] と ( ) と " " の中の , は値の一部として残す (配列の引数 `path: [usdc, weth]`)
-  const splitArgs = (body: string): string[] => {
-    const parts: string[] = [];
-    let depth = 0;
-    let quote = false;
-    let start = 0;
-    for (let i = 0; i < body.length; i++) {
-      const c = body[i];
-      if (c === '"' && body[i - 1] !== "\\") quote = !quote;
-      else if (quote) continue;
-      else if (c === "[" || c === "(") depth++;
-      else if (c === "]" || c === ")") depth--;
-      else if (c === "," && depth === 0) {
-        parts.push(body.slice(start, i));
-        start = i + 1;
-      }
-    }
-    parts.push(body.slice(start));
-    return parts.map((x) => x.trim());
-  };
-  // 参加者のidを名前にする。配列の値は要素ごとに名前にする
-  const partyName = (v: string): string => /^\[.*\]$/su.test(v) ? `[${splitArgs(v.slice(1, -1)).map(partyName).join(", ")}]` : layout.parties.find((p) => p.id === v)?.name ?? v;
-  const argRows = (body: string): ArgRow[] => body.trim() === "" ? [] : splitArgs(body).map((x) => {
-    const k = x.indexOf(":");
-    return k < 0 ? { name: "", value: partyName(x) } : { name: x.slice(0, k).trim(), value: partyName(x.slice(k + 1).trim()) };
-  });
-  const logArgsOf = (e: PipeEventChip): ArgRow[] =>
-    argRows(e.args?.text ?? layout.events.find((x) => x !== e && x.party === e.party && x.name === e.name && x.emitted === e.emitted && x.args)?.args?.text ?? "");
-  const logSize = (e: PipeEventChip): { w: number; h: number; rows: ArgRow[]; party: string } => {
-    const rows = logArgsOf(e);
-    const party = layout.parties.find((p) => p.id === e.party)?.name ?? e.party;
-    const head = textWidth(LOG_HEAD, LF.tag) + 14 + 8 + textWidth(`${party}.`, LF.k) + textWidth(e.name, LF.f) + 12 + textWidth(LOG_STATE[e.state] ?? "", LF.tag);
-    const nameW = Math.max(0, ...rows.map((r) => textWidth(r.name, LF.n)));
-    const valW = Math.max(0, ...rows.map((r) => textWidth(r.value, LF.v)));
-    return { w: Math.max(head, nameW + 22 + valW) + 24, h: 32 + (rows.length > 0 ? rows.length * 21 + 8 : 0), rows, party };
-  };
+  const logSize = (e: PipeEventChip): { w: number; h: number; rows: ArgRow[]; party: string } => logCardSize(layout, e);
   const logCard = (e: PipeEventChip, _shown: Shown[], attrs: string): string => {
     const { w, h, rows, party } = logSize(e);
     const x = e.x;
@@ -395,7 +372,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   const looseAmount = (c: PipeChip): boolean => layout.fixed !== undefined && c.kind === "amount" && tokenHome(c.token) === undefined;
   const itemsOf = (s: number): CardItem[] => [
     ...layout.chips.filter((c) => c.step === s && (c.kind === "formula" || c.kind === "amount") && !looseAmount(c)).map((c): CardItem => ({ key: c, kind: c.kind as CardKind, party: c.party, token: c.token, x: c.x, y: c.y, w: c.w, h: c.h, t: timeOf(s, c.event) ?? -1 })),
-    ...layout.events.filter((e) => e.step === s).map((e): CardItem => ({ key: e, kind: "event", party: e.party, x: e.x, y: e.y, w: logSize(e).w, h: logSize(e).h, t: timeOf(s, e.event) ?? -1 }))
+    // 札の帯を持つ形 (#3721) は、ログの札を札入れに入れず、置き直しが決めた札の帯の所に出す
+    ...(layout.fixed?.band ? [] : layout.events.filter((e) => e.step === s).map((e): CardItem => ({ key: e, kind: "event", party: e.party, x: e.x, y: e.y, w: logSize(e).w, h: logSize(e).h, t: timeOf(s, e.event) ?? -1 })))
   ];
   const emitterOf = (it: CardItem): PipeParty | undefined => it.kind === "event" ? layout.parties.find((p) => p.id === it.party && p.shape !== "round" && p.shape !== "token") : undefined;
   // 札は、札を出した箱か、額のトークンの箱の札入れに入れる。どちらも無い札は横の位置が一番近い箱の札入れに入れる
@@ -486,31 +464,16 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   const LOGS = new Map<number, PipeLogCard>();
   const HANDED: PipeGulp[] = [];
   {
-    const sigOf = (label: string): { fn: string; args: ArgRow[] } => {
-      const hit2 = /^([^()]+?)\s*\((.*)\)\s*$/u.exec(label);
-      if (!hit2) return { fn: label.trim(), args: [] };
-      return { fn: (hit2[1] ?? "").trim(), args: argRows(hit2[2] ?? "") };
-    };
-    const nameOf = partyName;
-    const FONTS: Record<string, TextStyle> = { k: { ...T.chip, size: 13, weight: 600 }, f: { ...T.chip, size: 14, weight: 700 }, p: { ...T.chip, size: 13, weight: 500 }, n: { ...T.chip, size: 13, weight: 500 }, v: { ...T.chip, size: 13, weight: 700 } };
-    const W = (t: string, cls: string): number => textWidth(t, FONTS[cls] ?? T.chip);
     const tsp = (cls: string, t: string): string => `<tspan class="${cls}">${esc(t)}</tspan>`;
-    const runW = (run: readonly (readonly [string, string])[]): number => run.reduce((sum, [cls, t]) => sum + W(t, cls), 0);
     const runOf = (run: readonly (readonly [string, string])[]): string => run.map(([cls, t]) => tsp(cls, t)).join("");
     const BASE = 13 * 0.36;
     const build = (c: PipeCallLane): CallTag => {
-      const { fn, args } = sigOf(c.label ?? "");
-      const who = nameOf(c.to);
-      const vals = args;
+      // 札の大きさは置き直し (`layout/pipe-place.ts`) が札の場所を空ける時と同じ物を使う (#3721)
+      const { w, h, two, who, fn, rows: vals } = callCardSize(layout, c.label ?? "", c.to);
       const pad = 14;
-      const two = runW([["k", `${who}.`], ["f", fn]]) > 200;
       const headH = two ? 52 : 36;
       const rowH = 25;
       const head: [string, string][] = [["k", `${who}.`], ["f", fn]];
-      const nameW = Math.max(0, ...vals.map((v) => W(v.name, "n")));
-      const valW = Math.max(0, ...vals.map((v) => W(v.value, "v")));
-      const w = Math.max(two ? Math.max(W(who, "k"), W(fn, "f")) : runW(head), nameW + 22 + valW) + pad * 2;
-      const h = headH + (vals.length > 0 ? vals.length * rowH + 8 : 0);
       return { w, h, title: `${who}.${fn}`, rows: vals, draw: (x: number, y: number) => `<g class="dg-pp-fn"><rect x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, 12)}"/>${two ? `<text x="${r1(x + pad)}" y="${r1(y + 17 + BASE)}">${tsp("k", who)}</text><text x="${r1(x + pad)}" y="${r1(y + 36 + 14 * 0.36)}">${tsp("f", fn)}</text>` : `<text x="${r1(x + pad)}" y="${r1(y + headH / 2 + 14 * 0.36)}">${runOf(head)}</text>`}` + (vals.length > 0 ? `<path class="hr" d="M ${r1(x + 1)} ${r1(y + headH)} H ${r1(x + w - 1)}"/>` : "") + vals.map((v, i) => {
         const yy = y + headH + 4 + rowH * i + rowH / 2 + BASE;
         return `<text x="${r1(x + pad)}" y="${r1(yy)}">${tsp("n", v.name)}</text><text x="${r1(x + w - pad)}" y="${r1(yy)}" text-anchor="end">${tsp("v", v.value)}</text>`;
@@ -728,7 +691,13 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         };
         let above = placeAbove();
         const highest = Math.min(...above.map((x) => x.r.y), ...timeline.steps.flatMap((_, s) => stackOf(s).cards.map((c) => c.y)));
-        if (highest < P.margin) {
+        // 札の帯を持つ形 (#3721) は、札入れと呼び出しの札を札の帯より下に置く。帯に届く時は、帯より下の物を下げる
+        const band = layout.fixed.band;
+        if (band && highest < band.bottom + GAP) {
+          shift("y", band.bottom, band.bottom + GAP - highest, []);
+          rebuild();
+          above = placeAbove();
+        } else if (highest < P.margin) {
           shift("y", -1e9, P.margin - highest, []);
           rebuild();
           above = placeAbove();
@@ -1027,6 +996,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     out.push(`<path class="dg-pp-under" data-pipe-crossing="${k.call}" data-pipe-token="${k.token}" data-pipe-under="${k.pipe}" d="${d}"/>`);
   }
 
+  // 流れの向きの矢じりは、札入れと札を置いて道を伸ばし終えた道の上に置く (#3721)
+  for (const fl of layout.flows) fl.chevrons = chevronsOf(fl.points);
   timeline.steps.forEach((span, s) => {
     const { a, b } = spanOf(s);
     const whole: Shown[] = [[a, b + f]];
@@ -1090,6 +1061,21 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         }),
       ];
     };
+    /**
+     * 流れの道の上の向きの矢じり (#3721)。どこを切り取っても流れる向きが読める。
+     * 1 本の流れの矢じりは 1 つの path の区切った道にまとめる。矢じりごとに要素を作ると、長い管を持つ図 (見本 `aggregator`) で要素が段ごとに数千増え、置く時の読み込みが遅くなる
+     */
+    const chevrons = (fl: PipeFlow): string => {
+      const a = P.flow.chevron / 2;
+      const d = (fl.chevrons ?? [])
+        .map((c) => {
+          const [bx, by] = [c.x - c.dx * a * 0.5, c.y - c.dy * a * 0.5];
+          const [nx, ny] = [-c.dy * a, c.dx * a];
+          return `M ${r1(bx + nx)} ${r1(by + ny)} L ${r1(c.x + c.dx * a * 0.5)} ${r1(c.y + c.dy * a * 0.5)} L ${r1(bx - nx)} ${r1(by - ny)}`;
+        })
+        .join(" ");
+      return d === "" ? "" : `<path class="dg-pp-chev" d="${d}"/>`;
+    };
     // 値の管を流れた分。この段で流れた分は、出来事の時刻に流れの先が管を進む
     for (const fl of here) {
       const attrs = on({ flow: `${fl.from}>${fl.to}`, token: fl.token, state: fl.state });
@@ -1097,7 +1083,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const prev = layout.flows.find((x) => x.step === s - 1 && x.id === fl.id);
       if (t !== undefined && prev) parts.push(vanish(t, flow(prev, ctx, "")));
       const plan = fl.fresh && t !== undefined && fl.points.length > 1 && !gulpOf(fl.points) ? planOf(fl, t) : undefined;
-      parts.push(appear(t, flow(fl, ctx, attrs, fl.fresh ? t : undefined, plan)));
+      parts.push(appear(t, flow(fl, ctx, attrs, fl.fresh ? t : undefined, plan) + chevrons(fl)));
     }
     // 網型の横の管が縦の管の上を通る所 (Tracelyth #168)。縦の管と、縦の管を流れる値を背景の色で切り、横の管を描き直す。
     // 横の管を値が流れる時は、流れの先が着いた時から描き直した所にも値を描く
@@ -1242,7 +1228,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const involved = pillOf(p.id)?.involved ?? false;
       // 帳簿型 (Tracelyth #168) の箱は囲みの張り出しが箱の形になるので、箱の枠を描かず名前だけを描く
       const bare = (layout.ledgers ?? []).some((l) => l.box === p.id);
-      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }), bare)));
+      // 前の値と今の値を並べて見せる行を持つ段は、その段に呼ばれなくても箱を薄くしない (#3721)
+      const changed = layout.plates.some((x) => x.party === p.id && x.step === s && x.boxed && x.was !== undefined);
+      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved || changed, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }), bare)));
     }
     // 槽と水。水と数は、変わった出来事の時刻に段の始まりの値から今の値へ替わる
     for (const g of layout.glasses.filter((x) => x.step === s)) {
@@ -1280,16 +1268,19 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       }
       parts.push(line + vanish(t, linkLabel(prev, ctx, until(t), "")) + appear(t, linkLabel(l, ctx, since(t), attrs)));
     }
+    /** 値の箱の下の前の値の行の頭の語 (`前`、#3721)。前の値と確定かの語と同じ行に、値の箱と同じ色で描く */
+    const beforeOf = (p: PipePlate, shown: Shown[]): string =>
+      p.before ? `<g style="${cs(STATE_COLOR[p.state])}">${write(ctx.ink, `dg-pp-tagw${wide(p.before.text)}`, p.before.x, p.before.base, p.before.text, T.tag, shown)}</g>` : "";
     for (const p of layout.plates.filter((x) => x.step === s)) {
       const attrs = on({ plate: p.party, name: p.name, state: p.state });
       const t = timeOf(s, p.event);
       const prev = s > 0 ? layout.plates.find((x) => x.step === s - 1 && x.party === p.party && x.name === p.name) : undefined;
       const lit = p.event !== undefined || p.boxed;
       if (t === undefined || !prev) {
-        parts.push(dimmed(lit, plate(p, ctx, whole, attrs)));
+        parts.push(dimmed(lit, plate(p, ctx, whole, attrs) + beforeOf(p, whole)));
         continue;
       }
-      parts.push(dimmed(lit, vanish(t, plate(prev, ctx, until(t), "")) + appear(t, plate(p, ctx, since(t), attrs))));
+      parts.push(dimmed(lit, vanish(t, plate(prev, ctx, until(t), "") + beforeOf(prev, until(t))) + appear(t, plate(p, ctx, since(t), attrs) + beforeOf(p, since(t)))));
     }
     // 計器。確かめた段は、確かめた時刻に針が振れて通ったかの印が付く。計器は薄くしない
     for (const g of layout.gauges.filter((x) => x.step === s)) {
@@ -1346,10 +1337,26 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const t = timeOf(s, e.event);
       const prev = layout.events.find((x) => x.step === s - 1 && x.id === e.id);
       if (t !== undefined && prev) parts.push(vanish(t, shifted(offPrev.map.get(prev), logCard(prev, until(t), ""))));
+      if (e.tether && e.tether.length > 1) {
+        const color = e.state === "none" ? "rose" : STATE_COLOR[e.state];
+        parts.push(appear(t, `<path class="dg-pp-tether" style="${cs(color)}" data-pipe-tether="${e.id}" d="M ${e.tether.map((q) => `${r1(q[0])} ${r1(q[1])}`).join(" L ")}"/>`));
+      }
       parts.push(appear(t, shifted(offs.map.get(e), logCard(e, since(t), attrs))));
       const o = offs.map.get(e);
       const size = logSize(e);
-      const card = LOGS.get(e.id) ?? { party: e.party, title: `${size.party}.${e.name}`, states: [], rows: size.rows, x: e.x + (o?.dx ?? 0), y: e.y + (o?.dy ?? 0), w: size.w, h: size.h };
+      const card = LOGS.get(e.id) ?? {
+        party: e.party,
+        title: `${size.party}.${e.name}`,
+        states: [],
+        rows: size.rows,
+        x: e.x + (o?.dx ?? 0),
+        y: e.y + (o?.dy ?? 0),
+        w: size.w,
+        h: size.h,
+        step: s,
+        ...(e.event !== undefined ? { event: e.event } : {}),
+        ...(e.tether ? { tether: e.tether.map((q): Point => [q[0], q[1]]) } : {}),
+      };
       const state = LOG_STATE[e.state];
       if (state && card.states[card.states.length - 1] !== state) card.states.push(state);
       LOGS.set(e.id, card);

@@ -23,6 +23,7 @@ interface Rect {
 interface Party extends Rect {
   id: string;
   shape: string;
+  label: Rect;
 }
 interface Tank extends Rect {
   party: string;
@@ -426,14 +427,23 @@ describe("再生の部品", () => {
     const source = example("swap.json");
     const native = (api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout.width;
     expect(native, "見本の図が枠より狭い").toBeGreaterThan(700);
-    // fitWide は600px以上の枠で、枠より広い図の全体を枠の幅に収めて始める
+    // fitWide は600px以上の枠で、枠より広い図を縮めて始める。全体を枠に収めると名前の字が10.5pxを下回る図は、名前の字が10.5pxに見える幅で始める (#3721)
     const fit = mount(source, 700, { lang: "ja", fitWide: true });
-    expect(fit.shown(), "fitWide の図が枠の幅に収まらない").toBeCloseTo(700, 0);
+    const name = Math.min(...(api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout.parties.map((p) => p.label.h));
+    expect((name * 700) / native, "見本の図の全体を枠に収めても名前の字が10.5px以上").toBeLessThan(10.5);
+    expect(fit.shown(), "fitWide の図を縮めていない").toBeLessThan(native);
+    expect((name * fit.shown()) / native, "fitWide で始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
+    expect((name * fit.shown()) / native, "fitWide で名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + name * 0.02);
     expect(fit.level(), "fitWide の始めの度合い").toBe("100%");
     expect(mount(source, 700, { lang: "ja" }).shown(), "fitWide を渡さない図が原寸でない").toBeCloseTo(native, 0);
-    // 原寸が枠に収まる図と、600px より狭い枠には効かない
+    // 原寸が枠に収まる図には効かない
     expect(mount(source, 2600, { lang: "ja", fitWide: true }).shown(), "枠に収まる図を広げた").toBeCloseTo(native, 0);
-    expect(mount(source, 390, { lang: "ja", fitWide: true }).shown(), "狭い枠で fitWide が効いた").toBeCloseTo(mount(source, 390, { lang: "ja" }).shown(), 0);
+    // 携帯の幅の枠でも、名前の字が10.5pxに見える幅で始める (#3721)
+    const phone = (api.renderDiagram(source, { lang: "ja", width: 390 }) as Rendered<PipeLayout>).layout;
+    const phoneName = Math.min(...phone.parties.map((p) => p.label.h));
+    const phoneShown = mount(source, 390, { lang: "ja", fitWide: true }).shown();
+    expect((phoneName * phoneShown) / phone.width, "携帯の幅の枠で fitWide が始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
+    expect((phoneName * phoneShown) / phone.width, "携帯の幅の枠で fitWide が名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + phoneName * 0.02);
 
     // minZoom は始めの大きさより小さくでき、ボタンは始めの大きさをまたぐ時に1度止まる
     const zooms: number[] = [];
