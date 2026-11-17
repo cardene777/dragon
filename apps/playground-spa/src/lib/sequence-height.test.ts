@@ -6,10 +6,11 @@
  * 札は線を隠すので、エンジンが返す重なりの一覧 (`overlaps`) には出ない。ここで置き場所から確かめる。
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
+import { casesNamed } from "../../../../packages/dragon/test/export-support";
 import { app, partFigure, partFigureDirs, root } from "./playground-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -25,6 +26,23 @@ function draw(dir: string, file: string): Rendered {
   const parsed = parseNotation(text, { lang });
   if (!parsed.ok) throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return renderDiagram(parsed.diagram, { lang });
+}
+
+/** 見本の種類。描かずに、原本の JSON か記法を読んだ結果だけで決める (#3733) */
+function kindOf(dir: string, file: string): string | undefined {
+  const text = readFileSync(join(dir, file), "utf8");
+  if (file.endsWith(".json")) return (JSON.parse(text) as { kind?: string }).kind;
+  const parsed = parseNotation(text, { lang: /\.en\.dragon$/.test(file) ? "en" : "ja" });
+  return parsed.ok ? parsed.diagram.kind : undefined;
+}
+
+/** 時系列図の見本。名前は repo の根からの path */
+function sequenceExamples(): { dir: string; file: string; name: string }[] {
+  const out: { dir: string; file: string; name: string }[] = [];
+  for (const dir of DIRS)
+    for (const file of readdirSync(dir).filter((f) => /\.(dragon|json)$/.test(f)).sort())
+      if (kindOf(dir, file) === "sequence") out.push({ dir, file, name: relative(root, join(dir, file)) });
+  return out;
 }
 
 /** 折れ線が四角の内側を通るか */
@@ -48,20 +66,25 @@ describe("見本の時系列図を縦に詰める (#3177)", () => {
     expect(layout.height, "部品「絵」の時系列図の見本 (英語) の高さ").toBeLessThanOrEqual(250);
   });
 
-  it("sequence-labels-clear-of-lines-in-every-example", () => {
-    const found: string[] = [];
-    let seen = 0;
-    for (const dir of DIRS) {
-      for (const file of readdirSync(dir).filter((f) => /\.(dragon|json)$/.test(f)).sort()) {
-        const { layout } = draw(dir, file);
-        if (layout.kind !== "sequence") continue;
-        seen++;
-        for (const label of layout.labels) {
-          for (const line of layout.edges) if (crosses(label, line.points)) found.push(`${file} 段 ${label.step + 1}: 札「${label.text}」が線 ${line.from} → ${line.to} (段 ${line.step + 1}) に食い込む`);
-        }
+  // 全ての見本を描いてから時系列図でない物を捨てると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。
+  // 描く前に種類を読み、時系列図の見本だけを 1 件 1 見本で描く
+  it("sequence-cases-follow-sequence-examples", ({ task }) => {
+    const names = sequenceExamples().map(({ name }) => name);
+    expect(names.length, "時系列図の見本が少なすぎる").toBeGreaterThanOrEqual(40);
+    expect(casesNamed(task.file, "sequence-labels-clear-of-lines-in-every-example"), "時系列図の見本ごとの件").toEqual(names);
+  });
+
+  // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
+  describe.for(sequenceExamples().map(({ name, dir, file }) => [name, dir, file] as const))("%s", ([, dir, file]) => {
+    it("sequence-labels-clear-of-lines-in-every-example", () => {
+      const { layout } = draw(dir, file);
+      expect(layout.kind, `${file} を時系列図として描けない`).toBe("sequence");
+      if (layout.kind !== "sequence") return;
+      const found: string[] = [];
+      for (const label of layout.labels) {
+        for (const line of layout.edges) if (crosses(label, line.points)) found.push(`${file} 段 ${label.step + 1}: 札「${label.text}」が線 ${line.from} → ${line.to} (段 ${line.step + 1}) に食い込む`);
       }
-    }
-    expect(seen, "時系列図の見本が少なすぎる").toBeGreaterThanOrEqual(40);
-    expect(found, `札が線に食い込む所 ${found.length} 件\n${found.join("\n")}`).toEqual([]);
+      expect(found, `札が線に食い込む所 ${found.length} 件\n${found.join("\n")}`).toEqual([]);
+    });
   });
 });

@@ -13,16 +13,35 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-/** 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる */
+/** 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる。読むのは 1 度だけ */
+let sourcesRead: string | undefined;
 function testSources(): string {
-  const files = execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx"], { encoding: "utf8" })
+  sourcesRead ??= execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx"], { encoding: "utf8" })
     .split("\n")
-    .filter((path) => path !== "" && existsSync(join(ROOT, path)));
-  return files.map((path) => readFileSync(join(ROOT, path), "utf8")).join("\n");
+    .filter((path) => path !== "" && existsSync(join(ROOT, path)))
+    .map((path) => readFileSync(join(ROOT, path), "utf8"))
+    .join("\n");
+  return sourcesRead;
 }
+// 件の上限の外で、file を読み込む時に読んでおく (#3733)
+testSources();
 
 /** 検査の名前が検査の file に書かれているか。名前は引用符で囲んで書く */
 const named = (sources: string, name: string): boolean => [`"${name}"`, `'${name}'`, `\`${name}\``].some((quoted) => sources.includes(quoted));
+
+/**
+ * 3 つの引用符それぞれで、隣り合う 2 つの引用符の間の字 (#3733)。
+ * 引用符を含まない名前は、ここに在る時だけ `named` が真になる。名前ごとに全ての検査の file の字を探し直すと、
+ * `.ikkan/specs/` の数千の名前で混んだ機械の 1 件の上限 (10 秒) を超えたので、1 度の走査で引ける形にする
+ */
+function quotedTexts(sources: string): Set<string> {
+  const out = new Set<string>();
+  for (const quote of ['"', "'", "`"]) {
+    const parts = sources.split(quote);
+    for (let i = 1; i < parts.length - 1; i++) out.add(parts[i] ?? "");
+  }
+  return out;
+}
 
 /** markdown の表の本文の行を、欄ごとに分けて返す。見出しの行と区切りの行は外す */
 function tableRows(text: string): string[][] {
@@ -134,6 +153,8 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
 
   it("spec-rows-name-existing-tests", () => {
     const sources = testSources();
+    const quoted = quotedTexts(sources);
+    const isNamed = (name: string): boolean => (/["'`]/u.test(name) ? named(sources, name) : quoted.has(name));
     const dir = join(ROOT, ".ikkan/specs");
     let counted = 0;
     const missing: string[] = [];
@@ -141,7 +162,7 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
       for (const cells of tableRows(readFileSync(join(dir, file), "utf8"))) {
         for (const name of namesIn(cells[1] ?? "")) {
           counted += 1;
-          if (!named(sources, name)) missing.push(`${file}: ${name}`);
+          if (!isNamed(name)) missing.push(`${file}: ${name}`);
         }
       }
     }
@@ -295,6 +316,19 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     const intro = text.slice(0, text.search(/^\|/mu));
     expect(sentenceWith(intro, ["照合の段", "一式"]), "`.ikkan/checks.md` の冒頭が、通らない照合の段が一式を回すと書いている").toBeUndefined();
     expect(sentenceWith(intro, ["実装の", "関門", "届く検査", "回す"]), "`.ikkan/checks.md` の冒頭が、実装の関門が届く検査を回すと書いていない").toBeDefined();
+  });
+
+  it("checks-intro-says-scripts-only-change-picks-script-readers", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    expect(sentenceWith(intro, ["`package.json`", "`scripts`だけ", "全ての検査を選ばず"]), "`.ikkan/checks.md` の冒頭が、`package.json` の `scripts` だけを変えた時は全ての検査を選ばないと書いていない (#3733)").toBeDefined();
+  });
+
+  it("checks-intro-says-load-timeouts-are-cut-by-lighter-tests", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    expect(sentenceWith(intro, ["負荷", "workerの数", "縮まない"]), "`.ikkan/checks.md` の冒頭が、workerの数を変えても1件の秒数は縮まないと書いていない (#3733)").toBeDefined();
+    expect(sentenceWith(intro, ["1件の検査", "仕事", "減らす"]), "`.ikkan/checks.md` の冒頭が、負荷で延びる時間切れを1件の検査の仕事を減らして防ぐと書いていない (#3733)").toBeDefined();
   });
 
   it("checks-intro-names-typecheck-in-reached-checks", () => {

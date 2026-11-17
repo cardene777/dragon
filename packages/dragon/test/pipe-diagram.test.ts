@@ -67,6 +67,7 @@ import { foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/
 import { toModel } from "../src/model";
 import { type Ask, Router } from "../src/pipe-route";
 import type { Diagram } from "../src/schema";
+import { casesNamed } from "./export-support";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { covers, draw, figureClass, figureVars, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
@@ -76,6 +77,8 @@ const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 見本 6 組の名前 (交換の成功、交換の取り消し、2回の交換、内側だけの取り消し、storage とイベントと ETH と delegatecall と staticcall、大きな Trace) */
 const SAMPLES = ["swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator"] as const;
+/** 戻り値の札を見る見本と言葉の組。全ての組を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733) */
+const RETURN_CASES = SAMPLES.flatMap((name) => (["ja", "en"] as const).map((lang) => ({ name, lang, label: `${name} ${lang}` })));
 
 /** 配管の図だけが読む行の頭の語 */
 const PIPE_WORDS = ["hold", "move", "write", "check", "return", "revert", "emit", "calc"] as const;
@@ -2454,27 +2457,39 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       const p = posAt(span.start + (stillOf(rendered, 5) - span.start) * k);
       expect(onPath(p, points, 6), `戻り値の札が途中 (${k}) で呼び出しの管を外れる`).toBe(true);
     }
-    // 着いた札は、呼んだ側の丸や箱にも名前の字にも載らない。全ての見本の広い枠で見る
-    const covers = (a: Rect, b: Rect): boolean => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.5 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.5;
-    let seen = 0;
-    for (const name of SAMPLES)
-      for (const lang of ["ja", "en"] as const) {
-        const laid = composed(render(exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`), lang, 1280, name === "aggregator" ? [2] : undefined));
-        for (const c of laid.chips.filter((k) => k.kind === "return")) {
-          const path = c.path ?? [];
-          const at = path[path.length - 1];
-          const from = laid.calls.find((k) => k.index === c.call)?.from;
-          const party = laid.parties.find((p) => p.id === from);
-          expect(at && party, `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} の道か呼んだ側が無い`).toBeTruthy();
-          if (!at || !party) continue;
-          const arrived = { x: at[0] - c.w / 2, y: at[1] - c.h / 2, w: c.w, h: c.h };
-          for (const [what, r] of [["丸か箱", party], ["名前の字", party.label]] as const)
-            if (r) expect(covers(arrived, r), `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} が呼んだ側 ${party.id} の${what}に載る`).toBe(false);
-          seen++;
-        }
+  });
+
+  it("pipe-return-cases-follow-samples", ({ task }) => {
+    expect(casesNamed(task.file, "pipe-return-chip-clear-of-caller"), "見本と言葉ごとの件").toEqual(RETURN_CASES.map(({ label }) => label));
+  });
+
+  /** 見本と言葉ごとの件が見た戻り値の札の数。全ての件の後の `pipe-return-samples-have-chips` が読む */
+  let returnChipsSeen = 0;
+
+  // 着いた札は、呼んだ側の丸や箱にも名前の字にも載らない。全ての見本の広い枠で見る。
+  // 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本と言葉ごとの件に分ける
+  describe.for(RETURN_CASES)("$label", ({ name, lang }) => {
+    it("pipe-return-chip-clear-of-caller", () => {
+      const covers = (a: Rect, b: Rect): boolean => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.5 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.5;
+      const laid = composed(render(exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`), lang, 1280, name === "aggregator" ? [2] : undefined));
+      for (const c of laid.chips.filter((k) => k.kind === "return")) {
+        const path = c.path ?? [];
+        const at = path[path.length - 1];
+        const from = laid.calls.find((k) => k.index === c.call)?.from;
+        const party = laid.parties.find((p) => p.id === from);
+        expect(at && party, `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} の道か呼んだ側が無い`).toBeTruthy();
+        if (!at || !party) continue;
+        const arrived = { x: at[0] - c.w / 2, y: at[1] - c.h / 2, w: c.w, h: c.h };
+        for (const [what, r] of [["丸か箱", party], ["名前の字", party.label]] as const)
+          if (r) expect(covers(arrived, r), `${name} (${lang}) の段 ${c.step + 1} の戻り値の札 ${c.text} が呼んだ側 ${party.id} の${what}に載る`).toBe(false);
+        returnChipsSeen++;
       }
-    // 戻り値の札を 1 枚も見ずに通らない
-    expect(seen, "見本の中に戻り値の札が無い").toBeGreaterThan(0);
+    });
+  });
+
+  // 戻り値の札を 1 枚も見ずに通らない。vitest は 1 つの file の検査を書いた順に回すので、見本と言葉ごとの件の後に数える
+  it("pipe-return-samples-have-chips", () => {
+    expect(returnChipsSeen, "見本の中に戻り値の札が無い").toBeGreaterThan(0);
   });
 
   it("pipe-narrow-shows-balances-and-current-value", () => {
