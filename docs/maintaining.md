@@ -370,9 +370,10 @@ gh release create v0.46.4 --repo cardene777/dragon --title v0.46.4 --notes-file 
 
 ## npmへ出す時の検査
 
-`packages/dragon`で`pnpm publish`を打つと、出す前に`prepublishOnly`が型の検査とbuildと`check:pack`をこの順に回す。
+`packages/dragon`で`pnpm publish`を打つと、出す前に`prepublishOnly`がbuildと型の検査と`check:pack`をこの順に回す。
 buildはnpmへ出す`dist`を組み、`check:pack`は組んだ物を包んで空のdirに入れ、入口と型と命令を確かめる。
 どちらもnpmへ出す時にしかできないので、出す時に回す。
+型の検査は、`src/embed`と`src/frame`が同じpackageの入口の型を`dist`から読むので、buildの後に回す (#3732)。
 
 一式は配る前の関門 (`deployable.sh`) が版を出す前に1回だけ回し、npmへ出す時は回し直さない (#3717)。
 一式は負荷の無い時でも1回の実行の上限300秒のうち約230秒を使い、別の作業で機械が混むと出す時の2回目が時間切れで止まるため (#3715)。

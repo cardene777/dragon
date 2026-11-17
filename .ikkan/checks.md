@@ -13,7 +13,8 @@
 `pnpm test:related`が起こすvitestは検査のfileの型を見ないため、型の検査を回さないと、#3717が検査のfileに入れた型の誤りのように版を出す前の関門まで見つからない (#3730)。
 型の検査も検査のfileが読む`dist`の型の定義を読むので、buildの後に回し、関係する検査より短いのでその前に回す。
 
-一式は型検査、build、lint、全ての検査を順に回し、検査は名前を 1 行ずつ出す。
+一式はbuild、型検査、lint、全ての検査を順に回し、検査は名前を 1 行ずつ出す。
+型検査はbuildした`dist`の型の定義を読み、`dist`の無い作業場所では`TS2307`で落ちるので、buildの後に回す (#3732)。
 一式は版を出す前に配る前の関門が1回だけ回す (#3381)。
 一式は 1 件 10 秒、1 回の実行 5 分の上限の中で終わるので、重さを `軽い` と書く。
 検査は package の検査 (`packages/`) と見本帳の検査 (`apps/`) の 2 回の実行に分けて回す。1 回で回すと、機械が混んだ時に 5 分の上限を超えて残りを回さずに止まるため (#3463)。
@@ -30,12 +31,12 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 
 | 欄 | 中身 |
 |---|---|
-| 一式 | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose && bash scripts/check-dependency-vulnerabilities.sh'` |
+| 一式 | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose && bash scripts/check-dependency-vulnerabilities.sh'` |
 | 通った行の形 | `^\s*✓\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
 | 届く検査 | `bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'` |
-| 配る前のテスト | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
+| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
 | 配る先との整合 | `node scripts/release-checks.mjs target` |

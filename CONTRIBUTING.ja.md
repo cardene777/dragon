@@ -45,11 +45,11 @@ pnpm dev             # http://localhost:4323 で見本帳を起動する
 
 5. pull request を出す。
 
-`pnpm verify` は型の検査、build、lint、全ての検査を、短い側から順に回す。
+`pnpm verify` は build、型の検査、lint、全ての検査をこの順に回す。
 変えた所の近くの検査だけでなく、全てを回す。
 変えた file を読む検査が、その file の近くに在るとは限らない。
 たとえば `packages/dragon/examples/` の例を 1 つ直すと、その例を変換する検査、描く検査、書き出す検査が影響を受ける。
-build が 2 番目に回るのは、検査が build 済みの package を読むためで、詳しくは次の節にある。
+build が最初に回るのは、型の検査と検査が build 済みの package を読むためで、詳しくは次の節にある。
 
 ## 検査
 
@@ -57,7 +57,7 @@ build が 2 番目に回るのは、検査が build 済みの package を読む�
 ほかの命令は、落ちた所を切り分ける時に使う。
 
 ```bash
-pnpm verify      # 型の検査、build、lint、検査を順に回す
+pnpm verify      # build、型の検査、lint、検査を順に回す
 pnpm test        # vitest の全ての検査 (unit と integration)
 pnpm test:watch  # vitest を watch で回す
 pnpm lint        # eslint

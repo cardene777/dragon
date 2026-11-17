@@ -97,6 +97,35 @@ function reachedTypecheckProblems(cell: string): string[] {
   return problems;
 }
 
+/** `.ikkan/checks.md` の欄の中身。backtick の囲みは残す。欄が無い時は空 */
+const checksCell = (field: string): string =>
+  tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8")).find((cells) => cells[0] === field)?.[1] ?? "";
+
+/** package.json の script。無い時は空 */
+const scriptOf = (file: string, name: string): string =>
+  (JSON.parse(readFileSync(join(ROOT, file), "utf8")) as { scripts: Record<string, string> }).scripts[name] ?? "";
+
+/**
+ * 命令が型の検査を build より前に回す誤り。誤りが無い時は空の配列 (#3732)。
+ * 型の検査は package の src と見本帳の src と検査の file が読む `dist` の型の定義を読み、
+ * `dist` の無い作業場所では `TS2307` で落ちるので、build の後に回す。`pnpm run X` は `pnpm X` と同じ段に読む。
+ */
+function typecheckBeforeBuildProblems(command: string): string[] {
+  const steps = commandSteps(command).map((step) => step.replace(/^pnpm run /u, "pnpm "));
+  const typecheck = steps.indexOf("pnpm typecheck");
+  const build = steps.findIndex((step) => step === "pnpm build" || step === "pnpm build:packages");
+  if (typecheck === -1) return ["型の検査を回さない"];
+  if (build === -1) return ["build を回さない"];
+  if (typecheck < build) return ["型の検査を build より前に回す"];
+  return [];
+}
+
+/** `pnpm verify` が回す順を書く行のうち、型の検査を build より前に書く行。数えた行も返す */
+function verifyOrderLines(text: string, typecheck: string): { counted: number; early: string[] } {
+  const lines = text.split(/[。\n]/u).filter((line) => line.includes("pnpm verify") && line.includes("build") && line.includes(typecheck));
+  return { counted: lines.length, early: lines.filter((line) => line.indexOf(typecheck) < line.indexOf("build")) };
+}
+
 describe("検査の回し方と外した検査の記録 (#3381)", () => {
   it("removed-tests-are-gone-and-covered", () => {
     const record = join(ROOT, "docs/removed-tests.md");
@@ -223,6 +252,63 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(reachedTypecheckProblems("`bash -c 'pnpm typecheck && pnpm test:related'`"), "build を持たない命令").toEqual(["型の検査を package の build より前に回す"]);
     expect(reachedTypecheckProblems("`bash -c 'pnpm build:packages && pnpm test:related && pnpm typecheck'`"), "型の検査を関係する検査より後に置いた命令").toEqual(["型の検査を関係する検査より後に回す"]);
     expect(reachedTypecheckProblems("`bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'`"), "build の後、関係する検査の前に置いた命令").toEqual([]);
+  });
+
+  it("checks-suite-and-release-tests-typecheck-after-build", () => {
+    // 型の検査は `dist` の型の定義を読む。`dist` の無い作業場所で build より前に回すと `TS2307` で落ちる (#3732)
+    const problems = Object.fromEntries(["一式", "配る前のテスト"].map((field) => [field, typecheckBeforeBuildProblems(checksCell(field))]));
+    expect(problems, "`.ikkan/checks.md` の欄の型の検査の置き方の誤り").toEqual({ 一式: [], 配る前のテスト: [] });
+  });
+
+  it("verify-typechecks-after-build", () => {
+    expect(typecheckBeforeBuildProblems(scriptOf("package.json", "verify")), "root の verify の型の検査の置き方の誤り").toEqual([]);
+  });
+
+  it("prepublish-typechecks-after-build", () => {
+    // package の `tsc --noEmit` も、`src/embed` と `src/frame` が同じ package の入口の型を `dist` から読む (#3732)
+    const command = scriptOf("packages/dragon/package.json", "prepublishOnly");
+    expect(typecheckBeforeBuildProblems(command), "prepublishOnly の型の検査の置き方の誤り").toEqual([]);
+    const steps = commandSteps(command);
+    expect(steps.indexOf("pnpm run check:pack"), "prepublishOnly が型の検査の後に check:pack を回さない").toBeGreaterThan(steps.indexOf("pnpm run typecheck"));
+  });
+
+  it("typecheck-after-build-rejects-early-typecheck", () => {
+    // 欄の形 (`bash -c '...'`) と script の形 (`pnpm run X`) の両方で、型の検査を build より前に置いた命令と、どちらかを持たない命令を拒む
+    expect(typecheckBeforeBuildProblems("`bash -c 'pnpm typecheck && pnpm build && pnpm lint'`"), "欄の形で型の検査を build より前に置いた命令").toEqual(["型の検査を build より前に回す"]);
+    expect(typecheckBeforeBuildProblems("pnpm run typecheck && pnpm run build && pnpm run check:pack"), "script の形で型の検査を build より前に置いた命令").toEqual(["型の検査を build より前に回す"]);
+    expect(typecheckBeforeBuildProblems("pnpm run build && pnpm run lint"), "型の検査を持たない命令").toEqual(["型の検査を回さない"]);
+    expect(typecheckBeforeBuildProblems("`bash -c 'pnpm typecheck && pnpm lint'`"), "build を持たない命令").toEqual(["build を回さない"]);
+    expect(typecheckBeforeBuildProblems("`bash -c 'pnpm build && pnpm typecheck && pnpm lint'`"), "欄の形で build の後に置いた命令").toEqual([]);
+    expect(typecheckBeforeBuildProblems("pnpm run build && pnpm run typecheck && pnpm run check:pack"), "script の形で build の後に置いた命令").toEqual([]);
+  });
+
+  it("checks-intro-says-suite-typechecks-after-build", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    const sentence = sentenceWith(intro, ["一式は", "build", "型検査", "順に回し"]) ?? "";
+    expect(sentence, "`.ikkan/checks.md` の冒頭が、一式が回す順を書いていない").not.toBe("");
+    expect(sentence.indexOf("build"), "`.ikkan/checks.md` の冒頭が、一式は型検査を build より前に回すと書く").toBeLessThan(sentence.indexOf("型検査"));
+  });
+
+  it("maintaining-says-prepublish-typechecks-after-build", () => {
+    const doc = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
+    const section = /^## npmへ出す時の検査\n([\s\S]*?)(?=^## |(?![\s\S]))/mu.exec(doc)?.[1] ?? "";
+    const sentence = sentenceWith(section, ["`prepublishOnly`", "この順に回す"]) ?? "";
+    const at = (word: string): number => sentence.indexOf(word);
+    expect(sentence, "節 npmへ出す時の検査 が、prepublishOnly が回す順を書いていない").not.toBe("");
+    expect([at("build"), at("型の検査"), at("`check:pack`")].every((index) => index >= 0), "節 npmへ出す時の検査 の順の文が、build と型の検査と check:pack を書いていない").toBe(true);
+    expect(at("build"), "節 npmへ出す時の検査 が、型の検査を build より前に書く").toBeLessThan(at("型の検査"));
+    expect(at("型の検査"), "節 npmへ出す時の検査 が、check:pack を型の検査より前に書く").toBeLessThan(at("`check:pack`"));
+  });
+
+  it("contributing-says-verify-builds-before-typecheck", () => {
+    const read = (file: string): string => readFileSync(join(ROOT, file), "utf8");
+    const ja = verifyOrderLines(read("CONTRIBUTING.ja.md"), "型の検査");
+    const en = verifyOrderLines(read("CONTRIBUTING.md"), "type check");
+    // 地の文と命令の一覧の注釈の 2 か所が、`pnpm verify` の順を書く
+    expect(ja.counted, "CONTRIBUTING.ja.md が pnpm verify の順を書く行を 2 つ持たない").toBeGreaterThanOrEqual(2);
+    expect(en.counted, "CONTRIBUTING.md が pnpm verify の順を書く行を 2 つ持たない").toBeGreaterThanOrEqual(2);
+    expect({ ja: ja.early, en: en.early }, "pnpm verify が型の検査を build より前に回すと書く行").toEqual({ ja: [], en: [] });
   });
 
   it("checks-intro-names-reached-checks", () => {
