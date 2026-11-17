@@ -69,6 +69,24 @@ describe("検査の時間の上限 (#3381)", () => {
     expect(provided("dragonRunLimitMs"), "1 回の実行の上限が 5 分でない").toBe(300_000);
   });
 
+  it("limit-env-names-unchanged", () => {
+    // 上限を変える環境変数は下げる 2 つだけ (#3734)。検査が重い時に上限を緩める環境変数を足すと、遅い検査を上限だけ緩めて残す道ができる。
+    // 検査の設定と準備の段と検査の道具 (検査の file でない file) が読む、名前に LIMIT を含む環境変数の名前を集める
+    const files = [
+      "vitest.config.ts",
+      ...readdirSync(join(ROOT, "test-support")).filter((name) => name.endsWith(".ts")).map((name) => `test-support/${name}`),
+      ...readdirSync(join(ROOT, "packages/dragon/test")).filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts")).map((name) => `packages/dragon/test/${name}`),
+      ...readdirSync(join(ROOT, "apps/playground-spa/src/lib")).filter((name) => /-setup\.ts$/u.test(name)).map((name) => `apps/playground-spa/src/lib/${name}`),
+    ];
+    // 説明の文は数えない。code の中で環境変数として読む名前 (`process.env.<名前>`) と、字の列として渡す名前を数える
+    const code = (file: string): string =>
+      readFileSync(join(ROOT, file), "utf8")
+        .replace(/\/\*[\s\S]*?\*\//gu, "")
+        .replace(/(^|[^:"'`])\/\/.*$/gmu, "$1");
+    const names = new Set(files.flatMap((file) => [...code(file).matchAll(/process\.env\.([A-Z0-9_]*LIMIT[A-Z0-9_]*)|["']([A-Z0-9_]*LIMIT[A-Z0-9_]*)["']/gu)].map((match) => match[1] ?? match[2] ?? "")));
+    expect([...names].sort(), "上限の環境変数の名前").toEqual(["DRAGON_RUN_LIMIT_MS", "DRAGON_TEST_LIMIT_MS"]);
+  });
+
   it("run-limit-stops-whole-run", () => {
     // 上限で止めた回も、見本が作った一時フォルダを残さない (#3587)。走っている実行の一時フォルダの下に試す場所を作るので、この検査の分も残らない
     const sandbox = mkdtempSync(join(tmpdir(), "dragon-sandbox-"));
