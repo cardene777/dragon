@@ -5,7 +5,7 @@
  * 配る先との整合、配る前のセキュリティ、戻す確かめ、配った後の確かめの 4 欄は `scripts/release-checks.mjs` を回す。
  * npm と GitHub に問い合わせる所は命令の外側に置き、ここでは問い合わせた答えから何を落とすかを確かめる。
  *
- * npmへ出す時の検査 (`prepublishOnly`) は一式を回さず、型の検査とbuildと`check:pack`だけを回す (#3717)。
+ * npmへ出す時の検査 (`prepublishOnly`) は一式を回さず、buildと型の検査と`check:pack`だけを回す (#3717、#3732)。
  * 一式は配る前の関門が版を出す前に1回だけ回すため。
  */
 import { readFileSync } from "node:fs";
@@ -115,7 +115,8 @@ describe("npmへ出す時の検査 (#3717)", () => {
     const steps = prepublishSteps();
     const at = (name: string): number => steps.indexOf(`pnpm run ${name}`);
     expect(at("typecheck"), "npmへ出す時に型の検査を回さない").toBeGreaterThanOrEqual(0);
-    expect(at("build"), "npmへ出す時に build を回さない").toBeGreaterThan(at("typecheck"));
+    expect(at("build"), "npmへ出す時に build を回さない").toBeGreaterThanOrEqual(0);
+    // 型の検査を build の後に回す順は test-policy.test.ts の prepublish-typechecks-after-build が見る (#3732)。
     // check:pack は組んだ dist を包んで読むので、build の後に回る
     expect(at("check:pack"), "npmへ出す時に build の後で check:pack を回さない").toBeGreaterThan(at("build"));
   });
