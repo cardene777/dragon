@@ -135,3 +135,23 @@
 | 見本帳の部品の図 (配管の図の呼び出しの部品を含む) が、崩れの検査に1つも掛からない | `pnpm exec vitest run apps/playground-spa/src/lib/part-settings.test.tsx`の検査`part-settings-figures-have-no-breaks`が通る | #3720 |
 | 見本帳の頁が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3720 |
 | 最初に読む script の大きさは今の上限 (gzip 後の合計90000バイト) に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3720 |
+| 人を1人から8人、トークンの箱とコントラクトを1つから8つに変えて作ったパイプ図で、札と人と箱と槽の重なりが0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-no-overlap`が通る | #3721 |
+| 同じ図で、線が箱と槽と札の文字の上を通る所が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-lines-avoid-text`が通る | #3721 |
+| 同じ図で、横幅いっぱいに何も描かない高さ200px以上の帯が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-no-empty-band`が通る | #3721 |
+| 同じ図で、2本の線が同じ所を重なって走る所が0件で、線どうしは直角にだけ交わる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-lines-cross-only-at-right-angles`が通る | #3721 |
+| 名前が40字を超える図と、1つの段で5枚以上のログを発する図でも、重なりと文字の上を通る線が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-long-names-and-many-logs`が通る | #3721 |
+| 値のパイプは槽の下の縁から入らず、表から槽へ向かうパイプは槽の上の縁から入る | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-pipes-enter-tanks-from-top`が通る | #3721 |
+| 置いた側が渡した呼び出しの組の分だけ通り道を空け、渡した組に無い人と箱の組み合わせの通り道を空けない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-routes-reserve-only-passed-calls`が通る | #3721 |
+| ログの札を呼び出しの線より上の帯に発した順に左から並べ、発した箱へ点線でつなぎ、並びきらない時は帯を2段にする | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-logs-sit-in-top-band`が通る | #3721 |
+| 値のパイプに、向きを示す矢じりを44pxごとに描く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-value-pipes-carry-chevrons`が通る | #3721 |
+| 値の箱の前の値を線で消さず、前の札と前の値と確定を箱の下端から24px以内に置く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-prev-value-under-box`が通る | #3721 |
+| 交換の入力と出力の両方に札を付け、札を持ち主の点線の枠の外の上に置いて枠の線に重ねない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-io-tags-outside-frame`が通る | #3721 |
+| コントラクトを呼び出しに関わるかに依らず全て四角の箱で描き、箱の高さを揃える | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-contracts-share-shape-and-height`が通る | #3721 |
+| 薄く描く線は表の縁に沿って走らず、箱の中を通らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-faint-lines-avoid-boxes`が通る | #3721 |
+| 値の変わった表を薄く描かない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-changed-table-not-faded`が通る | #3721 |
+| `fitWide`で全体に収めると文字が10.5pxを下回る図は、広い枠でも携帯の幅でも文字が10.5pxになる大きさで始める | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-fit-wide-keeps-readable-text`が通る | #3721 |
+| 暗い色味で、薄く描く線と表の縁の背景との明るさの比が、明るい色味の同じ部品の比を下回らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-dark-faint-parts-stay-visible`が通る | #3721 |
+| 動画とGIFに書き出した各段の絵の部品の位置が図の置き場所と同じで、重なりが0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-export-frames-keep-layout`が通る | #3721 |
+| 置き場所の検査`dragon check --layout`が、重なりと文字の上を通る線と高さ200px以上の空き帯を持つパイプ図を拒む | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`layout-check-refuses-pipe-breaks`が通る | #3721 |
+| 人と箱の左右の順と表の左右の順は、記法に書いた順のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-notation-order`が通る | #3721 |
+| 呼び出しの線とパイプの色と太さは今のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-line-colors-and-widths`が通る | #3721 |
