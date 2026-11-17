@@ -67,6 +67,7 @@ import { foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/
 import { toModel } from "../src/model";
 import { type Ask, Router } from "../src/pipe-route";
 import type { Diagram } from "../src/schema";
+import { casesNamed } from "./cases-support";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { covers, draw, figureClass, figureVars, gap, type Rect, type Rendered, sampleTimes } from "./render-support";
@@ -76,6 +77,8 @@ const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 見本 6 組の名前 (交換の成功、交換の取り消し、2回の交換、内側だけの取り消し、storage とイベントと ETH と delegatecall と staticcall、大きな Trace) */
 const SAMPLES = ["swap", "swap-revert", "swap-two-hops", "swap-retry", "vault-proxy", "aggregator"] as const;
+/** 戻り値の札を見る見本と言葉の組。全ての組を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733) */
+const RETURN_CASES = SAMPLES.flatMap((name) => (["ja", "en"] as const).map((lang) => ({ name, lang, label: `${name} ${lang}` })));
 
 /** 配管の図だけが読む行の頭の語 */
 const PIPE_WORDS = ["hold", "move", "write", "check", "return", "revert", "emit", "calc"] as const;
@@ -2475,6 +2478,10 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       }
     // 戻り値の札を 1 枚も見ずに通らない
     expect(seen, "見本の中に戻り値の札が無い").toBeGreaterThan(0);
+  });
+
+  it("pipe-return-cases-follow-samples", ({ task }) => {
+    expect(casesNamed(task.file, "pipe-return-chip-clear-of-caller"), "見本と言葉ごとの件").toEqual(RETURN_CASES.map(({ label }) => label));
   });
 
   it("pipe-narrow-shows-balances-and-current-value", () => {

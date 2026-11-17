@@ -211,6 +211,19 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(sentenceWith(intro, ["実装の", "関門", "届く検査", "回す"]), "`.ikkan/checks.md` の冒頭が、実装の関門が届く検査を回すと書いていない").toBeDefined();
   });
 
+  it("checks-intro-says-scripts-only-change-picks-script-readers", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    expect(sentenceWith(intro, ["`package.json`", "`scripts`だけ", "全ての検査を選ばず"]), "`.ikkan/checks.md` の冒頭が、`package.json` の `scripts` だけを変えた時は全ての検査を選ばないと書いていない (#3733)").toBeDefined();
+  });
+
+  it("checks-intro-says-load-timeouts-are-cut-by-lighter-tests", () => {
+    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
+    const intro = text.slice(0, text.search(/^\|/mu));
+    expect(sentenceWith(intro, ["負荷", "workerの数", "縮まない"]), "`.ikkan/checks.md` の冒頭が、workerの数を変えても1件の秒数は縮まないと書いていない (#3733)").toBeDefined();
+    expect(sentenceWith(intro, ["1件の検査", "仕事", "減らす"]), "`.ikkan/checks.md` の冒頭が、負荷で延びる時間切れを1件の検査の仕事を減らして防ぐと書いていない (#3733)").toBeDefined();
+  });
+
   it("checks-intro-names-typecheck-in-reached-checks", () => {
     const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
     const intro = text.slice(0, text.search(/^\|/mu));

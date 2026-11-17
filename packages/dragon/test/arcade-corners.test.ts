@@ -11,6 +11,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
+import { casesNamed } from "./cases-support";
 import { draw, type Player, type Rect, type Theme } from "./render-support";
 
 const ROOT = process.cwd();
@@ -242,6 +243,10 @@ describe.for(FILES)("arcade の角 (#3344) %s", (file) => {
 });
 
 describe("arcade の角 (#3344)", () => {
+  // 全ての見本の角の大きさを 1 件で確かめると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
+  it("arcade-cut-cases-follow-files", ({ task }) => {
+    expect(casesNamed(task.file, "arcade-cut-is-8-or-a-quarter"), "見本ごとの件").toEqual(FILES.map((file) => `arcade の角の大きさ (#3344) ${file}`));
+  });
 
   it("arcade-cut-is-8-or-a-quarter", async () => {
     const wrong: string[] = [];

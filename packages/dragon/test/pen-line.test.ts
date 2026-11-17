@@ -12,6 +12,7 @@ import { join, relative } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
+import { casesNamed } from "./cases-support";
 import { runCli } from "./export-support";
 import { draw, type Player, type Rendered, type RenderOptions } from "./render-support";
 
@@ -369,6 +370,13 @@ describe("手描きの線の崩れ (#3643)", () => {
         .map((b) => `${name}: ${key(b)}`);
     });
     expect(grown, "手描きの線で描くと一覧に無い崩れが見本に出る").toEqual([]);
+  });
+
+  // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
+  it("pen-line-cases-follow-examples", ({ task }) => {
+    const names = EXAMPLE_DIRS.flatMap(dragonFiles).sort().map((file) => relative(ROOT, file));
+    expect(names.length, "見本を数えられない").toBeGreaterThan(EXAMPLE_DIRS.length);
+    expect(casesNamed(task.file, "pen-line-examples-add-no-breaks"), "見本ごとの件").toEqual(names);
   });
 });
 

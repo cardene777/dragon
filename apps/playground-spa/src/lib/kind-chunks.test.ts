@@ -47,7 +47,11 @@ const LATER_KINDS = laterKinds();
 /** 後から読む塊の小さすぎる字数。部品が最初に読む側へ漏れると、塊は入口だけの大きさになる */
 const CHUNK_AT_LEAST = 2_000;
 
+/** 描画の src の全ての file を並べた回数。種類やブロックごとに読み直すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733) */
+let wholeReads = 0;
+
 function sourcesUnder(dir: string): string[] {
+  if (dir === SRC) wholeReads++;
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return sourcesUnder(path);
@@ -163,5 +167,9 @@ describe("図の種類の描く部品を後から読む (#3248)", () => {
         `後から読む塊に在る ${block} の読み方の字の並びの数`,
       ).toBeGreaterThan(0);
     }
+  });
+
+  it("kind-chunks-read-sources-once", () => {
+    expect(wholeReads, "描画の src の全ての file を読み直した回数").toBe(1);
   });
 });

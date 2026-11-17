@@ -196,6 +196,67 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
   });
 });
 
+/**
+ * package.json と、それを字で書く検査 2 つ (`scripts` の欄を読む物と読まない物) を持ち、
+ * 表が package.json を全ての検査へ結ぶ git の repo。`main` に 1 度 commit し、枝 `work` へ移った所で返す
+ */
+function packageRepo(): string {
+  const root = smallRepo({
+    "package.json": `${JSON.stringify({ name: "x", scripts: { test: "vitest run" }, devDependencies: { vitest: "1.0.0" } }, null, 2)}\n`,
+    "test-support/related-table.json": JSON.stringify({ materials: [{ files: ["package.json"], tests: "all", why: "依存と検査の設定" }] }),
+    "packages/x/test/scripts.test.ts": 'import { readFileSync } from "node:fs";\nconst pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };\nvoid pkg.scripts.test;\n',
+    "packages/x/test/name.test.ts": 'import { readFileSync } from "node:fs";\nconst pkg = JSON.parse(readFileSync("package.json", "utf8")) as { name: string };\nvoid pkg.name;\n',
+  });
+  git(root, "init", "-q", "-b", "main");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", "-A");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-m", "first");
+  git(root, "switch", "-q", "-c", "work");
+  return root;
+}
+
+/** repo の package.json を、渡した関数で書き換える */
+function editPackage(root: string, edit: (pkg: Record<string, unknown>) => void): void {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<string, unknown>;
+  edit(pkg);
+  writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+}
+
+// package.json の `scripts` だけを変えた時は、依存も検査の設定も変わらないので全ての検査を選ばない (#3733)。
+// `pnpm test:related` が全ての検査を選ぶと、混んだ機械で 1 件 10 秒の上限を超える検査が出る
+describe("package.json の scripts だけを変えた時に選ぶ検査 (#3733)", () => {
+  it("related-scripts-only-change-picks-script-readers", () => {
+    const root = packageRepo();
+    editPackage(root, (pkg) => {
+      pkg.scripts = { test: "vitest run --reporter=verbose" };
+    });
+    const listed = list(["package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "scripts だけの変更で、scripts の欄を読む検査だけを選んでいない").toEqual(["packages/x/test/scripts.test.ts"]);
+  });
+
+  it("related-package-change-outside-scripts-picks-all", () => {
+    const root = packageRepo();
+    editPackage(root, (pkg) => {
+      pkg.scripts = { test: "vitest run --reporter=verbose" };
+      pkg.devDependencies = { vitest: "2.0.0" };
+    });
+    const listed = list(["package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "scripts の外を変えた時に全ての検査を選んでいない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/b.test.ts", "packages/x/test/name.test.ts", "packages/x/test/s.test.ts", "packages/x/test/scripts.test.ts"]);
+  });
+
+  it("related-new-package-json-picks-all", () => {
+    const root = packageRepo();
+    mkdirSync(join(root, "packages/y"), { recursive: true });
+    writeFileSync(join(root, "packages/y/package.json"), `${JSON.stringify({ name: "y", scripts: { test: "vitest run" } }, null, 2)}\n`);
+    writeFileSync(join(root, "test-support/related-table.json"), JSON.stringify({ materials: [{ files: ["package.json", "packages/*/package.json"], tests: "all", why: "依存と検査の設定" }] }));
+    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "table");
+    const listed = list(["packages/y/package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "分かれた元に無い package.json を足した時に全ての検査を選んでいない").toHaveLength(5);
+  });
+});
+
 /** 1 回の実行を回す関数。`out` は止める段が終わっていない file を書く先で、終わり方を返す */
 type Run = (files: string[], out: string) => number | null;
 type Until = (files: string[], run: Run, say: (text: string) => void) => number;
@@ -258,14 +319,19 @@ describe("上限で止まった実行の続き (#3386)", () => {
 
 /** 1 件で入力を順に回していた 3 つの検査。入力ごとの件に分けた (#3602) */
 const SPLIT = ["related-follows-package-and-built-entries", "related-maps-materials-by-table", "related-table-covers-material-readers"];
-/** 分けた件ごとの、命令を起こした回数 */
+/**
+ * この repo を読んで選ぶ検査を確かめる件。件ごとに命令を子の process で起こすと、命令が repo の全ての file を読み直し、
+ * 混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。file を読み込む時に 1 度だけ作った索引から選ぶ
+ */
+const REPO_CASES = [...SPLIT, "related-runs-changed-test-file"];
+/** この repo を読む件ごとの、命令を起こした回数 */
 const started = new Map<string, number>();
 let commandsAtStart = 0;
 beforeEach(() => {
   commandsAtStart = commands;
 });
 afterEach(({ task }) => {
-  if (SPLIT.includes(task.name)) started.set(`${task.suite?.name ?? ""} > ${task.name}`, commands - commandsAtStart);
+  if (REPO_CASES.includes(task.name)) started.set(`${task.suite?.name ?? ""} > ${task.name}`, commands - commandsAtStart);
 });
 
 describe("入力ごとに分けた検査を選ぶ命令の件 (#3602)", () => {
@@ -275,12 +341,12 @@ describe("入力ごとに分けた検査を選ぶ命令の件 (#3602)", () => {
     expect(casesNamed(task.file, "related-table-covers-material-readers"), "名前を書く検査を数える材料ごとの件").toHaveLength(5);
   });
 
-  // 1 件で命令を 3 回か 5 回起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
-  it("related-split-cases-start-one-command", () => {
-    expect([...new Set([...started.keys()].map((key) => key.split(" > ").pop()))].sort(), "命令を起こした回数を数えた検査").toEqual([...SPLIT].sort());
+  // 件ごとに命令を 1 回起こしても、命令が repo の全ての file を読み直すので、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)
+  it("related-repo-cases-start-no-command", () => {
+    expect([...new Set([...started.keys()].map((key) => key.split(" > ").pop()))].sort(), "命令を起こした回数を数えた検査").toEqual([...REPO_CASES].sort());
     expect(
-      [...started].filter(([, count]) => count !== 1).map(([key, count]) => `${key}: ${count}`),
-      "命令を 1 回でなく起こした件",
+      [...started].filter(([, count]) => count !== 0).map(([key, count]) => `${key}: ${count}`),
+      "この repo を読む件で命令を起こした件",
     ).toEqual([]);
   });
 });

@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
+import { casesNamed } from "./cases-support";
 import { runCli } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
 
@@ -98,6 +99,13 @@ describe("arcade で描く (#3341)", () => {
         expect(leaked, `${file} の ${theme} にほかの色味の地が入る`).toEqual([]);
       }
     }
+  });
+
+  // 全ての見本を arcade で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
+  it("arcade-render-cases-follow-examples", ({ task }) => {
+    const files = readdirSync(EXAMPLES).filter((file) => file.endsWith(".json")).sort();
+    expect(files.length, "packages/dragon/examples の見本の数").toBeGreaterThan(0);
+    expect(casesNamed(task.file, "arcade-renders-every-example"), "見本ごとの件").toEqual(files.map((file) => `arcade で描く見本 (#3341) ${file}`));
   });
 
   it("cli-draws-with-arcade-palette", async () => {

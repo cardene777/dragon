@@ -12,6 +12,7 @@ import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon
 import { describe, expect, it } from "vitest";
 
 import { renderLayout } from "../../../../packages/dragon/src/render/svg";
+import { casesNamed } from "../../../../packages/dragon/test/cases-support";
 import { app, partFigure, partFigureNames, root } from "./playground-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -41,6 +42,14 @@ function draw(dir: string, file: string, palette?: string): Rendered {
 /** 部品の図を描く。部品の図はブロックの置き場の見本帳の分に在り、file の名前で引く (#3345、#3348) */
 const drawPart = (file: string, palette?: string): Rendered =>
   draw(dirname(partFigure(file)), file, palette);
+
+/** 見本の名前。描かずに置き場の file の名前だけを並べる (#3733) */
+function exampleNames(): string[] {
+  const names = partFigureNames().map((file) => `catalog/parts/${file}`);
+  for (const [label, dir] of [["docs/examples", DOCS], ["examples", PACKAGE]] as const)
+    for (const file of readdirSync(dir).filter((f) => /\.(dragon|json)$/.test(f)).sort()) names.push(`${label}/${file}`);
+  return names;
+}
 
 function examples(palette?: string): Example[] {
   const out: Example[] = [];
@@ -206,6 +215,14 @@ describe("見本の字が重ならない (#3175)", () => {
       "arcade で描けていない見本",
     ).toEqual([]);
     expect(overlapReport(list)).toEqual([]);
+  });
+
+  // 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
+  it("overlaps-cases-follow-examples", ({ task }) => {
+    const names = exampleNames();
+    expect(names.length, "見本を 1 件も読めていない").toBeGreaterThan(100);
+    expect(casesNamed(task.file, "overlaps-none-in-every-example"), "見本ごとの件").toEqual(names);
+    expect(casesNamed(task.file, "overlaps-none-with-arcade-palette"), "arcade で描く見本ごとの件").toEqual(names);
   });
 
   it("overlaps-check-names-example-step-and-texts", () => {
