@@ -49,11 +49,11 @@ The renderer draws everything inside `packages/dragon` and does not depend on an
 
 A new shared block in `packages/dragon/blocks/` can be checked without building. Run `dragon check` on the definition file, and `dragon check --blocks <definition file> <example file>` on its example.
 
-`pnpm verify` runs the type check, the build, lint, and every test, shortest first.
+`pnpm verify` runs the build, the type check, lint, and every test, in that order.
 Run all of it, not only the tests near your change.
 A test can read the file you changed without being next to it.
 For example, editing one example in `packages/dragon/examples/` affects the tests that convert it, draw it, and export it.
-The build runs second because the tests read the built package (see the next section).
+The build runs first because the type check and the tests read the built package (see the next section).
 
 ## Tests
 
@@ -61,7 +61,7 @@ The build runs second because the tests read the built package (see the next sec
 Use the other commands to find where a failure comes from.
 
 ```bash
-pnpm verify      # type check, build, lint, and tests, in that order
+pnpm verify      # build, type check, lint, and tests, in that order
 pnpm test        # every vitest test (unit and integration)
 pnpm test:watch  # vitest in watch mode
 pnpm lint        # eslint

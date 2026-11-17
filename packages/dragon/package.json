@@ -146,7 +146,7 @@
     "test:watch": "cd ../.. && vitest packages/dragon",
     "lint": "tsc --noEmit",
     "check:pack": "node scripts/check-pack.mjs",
-    "prepublishOnly": "pnpm run typecheck && pnpm run build && pnpm run check:pack"
+    "prepublishOnly": "pnpm run build && pnpm run typecheck && pnpm run check:pack"
   },
   "peerDependencies": {
     "playwright-core": ">=1.49.0"

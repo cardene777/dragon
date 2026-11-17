@@ -24,7 +24,7 @@
 
 - `pnpm test` は repo の根で vitest を回す (`package.json`、`vitest.config.ts`)。
 - vitest は回す前に、`packages/dragon` の `dist` が `src` より古くないかを見る (`test-support/global-setup.ts`)。
-- `pnpm run verify` は型、build、lint、`pnpm test` の順に回す (`package.json`)。
+- `pnpm run verify` は build、型、lint、`pnpm test` の順に回す (`package.json`)。型の検査は build した `dist` の型の定義を読むので、build の後に回す (#3732)。
 - 課題ごとには、変えた所に関係する検査だけを `pnpm test:related` で回す (`scripts/test-related.mjs`)。検査の file が import をたどって読む file と、表 (`test-support/related-table.json`) が名指す素材から選び、どの規則にも当たらない file を変えた時は選ばずに断る。実装のstepの関門は`.ikkan/checks.md`の欄`届く検査`で、packageをbuildしてから`pnpm typecheck`と`pnpm test:related`をこの順に回す (#3679、#3730)。一式は版を出す前の配る前の関門で 1 回だけ回す (#3381)。1 回の実行が 5 分の上限で止まった時は、止める段 (`test-support/run-limit.ts`) が `DRAGON_UNFINISHED_OUT` の file に書いた終わっていない file だけを次の実行で回し、終わっていない file が減らなくなったら止める (#3386)。止める段は書き先を読んだ後に環境変数から外し、検査が起こす vitest が同じ書き先へ書かないようにする (#3388)。
 - 検査は 1 件とその前後処理を 10 秒、1 回の実行を 5 分で止め、止めた検査の名前を出す (`test-support/limits.ts`、`test-support/test-limit-guard.ts`、`test-support/run-limit.ts`)。検査が自分で書いた上限もこれより長くは待たない (#3381)。
 - 1 件の中で画面の大きさや見本の組を順に回す検査は、組ごとの件 (`describe.for`) に分け、件の名前は変えない。外した検査と、その守りを担う検査は `docs/removed-tests.md` に残す (#3381)。検査を選ぶ命令 (`scripts/test-related.mjs`) を起こす検査も入力ごとの件に分け、件ごとに命令を子のプロセスで1回だけ起こす (#3602)。
