@@ -19,7 +19,8 @@
  * 時間軸の図の範囲の囲みの縁と段の終わりの針が札を持たない字を横切るのも同じ崩れに数え、囲みと針で呼ぶ (#3631)。
  * 列の図の札に押した印が札を持たない字に重なるのは、配管の図の札の重なりと同じ崩れ (`chip-over-part`) に数え、印で呼ぶ (#3631)。
  * 線が両端でない箱の字に掛からずに箱の中を通る (`line-behind-box`、#3607) も数える。線は箱の下に描くので箱に隠れ、その箱へ出入りする線に読めるため。
- * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種を拾う (`pipe-breaks.ts`、#3523)。
+ * 配管の図は、描く処理が記録した部品 (`pieces`) から、返した値の札と弁の重なりや管どうしの重なりの 4 種と、
+ * 部品どうしの重なりと字の上を通る値の管と空き帯の 3 種 (#3721) を拾う (`pipe-breaks.ts`、#3523)。
  * 箱の形は足した箱のブロックの形 (アーチや六角形) で、形を持たない箱は四角なので、形の崩れは足した箱のブロックの箱だけで起きる。
  * 形を持たない四角の箱の字は、形の崩れの代わりに枠に接するかを見る。
  * 後の段の番号がぴったり同じ所で前の段の番号と入れ替わる時も、2 つは同時に見えないが前の番号を隠すので、番号が近すぎる崩れに数える (#3525)。
@@ -62,7 +63,9 @@ export type LayoutPart =
   | { kind: "border"; name: string }
   | { kind: "ring" }
   | { kind: "stamp"; text: string }
-  | { kind: "span"; text: string };
+  | { kind: "span"; text: string }
+  | { kind: "tank"; name: string }
+  | { kind: "flow"; name: string };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -84,7 +87,10 @@ export type LayoutBreakKind =
   | "valve-near-pipe"
   | "badge-on-frame"
   | "label-on-frame"
-  | "title-outside-ring";
+  | "title-outside-ring"
+  | "parts-overlap"
+  | "line-over-text"
+  | "empty-band";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -95,10 +101,13 @@ export interface Border {
 /**
  * 配管の図の描く処理が記録する部品 (#3523)。名前は書き手が書いた箱の名前で、段は 1 から数える。
  * 箱は名札の四角と角の丸み、呼び出しの管は点の並びと太さの半分、弁は胴と軸と取っ手の四角、計器は盤と通ったかの印と軸の四角、
- * 返した値の札は止まった所の四角を持つ。弁の `to` は呼び出しの管の弁だけが持ち、トークンの箱の弁は持たない
+ * 返した値の札は止まった所の四角を持つ。弁の `to` は呼び出しの管の弁だけが持ち、トークンの箱の弁は持たない。
+ * 槽は持ち主の名前とトークンで呼び、四角を持つ。値の管 (`line`) はトークンと両端の名前で呼び、点の並びと太さの半分を持つ (#3721)
  */
 export type PipePiece =
   | { kind: "box"; name: string; rect: Rect; corner: number; shown: Shown[] }
+  | { kind: "tank"; name: string; rect: Rect; shown: Shown[] }
+  | { kind: "line"; name: string; points: Point[]; half: number; shown: Shown[] }
   | { kind: "pipe"; from: string; to: string; step: number; points: Point[]; half: number; shown: Shown[] }
   | { kind: "valve"; from: string; to?: string; step?: number; body: Rect; lever: Rect[]; shown: Shown[] }
   | { kind: "gauge"; box: string; rects: Rect[]; shown: Shown[] }
@@ -293,6 +302,22 @@ function signedDistance(rings: Point[][], p: Point): number {
     best = Math.min(best, Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)));
   }
   return insideRings(rings, p) ? -best : best;
+}
+
+/**
+ * 配管の図の、部品 (`pieces`) に記録しない描いた物 (囲いの枠、値の箱、札、ログの札、呼び出しの札) の四角 (#3721)。
+ * 空き帯を数える時に、描いた物として部品と字に重ねる
+ */
+function pipeAreas(pipe: PipeLayout): { rect: Rect; part: LayoutPart }[] {
+  const names = new Map(pipe.parties.map((p) => [p.id, p.name]));
+  const box = (id: string): LayoutPart => ({ kind: "box", name: names.get(id) ?? id });
+  return [
+    ...pipe.housings.map((h) => ({ rect: h, part: box(h.party) })),
+    ...pipe.plates.map((p) => ({ rect: p, part: { kind: "text" as const, text: p.name } })),
+    ...pipe.chips.map((c) => ({ rect: c, part: { kind: "text" as const, text: c.text } })),
+    ...(pipe.logCards ?? []).map((c) => ({ rect: c, part: { kind: "text" as const, text: c.title } })),
+    ...(pipe.callCards ?? []).map((c) => ({ rect: c, part: { kind: "text" as const, text: c.title } })),
+  ];
 }
 
 /**
@@ -672,7 +697,7 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
       }
     }
 
-  if (input.pieces) out.push(...pipeBreaks(input.pieces, stills));
+  if (input.pieces) out.push(...pipeBreaks(input.pieces, stills, input.inks, input.frame, layout?.kind === "pipe" ? pipeAreas(layout as PipeLayout) : []));
 
   const seen = new Set<string>();
   return out

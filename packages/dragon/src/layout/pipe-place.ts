@@ -6,30 +6,33 @@
  * 置き場所は `box` と `hold` の行だけで決まるので、呼ぶ人や引数を替えても箱と槽は動かない。呼び出しに関わらない人は薄く描く
  */
 import { ETH } from "../blocks/definition-values";
-import { textWidth } from "./measure";
 import type { Point, Rect } from "./scene";
-import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../look/pipe";
+import { PIPE_LOOK } from "../look/pipe";
 import type { DiagramModel } from "../schema";
 import {
   type PipeBridge,
   type PipeBusLine,
   type PipeChip,
   type PipeFixed,
+  type PipeEventChip,
   type PipeFlow,
+  type PipeHousing,
   type PipeLayout,
   type PipeLedger,
   type PipeParty,
   type PipePort,
   type PipeTank,
   type PipeValuePipe,
+  callCardSize,
+  logCardSize,
   partiesOf,
   returnRoute,
   simulate,
 } from "../kinds/pipe/layout";
+import { channelTracks } from "../pipe-route";
 import { valveRects } from "../pipe-valve";
 
 const P = PIPE_LOOK;
-const T = PIPE_TYPE;
 
 /** 置き直した図。置き直した形と点数を必ず持つ */
 type Placed = PipeLayout & { fixed: PipeFixed };
@@ -40,39 +43,8 @@ type Seg = [Point, Point];
 /** 箱の中の行を広げた幅に合わせて動かす部品の名前 */
 const ROW_LEFT = ["badge", "badges", "keyArrow", "label"] as const;
 const ROW_RIGHT = ["text", "was", "arrow", "strike", "pill"] as const;
-/**
- * 上と下の形で、線をどこから上げるか。`up` は丸の上から真上へ、`right` と `left` は右か左の隣との間から、
- * `outer-left` と `outer-right` は列の外側から、`gap-right` と `gap-left` は槽のパイプが右か左の隣との間から、`row` は列の中どうしの呼び出し
- */
-type Way = "up" | "right" | "left" | "outer-left" | "outer-right" | "gap-right" | "gap-left" | "row";
-/** 槽からトークンの箱へ上げる値のパイプ */
-interface ValueRun {
-  holder: string;
-  token: string;
-  box: string;
-  tank: PipeTank;
-  way: Way;
-}
-/** どの人がどの箱を呼んでもよいよう先に取っておく呼び出しの道。`k` は箱の順 */
-interface Reserved {
-  from: string;
-  to: string;
-  k: number;
-  way: Way;
-}
-/** 図に出てくる呼び出し。取っておいた道か、列の中どうしの呼び出し */
-type Call = Reserved | { from: string; to: string; way: "row"; k?: undefined };
-/** 隣との間を通る線。間の中で横に並べる順を決める */
-type Item = ValueRun | Call;
 /** 槽を行に並べる形の呼び出し。人 (`i` 番目) から箱 (`k` 番目) へ取っておいた道 (`box`) か、列の中どうしの呼び出し (`row`) */
 type RowCall = { from: string; to: string; k: number; i: number; way: "box" } | { from: string; to: string; way: "row"; k?: undefined; i?: undefined };
-/** 隣どうしの間ごとに通る線。左の人から右へ出る呼び出し、槽のパイプ、右の人から左へ出る呼び出し */
-interface Gap {
-  left: Reserved[];
-  values: ValueRun[];
-  right: Reserved[];
-}
-
 /** 折れ線の線分 */
 const segsOf = (points: readonly Point[]): Seg[] => points.slice(1).map((q, i): Seg => [points[i] as Point, q]);
 
@@ -89,14 +61,6 @@ function spreadPorts(xs: readonly number[], lo: number, hi: number, gap: number)
   return ps;
 }
 
-// パイプ図の箱を上に置く形 (Tracelyth #165) と、箱を人の列の下に集める形 (Tracelyth #166)。今の並べ方で作った部品を、
-// トークンの箱を人の列の上か下に置く置き場所へ移す。下の形は上の形を上下に返した置き方で、人の丸と槽の並びは変えない。
-// 人は `box` の行の順に左から1列に並べ、槽ごとにトークンの箱へパイプを引く。両端の人は列の外側から、間の人は右隣との間から上げる (下の形は下ろす)。
-// 置き場所は `box` と `hold` の行だけで決まるので、呼ぶ人や引数を替えても箱と槽は動かない。呼び出しに関わらない人は薄く描く
-// `cards` は箱の上に空けておく、札入れと呼び出しの札の高さ。ステップの中身で札の高さが変わっても箱を下げないよう、決まった高さで空ける。
-// `boxW` と `boxH` はトークンの箱の最小の大きさ。呼び方で箱の中の値の札が出たり出なかったりしても、箱の大きさと下端を変えない
-// `top` と `writes` は箱を下に集める形 (Tracelyth #166) だけが使う。`top` は人の列の上に空けておく、2人を結ぶ線と列の中どうしの呼び出しの高さ、
-// `writes` は列と箱の間に空けておく、箱から人の下の札への書き換えの点線が横へ通る帯の高さ
 // 箱の中の行を持つ箱か。行を持つ箱は中身に合わせた高さで描き、固定した形の最小の高さで下を空けない
 const hasRows = (out: PipeLayout, id: string): boolean => (out.plates ?? []).some((p) => p.party === id && p.row && p.step === 0);
 // 固定した形で広げて高くした箱に、関わる箱を囲む枠 (`pills`) と列 (`columns`) を合わせる (Tracelyth #173)。
@@ -124,7 +88,41 @@ const fitRows = (out: PipeLayout, id: string, extra: number): void => {
 const TOP_LOOK = { gap: 132, slot: 36, outer: 36, lane: 24, port: 36, portPad: 28, turn: 34, band: 26, clear: 46, boxGap: 64, cards: 220, boxW: 200, boxH: 72, link: 34, linkTop: 44, under: 22, coin: 64, top: 124, writes: 44 } as const;
 // 置き直した座標は小数3桁に丸める。元の座標の小数の誤差で、同じ置き場所が呼び方ごとにわずかにずれないように
 const round3 = (v: number): number => Math.round(v * 1e3) / 1e3;
-// `shape` は `top` か `bottom`。`order` はトークンの箱の並び。省くと `box` の行の順に並べる
+/**
+ * 上と下の形の通り道の寸法 (#3721)。
+ * `pitch` は通り道の帯の段どうしの間、`riser` は隣との間を縦に通る線どうしの間、`gapPad` は縦に通る線と人の組の縁の間、
+ * `gapMin` は線の通らない隣との間、`pad` は通り道の帯の段と帯の縁の間、`bPad` は名前の下の帯の段と名前の間、`port` は箱の口どうしの間、
+ * `slot` は丸と箱の縁に着く線どうしの間、`tether` はログの札の点線の段どうしの間、`logGap` は札どうしの間、`rowGap` は札の帯の段どうしの間、
+ * `card` は札の帯に必ず空ける高さ (引数が3つの札の高さ)。段の中身で札が無い図も、札がある図と同じ所に箱と槽を置く
+ */
+const CH = { pitch: 16, riser: 18, gapPad: 22, gapMin: 72, pad: 28, bPad: 24, port: 28, slot: 18, tether: 8, logGap: 16, rowGap: 14, card: 103, io: 20 } as const;
+
+/** 槽か札へ下りる線。値のパイプ (`value`) か、1人をキーに持つ値の書き換えの点線 (`write`) */
+interface Run {
+  kind: "value" | "write";
+  holder: string;
+  token: string;
+  /** 線のもう一方の端。トークンの箱か、書き換える値の持ち主 */
+  box: string;
+  target: Rect;
+  name?: string;
+  side: "left" | "right";
+  drop: number;
+}
+/** 呼ぶ者ごとに1本の本管。`targets` は空けておく呼ばれる者、`drawn` は段に出る呼ばれる者 */
+interface Caller {
+  from: string;
+  targets: string[];
+  drawn: Set<string>;
+}
+
+// パイプ図の箱を上に置く形 (Tracelyth #165) と、箱を人の列の下に集める形 (Tracelyth #166)。
+// 人は `box` の行の順に左から1列に並べ、名前の下の帯を通って槽の上の縁からパイプを入れる (#3721)。
+// 線は通り道の帯ごとに、横に走る段を1本ずつ割り当て (`channelTracks`)、縦の線は隣との間に1本ずつ横の位置を割り当てるので、2本の線が同じ所を重なって走らない。
+// 上の形は上から、札の帯、ログの点線の帯、札入れと呼び出しの札の高さ、トークンの箱、呼び出しと値のパイプの帯、人の列、名前の下の帯、槽の入れ物、2人を結ぶ線の帯の順に置く。
+// 下の形は上から、札の帯、ログの点線の帯、列の中どうしの呼び出しと2人を結ぶ線の帯、人の列、名前の下の帯、槽の入れ物、値のパイプと呼び出しの帯、トークンの箱、札入れと呼び出しの札の高さの順に置く。
+// 呼び出しの通り道は、`route` の行で渡した人からの呼び出しの組 (渡さない図は段に出る人からの呼び出しの組) と、コントラクトから全てのトークンの箱への組の分だけ空ける。
+// 置き場所は `box` と `hold` と `route` の行だけで決まるので、段を替えても箱と槽は動かない。呼び出しに関わらない人は薄く描く
 function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "bottom" = "top", order?: readonly string[]): Placed {
   const out = structuredClone(composed) as Placed;
   const L = TOP_LOOK;
@@ -136,267 +134,485 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
   const boxes = order ?? declared.filter((id) => party(id).shape === "token");
   const tokenBox = new Map<string, string>();
   for (const [owner, token] of simulate(diagram, new Set()).tokens) if (boxes.includes(owner)) tokenBox.set(token, owner);
-  const moved = new WeakSet<object>();
-  const move = (o: unknown, dx: number, dy: number, seen: Seen = moved): void => moveParts(o, dx, dy, seen);
-  const OWNED = ["tanks", "glasses", "levels", "housings", "ties", "columns", "pills", "converters", "plates", "gauges", "events", "folds", "checks"] as const;
-  const ownedBy = (id: string): { party?: string }[] => OWNED.flatMap((k) => (out[k] as readonly { party?: string }[]).filter((x) => x.party === id));
   const rectOf = (r: Rect): Rect => ({ x: r.x, y: r.y, w: r.w, h: r.h });
   const union = (rs: readonly Rect[]): Rect => {
     const x0 = Math.min(...rs.map((r) => r.x));
     const y0 = Math.min(...rs.map((r) => r.y));
     return { x: x0, y: y0, w: Math.max(...rs.map((r) => r.x + r.w)) - x0, h: Math.max(...rs.map((r) => r.y + r.h)) - y0 };
   };
-  const groupOf = (id: string): Rect => {
-    const p = party(id);
-    return union([rectOf(p), ...p.label ? [rectOf(p.label)] : [], ...(out.housings ?? []).filter((h) => h.party === id).map(rectOf), ...(out.tanks ?? []).filter((t) => t.party === id).map(rectOf)]);
-  };
-  const tanksOf = (id: string): PipeTank[] => (out.tanks ?? []).filter((t) => t.party === id).sort((a, b) => a.x - b.x);
   const n = people.length;
+  const m = boxes.length;
   const index = new Map(people.map((id, i) => [id, i]));
   const idx = (id: string): number => index.get(id) ?? 0;
+  const isBox = (id: string): boolean => boxes.includes(id);
+  const inRow = (id: string): boolean => index.has(id);
+  const housingOf = (id: string): PipeHousing | undefined => (out.housings ?? []).find((h) => h.party === id);
+  const tanksOf = (id: string): PipeTank[] => (out.tanks ?? []).filter((t) => t.party === id).sort((a, b) => a.x - b.x);
+  const moved = new WeakSet<object>();
+  const move = (o: unknown, dx: number, dy: number): void => moveParts(o, dx, dy, moved);
 
-  // 呼び出しは、呼ぶ人と呼ばれる物の組ごとに1本のパイプにする
-  const pairs: { from: string; to: string }[] = [];
-  for (const step of diagram.steps)
-    for (const e of step.events) if (e.type === "call" && parties.has(e.from) && parties.has(e.to) && !pairs.some((q) => q.from === e.from && q.to === e.to)) pairs.push({ from: e.from, to: e.to });
-  const middle = (n - 1) / 2;
-  // 人から箱への呼び出しは、箱のある側の隣との間から上げる。列の真ん中の人は丸の上から真上へ上げる。
-  // 下の形は丸の下に槽が在るので、真ん中の人も右隣との間から下ろし、1人だけの列は槽のパイプと反対の左の外側から下ろす
-  const callWay = (id: string): Way => {
-    if (down) return n <= 1 ? "outer-left" : idx(id) <= middle ? "right" : "left";
-    return n <= 1 || idx(id) === middle ? "up" : idx(id) < middle ? "right" : "left";
+  // コントラクトの箱の高さを揃える。呼び出しに関わるかに依らず全て四角の箱で描く (`compose` が形を決める)
+  const cabinets = people.filter((id) => party(id).shape === "cabinet");
+  const cabH = Math.max(0, ...cabinets.map((id) => party(id).h));
+  for (const id of cabinets) {
+    party(id).h = cabH;
+    fitFrames(out, party(id));
+  }
+
+  // 入れ物の中の槽を、トークンの箱の並びの順に並べ替える。`compose` は段の動きで並びを決めるので、段を減らすと槽が動く。
+  // 変換器は隣り合う 2 つの槽を結ぶので、変換器を持つ入れ物は並びを変えない。
+  // 段ごとの槽は槽の題の字を共に持つので、動かした物を 1 つの集まりで覚えて 1 度だけ動かす
+  const reordered = new WeakSet<object>();
+  for (const id of people) {
+    if ((out.converters ?? []).some((c) => c.party === id)) continue;
+    const list = tanksOf(id);
+    const rank = (t: PipeTank): number => {
+      const b = tokenBox.get(t.token);
+      return b === undefined ? m : boxes.indexOf(b);
+    };
+    const want = [...list].sort((a, b) => rank(a) - rank(b) || a.x - b.x);
+    if (want.every((t, i) => t === list[i])) continue;
+    const gaps = list.slice(1).map((t, i) => t.x - ((list[i] as PipeTank).x + (list[i] as PipeTank).w));
+    let x = (list[0] as PipeTank).x;
+    const dxOf = new Map<string, number>();
+    want.forEach((t, i) => {
+      dxOf.set(t.token, x - t.x);
+      x += t.w + (gaps[i] ?? 0);
+    });
+    for (const k of ["tanks", "glasses", "levels"] as const)
+      for (const o of (out[k] ?? []) as { party: string; token: string }[]) if (o.party === id && dxOf.has(o.token)) moveParts(o, dxOf.get(o.token) ?? 0, 0, reordered);
+  }
+
+  // 人の列の部品を、名札の側 (丸と名前) と入れ物の側 (入れ物と、その中の槽と札と計器) に分ける。名前の下の帯を空けるため、2つを別々に動かす
+  const inside = (r: Rect, h: Rect): boolean => r.x >= h.x - 1 && r.y >= h.y - 1 && r.x + r.w <= h.x + h.w + 1 && r.y + r.h <= h.y + h.h + 1;
+  const ownedBy = <K extends keyof PipeLayout>(k: K, id: string): object[] => ((out[k] ?? []) as unknown as { party?: string }[]).filter((x) => x.party === id);
+  const headParts = new Map<string, object[]>();
+  const bodyParts = new Map<string, object[]>();
+  for (const id of people) {
+    const h = housingOf(id);
+    const head: object[] = [party(id), ...ownedBy("columns", id), ...ownedBy("pills", id), ...ownedBy("folds", id)];
+    const body: object[] = [...ownedBy("housings", id), ...ownedBy("tanks", id), ...ownedBy("glasses", id), ...ownedBy("levels", id), ...ownedBy("converters", id)];
+    for (const k of ["plates", "gauges"] as const) for (const x of ownedBy(k, id) as Rect[]) (h && inside(x, h) ? body : head).push(x);
+    for (const w of out.writes ?? []) if (w.from === id && w.to === id) body.push(w);
+    headParts.set(id, head);
+    bodyParts.set(id, body);
+  }
+  const headRect = (id: string): Rect => {
+    const p = party(id);
+    return union([rectOf(p), ...(p.label ? [rectOf(p.label)] : []), ...(p.sub ? [rectOf(p.sub)] : [])]);
   };
-  // 真上へ上げる呼び出しが箱ごとに重ならないよう、箱の順に横へずらす
-  const upOffset = (k: number): number => (k - (boxes.length - 1) / 2) * L.port;
+  const cols = people.map((id) => {
+    const p = party(id);
+    const head = headRect(id);
+    const h = housingOf(id);
+    const axis = p.x + p.w / 2;
+    const all = h ? union([head, rectOf(h)]) : head;
+    return { id, axis, left: axis - all.x, right: all.x + all.w - axis, headH: head.y + head.h - p.y };
+  });
 
-  // 槽ごとのパイプの上げ方。両端の人は列の外側から、ほかの人は右隣との間 (右端の人は左隣との間) から上げる
-  const values: ValueRun[] = [];
-  for (const token of [...tokenBox.keys()]) {
-    const box = tokenBox.get(token) as string;
-    const holders = people.filter((id) => tanksOf(id).some((t) => t.token === token));
-    const first = boxes.indexOf(box) === 0;
-    const last = boxes.indexOf(box) === boxes.length - 1;
-    holders.forEach((id, k) => {
-      const i = idx(id);
-      const tank = tanksOf(id).find((t) => t.token === token) as PipeTank;
-      let way: Way;
-      if (holders.length >= 2 && k === 0 && first) way = "outer-left";
-      else if (holders.length >= 2 && k === holders.length - 1 && last) way = "outer-right";
-      else if (n === 1) way = "outer-right";
-      else way = i < n - 1 ? "gap-right" : "gap-left";
-      values.push({ holder: id, token, box, tank, way });
+  // 槽と札へ下りる線。入れ物の左の半分の槽は左の隣との間から、右の半分は右の隣との間から下ろす。真ん中の槽はトークンの箱の側から下ろす
+  const holdsOf = diagram.pipe?.holds ?? [];
+  const runs: Run[] = [];
+  for (const id of people) {
+    const targets: Omit<Run, "side">[] = [];
+    for (const t of tanksOf(id)) {
+      const box = tokenBox.get(t.token);
+      if (box !== undefined) targets.push({ kind: "value", holder: id, token: t.token, box, target: t, drop: t.x + t.w / 2 });
+    }
+    for (const pl of (out.plates ?? []).filter((x) => x.party === id && x.step === 0 && !x.boxed && !x.row)) {
+      const owner = holdsOf.find((h) => "name" in h && h.name === pl.name && h.link?.on === id)?.box;
+      if (owner !== undefined && owner !== id && parties.has(owner)) targets.push({ kind: "write", holder: id, token: "", box: owner, target: pl, name: pl.name, drop: pl.x + pl.w / 2 });
+    }
+    targets.sort((a, b) => a.drop - b.drop);
+    const k = targets.length;
+    targets.forEach((t, j) => {
+      const toward = isBox(t.box) ? (boxes.indexOf(t.box) + 0.5) / Math.max(1, m) : (idx(t.box) + 0.5) / Math.max(1, n);
+      const side = 2 * j + 1 < k ? "left" : 2 * j + 1 > k ? "right" : toward < (idx(id) + 0.5) / Math.max(1, n) ? "left" : "right";
+      runs.push({ ...t, side });
     });
   }
-  // 隣どうしの間ごとに通るパイプ。左の人から右へ出る呼び出し、槽のパイプ、右の人から左へ出る呼び出しの順に並べる
-  const gaps = Array.from({ length: Math.max(0, n - 1) }, (): Gap => ({ left: [], values: [], right: [] }));
-  for (const v of values) {
-    const i = idx(v.holder);
-    if (v.way === "gap-right") gaps[i]?.values.push(v);
-    if (v.way === "gap-left") gaps[i - 1]?.values.push(v);
-  }
-  // 呼ぶ人を替えても置き場所を変えないよう、どの人がどの箱を呼んでもよい口と通り道を先に取っておく
-  const reserved = people.flatMap((id) => boxes.map((b, k): Reserved => ({ from: id, to: b, k, way: callWay(id) })));
-  for (const c of reserved) {
-    const i = idx(c.from);
-    if (c.way === "right") gaps[i]?.left.push(c);
-    if (c.way === "left") gaps[i - 1]?.right.push(c);
-  }
-  const calls = pairs.map((q): Call => reserved.find((c) => c.from === q.from && c.to === q.to) ?? { ...q, way: "row" });
-  // 下の形では、丸から出る呼び出しが槽から出るパイプより上で横へ出るので、隣との間の外寄りを呼び出しに、人寄りを槽のパイプに渡す。
-  // 左の人の槽のパイプ、左の人の呼び出し、右の人の呼び出し、右の人の槽のパイプの順に並べると、横へ出る線と下りる線が交わらない
-  const slotsOf = (g: Gap): Item[] => {
-    if (!down) return [...g.left, ...g.values, ...g.right];
-    const mine = g.values.filter((v) => v.way === "gap-right");
-    return [...mine, ...g.left, ...g.right, ...g.values.filter((v) => v.way !== "gap-right")];
+  const sideRuns = (i: number, side: "left" | "right"): Run[] => (i < 0 || i >= n ? [] : runs.filter((r) => r.holder === people[i] && r.side === side).sort((a, b) => a.drop - b.drop));
+
+  // 呼び出しの組。段に出る組と、置き方が通り道を空ける組 (#3721)
+  const callPairs: [string, string][] = [];
+  for (const step of diagram.steps)
+    for (const e of step.events)
+      if (e.type === "call" && parties.has(e.from) && parties.has(e.to) && e.from !== e.to && !callPairs.some(([f, t]) => f === e.from && t === e.to)) callPairs.push([e.from, e.to]);
+  const person = (id: string): boolean => party(id).shape === "round";
+  const routes: [string, string][] = diagram.routes
+    ? diagram.routes.filter((r) => parties.has(r.from) && parties.has(r.to) && r.from !== r.to).map((r): [string, string] => [r.from, r.to])
+    : callPairs.filter(([f]) => person(f));
+  const callers = new Map<string, Caller>();
+  const callerOf = (id: string): Caller => {
+    const known = callers.get(id);
+    if (known) return known;
+    const c: Caller = { from: id, targets: [], drawn: new Set() };
+    callers.set(id, c);
+    return c;
   };
-  const gapW = gaps.map((g) => Math.max(L.gap, (slotsOf(g).length + 1) * L.slot));
-  const outerLeft = values.filter((v) => v.way === "outer-left");
-  const outerRight = values.filter((v) => v.way === "outer-right");
-  const outerCalls = reserved.filter((c) => c.way === "outer-left");
-
-  // 人を左から並べる (縦の位置は後で決める)
-  const delta = new Map<string, [number, number]>();
-  const shiftOf = (id: string): [number, number] => delta.get(id) ?? [0, 0];
-  let cursor = P.margin + L.lane + (outerLeft.length + outerCalls.length) * L.outer + L.lane;
-  const spans: { x: number; w: number }[] = [];
-  people.forEach((id, i) => {
-    const g = groupOf(id);
-    delta.set(id, [cursor - g.x, 0]);
-    spans.push({ x: cursor, w: g.w });
-    cursor += g.w + (gapW[i] ?? 0);
-  });
-  const centerOf = (id: string): number => {
-    const p = party(id);
-    return p.x + shiftOf(id)[0] + p.w / 2;
+  const aim = (from: string, to: string): void => {
+    const c = callerOf(from);
+    if (!c.targets.includes(to)) c.targets.push(to);
   };
-  const rowCenter = n === 0 ? P.margin + 200 : (centerOf(people[0] as string) + centerOf(people[n - 1] as string)) / 2;
+  for (const [f, t] of routes) aim(f, t);
+  // コントラクトから箱への呼び出しは段で替わるので、全てのトークンの箱への通り道を空けておく
+  for (const id of cabinets) for (const b of boxes) aim(id, b);
+  for (const [f, t] of callPairs) {
+    aim(f, t);
+    callerOf(f).drawn.add(t);
+  }
+  const callerList = [...callers.values()].filter((c) => c.targets.length > 0);
+  const boxTargets = (c: Caller): string[] => c.targets.filter(isBox);
+  const rowTargets = (c: Caller): string[] => c.targets.filter((t) => inRow(t));
 
-  // 箱の幅は、下から入るパイプの口が並ぶだけ広げる
-  const entering = (box: string): number => values.filter((v) => v.box === box && !v.way.startsWith("outer")).length + reserved.filter((c) => c.to === box).length;
-  const widths = boxes.map((id) => Math.max(party(id).w, (entering(id) - 1) * L.port + L.portPad * 2, L.boxW));
-  const heights = boxes.map((id) => (hasRows(out, id) ? party(id).h : Math.max(party(id).h, L.boxH)));
-  const total = widths.reduce((s, w) => s + w, 0) + Math.max(0, boxes.length - 1) * L.boxGap;
-  const boxX = new Map<string, number>();
-  let bx = rowCenter - total / 2;
-  boxes.forEach((id, k) => {
-    boxX.set(id, bx);
-    bx += (widths[k] ?? 0) + L.boxGap;
+  // 下の形では、箱へ向かう呼び出しを丸の横から出し、隣との間を下ろす。箱の並びの重心の側へ出す
+  const trunkSide = new Map<string, "left" | "right">();
+  if (down)
+    for (const c of callerList) {
+      if (!inRow(c.from) || boxTargets(c).length === 0) continue;
+      const toward = boxTargets(c).reduce((s, b) => s + (boxes.indexOf(b) + 0.5) / m, 0) / boxTargets(c).length;
+      trunkSide.set(c.from, toward < (idx(c.from) + 0.5) / n ? "left" : "right");
+    }
+
+  // 隣との間ごとの縦の線。左の人の右から下ろす線、左の人の本管、右の人の本管、右の人の左から下ろす線の順に左から並べる。
+  // 隣との間 g は人 g と人 g+1 の間で、-1 は列の左の外、n-1 は列の右の外
+  type Slot = Run | { trunk: string };
+  const slotsOf = (g: number): Slot[] => [
+    ...sideRuns(g, "right"),
+    ...(down && g >= 0 && trunkSide.get(people[g] ?? "") === "right" ? [{ trunk: people[g] as string }] : []),
+    ...(down && g + 1 < n && trunkSide.get(people[g + 1] ?? "") === "left" ? [{ trunk: people[g + 1] as string }] : []),
+    ...sideRuns(g + 1, "left"),
+  ];
+  const gapW = (g: number): number => {
+    const k = slotsOf(g).length;
+    const inner = g >= 0 && g < n - 1;
+    return k === 0 ? (inner ? CH.gapMin : 0) : Math.max(inner ? CH.gapMin : 0, CH.gapPad * 2 + (k - 1) * CH.riser);
+  };
+  const axisOf = new Map<string, number>();
+  const gapLeft = new Map<number, number>();
+  let cursor = P.margin;
+  gapLeft.set(-1, cursor);
+  cursor += gapW(-1);
+  cols.forEach((c, i) => {
+    axisOf.set(c.id, cursor + c.left);
+    cursor += c.left + c.right;
+    gapLeft.set(i, cursor);
+    cursor += gapW(i);
   });
+  const rowRight = cursor;
+  const riserX = new Map<Slot, number>();
+  for (let g = -1; g < n; g++) slotsOf(g).forEach((s, j) => riserX.set(s, round3((gapLeft.get(g) ?? 0) + CH.gapPad + j * CH.riser)));
+  const trunkX = (id: string): number | undefined => {
+    for (const [s, x] of riserX) if ("trunk" in s && s.trunk === id) return x;
+    return undefined;
+  };
+  const xNew = (id: string, x: number): number => x + (axisOf.get(id) ?? 0) - (cols[idx(id)]?.axis ?? 0);
 
-  // 隣との間のパイプの横の位置
-  const riserX = new Map<Item, number>();
-  gaps.forEach((g, i) => {
-    const span = spans[i] as { x: number; w: number };
-    const x0 = span.x + span.w;
-    slotsOf(g).forEach((item, j, all) => riserX.set(item, x0 + ((j + 1) * (gapW[i] ?? 0)) / (all.length + 1)));
+  // 丸と箱の縁に着く線の口。上の形は丸の上の縁に、呼ぶ者の本管と呼ばれる口を並べ、真ん中を本管に使う。
+  // 下の形は丸の上の縁に、列の中どうしの呼び出しと2人を結ぶ線の口を並べる
+  const topSlots = new Map<string, Map<string, number>>();
+  const slotOn = (id: string, key: string): number => topSlots.get(id)?.get(key) ?? (axisOf.get(id) ?? 0);
+  const keyOfLink = (l: { owner: string; name: string }): string => `${l.owner}\u0000${l.name}`;
+  const linkKeys = [...new Set((out.links ?? []).filter((l) => inRow(l.from) && inRow(l.to)).map(keyOfLink))];
+  const firstLink = new Map<string, PipeLayout["links"][number]>();
+  for (const l of out.links ?? []) if (!firstLink.has(keyOfLink(l)) && inRow(l.from) && inRow(l.to)) firstLink.set(keyOfLink(l), l);
+  for (const id of people) {
+    const own = callers.get(id);
+    const mine = down ? (own && rowTargets(own).length > 0 ? ["exit"] : []) : own && (boxTargets(own).length > 0 || rowTargets(own).length > 0) ? ["exit"] : [];
+    const arrivals = callerList.filter((c) => c.from !== id && rowTargets(c).includes(id)).map((c) => ({ key: `in:${c.from}`, at: isBox(c.from) ? n + boxes.indexOf(c.from) : idx(c.from) }));
+    const links = down ? linkKeys.flatMap((g) => {
+      const l = firstLink.get(g);
+      if (!l || (l.from !== id && l.to !== id)) return [];
+      const other = l.from === id ? l.to : l.from;
+      return [{ key: `link:${g}`, at: idx(other) }];
+    }) : [];
+    const others = [...arrivals, ...links].sort((a, b) => a.at - b.at);
+    const offsets: number[] = [];
+    for (let k = 1; offsets.length < others.length + (mine.length > 0 ? 0 : 1); k++) offsets.push(-k * CH.slot, k * CH.slot);
+    const free = (mine.length > 0 ? offsets : [0, ...offsets]).slice(0, others.length).sort((a, b) => a - b);
+    const slots = new Map<string, number>();
+    if (mine.length > 0) slots.set("exit", axisOf.get(id) ?? 0);
+    others.forEach((o, k) => slots.set(o.key, round3((axisOf.get(id) ?? 0) + (free[k] ?? 0))));
+    topSlots.set(id, slots);
+  }
+
+  // トークンの箱の大きさと横の位置。箱の口は箱へ入るパイプと呼び出しの数だけ並べ、箱は口の先の重心の上に寄せる
+  // ログの札は段ごとに写しを持つので、札の番号で 1 つに数える
+  const tetherNeed = new Map<string, number>();
+  for (const id of new Set((out.events ?? []).filter((e) => isBox(e.party)).map((e) => e.id))) {
+    const e = (out.events ?? []).find((x) => x.id === id) as PipeEventChip;
+    tetherNeed.set(e.party, (tetherNeed.get(e.party) ?? 0) + 1);
+  }
+  type PortItem = Run | { call: string; to: string } | { exit: string } | { tether: string; k: number };
+  const portItems = new Map<string, PortItem[]>(boxes.map((b) => [b, []]));
+  for (const r of runs) if (isBox(r.box)) portItems.get(r.box)?.push(r);
+  for (const c of callerList) {
+    for (const b of boxTargets(c)) portItems.get(b)?.push({ call: c.from, to: b });
+    if (isBox(c.from)) portItems.get(c.from)?.push({ exit: c.from });
+  }
+  // 下の形はログの点線が箱の上の縁 (口と同じ縁) に着くので、点線の口も空けておく。段で替わらないよう、箱ごとに少なくとも1つ空ける
+  if (down) for (const b of boxes) for (let k = 0; k < Math.max(1, tetherNeed.get(b) ?? 0); k++) portItems.get(b)?.push({ tether: b, k });
+  const otherEnd = (it: PortItem): number => {
+    if ("kind" in it) return riserX.get(it) ?? 0;
+    if ("call" in it) return inRow(it.call) ? (down ? (trunkX(it.call) ?? axisOf.get(it.call) ?? 0) : slotOn(it.call, "exit")) : 0;
+    if ("exit" in it) return 0;
+    return rowRight;
+  };
+  const heightOf = (id: string): number => (hasRows(out, id) ? party(id).h : Math.max(party(id).h, L.boxH));
+  const boxH = Math.max(L.boxH, ...boxes.map(heightOf));
+  const widths = boxes.map((b) => Math.max(party(b).w, ((portItems.get(b)?.length ?? 1) - 1) * CH.port + L.portPad * 2, L.boxW));
+  const wanted = boxes.map((b, k) => {
+    const ends = (portItems.get(b) ?? []).filter((it) => !("tether" in it) && !("exit" in it)).map(otherEnd);
+    return ends.length > 0 ? ends.reduce((s, x) => s + x, 0) / ends.length : P.margin + ((k + 0.5) * (rowRight - P.margin)) / Math.max(1, m);
   });
-  const leftEdge = spans[0]?.x ?? P.margin;
-  const lastSpan = spans[n - 1];
-  const rightEdge = lastSpan ? lastSpan.x + lastSpan.w : P.margin;
-  outerLeft.forEach((v, j) => riserX.set(v, leftEdge - L.lane - j * L.outer));
-  outerRight.forEach((v, j) => riserX.set(v, rightEdge + L.lane + j * L.outer));
-  // 外側から下ろす呼び出しは、槽のパイプより外を通す。丸から出る線が槽から出る線の上で横へ出るため
-  outerCalls.forEach((c, j) => riserX.set(c, leftEdge - L.lane - (outerLeft.length + j) * L.outer));
-  for (const c of reserved) if (c.way === "up") riserX.set(c, centerOf(c.from) + upOffset(c.k));
-
-  // 箱の下の口。パイプを横の順に並べ、口どうしを離す
-  const portX = new Map<Item, number>();
-  const turnOf = new Map<Item, number>();
-  let levels = 0;
-  boxes.forEach((id, k) => {
-    const lo = (boxX.get(id) ?? 0) + L.portPad;
-    const hi = (boxX.get(id) ?? 0) + (widths[k] ?? 0) - L.portPad;
-    const riser = (item: Item): number => riserX.get(item) ?? 0;
-    const list: Item[] = [...values.filter((v) => v.box === id && !v.way.startsWith("outer")), ...reserved.filter((c) => c.to === id)].sort((a, b) => riser(a) - riser(b));
-    const ps = spreadPorts(list.map(riser), lo, hi, L.port);
-    list.forEach((item, j) => portX.set(item, ps[j] ?? lo));
-    // 口へ横に寄るパイプは、口から遠いパイプほど箱の近くで曲げて、ほかのパイプを越えない
-    const lefts = list.filter((item) => riser(item) < (portX.get(item) ?? 0) - 0.5);
-    const rights = list.filter((item) => riser(item) > (portX.get(item) ?? 0) + 0.5).reverse();
-    lefts.forEach((item, j) => turnOf.set(item, j));
-    rights.forEach((item, j) => turnOf.set(item, j));
-    levels = Math.max(levels, lefts.length, rights.length);
+  const boxX: number[] = [];
+  boxes.forEach((_, k) => {
+    const w = widths[k] ?? 0;
+    const prev = k > 0 ? (boxX[k - 1] as number) + (widths[k - 1] ?? 0) + L.boxGap : Number.NEGATIVE_INFINITY;
+    boxX.push(Math.max((wanted[k] ?? 0) - w / 2, prev));
   });
+  const drift = boxes.length > 0 ? boxes.reduce((s, _, k) => s + ((boxX[k] as number) + (widths[k] ?? 0) / 2 - (wanted[k] ?? 0)), 0) / boxes.length : 0;
+  const pull = Math.min(drift, (boxX[0] ?? P.margin) - P.margin);
+  for (let k = 0; k < boxX.length; k++) boxX[k] = round3((boxX[k] as number) - Math.max(0, pull));
 
-  // 縦の位置。上の形は箱、曲げる帯、人の列の順に上から置き、箱は下端を揃え、値の札が多い箱は上へ伸ばす。
-  // 下の形は人の列、書き換えの点線が横へ通る帯、曲げる帯、箱の順に上から置き、箱は上端を揃えて下へ伸ばす。
-  // 下の形の2人を結ぶ線と列の中どうしの呼び出しは、上の形で箱の無い側を通すのに倣って列の上を通し、列の上に決まった高さ (`top`) を空ける。
-  // 線の有る無しは呼び方で変わるので、線の分だけ箱や列を動かさない
-  const rowCalls = calls.filter((c) => c.way === "row").length;
-  const fromBox = calls.filter((c) => c.way === "row" && parties.get(c.from)?.shape === "token" && parties.get(c.to)?.shape !== "token");
+  // 箱の口。口の先の横の順に並べ、口どうしを離し、帯の反対の縁から入る線の横の位置を避ける
+  const portX = new Map<PortItem, number>();
+  const facing = (b: string): number[] => {
+    const lo = boxX[boxes.indexOf(b)] ?? 0;
+    const hi = lo + (widths[boxes.indexOf(b)] ?? 0);
+    const xs: number[] = [];
+    for (const [s, x] of riserX) if (!("trunk" in s) || down) xs.push(x);
+    if (!down) for (const id of people) for (const x of topSlots.get(id)?.values() ?? []) xs.push(x);
+    return xs.filter((x) => x > lo - CH.port && x < hi + CH.port);
+  };
+  boxes.forEach((b, k) => {
+    const lo = (boxX[k] ?? 0) + L.portPad;
+    const hi = (boxX[k] ?? 0) + (widths[k] ?? 0) - L.portPad;
+    const list = [...(portItems.get(b) ?? [])].sort((u, v) => otherEnd(u) - otherEnd(v));
+    const avoid = facing(b);
+    const clear = (x: number): boolean => avoid.every((a) => Math.abs(a - x) >= CH.pitch + 4);
+    const picked: number[] = [];
+    for (let j = 0; j < list.length; j++) {
+      const start = j === 0 ? lo : (picked[j - 1] as number) + CH.port;
+      const room = hi - (list.length - 1 - j) * CH.port;
+      let x = start;
+      while (x <= room && !clear(x)) x += 2;
+      picked.push(x <= room ? x : start);
+    }
+    const ok = picked.every((x) => x <= hi + 0.5);
+    const xs = ok ? picked : spreadPorts(list.map(otherEnd), lo, hi, CH.port);
+    list.forEach((it, j) => portX.set(it, round3(xs[j] ?? lo)));
+  });
+  const portOf = (b: string, pred: (it: PortItem) => boolean): number => {
+    for (const [it, x] of portX) if (pred(it) && (portItems.get(b) ?? []).includes(it)) return x;
+    return (boxX[boxes.indexOf(b)] ?? 0) + (widths[boxes.indexOf(b)] ?? 0) / 2;
+  };
+  const callPort = (from: string, b: string): number => portOf(b, (it) => "call" in it && it.call === from && it.to === b);
+
+  // 箱と人の列の間の通り道 (上の形は箱の下、下の形は入れ物の下)。値のパイプと、箱へ向かう呼び出しの本管を1本ずつの段に置く
+  interface Net {
+    key: string;
+    tops: number[];
+    bottoms: number[];
+    half: number;
+  }
+  const netA: Net[] = [];
+  const netOf = new Map<string, Net>();
+  const addNet = (list: Net[], net: Net): void => {
+    list.push(net);
+    netOf.set(net.key, net);
+  };
+  for (const r of runs) {
+    const riser = riserX.get(r) ?? 0;
+    if (!isBox(r.box)) continue;
+    const port = portX.get(r) ?? 0;
+    addNet(netA, { key: `run:${runs.indexOf(r)}`, tops: down ? [riser] : [port], bottoms: down ? [port] : [riser], half: r.kind === "value" ? 7 : 1 });
+  }
+  for (const c of callerList) {
+    const ports = boxTargets(c).map((b) => callPort(c.from, b));
+    if (isBox(c.from)) ports.push(portOf(c.from, (it) => "exit" in it && it.exit === c.from));
+    if (down) {
+      if (ports.length === 0) continue;
+      const start = inRow(c.from) ? [trunkX(c.from) ?? axisOf.get(c.from) ?? 0] : [];
+      addNet(netA, { key: `call:${c.from}`, tops: start, bottoms: ports, half: 8 });
+    } else {
+      const bottoms = [...(inRow(c.from) ? [slotOn(c.from, "exit")] : []), ...rowTargets(c).map((t) => slotOn(t, `in:${c.from}`))];
+      addNet(netA, { key: `call:${c.from}`, tops: ports, bottoms, half: 8 });
+    }
+  }
+  // 1人をキーに持つ値の書き換えは、値の持ち主から帯を通って札へ下ろす。持ち主が人の列にいる時は、持ち主の丸の上から出す
+  // 下の形で持ち主が人の列にいる書き換えは、引く道を持たない (描かない)
+  if (!down)
+    for (const r of runs) {
+      if (isBox(r.box)) continue;
+      addNet(netA, { key: `run:${runs.indexOf(r)}`, tops: [], bottoms: [riserX.get(r) ?? 0, slotOn(r.box, "exit")], half: 1 });
+    }
+  const tracksA = channelTracks(netA);
+  const trackOfA = new Map(netA.map((net, i) => [net.key, tracksA[i] ?? 0]));
+  const countA = Math.max(0, ...tracksA.map((t) => t + 1));
+
+  // 下の形の、列の上の通り道。列の中どうしの呼び出しと2人を結ぶ線を1本ずつの段に置く
+  const netC: Net[] = [];
+  if (down) {
+    for (const c of callerList) {
+      const targets = rowTargets(c);
+      if (targets.length === 0 || !inRow(c.from)) continue;
+      addNet(netC, { key: `row:${c.from}`, tops: [], bottoms: [slotOn(c.from, "exit"), ...targets.map((t) => slotOn(t, `in:${c.from}`))], half: 8 });
+    }
+    for (const g of linkKeys) {
+      const l = firstLink.get(g);
+      if (!l) continue;
+      addNet(netC, { key: `link:${g}`, tops: [], bottoms: [slotOn(l.from, `link:${g}`), slotOn(l.to, `link:${g}`)], half: 1 });
+    }
+  }
+  const tracksC = channelTracks(netC);
+  const trackOfC = new Map(netC.map((net, i) => [net.key, tracksC[i] ?? 0]));
+  const countC = Math.max(0, ...tracksC.map((t) => t + 1));
+
+  // 名前の下の帯の段。入れ物の側ごとに、隣との間に近い槽ほど下の段を使う。ETH の槽どうしを結ぶパイプは、その上の段を通す
+  const countB = Math.max(0, ...people.flatMap((_, i) => [sideRuns(i, "left").length, sideRuns(i, "right").length]));
+  const trackOfB = new Map<Run, number>();
+  for (let i = 0; i < n; i++) {
+    const left = sideRuns(i, "left");
+    left.forEach((r, j) => trackOfB.set(r, countB - 1 - j));
+    const right = sideRuns(i, "right");
+    right.forEach((r, j) => trackOfB.set(r, countB - right.length + j));
+  }
+  const ethTank = (id: string): PipeTank | undefined => (out.tanks ?? []).find((t) => t.party === id && t.token === ETH);
+  const eth = ethPairs(out.flows, index).filter((q) => ethTank(q.from) && ethTank(q.to));
+  const ethNets = eth.map((q) => ({ tops: [], bottoms: [xNew(q.l, (ethTank(q.l) as PipeTank).x + (ethTank(q.l) as PipeTank).w / 2), xNew(q.r, (ethTank(q.r) as PipeTank).x + (ethTank(q.r) as PipeTank).w / 2)], half: 7 }));
+  const ethTracks = channelTracks(ethNets);
+  const countEth = Math.max(0, ...ethTracks.map((t) => t + 1));
+
+  // 2人を結ぶ線の帯 (上の形)。入れ物の下の縁から下ろし、1本ずつの段に置く
+  const footX = new Map<string, number>();
+  if (!down)
+    for (const id of people) {
+      const mine = linkKeys.flatMap((g) => {
+        const l = firstLink.get(g);
+        return l && (l.from === id || l.to === id) ? [{ g, other: l.from === id ? l.to : l.from }] : [];
+      });
+      for (const side of [-1, 1]) {
+        const list = mine.filter((x) => Math.sign(idx(x.other) - idx(id)) === side).sort((a, b) => Math.abs(idx(b.other) - idx(id)) - Math.abs(idx(a.other) - idx(id)));
+        list.forEach((x, k) => footX.set(`${x.g}\u0000${id}`, round3((axisOf.get(id) ?? 0) + side * (CH.slot + k * CH.slot))));
+      }
+    }
+  const netL = linkKeys.flatMap((g) => {
+    const l = firstLink.get(g);
+    if (!l || down) return [];
+    return [{ key: `link:${g}`, tops: [footX.get(`${g}\u0000${l.from}`) ?? 0, footX.get(`${g}\u0000${l.to}`) ?? 0], bottoms: [], half: 1 }];
+  });
+  const tracksL = channelTracks(netL);
+  const trackOfL = new Map(netL.map((net, i) => [net.key, tracksL[i] ?? 0]));
+
+  // 札の帯。発した順に左から並べ、図の幅に並びきらない時は2段にする
+  const events = [...(out.events ?? [])].filter((e, i, all) => all.findIndex((x) => x.id === e.id) === i).sort((a, b) => a.step - b.step || (a.event ?? 0) - (b.event ?? 0));
+  const sizes = new Map(events.map((e) => [e.id, logCardSize(out, e)]));
+  const cardsW = events.reduce((s, e) => s + (sizes.get(e.id)?.w ?? 0), 0) + Math.max(0, events.length - 1) * CH.logGap;
+  const room = Math.max(rowRight, ...boxes.map((_, k) => (boxX[k] ?? 0) + (widths[k] ?? 0))) - P.margin;
+  const rows = events.length > 1 && cardsW > room ? 2 : 1;
+  const perRow = Math.ceil(events.length / rows);
+  const rowH = (r: number): number => Math.max(0, ...events.slice(r * perRow, (r + 1) * perRow).map((e) => sizes.get(e.id)?.h ?? 0));
+  const bandH = Math.max(CH.card, rows === 2 ? rowH(0) + CH.rowGap + rowH(1) : rowH(0));
+  const tetherTracks = Math.max(1, m, events.length);
+  const tetherH = tetherTracks * CH.tether + 16;
+
+  // 縦の位置
+  const maxHead = Math.max(0, ...cols.map((c) => c.headH));
+  // 入力と出力の札の高さは、段で札の有る無しが替わっても箱と槽を動かさないよう、槽を持つ図には必ず空ける
+  const hasIo = runs.length > 0;
+  const bandTop = P.margin;
+  const tetherTop = bandTop + bandH + 10;
   let boxTop: number;
-  let boxBottom: number;
-  let bandTop: number;
   let rowTop: number;
-  let laneBelow = 0;
+  let cTop = 0;
+  // 上の形で列の中のコントラクトへの呼び出しの札は、描く処理が呼ばれた箱の上 18px に出す。トークンの箱の列と人の列の間に札の高さを空ける
+  const rowCards = down ? 0 : Math.max(0, ...(out.calls ?? []).filter((c) => inRow(c.to)).map((c) => callCardSize(out, c.label ?? "", c.to).h + 18 + 12));
   if (!down) {
-    boxTop = P.margin + L.cards;
-    boxBottom = boxTop + L.boxH;
-    bandTop = boxBottom + L.band;
-    rowTop = bandTop + levels * L.turn + L.clear + rowCalls * L.under;
+    boxTop = tetherTop + tetherH + L.cards;
+    rowTop = boxTop + boxH + Math.max(CH.pad * 2 + Math.max(0, countA - 1) * CH.pitch, rowCards);
   } else {
-    rowTop = P.margin + L.top;
-    const reach = Math.max(0, ...people.map((id) => {
-      const g = groupOf(id);
-      return g.y + g.h - party(id).y;
-    }));
-    laneBelow = rowTop + reach + L.under;
-    boxTop = laneBelow + L.writes + L.clear / 2 + levels * L.turn + L.band;
-    boxBottom = boxTop + L.boxH;
-    bandTop = boxTop - L.band;
+    cTop = tetherTop + tetherH;
+    rowTop = cTop + (countC > 0 ? CH.pad * 2 + (countC - 1) * CH.pitch : CH.pad);
+    boxTop = 0;
   }
-  for (const id of people) delta.set(id, [shiftOf(id)[0], rowTop - party(id).y]);
-  boxes.forEach((id, k) => {
-    const p = party(id);
-    delta.set(id, [(boxX.get(id) ?? 0) - p.x + ((widths[k] ?? 0) - p.w) / 2, (down ? boxTop : boxBottom - (heights[k] ?? 0)) - p.y]);
-  });
+  const bTop = rowTop + maxHead + 10;
+  const ethTop = bTop + CH.bPad;
+  const nestTop = ethTop + countEth * CH.pitch;
+  const lowB = nestTop + Math.max(0, countB - 1) * CH.pitch;
+  const housingTop = countB + countEth > 0 ? lowB + 7 + (hasIo ? 6 + CH.io + 4 : CH.bPad) : bTop + (hasIo ? CH.io + 10 : 4);
+  const yB = (r: Run): number => nestTop + (trackOfB.get(r) ?? 0) * CH.pitch;
 
   // 人と箱と、それが持つ部品を動かす
-  for (const id of [...people, ...boxes]) {
-    const [dx, dy] = shiftOf(id);
-    move(party(id), dx, dy);
-    for (const part of ownedBy(id)) move(part, dx, dy);
+  for (const c of cols) {
+    const p = party(c.id);
+    const dx = (axisOf.get(c.id) ?? 0) - c.axis;
+    const dyHead = rowTop - p.y;
+    for (const part of headParts.get(c.id) ?? []) move(part, dx, dyHead);
+    const h = housingOf(c.id);
+    const dyBody = h ? housingTop - h.y : dyHead;
+    for (const part of bodyParts.get(c.id) ?? []) move(part, dx, dyBody);
   }
+  const housingBottom = Math.max(rowTop + maxHead, ...people.map((id) => {
+    const h = housingOf(id);
+    return h ? h.y + h.h : rowTop + (cols[idx(id)]?.headH ?? 0);
+  }));
+  const aTop = down ? housingBottom : boxTop + boxH;
+  if (down) boxTop = aTop + CH.pad * 2 + Math.max(0, countA - 1) * CH.pitch + tetherTracks * CH.tether + 8;
+  const boxBottom = boxTop + boxH;
+  const yA = (key: string): number => aTop + CH.pad + (trackOfA.get(key) ?? 0) * CH.pitch;
+  const tetherA = (k: number): number => boxTop - 8 - (tetherTracks - 1 - k) * CH.tether;
   boxes.forEach((id, k) => {
     const p = party(id);
-    const extra = (widths[k] ?? p.w) - p.w;
+    const w = widths[k] ?? p.w;
+    const dx = (boxX[k] ?? 0) + (w - p.w) / 2 - p.x;
+    const dy = boxTop - p.y;
+    move(p, dx, dy);
+    for (const part of [...ownedBy("plates", id), ...ownedBy("pills", id), ...ownedBy("columns", id), ...ownedBy("gauges", id), ...ownedBy("tanks", id), ...ownedBy("levels", id)]) move(part, dx, dy);
+    for (const wr of out.writes ?? []) if (wr.to === id) move(wr, dx, dy);
+    const extra = w - p.w;
     p.x -= extra / 2;
-    p.w = widths[k] ?? p.w;
-    p.h = heights[k] ?? p.h;
+    p.w = w;
+    p.h = boxH;
     if (p.label) p.label.x = p.x + p.w / 2 - p.label.w / 2;
     if (p.sub) p.sub.x = p.x + p.w / 2 - p.sub.w / 2;
     fitFrames(out, p);
     fitRows(out, id, extra);
   });
-  // 確かめの計器は、確かめた箱の上の真ん中に載せ、軸を箱の上端へ下ろす。札入れと呼び出しの札は計器の左右に出す。
-  // 下の形は、箱の下の真ん中に吊るし、軸を箱の下端から計器の上端へ下ろす
+  // 確かめの計器は、確かめた箱の上の真ん中に載せ、軸を箱の上端へ下ろす。下の形は、箱の下の真ん中に吊るす
   for (const g of out.gauges ?? []) {
     const p = parties.get(g.party);
-    if (!p || !boxes.includes(g.party)) continue;
+    if (!p || !isBox(g.party)) continue;
     const cx = round3(p.x + p.w / 2 - (P.gauge.lampGap + P.gauge.lamp * 2) / 2);
     const cy = round3(down ? p.y + p.h + P.gauge.stemGap + g.r : p.y - P.gauge.stemGap - g.r);
     const stem = down ? { y1: round3(p.y + p.h), y2: round3(cy - g.r) } : { y1: cy + g.r, y2: p.y };
     Object.assign(g, { cx, cy, x: cx - g.r, y: cy - g.r, lamp: { ...g.lamp, x: cx + g.r + P.gauge.lampGap, y: cy - g.r + 4 }, stem });
   }
-  const boxOfToken = (token: string): string | undefined => tokenBox.get(token);
-  for (const c of out.chips ?? []) {
-    if (c.kind === "return") continue;
-    const owner = c.party !== undefined && delta.has(c.party) ? c.party : c.token !== undefined ? boxOfToken(c.token) : undefined;
-    const [dx, dy] = owner ? shiftOf(owner) : shiftOf(boxes[0] ?? "");
-    move(c, dx, dy);
-  }
-  // 自分の札への書き換えと、箱の中の札への書き換えは、札を持つ物と一緒に動かす。人の下の札への書き換えは、パイプを引き直した後に引く
-  for (const w of out.writes ?? []) {
-    if (w.from !== w.to && !boxes.includes(w.to)) continue;
-    const [dx, dy] = shiftOf(w.to);
-    move(w, dx, dy);
-  }
+  // 名札から自分の入れ物へ下りる点線
+  out.ties = (out.ties ?? []).flatMap((t) => {
+    const h = housingOf(t.party);
+    if (!h || !inRow(t.party)) return [];
+    return [{ ...t, x: axisOf.get(t.party) ?? t.x, y1: rowTop + (cols[idx(t.party)]?.headH ?? 0) + 4, y2: housingTop }];
+  });
 
-  // パイプを引き直す
-  const PORT_Y = P.tank.ports[0] as number;
-  const box = (id: string): PipeParty => party(id);
-  // 横から入るパイプの高さは、箱の最小の高さの真ん中に揃え、箱が上へ伸びても動かさない
-  const mid = (): number => boxBottom - L.boxH / 2;
-  // パイプが箱に入る口の高さ。上の形は箱の下端、下の形は箱の上端
-  const bottom = (): number => down ? boxTop : boxBottom;
-  const housingOf = (id: string) => (out.housings ?? []).find((h) => h.party === id);
-    const turnY = (item: Item): number => bandTop + (down ? -1 : 1) * (turnOf.get(item) ?? 0) * L.turn;
-  // 横の位置 x から箱の下の口まで上げる
-  const rise = (item: Item, x: number): Point[] => {
-    const px = portX.get(item);
-    if (px === undefined || Math.abs(px - x) < 0.5) return [[px ?? x, bottom()]];
-    return [[x, turnY(item)], [px, turnY(item)], [px, bottom()]];
-  };
-  // 槽の横の口。その側に槽か札が並ぶ時は、槽の下から出て入れ物の下を回る
-  const exitOf = (v: ValueRun, side: "left" | "right"): Point[] => {
-    const t = v.tank;
-    const cx = (r: Rect): number => r.x + r.w / 2;
-    const others: Rect[] = [...tanksOf(v.holder), ...(out.plates ?? []).filter((p) => p.party === v.holder)].filter((o) => o !== t);
-    const outer = others.every((o) => side === "left" ? cx(o) > cx(t) : cx(o) < cx(t));
-    if (outer) return [[side === "left" ? t.x : t.x + t.w, t.y + PORT_Y]];
-    const h = housingOf(v.holder);
-    const below = (h ? h.y + h.h : t.y + t.h) + L.under;
-    return [[t.x + t.w / 2, t.y + t.h], [t.x + t.w / 2, below]];
-  };
-  const valueRoute = (v: ValueRun): Point[] => {
-    const x = riserX.get(v) ?? 0;
-    if (v.way === "outer-left") {
-      const start = exitOf(v, "left");
-      const y0 = (start[start.length - 1] as Point)[1];
-      return simplifyPath([...start, [x, y0], [x, mid()], [box(v.box).x, mid()]]);
+  // 値のパイプ。槽の上の縁から上り、名前の下の帯を横へ通り、隣との間を通って、箱の口へ入る
+  const runRoute = (r: Run): Point[] => {
+    const t = r.target;
+    const drop = round3(t.x + t.w / 2);
+    const riser = riserX.get(r) ?? 0;
+    const key = `run:${runs.indexOf(r)}`;
+    if (!isBox(r.box)) {
+      if (down) return [];
+      const ex = slotOn(r.box, "exit");
+      const from = party(r.box);
+      return simplifyPath([[drop, t.y], [drop, yB(r)], [riser, yB(r)], [riser, yA(key)], [ex, yA(key)], [ex, down ? from.y + from.h : from.y]]);
     }
-    if (v.way === "outer-right") {
-      const start = exitOf(v, "right");
-      const y0 = (start[start.length - 1] as Point)[1];
-      return simplifyPath([...start, [x, y0], [x, mid()], [box(v.box).x + box(v.box).w, mid()]]);
-    }
-    const start = exitOf(v, x > v.tank.x + v.tank.w / 2 ? "right" : "left");
-    const y0 = (start[start.length - 1] as Point)[1];
-    return simplifyPath([...start, [x, y0], ...rise(v, x)]);
+    const port = portX.get(r) ?? 0;
+    return simplifyPath([[drop, t.y], [drop, yB(r)], [riser, yB(r)], [riser, yA(key)], [port, yA(key)], [port, down ? boxTop : boxBottom]]);
   };
-  const routeOf = new Map(values.map((v) => [v, valueRoute(v)]));
-  const sideOf = (v: ValueRun, pt: Point): PipePort["side"] => Math.abs(pt[1] - bottom()) < 0.5 ? down ? "top" : "bottom" : pt[0] <= box(v.box).x + 0.5 ? "left" : "right";
-  out.valuePipes = values.map((v, k): PipeValuePipe => {
+  const valueRuns = runs.filter((r) => r.kind === "value");
+  const routeOf = new Map(runs.map((r) => [r, runRoute(r)]));
+  out.valuePipes = valueRuns.map((v, k): PipeValuePipe => {
     const pts = routeOf.get(v) as Point[];
     const a = pts[0] as Point;
     const b = pts[pts.length - 1] as Point;
@@ -407,11 +623,11 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
       holder: v.holder,
       points: pts,
       ports: [
-        { party: v.holder, token: v.token, side: a[0] <= v.tank.x + 0.5 ? "left" : a[0] >= v.tank.x + v.tank.w - 0.5 ? "right" : "bottom", x: a[0], y: a[1] },
-        { party: v.box, token: v.token, side: sideOf(v, b), x: b[0], y: b[1] }
+        { party: v.holder, token: v.token, side: "top", x: a[0], y: a[1] },
+        { party: v.box, token: v.token, side: down ? "top" : "bottom", x: b[0], y: b[1] },
       ],
-      tone: v.tank.tone ?? 0,
-      group: `v${k}`
+      tone: (v.target as PipeTank).tone ?? 0,
+      group: `v${k}`,
     };
   });
   out.stubs = [];
@@ -421,38 +637,36 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
 
   // 移動は、送る人の槽からトークンの箱を通って受ける人の槽へ流す
   const routeFor = (holder: string, token: string): Point[] | undefined => {
-    const v = values.find((x) => x.holder === holder && x.token === token);
+    const v = valueRuns.find((x) => x.holder === holder && x.token === token);
     return v ? routeOf.get(v) : undefined;
   };
+  const mid = boxTop + boxH / 2;
   for (const f of out.flows ?? []) {
     const a = routeFor(f.from, f.token);
     const b = routeFor(f.to, f.token);
-    const id = boxOfToken(f.token);
-    if (!a || !b || !id) continue;
+    if (!a || !b) continue;
     const pa = a[a.length - 1] as Point;
     const pb = b[b.length - 1] as Point;
-    const m0 = mid();
-    f.points = simplifyPath([...a, [pa[0], m0], [pb[0], m0], ...[...b].reverse()]);
+    f.points = simplifyPath([...a, [pa[0], mid], [pb[0], mid], ...[...b].reverse()]);
     f.arrow = flowArrow(f.points);
   }
-  // ETH は箱を持たないので、値が動いた2人の槽を、入れ物の下を通るパイプで結ぶ (Tracelyth #168)。2人を結ぶ線はそのパイプより下を通す
-  const ethTank = (id: string): PipeTank | undefined => (out.tanks ?? []).find((t) => t.party === id && t.token === ETH);
-  const eth = ethPairs(out.flows, index).filter((q) => ethTank(q.from) && ethTank(q.to));
-  let ethLow = 0;
+  // ETH は箱を持たないので、値が動いた2人の槽を、名前の下の帯の上の段を通るパイプで結ぶ
   const ethChips: PipeChip[] = [];
   if (eth.length > 0) {
-    const floor = Math.max(...people.map((id) => {
-      const h = housingOf(id);
-      const g = groupOf(id);
-      return h ? h.y + h.h : g.y + g.h;
-    })) + L.under + ROW_LOOK.lane;
     const dim = fadedPeople(diagram, parties, people);
-    for (const [q, pts] of underRoutes(eth.map((q) => ({ ...q, a: ethTank(q.l) as PipeTank, b: ethTank(q.r) as PipeTank })), floor)) {
-      out.valuePipes.push(pairPipe(ETH, q.from, q.to, q.from === q.l ? pts : [...pts].reverse(), (id) => ethTank(id) as PipeTank, dim, out.valuePipes.length));
-      ethLow = Math.max(ethLow, ...pts.map((p) => p[1]));
-    }
+    eth.forEach((q, k) => {
+      const a = ethTank(q.l) as PipeTank;
+      const b = ethTank(q.r) as PipeTank;
+      const y = round3(ethTop + (ethTracks[k] ?? 0) * CH.pitch);
+      const ax = round3(a.x + a.w / 2);
+      const bx = round3(b.x + b.w / 2);
+      const pts: Point[] = [[ax, a.y], [ax, y], [bx, y], [bx, b.y]];
+      const pipe = pairPipe(ETH, q.from, q.to, q.from === q.l ? pts : [...pts].reverse(), (id) => ethTank(id) as PipeTank, dim, out.valuePipes.length);
+      pipe.ports = [{ ...pipe.ports[0], side: "top" }, { ...pipe.ports[1], side: "top" }];
+      out.valuePipes.push(pipe);
+    });
     for (const f of out.flows ?? []) {
-      const pp = out.valuePipes.find((v) => v.token === ETH && (v.from === f.from && v.to === f.to || v.from === f.to && v.to === f.from));
+      const pp = out.valuePipes.find((v) => v.token === ETH && ((v.from === f.from && v.to === f.to) || (v.from === f.to && v.to === f.from)));
       if (f.token !== ETH || !pp) continue;
       f.points = (pp.from === f.from ? pp.points : [...pp.points].reverse()).map((p): Point => [p[0], p[1]]);
       f.arrow = flowArrow(f.points);
@@ -460,40 +674,37 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
     for (const c of out.chips ?? []) if (c.kind === "amount" && c.token === ETH) ethChips.push(...chipUnderFlow(c, out.flows ?? []));
   }
 
-  // 呼び出しのパイプ
-  const roundOf = (id: string): PipeParty | undefined => parties.get(id);
-  const callRoute = (c: Call): Point[] | undefined => {
-    const from = roundOf(c.from);
-    const to = roundOf(c.to);
-    if (!from || !to) return undefined;
-    const cy = from.y + from.h / 2;
-    if (c.way === "up") return simplifyPath([[riserX.get(c) ?? 0, from.y], ...rise(c, riserX.get(c) ?? 0)]);
-    if (c.way === "right" || c.way === "left" || c.way === "outer-left") {
-      const x = riserX.get(c) ?? 0;
-      const start: Point = [c.way === "right" ? from.x + from.w : from.x, cy];
-      return simplifyPath([start, [x, cy], ...rise(c, x)]);
+  // 呼び出しのパイプ。呼ぶ者ごとに1本の本管を帯の1つの段に通し、呼ばれる者の口へ分ける
+  const callRoute = (from: string, to: string): Point[] | undefined => {
+    const f = parties.get(from);
+    const t = parties.get(to);
+    if (!f || !t) return undefined;
+    if (!down) {
+      const y = yA(`call:${from}`);
+      const start: Point = inRow(from) ? [slotOn(from, "exit"), f.y] : [portOf(from, (it) => "exit" in it && it.exit === from), f.y + f.h];
+      const end: Point = isBox(to) ? [callPort(from, to), t.y + t.h] : [slotOn(to, `in:${from}`), t.y];
+      return simplifyPath([start, [start[0], y], [end[0], y], end]);
     }
-    // 列の中どうしの呼び出しは、列のすぐ上を通って上から入る。箱から列への呼び出しは、箱の下から下りる
-    const k = calls.filter((x) => x.way === "row").indexOf(c);
-    const laneY = rowTop - L.under * (k + 1);
-    const fx = from.x + from.w / 2;
-    const tx = to.x + to.w / 2;
-    const fy = from.shape === "token" ? from.y + from.h : from.y;
-    if (from.shape === "token" && to.shape === "token") {
-      const right = tx > fx;
-      return [[right ? from.x + from.w : from.x, from.y + from.h / 2], [right ? to.x : to.x + to.w, to.y + to.h / 2]];
+    if (inRow(from) && inRow(to)) {
+      const y = cTop + CH.pad + (countC - 1 - (trackOfC.get(`row:${from}`) ?? 0)) * CH.pitch;
+      const sx = slotOn(from, "exit");
+      const ex = slotOn(to, `in:${from}`);
+      return simplifyPath([[sx, f.y], [sx, y], [ex, y], [ex, t.y]]);
     }
-    // 下の形で箱から列の人を呼ぶ時は、箱の上から書き換えの帯の下を横へ通り、呼ばれる人の組の右の横を上がって丸の横から入る
-    if (down && from.shape === "token") {
-      const y = laneBelow + L.writes - 4 - (fromBox.indexOf(c) % 4) * 8;
-      const g = groupOf(c.to);
-      const gx = g.x + g.w + 10;
-      const ty = to.y + to.h / 2;
-      return simplifyPath([[fx, from.y], [fx, y], [gx, y], [gx, ty], [to.x + to.w, ty]]);
+    const y = yA(`call:${from}`);
+    if (inRow(from)) {
+      const side = trunkSide.get(from) ?? "right";
+      const tx = trunkX(from) ?? (axisOf.get(from) ?? 0);
+      const cy = f.y + f.h / 2;
+      const end: Point = isBox(to) ? [callPort(from, to), t.y] : [axisOf.get(to) ?? 0, t.y + t.h];
+      return simplifyPath([[side === "right" ? f.x + f.w : f.x, cy], [tx, cy], [tx, y], [end[0], y], end]);
     }
-    return simplifyPath([[fx, fy], [fx, laneY], [tx, laneY], [tx, to.shape === "token" ? to.y + to.h : to.y]]);
+    const sx = portOf(from, (it) => "exit" in it && it.exit === from);
+    const end: Point = isBox(to) ? [callPort(from, to), t.y] : [axisOf.get(to) ?? 0, t.y + t.h];
+    return simplifyPath([[sx, f.y], [sx, y], [end[0], y], end]);
   };
-  const callPts = new Map(calls.map((c) => [`${c.from}>${c.to}`, callRoute(c)]));
+  const callPts = new Map<string, Point[] | undefined>();
+  for (const [f, t] of callPairs) callPts.set(`${f}>${t}`, callRoute(f, t));
   for (const c of out.calls ?? []) {
     const pts = callPts.get(`${c.from}>${c.to}`);
     if (!pts) continue;
@@ -505,10 +716,10 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
     const pts = callPts.get(`${l.from}>${l.to}`);
     if (pts) l.points = pts.map((p): Point => [p[0], p[1]]);
   }
-  for (const m of out.mains ?? []) {
-    m.points = [];
-    for (const b of m.branches ?? []) {
-      const pts = callPts.get(`${m.from}>${b.to}`);
+  for (const mn of out.mains ?? []) {
+    mn.points = [];
+    for (const b of mn.branches ?? []) {
+      const pts = callPts.get(`${mn.from}>${b.to}`);
       if (!pts) continue;
       b.points = pts.map((p): Point => [p[0], p[1]]);
       const p0 = pts[0] as Point;
@@ -517,7 +728,7 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
       const dir = p1 ? Math.sign((flat ? p1[0] - p0[0] : p1[1] - p0[1]) || -1) : -1;
       b.valve = flat ? { x: p0[0] + dir * P.call.valveAt, y: p0[1], vertical: false, under: false } : { x: p0[0], y: p0[1] + dir * P.call.valveAt, vertical: true, under: false };
     }
-    m.y = m.branches?.[0]?.points?.[0]?.[1] ?? m.y;
+    mn.y = mn.branches?.[0]?.points?.[0]?.[1] ?? mn.y;
   }
   for (const c of out.chips ?? []) {
     if (c.kind !== "return" || !c.path) continue;
@@ -527,170 +738,184 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
     const [ox, oy] = c.path[0] as Point;
     const head = back[0] as Point;
     c.path = back;
-    move(c, head[0] - ox, head[1] - oy, new WeakSet<object>([c.path]));
+    moveParts(c, head[0] - ox, head[1] - oy, new WeakSet<object>([c.path]));
   }
 
-  // 書き換えの点線は、書いた物から人の下の札まで引く。列の上の空きを横へ通り、札を持つ人の丸と名前の横から札へ下りる。
-  // 箱からは箱の下の、ほかのパイプから離れた所から下り、列の中のコントラクトからは丸の上の真ん中の横から上がる
-  const verticals = [...out.valuePipes, ...(out.calls ?? [])].flatMap((l) =>
-    segsOf(l.points ?? [])
-      .filter(([p, q]) => Math.abs(p[0] - q[0]) < 0.5)
-      .map(([p, q]) => ({ x: p[0], y1: Math.min(p[1], q[1]), y2: Math.max(p[1], q[1]) })),
-  );
-  const laneTop = rowTop - rowCalls * L.under - L.clear;
-  const drawn: PipeLayout["writes"] = [];
+  // 1人をキーに持つ値の書き換えの点線は、値の持ち主から札へ引いた道を通す
   for (const w of out.writes ?? []) {
-    if (w.from === w.to || boxes.includes(w.to)) continue;
-    const plate = (out.plates ?? []).find((p) => p.party === w.to && p.name === w.name);
-    const writer = parties.get(w.from);
-    const holder = parties.get(w.to);
-    if (!plate || !writer || !holder) {
-      w.points = [];
-      continue;
-    }
-    const same = drawn.filter((d) => d.step === w.step);
-    const px = plate.x + plate.w / 2;
-    // 下の形で箱から書き換える時は、箱の上から列の下の帯へ上がり、横へ通って札の下から入る
-    if (down && writer.shape === "token") {
-      const yb = laneBelow + 12 + (same.length % 4) * 8;
-      const y1 = writer.y;
-      const near = verticals.filter((v) => v.y2 > yb + 0.5 && v.y1 < y1 - 0.5);
-      const room = (x: number): number => Math.min(Infinity, ...near.map((v) => Math.abs(v.x - x)));
-      const spots: number[] = [];
-      for (let x = writer.x + 14; x <= writer.x + writer.w - 14; x += 2) spots.push(round3(x));
-      const free = spots.filter((x) => room(x) >= 14);
-      const x0 = free.length > 0 ? free.reduce((a, b) => Math.abs(b - px) < Math.abs(a - px) ? b : a) : spots.reduce((a, b) => room(b) > room(a) ? b : a);
-      w.points = simplifyPath([[x0, y1], [x0, yb], [px, yb], [px, plate.y + plate.h]]);
-      verticals.push({ x: x0, y1: yb, y2: y1 }, { x: px, y1: plate.y + plate.h, y2: yb });
-      drawn.push(w);
-      continue;
-    }
-    const y = laneTop + 12 + (same.length % 4) * 8;
-    const guard = union([rectOf(holder), ...holder.label ? [rectOf(holder.label)] : []]);
-    const xd = px > guard.x - 6 && px < guard.x + guard.w + 6 ? px >= guard.x + guard.w / 2 ? guard.x + guard.w + 8 : guard.x - 8 : px;
-    const h = housingOf(w.to);
-    const shelf = h ? (h.y + plate.y) / 2 : plate.y - 10;
-    const tail: Point[] = xd >= plate.x + 6 && xd <= plate.x + plate.w - 6 ? [[xd, plate.y]] : [[xd, shelf], [px, shelf], [px, plate.y]];
-    let start: Point[];
-    if (writer.shape === "token") {
-      const y1 = writer.y + writer.h;
-      const near = verticals.filter((v) => v.y2 > y1 + 0.5 && v.y1 < y - 0.5);
-      const room = (x: number): number => Math.min(Infinity, ...near.map((v) => Math.abs(v.x - x)));
-      const spots: number[] = [];
-      for (let x = writer.x + 14; x <= writer.x + writer.w - 14; x += 2) spots.push(round3(x));
-      const free = spots.filter((x) => room(x) >= 14);
-      const x0 = free.length > 0 ? free.reduce((a, b) => Math.abs(b - xd) < Math.abs(a - xd) ? b : a) : spots.reduce((a, b) => room(b) > room(a) ? b : a);
-      start = [[x0, y1], [x0, y]];
-    } else {
-      const side = xd >= writer.x + writer.w / 2 ? 1 : -1;
-      const x0 = writer.x + writer.w / 2 + side * Math.min(16 + same.filter((d) => d.from === w.from).length * 8, writer.w / 2 - 4);
-      start = [[x0, writer.y], [x0, y]];
-    }
-    w.points = simplifyPath([...start, [xd, y], ...tail]);
-    const s0 = start[0] as Point;
-    verticals.push({ x: s0[0], y1: Math.min(s0[1], y), y2: Math.max(s0[1], y) }, { x: xd, y1: y, y2: plate.y });
-    drawn.push(w);
+    if (w.from === w.to || isBox(w.to)) continue;
+    const r = runs.find((x) => x.kind === "write" && x.holder === w.to && x.name === w.name);
+    w.points = r ? [...(routeOf.get(r) ?? [])].reverse() : [];
   }
 
-  // 2人を結ぶ線は、槽の下を通す。同じ人の同じ側に着く線は、下を通る線ほど内側に端を置き、線どうしが交わらない
-  const exitsBelow = (v: ValueRun): boolean => {
-    const first = routeOf.get(v)?.[0];
-    return first !== undefined && Math.abs(first[1] - (v.tank.y + v.tank.h)) < 0.5;
-  };
-  const lowest = Math.max(ethLow, ...people.map((id) => {
-    const h = housingOf(id);
-    const g = groupOf(id);
-    return (h ? h.y + h.h : g.y + g.h) + (values.some((v) => v.holder === id && exitsBelow(v)) ? L.under : 0);
-  }));
-  const keyOf = (l: { owner: string; name: string }): string => `${l.owner}\0${l.name}`;
-  const groups = [...new Set((out.links ?? []).map(keyOf))];
-  // 下の形は、2人を結ぶ線を列の上の、列の中どうしの呼び出しより上に通す。丸の上から線を出す
-  const linkY = (g: string): number => down ? rowTop - rowCalls * L.under - L.linkTop / 2 - (groups.length - 1 - groups.indexOf(g)) * L.link : lowest + L.linkTop + (groups.length - 1 - groups.indexOf(g)) * L.link;
-  const farFromRow = (g: string): number => Math.abs(linkY(g) - rowTop);
-  const firstOf = new Map<string, PipeLayout["links"][number]>();
-  for (const l of out.links ?? []) if (!firstOf.has(keyOf(l)) && parties.has(l.from) && parties.has(l.to)) firstOf.set(keyOf(l), l);
-  const middleOf = (id: string): number => party(id).x + party(id).w / 2;
-  const endX = new Map<string, number>();
-  for (const id of new Set([...firstOf.values()].flatMap((l) => [l.from, l.to]))) {
-    for (const side of [-1, 1]) {
-      const mine = [...firstOf.entries()].filter(([, l]) => (l.from === id || l.to === id) && Math.sign(middleOf(l.from === id ? l.to : l.from) - middleOf(id)) === side).map(([g]) => g).sort((a, b) => farFromRow(b) - farFromRow(a));
-      mine.forEach((g, i) => endX.set(`${g}\0${id}`, middleOf(id) + side * (10 + i * 8)));
-    }
-  }
+  // 2人を結ぶ線。上の形は入れ物の下を、下の形は列の上を通す。札は、ほかの線の縦の線分が通らない所に置く
+  const linkFloor = housingBottom + CH.pad;
+  const linkY = (g: string): number => (down ? cTop + CH.pad + (countC - 1 - (trackOfC.get(`link:${g}`) ?? 0)) * CH.pitch : linkFloor + (trackOfL.get(`link:${g}`) ?? 0) * L.link);
+  const verticals = (): { x: number; y1: number; y2: number }[] =>
+    [...out.valuePipes, ...(out.calls ?? []), ...(out.links ?? [])].flatMap((l) =>
+      segsOf(l.points ?? []).filter(([p, q]) => Math.abs(p[0] - q[0]) < 0.5).map(([p, q]) => ({ x: p[0], y1: Math.min(p[1], q[1]), y2: Math.max(p[1], q[1]) })),
+    );
   for (const l of out.links ?? []) {
     const a = parties.get(l.from);
     const b = parties.get(l.to);
-    if (!a || !b) continue;
-    const y = linkY(keyOf(l));
-    // 入れ物の無い人は、名前の下から線を出す。下の形は丸の上から出す
+    if (!a || !b || !inRow(l.from) || !inRow(l.to)) continue;
+    const g = keyOfLink(l);
+    const y = linkY(g);
     const foot = (id: string): number => {
+      if (down) return party(id).y;
       const h = housingOf(id);
-      const p = party(id);
-      if (down) return p.y;
-      return h ? h.y + h.h : Math.max(p.y + p.h, p.label ? p.label.y + p.label.h + 4 : 0);
+      return h ? h.y + h.h : rowTop + (cols[idx(id)]?.headH ?? 0) + 4;
     };
-    const ax = endX.get(`${keyOf(l)}\0${l.from}`) ?? middleOf(l.from);
-    const bx2 = endX.get(`${keyOf(l)}\0${l.to}`) ?? middleOf(l.to);
+    const ax = down ? slotOn(l.from, `link:${g}`) : (footX.get(`${g}\u0000${l.from}`) ?? axisOf.get(l.from) ?? 0);
+    const bx2 = down ? slotOn(l.to, `link:${g}`) : (footX.get(`${g}\u0000${l.to}`) ?? axisOf.get(l.to) ?? 0);
     l.points = [[ax, foot(l.from)], [ax, y], [bx2, y], [bx2, foot(l.to)]];
+  }
+  const vs = verticals();
+  for (const l of out.links ?? []) {
+    if (l.points.length < 4) continue;
+    const y = (l.points[1] as Point)[1];
+    const x0 = Math.min((l.points[1] as Point)[0], (l.points[2] as Point)[0]);
+    const x1 = Math.max((l.points[1] as Point)[0], (l.points[2] as Point)[0]);
     const lw = l.label.w + (l.delta ? 6 + l.delta.w : 0);
-    l.label.x = (ax + bx2) / 2 - lw / 2;
-    l.label.y = y - l.label.h / 2;
+    const free = (x: number): boolean => vs.every((v) => v.y2 < y - l.label.h / 2 - 2 || v.y1 > y + l.label.h / 2 + 2 || v.x < x - 6 || v.x > x + lw + 6);
+    let best = (x0 + x1) / 2 - lw / 2;
+    for (let d = 0; d < x1 - x0; d += 4) {
+      const c = (x0 + x1) / 2 - lw / 2;
+      if (free(c - d)) {
+        best = c - d;
+        break;
+      }
+      if (free(c + d)) {
+        best = c + d;
+        break;
+      }
+    }
+    l.label.x = round3(best);
+    l.label.y = round3(y - l.label.h / 2);
     if (l.delta) {
       l.delta.x = l.label.x + l.label.w + 6;
       l.delta.y = l.label.y;
     }
   }
 
+  // 入力と出力の札。始めた人の入れ物の上の縁の外に、パイプが下りる所を避けて置く
+  const drops = (id: string): number[] => runs.filter((r) => r.holder === id).map((r) => round3(r.target.x + r.target.w / 2));
+  const placedIo: Rect[] = [];
+  for (const c of [...(out.chips ?? [])].filter((x) => x.kind === "io").sort((a, b) => a.step - b.step)) {
+    const owner = c.party ?? "";
+    const h = housingOf(owner);
+    if (!h) continue;
+    const y = round3(h.y - 3 - c.h);
+    const tank = (out.tanks ?? []).find((t) => t.party === owner && t.token === c.token);
+    const xs = drops(owner);
+    const candidates = [
+      ...(tank ? [tank.x + tank.w / 2 - 9 - c.w, tank.x + tank.w / 2 + 9] : []),
+      ...xs.flatMap((x) => [x - 9 - c.w, x + 9]),
+      h.x + 4,
+      h.x + h.w - 4 - c.w,
+    ];
+    const fits = (x: number): boolean =>
+      x >= h.x - 0.5 &&
+      x + c.w <= h.x + h.w + 0.5 &&
+      xs.every((d) => d < x - 8 || d > x + c.w + 8) &&
+      placedIo.filter((r) => (r as Rect & { step?: number }).step === c.step).every((r) => r.x + r.w + 4 <= x || x + c.w + 4 <= r.x);
+    const x = candidates.find(fits) ?? candidates[0] ?? h.x;
+    moveParts(c, round3(x) - c.x, y - c.y, new WeakSet<object>());
+    placedIo.push({ ...rectOf(c), step: c.step } as Rect);
+  }
+
+  // 札の帯とログの点線。札は発した順に左から並べ、2段の時は上の段の札の点線を下の段の札の間から下ろす。
+  // 点線は札の下の縁から出て、点線の帯を横へ通り、上の形は箱の上の縁の真ん中 (札入れと呼び出しの札の間) に、下の形は列の右の外を下りて箱の上の縁に着く
+  const colW = Array.from({ length: perRow }, (_, k) => Math.max(...[0, 1].slice(0, rows).map((r) => sizes.get(events[r * perRow + k]?.id ?? -1)?.w ?? 0)));
+  const colX: number[] = [];
+  let cx0 = P.margin;
+  for (const w of colW) {
+    colX.push(cx0);
+    cx0 += w + CH.logGap;
+  }
+  const bandRight = cx0 - CH.logGap;
+  const exits: { e: PipeEventChip; x: number; lead: Point[] }[] = [];
+  events.forEach((e, i) => {
+    const r = Math.floor(i / perRow);
+    const k = i % perRow;
+    const size = sizes.get(e.id) as { w: number; h: number };
+    const x = colX[k] ?? P.margin;
+    const y = bandTop + (r === 0 ? 0 : rowH(0) + CH.rowGap);
+    for (const chip of (out.events ?? []).filter((c) => c.id === e.id)) moveParts(chip, round3(x) - chip.x, round3(y) - chip.y, new WeakSet<object>());
+    const bottom = round3(y + size.h);
+    if (rows === 2 && r === 0) {
+      const side = round3(x + (colW[k] ?? size.w) + CH.logGap / 2);
+      const ex = round3(x + size.w - 10);
+      exits.push({ e, x: side, lead: [[ex, bottom], [ex, bottom + CH.rowGap / 2], [side, bottom + CH.rowGap / 2]] });
+    } else {
+      const ex = round3(x + size.w / 2);
+      exits.push({ e, x: ex, lead: [[ex, bottom]] });
+    }
+  });
+  const landing = new Map<string, number[]>();
+  for (const b of boxes) {
+    const p = party(b);
+    const need = events.filter((e) => e.party === b).length;
+    const xs = down
+      ? [...portX.entries()].filter(([it]) => "tether" in it && it.tether === b).map(([, x]) => x)
+      : Array.from({ length: need }, (_, k) => round3(p.x + p.w / 2 - ((out.gauges ?? []).some((g) => g.party === b) ? P.gauge.r + 8 : 0) + (k - (need - 1) / 2) * 3));
+    landing.set(b, xs);
+  }
+  const used = new Map<string, number>();
+  const tetherNets = exits.map(({ e, x }) => {
+    const k = used.get(e.party) ?? 0;
+    used.set(e.party, k + 1);
+    const land = landing.get(e.party)?.[k] ?? (parties.get(e.party) ? party(e.party).x + party(e.party).w / 2 : x);
+    return { tops: [x], bottoms: [down ? round3(Math.max(rowRight, ...boxes.map((_, j) => (boxX[j] ?? 0) + (widths[j] ?? 0))) + 24 + exits.length * CH.tether) : land], half: 1, land };
+  });
+  const tTracks = channelTracks(tetherNets, 2);
+  const corridor0 = round3(Math.max(rowRight, ...boxes.map((_, j) => (boxX[j] ?? 0) + (widths[j] ?? 0)), bandRight) + 24);
+  exits.forEach(({ e, x, lead }, i) => {
+    const net = tetherNets[i] as { land: number };
+    const emitter = parties.get(e.party);
+    if (!emitter) return;
+    const y = round3(tetherTop + 8 + (tTracks[i] ?? 0) * CH.tether);
+    const tether: Point[] = down
+      ? [...lead, [x, y], [corridor0 + i * CH.tether, y], [corridor0 + i * CH.tether, tetherA(i % tetherTracks)], [net.land, tetherA(i % tetherTracks)], [net.land, emitter.y]]
+      : [...lead, [x, y], [net.land, y], [net.land, emitter.y]];
+    const pts = simplifyPath(tether);
+    for (const chip of (out.events ?? []).filter((c) => c.id === e.id)) (chip as PipeEventChip & { tether?: Point[] }).tether = pts;
+  });
+
   const faded = fadedPeople(diagram, parties, people);
 
-  // 形と箱の並びの点数 (Tracelyth #166)。値のパイプと、2人を結ぶ線と、どの人がどの箱を呼んでもよいように取っておいた呼び出しのパイプの
-  // 交わりの数と長さの合計を数える。呼ぶ人と引数で点数が変わらないよう、実際の呼び出しではなく取っておいた全ての呼び出しを数える
+  // 形と箱の並びの点数 (Tracelyth #166)。値のパイプと、2人を結ぶ線と、空けておいた呼び出しの交わりの数と長さの合計を数える
   const seenLink = new Set<string>();
   const scored = [
-    ...values.map((v) => ({ kind: "value" as const, from: v.holder, pts: routeOf.get(v) })),
-    ...reserved.map((c) => ({ kind: "call" as const, from: c.from, pts: callRoute(c) })),
-    ...(out.links ?? []).filter((l) => !seenLink.has(keyOf(l)) && seenLink.add(keyOf(l))).map((l) => ({ kind: "link" as const, from: keyOf(l), pts: l.points })),
+    ...valueRuns.map((v) => ({ kind: "value" as const, from: v.holder, pts: routeOf.get(v) })),
+    ...callerList.flatMap((c) => c.targets.map((t) => ({ kind: "call" as const, from: c.from, pts: callRoute(c.from, t) }))),
+    ...(out.links ?? []).filter((l) => !seenLink.has(keyOfLink(l)) && seenLink.add(keyOfLink(l))).map((l) => ({ kind: "link" as const, from: keyOfLink(l), pts: l.points })),
   ].flatMap((l) => (l.pts !== undefined && l.pts.length > 1 ? [{ ...l, pts: l.pts }] : []));
   const score = fixedScore(scored);
 
-  // 図の大きさを測り、左上の余白を揃える
+  // 図の大きさ
   const rects = [
-    ...out.parties.flatMap((p) => [rectOf(p), ...p.label ? [rectOf(p.label)] : []]),
+    ...out.parties.flatMap((p) => [rectOf(p), ...(p.label ? [rectOf(p.label)] : [])]),
     ...(out.housings ?? []).map(rectOf),
     ...(out.tanks ?? []).map(rectOf),
     ...(out.plates ?? []).map(rectOf),
     ...(out.gauges ?? []).map(rectOf),
-    ...(out.links ?? []).flatMap((l) => [l.label, ...l.delta ? [l.delta] : []].map(rectOf)),
-    ...[...(out.calls ?? []), ...(out.links ?? [])].flatMap((l) => (l.points ?? []).map((p) => ({ x: p[0] - 12, y: p[1] - 12, w: 24, h: 24 }))),
-    // 移動の札は値のパイプの角を通るので、札の半分の幅を角の外に取る。移動の有る無しで余白を変えないよう、値のパイプの角には決まった幅を取り、
-    // それより長い札の時だけ札の幅を取る
-    ...out.valuePipes.flatMap((l) => (l.points ?? []).map((p) => ({ x: p[0] - L.coin, y: p[1] - 12, w: L.coin * 2, h: 24 }))),
-    ...(out.flows ?? []).flatMap((f) => {
-      const label = (out.chips ?? []).find((c) => c.step === f.step && c.kind === "amount" && c.token === f.token)?.text ?? `${f.amount} ${f.token}`;
-      const half = (textWidth(label, T.chip) + FLOW_MOVE.coinPad * 2) * FLOW_MOVE.scale / 2;
-      const tall = FLOW_MOVE.coinH * FLOW_MOVE.scale / 2;
-      return (f.points ?? []).map((p) => ({ x: p[0] - half, y: p[1] - tall, w: half * 2, h: tall * 2 }));
-    }),
-    ...ethChips.map(rectOf)
+    ...(out.events ?? []).map(rectOf),
+    ...(out.links ?? []).flatMap((l) => [l.label, ...(l.delta ? [l.delta] : [])].map(rectOf)),
+    ...[...(out.calls ?? []), ...(out.links ?? []), ...out.valuePipes].flatMap((l) => (l.points ?? []).map((p) => ({ x: p[0] - 12, y: p[1] - 12, w: 24, h: 24 }))),
+    ...(out.events ?? []).flatMap((e) => ((e as PipeEventChip & { tether?: Point[] }).tether ?? []).map((p) => ({ x: p[0] - 4, y: p[1] - 4, w: 8, h: 8 }))),
+    ...ethChips.map(rectOf),
   ];
   const all = union(rects);
-  const dx0 = P.margin - all.x;
-  // 札入れと呼び出しの札の高さを、上の形は箱の上に、下の形は箱の下に空けておく。上の形で値の札と残高の行が多い箱は上へ伸びるので、
-  // 伸びた箱の上端から札の高さを空け、札の数で図の位置を変えない (Tracelyth #171)
-  const highestBox = Math.min(boxTop, ...boxes.map((id) => party(id).y));
-  const dy0 = P.margin - Math.min(all.y, down ? rowTop - L.top : highestBox - L.cards);
-  const lowestBox = Math.max(-Infinity, ...boxes.map((id) => party(id).y + party(id).h));
-  const fresh = new WeakSet<object>();
-  for (const [k, v] of Object.entries(out)) if (k !== "width" && k !== "height" && typeof v === "object") move(v, dx0, dy0, fresh);
-  out.width = round3(all.w + P.margin * 2);
-  out.height = round3((down ? Math.max(all.y + all.h, lowestBox + L.cards) : all.y + all.h) + dy0 + P.margin);
+  out.width = round3(Math.max(all.x + all.w, rowRight) + P.margin);
+  out.height = round3(Math.max(all.y + all.h, down ? boxBottom + L.cards : 0) + P.margin);
   for (const f of out.focus ? [out.focus].flat() : []) Object.assign(f, { x: P.margin, y: P.margin, w: out.width - P.margin * 2, h: out.height - P.margin * 2 });
-  // `order` は人と箱の行の並び。トークンの箱の行の場所に、選んだ箱の並びを入れる
   let t = 0;
   const written = declared.map((id) => (party(id).shape === "token" ? (boxes[t++] ?? id) : id));
-  out.fixed = { shape, faded, score, order: written };
+  out.fixed = { shape, faded, score, order: written, routes: routes.map((r): [string, string] => [r[0], r[1]]), band: { bottom: round3(tetherTop + tetherH) } };
   return out;
 }
+
 // 線の交わりの数と長さの合計。線は縦と横の線分だけを持つ。同じ人から出る呼び出しは1本のパイプから枝分かれするので、互いに数えない
 function fixedScore(lines2: readonly { kind: "value" | "call" | "link"; from: string; pts: readonly Point[] }[]): { crossings: number; length: number } {
   const E = 0.5;
@@ -1460,6 +1685,20 @@ function settleReturns(out: PipeLayout): void {
     // 帳簿型の枝の弁は縦の管の上の胴だけを描く
     ...out.valuePipes.flatMap((v) => (v.valve ? [{ x: v.valve.x - V.half, y: v.valve.y - V.r, w: V.half * 2, h: V.r * 2 }] : [])),
   ];
+  /** 折れ線の線分ごとの、太さ `half` の半分を足した四角 */
+  const strokes = (points: readonly Point[], half: number): Rect[] =>
+    points.slice(1).map((q, i) => {
+      const a = points[i] as Point;
+      return { x: Math.min(a[0], q[0]) - half, y: Math.min(a[1], q[1]) - half, w: Math.abs(q[0] - a[0]) + half * 2, h: Math.abs(q[1] - a[1]) + half * 2 };
+    });
+  /** 呼んだ側が `from` の呼び出しの管を除いた、段 `step` に描く線。太さは描く外の縁 (呼び出しの管は 16、値の管は 14) の半分 */
+  const others = (from: string | undefined, step: number): Rect[] => [
+    ...out.mains.filter((mn) => mn.from !== from).flatMap((mn) => mn.branches.flatMap((b) => strokes(b.points, 8))),
+    ...out.valuePipes.flatMap((v) => strokes(v.points, 7)),
+    ...out.links.filter((l) => l.step === step).flatMap((l) => strokes(l.points, 1)),
+    ...out.writes.filter((w) => w.step === step && w.from !== w.to).flatMap((w) => strokes(w.points, 1)),
+    ...out.events.flatMap((e) => strokes((e as { tether?: Point[] }).tether ?? [], 1)),
+  ];
   /** 人か箱と、その名前の字を囲む四角 */
   const outline = (id: string | undefined): Rect | undefined => {
     const p = out.parties.find((x) => x.id === id);
@@ -1478,10 +1717,12 @@ function settleReturns(out: PipeLayout): void {
       ...out.chips.filter((x) => x.step === c.step && x.kind !== "return").map(box),
     ];
     const rectAt = ([x, y]: Point): Rect => ({ x: x - c.w / 2, y: y - c.h / 2, w: c.w, h: c.h });
+    const textAt = ([x, y]: Point): Rect => ({ x: x - c.w / 2 + c.label.x - c.x, y: y - c.h / 2 + c.label.y - c.y, w: c.label.w, h: c.label.h });
     const from = out.calls.find((x) => x.index === c.call)?.from;
     const end = c.path[c.path.length - 1] as Point;
     const callee = out.parties.find((x) => x.id === c.party)?.label;
-    const { path } = returnRoute(c.path, rectAt, callee, () => outline(from) ?? rectAt(end), avoid);
+    // 戻り値の札は自分の呼び出しの管の上に止まるので、札の字をほかの線に掛けない (#3721)
+    const { path } = returnRoute(c.path, rectAt, callee, () => outline(from) ?? rectAt(end), avoid, others(from, c.step), textAt);
     const [ox, oy] = c.path[0] as Point;
     const head = path[0] as Point;
     c.path = path;

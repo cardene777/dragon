@@ -60,6 +60,26 @@
         "auto"
       ]
     },
+    "routes": {
+      "description": "パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (#3721)。パイプ図だけが持てる。書いた組の分だけ通り道を空けて置き場所を決めるので、段を減らしても箱と槽の置き場所を変えない。書かない図は段に出る人からの呼び出しの組だけを空ける",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/definitions/id"
+          },
+          "to": {
+            "$ref": "#/definitions/id"
+          }
+        }
+      }
+    },
     "define": {
       "description": "図の頭に書いた、使う人が足すブロックの定義",
       "$ref": "#/definitions/define"
@@ -775,6 +795,9 @@
       "else": {
         "properties": {
           "layout": {
+            "$ref": "#/definitions/absent"
+          },
+          "routes": {
             "$ref": "#/definitions/absent"
           }
         }

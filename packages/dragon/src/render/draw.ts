@@ -391,6 +391,7 @@ export function drawSvg(
     ...(pieces ? { pieces } : {}),
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
+    ...(theme === "dark" ? { dark: true } : {}),
     seats: seatsOf(layout.edges, carried),
     ...parts?.hooks?.(m, timeline),
   };

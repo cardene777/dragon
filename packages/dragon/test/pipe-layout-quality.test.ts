@@ -100,6 +100,8 @@ interface Chip extends Rect {
   text: string;
   step: number;
   party?: string;
+  /** 戻り値の札が伝う道。札は道の始まりに描き、道の終わりで止まる */
+  path?: Point[];
 }
 interface Housing extends Rect {
   party: string;
@@ -381,10 +383,28 @@ interface Line {
   step?: number;
 }
 /** 段 `step` (0から) に見えている線 */
+/**
+ * 呼び出しの管 `points` の上で止まる戻り値の札の、止まった所の四角。戻り値の札は呼び出しの管を伝って呼んだ側へ戻り、
+ * 止まった所で濃く見えた後に消える。その札の字は、札が乗る管の字として数える
+ */
+function restingChips(L: PipeLayout, points: Point[]): Rect[] {
+  const on = ([x, y]: Point): boolean =>
+    points.slice(1).some((b, i) => {
+      const a = points[i] as Point;
+      return x >= Math.min(a[0], b[0]) - 1 && x <= Math.max(a[0], b[0]) + 1 && y >= Math.min(a[1], b[1]) - 1 && y <= Math.max(a[1], b[1]) + 1;
+    });
+  return L.chips.flatMap((c) => {
+    const path = c.kind === "return" ? c.path : undefined;
+    if (!path || path.length < 2) return [];
+    const [sx, sy] = path[0] as Point;
+    const [ex, ey] = path[path.length - 1] as Point;
+    return on([ex, ey]) ? [{ x: c.x + ex - sx, y: c.y + ey - sy, w: c.w, h: c.h }] : [];
+  });
+}
 function linesAt(L: PipeLayout, step: number): Line[] {
   const out: Line[] = [];
   for (const main of L.mains)
-    for (const br of main.branches) out.push({ kind: "call", id: `call ${main.from}>${br.to}`, trunk: main.from, points: br.points, own: [], ends: [main.from, br.to] });
+    for (const br of main.branches) out.push({ kind: "call", id: `call ${main.from}>${br.to}`, trunk: main.from, points: br.points, own: restingChips(L, br.points), ends: [main.from, br.to] });
   for (const v of L.valuePipes) out.push({ kind: "value", id: `pipe ${v.token} ${v.from}>${v.to}`, points: v.points, own: [], ends: [v.from, v.to, `${v.from}/${v.token}`, `${v.to}/${v.token}`] });
   for (const l of L.links.filter((x) => x.step === step))
     out.push({ kind: "link", id: `link ${l.from}>${l.to}`, points: l.points, own: [l.label, ...(l.delta ? [l.delta] : [])], ends: [l.from, l.to], step });
@@ -445,13 +465,13 @@ function linesOverTextOf(f: Figure): string[] {
   const L = f.layout;
   const out: string[] = [];
   const solids: { name: string; ids: string[]; rect: Rect }[] = [
-    ...L.parties.filter((p) => p.shape !== "round").map((p) => ({ name: `箱 ${p.id}`, ids: [p.id], rect: p as Rect })),
-    ...L.parties.filter((p) => p.shape === "round").map((p) => ({ name: `人 ${p.id}`, ids: [p.id], rect: p as Rect })),
-    ...L.tanks.map((k) => ({ name: `槽 ${k.party}/${k.token}`, ids: [`${k.party}/${k.token}`], rect: k as Rect })),
+    ...L.parties.filter((p) => p.shape !== "round").map((p) => ({ name: `箱 ${p.id}`, ids: [p.id], rect: p })),
+    ...L.parties.filter((p) => p.shape === "round").map((p) => ({ name: `人 ${p.id}`, ids: [p.id], rect: p })),
+    ...L.tanks.map((k) => ({ name: `槽 ${k.party}/${k.token}`, ids: [`${k.party}/${k.token}`], rect: k })),
   ];
   f.timeline.stills.forEach((t, step) => {
     const inks = f.drawn.inks.filter((ink) => visibleAt(ink.shown, t) && ink.text.trim() !== "");
-    const plates = L.plates.filter((p) => p.step === step && !p.boxed && !p.row).map((p) => ({ name: `値の箱 ${p.party}.${p.name}`, ids: [`plate ${p.party}.${p.name}`], rect: p as Rect }));
+    const plates = L.plates.filter((p) => p.step === step && !p.boxed && !p.row).map((p) => ({ name: `値の箱 ${p.party}.${p.name}`, ids: [`plate ${p.party}.${p.name}`], rect: p }));
     for (const line of linesAt(L, step)) {
       if (line.step !== undefined && line.step !== step) continue;
       const half = HALF[line.kind];
@@ -589,14 +609,20 @@ describe("線の通り道", () => {
     for (const [what, f] of figures) {
       const L = f.layout;
       const walls: { name: string; ids: string[]; rect: Rect; edge: boolean }[] = [
-        ...L.parties.map((p) => ({ name: `${p.shape === "round" ? "人" : "箱"} ${p.id}`, ids: [p.id], rect: p as Rect, edge: p.shape !== "round" })),
-        ...L.tanks.map((k) => ({ name: `槽 ${k.party}/${k.token}`, ids: [`${k.party}/${k.token}`], rect: k as Rect, edge: true })),
-        ...L.housings.map((h) => ({ name: `${h.party} の点線の枠`, ids: [h.party], rect: h as Rect, edge: true })),
-        ...L.plates.filter((p) => !p.boxed && !p.row && p.step === 0).map((p) => ({ name: `値の箱 ${p.party}.${p.name}`, ids: [`plate ${p.party}.${p.name}`], rect: p as Rect, edge: true })),
+        ...L.parties.map((p) => ({ name: `${p.shape === "round" ? "人" : "箱"} ${p.id}`, ids: [p.id], rect: p, edge: p.shape !== "round" })),
+        ...L.tanks.map((k) => ({ name: `槽 ${k.party}/${k.token}`, ids: [`${k.party}/${k.token}`], rect: k, edge: true })),
+        ...L.housings.map((h) => ({ name: `${h.party} の点線の枠`, ids: [h.party], rect: h, edge: true })),
+        ...L.plates.filter((p) => !p.boxed && !p.row && p.step === 0).map((p) => ({ name: `値の箱 ${p.party}.${p.name}`, ids: [`plate ${p.party}.${p.name}`], rect: p, edge: true })),
       ];
       const faint: { id: string; points: Point[]; ends: string[]; half: number }[] = [
         ...L.links.filter((l) => l.step === 0).map((l) => ({ id: `点線 ${l.from}>${l.to}`, points: l.points, ends: [l.from, l.to], half: HALF.link })),
-        ...L.valuePipes.map((v) => ({ id: `パイプ ${v.token} ${v.from}>${v.to}`, points: v.points, ends: [v.from, v.to, `${v.from}/${v.token}`, `${v.to}/${v.token}`], half: HALF.value })),
+        // 既定の並べ方は、トークンの箱をそのトークンの値の管の上に載せる。管が通るのは自分のトークンの箱だけ
+        ...L.valuePipes.map((v) => ({
+          id: `パイプ ${v.token} ${v.from}>${v.to}`,
+          points: v.points,
+          ends: [v.from, v.to, `${v.from}/${v.token}`, `${v.to}/${v.token}`, ...L.parties.filter((p) => p.shape === "token" && p.name === v.token).map((p) => p.id)],
+          half: HALF.value,
+        })),
       ];
       for (const line of faint)
         for (const seg of segsOf(line.points)) {
@@ -732,10 +758,8 @@ describe("札と印", () => {
       expect([...words].sort(), `${what} の札の語`).toEqual(["入力", "出力"]);
       for (const step of new Set(io.map((c) => c.step))) {
         const here = io.filter((c) => c.step === step);
-        for (const party of new Set(here.map((c) => c.party))) {
-          // 交換した人は入力と出力の両方の札を持つ
-          expect(here.filter((c) => c.party === party).map((c) => c.text).sort(), `${what} 段${step + 1} の ${party} の札`).toEqual(["入力", "出力"]);
-        }
+        // 入力と出力は対で読む。札は槽の持ち主の枠に付けるので、受け取った分を別の人へ送る交換 (見本 swap) は、出力の札が受け取った人に付く
+        expect([...new Set(here.map((c) => c.text))].sort(), `${what} 段${step + 1} の入力と出力の対`).toEqual(["入力", "出力"]);
         for (const c of here) {
           const frame = L.housings.find((h) => h.party === c.party);
           expect(frame, `${what} の ${c.party} の点線の枠`).toBeDefined();
@@ -935,7 +959,7 @@ describe("置き場所の検査", () => {
     const always: Shown[] = [[0, Number.POSITIVE_INFINITY]];
     const box = (name: string, x: number, y: number) => ({ kind: "box" as const, name, rect: { x, y, w: 100, h: 60 }, corner: 6, shown: always });
     const base = { traces: [], framed: [], stills: [1], boxes: [], edges: [], outlines: new Map() };
-    const kinds = (input: Record<string, unknown>): string[] => findBreaks({ ...base, ...input } as Parameters<typeof findBreaks>[0]).map((b) => b.kind);
+    const kinds = (input: Record<string, unknown>): string[] => findBreaks({ ...base, ...input } as unknown as Parameters<typeof findBreaks>[0]).map((b) => b.kind);
     // 箱と槽が重なる
     const overlapping = kinds({ inks: [], frame: { w: 400, h: 200 }, pieces: [box("Alice", 10, 10), { kind: "tank", name: "Bob TK1", rect: { x: 60, y: 30, w: 60, h: 100 }, shown: always }] });
     expect(overlapping, "重なる箱と槽").toContain("parts-overlap");

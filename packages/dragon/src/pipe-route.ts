@@ -760,6 +760,55 @@ function widen(
   return undefined;
 }
 
+/**
+ * 通り道の帯の中の 1 本の線 (#3721)。帯の上の縁から入る端の横の位置 `tops` と、下の縁から入る端の横の位置 `bottoms` を持ち、
+ * 端どうしを帯の中の 1 つの段の横の線で結ぶ。`half` は線の太さの半分
+ */
+export interface ChannelNet {
+  tops: readonly number[];
+  bottoms: readonly number[];
+  half: number;
+}
+
+/**
+ * 通り道の帯の中で、線ごとに横に走る段を割り当てる (#3721)。返すのは線ごとの段の番号で、0 が一番上。
+ *
+ * 横の範囲が重なる線どうしは別の段に置き、左の端から順に空いた段へ詰める。
+ * 上の縁の端と下の縁の端の横の位置が近い 2 本は、上から入る線を上の段に置く。逆に置くと、2 本の縦の線が同じ所を重なって走るため。
+ * この上下の決まりが輪になる時は、決まりの残りが一番少ない線から置いて輪を切る
+ */
+export function channelTracks(nets: readonly ChannelNet[], gap = 4): number[] {
+  const span = nets.map((n) => {
+    const xs = [...n.tops, ...n.bottoms];
+    return { lo: Math.min(...xs) - n.half, hi: Math.max(...xs) + n.half };
+  });
+  // above[j] は、線 j より上の段に置く線
+  const above = nets.map((b, j) =>
+    nets.flatMap((a, i) => (i !== j && a.tops.some((t) => b.bottoms.some((x) => Math.abs(t - x) < a.half + b.half + gap)) ? [i] : [])),
+  );
+  const track = nets.map(() => -1);
+  let left = nets.length;
+  for (let row = 0; left > 0; row++) {
+    const done = (i: number): boolean => track[i] !== -1 && (track[i] as number) < row;
+    let ready = nets.map((_, j) => j).filter((j) => track[j] === -1 && (above[j] as number[]).every(done));
+    if (ready.length === 0) {
+      const waiting = nets.map((_, j) => j).filter((j) => track[j] === -1);
+      const fewest = Math.min(...waiting.map((j) => (above[j] as number[]).filter((i) => !done(i)).length));
+      ready = waiting.filter((j) => (above[j] as number[]).filter((i) => !done(i)).length === fewest).slice(0, 1);
+    }
+    ready.sort((a, b) => (span[a]?.lo ?? 0) - (span[b]?.lo ?? 0));
+    let reach = Number.NEGATIVE_INFINITY;
+    for (const j of ready) {
+      const s = span[j] as { lo: number; hi: number };
+      if (s.lo <= reach + gap) continue;
+      track[j] = row;
+      reach = s.hi;
+      left--;
+    }
+  }
+  return track;
+}
+
 /** 一直線に並ぶ点を外し、折れる所と端だけを残す */
 export function simplify(points: readonly Point[]): Point[] {
   const out: Point[] = [];

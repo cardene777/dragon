@@ -1,15 +1,17 @@
 /**
  * 配管の図の崩れ (#3523)。描く処理が記録した配管の部品 (`PipePiece`) から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 4 種を拾う。
+ * 7 種を拾う。
  * 返した値の札が弁か計器か箱に重なる (`chip-over-part`)、呼び出しの管が箱の縁の角の丸みにかかるか箱の中を通る (`pipe-behind-box`)、
  * 2 本の呼び出しの管が重なって通る (`pipes-merged`)、弁の胴がほかの呼び出しの管の縁に近すぎる (`valve-near-pipe`)。
+ * 箱と槽が重なる (`parts-overlap`)、値の管が字の上を通る (`line-over-text`)、横幅いっぱいに何も描かない帯が高さ 200px 以上空く (`empty-band`) (#3721)。
+ * 箱の中の字は箱が後ろの管を隠すので、値の管が通っても数えない。
  * 同じ者から出て同じ線を同じ向きに通る管は、分かれる所まで 1 本の本管として描くので、重なりに数えない。
  * 札と部品と管は、どれも揃って見える最初の段か、管が呼び出しを運び始める段の遅い方で知らせる。
  */
 import type { Point, Rect } from "../layout/scene";
 import type { LayoutBreak, LayoutPart, PipePiece } from "./breaks";
-import { visible } from "./ink";
+import { type Ink, visible } from "./ink";
 
 /** 縁が触れているだけの重なり (px) は数えない */
 const DEPTH = 0.5;
@@ -17,6 +19,8 @@ const DEPTH = 0.5;
 const TOUCH = 2;
 /** 弁の胴とほかの管の縁の間の下限。平行な管の縁どうしの間と同じ (`kinds/pipe/layout.ts` の `LINE_GAP`) */
 const VALVE_GAP = 10;
+/** 横幅いっぱいに何も描かない帯を崩れに数える高さの下限 (px、#3721) */
+const EMPTY_BAND = 200;
 
 type Piece<K extends PipePiece["kind"]> = Extract<PipePiece, { kind: K }>;
 type Segment = [Point, Point];
@@ -68,10 +72,16 @@ function cornerInset(end: Point, box: Piece<"box">, half: number): number {
 }
 
 /** 部品を崩れの知らせで呼ぶ形にする */
-function partOf(piece: Piece<"box" | "pipe" | "valve" | "gauge">): LayoutPart {
+function partOf(piece: PipePiece): LayoutPart {
   switch (piece.kind) {
     case "box":
       return { kind: "box", name: piece.name };
+    case "tank":
+      return { kind: "tank", name: piece.name };
+    case "line":
+      return { kind: "flow", name: piece.name };
+    case "chip":
+      return { kind: "text", text: piece.text };
     case "pipe":
       return { kind: "pipe", from: piece.from, to: piece.to, step: piece.step };
     case "valve":
@@ -81,14 +91,45 @@ function partOf(piece: Piece<"box" | "pipe" | "valve" | "gauge">): LayoutPart {
   }
 }
 
-/** 配管の図の部品 `pieces` の崩れ。`stills` は段ごとの止め絵の時刻 */
-export function pipeBreaks(pieces: PipePiece[], stills: number[]): LayoutBreak[] {
+/** 部品が描く所の上下の端。管は点の並びに太さの半分を足す */
+function spanOf(piece: PipePiece): [number, number][] {
+  switch (piece.kind) {
+    case "box":
+    case "tank":
+    case "chip":
+      return [[piece.rect.y, piece.rect.y + piece.rect.h]];
+    case "pipe":
+    case "line": {
+      const ys = piece.points.map((p) => p[1]);
+      return ys.length > 0 ? [[Math.min(...ys) - piece.half, Math.max(...ys) + piece.half]] : [];
+    }
+    case "valve":
+      return [piece.body, ...piece.lever].map((r): [number, number] => [r.y, r.y + r.h]);
+    case "gauge":
+      return piece.rects.map((r): [number, number] => [r.y, r.y + r.h]);
+  }
+}
+
+/**
+ * 配管の図の部品 `pieces` の崩れ。`stills` は段ごとの止め絵の時刻。
+ * `inks` (描いた字) と `frame` (図の枠) を渡した時だけ、字の上を通る値の管と空き帯を数える。
+ * `areas` は部品に記録しない描いた物 (囲いの枠や札) の四角で、空き帯を数える時だけ重ねる
+ */
+export function pipeBreaks(
+  pieces: PipePiece[],
+  stills: number[],
+  inks: Ink[] = [],
+  frame?: { w: number; h: number },
+  areas: readonly { rect: Rect; part: LayoutPart }[] = [],
+): LayoutBreak[] {
   const of = <K extends PipePiece["kind"]>(kind: K): Piece<K>[] => pieces.filter((p): p is Piece<K> => p.kind === kind);
   const boxes = of("box");
   const pipes = of("pipe");
   const valves = of("valve");
   const gauges = of("gauge");
   const chips = of("chip");
+  const tanks = of("tank");
+  const lines = of("line");
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
   const firstSeen = (...items: PipePiece[]): number | undefined => {
     const at = stills.findIndex((t) => items.every((item) => visible(item, t)));
@@ -144,6 +185,44 @@ export function pipeBreaks(pieces: PipePiece[], stills: number[]): LayoutBreak[]
       add("pipes-merged", stepOf(a, b), [partOf(first), partOf(second)]);
     }
   });
+
+  // 箱と槽が、縁の触れ合いより深く重なる
+  const solids = [...boxes, ...tanks];
+  solids.forEach((a, i) => {
+    for (const b of solids.slice(i + 1)) {
+      const hit = a.kind === "box" ? overlapRounded(b.rect, a.rect, a.corner) : b.kind === "box" ? overlapRounded(a.rect, b.rect, b.corner) : overlap(a.rect, b.rect);
+      if (hit) add("parts-overlap", stepOf(a, b), [partOf(a), partOf(b)]);
+    }
+  });
+
+  // 値の管の太さが、同じ止め絵に見えている字に重なる。箱の中の字は箱が管を隠すので数えない
+  const inside = (r: Rect, o: Rect): boolean => r.x >= o.x - DEPTH && r.y >= o.y - DEPTH && r.x + r.w <= o.x + o.w + DEPTH && r.y + r.h <= o.y + o.h + DEPTH;
+  for (const line of lines)
+    for (const ink of inks) {
+      if (ink.text.trim() === "" || boxes.some((b) => inside(ink.rect, b.rect))) continue;
+      if (!segmentsOf(line.points).some((s) => overlap(caseOf(s, line.half, false), ink.rect))) continue;
+      const at = stills.findIndex((t) => visible(line, t) && visible(ink, t));
+      if (at >= 0) add("line-over-text", at + 1, [partOf(line), { kind: "text", text: ink.text }]);
+    }
+
+  // 横幅いっぱいに何も描かない帯。描く部品と字の上下の端を重ね、図の上端から下端まで `EMPTY_BAND` 以上空いた所を探す
+  if (frame) {
+    const spans: { lo: number; hi: number; part: LayoutPart }[] = [
+      ...pieces.flatMap((p) => spanOf(p).map(([lo, hi]) => ({ lo, hi, part: partOf(p) }))),
+      ...inks.filter((ink) => ink.text.trim() !== "").map((ink) => ({ lo: ink.rect.y, hi: ink.rect.y + ink.rect.h, part: { kind: "text" as const, text: ink.text } })),
+      ...areas.map((a) => ({ lo: a.rect.y, hi: a.rect.y + a.rect.h, part: a.part })),
+    ].sort((a, b) => a.lo - b.lo);
+    let reach = 0;
+    let above: LayoutPart = { kind: "frame", side: "top" };
+    for (const s of spans) {
+      if (s.lo - reach >= EMPTY_BAND) add("empty-band", 1, [above, s.part]);
+      if (s.hi > reach) {
+        reach = s.hi;
+        above = s.part;
+      }
+    }
+    if (spans.length > 0 && frame.h - reach >= EMPTY_BAND) add("empty-band", 1, [above, { kind: "frame", side: "bottom" }]);
+  }
 
   // 呼び出しの管の弁の胴が、ほかの呼び出しの管の縁から `VALVE_GAP` 離れない。
   // 同じ者の管が弁の所で弁の管と同じ線を通る所 (本管) は、弁が載る管と同じ線なので測らない

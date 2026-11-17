@@ -178,5 +178,7 @@ export const PIPE_LOOK = {
   card: { top: 16, h: 46, padX: 12, gap: 10, icon: 22, titleY: 18, valueY: 36 },
   ring: { width: 3 },
   dim: 0.35,
+  /** 暗い色味で薄く描く部品の不透明度 (#3721)。暗い地は線と地の明るさの差が小さいので、明るい色味より濃く描く */
+  dimDark: 0.45,
   narrow: { frame: 600, px: PIPE_FIRST.narrowPx, gap: 28 },
 } as const;

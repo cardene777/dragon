@@ -89,9 +89,10 @@ export interface PlayerOptions extends RenderOptions {
    */
   zoom?: "readable";
   /**
-   * 600px 以上の枠に置いた配管の図で、原寸の幅が枠より広い時に、図の全体を枠の幅に収めて始める (Tracelyth #177)。
+   * 配管の図で、原寸の幅が枠より広い時に、図の全体を枠の幅に収めて始める (Tracelyth #177)。
+   * ただし全体を収めると関係者の名前の字が画面で 10.5px を下回る図は、名前の字が 10.5px に見える大きさで始めて横に送る (#3721)。
    * 「+」で原寸より大きく寄せ、「−」で全体の大きさまで戻す。書かなければ原寸で始め、原寸より縮めない。
-   * 原寸が枠に収まる図と、600px より狭い枠には効かない
+   * 原寸が枠に収まる図には効かない
    */
   fitWide?: boolean;
   /**
@@ -589,6 +590,14 @@ export function mountDiagram(
     return heights.length > 0 ? Math.ceil((rendered.layout.width * PIPE_FIRST.narrowPx) / Math.min(...heights)) : 0;
   };
   /**
+   * 関係者の名前の字が画面で `READABLE_PX` に見える、配管の図の幅 (px) (#3721)。割り算の誤差で下回らないよう 1px 単位へ切り上げる。
+   * 名前を持たない図は 0
+   */
+  const nameWidth = (): number => {
+    const names = ((rendered.layout as PipeLayout).parties ?? []).map((party) => party.label.h).filter((h) => h > 0);
+    return names.length > 0 ? Math.ceil((rendered.layout.width * READABLE_PX) / Math.min(...names)) : 0;
+  };
+  /**
    * 拡大していない配管の図の幅 (px)。枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。
    * ただし収めると残高の字が読めない図は、字が読める幅で置いて横に送る (#3450)。
    * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
@@ -597,8 +606,10 @@ export function mountDiagram(
    */
   const baseWidth = (): number => {
     const w = frameWidth();
+    // 枠より広い図を枠に収めて始める図は、枠の幅に依らず、名前の字が読める幅より細くしない (#3721)
+    if (options.fitWide && isPipe) return Math.min(rendered.layout.width, Math.max(w, nameWidth()));
     if (w < ZOOM.fit) return Math.min(rendered.layout.width, Math.max(w, options.zoom ? 0 : readableWidth()));
-    return options.fitWide ? Math.min(rendered.layout.width, w) : rendered.layout.width;
+    return rendered.layout.width;
   };
   /**
    * 読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3483)。並べた図で最も小さい関係者の名前の字が、画面で

@@ -87,6 +87,7 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
     ...(model.layout !== undefined ? { layout: model.layout } : {}),
+    ...(model.routes !== undefined ? { routes: model.routes } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
     ...rooted(source),
     // 列の図の見た目 (#3625) は版1に無かった欄なので、`HOMES` を通さず根の欄 (`lineup`) に移す
@@ -150,6 +151,7 @@ export function toModel(diagram: Diagram): DiagramModel {
     title: diagram.title,
     ...(diagram.view !== undefined ? { view: diagram.view } : {}),
     ...(diagram.layout !== undefined ? { layout: diagram.layout } : {}),
+    ...(diagram.routes !== undefined ? { routes: diagram.routes } : {}),
     ...(diagram.define !== undefined ? { define: diagram.define } : {}),
     ...(b.group !== undefined ? { regions: b.group } : {}),
     boxes,
