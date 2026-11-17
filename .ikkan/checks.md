@@ -1,8 +1,13 @@
 # 検査の方針
 
-課題ごとには、実装のstepの関門が欄`届く検査`の命令で、packageをbuildしてから変えた所に関係する検査だけを`pnpm test:related`で回す (#3679)。
+課題ごとには、実装のstepの関門が欄`届く検査`の命令で、packageをbuildしてから型の検査を`pnpm typecheck`で回し、変えた所に関係する検査だけを`pnpm test:related`で回す (#3679、#3730)。
 課題は照合のstepを持たない線 (`個人開発`) で進むため、実装の関門は一式の代わりにこの命令を回す (ikkanの#380)。
 検査はbuildした`dist`を読み、`pnpm test:related`はbuildしないので、buildを先に回す。
+
+届く検査は型の検査も回す。
+`pnpm test:related`が起こすvitestは検査のfileの型を見ないため、型の検査を回さないと、#3717が検査のfileに入れた型の誤りのように版を出す前の関門まで見つからない (#3730)。
+型の検査も検査のfileが読む`dist`の型の定義を読むので、buildの後に回し、関係する検査より短いのでその前に回す。
+
 一式は型検査、build、lint、全ての検査を順に回し、検査は名前を 1 行ずつ出す。
 一式は版を出す前に配る前の関門が1回だけ回す (#3381)。
 一式は 1 件 10 秒、1 回の実行 5 分の上限の中で終わるので、重さを `軽い` と書く。
@@ -24,7 +29,7 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 | 通った行の形 | `^\s*✓\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
-| 届く検査 | `bash -c 'pnpm build:packages && pnpm test:related'` |
+| 届く検査 | `bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'` |
 | 配る前のテスト | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
