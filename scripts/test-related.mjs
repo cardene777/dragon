@@ -14,6 +14,10 @@
  *    見本の原本を読む検査、命令を起こす検査、書き出しが読む字の file がこれに当たる
  * 4. 表の `runtime` は、字の形 (`pattern`) に当たる file から、build した物の元の src へ結ぶ (build した命令や頁を起こす検査)。
  *    表の `materials` は、どの file も字で書かない材料 (build の設定、頁の build が読む file) を、検査の file へ結ぶ
+ * 5. `package.json` の `scripts` だけを変えた時は、表が全ての検査へ結ぶ材料でも全ての検査を選ばない (#3733)。
+ *    その `package.json` を字で書き、同じ file で `scripts` の欄を読む file (`{ scripts: ... }` の型、`pkg.scripts.x`) を通って届く検査の file だけを選ぶ。
+ *    `scripts` は依存も型も検査の設定も変えないので、全ての検査を選ぶと、混んだ機械で 1 件 10 秒の上限を超える検査を待つだけになる。
+ *    分かれた元に無い `package.json` と、JSON として読めない `package.json` は、今どおり全ての検査を選ぶ
  *
  * どの規則にも当たらない file を変えた時は、検査を回さずにその file の名前を出して終わり方 1 で止まる。
  * 黙って回さずに通すと、確かめていない変更を確かめたと読めてしまう。
@@ -102,6 +106,10 @@ const IMPORTS = [
 const LITERAL = /["'`]([^"'`\n]{1,300})["'`]/gu;
 /** dir を歩く file の印。こう書く file は、dir の字が指す dir の下の code も読む */
 const SCANS = /\breaddir(?:Sync)?\b|\bls-files\b|\bglobSync\b|\bopendir(?:Sync)?\b/u;
+/** `package.json` の名前 (#3733) */
+const PACKAGE_JSON = /(?:^|\/)package\.json$/u;
+/** `package.json` の `scripts` の欄を読む file の印。`{ scripts: Record<...> }` の型と、`pkg.scripts.x` と `pkg.scripts[...]` (#3733) */
+const SCRIPTS_FIELD = /\bscripts\s*(?:[:[]|\??\.)/u;
 
 /** 表を読む。無ければ空の表 */
 function readTable(root) {
@@ -194,9 +202,12 @@ export function indexRepo(root, extra = []) {
   };
   const runtime = table.runtime.map((rule) => ({ ...rule, re: new RegExp(rule.pattern, "u") }));
   const code = files.filter((path) => CODE.test(path) && existsSync(join(root, path)));
+  /** `package.json` の `scripts` の欄を読む file (#3733) */
+  const scriptReaders = new Set();
   for (const path of code) {
     const raw = readFileSync(join(root, path), "utf8");
     const text = stripComments(raw);
+    if (SCRIPTS_FIELD.test(text)) scriptReaders.add(path);
     for (const re of IMPORTS) for (const m of text.matchAll(re)) for (const to of resolveImport(path, m[1])) add(path, to);
     const literals = [...text.matchAll(LITERAL)].map((m) => m[1]);
     // 同じ file の中で dir を指す字。`join(app, "scripts/copy-404.mjs")` の 2 つ目の字は、1 つ目の dir からの相対で読む
@@ -208,6 +219,8 @@ export function indexRepo(root, extra = []) {
 
   /** file を読む検査の file。検査の file から辺をたどって届く file ごとに数える */
   const readers = new Map();
+  /** 検査の file から辺をたどって届く file (検査の file 自身を含む) */
+  const reach = new Map();
   for (const test of code.filter(isTest)) {
     const seen = new Set([test]);
     const stack = [test];
@@ -220,6 +233,7 @@ export function indexRepo(root, extra = []) {
         if (!isTest(to)) stack.push(to);
       }
     }
+    reach.set(test, seen);
     for (const path of seen) {
       if (!readers.has(path)) readers.set(path, new Set());
       readers.get(path).add(test);
@@ -227,14 +241,20 @@ export function indexRepo(root, extra = []) {
   }
   const tests = code.filter(isTest);
   const materials = table.materials.map((m) => ({ ...m, res: m.files.map(globRe) }));
-  return { files, tests, readers, materials, table, edges };
+  return { files, tests, readers, materials, table, edges, reach, scriptReaders };
+}
+
+/** `path` の `package.json` を字で書き、同じ file で `scripts` の欄を読む file を通って届く検査の file (#3733) */
+function scriptReadersOf(index, path) {
+  return [...(index.readers.get(path) ?? [])].filter((test) => [...(index.reach.get(test) ?? [])].some((file) => index.scriptReaders.has(file) && (index.edges.get(file)?.has(path) ?? false)));
 }
 
 /**
  * 変えた file から検査の file を選ぶ。
+ * `scriptsOnly` は `scripts` だけを変えた `package.json` で、その file は `scripts` の欄を読む検査だけを選ぶ (#3733)。
  * どの規則にも当たらない file は `unmapped` に入る
  */
-export function choose(index, changed) {
+export function choose(index, changed, scriptsOnly = new Set()) {
   const chosen = new Set();
   const unmapped = [];
   for (const path of changed) {
@@ -244,13 +264,15 @@ export function choose(index, changed) {
       if (index.tests.includes(path)) chosen.add(path);
       hit = true;
     }
-    for (const test of index.readers.get(path) ?? []) {
+    for (const test of scriptsOnly.has(path) ? scriptReadersOf(index, path) : (index.readers.get(path) ?? [])) {
       chosen.add(test);
       hit = true;
     }
     for (const material of index.materials) {
       if (!material.res.some((re) => re.test(path))) continue;
       hit = true;
+      // `scripts` だけの変更は全ての検査の動き方を変えないので、全ての検査へ結ぶ材料から選ばない
+      if (material.tests === "all" && scriptsOnly.has(path)) continue;
       const targets = material.tests === "all" ? index.tests : material.tests.flatMap((t) => (isTest(t) ? [t] : [...(index.readers.get(t) ?? [])]));
       for (const test of targets) if (index.tests.includes(test)) chosen.add(test);
     }
@@ -261,12 +283,19 @@ export function choose(index, changed) {
 
 const git = (root, ...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
 
-/** 既定の枝から分かれた後に変えた file。commit していない変更と、まだ追っていない file を含む */
-export function branchChanges(root, base) {
+/** 既定の枝から分かれた所の commit。分かれた元の枝が無い時は `missing` に探した枝の名前を入れて返す */
+function forkPoint(root, base) {
   const refs = base ? [base] : ["origin/main", "main"];
   const ref = refs.find((r) => spawnSync("git", ["-C", root, "rev-parse", "--verify", "--quiet", `${r}^{commit}`]).status === 0);
-  if (!ref) throw new Error(`分かれた元の枝が無い (${refs.join("、")})`);
-  const fork = git(root, "merge-base", "HEAD", ref).trim();
+  if (!ref) return { missing: refs };
+  const ran = spawnSync("git", ["-C", root, "merge-base", "HEAD", ref], { encoding: "utf8" });
+  return ran.status === 0 ? { fork: ran.stdout.trim() } : { missing: refs };
+}
+
+/** 既定の枝から分かれた後に変えた file。commit していない変更と、まだ追っていない file を含む */
+export function branchChanges(root, base) {
+  const { fork, missing } = forkPoint(root, base);
+  if (!fork) throw new Error(`分かれた元の枝が無い (${missing.join("、")})`);
   const changed = git(root, "diff", "--name-only", fork).split("\n");
   const untracked = git(root, "ls-files", "--others", "--exclude-standard").split("\n");
   return [...new Set([...changed, ...untracked].filter(Boolean))];
@@ -309,6 +338,32 @@ export function runUntilFinished(files, run, say) {
   }
 }
 
+/**
+ * 変えた `package.json` のうち、分かれた元から `scripts` だけを変えた物 (#3733)。
+ * 分かれた元に無い file と、どちらかが JSON として読めない file は入れず、全ての検査を選ぶ側に倒す
+ */
+export function scriptsOnlyChanges(root, base, changed) {
+  const out = new Set();
+  const targets = changed.filter((path) => PACKAGE_JSON.test(path));
+  if (targets.length === 0) return out;
+  const { fork } = forkPoint(root, base);
+  if (!fork) return out;
+  for (const path of targets) {
+    const before = spawnSync("git", ["-C", root, "show", `${fork}:${path}`], { encoding: "utf8" });
+    if (before.status !== 0 || !existsSync(join(root, path))) continue;
+    try {
+      const was = JSON.parse(before.stdout);
+      const now = JSON.parse(readFileSync(join(root, path), "utf8"));
+      delete was.scripts;
+      delete now.scripts;
+      if (JSON.stringify(was) === JSON.stringify(now)) out.add(path);
+    } catch {
+      // 読めない file は、全ての検査を選ぶ側に倒す
+    }
+  }
+  return out;
+}
+
 function main() {
   const o = parseArgs(process.argv.slice(2));
   const root = o.root;
@@ -320,7 +375,9 @@ function main() {
   }
   const changed = (o.files.length > 0 ? o.files : branchChanges(root, o.base)).map((p) => posix.normalize(relative(root, join(root, p)).split("\\").join("/")));
   const index = indexRepo(root, changed);
-  const { chosen, unmapped } = choose(index, changed);
+  const scriptsOnly = scriptsOnlyChanges(root, o.base, changed);
+  if (scriptsOnly.size > 0) process.stderr.write(`scripts だけを変えた package.json は、scripts の欄を読む検査だけを選ぶ (#3733)\n${[...scriptsOnly].map((p) => `  ${p}\n`).join("")}`);
+  const { chosen, unmapped } = choose(index, changed, scriptsOnly);
   if (unmapped.length > 0) {
     process.stderr.write(
       `表にも import にも当たらない file が ${unmapped.length} 件ある。検査を回さずに止める。\n${unmapped.map((p) => `  ${p}\n`).join("")}` +

@@ -7,8 +7,10 @@
  * import でたどれない材料 (見本、README、変更履歴、build の設定) は、表がその材料に結ぶ検査の file を選ぶ。
  * どれにも当たらない file を変えた時は、検査を回さずに名前を出して止まる。
  *
- * 命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
  * 規則は、この repo そのものと、検査の中で作る小さな repo の 2 つで確かめる。
+ * 小さな repo では命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
+ * この repo では、file を読み込む時に 1 度だけ作った索引から選ぶ。命令は起こすたびに repo の全ての file を読み直し、
+ * 件ごとに起こすと混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -45,6 +47,27 @@ function listed(code: number | null, stdout: string, stderr: string): Listed {
   return { code, stdout, stderr, files: lines.slice(1).map((line) => line.trim()) };
 }
 
+/** 選ぶ命令が書き出す関数のうち、この repo の索引から選ぶのに使う物 */
+interface Runner {
+  indexRepo?: (root: string) => unknown;
+  choose?: (index: unknown, changed: string[]) => { chosen: string[]; unmapped: string[] };
+}
+
+/**
+ * この repo の索引。file を読み込む時に 1 度だけ作り、この repo で選ぶ検査を確かめる件で使い回す (#3733)。
+ * file の読み込みは 1 件の上限の外で、1 回の実行の上限 (5 分) の中に入る
+ */
+const runner = (await import(RUNNER)) as Runner;
+const repoIndex = runner.indexRepo?.(ROOT);
+
+/** この repo で、変えた file から選ぶ検査の file。命令を子の process で起こさず、索引から選ぶ */
+function listRepo(changed: string[]): Listed {
+  if (repoIndex === undefined || runner.choose === undefined) return { code: null, stdout: "", stderr: "scripts/test-related.mjs が indexRepo と choose を書き出さない", files: [] };
+  const { chosen, unmapped } = runner.choose(repoIndex, changed);
+  if (unmapped.length > 0) return { code: 1, stdout: "", stderr: `表にも import にも当たらない file\n${unmapped.join("\n")}`, files: [] };
+  return { code: 0, stdout: `関係する検査 ${chosen.length} file\n${chosen.map((path) => `  ${path}\n`).join("")}`, stderr: "", files: chosen };
+}
+
 /** repo の検査の file と中身。材料の名前を書く検査を数える時に、file で 1 度だけ読む */
 let sources: Map<string, string> | undefined;
 function testSources(): Map<string, string> {
@@ -56,6 +79,8 @@ function testSources(): Map<string, string> {
   );
   return sources;
 }
+// 件の上限の外で、file を読み込む時に読んでおく (#3733)
+testSources();
 
 /** 検査の中で使う小さな repo を作る。`files` は repo の根からの path と中身 */
 function fixture(files: Record<string, string>): string {
@@ -86,7 +111,7 @@ const git = (root: string, ...args: string[]): string => execFileSync("git", ["-
 describe("関係する検査を選ぶ命令 (#3381)", () => {
   it("related-runs-changed-test-file", () => {
     const changed = "packages/dragon/test/release-records.test.ts";
-    const listed = list([changed]);
+    const listed = listRepo([changed]);
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files, "変えた検査の file を選んでいない").toContain(changed);
     // ほかに選ぶのは、変えた検査の file の名前を字で書く検査の file だけ (名前が変わると落ちる)
@@ -121,7 +146,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     { changed: "apps/playground-spa/src/main.tsx", reader: "apps/playground-spa/src/lib/playground.test.ts", says: "build した頁の中身を読む検査 (playground.test.ts) を選んでいない" },
   ])("$changed", ({ changed, reader, says }) => {
     it("related-follows-package-and-built-entries", () => {
-      const chosen = list([changed]);
+      const chosen = listRepo([changed]);
       expect(chosen.code, chosen.stderr).toBe(0);
       expect(chosen.files, says).toContain(reader);
     });
@@ -134,7 +159,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     { changed: "packages/dragon/examples/auction.dragon", picks: [["packages/dragon/test/lineup-diagram.test.ts", "見本を読む検査 (lineup-diagram.test.ts) を選んでいない"]], skips: [] },
   ])("$changed", ({ changed, picks, skips }) => {
     it("related-maps-materials-by-table", () => {
-      const chosen = list([changed]);
+      const chosen = listRepo([changed]);
       expect(chosen.code, chosen.stderr).toBe(0);
       for (const [file, says] of picks) expect(chosen.files, says).toContain(file);
       for (const [file, says] of skips) expect(chosen.files, says).not.toContain(file);
@@ -155,7 +180,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
       const readers = [...testSources()].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
       // 名前を書く検査の file を 1 件も数えられない時は、確かめていないので落とす
       expect(readers.length, `${material} の名前を書く検査の file を 1 件も数えていない`).toBeGreaterThan(0);
-      const chosen = list([material]);
+      const chosen = listRepo([material]);
       expect(chosen.code, `${material} を変えた時に命令が止まった: ${chosen.stderr}`).toBe(0);
       expect(readers.filter((reader) => !chosen.files.includes(reader)), `${material} の名前を書く検査の file のうち、選ばれなかった物`).toEqual([]);
     });
@@ -193,6 +218,67 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
     expect(first, "1 行目に選んだ検査の file の数を出していない").toBe("関係する検査 2 file");
     expect(listed.files, "選んだ検査の file の名前を出していない").toHaveLength(2);
     expect(readFileSync(join(ROOT, "package.json"), "utf8"), "関係する検査を回す命令が package.json に無い").toContain('"test:related": "node scripts/test-related.mjs"');
+  });
+});
+
+/**
+ * package.json と、それを字で書く検査 2 つ (`scripts` の欄を読む物と読まない物) を持ち、
+ * 表が package.json を全ての検査へ結ぶ git の repo。`main` に 1 度 commit し、枝 `work` へ移った所で返す
+ */
+function packageRepo(): string {
+  const root = smallRepo({
+    "package.json": `${JSON.stringify({ name: "x", scripts: { test: "vitest run" }, devDependencies: { vitest: "1.0.0" } }, null, 2)}\n`,
+    "test-support/related-table.json": JSON.stringify({ materials: [{ files: ["package.json"], tests: "all", why: "依存と検査の設定" }] }),
+    "packages/x/test/scripts.test.ts": 'import { readFileSync } from "node:fs";\nconst pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };\nvoid pkg.scripts.test;\n',
+    "packages/x/test/name.test.ts": 'import { readFileSync } from "node:fs";\nconst pkg = JSON.parse(readFileSync("package.json", "utf8")) as { name: string };\nvoid pkg.name;\n',
+  });
+  git(root, "init", "-q", "-b", "main");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", "-A");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-m", "first");
+  git(root, "switch", "-q", "-c", "work");
+  return root;
+}
+
+/** repo の package.json を、渡した関数で書き換える */
+function editPackage(root: string, edit: (pkg: Record<string, unknown>) => void): void {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as Record<string, unknown>;
+  edit(pkg);
+  writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
+}
+
+// package.json の `scripts` だけを変えた時は、依存も検査の設定も変わらないので全ての検査を選ばない (#3733)。
+// `pnpm test:related` が全ての検査を選ぶと、混んだ機械で 1 件 10 秒の上限を超える検査が出る
+describe("package.json の scripts だけを変えた時に選ぶ検査 (#3733)", () => {
+  it("related-scripts-only-change-picks-script-readers", () => {
+    const root = packageRepo();
+    editPackage(root, (pkg) => {
+      pkg.scripts = { test: "vitest run --reporter=verbose" };
+    });
+    const listed = list(["package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "scripts だけの変更で、scripts の欄を読む検査だけを選んでいない").toEqual(["packages/x/test/scripts.test.ts"]);
+  });
+
+  it("related-package-change-outside-scripts-picks-all", () => {
+    const root = packageRepo();
+    editPackage(root, (pkg) => {
+      pkg.scripts = { test: "vitest run --reporter=verbose" };
+      pkg.devDependencies = { vitest: "2.0.0" };
+    });
+    const listed = list(["package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "scripts の外を変えた時に全ての検査を選んでいない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/b.test.ts", "packages/x/test/name.test.ts", "packages/x/test/s.test.ts", "packages/x/test/scripts.test.ts"]);
+  });
+
+  it("related-new-package-json-picks-all", () => {
+    const root = packageRepo();
+    mkdirSync(join(root, "packages/y"), { recursive: true });
+    writeFileSync(join(root, "packages/y/package.json"), `${JSON.stringify({ name: "y", scripts: { test: "vitest run" } }, null, 2)}\n`);
+    writeFileSync(join(root, "test-support/related-table.json"), JSON.stringify({ materials: [{ files: ["package.json", "packages/*/package.json"], tests: "all", why: "依存と検査の設定" }] }));
+    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "table");
+    const listed = list(["packages/y/package.json"], root);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(listed.files, "分かれた元に無い package.json を足した時に全ての検査を選んでいない").toHaveLength(5);
   });
 });
 
@@ -258,14 +344,19 @@ describe("上限で止まった実行の続き (#3386)", () => {
 
 /** 1 件で入力を順に回していた 3 つの検査。入力ごとの件に分けた (#3602) */
 const SPLIT = ["related-follows-package-and-built-entries", "related-maps-materials-by-table", "related-table-covers-material-readers"];
-/** 分けた件ごとの、命令を起こした回数 */
+/**
+ * この repo を読んで選ぶ検査を確かめる件。件ごとに命令を子の process で起こすと、命令が repo の全ての file を読み直し、
+ * 混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。file を読み込む時に 1 度だけ作った索引から選ぶ
+ */
+const REPO_CASES = [...SPLIT, "related-runs-changed-test-file"];
+/** この repo を読む件ごとの、命令を起こした回数 */
 const started = new Map<string, number>();
 let commandsAtStart = 0;
 beforeEach(() => {
   commandsAtStart = commands;
 });
 afterEach(({ task }) => {
-  if (SPLIT.includes(task.name)) started.set(`${task.suite?.name ?? ""} > ${task.name}`, commands - commandsAtStart);
+  if (REPO_CASES.includes(task.name)) started.set(`${task.suite?.name ?? ""} > ${task.name}`, commands - commandsAtStart);
 });
 
 describe("入力ごとに分けた検査を選ぶ命令の件 (#3602)", () => {
@@ -275,12 +366,12 @@ describe("入力ごとに分けた検査を選ぶ命令の件 (#3602)", () => {
     expect(casesNamed(task.file, "related-table-covers-material-readers"), "名前を書く検査を数える材料ごとの件").toHaveLength(5);
   });
 
-  // 1 件で命令を 3 回か 5 回起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた
-  it("related-split-cases-start-one-command", () => {
-    expect([...new Set([...started.keys()].map((key) => key.split(" > ").pop()))].sort(), "命令を起こした回数を数えた検査").toEqual([...SPLIT].sort());
+  // 件ごとに命令を 1 回起こしても、命令が repo の全ての file を読み直すので、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)
+  it("related-repo-cases-start-no-command", () => {
+    expect([...new Set([...started.keys()].map((key) => key.split(" > ").pop()))].sort(), "命令を起こした回数を数えた検査").toEqual([...REPO_CASES].sort());
     expect(
-      [...started].filter(([, count]) => count !== 1).map(([key, count]) => `${key}: ${count}`),
-      "命令を 1 回でなく起こした件",
+      [...started].filter(([, count]) => count !== 0).map(([key, count]) => `${key}: ${count}`),
+      "この repo を読む件で命令を起こした件",
     ).toEqual([]);
   });
 });

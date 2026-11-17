@@ -12,6 +12,7 @@ import { parseNotation, type Rendered, renderDiagram } from "@cardenelabs/dragon
 import { describe, expect, it } from "vitest";
 
 import { renderLayout } from "../../../../packages/dragon/src/render/svg";
+import { casesNamed } from "../../../../packages/dragon/test/export-support";
 import { app, partFigure, partFigureNames, root } from "./playground-support";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -42,21 +43,21 @@ function draw(dir: string, file: string, palette?: string): Rendered {
 const drawPart = (file: string, palette?: string): Rendered =>
   draw(dirname(partFigure(file)), file, palette);
 
-function examples(palette?: string): Example[] {
-  const out: Example[] = [];
-  for (const file of partFigureNames())
-    out.push({ name: `catalog/parts/${file}`, rendered: drawPart(file, palette) });
-  const dirs: [string, string, RegExp][] = [
-    ["docs/examples", DOCS, /\.(dragon|json)$/],
-    ["examples", PACKAGE, /\.(dragon|json)$/],
-  ];
-  for (const [label, dir, pattern] of dirs) {
-    for (const file of readdirSync(dir)
-      .filter((f) => pattern.test(f))
-      .sort())
-      out.push({ name: `${label}/${file}`, rendered: draw(dir, file, palette) });
-  }
-  return out;
+/** 見本の名前。描かずに置き場の file の名前だけを並べる (#3733) */
+function exampleNames(): string[] {
+  const names = partFigureNames().map((file) => `catalog/parts/${file}`);
+  for (const [label, dir] of [["docs/examples", DOCS], ["examples", PACKAGE]] as const)
+    for (const file of readdirSync(dir).filter((f) => /\.(dragon|json)$/.test(f)).sort()) names.push(`${label}/${file}`);
+  return names;
+}
+
+/** 名前 (`exampleNames` の 1 つ) の見本を 1 つ描く。`palette` を渡さなければ既定の色味で描く (#3733) */
+function drawExample(name: string, palette?: string): Rendered {
+  const file = name.slice(name.lastIndexOf("/") + 1);
+  if (name.startsWith("catalog/parts/")) return drawPart(file, palette);
+  if (name.startsWith("docs/examples/")) return draw(DOCS, file, palette);
+  if (name.startsWith("examples/")) return draw(PACKAGE, file, palette);
+  throw new Error(`${name} の置き場が分からない`);
 }
 
 type Found = {
@@ -191,21 +192,26 @@ describe("見本の字が重ならない (#3175)", () => {
     }
   });
 
-  it("overlaps-none-in-every-example", () => {
-    const list = examples();
-    expect(list.length, "見本を 1 件も読めていない").toBeGreaterThan(100);
-    expect(overlapReport(list)).toEqual([]);
+  // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
+  describe.for(exampleNames())("%s", (name) => {
+    it("overlaps-none-in-every-example", () => {
+      expect(overlapReport([{ name, rendered: drawExample(name) }])).toEqual([]);
+    });
+
+    // arcade は角を落とすだけで置き場所を変えないため、同じ見本を arcade で描いても字が重ならない (#3344)
+    it("overlaps-none-with-arcade-palette", () => {
+      const rendered = drawExample(name, "arcade");
+      expect(rendered.palette, `${name} を arcade で描けていない`).toBe("arcade");
+      expect(overlapReport([{ name, rendered }])).toEqual([]);
+    });
   });
 
-  // arcade は角を落とすだけで置き場所を変えないため、同じ見本を arcade で描いても字が重ならない (#3344)
-  it("overlaps-none-with-arcade-palette", () => {
-    const list = examples("arcade");
-    expect(list.length, "見本を 1 件も読めていない").toBeGreaterThan(100);
-    expect(
-      list.filter(({ rendered }) => rendered.palette !== "arcade").map(({ name }) => name),
-      "arcade で描けていない見本",
-    ).toEqual([]);
-    expect(overlapReport(list)).toEqual([]);
+  // 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
+  it("overlaps-cases-follow-examples", ({ task }) => {
+    const names = exampleNames();
+    expect(names.length, "見本を 1 件も読めていない").toBeGreaterThan(100);
+    expect(casesNamed(task.file, "overlaps-none-in-every-example"), "見本ごとの件").toEqual(names);
+    expect(casesNamed(task.file, "overlaps-none-with-arcade-palette"), "arcade で描く見本ごとの件").toEqual(names);
   });
 
   it("overlaps-check-names-example-step-and-texts", () => {
