@@ -280,18 +280,13 @@ export interface PipeFlow extends PipeAt {
    * 管の上に並べる向きの矢じり (#3721)。道に沿って `PIPE_CHEVRON` ごとに置き、`dx` と `dy` は流れる向きの単位の向き。
    * 描く処理は札入れと札を置く時に道を伸ばすので、描く時に道が決まってから書く
    */
-  chevrons?: PipeChevron[];
+  chevrons?: { x: number; y: number; dx: number; dy: number }[];
   tone: number;
   /** この段で流れたか。流れた段は斜線の液の塊が管を通り抜ける */
   fresh: boolean;
 }
 /** 値の管の上の向きの矢じり 1 つ */
-export interface PipeChevron {
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-}
+type PipeChevron = NonNullable<PipeFlow["chevrons"]>[number];
 /** 矢じりの間 (px、道に沿った長さ) */
 export const PIPE_CHEVRON = 44;
 /** 角の手前と先でこの長さより角に近い矢じりは、角の手前の線分の終わりに置く。折れた所でどちらの線分の向きか迷わないため */
@@ -1907,7 +1902,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
 
   // ---- 囲いの中身。槽を並べ、値の札を後ろに置く
 
-  const housingH = P.housing.top + P.tank.h + Math.max(P.housing.text, narrow ? Math.ceil(sizes.amount * 1.25) + P.housing.pad : 0);
+  // 槽も値の札も持つ人がいない図は囲いの帯を取らない。取ると、図の下に高さ 200px を超える空き帯が残る (#3721)
+  const housingH = holders.length === 0 ? 0 : P.housing.top + P.tank.h + Math.max(P.housing.text, narrow ? Math.ceil(sizes.amount * 1.25) + P.housing.pad : 0);
   interface Inner {
     tanks: { token: string; dx: number; w: number }[];
     plates: { name: string; dx: number; w: number }[];
@@ -4236,8 +4232,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           let before: PipeText | undefined;
           let tag: PipeText | undefined;
           if (old !== undefined && state !== "none") {
-            // 前の値は線で消さず、`前` の語と前の値と確定かの語を 1 行に並べ、札の下の縁のすぐ下に置く (#3721)
-            const base = p.y + p.h + 16;
+            // 前の値は線で消さず、`前` の語と前の値と確定かの語を 1 行に並べ、札の下の縁のすぐ下に置く (#3721)。
+            // 行は札の下端から 4px 空けて置き、札の下を通る値の管の縁 (`P.plate.short` の説明) より上で終える
+            const base = p.y + p.h + 15;
             const lead = textWidth(words.before, T.tag);
             const total = lead + PART_GAP + textWidth(old, T.sub) + PART_GAP + textWidth(words.tags[state], T.tag);
             before = textAt(words.before, cx - total / 2, base, T.tag);

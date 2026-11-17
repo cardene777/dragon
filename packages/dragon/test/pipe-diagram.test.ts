@@ -1349,10 +1349,15 @@ describe("配管の図の見本 (#3389)", () => {
   it("pipe-layout-same-in-every-palette", () => {
     const source = exampleJson("swap.json");
     const base = render(source);
-    // 図の名前 (class と動きの名前) は色の値からも作るので、同じ名前に揃え、色と字の変数を書く最初の規則を外して比べる
+    // 図の名前 (class と動きの名前) は色の値からも作るので、同じ名前に揃え、色と字の変数を書く最初の規則を外して比べる。
+    // 薄く描く組の不透明度は、暗い色味で背景との明るさの比を保つために明暗で変える (#3721) ので、色の値と同じく比べない
     const shapeOf = (svg: string): string => {
       const hash = figureClass(svg)?.slice("dg-".length) ?? "";
-      return svg.split(hash).join("figure").replace(/<style>\.dg-figure\{[^}]*\}/u, "<style>");
+      return svg
+        .split(hash)
+        .join("figure")
+        .replace(/<style>\.dg-figure\{[^}]*\}/u, "<style>")
+        .replace(/<g opacity="[\d.]+" style="filter:grayscale\(1\)">/gu, '<g opacity="dim" style="filter:grayscale(1)">');
     };
     const palettes = draw("PALETTES");
     for (const palette of Object.keys(palettes)) {
@@ -2396,11 +2401,10 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     const plates = layout.plates.filter((p) => p.party === "proxy" && !(p as Plate & { boxed?: boolean }).boxed);
     expect(plates.length, "Proxy の値の札の数").toBeGreaterThan(0);
     for (const p of plates) expect(inside(p, housing as Rect), `段 ${p.step + 1} の Proxy の ${p.name} の札が囲いの外に在る`).toBe(true);
-    // write の段で札の値が替わり、前の値を消し線で残し、確定するまで暫定の印で描く
+    // write の段で札の値が替わり、前の値を線で消さずに残し (#3721)、確定するまで暫定の印で描く
     const written = layout.plates.find((p) => p.party === "proxy" && p.name === "deposits[alice]" && p.step === 5);
     expect([written?.value, written?.was?.text, written?.state], "write の段の Proxy の deposits[alice] の札").toEqual(["1", "0", "provisional"]);
-    const was = written?.was ?? { x: Number.NaN, y: 0, w: 0, h: 0 };
-    expect(written?.strike !== undefined && (written.strike?.x ?? Infinity) <= was.x + 1 && (written.strike?.x ?? 0) + (written.strike?.w ?? 0) >= was.x + was.w - 1, "write の段の前の値に消し線が無い").toBe(true);
+    expect(written?.strike, "write の段の前の値に消し線が在る").toBeUndefined();
   });
 
   it("pipe-dims-parts-that-did-not-move", () => {

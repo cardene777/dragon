@@ -20,7 +20,7 @@ const TOUCH = 2;
 /** 弁の胴とほかの管の縁の間の下限。平行な管の縁どうしの間と同じ (`kinds/pipe/layout.ts` の `LINE_GAP`) */
 const VALVE_GAP = 10;
 /** 横幅いっぱいに何も描かない帯を崩れに数える高さの下限 (px、#3721) */
-const EMPTY_BAND = 200;
+export const EMPTY_BAND = 200;
 
 type Piece<K extends PipePiece["kind"]> = Extract<PipePiece, { kind: K }>;
 type Segment = [Point, Point];

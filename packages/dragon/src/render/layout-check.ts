@@ -14,6 +14,7 @@ import { diamondPoints, type Point } from "../layout/scene";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
+import { EMPTY_BAND } from "./pipe-breaks";
 
 /**
  * 描いた物から崩れを数える関数 (#3494)。描く処理に渡し、描いた後に呼ばせる。
@@ -161,7 +162,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     flowOf: (name) => `値の管「${name}」`,
     overlaps: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     overText: (line, text) => `${spaced(line)}が${spaced(text)}の上を通る`,
-    emptyBand: (a, b) => `${spaced(a)}と${spaced(b)}の間に、何も描かない帯が高さ200px以上空く`,
+    emptyBand: (a, b) => `${spaced(a)}と${spaced(b)}の間に、何も描かない帯が高さ${EMPTY_BAND}px以上空く`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -197,7 +198,7 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     flowOf: (name) => `the value pipe "${name}"`,
     overlaps: (a, b) => capital(`${a} and ${b} overlap`),
     overText: (line, text) => capital(`${line} runs over ${text}`),
-    emptyBand: (a, b) => capital(`an empty band of 200px or more is left between ${a} and ${b}`),
+    emptyBand: (a, b) => capital(`an empty band of ${EMPTY_BAND}px or more is left between ${a} and ${b}`),
   },
 };
 

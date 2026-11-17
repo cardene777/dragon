@@ -168,7 +168,8 @@ export const PIPE_LOOK = {
     // 箱を載せる管の口 (先頭) を真ん中に置き、上と下に 2 つずつ口を残す。上へ抜ける管と下へ抜ける管が 2 本ずつ入れ子にできる
     ports: [114, 150, 78, 186, 42],
   },
-  plate: { w: 130, padX: 36, top: 40, short: 80, nameY: 28, valueY: 22, gap: 24, radius: 6 },
+  // 札は槽より `short` 低い。札の下端と、槽のいちばん下の口 (`ports` の 186) から札の下を通る値の管の縁の間に、前の値の行 (14px) と空き (4px) を取る (#3721)
+  plate: { w: 130, padX: 36, top: 40, short: 84, nameY: 28, valueY: 22, gap: 24, radius: 6 },
   housing: { pad: 18, top: 34, text: 84, gap: 72 },
   band: { tag: 18, next: 30, tags: 76 },
   lane: { pitch: 38, clear: 12, outer: 6 },

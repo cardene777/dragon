@@ -385,7 +385,7 @@ export interface Diagram {
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
   /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */
-  routes?: PipeRoute[];
+  routes?: { from: string; to: string }[];
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   /** 量の図 (#3560) の見た目と項目。量の図だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
@@ -420,7 +420,7 @@ export interface DiagramModel {
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
   /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */
-  routes?: PipeRoute[];
+  routes?: { from: string; to: string }[];
   /** 図の頭に書いた、使う人が足すブロックの定義 (#3399) */
   define?: UserBlocks;
   regions?: Region[];
@@ -566,11 +566,6 @@ const PIPE_EVENT = "#/definitions/notPipeEvent/not";
  */
 export const PIPE_LAYOUTS = ["top", "bottom", "ledger", "mesh", "bus", "auto"] as const;
 export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
-/** 置き方が通り道を空ける、呼ぶ人 `from` と呼ばれる箱 `to` の組 (#3721) */
-export interface PipeRoute {
-  from: string;
-  to: string;
-}
 
 /**
  * 時系列図の見た目の名前 (#3720)。`pipe` はパイプ図の部品で並べて描く見た目で、種類の行の `[shape: pipe]` で選ぶ (Tracelyth #86、#91、#93、#97)。

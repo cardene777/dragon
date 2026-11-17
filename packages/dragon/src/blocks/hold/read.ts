@@ -12,7 +12,7 @@
 import { faultAt, inPipeStep, pipeLine, readValueName, textAt, valueName } from "../../pipe-read";
 import { isAmount, quantityText } from "../../pipe-run";
 import { fail, isOneOf, readAttrs, skipSpaces } from "../../read-kit";
-import { type DiagramModel, PIPE_LAYOUTS, type PipeLayoutName, type PipeRoute } from "../../schema";
+import { type DiagramModel, PIPE_LAYOUTS, type PipeLayoutName } from "../../schema";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, FigureDraft, LineView, ParseState } from "../block";
 import { ETH } from "../definition-values";
@@ -49,11 +49,11 @@ export interface HoldMessages {
   /** 置き方の行に知らない形の名前 `shape` を書いたか、形を書かなかった (Tracelyth #165、#166、#168) */
   layoutBad: (shape: string) => string;
   /** 通り道の組の行 (`route`) の形が違う (#3721) */
-  routeShape: string;
+  routeLineShape: string;
   /** 通り道の組の行に、宣言していない名札 `id` を書いた (#3721) */
-  routeUnknown: (id: string) => string;
+  routeLineUnknown: (id: string) => string;
   /** 同じ通り道の組を 2 度書いたか、呼ぶ人と呼ばれる箱に同じ名札を書いた (#3721) */
-  routeTwice: (from: string, to: string) => string;
+  routeLineTwice: (from: string, to: string) => string;
 }
 
 /** 読んだ量。番号を持つ時は NFT と ERC-1155 のトークンの番号 */
@@ -146,6 +146,8 @@ function readLayout(source: SourceLine, state: ParseState): void {
   state.figure.root = { ...root, layout: shape } as FigureDraft["root"];
 }
 
+/** 置き方が通り道を空ける、呼ぶ人 `from` と呼ばれる箱 `to` の組 */
+type PipeRoute = NonNullable<DiagramModel["routes"]>[number];
 /** 根の欄に通り道の組を持つ図の形 */
 type RoutedRoot = FigureDraft["root"] & { routes?: PipeRoute[] };
 /** 読んだ通り道の組の行。名札は箱の行を読み終えてから確かめるので、誤りを指す行と位置を組ごとに残す */
@@ -161,13 +163,13 @@ function takeRoute(source: SourceLine, state: ParseState, view: LineView): boole
   const { m } = state;
   state.beforeSteps(source);
   const found = ROUTE.exec(source.text);
-  if (!found) throw fail(source, 0, m.routeShape);
+  if (!found) throw fail(source, 0, m.routeLineShape);
   const from = found[1] ?? "";
   const to = found[2] ?? "";
   const root: RoutedRoot | undefined = state.figure.root;
   const routes = root?.routes ?? [];
   const fromAt = found.indices?.[1]?.[0] ?? 0;
-  if (from === to || routes.some((r) => r.from === from && r.to === to)) throw fail(source, fromAt, m.routeTwice(from, to));
+  if (from === to || routes.some((r) => r.from === from && r.to === to)) throw fail(source, fromAt, m.routeLineTwice(from, to));
   state.figure.root = { ...root, routes: [...routes, { from, to }] } as FigureDraft["root"];
   const seen = routeSources.get(state) ?? [];
   seen.push({ source, route: { from, to }, fromAt, toAt: found.indices?.[2]?.[0] ?? 0 });
@@ -183,7 +185,7 @@ function verifyRoutes(state: ParseState): void {
       [route.from, fromAt],
       [route.to, toAt],
     ] as const)
-      if (!state.figure.boxes.some((b) => b.id === id)) throw fail(source, at, m.routeUnknown(id));
+      if (!state.figure.boxes.some((b) => b.id === id)) throw fail(source, at, m.routeLineUnknown(id));
 }
 
 /** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
@@ -336,9 +338,9 @@ export const reading: BlockReading<HoldMessages> = {
       layoutTwice: "layout の行は1つの図に1行だけ書ける",
       layoutBad: (shape) =>
         shape === "" ? "layout の後に形の名前 (top、bottom、ledger、mesh、bus、auto のどれか) を書く" : `layout の形「${shape}」は書けない。top、bottom、ledger、mesh、bus、auto のどれかを書く`,
-      routeShape: "route は route <呼ぶ人> -> <呼ばれる箱> の形で 1 組 1 行に書く",
-      routeUnknown: (id) => `route の ${id} という名札の箱が無い。box ${id} で宣言した名札を書く`,
-      routeTwice: (from, to) => (from === to ? `route の呼ぶ人と呼ばれる箱に同じ ${from} を書いている` : `route ${from} -> ${to} を 2 度書いている`),
+      routeLineShape: "route は route <呼ぶ人> -> <呼ばれる箱> の形で 1 組 1 行に書く",
+      routeLineUnknown: (id) => `route の ${id} という名札の箱が無い。box ${id} で宣言した名札を書く`,
+      routeLineTwice: (from, to) => (from === to ? `route の呼ぶ人と呼ばれる箱に同じ ${from} を書いている` : `route ${from} -> ${to} を 2 度書いている`),
     },
     en: {
       holdShape: "Write hold as hold <owner>: <amount> <token>, <amount> <token> or hold <contract>: <name> <value>",
@@ -352,9 +354,9 @@ export const reading: BlockReading<HoldMessages> = {
       moveEth: "ETH cannot be moved with move. Send it with [value: <amount> ETH] on a call line",
       layoutTwice: "Write at most one layout line in a diagram",
       layoutBad: (shape) => (shape === "" ? "Write a shape name (top, bottom, ledger, mesh, bus or auto) after layout" : `The layout shape "${shape}" is unknown. Write top, bottom, ledger, mesh, bus or auto`),
-      routeShape: "Write route as route <caller> -> <called box>, one pair per line",
-      routeUnknown: (id) => `route names ${id}, but no box has that id. Write an id declared with box ${id}`,
-      routeTwice: (from, to) => (from === to ? `route names ${from} as both the caller and the called box` : `route ${from} -> ${to} is written twice`),
+      routeLineShape: "Write route as route <caller> -> <called box>, one pair per line",
+      routeLineUnknown: (id) => `route names ${id}, but no box has that id. Write an id declared with box ${id}`,
+      routeLineTwice: (from, to) => (from === to ? `route names ${from} as both the caller and the called box` : `route ${from} -> ${to} is written twice`),
     },
   },
 };
