@@ -463,11 +463,12 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     expect([...new Set(swap.housings.map((h) => h.row))], "見本 swap の囲いの段").toEqual([0]);
   });
 
-  it("pipe-pipes-join-side-ports-and-cross-under", () => {
-    const { rules } = rulesApi();
-    const spacing = rules.find((r) => r.name === "call-part-spacing")?.value ?? Number.NaN;
-    for (const name of SAMPLES) {
-      const rendered = render(exampleJson(`${name}.json`), "ja", 1280, name === "aggregator" ? [2] : undefined);
+  // 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分け、file を読み込む段で描いた図を読む
+  describe.for(SAMPLES)("%s", (name) => {
+    it("pipe-pipes-join-side-ports-and-cross-under", () => {
+      const { rules } = rulesApi();
+      const spacing = rules.find((r) => r.name === "call-part-spacing")?.value ?? Number.NaN;
+      const rendered = EXAMPLES_DRAWN.get().get(`${name} ja 1280`) as PipeRendered;
       const layout = composed(rendered);
       // 値の管は持ち主の槽の横の口どうしを結ぶ
       for (const pipe of layout.valuePipes) {
@@ -527,7 +528,7 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       for (const g of onCall)
         for (const h of onCall.filter((k) => k !== g && k.step === g.step))
           expect(gap(g, h), `${name} の段 ${g.step + 1} の ${g.party} と ${h.party} の計器の間`).toBeGreaterThanOrEqual(spacing - 1e-6);
-    }
+    });
   });
 
   it("pipe-value-pipes-share-a-trunk", () => {
@@ -618,16 +619,17 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     expect(most[1], `1 本の呼び出しの管 (${most[0]}) が越える線 (直す前は 10)`).toBeLessThanOrEqual(7);
   });
 
-  it("pipe-text-caps-and-square-labels", () => {
-    const swap = composed(render(exampleJson("swap.json"), "ja", 1280));
-    const sizeOf = (layout: ComposedLayout): Record<string, number[]> => ({
-      tank: [layout.tanks[0]?.w ?? 0, layout.tanks[0]?.h ?? 0],
-      gauge: [Number((layout.gauges[0] as unknown as { r?: number } | undefined)?.r ?? 0)],
-      tag: [layout.parties.find((p) => p.shape === "cabinet")?.h ?? 0],
-    });
-    const want = sizeOf(swap);
-    for (const name of SAMPLES) {
-      const layout = composed(render(exampleJson(`${name}.json`), "ja", 1280, name === "aggregator" ? [2] : undefined));
+  // 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) に近づいた (#3738)。見本ごとの件に分け、file を読み込む段で描いた図を読む
+  describe.for(SAMPLES)("%s", (name) => {
+    it("pipe-text-caps-and-square-labels", () => {
+      const drawn = EXAMPLES_DRAWN.get();
+      const sizeOf = (layout: ComposedLayout): Record<string, number[]> => ({
+        tank: [layout.tanks[0]?.w ?? 0, layout.tanks[0]?.h ?? 0],
+        gauge: [Number((layout.gauges[0] as unknown as { r?: number } | undefined)?.r ?? 0)],
+        tag: [layout.parties.find((p) => p.shape === "cabinet")?.h ?? 0],
+      });
+      const want = sizeOf(composed(drawn.get("swap ja 1280") as PipeRendered));
+      const layout = composed(drawn.get(`${name} ja 1280`) as PipeRendered);
       // 槽と計器と名札の寸法は見本 swap と同じ。込み合う図でも小さくしない
       const got = sizeOf(layout);
       for (const key of Object.keys(want)) if ((got[key] ?? [0]).every((v) => v > 0)) expect(got[key], `${name} の ${key} の寸法が見本 swap と違う`).toEqual(want[key]);
@@ -640,7 +642,7 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       expect(new Set(pads).size, `${name} の箱の名札の幅が名前の長さに合っていない (${pads.join(", ")})`).toBeLessThanOrEqual(1);
       // 図の中の札の角の丸みは 6px 以下
       for (const c of layout.chips) expect(c.rx, `${name} の段 ${c.step + 1} の ${c.kind} の札の角の丸み`).toBeLessThanOrEqual(6);
-    }
+    });
   });
 
   it("pipe-values-have-roles", () => {
