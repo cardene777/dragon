@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { afterEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 /*
  * 崩れを数える部品と知らせる文の元の code を、検査の外で先に読む。
@@ -550,6 +551,33 @@ const SIZES = [1, 3, 8];
 const SHAPES = ["top", "bottom"];
 const GRID = SHAPES.flatMap((shape) => SIZES.flatMap((n) => SIZES.map((m): [string, number, number] => [shape, n, m])));
 
+/** コントラクトの形を比べる図。router3 は値を持つが、どの段でも呼ばれない。上と下と既定の置き方で描く */
+const CONTRACT_TEXT = gridText(3, 3, { layout: "top", only: [0, 1] });
+const CONTRACT_TEXTS = [CONTRACT_TEXT, CONTRACT_TEXT.replace("layout top", "layout bottom"), CONTRACT_TEXT.replace("layout top\n", "")];
+/** 動画の絵と図の置き場所を比べる図 */
+const EXPORT_TEXTS = [gridText(2, 2, { layout: "top" }), gridText(1, 3, { layout: "bottom" }), exampleText("swap.dragon")];
+/** 薄く描く線を確かめる図。上と下と既定の置き方ごとに、許可で送る図と 3 人 3 箱の図 */
+const faintTexts = (shape: string | undefined): [string, string][] => [
+  [`${shape ?? "既定"} 許可で送る`, permitText(shape)],
+  [`${shape ?? "既定"} 3人3箱`, gridText(3, 3, shape ? { layout: shape } : {})],
+];
+
+// 件の中で図を描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。その件の図は file を読み込む段で描き、件は記法で引いて読む。
+// 人と箱の数を変えた図のほかの件は、同じ図を drawOnce の覚えから読む
+const DRAWN = await atLoad("配管の図を描き、動画の絵の段取りを作る", () => {
+  const texts = [
+    ...[...SHAPES, undefined].flatMap((shape) => faintTexts(shape).map(([, text]) => text)),
+    ...CONTRACT_TEXTS,
+    ...EXPORT_TEXTS,
+    ...GRID.map(([shape, n, m]) => gridText(n, m, { layout: shape })),
+    ...SHAPES.map((shape) => gridText(3, 3, { layout: shape, long: true, logs: 5 })),
+  ];
+  return {
+    figures: new Map(texts.map((text): [string, Figure] => [text, drawOnce(text)])),
+    plans: new Map(EXPORT_TEXTS.map((text): [string, ReturnType<typeof page.planPage>] => [text, page.planPage(parse(text), { lang: "ja" })])),
+  };
+});
+
 // ---- 線の通り道
 
 describe("線の通り道", () => {
@@ -601,10 +629,8 @@ describe("線の通り道", () => {
 
   it("pipe-faint-lines-avoid-boxes", () => {
     // 薄く描く線は、2人を結ぶ点線 (許可の値) と、その段で流れない値のパイプ
-    const figures: [string, Figure][] = [...SHAPES, undefined].flatMap((shape): [string, Figure][] => [
-      [`${shape ?? "既定"} 許可で送る`, drawOnce(permitText(shape))],
-      [`${shape ?? "既定"} 3人3箱`, drawOnce(gridText(3, 3, shape ? { layout: shape } : {}))],
-    ]);
+    const drawn = DRAWN.get().figures;
+    const figures = [...SHAPES, undefined].flatMap((shape) => faintTexts(shape).map(([what, text]): [string, Figure] => [what, drawn.get(text) as Figure]));
     const found: string[] = [];
     for (const [what, f] of figures) {
       const L = f.layout;
@@ -774,10 +800,9 @@ describe("札と印", () => {
   });
 
   it("pipe-contracts-share-shape-and-height", () => {
-    // router3 は値を持つが、どの段でも呼ばれない
-    const text = gridText(3, 3, { layout: "top", only: [0, 1] });
-    for (const t of [text, text.replace("layout top", "layout bottom"), text.replace("layout top\n", "")]) {
-      const L = drawOnce(t).layout;
+    const drawn = DRAWN.get().figures;
+    for (const t of CONTRACT_TEXTS) {
+      const L = (drawn.get(t) as Figure).layout;
       const contracts = L.parties.filter((p) => p.id.startsWith("router"));
       expect(contracts.map((p) => p.shape), "コントラクトの形").toEqual(["cabinet", "cabinet", "cabinet"]);
       expect(new Set(contracts.map((p) => Math.round(p.h))).size, "コントラクトの箱の高さが揃わない").toBe(1);
@@ -844,10 +869,10 @@ describe("再生の部品", () => {
     return { shown: (): number => Number.parseFloat(svg()?.style.width || "0") };
   }
 
-  it("pipe-fit-wide-keeps-readable-text", () => {
-    const wide = parse(gridText(3, 3, { layout: "top" }));
-    const small = parse(gridText(1, 1, { layout: "top" }));
-    for (const frame of [1200, 390]) {
+  // 2 つの枠と枠に収まる図を 1 件で描いて置くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。枠ごとの件に分ける
+  describe.for([1200, 390])("%ipx の枠", (frame) => {
+    it("pipe-fit-wide-keeps-readable-text", () => {
+      const wide = parse(gridText(3, 3, { layout: "top" }));
       const layout = api.renderDiagram(wide, { lang: "ja", width: frame }).layout;
       expect(layout.width, "図が1300pxより狭い").toBeGreaterThan(1300);
       const name = Math.min(...layout.parties.map((p) => p.label.h));
@@ -857,8 +882,12 @@ describe("再生の部品", () => {
       const px = (name * m.shown()) / layout.width;
       expect(px, `枠 ${frame}px で始めた名前の字の大きさ`).toBeGreaterThanOrEqual(10.5 - 1e-6);
       expect(px, `枠 ${frame}px で字を10.5pxより大きく始めた`).toBeLessThan(10.5 + name * 0.02);
-    }
+    });
+  });
+
+  it("pipe-fit-wide-keeps-readable-text", () => {
     // 全体を収めても字が10.5px以上の図は、今どおり全体を枠に収めて始める
+    const small = parse(gridText(1, 1, { layout: "top" }));
     const fits = api.renderDiagram(small, { lang: "ja", width: 1200 }).layout;
     const m = mount(small, 1200, { lang: "ja", fitWide: true });
     expect(m.shown(), "枠に収まる図の始めの幅").toBeCloseTo(Math.min(1200, fits.width), 0);
@@ -939,11 +968,11 @@ describe("暗い色味", () => {
 
 describe("書き出し", () => {
   it("pipe-export-frames-keep-layout", () => {
-    for (const text of [gridText(2, 2, { layout: "top" }), gridText(1, 3, { layout: "bottom" }), exampleText("swap.dragon")]) {
-      const diagram = parse(text);
-      const plan = page.planPage(diagram, { lang: "ja" });
+    const { figures, plans } = DRAWN.get();
+    for (const text of EXPORT_TEXTS) {
+      const plan = plans.get(text) as ReturnType<typeof page.planPage>;
       const video = plan.followSvg ?? plan.rendered.svg;
-      const f = draw(text);
+      const f = figures.get(text) as Figure;
       // 動画とGIFは、図の置き場所と同じ位置に人と箱と槽を描く
       const at = (svg: string, attr: string): string[] => [...svg.matchAll(new RegExp(`<[^>]*${attr}="([^"]+)"[^>]*>`, "gu"))].map((m) => m[0].replace(/\sstyle="[^"]*"/gu, "")).sort();
       for (const attr of ["data-pipe-party", "data-pipe-tank"]) expect(at(video, attr), `動画の絵の ${attr} の部品の位置`).toEqual(at(f.svg, attr));
@@ -1029,7 +1058,7 @@ describe("今を守る", () => {
 describe.for(GRID)("%s %i人 %i箱", ([shape, n, m]) => {
   const figure = (): Figure => drawOnce(gridText(n, m, { layout: shape }));
   it("pipe-grid-no-overlap", () => {
-    expect(overlapsOf(figure(), true), "重なる部品").toEqual([]);
+    expect(overlapsOf(DRAWN.get().figures.get(gridText(n, m, { layout: shape })) as Figure, true), "重なる部品").toEqual([]);
   });
   it("pipe-grid-lines-avoid-text", () => {
     expect(linesOverTextOf(figure()), "箱と槽の中か字の上を通る線").toEqual([]);
@@ -1045,7 +1074,7 @@ describe.for(GRID)("%s %i人 %i箱", ([shape, n, m]) => {
 
 describe.for(SHAPES)("%s 長い名前と多いログ", (shape) => {
   it("pipe-grid-long-names-and-many-logs", () => {
-    const f = drawOnce(gridText(3, 3, { layout: shape, long: true, logs: 5 }));
+    const f = DRAWN.get().figures.get(gridText(3, 3, { layout: shape, long: true, logs: 5 })) as Figure;
     expect(f.layout.parties.every((p) => p.name.length > 40), "名前が40字を超えていない").toBe(true);
     expect(f.layout.logCards?.length ?? 0, "ログの札の枚数").toBe(15);
     expect(overlapsOf(f, true), "重なる部品").toEqual([]);

@@ -15,6 +15,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { captionSteps, exporter, formatOf } from "./export-support";
@@ -635,37 +636,40 @@ describe("ログインの判断の見本 (#3561)", () => {
  */
 const exportDiagram = await exporter();
 
-describe("手順の図の書き出し (#3561)", () => {
+// 形式ごとに分けても、書き出して頁で段を送る件が混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 3 つの形式の書き出しと、書き出した HTML で段を送る所を file を読み込む段で順に済ませ、件は書き出した file と送れた段を読む
+const FLOW_EXPORTED = await atLoad("手順の図を 3 つの形式で書き出す", async () => {
   const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-flow-"));
+  const login = exampleJson("login-check.json") as { steps: Json[] };
   /** 動画と PNG で撮る図。コマの数とバイトの一致を比べるだけなので最初の段だけを撮る。4 段を 2 回撮ると、混んだ機械で上限を超えた */
-  const firstStep = (): Json => {
-    const login = exampleJson("login-check.json") as { steps: Json[] };
-    return { ...login, steps: login.steps.slice(0, 1) };
-  };
+  const firstStep = { ...login, steps: login.steps.slice(0, 1) };
+  const video = await exportDiagram(firstStep, { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
+  const pngs: Awaited<ReturnType<typeof exportDiagram>>[] = [];
+  for (const k of [0, 1]) pngs.push(await exportDiagram(firstStep, { outDir: join(scratch(), `run-${k}`), formats: ["png"] }));
+  const html = await exportDiagram(login, { outDir: scratch(), formats: ["html"] });
+  // 書き出した HTML で全ての段を送る
+  const sent = html.files.html === undefined ? [] : await captionSteps(readFileSync(html.files.html, "utf8"), 1280);
+  return { video, pngs, html, sent };
+});
 
-  it("flow-exports-every-format", async () => {
-    const result = await exportDiagram(firstStep(), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
-    for (const format of ["mp4", "gif"] as const) expect(formatOf(readFileSync(result.files[format] ?? "")), `手順の図の ${format} の書き出し`).toBe(format);
+describe("手順の図の書き出し (#3561)", () => {
+  it("flow-exports-every-format", () => {
+    const { video } = FLOW_EXPORTED.get();
+    for (const format of ["mp4", "gif"] as const) expect(formatOf(readFileSync(video.files[format] ?? "")), `手順の図の ${format} の書き出し`).toBe(format);
   });
 
-  it("flow-exports-every-format", async () => {
-    const shots: Buffer[] = [];
-    for (const k of [0, 1]) {
-      const result = await exportDiagram(firstStep(), { outDir: join(scratch(), `run-${k}`), formats: ["png"] });
-      expect(result.files.png, "手順の図の PNG を書き出していない").toBeDefined();
-      shots.push(readFileSync(result.files.png ?? ""));
-    }
+  it("flow-exports-every-format", () => {
+    const { pngs } = FLOW_EXPORTED.get();
+    for (const result of pngs) expect(result.files.png, "手順の図の PNG を書き出していない").toBeDefined();
+    const shots = pngs.map((result) => readFileSync(result.files.png ?? ""));
     expect(formatOf(shots[0] as Buffer), "手順の図の png の書き出し").toBe("png");
     expect((shots[0] as Buffer).equals(shots[1] as Buffer), "同じ手順の図を 2 回書き出した PNG がバイト単位で一致しない").toBe(true);
   });
 
-  it("flow-exports-every-format", async () => {
-    const result = await exportDiagram(exampleJson("login-check.json"), { outDir: scratch(), formats: ["html"] });
-    const html = readFileSync(result.files.html ?? "", "utf8");
-    expect(formatOf(Buffer.from(html)), "手順の図の html の書き出し").toBe("html");
-    // 書き出した HTML で全ての段を送れる
-    const steps = await captionSteps(html, 1280);
-    expect(steps.map((s) => s.step), "書き出した HTML で送れた段").toEqual(LOGIN_STEPS.map((_, i) => `0${i + 1}/04`));
+  it("flow-exports-every-format", () => {
+    const { html, sent } = FLOW_EXPORTED.get();
+    expect(formatOf(readFileSync(html.files.html ?? "")), "手順の図の html の書き出し").toBe("html");
+    expect(sent.map((s) => s.step), "書き出した HTML で送れた段").toEqual(LOGIN_STEPS.map((_, i) => `0${i + 1}/04`));
   });
 });
 

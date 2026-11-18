@@ -9,13 +9,25 @@ import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
-import { casesNamed, runCli } from "./export-support";
+import { casesNamed, runCliInProcess } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 const THEMES = ["light", "dark"] as const;
+
+// 子の Node で命令を起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。同じ process で命令を呼んでも、
+// 命令の module を初めて読む仕事と書き出しで上限を超えたので、file を読み込む段で書き出し、件は書き出した物を読む
+const ARCADE_EXPORTED = await atLoad("見本 oauth を arcade の色味で HTML に書き出す", async () => {
+  const out = join(mkdtempSync(join(tmpdir(), "dragon-arcade-")), "out");
+  const ran = await runCliInProcess(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--palette", "arcade"]);
+  // `--out` は書き出す dir で、図の file の名前の HTML を置く
+  const written = ran.code === 0 ? readdirSync(out).filter((file) => file.endsWith(".html")) : [];
+  const html = written.length === 1 ? readFileSync(join(out, written[0] ?? ""), "utf8").toLowerCase() : "";
+  return { ran, written, html };
+});
 
 /** 決めたことの値 (#3341 の step 2) */
 const BITSUMI: Record<string, string> = {
@@ -94,14 +106,10 @@ describe("arcade で描く (#3341)", () => {
     expect(casesNamed(task.file, "arcade-renders-every-example"), "見本ごとの件").toEqual(files.map((file) => `arcade で描く見本 (#3341) ${file}`));
   });
 
-  it("cli-draws-with-arcade-palette", async () => {
-    const out = join(mkdtempSync(join(tmpdir(), "dragon-arcade-")), "out");
-    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--palette", "arcade"]);
+  it("cli-draws-with-arcade-palette", () => {
+    const { ran, written, html } = ARCADE_EXPORTED.get();
     expect(ran.code, `--palette arcade で書き出せない: ${ran.stderr}`).toBe(0);
-    // `--out` は書き出す dir で、図の file の名前の HTML を置く
-    const written = readdirSync(out).filter((file) => file.endsWith(".html"));
     expect(written, "--palette arcade で HTML を書き出さない").toHaveLength(1);
-    const html = readFileSync(join(out, written[0] ?? ""), "utf8").toLowerCase();
     expect(html, "書き出した HTML に arcade の地が入らない").toContain(BITSUMI.bg);
     expect(html, "書き出した HTML に arcade の緑が入らない").toContain(BITSUMI["c-green"]);
   });

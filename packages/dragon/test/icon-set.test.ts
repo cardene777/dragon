@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, inject, it } from "vitest";
 import { flattenPath } from "../src/render/outline";
+import { atLoad } from "./at-load";
 import { api, type Json, smallArchitecture } from "./diagram-support";
 import { runCli } from "./export-support";
 
@@ -217,21 +218,30 @@ describe("軽い入口は Tabler を使う図の時だけ読む (#3493)", () => 
   });
 });
 
+// 2 つの頁を子の Node で書き出して描き比べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその頁と形を読む
+const EXPORTED = await atLoad("家の絵柄と Tabler の絵柄の頁を書き出す", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "dragon-icon-set-"));
+  writeFileSync(join(dir, "house.dragon"), boxText("doc"));
+  writeFileSync(join(dir, "tabler.dragon"), boxText("tabler:building-bridge-2"));
+  const house = await runCli(["export", join(dir, "house.dragon"), "--format", "html", "--out", dir]);
+  const tabler = await runCli(["export", join(dir, "tabler.dragon"), "--format", "html", "--out", dir]);
+  return {
+    house,
+    tabler,
+    houseHtml: house.code === 0 ? readFileSync(join(dir, "house.html"), "utf8") : "",
+    tablerHtml: tabler.code === 0 ? readFileSync(join(dir, "tabler.html"), "utf8") : "",
+    used: glyphLike(svgOf(boxText("tabler:building-bridge-2")), expectedBounds("building-bridge-2")),
+    unused: glyphLike(svgOf(boxText("tabler:building-bridge")), expectedBounds("building-bridge")),
+  };
+});
+
 describe("書き出した頁と package (#3493)", () => {
-  it("html-export-carries-only-used-tabler-icons", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "dragon-icon-set-"));
-    writeFileSync(join(dir, "house.dragon"), boxText("doc"));
-    writeFileSync(join(dir, "tabler.dragon"), boxText("tabler:building-bridge-2"));
-    const house = await runCli(["export", join(dir, "house.dragon"), "--format", "html", "--out", dir]);
-    const tabler = await runCli(["export", join(dir, "tabler.dragon"), "--format", "html", "--out", dir]);
+  it("html-export-carries-only-used-tabler-icons", () => {
+    const { house, tabler, houseHtml, tablerHtml, used, unused } = EXPORTED.get();
     expect(house.code, house.stderr).toBe(0);
     expect(tabler.code, tabler.stderr).toBe(0);
-    const houseHtml = readFileSync(join(dir, "house.html"), "utf8");
-    const tablerHtml = readFileSync(join(dir, "tabler.html"), "utf8");
     expect(Buffer.byteLength(tablerHtml) - Buffer.byteLength(houseHtml), "Tabler の絵柄を使った頁が 5KB を超えて大きい").toBeLessThanOrEqual(5 * 1024);
     expect(tablerHtml, "頁が外の script か CSS を読む").not.toMatch(/<script[^>]+\bsrc=|<link[^>]+href="https?:/u);
-    const used = glyphLike(svgOf(boxText("tabler:building-bridge-2")), expectedBounds("building-bridge-2"));
-    const unused = glyphLike(svgOf(boxText("tabler:building-bridge")), expectedBounds("building-bridge"));
     expect(used && tablerHtml.includes(used.d), "頁が使った石の橋の形を持たない").toBe(true);
     expect(unused && tablerHtml.includes(unused.d), "頁が使っていない吊り橋の形まで持つ").toBe(false);
   });

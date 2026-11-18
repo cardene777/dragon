@@ -14,6 +14,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { api, type Json, type LineError, type NotationLang } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
 
@@ -417,6 +418,38 @@ describe("色付きの絵柄の描き方 (#3633)", () => {
   });
 });
 
+/** 命令 `dragon icon` が断る SVG。何を持つか、断り文が名指す要素、SVG の字 */
+const NON_SOLID_HEAD = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">';
+const NON_SOLID: [string, string, string][] = [
+  [
+    "グラデーション",
+    "linearGradient",
+    `${NON_SOLID_HEAD}<defs><linearGradient id="g"><stop offset="0" stop-color="#000"/></linearGradient></defs><rect width="48" height="48" fill="url(#g)"/></svg>`,
+  ],
+  [
+    "模様",
+    "pattern",
+    `${NON_SOLID_HEAD}<defs><pattern id="p" width="4" height="4"><rect width="2" height="2"/></pattern></defs><rect width="48" height="48" fill="url(#p)"/></svg>`,
+  ],
+  [
+    "埋め込んだ画像",
+    "image",
+    `${NON_SOLID_HEAD}<image href="data:image/png;base64,AAAA" width="48" height="48"/></svg>`,
+  ],
+  [
+    "変形",
+    "transform",
+    `${NON_SOLID_HEAD}<g transform="translate(4 4)"><rect width="40" height="40" fill="#123456"/></g></svg>`,
+  ],
+  ["線だけの形", "line", `${NON_SOLID_HEAD}<line x1="0" y1="0" x2="48" y2="48" stroke="#000"/></svg>`],
+  ["字", "text", `${NON_SOLID_HEAD}<text x="4" y="24">AWS</text></svg>`],
+];
+
+// 断る SVG ごとに子の Node で命令を回すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその出力を読む
+const REFUSED = await atLoad("色付きにできない SVG を命令に渡す", () =>
+  NON_SOLID.map(([what, tag, body]) => ({ what, tag, ran: iconCommand([svgFile("bad.svg", body), "--name", "+bad"]) })),
+);
+
 describe("色付きの絵柄に変える命令 (#3633)", () => {
   it("icon-command-converts-svg", () => {
     const file = svgFile(
@@ -483,33 +516,7 @@ describe("色付きの絵柄に変える命令 (#3633)", () => {
   });
 
   it("icon-command-refuses-non-solid", () => {
-    const head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">';
-    const cases: [string, string, string][] = [
-      [
-        "グラデーション",
-        "linearGradient",
-        `${head}<defs><linearGradient id="g"><stop offset="0" stop-color="#000"/></linearGradient></defs><rect width="48" height="48" fill="url(#g)"/></svg>`,
-      ],
-      [
-        "模様",
-        "pattern",
-        `${head}<defs><pattern id="p" width="4" height="4"><rect width="2" height="2"/></pattern></defs><rect width="48" height="48" fill="url(#p)"/></svg>`,
-      ],
-      [
-        "埋め込んだ画像",
-        "image",
-        `${head}<image href="data:image/png;base64,AAAA" width="48" height="48"/></svg>`,
-      ],
-      [
-        "変形",
-        "transform",
-        `${head}<g transform="translate(4 4)"><rect width="40" height="40" fill="#123456"/></g></svg>`,
-      ],
-      ["線だけの形", "line", `${head}<line x1="0" y1="0" x2="48" y2="48" stroke="#000"/></svg>`],
-      ["字", "text", `${head}<text x="4" y="24">AWS</text></svg>`],
-    ];
-    for (const [what, tag, body] of cases) {
-      const ran = iconCommand([svgFile("bad.svg", body), "--name", "+bad"]);
+    for (const { what, tag, ran } of REFUSED.get()) {
       expect(ran.status, `${what}を持つ SVG を dragon icon が断らない`).not.toBe(0);
       expect(ran.stdout.trim(), `${what}を持つ SVG で dragon icon が定義を出す`).toBe("");
       expect(

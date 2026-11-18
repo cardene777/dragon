@@ -28,24 +28,36 @@ import {
   type Curve,
   type Point,
 } from "./bends-support";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 
 const ROOT = process.cwd();
 const at = ([x, y]: Point): string => `(${x}, ${y})`;
 const length = (a: Point, b: Point): number => Math.hypot(b[0] - a[0], b[1] - a[1]);
 
-/** paper と arcade で描いた同じ見本の線を、class と描いた順で組にする。paper で丸めた曲がりを持つ class だけを見る */
-function linePairs(file: string, theme: (typeof THEMES)[number]) {
+/** paper と arcade で描いた同じ見本の線の組 */
+interface LinePair {
+  cls: string;
+  paper: Curve[];
+  arcade: ReturnType<typeof linesOf>[number];
+}
+
+/**
+ * paper と arcade で描いた同じ見本の線を、class と描いた順で組にする。paper で丸めた曲がりを持つ class だけを見る。
+ * 線の数が paper と違う class は組にせず、違いを `unpaired` に返す
+ */
+function linePairs(file: string, theme: (typeof THEMES)[number]): { pairs: LinePair[]; unpaired: string[] } {
   const paper = byClass(linesOf(figureOf(file, "paper", theme)));
   const arcade = byClass(linesOf(figureOf(file, "arcade", theme)));
-  const pairs: { cls: string; paper: Curve[]; arcade: ReturnType<typeof linesOf>[number] }[] = [];
+  const pairs: LinePair[] = [];
+  const unpaired: string[] = [];
   for (const [cls, lines] of paper) {
     if (!lines.some((line) => line.curves.length > 0)) continue;
     const others = arcade.get(cls) ?? [];
-    expect(others.length, `${file} の ${theme} を arcade で描いた ${cls} の線の数`).toBe(lines.length);
-    lines.forEach((line, i) => pairs.push({ cls, paper: line.curves, arcade: others[i] as ReturnType<typeof linesOf>[number] }));
+    if (others.length !== lines.length) unpaired.push(`${file} の ${theme} を arcade で描いた ${cls} の線の数が ${others.length} (paper は ${lines.length})`);
+    else lines.forEach((line, i) => pairs.push({ cls, paper: line.curves, arcade: others[i] as ReturnType<typeof linesOf>[number] }));
   }
-  return pairs;
+  return { pairs, unpaired };
 }
 
 const sameCurve = (a: Curve, b: Curve): boolean => near(a.from, b.from) && near(a.at, b.at) && near(a.to, b.to);
@@ -64,12 +76,49 @@ const caps = (root: Element): Record<string, string> => {
 /** 線を持つ見本。見本ごとの検査が線を読めていることを、この見本で確かめる */
 const WITH_LINES = "oauth.json";
 
+/** 見本を paper と arcade で描いて読んだ物 */
+interface Drawn {
+  pairs: LinePair[];
+  unpaired: string[];
+  /** class ごとの効いている線の端 */
+  caps: { paper: Record<string, string>; arcade: Record<string, string> };
+  /** arcade で描いた線の継ぎ目 */
+  joins: { glyph: boolean; name: string; join: string }[];
+}
+
+// 件ごとに見本を paper と arcade で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 全ての見本と明暗を file を読み込む段で 1 度だけ描いて読み、件はその結果を読む。キーは `明暗 見本`
+const DRAWN = await atLoad("全ての見本を paper と arcade の明暗で描く", () =>
+  new Map(
+    THEMES.flatMap((theme) =>
+      FILES.map((file): [string, Drawn] => {
+        const arcade = figureOf(file, "arcade", theme);
+        const rules = rulesIn(arcade);
+        return [
+          `${theme} ${file}`,
+          {
+            ...linePairs(file, theme),
+            caps: { paper: caps(figureOf(file, "paper", theme)), arcade: caps(arcade) },
+            joins: [...arcade.querySelectorAll(STROKES)].map((el) => ({
+              glyph: isGlyph(el, arcade),
+              name: `${el.localName}.${el.getAttribute("class") ?? "(class 無し)"}`,
+              join: strokeOf(el, "stroke-linejoin", rules),
+            })),
+          },
+        ];
+      }),
+    ),
+  ),
+);
+
 describe.for(THEMES)("arcade の線 (%s)", (theme) => {
   // 検査は見本ごとに分ける (#3571)。全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超える。角の検査の #3410 と同じ形
   describe.for(FILES)("%s", (file) => {
     it("arcade-draws-square-line-bends", () => {
+      const { pairs, unpaired } = DRAWN.get().get(`${theme} ${file}`) as Drawn;
+      expect(unpaired, "paper と arcade で数の違う線").toEqual([]);
       const wrong: string[] = [];
-      for (const { cls, paper, arcade } of linePairs(file, theme)) {
+      for (const { cls, paper, arcade } of pairs) {
         for (const c of arcade.curves.filter((c) => c.turn >= SQUARE_FROM))
           wrong.push(`${file} の ${cls} が ${Math.round(c.turn)} 度の折れ目 ${at(c.at)} を丸めている`);
         for (const c of paper.filter((c) => c.turn >= SQUARE_FROM)) {
@@ -81,8 +130,7 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
     });
 
     it("arcade-keeps-round-line-ends", () => {
-      const paper = caps(figureOf(file, "paper", theme));
-      const arcade = caps(figureOf(file, "arcade", theme));
+      const { paper, arcade } = (DRAWN.get().get(`${theme} ${file}`) as Drawn).caps;
       const shared = Object.fromEntries(Object.entries(arcade).filter(([cls]) => cls in paper));
       const expected = Object.fromEntries(Object.keys(shared).map((cls) => [cls, paper[cls]]));
       expect(shared, `${file} を arcade の ${theme} で描いた線の端`).toEqual(expected);
@@ -101,7 +149,9 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
     const wrong: string[] = [];
     let gentle = 0;
     for (const file of FILES) {
-      for (const { cls, paper, arcade } of linePairs(file, theme)) {
+      const { pairs, unpaired } = DRAWN.get().get(`${theme} ${file}`) as Drawn;
+      wrong.push(...unpaired);
+      for (const { cls, paper, arcade } of pairs) {
         const before = paper.filter((c) => c.turn < SQUARE_FROM);
         const after = arcade.curves.filter((c) => c.turn < SQUARE_FROM);
         gentle += before.length;
@@ -120,12 +170,8 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
     const wrong: string[] = [];
     let [lines, glyphs] = [0, 0];
     for (const file of FILES) {
-      const root = figureOf(file, "arcade", theme);
-      const rules = rulesIn(root);
-      for (const el of root.querySelectorAll(STROKES)) {
-        const join = strokeOf(el, "stroke-linejoin", rules);
-        const name = `${el.localName}.${el.getAttribute("class") ?? "(class 無し)"}`;
-        if (isGlyph(el, root)) {
+      for (const { glyph, name, join } of (DRAWN.get().get(`${theme} ${file}`) as Drawn).joins) {
+        if (glyph) {
           glyphs++;
           if (join !== "round") wrong.push(`${file} の絵柄の線 ${name} の継ぎ目が丸くない (${join})`);
         } else {

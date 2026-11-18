@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mountDiagram, parseNotation, type Rendered, type RenderOptions, renderDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 
@@ -55,6 +56,15 @@ interface PipeLayoutView {
 }
 const meets = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
+// 図を置いて畳んだ箱を押すのを 1 件で済ませると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 置くのは file を読み込む段で済ませ、件は置いた図を読んで押す
+const MOUNTED = await atLoad("配管の図に語を渡して置く", () => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const options: Options = { lang: "ja", words: { pipe: { tags: TAGS } } };
+  return { host, player: mountDiagram(host, notation("aggregator.dragon"), options) };
+});
+
 describe("配管の図の語を呼ぶ側が渡す (#3584)", () => {
   it("pipe-words-tags-replaced", () => {
     const swap = json("swap.json");
@@ -75,11 +85,7 @@ describe("配管の図の語を呼ぶ側が渡す (#3584)", () => {
   });
 
   it("pipe-words-mount-keeps-words", () => {
-    const source = notation("aggregator.dragon");
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    const options: Options = { lang: "ja", words: { pipe: { tags: TAGS } } };
-    const player = mountDiagram(host, source, options);
+    const { host, player } = MOUNTED.get();
     try {
       expect(count(host.innerHTML, "保留"), "置いた図の槽の下に渡した語が無い").toBeGreaterThan(0);
       expect(count(host.innerHTML, "暫定"), "置いた図の槽の下に暫定の語が残る").toBe(0);

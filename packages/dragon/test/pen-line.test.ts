@@ -343,15 +343,30 @@ const dragonFiles = (dir: string): string[] =>
         .map((name) => join(dir, name))
     : [];
 
+/** 見本帳の部品の図。ブロックごとの `gallery` の置き場の `.dragon` を全て */
+const partFiles = (): string[] => {
+  const blocks = join(ROOT, "packages/dragon/src/blocks");
+  return readdirSync(blocks)
+    .flatMap((name) => dragonFiles(join(blocks, name, "gallery")))
+    .sort();
+};
+
 describe("手描きの線の崩れ (#3643)", () => {
-  it("pen-line-parts-have-no-breaks", () => {
-    const check = checker();
-    const blocks = join(ROOT, "packages/dragon/src/blocks");
-    const files = readdirSync(blocks).flatMap((name) => dragonFiles(join(blocks, name, "gallery")));
+  // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
+  describe.for(partFiles().map((file) => [relative(ROOT, file), file] as const))("%s", ([name, file]) => {
+    it("pen-line-parts-have-no-breaks", () => {
+      const check = checker();
+      const broken = check(readFileSync(file, "utf8"), { lang: file.includes(".en.") ? "en" : "ja", line: "pen" }).map((b) => `${name}: ${JSON.stringify(b)}`);
+      expect(broken, "手描きの線で描いた部品の図の崩れ").toEqual([]);
+    });
+  });
+
+  // 部品の全ての図の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。図ごとの件に分ける
+  it("pen-line-part-cases-follow-files", ({ task }) => {
+    const names = partFiles().map((file) => relative(ROOT, file));
     // 走査の空振りを避ける。見本帳の図はブロックごとに日本語と英語の 2 枚ずつある
-    expect(files.length, "部品の図を数えられない").toBeGreaterThan(20);
-    const broken = files.flatMap((file) => check(readFileSync(file, "utf8"), { lang: file.includes(".en.") ? "en" : "ja", line: "pen" }).map((b) => `${relative(ROOT, file)}: ${JSON.stringify(b)}`));
-    expect(broken, "手描きの線で描いた部品の図の崩れ").toEqual([]);
+    expect(names.length, "部品の図を数えられない").toBeGreaterThan(20);
+    expect(casesNamed(task.file, "pen-line-parts-have-no-breaks").sort(), "部品の図ごとの件").toEqual(names);
   });
 
   // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける

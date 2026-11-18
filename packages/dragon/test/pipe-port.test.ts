@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { afterEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 type Point = [number, number];
 interface Rect {
@@ -367,6 +368,16 @@ describe("トークンの箱と2人を結ぶ線", () => {
   });
 });
 
+// 拡大の指定を 1 件で描き比べて置き比べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 比べる元の、見本を枠の幅で描いた原寸と名前の字の高さは file を読み込む段で済ませ、件は置き方ごとに分ける
+const SWAP_DRAWN = await atLoad("配管の見本を 700px と 390px の枠で描く", () => {
+  const source = example("swap.json");
+  const wide = (api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout;
+  const phone = (api.renderDiagram(source, { lang: "ja", width: 390 }) as Rendered<PipeLayout>).layout;
+  const nameOf = (layout: PipeLayout): number => Math.min(...layout.parties.map((p) => p.label.h));
+  return { source, native: wide.width, name: nameOf(wide), phoneWidth: phone.width, phoneName: nameOf(phone) };
+});
+
 describe("再生の部品", () => {
   const players: Player[] = [];
   afterEach(() => {
@@ -424,28 +435,40 @@ describe("再生の部品", () => {
 
   it("port-player-zoom-options", () => {
     reduceMotion(true);
-    const source = example("swap.json");
-    const native = (api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout.width;
+    const { source, native, name } = SWAP_DRAWN.get();
     expect(native, "見本の図が枠より狭い").toBeGreaterThan(700);
     // fitWide は600px以上の枠で、枠より広い図を縮めて始める。全体を枠に収めると名前の字が10.5pxを下回る図は、名前の字が10.5pxに見える幅で始める (#3721)
     const fit = mount(source, 700, { lang: "ja", fitWide: true });
-    const name = Math.min(...(api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout.parties.map((p) => p.label.h));
     expect((name * 700) / native, "見本の図の全体を枠に収めても名前の字が10.5px以上").toBeLessThan(10.5);
     expect(fit.shown(), "fitWide の図を縮めていない").toBeLessThan(native);
     expect((name * fit.shown()) / native, "fitWide で始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
     expect((name * fit.shown()) / native, "fitWide で名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + name * 0.02);
     expect(fit.level(), "fitWide の始めの度合い").toBe("100%");
+    // startZoom はその度合いで始める
+    expect(mount(source, 700, { lang: "ja", fitWide: true, startZoom: 1.5 }).level(), "startZoom 1.5 の始めの度合い").toBe("150%");
+  });
+
+  it("port-player-zoom-options", () => {
+    reduceMotion(true);
+    const { source, native } = SWAP_DRAWN.get();
     expect(mount(source, 700, { lang: "ja" }).shown(), "fitWide を渡さない図が原寸でない").toBeCloseTo(native, 0);
     // 原寸が枠に収まる図には効かない
     expect(mount(source, 2600, { lang: "ja", fitWide: true }).shown(), "枠に収まる図を広げた").toBeCloseTo(native, 0);
-    // 携帯の幅の枠でも、名前の字が10.5pxに見える幅で始める (#3721)
-    const phone = (api.renderDiagram(source, { lang: "ja", width: 390 }) as Rendered<PipeLayout>).layout;
-    const phoneName = Math.min(...phone.parties.map((p) => p.label.h));
-    const phoneShown = mount(source, 390, { lang: "ja", fitWide: true }).shown();
-    expect((phoneName * phoneShown) / phone.width, "携帯の幅の枠で fitWide が始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
-    expect((phoneName * phoneShown) / phone.width, "携帯の幅の枠で fitWide が名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + phoneName * 0.02);
+  });
 
+  it("port-player-zoom-options", () => {
+    // 携帯の幅の枠でも、名前の字が10.5pxに見える幅で始める (#3721)
+    reduceMotion(true);
+    const { source, phoneWidth, phoneName } = SWAP_DRAWN.get();
+    const phoneShown = mount(source, 390, { lang: "ja", fitWide: true }).shown();
+    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
+    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + phoneName * 0.02);
+  });
+
+  it("port-player-zoom-options", () => {
     // minZoom は始めの大きさより小さくでき、ボタンは始めの大きさをまたぐ時に1度止まる
+    reduceMotion(true);
+    const { source } = SWAP_DRAWN.get();
     const zooms: number[] = [];
     const low = mount(source, 700, { lang: "ja", fitWide: true, minZoom: 0.25, onZoom: (z: number) => zooms.push(z) });
     expect(low.button("zoom-out")?.disabled, "minZoom を渡しても縮められない").toBe(false);
@@ -461,10 +484,14 @@ describe("再生の部品", () => {
     // onZoom は度合いが変わるたびに新しい度合いを受け取る
     expect(zooms[0], "onZoom が最初に受け取った度合い").toBeCloseTo(0.8, 5);
     expect(zooms.at(-1), "onZoom が最後に受け取った度合い").toBeCloseTo(1, 5);
+  });
+
+  it("port-player-zoom-options", () => {
     // 0 以下と 1 以上の minZoom は読まず、始めの大きさより縮めない
-    for (const minZoom of [0, 1]) expect(mount(source, 700, { lang: "ja", fitWide: true, minZoom }).button("zoom-out")?.disabled, `minZoom ${minZoom}`).toBe(true);
-    // startZoom はその度合いで始める
-    expect(mount(source, 700, { lang: "ja", fitWide: true, startZoom: 1.5 }).level(), "startZoom 1.5 の始めの度合い").toBe("150%");
+    reduceMotion(true);
+    const { source } = SWAP_DRAWN.get();
+    expect(mount(source, 700, { lang: "ja", fitWide: true, minZoom: 0 }).button("zoom-out")?.disabled, "minZoom 0").toBe(true);
+    expect(mount(source, 700, { lang: "ja", fitWide: true, minZoom: 1 }).button("zoom-out")?.disabled, "minZoom 1").toBe(true);
   });
 
   it("port-player-holds-after-user-pan", () => {
