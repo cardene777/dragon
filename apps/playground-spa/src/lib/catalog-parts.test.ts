@@ -136,6 +136,24 @@ const usesWord = (text: string, word: string): boolean => {
   return false;
 };
 
+/** 部品の図の記法を 1 つ読み、記法として読めないか、JSON Schema の検査で落ちるか、図の種類が違うか、部品の語を使わない時の文を返す */
+const snippetErrors = (part: PartRow, kind: Kind, lang: Lang): string[] => {
+  const name = snippetName(part.id, kind, lang);
+  const text = snippetOf(part.id, kind, lang) ?? "";
+  const parsed = parseNotation(text);
+  if (!parsed.ok) return [`${name} が記法として読めない: ${parsed.errors.map((e) => `${e.line} 行目 ${e.message}`).join(" / ")}`];
+  const errors: string[] = [];
+  const checked = validateDiagram(parsed.diagram);
+  if (!checked.ok) errors.push(`${name} が JSON Schema の検査で落ちる: ${checked.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")}`);
+  if (parsed.diagram.kind !== kind) errors.push(`${name} の図の種類が ${parsed.diagram.kind} で、file の名前の ${kind} と違う`);
+  const unused = part.words.filter((word) => !usesWord(text, word));
+  if (unused.length > 0) errors.push(`${name} が部品の受け持つ語 ${unused.join("、")} を使わない`);
+  return errors;
+};
+
+/** 部品と図の種類と言葉の組。部品の図の記法の file ごとの件の見出しは file の名前 */
+const SNIPPET_CASES = PART_CASES.flatMap((part) => part.kinds.flatMap((kind) => (["ja", "en"] as const).map((lang) => [snippetName(part.id, kind, lang), part, kind, lang] as const)));
+
 describe("部品の表と記法の file (#3166)", () => {
   it("catalog-parts-cover-every-word", async () => {
     const parts = await partsTable();
@@ -154,7 +172,7 @@ describe("部品の表と記法の file (#3166)", () => {
 
   it("catalog-part-snippets-use-their-words", async () => {
     const parts = await partsTable();
-    const want = parts.flatMap((part) => part.kinds.flatMap((kind) => (["ja", "en"] as const).map((lang) => ({ part, kind, lang, name: snippetName(part.id, kind, lang) }))));
+    const want = parts.flatMap((part) => part.kinds.flatMap((kind) => (["ja", "en"] as const).map((lang) => ({ name: snippetName(part.id, kind, lang) }))));
     const present = partFigureNames();
     expect(
       want.map((w) => w.name).filter((name) => !present.includes(name)),
@@ -164,22 +182,13 @@ describe("部品の表と記法の file (#3166)", () => {
       present.filter((name) => !want.some((w) => w.name === name)),
       "部品の表に無い部品か、その部品が描けない図の種類の記法の file がある",
     ).toEqual([]);
+  });
+});
 
-    const errors: string[] = [];
-    for (const { part, kind, lang, name } of want) {
-      const text = snippetOf(part.id, kind, lang) ?? "";
-      const parsed = parseNotation(text);
-      if (!parsed.ok) {
-        errors.push(`${name} が記法として読めない: ${parsed.errors.map((e) => `${e.line} 行目 ${e.message}`).join(" / ")}`);
-        continue;
-      }
-      const checked = validateDiagram(parsed.diagram);
-      if (!checked.ok) errors.push(`${name} が JSON Schema の検査で落ちる: ${checked.errors.map((e) => `${e.pointer} ${e.message}`).join(" / ")}`);
-      if (parsed.diagram.kind !== kind) errors.push(`${name} の図の種類が ${parsed.diagram.kind} で、file の名前の ${kind} と違う`);
-      const unused = part.words.filter((word) => !usesWord(text, word));
-      if (unused.length > 0) errors.push(`${name} が部品の受け持つ語 ${unused.join("、")} を使わない`);
-    }
-    expect(errors, "部品の図の記法に、読めないか部品の語を使わない物がある").toEqual([]);
+// 全ての部品の図の記法を 1 件で読んで検査すると、混んだ機械で 1 件の上限 (10 秒) に近づいた (#3738)。記法の file ごとの件に分ける
+describe.for(SNIPPET_CASES)("部品の図の記法 (#3166) %s", ([, part, kind, lang]) => {
+  it("catalog-part-snippets-use-their-words", () => {
+    expect(snippetErrors(part, kind, lang), "部品の図の記法に、読めないか部品の語を使わない物がある").toEqual([]);
   });
 });
 

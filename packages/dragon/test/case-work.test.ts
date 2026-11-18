@@ -110,6 +110,7 @@ const RULES: Rule[] = [
   { file: `${T}pipe-layout-quality.test.ts`, name: "pipe-grid-long-names-and-many-logs", load: 0 },
   { file: `${T}pipe-words.test.ts`, name: "pipe-words-mount-keeps-words", load: 1 },
   { file: `${T}plugin-eval.test.ts`, name: "plugin-eval-stand-in-records-gh", load: 0 },
+  { file: `${T}plugin-eval.test.ts`, name: "plugin-eval-stand-in-gh-rejects-missing-body", load: 0 },
   { file: `${T}return-lines.test.ts`, name: "return-lines-payment-eval-no-close-breaks", load: 0 },
   { file: `${T}test-limits.test.ts`, name: "test-over-limit-is-stopped-and-named", load: 0 },
   { file: `${T}test-limits.test.ts`, name: "run-limit-stops-whole-run", load: 0 },

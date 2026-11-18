@@ -43,6 +43,8 @@ export const HEAVY = new Set([
   // 配管の図の検査が共有の支え (`pipe-diagram-support.ts`) から読む、描く関数。支えは別の file なので、呼ぶ関数を辿れない
   "render",
   "openedAggregator",
+  // 図を JSON Schema で検査する。全ての部品の図の記法を 1 件で検査すると、混んだ機械で 1 件の上限に近づいた
+  "validateDiagram",
 ]);
 
 /** 子の process を起こす名前。同じ file の中の関数は、これを呼べば子の process を起こす名前に加わる */

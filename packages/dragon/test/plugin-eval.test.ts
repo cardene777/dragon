@@ -198,6 +198,21 @@ const STAND_IN_RAN = await atLoad("写しの repo を作り、偽の gh で PR �
   return { standIn, head, which, calls, ran, logged };
 });
 
+// 写しの repo を作り、偽の gh に無い本文の file を渡して回すと、混んだ機械で上限を 4 秒に下げた回 (#3410 の前例) の 1 件の上限を超えた (#3738)。
+// file を読み込む段で済ませ、件はその結果を読む
+const MISSING_BODY = await atLoad("写しの repo を作り、偽の gh に無い本文の file を渡す", async () => {
+  const { makeStandIn } = (await import(STAND_IN)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
+  const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
+  const standIn = makeStandIn({ root: ROOT, dir });
+  const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}` };
+  const missing = join(dir, "no-body.md");
+  const ran = [["--body-file", missing], ["-F", missing], [`--body-file=${missing}`]].map((flag) => {
+    const args = ["issue", "create", "--repo", "cardene777/dragon", "--title", "feat: x", ...flag];
+    return { args, run: spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 }) };
+  });
+  return { missing, ran };
+});
+
 describe("skill を入れた Claude がブロックを足して PR を出す評価 (#3508)", () => {
   it("plugin-eval-stand-in-records-gh", () => {
     expect(existsSync(STAND_IN), `${relative(ROOT, STAND_IN)} が無い`).toBe(true);
@@ -213,19 +228,12 @@ describe("skill を入れた Claude がブロックを足して PR を出す評�
   });
 
   // 本物の gh は --body-file の file が無いと終わり方 1 で断る。偽の gh が通すと、AI は本文を渡し損ねたことに気付けない
-  it("plugin-eval-stand-in-gh-rejects-missing-body", async () => {
-    const script = join(ROOT, "scripts/plugin-eval-stand-in.mjs");
-    const { makeStandIn } = (await import(script)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
-    const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
-    const standIn = makeStandIn({ root: ROOT, dir });
-    const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}` };
-    const missing = join(dir, "no-body.md");
-    for (const flag of [["--body-file", missing], ["-F", missing], [`--body-file=${missing}`]]) {
-      const args = ["issue", "create", "--repo", "cardene777/dragon", "--title", "feat: x", ...flag];
-      const ran = spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 });
-      expect(ran.status, `偽の gh ${args.join(" ")} が無い本文の file を通す`).toBe(1);
-      expect(ran.stderr, "断りの文が本物の gh と違う").toContain(`open ${missing}: no such file or directory`);
-      expect(ran.stdout, "断ったのに Issue の URL を返す").toBe("");
+  it("plugin-eval-stand-in-gh-rejects-missing-body", () => {
+    const { missing, ran } = MISSING_BODY.get();
+    for (const { args, run } of ran) {
+      expect(run.status, `偽の gh ${args.join(" ")} が無い本文の file を通す`).toBe(1);
+      expect(run.stderr, "断りの文が本物の gh と違う").toContain(`open ${missing}: no such file or directory`);
+      expect(run.stdout, "断ったのに Issue の URL を返す").toBe("");
     }
   });
 
