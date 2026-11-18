@@ -47,3 +47,9 @@
 | カタログの帯のコピーのボタンで、その見本の記法をクリップボードに写せる | `pnpm exec vitest run`の検査`catalog-bar-copies-notation`が通る | #3713 |
 | カタログの帯のエクスポートのボタンを押すと、書き出す形を選ぶ窓を開く | `pnpm exec vitest run`の検査`catalog-bar-export-opens-menu`が通る | #3713 |
 | カタログの帯の拡大のボタンを押すと、今の拡大の重ね窓を開く | `pnpm exec vitest run`の検査`catalog-bar-fullscreen-opens-overlay`が通る | #3713 |
+| 帯の釦の絵柄の線の決まりは、帯つきの図のSVGの中の字と線と地の四角に縁取りを付けず、どの要素も帯の無い図と同じ縁取りの有無と線の太さで描く | `pnpm exec vitest run`の検査`frame-diagram-keeps-plain-strokes`が通る | #3744 |
+| 帯の釦の絵柄は今と同じく1.6pxの線で描き、dragonの印は線を持たずに塗って描く | `pnpm exec vitest run`の検査`frame-icons-keep-their-lines`が通る | #3744 |
+| 帯つきの図の再生の帯は、段の番号の左の端と次の段の釦の右の端を`.stage`の左右の縁から16px離し、段ごとの進み具合の下の端を`.stage`の下の縁から12px離す | `pnpm exec vitest run`の検査`frame-bar-keeps-room-from-edges`が通る | #3744 |
+| 帯の無い図の再生の帯は自分では余白を付けず、段の番号の左の端を図の枠の左の端に揃えて、余白を置いた頁に任せる | `pnpm exec vitest run`の検査`plain-bar-leaves-room-to-page`が通る | #3744 |
+| 1 fileのHTMLは、今と同じく再生の部品の下に12px、再生の帯と呼び出しの欄の左右に16pxの余白を付ける | `pnpm exec vitest run`の検査`html-page-keeps-bar-room`が通る | #3744 |
+| scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 |
