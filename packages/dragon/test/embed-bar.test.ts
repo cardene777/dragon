@@ -60,7 +60,8 @@ async function withFrame<T>(setup: PageSetup, run: (page: Page) => Promise<T>): 
     '<script type="importmap">{"imports":{"@cardenelabs/dragon":"/index.js","gifenc":"/gifenc.js","mediabunny":"/mediabunny.js"}}</script>' +
     '<style>html,body{margin:0}</style></head><body><div id="host" style="width:760px"></div>' +
     `<script>${setup.before ?? ""}</script>` +
-    '<script type="module">import("/frame.js").then((m) => { window.dragonFrame = m; }, (e) => { window.frameError = String(e); });</script></body></html>';
+    // 帯の無い図と並べる検査 (#3744) のため、帯の入口と同じ本体 (`/index.js`) も頁から呼べるように置く
+    '<script type="module">Promise.all([import("/frame.js"), import("/index.js")]).then(([m, core]) => { window.dragonFrame = m; window.dragonCore = core; }, (e) => { window.frameError = String(e); });</script></body></html>';
   const context = await (await fileChromium()).newContext({ viewport: { width: 900, height: 900 }, acceptDownloads: true });
   try {
     await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://localhost" });
@@ -477,4 +478,133 @@ describe("帯と図の見た目", () => {
       expect(family).toContain("Noto Sans JP Variable");
       expect(family, "図の書体に代わりの書体の並びが無い").toMatch(/sans-serif$/);
     }));
+});
+
+/** 再生の帯の中身 (段の番号、釦、進み具合、題、説明の文) を囲む箱の、入れ物の左右と下の縁からの間 (px) */
+interface BarRoom {
+  /** 測った中身の数。帯が中身を出していない時は 0 */
+  parts: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * `#host`を幅`width`にして帯つきの図を置き、同じ記法の帯の無い図を、帯の枠の`.stage`と同じ幅の`#plain`に置く (#3744)。
+ * どちらも段 1 の止め絵で止め、動きで線の値と並びが替わらないようにする
+ */
+async function mountSideBySide(page: Page, width: number): Promise<void> {
+  await page.evaluate(
+    ([source, hostWidth]) => {
+      const w = window as unknown as {
+        dragonFrame: { mountFramedDiagram(host: HTMLElement, source: string, options: object): unknown };
+        dragonCore: { parseNotation(text: string): { ok: boolean; diagram?: unknown }; mountDiagram(host: HTMLElement, diagram: unknown, options: object): unknown };
+      };
+      const host = document.getElementById("host")!;
+      host.style.width = `${hostWidth}px`;
+      w.dragonFrame.mountFramedDiagram(host, source, { pausedAt: 0 });
+      const stage = document.querySelector(".dragon-frame")!.shadowRoot!.querySelector(".stage")!;
+      const plain = document.createElement("div");
+      plain.id = "plain";
+      plain.style.width = `${stage.getBoundingClientRect().width}px`;
+      document.body.append(plain);
+      const parsed = w.dragonCore.parseNotation(source);
+      if (!parsed.ok) throw new Error("帯の無い図の記法を読めない");
+      w.dragonCore.mountDiagram(plain, parsed.diagram, { pausedAt: 0 });
+    },
+    [SOURCE, width] as const,
+  );
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/** 帯つきの図は帯の枠の`.stage`から、帯の無い図は置いた`#plain`から、再生の帯の中身までの間を測る */
+async function barRooms(page: Page): Promise<{ framed: BarRoom; plain: BarRoom }> {
+  return page.evaluate(() => {
+    const room = (scope: ParentNode, edge: Element) => {
+      const outer = edge.getBoundingClientRect();
+      const boxes = ['[data-dragon="step-no"]', ".dg-btns", '[data-dragon="progress"]', '[data-dragon="step-title"]', '[data-dragon="step-body"]']
+        .map((selector) => scope.querySelector(selector)?.getBoundingClientRect())
+        .filter((box): box is DOMRect => box !== undefined && box.width > 0 && box.height > 0);
+      return {
+        parts: boxes.length,
+        left: Math.round(Math.min(...boxes.map((box) => box.left)) - outer.left),
+        right: Math.round(outer.right - Math.max(...boxes.map((box) => box.right))),
+        bottom: Math.round(outer.bottom - Math.max(...boxes.map((box) => box.bottom))),
+      };
+    };
+    const root = document.querySelector(".dragon-frame")!.shadowRoot!;
+    const plain = document.getElementById("plain")!;
+    return { framed: room(root, root.querySelector(".stage")!), plain: room(plain, plain) };
+  });
+}
+
+describe("帯つきの図の線と再生の帯の余白 (#3744)", () => {
+  it("frame-diagram-keeps-plain-strokes", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // 帯の釦の絵柄の線の決まりが図のSVGに当たると、図の字と地の四角が字の色の 1.6px の縁取りを受け継ぐ。
+      // 帯つきの図のSVGの全ての要素の縁取りの有無と線の太さが、同じ記法の帯の無い図と同じかを見る
+      await mountSideBySide(page, 760);
+      const strokes = await page.evaluate(() => {
+        const read = (svg: SVGSVGElement | null): string[] =>
+          svg
+            ? [svg, ...svg.querySelectorAll("*")].map((el) => {
+                const style = getComputedStyle(el);
+                return `${el.tagName}${el.getAttribute("class") ? `.${el.getAttribute("class")}` : ""} ${style.stroke === "none" ? "線なし" : "線あり"} ${style.strokeWidth}`;
+              })
+            : [];
+        return {
+          framed: read(document.querySelector(".dragon-frame")!.shadowRoot!.querySelector<SVGSVGElement>("svg.dg")),
+          plain: read(document.querySelector<SVGSVGElement>("#plain svg.dg")),
+        };
+      });
+      expect(strokes.plain.length, "帯の無い図のSVGを描いていない").toBeGreaterThan(0);
+      expect(strokes.framed, "帯つきの図のSVGの縁取りが帯の無い図と違う").toEqual(strokes.plain);
+    }));
+
+  it("frame-icons-keep-their-lines", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // 帯の初めからの釦と、置く人が足した釦の絵柄は 1.6px の線で描き、塗らない。dragonの印は線を持たずに塗る
+      await page.evaluate((source) => {
+        const frame = (window as unknown as { dragonFrame: { mountFramedDiagram(host: HTMLElement, source: string, options: object): unknown } }).dragonFrame;
+        const buttons = ["code", "editor", "copy", "export", "expand", { id: "note", label: "メモ", icon: "M4 4h16v16H4z", onClick: () => undefined }];
+        frame.mountFramedDiagram(document.getElementById("host")!, source, { buttons });
+      }, SOURCE);
+      const icons = await page.evaluate(() => {
+        const root = document.querySelector(".dragon-frame")!.shadowRoot!;
+        const paint = (el: Element) => {
+          const style = getComputedStyle(el);
+          return { line: style.stroke !== "none", width: style.strokeWidth, filled: style.fill !== "none" };
+        };
+        const mark = root.querySelector(".dg-mark svg path");
+        return {
+          actions: [...root.querySelectorAll(".dg-header-actions svg path")].map(paint),
+          mark: mark ? paint(mark) : null,
+        };
+      });
+      // 絵柄はコード、エディタ、コピー、エクスポートの2つ (下向きの矢と開く印)、拡大、足した釦の7つ
+      expect(icons.actions).toHaveLength(7);
+      for (const icon of icons.actions) expect(icon, "帯の釦の絵柄の線が変わった").toEqual({ line: true, width: "1.6px", filled: false });
+      expect(icons.mark, "dragonの印が無い").not.toBeNull();
+      expect({ line: icons.mark!.line, filled: icons.mark!.filled }, "dragonの印が線を持つか塗られていない").toEqual({ line: false, filled: true });
+    }));
+
+  // 760 は帯の中身が 640px より広く 1 段に並べ、480 は積んで並べる (#3398)
+  describe.for([{ width: 760 }, { width: 480 }])("幅 $width", ({ width }) => {
+    it("frame-bar-keeps-room-from-edges", () =>
+      withFrame({ lang: "ja" }, async (page) => {
+        // 帯つきの図は図を帯の枠の幅いっぱいに置くので、1 fileのHTMLと同じく再生の帯の中身を左右の縁から 16px、下の縁から 12px 離す
+        await mountSideBySide(page, width);
+        const { framed } = await barRooms(page);
+        expect(framed.parts, "帯つきの図の再生の帯が中身を出していない").toBe(5);
+        expect(framed, `幅 ${width}px で、帯つきの図の再生の帯が帯の枠の縁から離れていない`).toEqual({ parts: 5, left: 16, right: 16, bottom: 12 });
+      }));
+
+    it("plain-bar-leaves-room-to-page", () =>
+      withFrame({ lang: "ja" }, async (page) => {
+        // 帯の無い図の再生の帯は自分では余白を付けず、置いた頁の余白に任せる (`player.ts`)
+        await mountSideBySide(page, width);
+        const { plain } = await barRooms(page);
+        expect(plain, `幅 ${width}px で、帯の無い図の再生の帯が自分で余白を付けた`).toEqual({ parts: 5, left: 0, right: 0, bottom: 0 });
+      }));
+  });
 });
