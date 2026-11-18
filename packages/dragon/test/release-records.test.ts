@@ -222,6 +222,28 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-77-1-lists-frame-fixes", () => {
+    // 帯つきの図の字の縁取りと再生の帯の余白の直し (#3744) と、箱を開いた配管の図で札の置き場所を探す仕事を速くした直し (#3737) を 0.77.1 で出す (#3747)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 77 || (minor === 77 && patch >= 1), `package の版 ${version()} が 0.77.1 より前`).toBe(true);
+    const named = [
+      ["(#3744)", "`data-header`"],
+      ["(#3737)", "`aggregator`"],
+    ] as const;
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.77\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.77.1"), "0.77.1");
+      expect(released, `${file} に日付付きの ## [0.77.1] の節が無い`).not.toBe("");
+      for (const [issue, word] of named) {
+        const entry = released.split("\n- ").find((item) => item.includes(issue)) ?? "";
+        expect(entry, `${file} の 0.77.1 の節に ${issue} の項が無い`).not.toBe("");
+        expect(entry, `${file} の 0.77.1 の節の ${issue} の項が ${word} を名指さない`).toContain(word);
+        // 次の版の項は Unreleased に積まれるので、0.77.1 で出した項が残っていないことだけを見る
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-77-0-lists-pipe-changes", () => {
     // Tracelyth が当てた直しの取り込み (#3720)、札と線が重ならない置き方と route の行 (#3721)、発行と焼却とトークンの番号 (#3722) と、
     // 項の無かった箱の置き場の枠の直し (#3723) を 0.77.0 で出す (#3728)

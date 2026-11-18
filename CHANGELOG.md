@@ -6,6 +6,20 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.77.1] - 2026-11-18
+
+### Changed
+
+- **A pipe diagram with an opened box finds the places of its call cards faster** (#3737)
+
+  Looking for free places for the call cards took most of the time to draw a pipe diagram with an opened box. The search now keeps, for each column of candidate places, only the parts that overlap it sideways, checks overlaps before the distance to the lines, and measures the distance only to the line points near the card. The formulas and the order of the sums are unchanged, so every card stays where it was. In 588 drawings of the pipe examples (the seven `layout` choices, the sets of opened boxes, the widths, and with and without a still frame), the card places, the SVG and the whole layout match those drawn before the change. Drawing `aggregator` with box 2 opened takes 0.33 seconds of CPU time once warmed up instead of 0.89 seconds, and 1.18 seconds instead of 1.87 seconds the first time in a new process.
+
+### Fixed
+
+- **A diagram with the bar draws its text without an outline, and its player bar keeps clear of the frame's edges** (#3744)
+
+  In a diagram placed with the bar by a script line with `data-header`, `mountDragon` or `<dragon-diagram>`, the rule that draws the bar's button icons with 1.6px lines also matched the diagram's SVG, so the diagram's text and background took a 1.6px outline in the text color. The text looked bold and smeared, and a dark line showed between the diagram and the player bar. The rule now applies only to the icons in the bar's header, which keep their 1.6px lines, and the diagram draws the same lines as without the bar. Like a shared HTML file, a diagram with the bar now leaves 16px on the left and right of the player bar and the call results and 12px under the player, so the step number, the next button and the progress marks no longer touch the frame's edges or get cut by its rounded corners. A diagram without the bar still leaves that room to the page.
+
 ## [0.77.0] - 2026-11-17
 
 ### Added
