@@ -68,6 +68,13 @@ export async function lendThreadChromium(): Promise<void> {
 /** この thread で Chromium を起こした回数 */
 export const threadChromiumLaunches = (): number => own.launches;
 
+/** thread で 1 つの Chromium を閉じる。準備の段が書き出し終えた thread を止める前に呼ぶ (#3734) */
+export async function closeThreadChromium(): Promise<void> {
+  const launching = own.launching;
+  own.launching = undefined;
+  if (launching) await (await launching).close();
+}
+
 /**
  * thread で 1 つの Chromium を、初めて要る書き出しより前に起こしておく。
  * 差し替えた `launch` を呼ばず、それが借りる Chromium を返す関数を直に呼ぶ。

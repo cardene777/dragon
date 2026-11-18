@@ -11,8 +11,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PIPE_TYPE } from "../src/look/pipe";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
-import { pipeTexts } from "../src/pipe-player";
+import prepare, { FITTING, NARROW_SOURCES, PAN_FRAME, PHONE, PIPE_TEXT_SOURCES, READABLE_SOURCE } from "./player.prepare";
+import { prepared } from "./prepared";
 import { ARCADE_COLORS, cssVars, draw, figureVars, type LaidAction, type Player, type PlayerOptions } from "./render-support";
+
+/** 準備の段が描いた、置いた図と比べる側の配置と時刻の表 (`player.prepare.ts`、#3734)。件の中では図を置く仕事だけを行う */
+const drawn = (): Awaited<ReturnType<typeof prepare>> => prepared(import.meta.url);
 
 /** 頁の設定を模す。jsdom は `matchMedia` を持たないため、系の境目として差し替える。 */
 function prefersReducedMotion(reduce: boolean): void {
@@ -264,7 +268,7 @@ describe("流して見せる (#3113)", () => {
     const diagram = exampleJson("oauth.json") as { steps: { title: string }[] };
     const { host, player } = mount(diagram);
     expect(player.playing, "設定が無い人に流れない").toBe(true);
-    const { timeline } = draw("renderDiagram")(diagram);
+    const timeline = drawn().oauthTimeline;
     let now = 0;
     const at = (t: number): Seen => {
       vi.advanceTimersByTime(Math.round((t - now) * 1000));
@@ -320,7 +324,7 @@ describe("流す速さ (#3568)", () => {
     const diagram = exampleJson("oauth.json") as Oauth;
     const seen: number[] = [];
     const { host, player } = mount(diagram, { ...options, onStep: (step) => seen.push(step) });
-    const { timeline } = draw("renderDiagram")(diagram);
+    const timeline = drawn().oauthTimeline;
     let now = 0;
     const at = (t: number): number => {
       vi.advanceTimersByTime(Math.round((t - now) * 1000));
@@ -495,15 +499,16 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     return { at: Number(svg?.style.getPropertyValue("--at")), motion: svg?.getAttribute("data-motion") };
   };
 
-  /** 置いた SVG を、止める時刻で読んだ時の線の名前と処理の札の見える濃さ。札は止め絵を選んで描いた置き場所から引く */
-  function shownTags(host: HTMLElement, diagram: Json): { step: number; text: string; opacity: number }[] {
+  /** 置いた OAuth の SVG を、止める時刻で読んだ時の線の名前と処理の札の見える濃さ。札は止め絵を選んで描いた置き場所 (準備の段が描く) から引く */
+  function shownTags(host: HTMLElement): { step: number; text: string; opacity: number }[] {
     const svg = host.querySelector("svg");
     expect(svg, "図が置かれていない").not.toBeNull();
-    const rendered = draw("renderDiagram")(diagram, { still: true });
-    const motion = motionFrom({ ...rendered, svg: svg?.outerHTML ?? "" });
+    const still = drawn().oauthStill;
+    const motion = motionFrom({ ...(still as unknown as Parameters<typeof motionFrom>[0]), svg: svg?.outerHTML ?? "" });
     const at = placed(host).at;
-    const labels = rendered.layout.labels.map((l) => ({ step: l.step, text: l.text, opacity: tagOpacity(motion, "dg-cap", l, at) }));
-    const actions = (rendered.layout.actions as (LaidAction & { text: string })[]).map((a) => ({ step: a.step, text: a.text, opacity: tagOpacity(motion, "dg-act", a, at) }));
+    type Placed = LaidAction & { text: string };
+    const labels = (still.layout.labels as Placed[]).map((l) => ({ step: l.step, text: l.text, opacity: tagOpacity(motion, "dg-cap", l, at) }));
+    const actions = (still.layout.actions as Placed[]).map((a) => ({ step: a.step, text: a.text, opacity: tagOpacity(motion, "dg-act", a, at) }));
     return [...labels, ...actions];
   }
 
@@ -516,7 +521,7 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     prefersReducedMotion(false);
     vi.useFakeTimers();
     const diagram = exampleJson("oauth.json") as Oauth;
-    const { timeline } = draw("renderDiagram")(diagram);
+    const timeline = drawn().oauthTimeline;
     const { host, player } = mount(diagram, { pausedAt: 3 });
     expect(player.playing, "止めて置く設定を渡した図が、置いた時から流れる").toBe(false);
     expect(player.step, "止めて置く段").toBe(3);
@@ -531,7 +536,7 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     prefersReducedMotion(false);
     vi.useFakeTimers();
     const diagram = exampleJson("oauth.json") as Oauth;
-    const { timeline } = draw("renderDiagram")(diagram, { still: true });
+    const { timeline } = drawn().oauthStill;
     const last = diagram.steps.length - 1;
     const { host, player } = mount(diagram, { playOnce: true, still: true });
     expect(player.playing, "1 度だけ流す図が、置いた時から流れない").toBe(true);
@@ -546,18 +551,18 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     expect(player.step, "1 度流した図が繰り返して最初の段へ戻る").toBe(last);
     expect(player.playing).toBe(false);
     expect(stepTitle(host)).toBe(diagram.steps[last]?.title);
-    for (const tag of shownTags(host, diagram)) expect(tag.opacity, `止まった図に段 ${tag.step + 1} の「${tag.text}」が最後の段と同じ濃さで出ない`).toBeGreaterThan(0.99);
+    for (const tag of shownTags(host)) expect(tag.opacity, `止まった図に段 ${tag.step + 1} の「${tag.text}」が最後の段と同じ濃さで出ない`).toBeGreaterThan(0.99);
   });
 
   it("player-still-middle-step-own-labels", () => {
     prefersReducedMotion(false);
     const diagram = exampleJson("oauth.json") as Oauth;
-    const { timeline } = draw("renderDiagram")(diagram, { still: true });
+    const { timeline } = drawn().oauthStill;
     const { host, player } = mount(diagram, { still: true });
     for (let step = 0; step < diagram.steps.length - 1; step++) {
       player.goTo(step);
       expect(placed(host), `段 ${step + 1} へ送った図が段 ${step + 1} の止め絵で止まっていない`).toEqual({ at: timeline.stills[step], motion: "still" });
-      for (const tag of shownTags(host, diagram)) {
+      for (const tag of shownTags(host)) {
         if (tag.step === step) expect(tag.opacity, `段 ${step + 1} の止め絵にその段の「${tag.text}」が出ない`).toBeGreaterThan(0.99);
         else expect(tag.opacity, `段 ${step + 1} の止め絵に段 ${tag.step + 1} の「${tag.text}」が出る`).toBeLessThan(0.01);
       }
@@ -568,7 +573,7 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     prefersReducedMotion(false);
     vi.useFakeTimers();
     const diagram = exampleJson("oauth.json") as Oauth;
-    const { timeline } = draw("renderDiagram")(diagram);
+    const timeline = drawn().oauthTimeline;
     const last = diagram.steps.length - 1;
     const { host, player } = mount(diagram);
     expect(player.playing, "設定を渡さない図が、置いた時から流れない").toBe(true);
@@ -644,17 +649,15 @@ describe("試作の形の再生の操作 (#3398)", () => {
   it("player-pans-wide-figure", () => {
     prefersReducedMotion(true);
     const source = exampleJson("aggregator.json");
-    const frame = 1200;
+    const frame = PAN_FRAME;
     const host = document.createElement("div");
     Object.defineProperty(host, "clientWidth", { value: frame });
     document.body.appendChild(host);
     const player = draw("mountDiagram")(host, source, { open: [2] });
     players.push(player);
-    const drawn = draw("renderDiagram")(source, { open: [2], width: frame }) as unknown as {
-      layout: { width: number; parties: { id: string; x: number; w: number }[] };
-      diagram: { steps: { events: { from?: string; to?: string; box?: string }[] }[] };
-    };
-    const { layout } = drawn;
+    // 比べる側の並びは、準備の段が同じ原本と設定 ({ open: [2], width: frame }) で描いた物
+    const { wide } = drawn();
+    const layout = { width: wide.width, parties: wide.parties };
     expect(layout.width, "aggregator を開いた図の幅").toBeGreaterThan(frame);
     // 図を縮めずに枠の中を横に送る。手でも横に動かせる
     const pan = host.querySelector<HTMLElement>('[data-dragon="pan"]');
@@ -666,7 +669,7 @@ describe("試作の形の再生の操作 (#3398)", () => {
     // 図の下の細い線が、全体のどこを見ているかを示す
     const thumb = host.querySelector<HTMLElement>('[data-dragon="overview"] [data-dragon="overview-thumb"]');
     expect(thumb, "全体のどこを見ているかを示す線が無い").not.toBeNull();
-    const steps = drawn.diagram.steps;
+    const steps = wide.steps;
     expect(steps.length, "aggregator を開いた図の段の数").toBe(14);
     const rectOf = new Map(layout.parties.map((p) => [p.id, p]));
     steps.forEach((step, s) => {
@@ -895,17 +898,13 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
 
   it("pipe-texts-cover-flows", () => {
     prefersReducedMotion(true);
-    for (const [file, lang] of [
-      ["swap-two-hops.json", "ja"],
-      ["swap-revert.json", "ja"],
-      ["vault-proxy.en.json", "en"],
-    ] as const) {
+    for (const [file, lang] of PIPE_TEXT_SOURCES) {
       const source = exampleJson(file);
       const { host, player } = mount(source, { lang });
       const { text, rows } = shownTexts(host, player);
       expect(rows, `${file} の図の下に矢印が無い`).toBeGreaterThan(0);
-      const model = (draw("renderDiagram")(source, { lang }) as unknown as { diagram: Parameters<typeof pipeTexts>[0] }).diagram;
-      const known = new Set([...pipeTexts(model, lang).join("")]);
+      // 書き出した頁の字の file に残る字 (`pipeTexts`) は、準備の段が同じ原本と言葉で描いた図から引く
+      const known = new Set([...(drawn().pipeTexts[file] ?? "")]);
       const missing = [...new Set([...text.replace(/\s/g, "")])].filter((c) => !known.has(c));
       expect(missing, `${file} の図の下の字のうち、書き出した頁の字の file に残らない字`).toEqual([]);
     }
@@ -948,31 +947,29 @@ describe("配管の図の段の要点の札 (#3464)", () => {
 describe("携帯の幅で配管の図の字を読める大きさに置く (#3450)", () => {
   /** 携帯の幅の枠で配管の図に求める、画面で見える残高の字の大きさの下限 (`look/pipe.ts` の `narrow.px`) */
   const READABLE_PX = 10.5;
-  const PHONE = 390;
 
-  type PipeShown = { layout: { width: number; levels: { text: { h: number } }[] } };
-
-  /** 幅 `PHONE` の枠に配管の見本を置き、置いた枠と図の幅と、画面で見える残高の字の大きさを返す */
-  function placeOnPhone(file: string, lang: "ja" | "en", open?: number[]): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
+  /**
+   * 幅 `PHONE` の枠に配管の見本を置き、置いた枠と図の幅と、画面で見える残高の字の大きさを返す。
+   * 並べた図の幅と残高の字の高さ (`laid`) は、準備の段が同じ原本と設定 ({ lang, width: PHONE, open }) で描いた物
+   */
+  function placeOnPhone(file: string, lang: "ja" | "en", laid: { width: number; levelH?: number }, open?: number[]): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
     prefersReducedMotion(true);
     const source = exampleJson(file);
     const host = document.createElement("div");
     Object.defineProperty(host, "clientWidth", { value: PHONE });
     document.body.appendChild(host);
     players.push(draw("mountDiagram")(host, source, { lang, ...(open ? { open } : {}) }));
-    const { layout } = draw("renderDiagram")(source, { lang, width: PHONE, ...(open ? { open } : {}) }) as unknown as PipeShown;
     const frame = host.querySelector<HTMLElement>('[data-dragon="pan"],[data-dragon="zoom-frame"]');
     const shown = Number.parseFloat(frame?.querySelector<SVGElement>("svg")?.style.width || "0");
-    const level = layout.levels[0];
-    expect(level, `${file} の槽の残高の字が無い`).toBeDefined();
-    return { host, shown, px: ((level?.text.h ?? 0) * shown) / layout.width, frame };
+    expect(laid.levelH, `${file} の槽の残高の字が無い`).toBeDefined();
+    return { host, shown, px: ((laid.levelH ?? 0) * shown) / laid.width, frame };
   }
 
   // 言葉ごとに件を分け、1 件が混んだ機械でも上限に収まるようにする
   describe.for(["ja", "en"] as const)("%s", (lang) => {
     it("player-pipe-narrow-keeps-text-readable", () => {
-      const file = lang === "ja" ? "aggregator.json" : "aggregator.en.json";
-      const { host, shown, px, frame } = placeOnPhone(file, lang, [2]);
+      const file = NARROW_SOURCES[lang];
+      const { host, shown, px, frame } = placeOnPhone(file, lang, drawn().narrow[lang], [2]);
       expect(px, `箱を開いた aggregator (${lang}) を幅 ${PHONE} に置いた残高の字 (置いた図の幅 ${Math.round(shown)}px)`).toBeGreaterThanOrEqual(READABLE_PX);
       // 字を読める幅で置くと枠より広くなるので、縮めずに横に送り、全体のどこを見ているかを線で示す
       expect(frame?.dataset.dragon, "幅に収まらない図を横に送る枠にしていない").toBe("pan");
@@ -982,10 +979,9 @@ describe("携帯の幅で配管の図の字を読める大きさに置く (#3450
 
   // 配管の図は電話の幅でも広い枠と同じ並びで描くので (Tracelyth #87、#3720)、箱を開かない図も枠に収めると残高の字が読めない。
   // 字を読める幅で置いて横に送る。見本ごとに件を分ける
-  const FITTING = ["swap.json", "swap-revert.json", "swap-two-hops.json", "swap-retry.json", "vault-proxy.json", "aggregator.json"] as const;
   describe.for(FITTING)("%s", (file) => {
     it("player-pipe-narrow-fits-readable-figures", () => {
-      const { shown, px, frame } = placeOnPhone(file, "ja");
+      const { shown, px, frame } = placeOnPhone(file, "ja", drawn().fitting[file] ?? { width: Number.NaN });
       expect(frame?.dataset.dragon, `${file} を幅 ${PHONE} に置いた枠が横に送る形にならない`).toBe("pan");
       expect(shown, `${file} を幅 ${PHONE} に置いた図の幅`).toBeGreaterThan(PHONE);
       expect(px, `${file} を幅 ${PHONE} に置いた残高の字`).toBeGreaterThanOrEqual(READABLE_PX);
@@ -1004,7 +1000,7 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
   it("player-goto-keeps-the-figure", () => {
     prefersReducedMotion(true);
     const diagram = exampleJson("oauth.json");
-    const { timeline } = draw("renderDiagram")(diagram);
+    const timeline = drawn().oauthTimeline;
     const { host, player } = mount(diagram);
     const svg = host.querySelector("svg");
     expect(svg, "図が置かれていない").not.toBeNull();
@@ -1077,18 +1073,14 @@ describe("段を送る時に図を置き直さない (#3445)", () => {
 describe("狭い枠で配管の図を箱の名前が読める大きさから始める (#3483)", () => {
   /** 箱の名前を画面で読める字の大きさの下限 (`look/values.ts` の `READABLE_PX`) */
   const READABLE_PX = 10.5;
-  const PHONE = 390;
   /** 狭い枠の並べ方 (残高と札の字を大きくした図) にならない広い枠の幅 */
   const WIDE = 1200;
-  const SOURCE = "swap.json";
+  const SOURCE = READABLE_SOURCE;
   /** 置く側が渡す、箱の名前が読める大きさで始める設定 */
   const READABLE = { lang: "ja", zoom: "readable" } as PlayerOptions;
 
-  type PipeDrawn = { layout: { width: number; height: number; focus: { step: number; x: number; y: number; w: number; h: number }[] } };
-
-  /** 幅 `width` で並べた見本の配管の図 */
-  const laid = (width: number): PipeDrawn["layout"] =>
-    (draw("renderDiagram")(exampleJson(SOURCE), { lang: "ja", width }) as unknown as PipeDrawn).layout;
+  /** 幅 `width` で並べた見本の配管の図。準備の段が同じ原本と設定 ({ lang: "ja", width }) で描いた物 */
+  const laid = (width: 600 | 800 | 1200): ReturnType<typeof drawn>["readable"][600] => drawn().readable[width];
 
   /** 幅を `width()` が返す枠に、見本の配管の図を `options` で置く */
   function place(width: () => number, options: PlayerOptions) {
@@ -1203,7 +1195,7 @@ describe("狭い枠で配管の図を箱の名前が読める大きさから始�
   });
 
   it("player-pipe-readable-zoom-wide-frame-native", () => {
-    for (const width of [600, 1200]) {
+    for (const width of [600, 1200] as const) {
       const { frame, shown, level } = place(() => width, READABLE);
       expect(level(), `幅 ${width} の枠の度合い`).toBe("100%");
       expect(shown(), `幅 ${width} の枠の図が原寸でない`).toBeCloseTo(laid(width).width, 0);

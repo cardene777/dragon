@@ -7,47 +7,24 @@
  * 書き出した mp4 のコマは、画面なしの Chromium の中で読み戻す (WebCodecs と `mediabunny`)。
  * HTML に埋めた字の file が持つ字は、woff2 を sfnt に戻して HarfBuzz で数える。
  */
-import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { promisify } from "node:util";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
 import type { Browser, Page } from "playwright-core";
 import { expect, type RunnerTask, type RunnerTestFile, vi } from "vitest";
+import { type Exported, type ExportOptions, type Format, type Ran, type RunPlace, runCli as spawnCli, withoutPlaywright } from "../../../test-support/prepare-tools";
 import { fileChromium } from "./page-needs";
 import { lendFileChromium } from "./shared-chromium";
+
+export { type Exported, type ExportOptions, type Format, type Ran, type RunPlace, withoutPlaywright };
 
 // 書き出しが起こす Chromium を、この file の検査の間は file で 1 つの Chromium に差し替える (#3599)
 await lendFileChromium();
 
 const require_ = createRequire(import.meta.url);
 const fontverter = require_("fontverter") as { convert(buffer: Uint8Array, to: "sfnt"): Promise<Uint8Array> };
-
-export type Format = "mp4" | "gif" | "html" | "png";
-
-export interface ExportOptions {
-  outDir: string;
-  name?: string;
-  formats?: Format[];
-  width?: number;
-  palette?: string;
-  theme?: "light" | "dark";
-  fps?: number;
-  gifFps?: number;
-  /** 図の中の字 (全体図の札、読み上げの名前、断りの文) の言葉 (#3001) */
-  lang?: "ja" | "en";
-}
-
-/** 書き出した file と、動画のコマの大きさ (CSS の px) */
-export interface Exported {
-  files: Partial<Record<Format, string>>;
-  view: "fixed" | "follow";
-  frames: number;
-  width: number;
-  height: number;
-}
 
 type ExportDiagram = (diagram: unknown, options: ExportOptions) => Promise<Exported>;
 
@@ -62,40 +39,14 @@ export async function exporter(): Promise<ExportDiagram> {
 // 命令の置き場は repo の根 (vitest を回す場所) から引く
 const CLI = join(process.cwd(), "packages/dragon/dist/cli.js");
 
-export interface Ran {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
-/** 命令を走らせる場。`env` は今の環境変数に足し、`nodeArgs` は node に命令より先に渡す (#3003) */
-export interface RunPlace {
-  env?: Record<string, string>;
-  nodeArgs?: string[];
-}
-
-/** `playwright-core` が入っていない場。撮る道具が無い時の断りを確かめる (#3003、#3013) */
-export const withoutPlaywright = (): RunPlace => ({
-  nodeArgs: ["--import", pathToFileURL(join(process.cwd(), "packages/dragon/test/fixtures/hide-playwright-core.mjs")).href],
-});
-
 /** 書き出しの命令を起こした回数。件が命令を何回起こしたかを確かめる (#3424) */
 let cliRuns = 0;
 export const cliRunCount = (): number => cliRuns;
 
-/** 書き出しの命令を node で走らせる。落ちても投げずに終わり方を返す */
+/** 書き出しの命令を子の Node の process で走らせる。落ちても投げずに終わり方を返す。起こし方は準備の段と同じ (`test-support/prepare-tools.ts`) */
 export async function runCli(args: string[], place: RunPlace = {}): Promise<Ran> {
   cliRuns++;
-  try {
-    const { stdout, stderr } = await promisify(execFile)(process.execPath, [...(place.nodeArgs ?? []), CLI, ...args], {
-      encoding: "utf8",
-      env: { ...process.env, ...place.env },
-    });
-    return { code: 0, stdout, stderr };
-  } catch (error) {
-    const failed = error as { code?: unknown; stdout?: string; stderr?: string };
-    return { code: typeof failed.code === "number" ? failed.code : 1, stdout: failed.stdout ?? "", stderr: failed.stderr ?? "" };
-  }
+  return spawnCli(args, place);
 }
 
 /**

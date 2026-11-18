@@ -93,7 +93,7 @@
 | 言葉を渡さない書き出しの重なりの行を確かめる検査は、Chromiumを起こさずに確かめる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps-without-lang`が通る | #3599 |
 | `export.test.ts`と`export-language.test.ts`は、書き出しの命令を子のNodeのプロセスで起こさない | `pnpm exec vitest run packages/dragon/test/shared-chromium.test.ts`の検査`export-tests-spawn-no-cli`が通る | #3599 |
 | `packages/dragon/src`の下のfileは、検査の中でChromiumを包む処理を読まない | `pnpm exec vitest run packages/dragon/test/shared-chromium.test.ts`の検査`product-reads-no-shared-chromium`が通る | #3599 |
-| 同じプロセスで動かした書き出しの命令が、言葉を渡さない日本語の図を日本語の字で書き出す | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-without-lang-follows-japanese-text`が通る | #3599 |
+| 書き出しの命令が、言葉を渡さない日本語の図を日本語の字で書き出す | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-without-lang-follows-japanese-text`が通る | #3599 |
 | Chromiumが字のfileを読めない時、使い回したChromiumでも、読めないfileを名指して書き出しを拒む | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-names-unreadable-font`が通る | #3599 |
 | 書き出す道具が無い時、子のプロセスで起こした命令は入れ方を添えて英語で書き出しを拒む | `pnpm exec vitest run packages/dragon/test/cli-language.test.ts`の検査`cli-chromium-refusal-in-english`が通る | #3599 |
 | 包んだ後も、packageの検査が全て通る | `pnpm exec vitest run packages/`が終わり方0で終わる | #3599 |
@@ -158,3 +158,12 @@
 | 直す件の名前は今と同じまま、名指した検査のfileに在る | `pnpm exec vitest run packages/dragon/test/case-work.test.ts`の検査`case-work-named-cases-exist`が通る | #3738 |
 | 見本の全てを1件で確かめていた件は、見本ごとの件に分かれ、件の数が見本の数と同じになる | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts packages/dragon/test/blocks.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/pen-line.test.ts apps/playground-spa/src/lib/playground.test.ts`の検査`layout-check-cases-follow-examples`と`gallery-warn-cases-follow-gallery`と`block-draw-cases-follow-gallery`と`default-entry-cases-follow-files`と`pen-line-part-cases-follow-files`と`part-desc-cases-follow-blocks`が通る | #3738 |
 | 見本を抜き取って、件の数を見本の数より減らす形を拒む | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts packages/dragon/test/blocks.test.ts packages/dragon/test/light-entry.test.ts packages/dragon/test/pen-line.test.ts apps/playground-spa/src/lib/playground.test.ts`の検査`layout-check-cases-follow-examples`と`gallery-warn-cases-follow-gallery`と`block-draw-cases-follow-gallery`と`default-entry-cases-follow-files`と`pen-line-part-cases-follow-files`と`part-desc-cases-follow-blocks`が通る | #3738 |
+| 背景の表の6つの検査のfileの件が、期待の値と落とす時の文を変えずに通る | `pnpm exec vitest run packages/dragon/test/export-language.test.ts packages/dragon/test/cli-language.test.ts packages/dragon/test/export.test.ts packages/dragon/test/package-entries.test.ts packages/dragon/test/export-fonts.test.ts packages/dragon/test/player.test.ts`が終了0で、時間切れの件が0 | #3734 |
+| 1件の検査とその前後処理の上限は10秒のままである | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3734 |
+| 1回の実行の上限は5分のままである | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`が通る | #3734 |
+| 上限を変える環境変数は`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`の2つだけで、検査の設定と準備の段と検査の道具は、名前に`LIMIT`を含む別の環境変数を読まない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`limit-env-names-unchanged`が通る | #3734 |
+| 背景の表の6つの検査のfileは、それぞれ同じ名前の準備のfile (`<名前>.prepare.ts`) を持ち、検査のfileがその準備のfileを読む | `pnpm exec vitest run packages/dragon/test/prepared-work.test.ts`の検査`prepared-files-have-prepare-modules`が通る | #3734 |
+| 背景の表の6つの検査のfileは、件の中で命令の子のprocess、書き出し、図を描く仕事、型の検査、字のfileを組む仕事を起こせない | `pnpm exec vitest run packages/dragon/test/prepared-work.test.ts`の検査`prepared-files-do-no-heavy-work-in-cases`が通る | #3734 |
+| 重い仕事を起こす呼び出しを書き足した検査の字を渡すと、形の検査は呼び出しの名前を挙げて拒む | `pnpm exec vitest run packages/dragon/test/prepared-work.test.ts`の検査`heavy-work-finder-names-planted-calls`が通る | #3734 |
+| 1回の実行の準備の段 (`globalSetup`) は、回す検査のfileのうち準備のfileを持つfileの準備だけを走らせ、準備のfileを持つfileを回さない回は準備を走らせない | `pnpm exec vitest run packages/dragon/test/prepared-work.test.ts`の検査`prepare-runs-only-for-selected-files`が通る | #3734 |
+| 1つのfileの準備が落ちた時、準備の段は実行を止めず、そのfileの件は落ちた理由を挙げて落ち、ほかのfileの件は準備の結果を読める | `pnpm exec vitest run packages/dragon/test/prepared-work.test.ts`の検査`prepare-failure-fails-only-its-file`が通る | #3734 |

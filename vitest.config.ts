@@ -17,7 +17,15 @@ export default defineConfig({
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
     // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は要る時に 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
     // npm に出す file の一覧は 1 回の実行で 1 度だけ `npm pack --dry-run` で出す (`pack-setup.ts`、#3410)
-    globalSetup: ["./test-support/run-tmp.ts", "./test-support/global-setup.ts", "./test-support/run-limit.ts", "./apps/playground-spa/src/lib/site-setup.ts", "./test-support/pack-setup.ts"],
+    // 命令の子の process、書き出し、図を描く仕事、型の検査、字の file を組む仕事は、検査の file と同じ名前の準備の file に書き、ここで済ませる (`prepare-setup.ts`、#3734)
+    globalSetup: [
+      "./test-support/run-tmp.ts",
+      "./test-support/global-setup.ts",
+      "./test-support/run-limit.ts",
+      "./apps/playground-spa/src/lib/site-setup.ts",
+      "./test-support/pack-setup.ts",
+      "./test-support/prepare-setup.ts",
+    ],
     /*
      * 1 件の検査とその前後処理は 10 秒で止める (#3381)。上限の値と、下げる環境変数は `test-support/limits.ts` が持つ。
      *
@@ -46,10 +54,7 @@ export default defineConfig({
       "apps/**/src/**/*.test.tsx",
     ],
     // bench.test.ts は bench() のみ含み regular test mode で `bench is only available in benchmark mode` を起こすため除外。
-    exclude: [
-      "**/node_modules/**",
-      "**/test/bench.test.ts",
-    ],
+    exclude: ["**/node_modules/**", "**/test/bench.test.ts"],
     /*
      * 既定は node。 画面の部品を要る検査は、file 冒頭に `// @vitest-environment jsdom` を書く (#2089)。
      *
