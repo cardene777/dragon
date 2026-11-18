@@ -11,7 +11,8 @@
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { api, exampleJson, type Json, type LineError } from "./diagram-support";
 import { cliRunCount, formatOf } from "./export-support";
@@ -352,27 +353,29 @@ describe("試す図の描き方 (#3337)", () => {
   });
 });
 
-describe("試す図の書き出し (#3337)", () => {
-  // thread を作り Chromium を起こす段は件の前に済ませ、件の中では書き出す分だけを待つ (#3602)
-  beforeAll(warmThread);
-  // 書き出しの件が書き出しの命令を起こした回数を数える (#3602)
-  let runsAtStart = 0;
-  let exportCliRuns: number | undefined;
-  beforeEach(() => {
-    runsAtStart = cliRunCount();
-  });
-  afterEach(({ task }) => {
-    if (task.name === "interactive-export-draws-author-steps") exportCliRuns = cliRunCount() - runsAtStart;
-  });
+// 描いて thread で PNG に書き出すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその結果を読む。
+// 書き出しは jsdom の外の thread で、thread で 1 つの Chromium を借りて回す。命令の引数の扱いは書き出しの検査 (`export.test.ts`) が確かめる (#3602)
+const EXPORTED = await atLoad("試す図を描いて PNG に書き出す", async () => {
+  // thread を作り Chromium を起こす段を先に済ませる (#3602)
+  await warmThread();
+  const source = txBlock() as Source;
+  // 書き出しと印刷は、書き手が書いた段を全て描き、最後の段 (書き換える) は食い違いの印を出す
+  const rendered = draw("renderDiagram")(source, { still: true });
+  // 書き出しが書き出しの命令を起こした回数を数える (#3602)
+  const runsAtStart = cliRunCount();
+  const out = join(mkdtempSync(join(tmpdir(), "dragon-try-")), "out");
+  const files = await exportInThread(exampleJson("tx-block.json"), { outDir: out, name: "tx-block", formats: ["png"] });
+  const file = join(out, "tx-block.png");
+  return { source, rendered, files, file, written: existsSync(file) ? readFileSync(file) : Buffer.alloc(0), cliRuns: cliRunCount() - runsAtStart };
+});
 
+describe("試す図の書き出し (#3337)", () => {
   it(
     "interactive-export-draws-author-steps",
-    async () => {
+    () => {
       const json = join(EXAMPLES, "tx-block.json");
       expect(existsSync(json), "tx-block.json が無い").toBe(true);
-      const source = txBlock() as Source;
-      // 書き出しと印刷は、書き手が書いた段を全て描き、最後の段 (書き換える) は食い違いの印を出す
-      const rendered = draw("renderDiagram")(source, { still: true });
+      const { source, rendered, files, file, written } = EXPORTED.get();
       expect(rendered.timeline.steps.length, "書き出しで描く段の数が書き手の段の数と違う").toBe(
         source.steps?.length,
       );
@@ -382,22 +385,14 @@ describe("試す図の書き出し (#3337)", () => {
       );
       expect(rendered.svg, "書き出す図に入力の欄が入る").not.toMatch(/<input|<button|<form/u);
 
-      // 書き出しは jsdom の外の thread で、thread で 1 つの Chromium を借りて回す。命令の引数の扱いは書き出しの検査 (`export.test.ts`) が確かめる (#3602)
-      const out = join(mkdtempSync(join(tmpdir(), "dragon-try-")), "out");
-      const files = await exportInThread(exampleJson("tx-block.json"), { outDir: out, name: "tx-block", formats: ["png"] });
-      const file = join(out, "tx-block.png");
       expect(files.png, "書き出した PNG の path").toBe(file);
-      expect(
-        formatOf(existsSync(file) ? readFileSync(file) : Buffer.alloc(0)),
-        `${file} が png として書かれていない`,
-      ).toBe("png");
+      expect(formatOf(written), `${file} が png として書かれていない`).toBe("png");
     },
   );
 
   // 書き出しの命令を子の Node のプロセスで起こすと、その中で Chromium も起こし、混んだ機械で 1 件の上限 (10 秒) を超えた (#3602)
   it("interactive-export-spawns-no-cli", () => {
-    expect(exportCliRuns, "書き出しの件より後に回し、書き出しの件の回数を数えている").toBeDefined();
-    expect(exportCliRuns, "試す図の書き出しの件が書き出しの命令を起こした回数").toBe(0);
+    expect(EXPORTED.get().cliRuns, "試す図の書き出しが書き出しの命令を起こした回数").toBe(0);
   });
 });
 

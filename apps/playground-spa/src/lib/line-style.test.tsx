@@ -12,6 +12,7 @@
 import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
 
 import { DOCS, SECTIONS } from "../docs/content";
 import { Docs } from "../docs/Docs";
@@ -151,8 +152,18 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// 編集画面を初めて開くと、画面の部品と図の種類の部品の塊を読むのを待って、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で 1 度開いて塊を読んでおき、件は開いた結果を読んでから開き直す
+const WARMED = await atLoad("編集画面を 1 度開き、図の種類の部品の塊を読む", async () => {
+  await openEditor();
+  close();
+  localStorage.clear();
+});
+
 describe("編集画面で線の描き方を選ぶ (#3643)", () => {
   it("stage-picks-pen-line", async () => {
+    // 読み込む段で開けなかった時は、その理由で落ちる
+    WARMED.get();
     const before = await openEditor();
     const picker = linePicker();
     expect(lineChoices(picker), "線の描き方の釦").toEqual([

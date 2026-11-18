@@ -128,19 +128,34 @@ const work = async (): Promise<Work | undefined> => (await import(/* @vite-ignor
 /** 件の file の字。無い時は undefined */
 const sourceOf = (file: string): string | undefined => (existsSync(join(ROOT, file)) ? readFileSync(join(ROOT, file), "utf8") : undefined);
 
-/** 規則に当たる件を全て集め、`judge` が返した外れを `file > 件の名前: 理由` の形で返す */
-async function broken(pick: (rule: Rule) => boolean, judge: (rule: Rule, found: FoundCase, w: Work) => string | undefined): Promise<string[]> {
+/**
+ * 数える道具と、規則の file ごとの件。file の字を構文で読むのは重いので、件ごとに読み直さず、file を読み込む段で 1 度だけ読む。
+ * 道具が無い時と、件の file が無い時は undefined
+ */
+const COUNTED = await (async () => {
   const w = await work();
+  const cases = new Map<string, FoundCase[] | undefined>();
+  if (w !== undefined)
+    for (const file of new Set(RULES.map((rule) => rule.file))) {
+      const source = sourceOf(file);
+      cases.set(file, source === undefined ? undefined : w.casesIn(source, file));
+    }
+  return { w, cases };
+})();
+
+/** 規則に当たる件を全て集め、`judge` が返した外れを `file > 件の名前: 理由` の形で返す */
+function broken(pick: (rule: Rule) => boolean, judge: (rule: Rule, found: FoundCase, w: Work) => string | undefined): string[] {
+  const { w, cases } = COUNTED;
   expect(w?.casesIn, "件の重い仕事を数える道具 (packages/dragon/test/case-work.ts の casesIn) が無い").toBeTypeOf("function");
   if (w === undefined) return [];
   const out: string[] = [];
   for (const rule of RULES.filter(pick)) {
-    const source = sourceOf(rule.file);
-    if (source === undefined) {
+    const inFile = cases.get(rule.file);
+    if (inFile === undefined) {
       out.push(`${rule.file} > ${rule.name}: 件の file が無い`);
       continue;
     }
-    const found = w.casesIn(source, rule.file).filter((c) => c.name === rule.name);
+    const found = inFile.filter((c) => c.name === rule.name);
     if (found.length === 0) out.push(`${rule.file} > ${rule.name}: 件が無い`);
     for (const c of found) {
       const why = judge(rule, c, w);
@@ -151,8 +166,8 @@ async function broken(pick: (rule: Rule) => boolean, judge: (rule: Rule, found: 
 }
 
 describe("検査の件の中の重い仕事 (#3738)", () => {
-  it("case-work-no-heavy-loop-in-cases", async () => {
-    const found = await broken(
+  it("case-work-no-heavy-loop-in-cases", () => {
+    const found = broken(
       (rule) => rule.split !== undefined,
       (rule, c, w) => {
         const count = w.countOf(c.heavy);
@@ -162,8 +177,8 @@ describe("検査の件の中の重い仕事 (#3738)", () => {
     expect(found, "件の中で重い仕事を繰り返す件").toEqual([]);
   });
 
-  it("case-work-no-heavy-call-in-load-cases", async () => {
-    const found = await broken(
+  it("case-work-no-heavy-call-in-load-cases", () => {
+    const found = broken(
       (rule) => rule.load !== undefined,
       (rule, c, w) => {
         if (!c.readsAtLoad) return "file を読み込む段で済ませた仕事の結果 (atLoad で作った物の get()) を読まない";
@@ -174,17 +189,17 @@ describe("検査の件の中の重い仕事 (#3738)", () => {
     expect(found, "1 回分の仕事を件の中に残す件").toEqual([]);
   });
 
-  it("case-work-no-child-process-in-cases", async () => {
-    const found = await broken(
+  it("case-work-no-child-process-in-cases", () => {
+    const found = broken(
       (rule) => rule.child === true,
       (_rule, c, w) => (c.child.length > 0 ? `子の process を起こす ${w.describeCalls(c.child)}` : undefined),
     );
     expect(found, "子の process を起こす件").toEqual([]);
   });
 
-  it("case-work-named-cases-exist", async () => {
+  it("case-work-named-cases-exist", () => {
     // 件の名前は直す前と同じまま残す。分けた件も元の件の名前を持つ
-    const found = await broken(
+    const found = broken(
       () => true,
       () => undefined,
     );

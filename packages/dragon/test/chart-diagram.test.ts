@@ -15,7 +15,8 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
 import { captionSteps, formatOf } from "./export-support";
@@ -559,36 +560,58 @@ const firstStep = (name: string): Json => {
  * 4 つの形式の書き出しを 1 件ずつに分ける。1 件で全てを書き出すと、混んだ機械で 1 件の上限 (10 秒) を超える。
  * 動画は 1 秒 1 コマと 2 秒に 1 コマで最初の段だけを撮り、PNG は同じ JSON を 2 回書き出してバイトで比べ、HTML は全ての段を送る
  */
-describe.for([
+const SHOTS = [
   { shot: "video", name: DONUT },
   { shot: "png", name: BAR },
   { shot: "html", name: DONUT },
   { shot: "html", name: BAR },
-] as const)("量の図の書き出し (#3560) $shot $name", ({ shot, name }) => {
-  // thread を作り Chromium を起こす段は件の前に済ませ、件の中では書き出す分だけを待つ (#3602)。2 件目からは用意済みで待たない
-  beforeAll(warmThread);
-  it("chart-exports-every-format", async () => {
+] as const;
+
+/** 書き出した物。動画は 2 つの形式の中身、PNG は 2 回書き出した中身、HTML は中身と図の段の数と頁で送れた段の数 */
+type Exported =
+  | { shot: "video"; files: Record<"mp4" | "gif", Buffer> }
+  | { shot: "png"; shots: Buffer[] }
+  | { shot: "html"; html: Buffer; steps: number; sent: number };
+
+// 1 つの形式でも、書き出して頁で段を送ると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 4 つの書き出しを file を読み込む段で順に済ませ、件はその結果を読む。キーは `形式 見本`
+const EXPORTED = await atLoad("量の図を 4 つの形式で書き出す", async () => {
+  // thread を作り Chromium を起こす段を先に済ませる (#3602)。2 回目からの書き出しは用意済みで待たない
+  await warmThread();
+  const done = new Map<string, Exported>();
+  for (const { shot, name } of SHOTS) {
     if (shot === "video") {
       const files = await exportInThread(firstStep(name), { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
-      for (const format of ["mp4", "gif"] as const) expect(formatOf(writtenBytes(files[format] ?? "")), `${name} が ${format} に書き出されない`).toBe(format);
-      return;
+      done.set(`${shot} ${name}`, { shot, files: { mp4: writtenBytes(files.mp4 ?? ""), gif: writtenBytes(files.gif ?? "") } });
+      continue;
     }
     const diagram = exampleJson(`${name}.json`);
     if (shot === "png") {
       const shots: Buffer[] = [];
-      for (let k = 0; k < 2; k++) {
-        const files = await exportInThread(diagram, { outDir: scratch(), formats: ["png"] });
-        shots.push(writtenBytes(files.png ?? ""));
-      }
-      expect(formatOf(shots[0] as Buffer), `${name} が PNG に書き出されない`).toBe("png");
-      expect((shots[0] as Buffer).equals(shots[1] as Buffer), `${name} を 2 回書き出した PNG がバイト単位で違う`).toBe(true);
-      return;
+      for (let k = 0; k < 2; k++) shots.push(writtenBytes((await exportInThread(diagram, { outDir: scratch(), formats: ["png"] })).png ?? ""));
+      done.set(`${shot} ${name}`, { shot, shots });
+      continue;
     }
-    const files = await exportInThread(diagram, { outDir: scratch(), formats: ["html"] });
-    const html = writtenBytes(files.html ?? "");
-    expect(formatOf(html), `${name} が HTML に書き出されない`).toBe("html");
-    const steps = (diagram as { steps: Json[] }).steps.length;
-    expect(await captionSteps(html.toString("utf8"), 1280), `${name} の書き出した HTML で送れた段の数`).toHaveLength(steps);
+    const html = writtenBytes((await exportInThread(diagram, { outDir: scratch(), formats: ["html"] })).html ?? "");
+    const sent = formatOf(html) === "html" ? (await captionSteps(html.toString("utf8"), 1280)).length : 0;
+    done.set(`${shot} ${name}`, { shot, html, steps: (diagram as { steps: Json[] }).steps.length, sent });
+  }
+  return done;
+});
+
+describe.for(SHOTS)("量の図の書き出し (#3560) $shot $name", ({ shot, name }) => {
+  it("chart-exports-every-format", () => {
+    const done = EXPORTED.get().get(`${shot} ${name}`);
+    expect(done?.shot, `${name} を ${shot} で書き出していない`).toBe(shot);
+    if (done?.shot === "video") {
+      for (const format of ["mp4", "gif"] as const) expect(formatOf(done.files[format]), `${name} が ${format} に書き出されない`).toBe(format);
+    } else if (done?.shot === "png") {
+      expect(formatOf(done.shots[0] as Buffer), `${name} が PNG に書き出されない`).toBe("png");
+      expect((done.shots[0] as Buffer).equals(done.shots[1] as Buffer), `${name} を 2 回書き出した PNG がバイト単位で違う`).toBe(true);
+    } else if (done?.shot === "html") {
+      expect(formatOf(done.html), `${name} が HTML に書き出されない`).toBe("html");
+      expect(done.sent, `${name} の書き出した HTML で送れた段の数`).toBe(done.steps);
+    }
   });
 });
 

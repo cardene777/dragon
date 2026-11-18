@@ -21,6 +21,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, gap, type Layout, type Rect, type Rendered, type Span } from "./render-support";
@@ -463,6 +464,9 @@ describe("時計の文字盤の見た目の記法 (#3638)", () => {
   });
 });
 
+// 短い手順の時計を描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で描き、件はその置き場所を読む
+const SHORT_CLOCK = await atLoad("短い手順を持つ時計を描く", () => renderClock(SHORT));
+
 describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
   it("clock-arcs-follow-times", () => {
     const total = Object.values(MINUTES).reduce((a, b) => a + b, 0);
@@ -631,7 +635,7 @@ describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
   it("clock-short-step-leads-labels-out", () => {
     const source = parsed(SHORT);
     const current = currentOf(source);
-    const { layout, ring } = renderClock(SHORT);
+    const { layout, ring } = SHORT_CLOCK.get();
     const names = layout.names ?? [];
     const leads = layout.leads ?? [];
     expect(names.map((n) => n.id), "文字盤の外の名前の順").toEqual((source.blocks.box ?? []).map((b) => b.id));

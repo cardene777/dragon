@@ -16,6 +16,7 @@ import { parseNotation } from "../src/parser";
 import { findBreaks, type LayoutBreak } from "../src/render/breaks";
 import { ALWAYS, type Trace } from "../src/render/ink";
 import { renderDiagram } from "../src/render/svg";
+import { atLoad } from "./at-load";
 import { runCli } from "./export-support";
 
 const ROOT = process.cwd();
@@ -118,14 +119,23 @@ const trace = (from: string, to: string, points: Point[]): Trace => ({ from, to,
 const linesOnly = (traces: Trace[]): LayoutBreak[] =>
   findBreaks({ inks: [], traces, framed: [], stills: [0], frame: { w: 1000, h: 1000 }, boxes: [], edges: [], outlines: new Map() });
 
+// 2 つの図を描いて命令で崩れを調べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその結果を読む
+const PAYMENT_CHECKED = await atLoad("評価の支払いの図を描き、命令で崩れを調べる", async () => ({
+  evalLayout: layoutOf(PAYMENT_EVAL),
+  bentLayout: layoutOf(PAYMENT_BENT),
+  breaks: [
+    [PAYMENT_EVAL, await breaksOf(PAYMENT_EVAL)],
+    [PAYMENT_BENT, await breaksOf(PAYMENT_BENT)],
+  ] as const,
+}));
+
 describe("評価でClaudeが描いた支払いの図の行きと帰りの線 (#3521)", () => {
-  it("return-lines-payment-eval-no-close-breaks", async () => {
+  it("return-lines-payment-eval-no-close-breaks", () => {
+    const { evalLayout, bentLayout, breaks } = PAYMENT_CHECKED.get();
     // 図が行きと帰りの線を持つことを先に確かめる。持たなければ崩れ0件は当たり前になる
-    expect(pairOf(layoutOf(PAYMENT_EVAL), "api", "oracle")).toHaveLength(2);
-    expect(pairOf(layoutOf(PAYMENT_BENT), "api", "psp")).toHaveLength(2);
-    for (const file of [PAYMENT_EVAL, PAYMENT_BENT]) {
-      expect(closeKinds(await breaksOf(file)), `${file} の線と番号の崩れ`).toEqual([]);
-    }
+    expect(pairOf(evalLayout, "api", "oracle")).toHaveLength(2);
+    expect(pairOf(bentLayout, "api", "psp")).toHaveLength(2);
+    for (const [file, found] of breaks) expect(closeKinds(found), `${file} の線と番号の崩れ`).toEqual([]);
   });
 
   it("return-lines-architecture-apart", () => {

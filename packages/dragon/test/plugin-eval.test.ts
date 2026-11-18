@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 const ROOT = process.cwd();
 const EVALS = join(ROOT, "plugins/dragon/evals");
@@ -168,38 +169,46 @@ interface StandIn {
  * 評価の囲いは GitHub に届かず、本物へ PR を出すと試しの PR が積まれる。
  * 記録の script は fork の代わりに小さな写しの repo を作り、渡された引数を書き残す偽の `gh` を PATH の頭に置いて回す。
  */
+/** 写しの repo と偽の gh を作る script */
+const STAND_IN = join(ROOT, "scripts/plugin-eval-stand-in.mjs");
+
+// 写しの repo を作って git と偽の gh を子の process で回すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で済ませ、件はその結果を読む
+const STAND_IN_RAN = await atLoad("写しの repo を作り、偽の gh で PR を作ってマージする", async () => {
+  const { makeStandIn } = (await import(STAND_IN)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
+  const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
+  const standIn = makeStandIn({ root: ROOT, dir });
+  const head = spawnSync("git", ["-C", standIn.repo, "rev-parse", "--verify", "HEAD"], { encoding: "utf8" });
+  // PATH の頭に置くと gh は偽の gh を指し、届かない proxy を渡しても通る
+  const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}`, HTTPS_PROXY: "http://127.0.0.1:9", HTTP_PROXY: "http://127.0.0.1:9" };
+  const which = spawnSync("sh", ["-c", "command -v gh"], { encoding: "utf8", env });
+  const body = join(dir, "pr-body.md");
+  writeFileSync(body, "## What the block shows\n");
+  const calls = [
+    ["pr", "create", "--repo", "cardene777/dragon", "--title", "feat: add the shared block +vault", "--body-file", body],
+    ["pr", "merge", "1", "--repo", "cardene777/dragon"],
+  ];
+  const ran = calls.map((args) => ({ args, run: spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 }) }));
+  const logged = existsSync(standIn.ghLog)
+    ? readFileSync(standIn.ghLog, "utf8")
+        .trimEnd()
+        .split("\n")
+        .map((line) => JSON.parse(line) as string[])
+    : [];
+  return { standIn, head, which, calls, ran, logged };
+});
+
 describe("skill を入れた Claude がブロックを足して PR を出す評価 (#3508)", () => {
-  it("plugin-eval-stand-in-records-gh", async () => {
-    const script = join(ROOT, "scripts/plugin-eval-stand-in.mjs");
-    expect(existsSync(script), `${relative(ROOT, script)} が無い`).toBe(true);
-    if (!existsSync(script)) return;
-    const { makeStandIn } = (await import(script)) as { makeStandIn: (options: { root: string; dir: string }) => StandIn };
-    const dir = mkdtempSync(join(tmpdir(), "dragon-stand-in-"));
-    const standIn = makeStandIn({ root: ROOT, dir });
+  it("plugin-eval-stand-in-records-gh", () => {
+    expect(existsSync(STAND_IN), `${relative(ROOT, STAND_IN)} が無い`).toBe(true);
+    const { standIn, head, which, calls, ran, logged } = STAND_IN_RAN.get();
     // 写しの repo は git の repo で、共有のブロック集と PR の雛形と決まりの文書を持つ
     for (const path of ["packages/dragon/blocks/bridge.dragon", "packages/dragon/blocks/examples/bridge.dragon", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md"]) {
       expect(existsSync(join(standIn.repo, path)), `写しの repo に ${path} が無い`).toBe(true);
     }
-    const head = spawnSync("git", ["-C", standIn.repo, "rev-parse", "--verify", "HEAD"], { encoding: "utf8" });
     expect(head.status, `写しの repo に commit が無い ${head.stderr}`).toBe(0);
-    // PATH の頭に置くと gh は偽の gh を指し、届かない proxy を渡しても通る
-    const env = { ...process.env, PATH: `${standIn.bin}:${process.env.PATH ?? ""}`, HTTPS_PROXY: "http://127.0.0.1:9", HTTP_PROXY: "http://127.0.0.1:9" };
-    const which = spawnSync("sh", ["-c", "command -v gh"], { encoding: "utf8", env });
     expect(which.stdout.trim(), "gh が偽の gh を指さない").toBe(join(standIn.bin, "gh"));
-    const body = join(dir, "pr-body.md");
-    writeFileSync(body, "## What the block shows\n");
-    const calls = [
-      ["pr", "create", "--repo", "cardene777/dragon", "--title", "feat: add the shared block +vault", "--body-file", body],
-      ["pr", "merge", "1", "--repo", "cardene777/dragon"],
-    ];
-    for (const args of calls) {
-      const ran = spawnSync("gh", args, { cwd: standIn.repo, encoding: "utf8", env, timeout: 10_000 });
-      expect(ran.status, `偽の gh ${args.join(" ")} が終わり方 0 にならない ${ran.stderr}`).toBe(0);
-    }
-    const logged = readFileSync(standIn.ghLog, "utf8")
-      .trimEnd()
-      .split("\n")
-      .map((line) => JSON.parse(line) as string[]);
+    for (const { args, run } of ran) expect(run.status, `偽の gh ${args.join(" ")} が終わり方 0 にならない ${run.stderr}`).toBe(0);
     expect(logged, "偽の gh が受けた引数を順に残さない").toEqual(calls);
   });
 

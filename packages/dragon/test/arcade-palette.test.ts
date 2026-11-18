@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
-import { casesNamed, runCli } from "./export-support";
+import { casesNamed, runCliInProcess } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
 
 const ROOT = process.cwd();
@@ -94,9 +94,10 @@ describe("arcade で描く (#3341)", () => {
     expect(casesNamed(task.file, "arcade-renders-every-example"), "見本ごとの件").toEqual(files.map((file) => `arcade で描く見本 (#3341) ${file}`));
   });
 
+  // 子の Node で命令を起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。同じ process で命令を呼ぶ
   it("cli-draws-with-arcade-palette", async () => {
     const out = join(mkdtempSync(join(tmpdir(), "dragon-arcade-")), "out");
-    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--palette", "arcade"]);
+    const ran = await runCliInProcess(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--palette", "arcade"]);
     expect(ran.code, `--palette arcade で書き出せない: ${ran.stderr}`).toBe(0);
     // `--out` は書き出す dir で、図の file の名前の HTML を置く
     const written = readdirSync(out).filter((file) => file.endsWith(".html"));

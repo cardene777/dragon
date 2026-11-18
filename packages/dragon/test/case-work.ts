@@ -40,6 +40,9 @@ export const HEAVY = new Set([
   "mount",
   "bundleSizes",
   "import()",
+  // 配管の図の検査が共有の支え (`pipe-diagram-support.ts`) から読む、描く関数。支えは別の file なので、呼ぶ関数を辿れない
+  "render",
+  "openedAggregator",
 ]);
 
 /** 子の process を起こす名前。同じ file の中の関数は、これを呼べば子の process を起こす名前に加わる */

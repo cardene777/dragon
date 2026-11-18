@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { EMBED_PATH, EMBEDDING_PATH, PATHS } from "../site/routes";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
 import { casesNamed } from "../../../../packages/dragon/test/export-support";
 import { builtDir, bundleSizes, firstLoadFiles, pageSources } from "./playground-support";
 
@@ -26,6 +27,30 @@ const screenRoutes = (): string[] => {
   ].sort();
 };
 
+/** ブロックの置き場 */
+const BLOCKS = join(__dirname, "../../../../packages/dragon/src/blocks");
+/** 部品の説明 (各ブロックの `gallery/desc.ts`) を持つブロック */
+const DESC_BLOCKS = readdirSync(BLOCKS)
+  .filter((name) => existsSync(join(BLOCKS, name, "gallery", "desc.ts")))
+  .sort();
+
+// 塊ごとの gzip の大きさを数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で数え、件はその大きさを読む
+const SIZES = await atLoad("build した頁の塊ごとの gzip の大きさを数える", () => bundleSizes(builtDir()));
+
+// 全てのブロックの説明を 1 件で読むと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 説明の字と、build した頁が最初に読む script は file を読み込む段で読み、件はブロックごとに分ける
+const PART_DESCS = await atLoad("ブロックの説明の字と、最初に読む script を読む", async () => ({
+  descs: Object.fromEntries(
+    await Promise.all(
+      DESC_BLOCKS.map(async (name) => [name, Object.values(((await import(/* @vite-ignore */ join(BLOCKS, name, "gallery", "desc.ts"))) as { desc: Record<string, string> }).desc)] as const),
+    ),
+  ),
+  first: firstLoadFiles(builtDir())
+    .filter((name) => name.endsWith(".js"))
+    .map((name) => readFileSync(join(builtDir(), "assets", name), "utf8"))
+    .join("\n"),
+}));
+
 describe("公開する頁 (#2995)", () => {
 
   // 上限は 250KB で始め、#3199 で 270KB にした。図の種類が 5 つになり、記法の語ごとに全ての図の種類と 2 つの言葉の
@@ -34,7 +59,7 @@ describe("公開する頁 (#2995)", () => {
   // #3246 で、上限を頁が最初に読む script と CSS に当てる形にした。見本と部品の図の記法は後から読む塊に分け、
   // 全部の塊の合計は分けてもほぼ減らないので上限を当てず、前の記録と同じ数え方で比べられるよう落ちた時の文に並べる
   it("page-bundle-within-budget", () => {
-    const sizes = bundleSizes(builtDir());
+    const sizes = SIZES.get();
     const first = firstLoadFiles(builtDir());
     const kb = (bytes: number): string => `${(bytes / 1024).toFixed(1)}KB`;
     const sum = (names: string[]): number => names.reduce((a, name) => a + (sizes[name] ?? 0), 0);
@@ -99,37 +124,28 @@ describe("公開する頁 (#2995)", () => {
 
   // 部品の説明 (各ブロックの `gallery/desc.ts`) は部品の頁だけが見せる。最初に読む script に入ると、日英で 100 件を超える字が
   // gzip で 7KB ほど上の上限を押し上げるので、どの説明の字も最初の script に入っていないことを確かめる (#3531)
-  it("first-load-carries-no-part-desc", async () => {
-    const blocks = join(__dirname, "../../../../packages/dragon/src/blocks");
-    const files = readdirSync(blocks)
-      .map((name) => join(blocks, name, "gallery", "desc.ts"))
-      .filter((path) => existsSync(path));
-    const descs = (
-      await Promise.all(files.map(async (path) => Object.values(((await import(/* @vite-ignore */ path)) as { desc: Record<string, string> }).desc)))
-    ).flat();
-    expect(descs.length, "部品の説明の字を数えられない (gallery/desc.ts が無い)").toBeGreaterThan(0);
-    const first = firstLoadFiles(builtDir())
-      .filter((name) => name.endsWith(".js"))
-      .map((name) => readFileSync(join(builtDir(), "assets", name), "utf8"))
-      .join("\n");
-    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
-    expect(
-      descs.filter((desc) => first.includes(desc) || first.includes(JSON.stringify(desc).slice(1, -1))).map((desc) => desc.slice(0, 40)),
-      "最初に読む script に在る部品の説明の字",
-    ).toEqual([]);
-    // 外した字が最初の script をどれだけ軽くしたか。説明の字を足して gzip で比べる
-    const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
-    expect(gz(`${first}\n${descs.join("\n")}`) - gz(first), "部品の説明の字を外しても、最初に読む script が gzip で 5,000 バイト軽くならない").toBeGreaterThanOrEqual(5000);
+  describe.for(DESC_BLOCKS)("%s", (block) => {
+    it("first-load-carries-no-part-desc", () => {
+      const { descs, first } = PART_DESCS.get();
+      const own = descs[block] ?? [];
+      expect(own.length, `${block} の部品の説明の字を数えられない`).toBeGreaterThan(0);
+      expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+      expect(
+        own.filter((desc) => first.includes(desc) || first.includes(JSON.stringify(desc).slice(1, -1))).map((desc) => desc.slice(0, 40)),
+        "最初に読む script に在る部品の説明の字",
+      ).toEqual([]);
+    });
   });
 
   // 全てのブロックの説明を 1 件で読むと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。ブロックごとの件に分ける
   it("part-desc-cases-follow-blocks", ({ task }) => {
-    const blocks = join(__dirname, "../../../../packages/dragon/src/blocks");
-    const names = readdirSync(blocks)
-      .filter((name) => existsSync(join(blocks, name, "gallery", "desc.ts")))
-      .sort();
-    expect(names.length, "部品の説明を数えられない (gallery/desc.ts が無い)").toBeGreaterThan(1);
-    expect(casesNamed(task.file, "first-load-carries-no-part-desc").sort(), "ブロックごとの件").toEqual(names);
+    expect(DESC_BLOCKS.length, "部品の説明を数えられない (gallery/desc.ts が無い)").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "first-load-carries-no-part-desc").sort(), "ブロックごとの件").toEqual(DESC_BLOCKS);
+    // ブロックごとに分けた件は、全ての説明の字を合わせた重さを見ないので、ここで見る。
+    // 外した字が最初の script をどれだけ軽くしたか。説明の字を足して gzip で比べる
+    const { descs, first } = PART_DESCS.get();
+    const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
+    expect(gz(`${first}\n${Object.values(descs).flat().join("\n")}`) - gz(first), "部品の説明の字を外しても、最初に読む script が gzip で 5,000 バイト軽くならない").toBeGreaterThanOrEqual(5000);
   });
 
   it("page-draws-with-package-parts", () => {
