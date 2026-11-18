@@ -93,7 +93,7 @@
 | 言葉を渡さない書き出しの重なりの行を確かめる検査は、Chromiumを起こさずに確かめる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps-without-lang`が通る | #3599 |
 | `export.test.ts`と`export-language.test.ts`は、書き出しの命令を子のNodeのプロセスで起こさない | `pnpm exec vitest run packages/dragon/test/shared-chromium.test.ts`の検査`export-tests-spawn-no-cli`が通る | #3599 |
 | `packages/dragon/src`の下のfileは、検査の中でChromiumを包む処理を読まない | `pnpm exec vitest run packages/dragon/test/shared-chromium.test.ts`の検査`product-reads-no-shared-chromium`が通る | #3599 |
-| 同じプロセスで動かした書き出しの命令が、言葉を渡さない日本語の図を日本語の字で書き出す | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-without-lang-follows-japanese-text`が通る | #3599 |
+| 書き出しの命令が、言葉を渡さない日本語の図を日本語の字で書き出す | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-without-lang-follows-japanese-text`が通る | #3599 |
 | Chromiumが字のfileを読めない時、使い回したChromiumでも、読めないfileを名指して書き出しを拒む | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-names-unreadable-font`が通る | #3599 |
 | 書き出す道具が無い時、子のプロセスで起こした命令は入れ方を添えて英語で書き出しを拒む | `pnpm exec vitest run packages/dragon/test/cli-language.test.ts`の検査`cli-chromium-refusal-in-english`が通る | #3599 |
 | 包んだ後も、packageの検査が全て通る | `pnpm exec vitest run packages/`が終わり方0で終わる | #3599 |

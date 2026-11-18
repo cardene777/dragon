@@ -20,12 +20,12 @@ const PREPARED = ["export-language", "cli-language", "export", "package-entries"
 /** 準備の段の道具。まだ無い時は undefined にして、判定で落とす */
 interface PrepareTools {
   PREPARED_FILES: readonly string[];
-  heavyCalls(source: string): string[];
-  preparesFor(testFiles: readonly string[]): { testFile: string; prepareFile: string }[];
-  runPrepares(entries: readonly { key: string; run: () => Promise<unknown> }[]): Promise<Record<string, unknown>>;
-  readPrepared(results: Record<string, unknown>, key: string): unknown;
+  heavyCalls: (source: string) => string[];
+  preparesFor: (testFiles: readonly string[]) => { testFile: string; prepareFile: string }[];
+  runPrepares: (entries: readonly { key: string; run: () => Promise<unknown> }[]) => Promise<Record<string, unknown>>;
+  readPrepared: (results: Record<string, unknown>, key: string) => unknown;
 }
-const tools = async (): Promise<PrepareTools | undefined> => (await import("../../../test-support/prepare").catch(() => undefined)) as PrepareTools | undefined;
+const tools = async (): Promise<PrepareTools | undefined> => await import("../../../test-support/prepare").catch(() => undefined);
 
 describe("重い仕事を準備の段で済ませる形 (#3734)", () => {
   it("prepared-files-have-prepare-modules", async () => {
@@ -103,7 +103,7 @@ describe("重い仕事を準備の段で済ませる形 (#3734)", () => {
     expect(t.preparesFor([withoutPrepare]), "準備の file を持つ検査の file を回さない回で準備を選んだ").toEqual([]);
     let ran = 0;
     expect(await t.runPrepares([]), "準備が無い回で結果を作った").toEqual({});
-    await t.runPrepares([{ key: "a", run: async () => ran++ }]);
+    await t.runPrepares([{ key: "a", run: () => Promise.resolve(ran++) }]);
     expect(ran, "選んだ準備を 1 度だけ走らせない").toBe(1);
   });
 
@@ -114,11 +114,9 @@ describe("重い仕事を準備の段で済ませる形 (#3734)", () => {
     const results = await t.runPrepares([
       {
         key: "packages/dragon/test/broken.test.ts",
-        run: async () => {
-          throw new Error("命令を起こせない");
-        },
+        run: () => Promise.reject(new Error("命令を起こせない")),
       },
-      { key: "packages/dragon/test/fine.test.ts", run: async () => ({ code: 0 }) },
+      { key: "packages/dragon/test/fine.test.ts", run: () => Promise.resolve({ code: 0 }) },
     ]);
     expect(t.readPrepared(results, "packages/dragon/test/fine.test.ts"), "落ちた準備と同じ回の、ほかの file の準備の結果を読めない").toEqual({ code: 0 });
     expect(() => t.readPrepared(results, "packages/dragon/test/broken.test.ts"), "落ちた準備の結果を読んだ件が、file の名前と理由を挙げて落ちない").toThrow(/broken\.test\.ts[\s\S]*命令を起こせない/u);
