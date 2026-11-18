@@ -14,6 +14,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { atLoad } from "../../../../packages/dragon/test/at-load";
 import { fileChromium } from "../../../../packages/dragon/test/page-needs";
 import { codeBlocks, sectionOf } from "../../../../packages/dragon/test/markdown-sections";
 import { app, BASE, builtDir, root } from "./playground-support";
@@ -104,22 +105,32 @@ async function cardFrame(page: Page, way: string): Promise<Frame | undefined> {
   return (await handle?.contentFrame()) ?? undefined;
 }
 
+// 頁を開いて組み込みの節を触ると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で頁を開いて節のコードと写した字と出口を読み、件はその中身を確かめる
+const EMBED_SECTION = await atLoad("使い方の頁を開き、組み込みの節を読む", () =>
+  withSite("docs#embed", async (page) => {
+    const section = page.locator("section#embed");
+    await section.waitFor({ timeout: 6000 }).catch(() => undefined);
+    const shown = await section.locator('pre[data-docs="command"] code').allTextContents();
+    // 囲みのコピーのボタンを押し、写した字が届くまで待つ
+    await section.locator('[data-docs="copy"]').first().click({ timeout: 2000 });
+    await page.waitForFunction(async () => (await navigator.clipboard.readText()) !== "", undefined, { timeout: 2000 }).catch(() => undefined);
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    return { shown, copied, exit: await section.locator('[data-docs="section-cta"]').getAttribute("href") };
+  }),
+);
+
 describe("見本帳の組み込みの説明 (#3701)", () => {
-  it("docs-page-has-embed-section", async () => {
+  it("docs-page-has-embed-section", () => {
     const code = readmeCode();
     expect(code.length, "README の組み込みの節のコードの数").toBeGreaterThanOrEqual(4);
-    await withSite("docs#embed", async (page) => {
-      const section = page.locator("section#embed");
-      await section.waitFor({ timeout: 6000 }).catch(() => undefined);
-      // 4つの置き方のコードは README の組み込みの節と同じ物
-      const shown = await section.locator('pre[data-docs="command"] code').allTextContents();
-      expect(shown, "使い方の頁の組み込みの節のコード").toEqual(code);
-      // 囲みのコピーのボタンでコードを写せる
-      await section.locator('[data-docs="copy"]').first().click({ timeout: 2000 });
-      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), { timeout: 2000 }).toBe(code[0]);
-      // 出口は見本の頁を指す
-      expect(await section.locator('[data-docs="section-cta"]').getAttribute("href"), "組み込みの節の出口").toBe(`${BASE}embedding`);
-    });
+    const { shown, copied, exit } = EMBED_SECTION.get();
+    // 4つの置き方のコードは README の組み込みの節と同じ物
+    expect(shown, "使い方の頁の組み込みの節のコード").toEqual(code);
+    // 囲みのコピーのボタンでコードを写せる
+    expect(copied, "コピーのボタンで写した字").toBe(code[0]);
+    // 出口は見本の頁を指す
+    expect(exit, "組み込みの節の出口").toBe(`${BASE}embedding`);
   });
 
   it("embed-sample-page-shows-four-ways", async () => {

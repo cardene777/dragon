@@ -17,7 +17,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as WORDS from "../src/words";
+import { atLoad } from "./at-load";
 import { api } from "./diagram-support";
+import { casesNamed } from "./export-support";
 import { draw } from "./render-support";
 
 const SRC = join(__dirname, "../src");
@@ -103,6 +105,9 @@ async function registries(): Promise<{ blocks: Record<string, Block>; definition
   const kinds = await import("../src/kinds/index").then((m) => m.KIND_FOLDERS as unknown as Record<string, Kind>).catch(() => ({}));
   return { blocks, definitions, shapes, kinds };
 }
+
+// 一覧を初めて読む件が、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で読み、件はその一覧を読む
+const REGISTRIES = await atLoad("ブロックと図の種類の一覧を読む", registries);
 
 /** ブロックの置き場のうち、持つべき file を持たない物を `<名前>/<file>` で返す */
 export function missingBlockFiles(root: string): string[] {
@@ -206,6 +211,23 @@ export function handWrittenKinds(text: string): string[] {
 const figuresOf = (block: string, kind: string): string[] =>
   files(join(BLOCKS_DIR, block, "gallery")).filter((file) => file.endsWith(`.${kind}.dragon`));
 
+/** 付け方が合う組の部品の図を、日英の file ごとに `[ブロック/file, ブロック, file, 言葉]` で並べる */
+const matchingFigures = ({ blocks, kinds }: { blocks: Record<string, Block>; kinds: Record<string, Kind> }): (readonly [string, string, string, "ja" | "en"])[] =>
+  Object.values(kinds)
+    .flatMap((kind) =>
+      Object.values(blocks)
+        .filter((block) => fits(block, kind))
+        .flatMap((block) =>
+          figuresOf(block.name, kind.name).flatMap((figure) =>
+            ([
+              [figure, "ja"],
+              [figure.replace(/\.dragon$/u, ".en.dragon"), "en"],
+            ] as const).map(([file, lang]) => [`${block.name}/${file}`, block.name, file, lang] as const),
+          ),
+        ),
+    )
+    .sort(([a], [b]) => a.localeCompare(b));
+
 /** 見本帳の分が package の処理を読む行。型だけを読む `import type` と、同じ置き場の中の file だけを許す */
 export function galleryRuntimeImports(root: string): string[] {
   return dirs(root).flatMap((name) =>
@@ -232,9 +254,9 @@ export function shapeImports(root: string): string[] {
 }
 
 describe("ブロックの置き場 (#3345)", () => {
-  it("block-folder-holds-whole-definition", async () => {
+  it("block-folder-holds-whole-definition", () => {
     // 移したブロックの全てが置き場を持ち、置き場は決まった file と定義の全ての欄を持つ
-    const { blocks } = await registries();
+    const { blocks } = REGISTRIES.get();
     expect(dirs(BLOCKS_DIR), "置き場の無いブロック").toEqual(expect.arrayContaining(MOVED_BLOCKS));
     expect(missingBlockFiles(BLOCKS_DIR), "置き場に無い file").toEqual([]);
     expect(Object.keys(blocks).sort(), "定義を読めないブロック").toEqual(dirs(BLOCKS_DIR));
@@ -390,44 +412,36 @@ describe("図の種類の置き場 (#3345)", () => {
 });
 
 describe("付け方が合う組 (#3347)", () => {
-  it("every-block-draws-on-every-matching-kind", async () => {
-    // 置き場の在る図の種類と、その種類が受け付ける付け方を名乗るブロックの組の全てで、部品の図を日英の記法で読んで描ける
-    const { blocks, kinds } = await registries();
+  // 置き場の在る図の種類と、その種類が受け付ける付け方を名乗るブロックの組の全てで、部品の図を日英の記法で読んで描ける。
+  // 全ての組の部品の図を 1 件で読んで描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。部品の図と言葉ごとの件に分ける
+  describe.for(matchingFigures(REGISTRIES.get()))("%s", ([name, block, file, lang]) => {
+    it("every-block-draws-on-every-matching-kind", () => {
+      const parsed = api("parseNotation")(readFileSync(join(BLOCKS_DIR, block, "gallery", file), "utf8"), { lang });
+      expect(parsed.ok, `${name} を読めない: ${parsed.ok ? "" : parsed.errors.map((e) => `${e.line}: ${e.message}`).join(" / ")}`).toBe(true);
+      if (!parsed.ok) return;
+      expect(draw("renderDiagram")(parsed.diagram, { lang }).svg.startsWith("<svg"), `${name} を描いた物が SVG でない`).toBe(true);
+    });
+  });
+
+  it("block-draw-cases-follow-gallery", ({ task }) => {
+    const { blocks, kinds } = REGISTRIES.get();
     expect(Object.keys(kinds), "置き場の無い図の種類").toEqual(expect.arrayContaining(MOVED_KINDS));
     expect(Object.keys(blocks), "置き場の無いブロック").toEqual(expect.arrayContaining(MOVED_BLOCKS));
-    const parse = api("parseNotation");
-    const render = draw("renderDiagram");
-    const pairs = Object.values(kinds).flatMap((kind) =>
+    const missing = Object.values(kinds).flatMap((kind) =>
       Object.values(blocks)
-        .filter((block) => fits(block, kind))
-        .map((block) => ({ block: block.name, kind: kind.name })),
+        .filter((block) => fits(block, kind) && figuresOf(block.name, kind.name).length === 0)
+        .map((block) => `${block.name} × ${kind.name}`),
     );
-    expect(pairs.length, "付け方が合う組が無い").toBeGreaterThan(0);
-    const missing = pairs.filter(({ block, kind }) => figuresOf(block, kind).length === 0).map(({ block, kind }) => `${block} × ${kind}`);
     expect(missing, "部品の図が無い組").toEqual([]);
-    const refused: string[] = [];
-    for (const { block, kind } of pairs) {
-      for (const figure of figuresOf(block, kind)) {
-        for (const [file, lang] of [
-          [figure, "ja"],
-          [figure.replace(/\.dragon$/u, ".en.dragon"), "en"],
-        ] as const) {
-          const text = readFileSync(join(BLOCKS_DIR, block, "gallery", file), "utf8");
-          const parsed = parse(text, { lang });
-          if (!parsed.ok) {
-            refused.push(`${block}/${file}: ${parsed.errors.map((e) => `${e.line}: ${e.message}`).join(" / ")}`);
-            continue;
-          }
-          try {
-            const { svg } = render(parsed.diagram, { lang });
-            if (!svg.startsWith("<svg")) refused.push(`${block}/${file}: SVG でない`);
-          } catch (error) {
-            refused.push(`${block}/${file}: ${(error as Error).message}`);
-          }
-        }
-      }
-    }
-    expect(refused, "読めないか描けない部品の図").toEqual([]);
+    const names = Object.values(kinds)
+      .flatMap((kind) =>
+        Object.values(blocks)
+          .filter((block) => fits(block, kind))
+          .flatMap((block) => figuresOf(block.name, kind.name).flatMap((figure) => [`${block.name}/${figure}`, `${block.name}/${figure.replace(/\.dragon$/u, ".en.dragon")}`])),
+      )
+      .sort();
+    expect(names.length, "部品の図を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "every-block-draws-on-every-matching-kind").sort(), "部品の図と言葉ごとの件").toEqual(names);
   });
 
   it("later-kind-folder-keeps-layout-out-of-first-load", async () => {

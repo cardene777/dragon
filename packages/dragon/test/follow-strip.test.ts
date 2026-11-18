@@ -8,8 +8,9 @@
  * 位置は SVG の値から読む。jsdom は配置を測れないが、表と窓は図の座標でそのまま書かれている。
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { exampleJson } from "./diagram-support";
-import { type Diagramish, place, releasePlaced } from "./follow-support";
+import { type Diagramish, type Placed, place, releasePlaced } from "./follow-support";
 import { draw, type Player, type Rect } from "./render-support";
 
 /** 表を持つ見本。原本の `strip` を持つ物を全て挙げる */
@@ -125,12 +126,22 @@ function mountFitted(file: string, width: number, height: number): SVGSVGElement
   return svg as SVGSVGElement;
 }
 
+// 表を持つ見本を枠の幅ごとに件の中で置くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で置いて片付け、件は置いた図を読む。片付けは図を置き場から外すだけで、図の中身は残る。キーは `見本 枠の幅`
+const PLACED = await atLoad("表を持つ見本を枠の幅ごとに置く", () => {
+  const at = (names: readonly string[], widths: readonly number[]): Map<string, Placed> =>
+    new Map(names.flatMap((name) => widths.map((width): [string, Placed] => [`${name} ${width}`, place(name, `${name}.json`, width)])));
+  const placed = { frames: at(WITH_STRIP, FRAMES), phones: at([...new Set([...WITH_STRIP, ...Object.keys(PHONE_WINDOW)])], PHONE_FRAMES) };
+  releasePlaced();
+  return placed;
+});
+
 describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
   it("follow-strip-whole-in-figure", () => {
     const out: string[] = [];
     for (const name of WITH_STRIP) {
       for (const width of FRAMES) {
-        const placed = place(name, `${name}.json`, width);
+        const placed = PLACED.get().frames.get(`${name} ${width}`) as Placed;
         const label = `${name} / 枠の幅 ${width}px`;
         const figureWidth = Number(placed.figure.getAttribute("width"));
         const table = rectOf(placed.figure, ".dg-strip");
@@ -170,7 +181,7 @@ describe("寄って追う図の値の表を窓の外に置く (#3270)", () => {
     const out: string[] = [];
     for (const name of WITH_STRIP) {
       for (const width of FRAMES) {
-        const placed = place(name, `${name}.json`, width);
+        const placed = PLACED.get().frames.get(`${name} ${width}`) as Placed;
         const bottom = stripOf(placed.layout).y;
         for (let s = 0; s < placed.steps; s++) {
           const win = placed.windowAt(s);
@@ -267,7 +278,7 @@ describe("電話の幅では、表を持つ寄って追う図に全体図を出�
     const out: string[] = [];
     for (const name of WITH_STRIP) {
       for (const width of PHONE_FRAMES) {
-        const { figure } = place(name, `${name}.json`, width);
+        const { figure } = PLACED.get().phones.get(`${name} ${width}`) as Placed;
         const label = `${name} / 枠の幅 ${width}px`;
         if (figure.querySelector(".dg-mm-bg, .dg-mm-world, .dg-mm-vp, .dg-mm-t")) out.push(`${label} に全体図が在る`);
         // 表の四角は 0.5px 内側に書かれる。図の高さは端数を切り上げて書く
@@ -284,7 +295,7 @@ describe("電話の幅では、表を持つ寄って追う図に全体図を出�
   it("follow-strip-narrow-keeps-window", () => {
     for (const [name, sizes] of Object.entries(PHONE_WINDOW)) {
       for (const width of PHONE_FRAMES) {
-        const { figure } = place(name, `${name}.json`, width);
+        const { figure } = PLACED.get().phones.get(`${name} ${width}`) as Placed;
         const win = rectOf(figure, 'clipPath[id^="dg-vp-"] rect');
         expect([win.w, win.h], `${name} / 枠の幅 ${width}px の窓の大きさが変わった`).toEqual(sizes[width]);
       }

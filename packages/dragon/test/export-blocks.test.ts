@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it, vi } from "vitest";
+import { atLoad } from "./at-load";
 import { api, type LineError, type Parsed } from "./diagram-support";
 import { formatOf, runCliInProcess } from "./export-support";
 
@@ -68,20 +69,25 @@ function pageSource(html: string): { define?: { blocks: { name: string }[] } } {
   return JSON.parse(found?.[1] ?? "{}") as { define?: { blocks: { name: string }[] } };
 }
 
+// 描く処理は定義の無いブロックを使う図を断るので、PNG が書けたなら渡した定義が描く処理まで届いている。
+// Chromium で撮るのは 1 枚に留める。2 枚撮って比べると、混んだ機械で 1 件の上限 (10 秒) を超えた。
+// 1 枚でも混んだ機械で上限を超えたので (#3738)、file を読み込む段で書き出し、件はその結果を読む
+const PNG_EXPORTED = await atLoad("--blocks で定義を渡して PNG を書き出す", async () => {
+  const definitions = place("vault.dragon", VAULT);
+  const example = place("vault-example.dragon", VAULT_EXAMPLE);
+  const out = scratch();
+  const ran = await runCliInProcess(["export", example, "--blocks", definitions, "--format", "png", "--out", out]);
+  const png = join(out, "vault-example.png");
+  return { ran, png, written: existsSync(png) ? readFileSync(png) : undefined };
+});
+
 describe("dragon export --blocks (#3606)", () => {
-  it("export-uses-blocks-option-definitions", async () => {
-    const definitions = place("vault.dragon", VAULT);
-    const example = place("vault-example.dragon", VAULT_EXAMPLE);
-    const out = scratch();
-    // 描く処理は定義の無いブロックを使う図を断るので、PNG が書けたなら渡した定義が描く処理まで届いている。
-    // Chromium で撮るのは 1 枚に留める。2 枚撮って比べると、混んだ機械で 1 件の上限 (10 秒) を超えた
-    const ran = await runCliInProcess(["export", example, "--blocks", definitions, "--format", "png", "--out", out]);
+  it("export-uses-blocks-option-definitions", () => {
+    const { ran, png, written } = PNG_EXPORTED.get();
     expect(ran.code, `--blocks で定義を渡しても書き出せない ${ran.stdout}${ran.stderr}`).toBe(0);
-    const png = join(out, "vault-example.png");
     expect(ran.stdout.trim(), "書き出した PNG の path を出さない").toBe(png);
-    expect(existsSync(png), "PNG を書かない").toBe(true);
-    const written = readFileSync(png);
-    expect(formatOf(written), "PNG として書かれていない").toBe("png");
+    expect(written, "PNG を書かない").toBeDefined();
+    expect(formatOf(written ?? Buffer.alloc(0)), "PNG として書かれていない").toBe("png");
   });
 
   it("export-page-carries-blocks-definitions", async () => {

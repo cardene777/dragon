@@ -13,7 +13,8 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it, vi } from "vitest";
-import { runCli } from "./export-support";
+import { atLoad } from "./at-load";
+import { casesNamed, runCli, runCliInProcess } from "./export-support";
 
 // 書き出しの撮る所だけを差し替え、撮った止め絵の時刻を PNG の中身にする。段の選び方を Chromium を起こさずに確かめる。
 // Chromium を起こす書き出しは 1 回で 8 秒かかり、3 回撮って比べると 1 件の上限 (10 秒) を超える
@@ -107,6 +108,23 @@ const hasBadge = (b: LayoutBreak, step: number): boolean => b.parts.some((p) => 
 const hasBox = (b: LayoutBreak, name: string): boolean => b.parts.some((p) => (p.kind === "box" && p.name === name) || (p.kind === "slot" && p.box === name) || (p.kind === "text" && p.box === name));
 const hasLine = (b: LayoutBreak, from: string, to: string, step: number): boolean =>
   b.parts.some((p) => p.kind === "line" && p.from === from && p.to === to && p.step === step);
+
+// 命令は子の Node を起こし、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。1 回分の命令と描画を file を読み込む段で済ませ、件はその結果を読む
+
+const INTENDED_CHECKED = await atLoad("重なって当然の図と決済の図を命令で調べる", async () => ({ intended: await layoutOf(INTENDED), payment: await layoutOf(PAYMENT) }));
+
+const LABEL_OFF_CHECKED = await atLoad("線から離れる名前の図を命令で調べる", async () => ({
+  json: await layoutOf(LABEL_OFF_LINE),
+  ja: await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "ja"]),
+  en: await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "en"]),
+}));
+
+/** 決済の図と、描いた段の止め絵の時刻 */
+const PAYMENT_DRAWN = await atLoad("決済の図を読んで段の時刻を測る", () => {
+  const parsed = parseNotation(readFileSync(PAYMENT, "utf8"), { lang: "ja" });
+  if (!parsed.ok) throw new Error(`決済の図を読めない: ${JSON.stringify(parsed.errors)}`);
+  return { diagram: parsed.diagram, stills: renderDiagram(parsed.diagram, { lang: "ja" }).timeline.stills };
+});
 
 /** 番号の丸の半径。描く処理の値 (`LOOK.badge.r`) と同じ */
 const BADGE_R = 9.5;
@@ -627,13 +645,13 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);
   });
 
-  it("layout-check-skips-intended-overlaps", async () => {
-    const intended = await layoutOf(INTENDED);
+  it("layout-check-skips-intended-overlaps", () => {
+    const { intended, payment } = INTENDED_CHECKED.get();
     expect(intended.code, intended.stderr).toBe(0);
     expect(intended.problems, "重なって当然の組だけの図で崩れを出す").toEqual([]);
     // 決済の図の段 3 の丸は、線の始まりに置く丸で、六角形の上の辺との 1px の間は崩れでない。
     // 行きと帰りの線を離し (#3521)、六角形の箱が中身に合わせて大きくなった (#3520) ので、決済の図はほかに崩れを持たず、丸を数えれば 1 件になる
-    const { found } = await layoutOf(PAYMENT);
+    const { found } = payment;
     const oracleBadge = found.filter((b) => hasBadge(b, 3) && hasBox(b, "価格オラクル"));
     expect(oracleBadge, "線の始まりの丸と、その線を出す箱を崩れに数える").toEqual([]);
     expect(found, "決済の図に崩れを出す").toEqual([]);
@@ -716,9 +734,10 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
     expect(target?.gap, `段6の線の名前と線の間 (ほかの名前と線の間は ${others.join(", ")})`).toBeLessThanOrEqual(Math.max(...others));
   });
 
-  it("amount-chip-near-flow-in-swap-retry", () => {
-    // 移す額の札は、線の傍でなく箱の下の札入れに入れる (Tracelyth #168、#3720)。札入れの札は流れを名指さず、崩れの確かめは線との離れを測らない
-    for (const lang of ["ja", "en"] as const) {
+  // 2 つの言葉で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。言葉ごとの件に分ける
+  describe.for(["ja", "en"] as const)("%s", (lang) => {
+    it("amount-chip-near-flow-in-swap-retry", () => {
+      // 移す額の札は、線の傍でなく箱の下の札入れに入れる (Tracelyth #168、#3720)。札入れの札は流れを名指さず、崩れの確かめは線との離れを測らない
       const layout = drawnLayout(SWAP_RETRY, lang) as {
         chips: (Box & { kind: string; text: string; step: number; flow?: number })[];
         wallets?: Box[];
@@ -728,11 +747,12 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
       expect(amounts.find((c) => c.step === 3 && c.text === "100 USDC"), `${lang} の字で、段4の 100 USDC の札が無い`).toBeDefined();
       expect(amounts.filter((c) => c.flow !== undefined).map((c) => `段${c.step + 1} ${c.text}`), `${lang} の字で、札入れに入れた額の札が流れを名指す`).toEqual([]);
       expect(layout.wallets?.length ?? 0, `${lang} の字で、札を入れる札入れが無い`).toBeGreaterThan(0);
-    }
+    });
   });
 
-  it("layout-check-finds-label-off-line", async () => {
-    const { code, found, problems, stderr } = await layoutOf(LABEL_OFF_LINE);
+  it("layout-check-finds-label-off-line", () => {
+    const { json, ja, en } = LABEL_OFF_CHECKED.get();
+    const { code, found, problems, stderr } = json;
     expect(code, stderr).toBe(0);
     const off = found.filter((b) => b.kind === "label-off-line");
     // 1 つ目の名前「残高を見る」は線の上の最初の置き場に在るので数えない
@@ -741,9 +761,7 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
     ]);
     const problem = problems.find((p) => p.layout?.kind === "label-off-line");
     expect(problem?.line, "知らせの行が段1の step の行を名指さない").toBe(stepLine(LABEL_OFF_LINE, 1));
-    const ja = await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "ja"]);
     expect(ja.stdout, "日本語の行が段と名前と線を名指さない").toContain("warning 段 1: 「送る」が線 アプリ → API (段 1)から離れて描かれる");
-    const en = await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "en"]);
     expect(en.stdout, "英語の行が段と名前と線を名指さない").toContain('warning Step 1: "送る" is drawn away from the line アプリ → API (step 1)');
 
     // 配管の図の流れた量の札も、名指す流れの管から離れていれば知らせる。札を出した段の 1 件にまとめる
@@ -772,46 +790,57 @@ describe("線の名前と札を線の近くに描く (#3528)", () => {
 });
 
 describe("見本に今ある崩れ (#3484)", () => {
-  it("layout-check-examples-match-recorded", () => {
-    const checkLayoutText = (dragon as unknown as { checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[] }).checkLayoutText;
-    expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
-    if (checkLayoutText === undefined) return;
-    expect(existsSync(RECORDED), `${relative(ROOT, RECORDED)} が無い`).toBe(true);
-    const recorded = existsSync(RECORDED) ? (JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, LayoutBreak[]>) : {};
-    const files = exampleFiles();
-    // 走査の空振りを避ける。見本は 2 つの置き場に 1 つ以上ずつある
-    expect(files.length, "見本を数えられない").toBeGreaterThan(EXAMPLE_DIRS.length);
-    const key = (b: LayoutBreak): string => JSON.stringify(b);
-    const grown = files.flatMap((file) => {
-      const name = relative(ROOT, file);
-      const lang = file.includes(".en.") ? "en" : "ja";
-      const known = new Set((recorded[name] ?? []).map(key));
-      return checkLayoutText(readFileSync(file, "utf8"), { lang })
+  /** 崩れの記録の一覧。最初の件で 1 度だけ読み、ほかの件で使い回す */
+  let recorded: Record<string, LayoutBreak[]> | undefined;
+  const recordedBreaks = (): Record<string, LayoutBreak[]> => (recorded ??= existsSync(RECORDED) ? (JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, LayoutBreak[]>) : {});
+
+  // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
+  describe.for(exampleFiles().map((file) => [relative(ROOT, file), file] as const))("%s", ([name, file]) => {
+    it("layout-check-examples-match-recorded", () => {
+      const checkLayoutText = (dragon as unknown as { checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[] }).checkLayoutText;
+      expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
+      if (checkLayoutText === undefined) return;
+      expect(existsSync(RECORDED), `${relative(ROOT, RECORDED)} が無い`).toBe(true);
+      const key = (b: LayoutBreak): string => JSON.stringify(b);
+      const known = new Set((recordedBreaks()[name] ?? []).map(key));
+      const grown = checkLayoutText(readFileSync(file, "utf8"), { lang: file.includes(".en.") ? "en" : "ja" })
         .filter((b) => !known.has(key(b)))
         .map((b) => `${name}: ${key(b)}`);
+      expect(grown, "一覧に無い崩れが見本に出た").toEqual([]);
     });
-    expect(grown, "一覧に無い崩れが見本に出た").toEqual([]);
+  });
+
+  // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
+  it("layout-check-cases-follow-examples", ({ task }) => {
+    const names = exampleFiles().map((file) => relative(ROOT, file));
+    expect(names.length, "見本を数えられない").toBeGreaterThan(EXAMPLE_DIRS.length);
+    expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本ごとの件").toEqual(names);
   });
 });
 
 describe("見本帳の図は崩れを出さない (#3607)", () => {
-  it("gallery-warns-nothing", () => {
-    const checkLayoutText = (
-      dragon as unknown as {
-        checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[];
-      }
-    ).checkLayoutText;
-    expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
-    if (checkLayoutText === undefined) return;
-    const files = galleryFiles();
-    // 走査の空振りを避ける。見本帳の図は、ブロックごとに日本語と英語の2枚ずつある
-    expect(files.length, "見本帳の図を数えられない").toBeGreaterThan(1);
-    const broken = files.flatMap((file) =>
-      checkLayoutText(readFileSync(file, "utf8"), {
+  // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
+  describe.for(galleryFiles().map((file) => [relative(ROOT, file), file] as const))("%s", ([name, file]) => {
+    it("gallery-warns-nothing", () => {
+      const checkLayoutText = (
+        dragon as unknown as {
+          checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[];
+        }
+      ).checkLayoutText;
+      expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
+      if (checkLayoutText === undefined) return;
+      const broken = checkLayoutText(readFileSync(file, "utf8"), {
         lang: file.includes(".en.") ? "en" : "ja",
-      }).map((b) => `${relative(ROOT, file)}: ${JSON.stringify(b)}`),
-    );
-    expect(broken, "見本帳の図に崩れが残る").toEqual([]);
+      }).map((b) => `${name}: ${JSON.stringify(b)}`);
+      expect(broken, "見本帳の図に崩れが残る").toEqual([]);
+    });
+  });
+
+  // 見本帳の全ての図の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。図ごとの件に分ける
+  it("gallery-warn-cases-follow-gallery", ({ task }) => {
+    const names = galleryFiles().map((file) => relative(ROOT, file));
+    expect(names.length, "見本帳の図を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "gallery-warns-nothing").sort(), "見本帳の図ごとの件").toEqual(names);
   });
 });
 
@@ -829,32 +858,47 @@ function galleryFiles(): string[] {
     .sort();
 }
 
+/** 決済の図を段 `step` で PNG に書き出し、撮った止め絵の字を返す。撮る所は上で、撮った時刻の字を書く形に差し替えてある */
+async function paymentPng(diagram: Parameters<typeof exportDiagram>[0], out: string, step?: number): Promise<string> {
+  await exportDiagram(diagram, { outDir: out, name: "payment", formats: ["png"], lang: "ja", ...(step === undefined ? {} : { step }) });
+  return readFileSync(join(out, "payment.png"), "utf8");
+}
+
 describe("dragon export --step (#3484)", () => {
-  it("export-png-at-step", async () => {
-    const parsed = parseNotation(readFileSync(PAYMENT, "utf8"), { lang: "ja" });
-    if (!parsed.ok) throw new Error(`決済の図を読めない: ${JSON.stringify(parsed.errors)}`);
-    const { stills } = renderDiagram(parsed.diagram, { lang: "ja" }).timeline;
-    expect(stills, "決済の図の段").toHaveLength(4);
-    const out = mkdtempSync(join(tmpdir(), "dragon-step-"));
-    const png = async (dir: string, step?: number): Promise<string> => {
-      await exportDiagram(parsed.diagram, { outDir: join(out, dir), name: "payment", formats: ["png"], lang: "ja", ...(step === undefined ? {} : { step }) });
-      return readFileSync(join(out, dir, "payment.png"), "utf8");
-    };
-    // 段 1 の止め絵は最後の段の止め絵と違う時刻に撮る。段 1 には段 2 から先の線と丸が無い
-    expect(await png("first", 1), "段 1 を選んでも段 1 の止め絵を撮らない").toBe(`still at ${stills[0]}`);
-    expect(await png("last"), "既定で最後の段の止め絵を撮らない").toBe(`still at ${stills[3]}`);
-    expect(await png("four", 4), "最後の段を選んだ PNG が既定の PNG と違う").toBe(`still at ${stills[3]}`);
-    await expect(png("bad", 9), "図に無い段を選んでも断らない").rejects.toBeInstanceOf(NoSuchStep);
-    expect(existsSync(join(out, "bad")), "図に無い段を選んだ時に書き出し先を作る").toBe(false);
+  // 4 つの段を 1 件で書き出すと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。選ぶ段ごとの件に分ける。
+  // 段 1 の止め絵は最後の段の止め絵と違う時刻に撮る。段 1 には段 2 から先の線と丸が無い
+  describe.for([
+    ["段 1", 1, 0, "段 1 を選んでも段 1 の止め絵を撮らない"],
+    ["既定", undefined, 3, "既定で最後の段の止め絵を撮らない"],
+    ["段 4", 4, 3, "最後の段を選んだ PNG が既定の PNG と違う"],
+  ] as const)("%s", ([, step, still, why]) => {
+    it("export-png-at-step", async () => {
+      const { diagram, stills } = PAYMENT_DRAWN.get();
+      expect(stills, "決済の図の段").toHaveLength(4);
+      expect(await paymentPng(diagram, mkdtempSync(join(tmpdir(), "dragon-step-")), step), why).toBe(`still at ${stills[still]}`);
+    });
   });
 
-  it("export-step-cli-rejects-missing-step", async () => {
-    // 命令は段を数えずに書き出しへ渡し、書き出しが撮る前に断る。図に無い段で終わり方 2 になれば、命令が段を書き出しへ渡している
-    const out = mkdtempSync(join(tmpdir(), "dragon-step-cli-"));
-    const missing = await runCli(["export", PAYMENT, "--format", "png", "--step", "9", "--out", join(out, "missing")]);
-    expect(missing.code, `図に無い段を選んでも断らない ${missing.stderr}`).toBe(2);
-    expect(missing.stderr, "断りの文が段と図の段の数を名指さない").toContain("--step 9 (the diagram has steps 1 to 4)");
-    const zero = await runCli(["export", PAYMENT, "--format", "png", "--step", "0", "--out", join(out, "zero")]);
-    expect(zero.code, `0 の段を断らない ${zero.stderr}`).toBe(2);
+  describe("図に無い段", () => {
+    it("export-png-at-step", async () => {
+      const { diagram } = PAYMENT_DRAWN.get();
+      const out = join(mkdtempSync(join(tmpdir(), "dragon-step-")), "bad");
+      await expect(paymentPng(diagram, out, 9), "図に無い段を選んでも断らない").rejects.toBeInstanceOf(NoSuchStep);
+      expect(existsSync(out), "図に無い段を選んだ時に書き出し先を作る").toBe(false);
+    });
+  });
+
+  // 命令は段を数えずに書き出しへ渡し、書き出しが撮る前に断る。図に無い段で終わり方 2 になれば、命令が段を書き出しへ渡している。
+  // 子の Node で 2 度起こすと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。同じ process で呼び、段ごとの件に分ける
+  describe.for([
+    ["図に無い段", "9", "--step 9 (the diagram has steps 1 to 4)"],
+    ["0 の段", "0", undefined],
+  ] as const)("%s", ([what, step, said]) => {
+    it("export-step-cli-rejects-missing-step", async () => {
+      const out = join(mkdtempSync(join(tmpdir(), "dragon-step-cli-")), "out");
+      const ran = await runCliInProcess(["export", PAYMENT, "--format", "png", "--step", step, "--out", out]);
+      expect(ran.code, `${what}を選んでも断らない ${ran.stderr}`).toBe(2);
+      if (said !== undefined) expect(ran.stderr, "断りの文が段と図の段の数を名指さない").toContain(said);
+    });
   });
 });

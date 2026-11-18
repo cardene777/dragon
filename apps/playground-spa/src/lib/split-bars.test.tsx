@@ -13,6 +13,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
 
 import { Playground } from "../Playground";
 
@@ -133,8 +134,18 @@ afterEach(() => {
   close();
 });
 
+// 編集画面を初めて開くと、画面の部品の塊を読むのを待って、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で 1 度開いて塊を読んでおき、件は開いた結果を読んでから開き直す
+const WARMED = await atLoad("編集画面を 1 度開き、画面の部品の塊を読む", async () => {
+  await open(1440);
+  close();
+  localStorage.clear();
+});
+
 describe("編集画面の欄の境目のつまみ (#3612)", () => {
   it("split-code-drag-widens-code", async () => {
+    // 読み込む段で開けなかった時は、その理由で落ちる
+    WARMED.get();
     await open(1440);
     const before = widthOf("code");
     expect(before, "記法の欄の最初の幅").toBe(300);

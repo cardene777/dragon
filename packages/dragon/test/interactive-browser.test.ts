@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { exporter } from "./export-support";
 import { LOOK } from "../src/look/values";
 import { fileChromium } from "./page-needs";
@@ -114,11 +115,14 @@ async function sendOn(page: Page, values: Record<string, string>): Promise<void>
   await page.locator('button[data-dragon="send"]').click();
 }
 
+// 書き出しと頁で触るのを 1 件で済ませると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。書き出しは file を読み込む段で済ませ、件は頁を開いて触る
+const ON_LINE_HTML = await atLoad("作る釦を機械の列の上に置いた図を HTML に書き出す", () => htmlOf(onLine()));
+
 describe("試す図を Chromium で触る (#3337)", () => {
   it(
     "interactive-controls-fit-390-at-44px",
     async () => {
-      const html = await htmlOf(onLine());
+      const html = ON_LINE_HTML.get();
       const { result } = await withPage(html, 390, (page) =>
         page.evaluate(() => {
           const controls = [

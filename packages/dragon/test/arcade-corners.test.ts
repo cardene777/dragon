@@ -195,12 +195,12 @@ describe("arcade の角の見本 (#3410)", () => {
 });
 
 describe.for(FILES)("arcade の角 (#3344) %s", (file) => {
-  it("arcade-cuts-box-region-frame-corners", () => {
-    const wrong: string[] = [];
-    let seen = 0;
-    for (const theme of THEMES) {
-      for (const { paper, arcade } of framePairs(file, theme)) {
-        seen++;
+  // 明暗の両方を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。明暗ごとの件に分ける
+  describe.for(THEMES)("%s", (theme) => {
+    it("arcade-cuts-box-region-frame-corners", () => {
+      const wrong: string[] = [];
+      const pairs = framePairs(file, theme);
+      for (const { paper, arcade } of pairs) {
         const box = boxOf(paper);
         const points =
           arcade.localName === "path" ? ring(arcade.getAttribute("d") ?? "") : undefined;
@@ -221,9 +221,9 @@ describe.for(FILES)("arcade の角 (#3344) %s", (file) => {
             `${file} の ${theme} の ${where(arcade)} が右上と左下を落とした 6 つの頂点の形でない`,
           );
       }
-    }
-    expect(seen, `${file} に角を落とす形を 1 つも描いていない`).toBeGreaterThan(0);
-    expect(wrong).toEqual([]);
+      expect(pairs.length, `${file} の ${theme} に角を落とす形を 1 つも描いていない`).toBeGreaterThan(0);
+      expect(wrong).toEqual([]);
+    });
   });
 
   it("arcade-draws-no-rounded-corner", () => {
@@ -367,27 +367,27 @@ const before = JSON.parse(
 ) as Record<string, Record<string, number>>;
 
 describe.for(FILES)("今の色味の角 (#3344) %s", (file) => {
-  it("other-palettes-keep-rounded-corners", () => {
-    // 記録は英語の見本も持つ。英語の見本は日本語の見本と同じ形なので、日本語の見本だけを比べる
-    expect(Object.keys(before).filter((name) => !name.endsWith(".en.json")).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
-    // 明暗は色だけを替え、角の形を替えない。ほかの色味は明るい表示だけで確かめる (#3381)
-    for (const palette of OTHERS) {
-      for (const theme of ["light"] as const) {
-        const figure = figureOf(file, palette, theme);
-        const rounded: Record<string, number> = {};
-        for (const el of roundedIn(figure)) {
-          const key = `${el.getAttribute("class") ?? "(none)"} rx=${num(el, "rx")}`;
-          rounded[key] = (rounded[key] ?? 0) + 1;
-        }
-        expect(rounded, `${file} を ${palette} の ${theme} で描いた丸い角の数と半径`).toEqual(
-          before[file],
-        );
-        expect(
-          [...figure.querySelectorAll("path")].filter(isFrame).map(where),
-          `${file} を ${palette} の ${theme} で描いて角を落とした形`,
-        ).toEqual([]);
+  // 3 つの色味を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。色味ごとの件に分ける。
+  // 明暗は色だけを替え、角の形を替えない。ほかの色味は明るい表示だけで確かめる (#3381)
+  describe.for(OTHERS)("%s", (palette) => {
+    it("other-palettes-keep-rounded-corners", () => {
+      // 記録は英語の見本も持つ。英語の見本は日本語の見本と同じ形なので、日本語の見本だけを比べる
+      expect(Object.keys(before).filter((name) => !name.endsWith(".en.json")).sort(), "角の形を足す前の記録と見本の file").toEqual(FILES);
+      const theme = "light";
+      const figure = figureOf(file, palette, theme);
+      const rounded: Record<string, number> = {};
+      for (const el of roundedIn(figure)) {
+        const key = `${el.getAttribute("class") ?? "(none)"} rx=${num(el, "rx")}`;
+        rounded[key] = (rounded[key] ?? 0) + 1;
       }
-    }
+      expect(rounded, `${file} を ${palette} の ${theme} で描いた丸い角の数と半径`).toEqual(
+        before[file],
+      );
+      expect(
+        [...figure.querySelectorAll("path")].filter(isFrame).map(where),
+        `${file} を ${palette} の ${theme} で描いて角を落とした形`,
+      ).toEqual([]);
+    });
   });
 });
 

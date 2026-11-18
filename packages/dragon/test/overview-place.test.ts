@@ -8,6 +8,7 @@
  * 置き場所は描いた `svg` の属性で読む。jsdom は配置を測れないが、窓と全体図の地は座標を属性に持つ。
  */
 import { afterEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, gap, type Lang, type Player, type Rect } from "./render-support";
 
@@ -33,10 +34,12 @@ const CASES = [
 const WIDE = 1200;
 
 const players: Player[] = [];
-afterEach(() => {
+/** 置いた図を片付ける */
+const clearPlayers = (): void => {
   for (const player of players.splice(0)) player.destroy();
   document.body.innerHTML = "";
-});
+};
+afterEach(clearPlayers);
 
 /**
  * 寄って追う見せ方で、枠の幅を `width` にして原本 `source` を置く。jsdom は幅を持たないため、置き場の幅を差し替える。
@@ -93,12 +96,18 @@ function parts(file: string, width: number, lang?: Lang): { svg: SVGSVGElement; 
   return { svg, window: window as Rect, overview: overview as Rect };
 }
 
+// 4 つの見本と幅を件の中で置くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で置いて窓の枠と全体図の地を測り、件はその置き場所を読む
+const PLACED = await atLoad("全体図を出す見本を 4 つの幅で置く", () => {
+  const placed = CASES.map(([name, file, width]) => ({ name, width, ...parts(file, width) }));
+  clearPlayers();
+  return placed;
+});
+
 describe("寄って追う図の全体図の置き場所 (#3042)", () => {
   it("overview-outside-window", () => {
-    for (const [name, file, width] of CASES) {
-      const { window, overview } = parts(file, width);
+    for (const { name, width, window, overview } of PLACED.get())
       expect(gap(window, overview), `${name} / ${width}px の全体図が窓に重なる`).toBeGreaterThanOrEqual(0);
-    }
   });
 
   it("overview-side-follows-its-shape", () => {

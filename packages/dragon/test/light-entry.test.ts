@@ -10,6 +10,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { atLoad } from "./at-load";
 import { casesNamed } from "./export-support";
 import { KIND_FOLDERS } from "../src/kinds/index";
 
@@ -282,12 +283,17 @@ function tryOnPage(source: string): string {
   `;
 }
 
+// 試す図を子の Node で置くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその結果を読む。
+// 試す図は書き手の最初の段だけを持つ図を写して置き、押すたびに段を足した図を写して描き直す。写した図も記法から読んだ図として描く
+const TRIED = await atLoad("記法から読んだ試す図を新しい Node で置く", () =>
+  inFreshNode<{ mounted?: boolean; steps?: number[]; refused?: string; error?: string; validator: unknown }>(
+    tryOnPage(`await light.loadFor(text); const parsed = light.parseNotation(text); return parsed.diagram;`),
+  ),
+);
+
 describe("記法から読んだ試す図は、置いた後に写した図も検査を省く (#3416)", () => {
   it("light-mounts-parsed-try-without-validator", () => {
-    // 試す図は書き手の最初の段だけを持つ図を写して置き、押すたびに段を足した図を写して描き直す。写した図も記法から読んだ図として描く
-    const out = inFreshNode<{ mounted?: boolean; steps?: number[]; refused?: string; error?: string; validator: unknown }>(
-      tryOnPage(`await light.loadFor(text); const parsed = light.parseNotation(text); return parsed.diagram;`),
-    );
+    const out = TRIED.get();
     expect(out.error, "記法から読んだ試す図を軽い入口で置けない").toBeUndefined();
     expect(out.mounted).toBe(true);
     expect(out.steps, "置いた後、値を送るたびとブロックを作るたびに段が 1 つずつ増えない").toEqual([1, 2, 3]);
@@ -576,6 +582,22 @@ describe("見本ごとに分けた軽い入口の件 (#3580)", () => {
   });
 });
 
+// 件ごとに 2 つの入口を読み、軽い入口で見本の種類を読むと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// 2 つの入口を file を読み込む段で 1 度だけ読み、軽い入口は全ての見本が使う種類と絵柄集を読んでおく。件はその入口で描く。
+// 件が読み直す軽い入口 (`freshLight`) は読み込みの記録を消すが、ここで読んだ入口は読んだ物を持ったまま残る
+const ENTRIES = await atLoad("既定の入口と軽い入口を読み、見本が使う種類を軽い入口で読む", async () => {
+  const whole = await importEntry<Entry>(name);
+  const light = await importEntry<LightEntry>(`${name}/light`);
+  if (!whole || !light) throw new Error(`${whole ? "軽い" : "既定の"}入口を読めない`);
+  for (const file of DRAGON_FILES) {
+    const { kind, diagram } = example(whole, file);
+    await light.loadKind(kind);
+    // 絵柄集 Tabler の表は種類を読む関数では読まず、loadFor が読む (#3493)。表を使う見本 (橋の見本、#3489) だけ loadFor も待つ
+    if (JSON.stringify(diagram).includes('"tabler:')) await light.loadFor(diagram);
+  }
+  return { whole, light };
+});
+
 describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
   it("light-entry-samples-cover-kinds", async () => {
     // 見本ごとの SVG の一致は下の見本ごとの検査が持つ。ここではどの種類も見本を持つ (走査が空振りしていない) ことを確かめる
@@ -632,37 +654,36 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
     }
   });
 
-  it("default-entry-draws-every-kind", async () => {
-    const whole = await importEntry<Entry>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    const samples = DRAGON_FILES.map((file) => example(whole, file));
-    expect([...new Set(samples.map((s) => s.kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
-    for (const { file, diagram } of samples) {
+  // 既定の入口は読み込みを待たずに、どの種類の図も描く。見本がどの種類も持つことは light-entry-samples-cover-kinds が確かめる
+  describe.for(DRAGON_FILES)("%s", (file) => {
+    it("default-entry-draws-every-kind", () => {
+      const { whole } = ENTRIES.get();
+      const { diagram } = example(whole, file);
       // bitsumi と同じ呼び方。読んだ後に待たずに続けて描き、SVG と段の時刻と見せ方を読む
       const rendered = whole.renderDiagram(diagram, { palette: "night", theme: "dark", still: true });
       expect(rendered.svg, `${file} の SVG`).toContain('data-dragon="figure"');
       expect(rendered.timeline.stills.length, `${file} の段の時刻`).toBeGreaterThan(0);
       expect(["fixed", "follow"], `${file} の見せ方`).toContain(whole.chooseView(rendered, 1280).mode);
-    }
+    });
+  });
+
+  // 全ての見本を既定の入口で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
+  it("default-entry-cases-follow-files", ({ task }) => {
+    expect(DRAGON_FILES.length, "見本を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "default-entry-draws-every-kind").sort(), "見本ごとの件").toEqual(DRAGON_FILES);
   });
 });
 
 /** 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えたので、見本ごとに分ける (#3410) */
 describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (file) => {
-  it("light-entry-draws-same-svg", async () => {
-    const light = await importEntry<LightEntry>(`${name}/light`);
-    expect(light, "軽い入口を読めない").toBeDefined();
-    if (!light) return;
-    const whole = await importEntry<Entry>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    const { kind, diagram } = example(whole, file);
-    await light.loadKind(kind);
-    // 絵柄集 Tabler の表は種類を読む関数では読まず、loadFor が読む (#3493)。表を使う見本 (橋の見本、#3489) だけ loadFor も待つ
-    if (JSON.stringify(diagram).includes('"tabler:')) await light.loadFor(diagram);
-    for (const options of [{}, { theme: "dark", still: true, lang: "en" }])
-      expect(light.renderDiagram(diagram, options).svg, `${file} (${JSON.stringify(options)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, options).svg);
+  it("light-entry-draws-same-svg", () => {
+    // 2 つの入口と、軽い入口が見本の種類を読むのは file を読み込む段で済ませた (#3738)。件は 2 つの表示で描き比べる
+    const { whole, light } = ENTRIES.get();
+    const { diagram } = example(whole, file);
+    const plain = {};
+    const dark = { theme: "dark", still: true, lang: "en" };
+    expect(light.renderDiagram(diagram, plain).svg, `${file} (${JSON.stringify(plain)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, plain).svg);
+    expect(light.renderDiagram(diagram, dark).svg, `${file} (${JSON.stringify(dark)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, dark).svg);
   });
 });
 

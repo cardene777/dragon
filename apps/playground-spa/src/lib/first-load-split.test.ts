@@ -11,6 +11,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
 
 import { BLOCK_ORDER, BLOCK_SHELF, BLOCK_TEXT } from "../catalog/blocks.gen";
 import type { Lang } from "../text";
@@ -82,6 +83,24 @@ async function fresh(): Promise<{ text: typeof import("../text"); examples: type
 /** 日本語の字 (ひらがな、カタカナ、漢字) */
 const JAPANESE = /[぀-ヿ㐀-鿿]/u;
 
+// 入口と棚の雛形の塊を読み直して全ての種類の塊を待つと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// file を読み込む段で読み直して待ち、件は読んだ物を比べる
+const SHELF = await atLoad("入口と棚の雛形の塊を読み直し、全ての種類の塊を待つ", async () => {
+  // 棚の雛形が読む部品の入口と同じ写しで種類の塊を読むよう、ほかの検査が読んだ写しを持ち越さずに全てを読み直す
+  vi.resetModules();
+  const light = await import("@cardenelabs/dragon/light");
+  const first = await import("../editor/shelf-first").then(
+    (loaded) => loaded,
+    () => undefined,
+  );
+  const later = await import("../site/later");
+  const templates = first && typeof later.whenReady === "function" ? await later.whenReady(first.LATER_SHELF) : undefined;
+  // 棚の雛形は全ての種類の図を書き戻して作るので、棚と同じく全ての種類の塊を待つ
+  await Promise.all(light.LATER_KINDS.map((kind) => light.loadKind(kind)));
+  const direct = await import("../editor/shelf-items");
+  return { light, first, later, templates, direct };
+});
+
 describe("最初に読む script から英語の字と見本と棚の雛形を外す (#3646)", () => {
   it("first-load-carries-no-english-text", () => {
     expectMoved(ENGLISH_SENTENCE, "english", "英語の画面の字", plainForms);
@@ -135,22 +154,11 @@ describe("後から読むと、分ける前と同じ物を返す (#3646)", () =>
     }
   });
 
-  it("later-shelf-items-match", async () => {
-    // 棚の雛形が読む部品の入口と同じ写しで種類の塊を読むよう、ほかの検査が読んだ写しを持ち越さずに全てを読み直す
-    vi.resetModules();
-    const light = await import("@cardenelabs/dragon/light");
-    const first = await import("../editor/shelf-first").then(
-      (loaded) => loaded,
-      () => undefined,
-    );
+  it("later-shelf-items-match", () => {
+    const { light, first, later, templates, direct } = SHELF.get();
     expect(first?.LATER_SHELF, "棚の雛形を後から読む塊 (`LATER_SHELF`) が無い").toBeDefined();
-    const later = await import("../site/later");
     expect(typeof later.whenReady, "後から読む塊が届くのを待つ口 (`whenReady`) が無い").toBe("function");
-    if (!first) return;
-    const templates = await later.whenReady(first.LATER_SHELF);
-    // 棚の雛形は全ての種類の図を書き戻して作るので、棚と同じく全ての種類の塊を待つ
-    await Promise.all(light.LATER_KINDS.map((kind) => light.loadKind(kind)));
-    const direct = await import("../editor/shelf-items");
+    if (!templates) return;
     // 部品の並びは、ブロックの並びとブロックの見本帳の分の棚の鍵から直に作った並び
     const ids = BLOCK_ORDER.flatMap((name) => {
       const shelf: Readonly<Record<string, unknown>> | { none: string } = BLOCK_SHELF[name];

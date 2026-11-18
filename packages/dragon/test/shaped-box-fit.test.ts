@@ -193,14 +193,14 @@ describe("形を変えた箱に字と運ぶ物の枠を収める (#3520)", () =>
     expect(shapeBreaks(read(EVAL_PIE)), "評価の扇形の箱を並べた図の崩れ").toEqual([]);
   });
 
-  it("shaped-box-basic-shapes-fit", () => {
-    const texts = { architecture: read(SHAPES), ...KINDS };
-    for (const [kind, text] of Object.entries(texts)) {
+  // 全ての図の種類を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。図の種類ごとの件に分ける
+  describe.for(Object.entries({ architecture: read(SHAPES), ...KINDS }))("%s", ([kind, text]) => {
+    it("shaped-box-basic-shapes-fit", () => {
       // 4 つの形の箱を描いていなければ、崩れが 0 件でも確かめたことにならない
       const ids = render(text).layout.boxes.map((b) => b.id);
       expect(ids, `${kind} の図が形の箱を描かない`).toEqual(expect.arrayContaining(["gate", "oracle", "pool", "store"]));
       expect(shapeBreaks(text), `${kind} の図の形の崩れ`).toEqual([]);
-    }
+    });
   });
 
   it("shaped-box-grows-when-text-does-not-fit", () => {
