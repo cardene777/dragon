@@ -215,6 +215,16 @@ const EXAMPLES_DRAWN = await atLoad("見本を言葉と枠の幅ごとに描く"
   ),
 );
 
+// 箱を開かない aggregator を件の中で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
+// ほかの見本と、2 つ目の箱を開いた aggregator は EXAMPLES_DRAWN が同じ形で描いているので、箱を開かない aggregator だけを file を読み込む段で描く。キーは `言葉 幅`
+const CLOSED_AGGREGATOR = await atLoad("箱を開かない aggregator を言葉と枠の幅ごとに描く", () =>
+  new Map(
+    (["ja", "en"] as const).flatMap((lang) =>
+      ([1280, 390] as const).map((width): [string, PipeRendered] => [`${lang} ${width}`, render(exampleJson(lang === "ja" ? "aggregator.json" : "aggregator.en.json"), lang, width)]),
+    ),
+  ),
+);
+
 // 色味ごとに描いて置き場所を比べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
 // file を読み込む段で見本ごとに全ての色味で描き、件は既定の色味と置き場所の違った色味を読む。
 // 色味は置き場所を変えない。色味ごとに描いた置き場所が既定の色味と同じなら、違反の数も同じ
@@ -273,8 +283,8 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
   );
   describe.for(fingerprintCases)("%s %s 幅 %i 開く箱 %s", ([name, lang, width, open]) => {
     it("pipe-layout-matches-recorded-fingerprints", () => {
-      const source = exampleJson(lang === "ja" ? `${name}.json` : `${name}.en.json`);
-      const rendered = render(source, lang, width, open === "-" ? undefined : open.split(",").map(Number));
+      // EXAMPLES_DRAWN は aggregator を 2 つ目の箱を開いて描く。開く箱の組は `-` か `2` だけ
+      const rendered = (name === "aggregator" && open === "-" ? CLOSED_AGGREGATOR.get().get(`${lang} ${width}`) : EXAMPLES_DRAWN.get().get(`${name} ${lang} ${width}`)) as PipeRendered;
       const key = `${name} ${lang} ${width} ${open}`;
       const print = createHash("sha256").update(JSON.stringify(rendered.layout)).digest("hex").slice(0, 16);
       const recorded = existsSync(FINGERPRINTS) ? (JSON.parse(readFileSync(FINGERPRINTS, "utf8")) as Record<string, string>) : {};

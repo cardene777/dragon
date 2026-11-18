@@ -102,6 +102,7 @@ const RULES: Rule[] = [
   { file: `${T}pipe-diagram-r6.test.ts`, name: "pipe-r6-gauge-on-pipe", load: 0 },
   { file: `${T}pipe-diagram-rules.test.ts`, name: "pipe-rules-zero-violations-in-every-example", load: 0 },
   { file: `${T}pipe-diagram-rules.test.ts`, name: "pipe-pipes-join-side-ports-and-cross-under", load: 0 },
+  { file: `${T}pipe-diagram-rules.test.ts`, name: "pipe-layout-matches-recorded-fingerprints", load: 0 },
   { file: `${T}pipe-diagram-rules.test.ts`, name: "pipe-text-caps-and-square-labels", load: 0 },
   { file: `${T}pipe-layout-quality.test.ts`, name: "pipe-faint-lines-avoid-boxes", load: 0 },
   { file: `${T}pipe-layout-quality.test.ts`, name: "pipe-contracts-share-shape-and-height", load: 0 },
