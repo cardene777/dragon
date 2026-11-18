@@ -65,7 +65,7 @@ const RULES: Rule[] = [
   { file: `${T}layout-check.test.ts`, name: "export-step-cli-rejects-missing-step", split: 1, child: true },
   { file: `${T}arcade-corners.test.ts`, name: "arcade-cuts-box-region-frame-corners", split: 1 },
   { file: `${T}arcade-corners.test.ts`, name: "other-palettes-keep-rounded-corners", split: 1 },
-  { file: `${T}arcade-palette.test.ts`, name: "cli-draws-with-arcade-palette", split: 1, child: true },
+  { file: `${T}arcade-palette.test.ts`, name: "cli-draws-with-arcade-palette", load: 0, child: true },
   { file: `${T}blocks.test.ts`, name: "every-block-draws-on-every-matching-kind", split: 1 },
   { file: `${A}lib/catalog-parts.test.ts`, name: "catalog-part-snippets-use-their-words", split: 1 },
   { file: `${T}light-entry.test.ts`, name: "default-entry-draws-every-kind", split: 1, load: 1 },
