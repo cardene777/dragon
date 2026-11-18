@@ -175,29 +175,37 @@ export type ThreadAsk =
 export class ExportThread {
   private readonly worker = new Worker(EXPORT_THREAD, { eval: true });
   private asked = 0;
+  /**
+   * 返事を待つ頼み。番号で引く。
+   * 返事の受け手は thread に 1 つだけ置く。頼みごとに受け手を足すと、準備の段が 1 つの thread に 11 以上を頼んだ時に Node が受け手の数の警告を出した
+   */
+  private readonly waiting = new Map<
+    number,
+    { resolve: (reply: Reply) => void; reject: (error: Error) => void }
+  >();
+
+  constructor() {
+    this.worker.on("message", (reply: Reply) => {
+      const wait = this.waiting.get(reply.id);
+      this.waiting.delete(reply.id);
+      wait?.resolve(reply);
+    });
+    this.worker.on("error", (error: Error) => {
+      for (const wait of this.waiting.values()) wait.reject(error);
+      this.waiting.clear();
+    });
+  }
+
   /** まだ返事の無い頼みの数 */
-  pending = 0;
+  get pending(): number {
+    return this.waiting.size;
+  }
 
   ask(message: ThreadAsk): Promise<Reply> {
-    const worker = this.worker;
     const id = ++this.asked;
-    this.pending++;
     return new Promise<Reply>((resolve, reject) => {
-      const replied = (reply: Reply): void => {
-        if (reply.id !== id) return;
-        worker.off("message", replied);
-        worker.off("error", failed);
-        this.pending--;
-        resolve(reply);
-      };
-      const failed = (error: Error): void => {
-        worker.off("message", replied);
-        this.pending--;
-        reject(error);
-      };
-      worker.on("message", replied);
-      worker.once("error", failed);
-      worker.postMessage({ id, ...message });
+      this.waiting.set(id, { resolve, reject });
+      this.worker.postMessage({ id, ...message });
     });
   }
 
