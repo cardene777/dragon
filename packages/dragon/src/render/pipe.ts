@@ -53,6 +53,7 @@ import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, esc, cssFont as font, r1, write } from "./parts";
+import { far, gapOf, gridOf, PathPoints, SpotGrid } from "./pipe-spot";
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
@@ -309,10 +310,6 @@ interface CallItem {
   tag: CallTag;
   wins: [number, number][];
 }
-/** 札を置く時に避ける所。呼び出しの管は `call` に呼び出しの番号を持ち、その呼び出しの札だけは重なってよい */
-interface Obst extends Rect {
-  call?: number;
-}
 
 /** 槽の縁の色。確定した槽は確定の縁、取り消した槽は取り消しの縁 */
 const edgeOf = (lv: PipeLevel | undefined): "final" | "rolled" | "" => (lv?.state === "final" ? "final" : lv?.state === "rolled" ? "rolled" : "");
@@ -479,7 +476,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         return `<text x="${r1(x + pad)}" y="${r1(yy)}">${tsp("n", v.name)}</text><text x="${r1(x + w - pad)}" y="${r1(yy)}" text-anchor="end">${tsp("v", v.value)}</text>`;
       }).join("") + `</g>` };
     };
-    const obst: Obst[] = [];
+    // 札を置く時に避ける所
+    const obst: Rect[] = [];
     const movedKeys = new Set<object>();
     const cardsAll: Card[] = [];
     const rebuild = (): void => {
@@ -490,12 +488,10 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     const keep = (x: number, y: number, w: number, h: number): void => {
       if ([x, y, w, h].every((v) => Number.isFinite(v))) obst.push({ x, y, w, h });
     };
-    const seg = (pts: readonly Point[], half: number, call?: number): void =>
+    const seg = (pts: readonly Point[], half: number): void =>
       pts.slice(1).forEach((q, i) => {
         const p = pts[i] as Point;
         keep(Math.min(p[0], q[0]) - half, Math.min(p[1], q[1]) - half, Math.abs(q[0] - p[0]) + half * 2, Math.abs(q[1] - p[1]) + half * 2);
-        const last = obst[obst.length - 1];
-        if (call !== undefined && last) last.call = call;
       });
     for (const p of layout.parties) {
       keep(p.x, p.y, p.w, p.h);
@@ -511,7 +507,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       }
     });
     for (const c of [...layout.chips, ...layout.events]) if (!movedKeys.has(c) && !("kind" in c && c.kind === "return")) keep(c.x, c.y, c.w, c.h);
-    for (const l of layout.lanes) seg(l.points, 13, l.call);
+    for (const l of layout.lanes) seg(l.points, 13);
     // 移す額の札が通る道も避ける
     for (const fl of layout.flows ?? []) seg(fl.points, 24);
     for (const l of layout.mains ?? []) seg(l.points, 13);
@@ -527,22 +523,6 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     };
     rebuild();
     const GAP = 8;
-    // 札の候補ごとに呼ぶので、障りの物を写した配列を作らずに同じ順で足す (#3720)
-    const hit = (r: Rect, more: readonly Obst[], own?: number): number => {
-      let sum = 0;
-      for (const list of [obst, more])
-        for (const o of list) {
-          if (own !== undefined && o.call === own) continue;
-          const ix = Math.min(r.x + r.w, o.x + o.w + GAP) - Math.max(r.x, o.x - GAP);
-          const iy = Math.min(r.y + r.h, o.y + o.h + GAP) - Math.max(r.y, o.y - GAP);
-          if (ix > 0 && iy > 0) sum += ix * iy;
-        }
-      return sum;
-    };
-    const far = (r: Rect, [px, py]: Point): number => Math.hypot(px - Math.max(r.x, Math.min(px, r.x + r.w)), py - Math.max(r.y, Math.min(py, r.y + r.h)));
-    /** 2つの四角の間の隔たり。重なる時は 0。四角 `b` の中のどの点から `a` までの隔たりもこれより短くならない */
-    const gapOf = (a: Rect, b: Rect): number =>
-      Math.hypot(Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w)), Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h)));
     // 呼び出しごとの時間。開いてから戻るまでのうち、子の呼び出しが開いていない間がその呼び出しの「今」
     const calls1 = [...layout.calls].filter((c) => c.label).sort((u, v) => u.index - v.index);
     const laneOf = (c: PipeCallLane): PipeLane | undefined => layout.lanes.find((x) => x.call === c.index && x.step === c.step) ?? layout.lanes.find((x) => x.call === c.index);
@@ -759,80 +739,38 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const fits = (it: CallItem, more: readonly Rect[]): { r: Rect; score: number; above: boolean } | undefined => {
         const pts = it.lane.points;
         const entry = pts[pts.length - 1] as Point;
-        const along = pts.slice(1).flatMap((q, i) => {
-          const p = pts[i] as Point;
-          const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 12));
-          return Array.from({ length: n + 1 }, (_, k): Point => [p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n]);
-        });
+        const path = new PathPoints(pts);
         const xs = pts.map((p) => p[0]);
         const ys = pts.map((p) => p[1]);
         const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-        // 札の置き場は格子の点ごとに選ぶので、選ぶ札を変えずに 1 点の手間を減らす (#3720)。
+        // 札の置き場は格子の点ごとに選ぶので、選ぶ札を変えずに 1 点の手間を減らす (#3720、#3737)。
         // 道の区間の点は区間の外枠の中に在るので、どの区間の外枠からも NEAR より離れた札はどの点からも NEAR より離れる。端の丸めの差で選ぶ札が変わらないよう 1px 余して外す
         const reach = NEAR + 1;
-        const spans = pts.slice(1).map((q, i): Rect => {
-          const p = pts[i] as Point;
-          return { x: Math.min(p[0], q[0]), y: Math.min(p[1], q[1]), w: Math.abs(q[0] - p[0]), h: Math.abs(q[1] - p[1]) };
-        });
-        // 道の点と障りの物を 1 辺 CELL の升目に分ける。札を reach だけ広げた枠の外の点は札から reach より離れるので、
-        // 枠に掛かる升目の点だけで測った一番近い隔たりが NEAR 以下なら、全ての点で測った値と同じになる。
-        // 障りの物は隙間 GAP だけ広げた枠が掛かる升目に置き、札と重なる物は札が掛かる升目のどれかに必ず在る
-        const CELL = 64;
-        const cellKey = (cx: number, cy: number): number => (cx + 4096) * 8192 + (cy + 4096);
-        const cellsOf = (left: number, top: number, right: number, bottom: number): number[] => {
-          const keys: number[] = [];
-          for (let cx = Math.floor(left / CELL); cx <= Math.floor(right / CELL); cx++) for (let cy = Math.floor(top / CELL); cy <= Math.floor(bottom / CELL); cy++) keys.push(cellKey(cx, cy));
-          return keys;
-        };
-        const points = new Map<number, Point[]>();
-        for (const p of along) {
-          const key = cellKey(Math.floor(p[0] / CELL), Math.floor(p[1] / CELL));
-          const list = points.get(key);
-          if (list) list.push(p);
-          else points.set(key, [p]);
-        }
-        const walls = new Map<number, Obst[]>();
-        // 升目に置けない物 (数でない寸法の物と、升目を 64 を超えて跨ぐ大きな物) は札ごとに全て確かめる
-        const loose: Obst[] = [];
-        for (const o of obst) {
-          if (![o.x, o.y, o.w, o.h].every(Number.isFinite) || o.w + GAP * 2 > CELL * 64 || o.h + GAP * 2 > CELL * 64) {
-            loose.push(o);
-            continue;
-          }
-          for (const key of cellsOf(o.x - GAP, o.y - GAP, o.x + o.w + GAP, o.y + o.h + GAP)) {
-            const list = walls.get(key);
-            if (list) list.push(o);
-            else walls.set(key, [o]);
-          }
-        }
-        const meets2 = (r: Rect, o: Obst): boolean =>
-          Math.min(r.x + r.w, o.x + o.w + GAP) - Math.max(r.x, o.x - GAP) > 0 && Math.min(r.y + r.h, o.y + o.h + GAP) - Math.max(r.y, o.y - GAP) > 0;
-        /** 札 `r` から道の点までの一番近い隔たり。NEAR より離れる時は NEAR より大きい値 */
-        const nearest = (r: Rect): number => {
-          let near = Number.POSITIVE_INFINITY;
-          for (const key of cellsOf(r.x - reach, r.y - reach, r.x + r.w + reach, r.y + r.h + reach)) for (const p of points.get(key) ?? []) near = Math.min(near, far(r, p));
-          return near;
-        };
-        /** 札 `r` が障りの物か `more` の物に隙間 GAP の内まで重なるか (`hit(r, more) > 0` と同じ答え) */
-        const blockedAt = (r: Rect): boolean =>
-          cellsOf(r.x, r.y, r.x + r.w, r.y + r.h).some((key) => (walls.get(key) ?? []).some((o) => meets2(r, o))) ||
-          loose.some((o) => meets2(r, o)) ||
-          more.some((o) => meets2(r, o));
+        // 格子の候補の 9 割 5 分は物に重なるので、道までの隔たりより先に、列ごとに絞った物との重なりで外す
+        const cols = gridOf(x0 - it.tag.w - 60, x1 + 60, 6);
+        const rows = gridOf(y0 - it.tag.h - 60, y1 + 60, 6);
+        const spots = new SpotGrid(cols, rows, it.tag.w, it.tag.h, [obst, more], GAP);
         // 横の区間 (呼び出しの管の札を上に置ける所) は札ごとに同じなので先に並べる
         const flats = pts.slice(1).flatMap((q, i): [Point, Point][] => {
           const p = pts[i] as Point;
           return Math.abs(q[1] - p[1]) >= 1 || Math.abs(q[0] - p[0]) < 1 ? [] : [[p, q]];
         });
+        // 札が図の端から 8px の内に収まるかは、列と行で別に決まるので 1 度ずつ確かめる
+        const { w, h } = it.tag;
+        const colIn = cols.map((x) => !(x < 8 || x + w > layout.width - 8));
+        const rowIn = rows.map((y) => !(y < 8 || y + h > layout.height - 8));
         let best: { r: Rect; score: number; above: boolean } | undefined;
-        for (let x = x0 - it.tag.w - 60; x <= x1 + 60; x += 6) {
-          for (let y = y0 - it.tag.h - 60; y <= y1 + 60; y += 6) {
-            const r = { x, y, w: it.tag.w, h: it.tag.h };
-            if (r.x < 8 || r.y < 8 || r.x + r.w > layout.width - 8 || r.y + r.h > layout.height - 8) continue;
-            // 選ぶ札は道に近く、どの物にも重ならない札。安い判定から先に当て、重なりは道に近い札だけで確かめる
-            if (spans.every((b) => gapOf(r, b) > reach)) continue;
-            const near3 = nearest(r);
+        for (let i = 0; i < cols.length; i++) {
+          if (!colIn[i]) continue;
+          const x = cols[i] as number;
+          const blocked = spots.blockedColumn(i);
+          for (let j = 0; j < rows.length; j++) {
+            // 選ぶ札は道に近く、どの物にも重ならない札。安い判定から先に当てる
+            if (!rowIn[j] || blocked[j] === 1) continue;
+            const r = { x, y: rows[j] as number, w, h };
+            if (path.spans.every((b) => gapOf(r, b) > reach)) continue;
+            const near3 = path.nearestWithin(r, reach);
             if (near3 > NEAR) continue;
-            if (blockedAt(r)) continue;
             let above = false;
             let flatD = Infinity;
             for (const [p, q] of flats) {
@@ -897,32 +835,28 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         placed.push({ it, r: kept });
         continue;
       }
-      const along = pts.slice(1).flatMap((q, i) => {
-        const p = pts[i] as Point;
-        const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 12));
-        return Array.from({ length: n + 1 }, (_, k): Point => [p[0] + (q[0] - p[0]) * k / n, p[1] + (q[1] - p[1]) * k / n]);
-      });
+      const path = new PathPoints(pts);
       const more = placed.filter((x) => meets(x.it.wins, it.wins)).map((x) => x.r);
       const xs = pts.map((p) => p[0]);
       const ys = pts.map((p) => p[1]);
+      // 物と重なる面積は列ごとに横で重なる物だけを足し、一番近い道の点は区間の外枠で外して探す (#3737)
+      const cols = gridOf(Math.min(...xs) - tag.w - 240, Math.max(...xs) + 240, 8);
+      const rows = gridOf(Math.min(...ys) - tag.h - 200, Math.max(...ys) + 200, 8);
+      const spots = new SpotGrid(cols, rows, tag.w, tag.h, [obst, more], GAP);
+      const colIn = cols.map((x) => !(x < 8 || x + tag.w > layout.width - 8));
+      const rowIn = rows.map((y) => !(y < 8 || y + tag.h > layout.height - 8));
       let best: { r: Rect; score: number } | undefined;
-      for (let x = Math.min(...xs) - tag.w - 240; x <= Math.max(...xs) + 240; x += 8) {
-        for (let y = Math.min(...ys) - tag.h - 200; y <= Math.max(...ys) + 200; y += 8) {
-          const r = { x, y, w: tag.w, h: tag.h };
-          if (r.x < 8 || r.y < 8 || r.x + r.w > layout.width - 8 || r.y + r.h > layout.height - 8) continue;
-          // 一番近い道の点と隔たりを 1 度の走査で求める。同じ隔たりの点は先の点を取る
-          let nearest = along[0] as Point;
-          let near3 = far(r, nearest);
-          for (const p of along) {
-            const d = far(r, p);
-            if (d < near3) {
-              near3 = d;
-              nearest = p;
-            }
-          }
+      for (let i = 0; i < cols.length; i++) {
+        if (!colIn[i]) continue;
+        const x = cols[i] as number;
+        for (let j = 0; j < rows.length; j++) {
+          if (!rowIn[j]) continue;
+          const r = { x, y: rows[j] as number, w: tag.w, h: tag.h };
+          // 同じ隔たりの点は先の点を取る
+          const { point: nearest, d: near3 } = path.nearest(r);
           const e0: Point = [Math.max(r.x, Math.min(nearest[0], r.x + r.w)), Math.max(r.y, Math.min(nearest[1], r.y + r.h))];
           const crosses = near3 > 28 && layout.parties.some((o) => cross(e0, nearest, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 4 }));
-          const score = hit(r, more) * 50 + near3 + far(r, entry) * 0.25 + (crosses ? 4e3 : 0);
+          const score = spots.overlap(i, j) * 50 + near3 + far(r, entry) * 0.25 + (crosses ? 4e3 : 0);
           if (!best || score < best.score) best = { r, score };
         }
       }
