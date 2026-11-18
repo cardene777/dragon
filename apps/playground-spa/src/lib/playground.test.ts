@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { EMBED_PATH, EMBEDDING_PATH, PATHS } from "../site/routes";
+import { casesNamed } from "../../../../packages/dragon/test/export-support";
 import { builtDir, bundleSizes, firstLoadFiles, pageSources } from "./playground-support";
 
 /** 画面の経路 (頁の置き場の後ろ)。帯の行き先の経路の表と、埋め込みの頁の経路 (#3700) と、組み込みの見本の頁の経路 (#3701) と、カタログの分類から導く (#3157) */
@@ -119,6 +120,16 @@ describe("公開する頁 (#2995)", () => {
     // 外した字が最初の script をどれだけ軽くしたか。説明の字を足して gzip で比べる
     const gz = (text: string): number => gzipSync(Buffer.from(text)).length;
     expect(gz(`${first}\n${descs.join("\n")}`) - gz(first), "部品の説明の字を外しても、最初に読む script が gzip で 5,000 バイト軽くならない").toBeGreaterThanOrEqual(5000);
+  });
+
+  // 全てのブロックの説明を 1 件で読むと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。ブロックごとの件に分ける
+  it("part-desc-cases-follow-blocks", ({ task }) => {
+    const blocks = join(__dirname, "../../../../packages/dragon/src/blocks");
+    const names = readdirSync(blocks)
+      .filter((name) => existsSync(join(blocks, name, "gallery", "desc.ts")))
+      .sort();
+    expect(names.length, "部品の説明を数えられない (gallery/desc.ts が無い)").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "first-load-carries-no-part-desc").sort(), "ブロックごとの件").toEqual(names);
   });
 
   it("page-draws-with-package-parts", () => {

@@ -354,6 +354,17 @@ describe("手描きの線の崩れ (#3643)", () => {
     expect(broken, "手描きの線で描いた部品の図の崩れ").toEqual([]);
   });
 
+  // 部品の全ての図の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。図ごとの件に分ける
+  it("pen-line-part-cases-follow-files", ({ task }) => {
+    const blocks = join(ROOT, "packages/dragon/src/blocks");
+    const names = readdirSync(blocks)
+      .flatMap((name) => dragonFiles(join(blocks, name, "gallery")))
+      .sort()
+      .map((file) => relative(ROOT, file));
+    expect(names.length, "部品の図を数えられない").toBeGreaterThan(20);
+    expect(casesNamed(task.file, "pen-line-parts-have-no-breaks").sort(), "部品の図ごとの件").toEqual(names);
+  });
+
   // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。見本ごとの件に分ける
   it("pen-line-cases-follow-examples", ({ task }) => {
     const names = EXAMPLE_DIRS.flatMap(dragonFiles).sort().map((file) => relative(ROOT, file));

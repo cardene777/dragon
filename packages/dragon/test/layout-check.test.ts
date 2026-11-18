@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { describe, expect, it, vi } from "vitest";
-import { runCli } from "./export-support";
+import { casesNamed, runCli } from "./export-support";
 
 // 書き出しの撮る所だけを差し替え、撮った止め絵の時刻を PNG の中身にする。段の選び方を Chromium を起こさずに確かめる。
 // Chromium を起こす書き出しは 1 回で 8 秒かかり、3 回撮って比べると 1 件の上限 (10 秒) を超える
@@ -792,6 +792,13 @@ describe("見本に今ある崩れ (#3484)", () => {
     });
     expect(grown, "一覧に無い崩れが見本に出た").toEqual([]);
   });
+
+  // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
+  it("layout-check-cases-follow-examples", ({ task }) => {
+    const names = exampleFiles().map((file) => relative(ROOT, file));
+    expect(names.length, "見本を数えられない").toBeGreaterThan(EXAMPLE_DIRS.length);
+    expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本ごとの件").toEqual(names);
+  });
 });
 
 describe("見本帳の図は崩れを出さない (#3607)", () => {
@@ -812,6 +819,13 @@ describe("見本帳の図は崩れを出さない (#3607)", () => {
       }).map((b) => `${relative(ROOT, file)}: ${JSON.stringify(b)}`),
     );
     expect(broken, "見本帳の図に崩れが残る").toEqual([]);
+  });
+
+  // 見本帳の全ての図の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。図ごとの件に分ける
+  it("gallery-warn-cases-follow-gallery", ({ task }) => {
+    const names = galleryFiles().map((file) => relative(ROOT, file));
+    expect(names.length, "見本帳の図を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "gallery-warns-nothing").sort(), "見本帳の図ごとの件").toEqual(names);
   });
 });
 

@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as WORDS from "../src/words";
 import { api } from "./diagram-support";
+import { casesNamed } from "./export-support";
 import { draw } from "./render-support";
 
 const SRC = join(__dirname, "../src");
@@ -428,6 +429,20 @@ describe("付け方が合う組 (#3347)", () => {
       }
     }
     expect(refused, "読めないか描けない部品の図").toEqual([]);
+  });
+
+  // 全ての組の部品の図を 1 件で読んで描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。部品の図と言葉ごとの件に分ける
+  it("block-draw-cases-follow-gallery", async ({ task }) => {
+    const { blocks, kinds } = await registries();
+    const names = Object.values(kinds)
+      .flatMap((kind) =>
+        Object.values(blocks)
+          .filter((block) => fits(block, kind))
+          .flatMap((block) => figuresOf(block.name, kind.name).flatMap((figure) => [`${block.name}/${figure}`, `${block.name}/${figure.replace(/\.dragon$/u, ".en.dragon")}`])),
+      )
+      .sort();
+    expect(names.length, "部品の図を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "every-block-draws-on-every-matching-kind").sort(), "部品の図と言葉ごとの件").toEqual(names);
   });
 
   it("later-kind-folder-keeps-layout-out-of-first-load", async () => {

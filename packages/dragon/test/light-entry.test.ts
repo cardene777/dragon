@@ -646,6 +646,12 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
       expect(["fixed", "follow"], `${file} の見せ方`).toContain(whole.chooseView(rendered, 1280).mode);
     }
   });
+
+  // 全ての見本を既定の入口で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
+  it("default-entry-cases-follow-files", ({ task }) => {
+    expect(DRAGON_FILES.length, "見本を数えられない").toBeGreaterThan(1);
+    expect(casesNamed(task.file, "default-entry-draws-every-kind").sort(), "見本ごとの件").toEqual(DRAGON_FILES);
+  });
 });
 
 /** 全ての見本を 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えたので、見本ごとに分ける (#3410) */
