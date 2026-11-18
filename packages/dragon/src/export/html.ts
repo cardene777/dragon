@@ -10,6 +10,7 @@
  */
 import { iconsElement } from "../blocks/icon/page-icons";
 import { setIconFields } from "../blocks/icon/set-fields";
+import { EDGE_PLAYER_ROOM_CSS } from "../look/player-room";
 import { esc } from "../render/parts";
 import type { PagePlan } from "./page";
 
@@ -27,10 +28,9 @@ export function pageHtml(plan: Pick<PagePlan, "source" | "palette" | "vars" | "l
     "<!doctype html>",
     `<html lang="${plan.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`,
     `<title>${esc(diagram.title)}</title>`,
-    // 再生の帯の左右と下の余白は置いた頁が付ける (`player.ts`)。図は窓の幅いっぱいに置き、帯の字と釦と進み具合だけを窓の縁から離す (#3398)。
-    // 試す図は段の説明の帯の下に入力の帯を置くので、下の余白は帯ではなく再生の部品の下に付け、最後に置いた帯を窓の下の縁から離す (#3437)。
-    // 配管の図の下の段の矢印と呼び出しの結果も、帯と同じだけ窓の左右の縁から離す (#3418、#3450)
-    `<style>${fontCss}:root{${plan.vars}}html,body{margin:0}body{background:var(--bg)}.dg-player{padding-bottom:12px}.dg-bar,.dg-calls{padding:0 16px}</style>`,
+    // 再生の帯の左右と下の余白は置いた頁が付ける (`player.ts`)。図は窓の幅いっぱいに置き、帯の字と釦と進み具合だけを窓の縁から離す。
+    // 帯つきの図の帯の枠も同じ余白を付けるので、値は 1 つの定数から読む (`look/player-room.ts`、#3744)
+    `<style>${fontCss}:root{${plan.vars}}html,body{margin:0}body{background:var(--bg)}${EDGE_PLAYER_ROOM_CSS}</style>`,
     '</head><body><div id="dragon"></div>',
     `<script type="application/json" id="dragon-diagram">${json}</script>`,
     // 頁の script が読み込みの時に登録するので、script より前に置く
