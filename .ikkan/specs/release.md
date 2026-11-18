@@ -14,7 +14,7 @@
 | `配った後の確かめ`は、npmの最新の版が包んだ版と違う時と、入れた`dragon --version`が違う時と、GitHub Pagesの頁が200を返さない時に落とす | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts`の検査`release-after-judges-npm-and-pages`が通る | #3589 |
 | `.claude/skills/dragon-extend/SKILL.md`が、版を出す前に確かめる物を`.ikkan/checks.md`の欄が持つと書く | `pnpm exec vitest run packages/dragon/test/extend-skill.test.ts`の検査`extend-skill-release-checks-in-checks-md`が通る | #3589 |
 | `一式`の欄は今の命令のままで、最後に依存の脆弱性を1回見る | `pnpm exec vitest run packages/dragon/test/dependency-vulnerability-check.test.ts`の検査`checks-suite-ends-with-real-vuln-check`が通る | #3589 |
-| READMEと使い方の頁とプラグインの文書が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts --reporter=verbose`の検査`pinned-script-lines-follow-package-version`が通る | #3711 #3715 #3728 |
+| READMEと使い方の頁とプラグインの文書が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts --reporter=verbose`の検査`pinned-script-lines-follow-package-version`が通る | #3711 #3715 #3728 #3747 |
 | npmへ出す時の検査`prepublishOnly`は、検査の一式 (`pnpm run test`とvitest) を回さない | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`prepublish-skips-the-whole-suite`が通る | #3717 |
 | npmへ出す時の検査`prepublishOnly`は、型の検査とbuildを回し、buildの後に`check:pack`を回す | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`prepublish-builds-and-checks-pack`が通る | #3717 |
 | 管理者向けの決まり`docs/maintaining.md`の節`npmへ出す時の検査`が、npmへ出す時は型の検査とbuildと`check:pack`を回し、一式は配る前の関門が1回だけ回すと書く | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`maintaining-says-suite-runs-once-before-release`が通る | #3717 |
