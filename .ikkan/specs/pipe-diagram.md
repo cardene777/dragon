@@ -155,3 +155,9 @@
 | 置き場所の検査`dragon check --layout`が、重なりと文字の上を通る線と高さ200px以上の空き帯を持つパイプ図を拒む | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`layout-check-refuses-pipe-breaks`が通る | #3721 |
 | 人と箱の左右の順と表の左右の順は、記法に書いた順のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-notation-order`が通る | #3721 |
 | 呼び出しの線とパイプの色と太さは今のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-line-colors-and-widths`が通る | #3721 |
+| 配管の図の見本6つを日本語と英語と幅1280と390で描いた置き場所 (`layout`) の指紋と、箱2を開いた`aggregator`の指紋が、記録した指紋と同じになる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3737 |
+| 札の候補を格子に並べた時、置き場所を探す道具は、どの候補についても、障りの物か置いた札に隙間8pxの内まで重なるかの答えと、重なる面積の和を、障りの物を全部見る定義と同じ値で返す。障りの物の寸法が数でない時、格子の64升を超える大きな物、置いた札を含む場面を種から作って確かめる | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-grid-matches-definition`が通る | #3737 |
+| 置き場所を探す道具は、札から一番近い道の点とその隔たりを、全部の点を順に見る定義と同じ点と値で返し、同じ隔たりの点が2つ在る時は先の点を返す。札から56px以内に点が在る時の一番近い隔たりも、定義と同じ値で返す | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-nearest-matches-definition`が通る | #3737 |
+| 置き場所を探す道具は、障りの物か置いた札から隙間8pxの内に入る候補を空いた候補として返さない。隙間がちょうど8pxの候補は空いた候補として返し、寸法が数でない障りの物は候補をふさがない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-refuses-spots-within-gap`が通る | #3737 |
+| 箱2を開いた`aggregator.json`を描く時、札の候補から道までの隔たりを測る回数が、直す前の37万回の10分の1 (3万7千回) より少ない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-open-aggregator-measures-fewer-spots`が通る | #3737 |
+| 配管の図の見本を言語と枠の幅ごとに描いた時、決まりの表への違反が0件のままである | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3737 |
