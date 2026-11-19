@@ -446,6 +446,41 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     });
   });
 
+  /**
+   * 種類の検査が子の Node で 1 つずつ持っていた確かめ (`<種類>-light-entry-draws-after-load-for`) を、後から読む種類ごとの件にまとめる (#3763)。
+   * 種類の検査が軽い入口を読むと、関係する検査を選ぶ命令が全ての種類の描く所を変えた時にその検査を選ぶため
+   */
+  describe.for(Object.keys(LATER_SAMPLES))("%s", (kind) => {
+    it("light-entry-draws-each-later-kind-after-load-for", async () => {
+      const whole = await wholeEntry();
+      const text = readFileSync(join(EXAMPLES, LATER_SAMPLES[kind] as string), "utf8");
+      const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+      expect(light.kindLoaded(kind), `${kind} を loadFor の前に読んでいた`).toBe(false);
+      await light.loadFor(text);
+      expect(light.kindLoaded(kind), `${kind} を loadFor の後に読んでいない`).toBe(true);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${kind} の見本を loadFor の後に読めない`).toBe(true);
+      const expected = whole.parseNotation(text);
+      expect(parsed.ok ? light.renderDiagram(parsed.diagram).svg : "", `${kind} を軽い入口で描いた SVG が既定の入口と違う`).toBe(expected.ok ? whole.renderDiagram(expected.diagram).svg : "");
+    });
+  });
+
+  // 時系列図と構成図は軽い入口が最初から持ち、loadFor を待たずに描く (#3763)
+  it("light-draws-sequence-and-architecture-without-load", async () => {
+    const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+    const architecture = "architecture 橋\n\nbox eth as Ethereum\nbox cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+    for (const [kind, text] of [
+      ["sequence", INTRO],
+      ["architecture", architecture],
+    ] as const) {
+      expect(light.kindLoaded(kind), `${kind} を最初から持たない`).toBe(true);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${kind} を待たずに読めない`).toBe(true);
+      const svg = parsed.ok ? light.renderDiagram(parsed.diagram).svg : "";
+      expect(svg, `${kind} を待たずに描けない`).toContain('data-dragon="figure"');
+    }
+  });
+
   it("light-load-readings-leaves-renderer-out", () => {
     const out = loadedAfter(`
       const text = ${JSON.stringify(TIME_NO_ZOOM)};
