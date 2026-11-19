@@ -20,8 +20,11 @@ interface FileChromium {
 const NEEDS = "./page-needs";
 const fileChromiumTools = async (): Promise<Partial<FileChromium>> => ((await import(/* @vite-ignore */ NEEDS).catch(() => ({}))) as Partial<FileChromium>);
 
-/** 頁を開く道具を自分で持つ file。file で 1 つの Chromium を受け取る */
-const OWN_PAGES = ["export-support.ts", "interactive-browser.test.ts", "script-entry.test.ts", "user-blocks.test.ts"];
+/**
+ * 頁を開く道具を自分で持つ file。file で 1 つの Chromium を受け取る。
+ * 使う人が足すブロックの頁を開く件は、種類の検査から `user-blocks-cli-checks.ts` へ移し `kind-cli.test.ts` が読む (#3763)
+ */
+const OWN_PAGES = ["export-support.ts", "interactive-browser.test.ts", "script-entry.test.ts", "user-blocks-cli-checks.ts"];
 
 describe("file で 1 つの Chromium (#3424)", () => {
   it("package-tests-share-file-chromium", () => {
