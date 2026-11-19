@@ -19,6 +19,8 @@ import * as parts from "../catalog/parts";
 import { type Part, PARTS } from "../catalog/parts";
 import { PartPage } from "../catalog/PartPage";
 import type { Lang } from "../text";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
+import { whenReady } from "../site/later";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -57,10 +59,11 @@ function settingsOf(part: Part, lang: Lang): SettingRow[] {
 /** 設定の鍵 (`attr:edge.carry` の `carry`) */
 const keyOf = (word: string): string => word.split(".")[1] ?? "";
 
-beforeAll(async () => {
-  parts.LATER_SNIPPETS.start();
-  for (let i = 0; i < 200 && parts.LATER_SNIPPETS.state().status === "loading"; i += 1) await new Promise((resolve) => setTimeout(resolve, 25));
-  expect(parts.LATER_SNIPPETS.state().status, "部品の図の記法の塊が届かない").toBe("ready");
+// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
+const SNIPPETS_READY = await atLoad("部品の図の記法の塊を待つ", () => whenReady(parts.LATER_SNIPPETS));
+
+beforeAll(() => {
+  SNIPPETS_READY.get();
 });
 
 /** 部品の頁を描き、描いた頁の要素を渡して読む */

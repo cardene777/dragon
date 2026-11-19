@@ -5,6 +5,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { api, type Json } from "./diagram-support";
 import { draw, type Rect, type Rendered } from "./render-support";
 import "../src/kinds/basics";
@@ -203,11 +204,14 @@ function samples(): { where: string; text: string; source: Source; lang: Lang }[
   });
 }
 
-beforeAll(async () => {
-  LATER_EXAMPLES.start();
-  for (let i = 0; i < 400 && LATER_EXAMPLES.state().status === "loading"; i += 1)
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  expect(LATER_EXAMPLES.state().status, "見本帳の後から読む見本の塊が届かない").toBe("ready");
+// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
+const EXAMPLES_READY = await atLoad("見本帳の後から読む見本の塊を待つ", async () => {
+  const { whenReady } = (await playgroundFile("site/later.ts")) as { whenReady: (chunk: typeof LATER_EXAMPLES) => Promise<unknown> };
+  return whenReady(LATER_EXAMPLES);
+});
+
+beforeAll(() => {
+  EXAMPLES_READY.get();
 });
 
 
