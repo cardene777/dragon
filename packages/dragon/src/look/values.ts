@@ -117,9 +117,10 @@ export function isColorValue(value: unknown): value is string {
 
 /** 色味の値を CSS の変数として並べる。 */
 export function paletteVars(palette: Palette, theme: Theme): string {
-  // 今のステップの帯と生存線の帯の地 (Tracelyth #91)。明るいテーマの地 (--bg) は色を持つため、混ぜると灰色に寄る
-  const wash = theme === "dark" ? "var(--surf)" : "#ffffff";
-  return [...Object.entries(palette[theme]).map(([key, value]) => `--${key}:${value}`), `--wash:${wash}`].join(";");
+  // 今のステップの帯の地 (`--wash`) は、読む時系列図の見た目 (`render/sequence.ts`) が自分の要素に置く (#3761)
+  return Object.entries(palette[theme])
+    .map(([key, value]) => `--${key}:${value}`)
+    .join(";");
 }
 
 /** 字の変数。同梱した 2 つの字を 1 度だけ名指し、字を使う所はどれもこの変数を読む。 */

@@ -66,7 +66,7 @@ import { atLoad } from "./at-load";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { covers, draw, figureClass, type Rendered, sampleTimes } from "./render-support";
-import { ROOT, EXAMPLES, SAMPLES, PIPE_WORDS, KANA, FLOW_WIDTH, BAND_LEAST, type Point, type State, type Flow, type Source, bal, val, call, ret, rev, move, write, check, emit, calc, fullPipe, kindsPipe, callKindsPipe, movePipe, innerPipe, foldPipe, fileText, exampleJson, repoText, render, partyOf, levelOf, tankOf, plateOf, callAt, center, within, lastStep, stillOf, partsOf, seen, roleOf, strokeWidthOf, hatched, initialsOf, shape, SAMPLE_FILES, SAMPLE_JSON, langOf, coinMoves } from "./pipe-diagram-support";
+import { ROOT, EXAMPLES, SAMPLES, PIPE_WORDS, KANA, FLOW_WIDTH, BAND_LEAST, type Point, type State, type Flow, type Source, bal, val, call, ret, rev, move, write, check, emit, calc, fullPipe, kindsPipe, callKindsPipe, movePipe, innerPipe, foldPipe, fileText, exampleJson, repoText, render, partyOf, levelOf, tankOf, plateOf, callAt, center, within, lastStep, stillOf, partsOf, seen, roleOf, strokeWidthOf, hatched, initialsOf, shape, SAMPLE_FILES, SAMPLE_JSON, langOf, tankCount, countsFromTo } from "./pipe-diagram-support";
 
 describe("配管の図の原本の JSON (#3389)", () => {
   it("schema-accepts-pipe-diagram", () => {
@@ -501,8 +501,9 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
       const sel = `[data-pipe-flow][data-pipe-step="${s}"]`;
       expect(seen(motion, sel, stillOf(rendered, s)), `段 ${s + 1} に流れた分が見えない`).toBeGreaterThan(0.9);
     }
-    // 管を流れた分は、流れた段に移す額の札が管を通り抜け (Tracelyth #168、#3720)、確定するまでの斜線は受け手の槽が持つ。管には斜線を残さない (試作の4配管と同じ、#3398)
-    expect(coinMoves(rendered, motion, 1), "段 2 で移す額の札が管を通り抜けない").toBe(true);
+    // 管を流れた分は、流れた段に両端の槽の数が前の額から次の額へ数えて見せ (Tracelyth #221、#3761)、確定するまでの斜線は受け手の槽が持つ。管には斜線を残さない (試作の4配管と同じ、#3398)
+    expect(countsFromTo(tankCount(rendered, motion, 1, "pool", "USDC"), "2,000", "2,100"), "段 2 で Pool の USDC の槽の数が 2,000 から 2,100 へ数えない").toBe(true);
+    expect(countsFromTo(tankCount(rendered, motion, 1, "alice", "USDC"), "1,000", "900"), "段 2 で Alice の USDC の槽の数が 1,000 から 900 へ数えない").toBe(true);
     expect(
       partsOf(motion, '[data-pipe-flow][data-pipe-step="2"]').some((el) => hatched(svg, el)),
       "段 3 の管に流れた分の斜線が残る",

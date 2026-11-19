@@ -1,10 +1,8 @@
 /**
- * 配管の図で、戻り値の札を部品に重ねない形と、丸の名札から出る管の位置 (#3607)。見本帳の図に残っていた崩れを直した形を確かめる。
+ * 配管の図で、戻り値の札が収まる長さまで管を伸ばす形と、丸の名札から出る管の位置 (#3607)。見本帳の図に残っていた崩れを直した形を確かめる。
  *
  * 返した値の札は呼び出しの管を伝って戻り、管の上で止まる。札が管より長いと、どこに止めても弁か箱に重なった。
- * `dragon check --layout` は重なりを知らせるだけで (#3523)、描く側は管を伸ばさなかった。#3607 は札が収まらない呼び出しの 2 つの箱の間を札が収まる長さまで開けたが、
- * #3761 でTracelythのパッチの並べ方を元にしたので、2 人の間は開けない。パッチは札が動く道を箱と人と槽と名前に重ならない所だけに切り詰め、
- * 重ならずに動ける所が無い札は描かない (Tracelyth #221)。どちらの作りでも、札は弁と計器と箱に重ならない。
+ * `dragon check --layout` は重なりを知らせるだけで (#3523)、描く側は管を伸ばさなかった。札が収まらない呼び出しは、2 つの箱の間を札が収まる長さまで開ける。
  * 丸の名札は角の丸みが高さの半分なので、真ん中を外れて出る管は名札の縁の後ろを通って見える。丸の名札から出る管は、名札の真ん中から出る。
  * 札は止まった所で濃く見えた後に消えていく。消えていく間も重なって見えるので、崩れの確かめも消え終わるまで札を見る。
  */
@@ -38,13 +36,10 @@ const ROUND_PARTIES = ["emit", "hold", "revert"].flatMap((block) => ["", ".en"].
 /** 段4で Aggregator が Alice へ「1 WETH」を返す見本帳の図 */
 const FOLD = join(BLOCKS, "fold/gallery/fold.pipe.en.dragon");
 
-/** 長い戻り値の札の字 */
-const LONG_CHIP = "呼び出しの管のどこにも収まらないほど長い戻り値の札";
-
-/** 記法の file を描き、描く処理が崩れの確かめへ渡した部品と止め絵の時刻を返す。`edit` は描く前に記法の字を書き換える */
-function drawn(file: string, edit: (text: string) => string = (text) => text): DrawnFigure {
+/** 記法の file を描き、描く処理が崩れの確かめへ渡した部品と止め絵の時刻を返す */
+function drawn(file: string): DrawnFigure {
   const lang = file.includes(".en.") ? "en" : "ja";
-  const parsed = parseNotation(edit(readFileSync(file, "utf8")), { lang });
+  const parsed = parseNotation(readFileSync(file, "utf8"), { lang });
   if (!parsed.ok) throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   let figure: DrawnFigure | undefined;
   drawDiagram(parsed.diagram, {
@@ -61,27 +56,22 @@ function drawn(file: string, edit: (text: string) => string = (text) => text): D
 const piecesOf = <K extends PipePiece["kind"]>(figure: DrawnFigure, kind: K): Extract<PipePiece, { kind: K }>[] =>
   (figure.pieces ?? []).filter((p): p is Extract<PipePiece, { kind: K }> => p.kind === kind);
 
-describe("戻り値の札を部品に重ねない (#3607、#3761)", () => {
-  it("pipe-long-return-chip-stays-off-parts", () => {
+describe("戻り値の札が収まる長さまで管を伸ばす (#3607)", () => {
+  it("pipe-widens-for-long-return-chip", () => {
     for (const file of LONG_RETURNS) {
-      // 管より長い札と、管に収まる短い札 (`ok`) を同じ並びで描く
-      for (const text of [LONG_CHIP, "ok"]) {
-        const figure = drawn(file, (source) => source.replace(LONG_CHIP, text));
-        const what = `${file} の札「${text}」`;
-        // 配管の図は形を持つ箱を描かないので、形の輪郭は空で渡す
-        const covered = findBreaks({ ...figure, outlines: new Map() }).filter((b) => b.kind === "chip-over-part");
-        expect(covered, `${what}が弁か計器か箱に重なる`).toEqual([]);
-        const chip = piecesOf(figure, "chip").find((c) => c.text === text);
-        if (text === LONG_CHIP) continue;
-        // 管に収まる札は描き、Alice の名札の右の縁と Router の名札の左の縁の間に止める
-        expect(chip, `${what}を描いていない`).toBeDefined();
-        const alice = piecesOf(figure, "box").find((b) => b.name === "Alice");
-        const router = piecesOf(figure, "box").find((b) => b.name === "Router");
-        expect(alice && router, `${file} に Alice か Router の名札が無い`).toBeTruthy();
-        if (!chip || !alice || !router) continue;
-        expect(chip.rect.x, `${what}が Alice の名札に掛かる`).toBeGreaterThanOrEqual(alice.rect.x + alice.rect.w);
-        expect(chip.rect.x + chip.rect.w, `${what}が Router の名札に掛かる`).toBeLessThanOrEqual(router.rect.x);
-      }
+      const figure = drawn(file);
+      const chip = piecesOf(figure, "chip").find((c) => c.text === "呼び出しの管のどこにも収まらないほど長い戻り値の札");
+      expect(chip, `${file} に長い戻り値の札が無い`).toBeDefined();
+      // 配管の図は形を持つ箱を描かないので、形の輪郭は空で渡す
+      const covered = findBreaks({ ...figure, outlines: new Map() }).filter((b) => b.kind === "chip-over-part");
+      expect(covered, `${file} の札が弁か計器か箱に重なる`).toEqual([]);
+      // 札は Alice の名札の右の縁と Router の名札の左の縁の間に収まる
+      const alice = piecesOf(figure, "box").find((b) => b.name === "Alice");
+      const router = piecesOf(figure, "box").find((b) => b.name === "Router");
+      expect(alice && router, `${file} に Alice か Router の名札が無い`).toBeTruthy();
+      if (!chip || !alice || !router) continue;
+      expect(chip.rect.x, `${file} の札が Alice の名札に掛かる`).toBeGreaterThanOrEqual(alice.rect.x + alice.rect.w);
+      expect(chip.rect.x + chip.rect.w, `${file} の札が Router の名札に掛かる`).toBeLessThanOrEqual(router.rect.x);
     }
   });
 

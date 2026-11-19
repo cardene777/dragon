@@ -1506,6 +1506,25 @@ export function along(points: readonly Point[], d: number): Point {
   }
   return points[points.length - 1] ?? [0, 0];
 }
+/**
+ * 管 `points` に沿って、進む向きの長さを持たない札 (横の管では幅 0 で高さ `h`、縦の管では幅 `w` で高さ 0) を動かし、
+ * 部品 `rects` のどれにも重ならずに続けて動ける長さの最長。戻り値の札が収まらない管を広げる長さを決める時に使う (#3761)
+ */
+function freeRun(points: readonly Point[], h: number, w: number, rects: readonly Rect[]): number {
+  const total = lengthOf(points);
+  let best = 0;
+  let run = 0;
+  for (let d = 0; d <= total; d += 2) {
+    const [x, y] = along(points, d);
+    const a = along(points, Math.max(0, d - 1));
+    const b = along(points, Math.min(total, d + 1));
+    const flat = Math.abs(b[0] - a[0]) >= Math.abs(b[1] - a[1]);
+    const probe: Rect = flat ? { x, y: y - h / 2, w: 0, h } : { x: x - w / 2, y, w, h: 0 };
+    run = rects.every((o) => apart(probe, o, 0)) ? run + 2 : 0;
+    best = Math.max(best, run);
+  }
+  return best;
+}
 // 戻りの札が動く道を、箱と人と槽と名前のどれにも重ならない終わりの部分だけにする。
 // 札は呼ばれた側の縁から動き始めず、途中でほかの箱の横を通る時も重ならない (Tracelyth #221)
 export function clearTail(points: Point[], chip: Rect, rects: readonly Rect[]): Point[] | null {
@@ -3850,6 +3869,39 @@ function finishPipe(out: PipeLayout): PipeLayout {
     }
     if (cut) c.path = cut;
   }
+  // 戻りの札が止まる所が弁に重なる時は、呼び出しの管を呼んだ側から辿り直し、弁と計器と人と箱と槽のどれからも離れた最初の所で止める。
+  // 弁は並べ終えた後の所に在るので、組む時に避けた所でも、置き直した図と弁を管の真ん中へ寄せた図では札が弁に重なっていた (#3761)
+  const valveBlocks = [
+    ...(out.mains ?? []).flatMap((m) => m.branches.flatMap((b) => valveRects(b.valve.x, b.valve.y, b.valve.vertical, b.valve.under))),
+    ...(out.buses ?? []).flatMap((b) => (b.valve ? valveRects(b.valve.x, b.valve.y, false, false) : [])),
+  ];
+  const keepOff = [...(out.parties ?? []), ...(out.parties ?? []).flatMap((p) => (p.label ? [p.label] : [])), ...(out.tanks ?? [])].filter((r) => r && [r.x, r.y, r.w, r.h].every((v) => Number.isFinite(v)));
+  for (const c of out.chips ?? []) {
+    if (c.kind !== "return" || !(c.w > 0) || !c.path || c.path.length < 2) continue;
+    const rectAt = ([x, y]: Point): Rect => ({ x: x - c.w / 2, y: y - c.h / 2, w: c.w, h: c.h });
+    if (valveBlocks.every((v) => apart(rectAt(c.path?.[c.path.length - 1] as Point), v, 0))) continue;
+    const call = (out.calls ?? []).find((x) => x.index === c.call);
+    if (!call || call.points.length < 2) continue;
+    const back = [...call.points].reverse().map((p): Point => [p[0], p[1]]);
+    const total = lengthOf(back);
+    // 札が動き出す所は変えず、呼び出しの管の上のその所から辿る
+    const [sx, sy] = c.path[0] as Point;
+    let from = 0;
+    let off = Number.POSITIVE_INFINITY;
+    for (let d = 0; d <= total; d += 1) {
+      const [x, y] = along(back, d);
+      const dist = Math.abs(x - sx) + Math.abs(y - sy);
+      if (dist < off) [off, from] = [dist, d];
+    }
+    if (off > 1) continue;
+    const gauges = (out.gauges ?? []).filter((g) => g.step === c.step).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h }));
+    const blocks = [...valveBlocks, ...gauges, ...keepOff];
+    for (let e = 0; e < total - from - 4; e += 2) {
+      if (!blocks.every((o) => apart(rectAt(along(back, total - e)), o, PART_GAP / 2))) continue;
+      c.path = fromAlong([...fromAlong(back, from)].reverse(), e).reverse();
+      break;
+    }
+  }
   const solid = [
     ...(out.parties ?? []),
     ...(out.parties ?? []).flatMap((p) => (p.label ? [p.label] : [])),
@@ -4455,14 +4507,35 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   /** 組んでいる途中で、出口を空きの外へ出す箱が増えたか。組み直している間 (`redoing`) は、増えても組むのをやめない */
   let docksGrew = false;
   let redoing = false;
+  // 戻り値の札が管に収まらなかった時は、その管の2人の間を札の幅だけ広げ、同じ組み方で1度だけ組み直す (#3607)。
+  // 札の幅を全ての戻り値の管に前もって足すと、収まっていた図まで広がるので、収まらなかった管だけに足す
+  // 真下の者を呼ぶ縦の管で札が収まらなかった時は、2人の行の間を札の高さだけ広げる (#3761)
+  /** 戻り値の札が収まらなかった横の管 (`呼んだ者>呼ばれた者`) と、2人の間に足す長さ */
+  const roomFor = new Map<string, number>();
+  /** 戻り値の札が収まらなかった縦の管と、2人の行の間に足す高さ */
+  const riseFor = new Map<string, number>();
+  /** 組んでいる途中で戻り値の札が収まらなかった横の管と、足す長さ */
+  const cramped = new Map<string, number>();
+  /** 組んでいる途中で戻り値の札が収まらなかった縦の管と、足す高さ */
+  const crampedRise = new Map<string, number>();
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
     docksGrew = false;
+    cramped.clear();
+    crampedRise.clear();
     result = attempt(plan);
     if (!result && docksGrew) {
       redoing = true;
       result = attempt(plan);
       redoing = false;
+    }
+    // `layout` の行を持つ図は、組んだ後に人と箱を置き直して札の道を引き直すので、組み直さない
+    if (result && !placedLater && (cramped.size > 0 || crampedRise.size > 0)) {
+      for (const [pipe, room] of cramped) roomFor.set(pipe, Math.max(roomFor.get(pipe) ?? 0, room));
+      for (const [pipe, rise] of crampedRise) riseFor.set(pipe, Math.max(riseFor.get(pipe) ?? 0, rise));
+      cramped.clear();
+      crampedRise.clear();
+      result = attempt(plan) ?? result;
     }
     if (result) {
       PLAN_OF.set(result, PLANS.indexOf(plan));
@@ -4491,6 +4564,11 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const between = homes.filter((m) => m.gap && m.party === l);
       return Math.max(P.housing.gap, between.reduce((s, m) => s + m.w, 0) + P.lane.clear * 2) + laneW + plan.gap;
     };
+    /** 前の組みで戻り値の札が収まらなかった、`from` と `to` の間の管に足す長さ。どちら向きの管でも足す (#3607) */
+    const returnRun = (from: string, to: string): number =>
+      (roomFor.get(`${from}>${to}`) ?? 0) + (roomFor.get(`${to}>${from}`) ?? 0);
+    /** 前の組みで戻り値の札が収まらなかった、`from` と `to` の間の縦の管に足す高さ (#3761) */
+    const returnRise = (from: string, to: string): number => Math.max(riseFor.get(`${from}>${to}`) ?? 0, riseFor.get(`${to}>${from}`) ?? 0);
     const roomW = (h: string): number => roomOf(h) + eventW(h) + PART_GAP;
     const lay = (band: readonly string[], start: number, want?: Map<string, number>): void => {
       let x = start;
@@ -4499,7 +4577,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         const lw = dockW(h, "left");
         const rw = dockW(h, "right");
         const w = Math.max(lw + inner.w + rw, roomW(h) + lw + rw);
-        if (i > 0) x += gapW(band[i - 1] as string);
+        if (i > 0) x += gapW(band[i - 1] as string) + returnRun(band[i - 1] as string, h);
         const wanted = want?.get(h);
         if (wanted !== undefined) x = Math.max(x, wanted - w / 2);
         cols.set(h, { id: h, x, w, hx: x + lw + (w - lw - rw - inner.w) / 2 });
@@ -4572,7 +4650,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (other === id || isBox(other) || bandOf(other) === 1) continue;
         const ow = roomOf(other);
         // 呼ぶ者の横には、弁を載せて向きを変えるまでの長さと、呼ばれた側の手前で向きを揃える長さを空ける
-        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + APPROACH + PART_GAP);
+        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + returnRun(id, other) + APPROACH + PART_GAP);
         if (rowOf(other) === row) occ.push([cx - ow / 2 - gap, cx + ow / 2 + eventW(other) + gap]);
         if (holding.has(other) && rowOf(other) < row) occ.push([cx - P.lane.clear * 2, cx + P.lane.clear * 2]);
       }
@@ -4675,7 +4753,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           if (Math.abs(ax - bx) < (roomOf(a) + roomOf(b)) / 2 + P.lane.clear * 4) {
             need = Math.max(need, belowOf(a) + aboveOf(b) + P.lane.clear * 3 + plan.rows);
             // 真下の者を呼ぶ管は、名札の下の側の高さから出て下りる。下りる所に自分の弁を縦に置ける高さを取る
-            if (shown.some((c) => c.from === a && c.to === b)) need = Math.max(need, P.call.case + LINE_GAP + VALVE_DROP + aboveOf(b) + plan.rows);
+            if (shown.some((c) => c.from === a && c.to === b)) need = Math.max(need, P.call.case + LINE_GAP + VALVE_DROP + aboveOf(b) + plan.rows + returnRise(a, b));
           }
         }
       if (rowsWith.has(r - 1)) need = Math.max(need, P.gauge.r + Math.max(...here.map(aboveOf), 0) + P.lane.clear * 2);
@@ -4684,7 +4762,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     }
     const rowsBottom = Math.max(...tagParties.map((id) => (rowY[rowOf(id)] as number) + belowOf(id)), P.margin);
     const H0 = rowsBottom + P.band.tag + (throughBand ? plan.rows / 2 : 0);
-    const B0 = H0 + housingH;
+    // 1つ目の帯に囲いを持つ人が居ない図は、囲いの高さを取らない。取ると名札の下に何も描かない帯が残る (#3761)
+    const B0 = H0 + (band0.length > 0 ? housingH : 0);
     const crossBand = defs.filter((d) => !isAdjacent(d)).length;
     const channel = (n: number): number => (n === 0 ? 0 : Math.max(P.band.next, (n + plan.lanes) * pitch + P.lane.clear));
     const C0 = B0 + channel(band1.length > 0 ? crossBand + 1 : crossBand);
@@ -6937,10 +7016,15 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         // 呼んだ側の名札の手前には呼び出しの弁と計器が並ぶため、名札の手前で止めた札はそれらを隠していた
         const whole = lengthOf(started);
         const avoid = blocks(ret.step);
+        /**
+         * 部品 `i` から札を離す長さ。並びの頭の人と箱の名札からは、触れてよい時も `PART_GAP / 2` 離す。
+         * 描く処理は人と箱から `PART_GAP / 2` 離れない札を描かないため (Tracelyth #221)、名札に触れた札は消えていた (#3761)
+         */
+        const gapTo = (i: number, gap: number): number => (i < parties.length ? Math.max(gap, PART_GAP / 2) : gap);
         /** 呼んだ側から遡り、どの部品からも `gap` 離れた最初の所までの長さ。無い時は `whole` */
         const backTo = (gap: number): number => {
           let at = 0;
-          while (at < whole && !avoid.every((o) => apart(rectAt(along(started, whole - at)), o, gap))) at += 2;
+          while (at < whole && !avoid.every((o, i) => apart(rectAt(along(started, whole - at)), o, gapTo(i, gap)))) at += 2;
           return at;
         };
         // 離れた所が無い短い管では、部品の縁に触れても重ならない所にする
@@ -6950,6 +7034,16 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         // 名札からは描く処理が札を描く間 (`PART_GAP / 2`) だけ離す。描く処理は名札から `PART_GAP / 2` 離れない札を描かないため (Tracelyth #221)、
         // 2px だけ離した札は、名札の間を広げた図でも描かれずに消えていた (#3761)。置き直す図は札の道を引き直すので今までどおり
         if (e >= whole) {
+          // 次の組みで、この管の2人の間を札の幅だけ広げる (#3607)
+          // 呼んだ側の端が縦の管なら行の間を札の高さだけ、横の管なら2人の間を札の幅だけ広げる (#3761)
+          // 弁は管の真ん中に載るので、広げた長さの半分しか弁の片側の空きは伸びない。空きの最長と札の長さの差の2倍を広げる (#3761)
+          const tip = started.slice(-2);
+          const upright = tip.length === 2 && Math.abs((tip[1] as Point)[0] - (tip[0] as Point)[0]) < 1;
+          const key = `${c.from}>${c.to}`;
+          const need = (upright ? returnH : w) + PART_GAP + 4;
+          const room = Math.max(need, 2 * (need - freeRun(started, returnH, w, avoid)));
+          if (upright) crampedRise.set(key, Math.max(crampedRise.get(key) ?? 0, room));
+          else cramped.set(key, Math.max(cramped.get(key) ?? 0, room));
           const caller = labelOf(c.from);
           const gap = placedLater ? 2 : PART_GAP / 2;
           e = 0;

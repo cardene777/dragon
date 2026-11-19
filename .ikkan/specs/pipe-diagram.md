@@ -61,7 +61,7 @@
 | どの段でも、その段で動いた部品(流れた値の管、回った弁、振れた計器、計算した変換器、出したイベント)を明るく描き、動かなかった部品を薄く描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-dims-parts-that-did-not-move`が通る | #3418 |
 | `return`の段で、戻り値の札が呼び出しの管を伝って呼んだ側の名札まで動く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-return-travels-back-along-call`が通る | #3418 |
 | 枠の幅が390の時、図を枠の幅に合わせて全体を出し、全ての槽の残高と、今の段で動いた値(流れた量、確認の式)を画面で10px以上に見える字で出す。済んだ段の値と計算とイベントと戻り値と槽の下の増減は図に出さず、呼び出しの一覧で読める | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-narrow-shows-balances-and-current-value`が通る | #3418 |
-| 配管の図の再生の枠は、拡大と縮小の釦と拡大の度合いの百分率を持ち、CtrlかCommandを押しながらのホイールで拡大と縮小ができ、拡大した図を引いて動かせ、ダブルクリックで押した所を中心に拡大する | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3418 |
+| 配管の図の再生の枠は、拡大と縮小の釦と拡大の度合いの百分率を持ち、縦に回すホイールで修飾キーの有無に依らず指した所を中心に拡大と縮小ができ、横に回すホイールは拡大せず図を横に送り、拡大した図を引いて動かせ、ダブルクリックで押した所を中心に拡大する (Tracelyth #191) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3418、#3761 |
 | `dragon export`で書き出した見本`aggregator`のHTMLで畳んだ箱を押すと、段の番号を出さないまま進み具合の帯が8つから14に分かれ、今の段が4つ目になる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-pipe-opens-inner-steps-by-progress`が通る | #3418 |
 | 見本`swap`の5段目と最後の段は、[#3398](https://github.com/cardene777/dragon/issues/3398)で本人が良しとした絵と同じ並び(関係者の左右と上下の順、槽の順、値の管がつなぐ槽)で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-swap-keeps-approved-arrangement`が通る | #3418 |
 | 槽の水位はトークンごとに同じ尺で量に比例し、0より多い量は最小の帯より低くならない。`move`の段で送り手の槽が下がって受け手の槽が上がり、流れた分は確定するまで斜線の暫定で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-move-shifts-tank-levels`が通る | #3418 |
@@ -118,13 +118,13 @@
 | 数を移す`move usdc: 100 alice -> bob`の読み方と描き方は今のまま | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-move-amount-unchanged`が通る | #3722 |
 | 記法の説明の`plugins/dragon/skills/dragon/references/kinds/pipe.md`が、`mint`と`burn`と`#`の番号の書き方を載せる | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-notation-docs-list-mint-burn-nft`が通る | #3722 |
 | 記法の`layout`の行で、箱を上に置く形と、箱を人の列の下に集める形を含む4つの置き方を選べ、`auto`はトークンの箱が4つまでの図で形と箱の並びを点数で選ぶ (Tracelyth #165、#166) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-four-shapes-and-auto`が通る | #3720 |
-| 記法の`layout`の行で、槽をトークンごとの行に並べる帳簿型と網型と母線型を選べる (Tracelyth #168) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-ledger-grid-bus`が通る | #3720 |
+| 記法の`layout`の行で、槽をトークンごとの行に並べる帳簿型と母線型と、全ての槽を1つの行に置いて人ごとの槽を丸の真下に横に並べ、値が動いた組だけを結ぶ網型を選べる (Tracelyth #168、#221、#225) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-ledger-grid-bus`が通る | #3720、#3761 |
 | 呼び出しに関わらない人と箱を薄く描き、呼び方を替えても人と箱と槽の置き場所を変えない (Tracelyth #165) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-faint-uninvolved-keeps-places`が通る | #3720 |
 | トークンの箱の中に、持つ人ごとの残高を人の頭文字の印つきの行で並べ、値が変わった行に前の値と矢印と今の値を出す (Tracelyth #171、#175) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-token-box-balance-rows`が通る | #3720 |
 | 許可のような送金でない書き換えを2人を結ぶ線と札で描き、線の札はrequireの針と呼び出しの札と札入れに重ならない (Tracelyth #107、#111、#113、#115) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-write-links-clear-of-chips`が通る | #3720 |
 | 描いた置き場所が、今の呼び出しの札 (`callCards`)、札入れ (`wallets`)、ログの札 (`logCards`)、移す額の受け渡し (`gulps`) を持つ | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-layout-exposes-cards-and-gulps`が通る | #3720 |
 | 再生の部品が、`pausedAtStart`と`rewind`で段1の変わる前の値を見せて止まる (Tracelyth #131) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-pauses-at-start`が通る | #3720 |
-| 再生の部品が、`fitWide`で枠より広い図を全体で始め、`minZoom`で始めの大きさより小さくでき、`startZoom`と`onZoom`で拡大の度合いを渡し返せる (Tracelyth #177、#179、#181) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-zoom-options`が通る | #3720 |
+| 再生の部品が、`fitWide`で600px以上の枠では枠より広い図の全体を枠の幅に収めて始め、`minZoom`で始めの大きさより小さくでき、`startZoom`と`onZoom`で拡大の度合いを渡し返せる (Tracelyth #177、#179、#181) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-zoom-options`が通る | #3720、#3761 |
 | 見る人が図を送るか拡大と縮小をした後は、段が進んでも枠を関係者の所へ送らず、段を選ぶと送り直す (Tracelyth #183) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-player-holds-after-user-pan`が通る | #3720 |
 | 共有のHTMLが、値の持ち分を書いた図を止まらずに描く (Tracelyth #133) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-shared-html-draws-holdings`が通る | #3720 |
 | 電話の幅でも広い枠と同じ並びで描き、再生の部品が今の段へ寄せる (Tracelyth #87) | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-phone-width-same-arrangement`が通る | #3720 |
@@ -141,15 +141,14 @@
 | 同じ図で、2本の線が同じ所を重なって走る所が0件で、線どうしは直角にだけ交わる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-lines-cross-only-at-right-angles`が通る | #3721 |
 | 名前が40字を超える図と、1つの段で5枚以上のログを発する図でも、重なりと文字の上を通る線が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-long-names-and-many-logs`が通る | #3721 |
 | 値のパイプは槽の下の縁から入らず、表から槽へ向かうパイプは槽の上の縁から入る | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-pipes-enter-tanks-from-top`が通る | #3721 |
-| 置いた側が渡した呼び出しの組の分だけ通り道を空け、渡した組に無い人と箱の組み合わせの通り道を空けない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-routes-reserve-only-passed-calls`が通る | #3721 |
-| ログの札を呼び出しの線より上の帯に発した順に左から並べ、発した箱へ点線でつなぎ、並びきらない時は帯を2段にする | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-logs-sit-in-top-band`が通る | #3721 |
-| 値のパイプに、向きを示す矢じりを44pxごとに描く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-value-pipes-carry-chevrons`が通る | #3721 |
-| 値の箱の前の値を線で消さず、前の札と前の値と確定を箱の下端から24px以内に置く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-prev-value-under-box`が通る | #3721 |
-| 交換の入力と出力の両方に札を付け、札を持ち主の点線の枠の外の上に置いて枠の線に重ねない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-io-tags-outside-frame`が通る | #3721 |
-| コントラクトを呼び出しに関わるかに依らず全て四角の箱で描き、箱の高さを揃える | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-contracts-share-shape-and-height`が通る | #3721 |
+| 記法の`route`の行を読み、書いても人と箱と槽の置き場所を行を書かない図と同じにする | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-route-lines-keep-places`が通る | #3721、#3761 |
+| ログの札を発した箱の札入れに入れ、上の形は箱の上の左半分に、下の形は箱の下の左半分に積み、右半分を呼び出しの札に空ける (Tracelyth #165、#166) | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-logs-stack-by-emitter`が通る | #3721、#3761 |
+| 値の箱の前の値を線で消して箱の下の行に置き、確定の語を右に添え、行を槽の下の額と同じ高さに並べる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-prev-value-under-box`が通る | #3721、#3761 |
+| 入力と出力の札を始めた人の槽にだけ付け、払った槽に入力を、受け取った槽に出力を付けて、持ち主の点線の枠の中の槽より上の余白に置く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-io-tags-in-frame-margin`が通る | #3721、#3761 |
+| 呼ばれるコントラクトを全て四角の箱で描いて高さを揃え、トークンの箱も高さを揃え、どの段でも呼ばれない値の持ち主は人と同じ大きさの丸で描く | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-contracts-share-shape-and-height`が通る | #3721、#3761 |
 | 薄く描く線は表の縁に沿って走らず、箱の中を通らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-faint-lines-avoid-boxes`が通る | #3721 |
 | 値の変わった表を薄く描かない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-changed-table-not-faded`が通る | #3721 |
-| `fitWide`で全体に収めると文字が10.5pxを下回る図は、広い枠でも携帯の幅でも文字が10.5pxになる大きさで始める | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-fit-wide-keeps-readable-text`が通る | #3721 |
+| `fitWide`だけを渡した図は枠より広ければ全体を枠に収めて狭ければ原寸のまま始め、`fitNarrow`も渡した600px以上の枠では名前の字が10.5pxに、携帯の幅の枠では槽の残高の字が読める大きさになる幅で始める | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-fit-wide-keeps-readable-text`が通る | #3721、#3761 |
 | 暗い色味で、薄く描く線と表の縁の背景との明るさの比が、明るい色味の同じ部品の比を下回らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-dark-faint-parts-stay-visible`が通る | #3721 |
 | 動画とGIFに書き出した各段の絵の部品の位置が図の置き場所と同じで、重なりが0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-export-frames-keep-layout`が通る | #3721 |
 | 置き場所の検査`dragon check --layout`が、重なりと文字の上を通る線と高さ200px以上の空き帯を持つパイプ図を拒む | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`layout-check-refuses-pipe-breaks`が通る | #3721 |

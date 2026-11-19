@@ -595,22 +595,33 @@ export const inside = (inner: Rect, outer: Rect, tol = 0.5): boolean =>
 export const changes = (motion: Motion, el: Element, prop: string, t0: number, t1: number): boolean =>
   [el, ...el.querySelectorAll("*")].some((e) => JSON.stringify(motion.value(e, prop, t0)) !== JSON.stringify(motion.value(e, prop, t1)));
 
-/** 部品か、それを包む部品の性質 `prop` が、時刻 `t0` と `t1` で違うか。移す額の札は包む部品が動きを持つ (Tracelyth #168、#3720) */
-export const movesWith = (motion: Motion, el: Element, prop: string, t0: number, t1: number): boolean => {
-  for (let e: Element | null = el; e; e = e.parentElement) if (JSON.stringify(motion.value(e, prop, t0)) !== JSON.stringify(motion.value(e, prop, t1))) return true;
-  return false;
-};
+/**
+ * 段 `s` の始まりから終わりまでに、字の部品 `texts` のうち見える物の字を 0.05 秒ごとに読んだ並び。
+ * 同じ時刻に重ねて見える同じ字と、続けて同じ字は 1 つにまとめ、何も見えない時刻は数えない。
+ * 移す額と書き込んだ値は、動く額の札でなく、槽の数と箱の行の値が前の値から次の値へ数えて見せる (Tracelyth #221、#3761)
+ */
+export function shownTexts(rendered: PipeRendered, motion: Motion, s: number, texts: Element[]): string[] {
+  const span = rendered.timeline.steps[s] ?? { start: Number.NaN, end: Number.NaN };
+  const out: string[] = [];
+  for (let t = span.start; t <= span.end; t += 0.05) {
+    const now = [...new Set(texts.filter((el) => seenOf(motion, el, t) > 0.5).map((el) => el.textContent ?? ""))].join(" ");
+    if (now && out[out.length - 1] !== now) out.push(now);
+  }
+  return out;
+}
+
+/** 段 `s` で、持ち主 `party` の `token` の槽の下の数が見せる値の並び (Tracelyth #221、#3761) */
+export const tankCount = (rendered: PipeRendered, motion: Motion, s: number, party: string, token: string): string[] =>
+  shownTexts(rendered, motion, s, [...(partsOf(motion, `[data-pipe-tank="${party}"][data-pipe-token="${token}"][data-pipe-step="${s}"]`)[0]?.querySelectorAll(".dg-pp-num") ?? [])]);
 
 /**
- * 段 `s` で、移す額の札 (`dg-pp-coin`) が段の始まりから止め絵までの間に動き、その間に見えるか (Tracelyth #168、#3720)。
- * 札は流れた段の外では動かないので、2 つの時刻で動きを比べ、見えるかは 0.25 秒ごとに測る
+ * 値の並び `shown` が、前の値 `from` から途中の値を 1 つ以上通って次の値 `to` まで、一方の向きに数えるか (Tracelyth #221、#3761)。
+ * 3 桁ごとの区切りの `,` は外して比べる
  */
-export function coinMoves(rendered: PipeRendered, motion: Motion, s: number): boolean {
-  const start = rendered.timeline.steps[s]?.start ?? Number.NaN;
-  const still = stillOf(rendered, s);
-  const times: number[] = [];
-  for (let t = start; t <= still; t += 0.25) times.push(t);
-  return partsOf(motion, ".dg-pp-coin").some((el) => movesWith(motion, el, "transform", start, still) && times.some((t) => seenOf(motion, el, t) > 0.5));
+export function countsFromTo(shown: readonly string[], from: string, to: string): boolean {
+  const n = shown.map((v) => Number(v.replace(/,/gu, "")));
+  const sign = Math.sign(Number(to.replace(/,/gu, "")) - Number(from.replace(/,/gu, "")));
+  return shown.length >= 3 && shown[0] === from && shown[shown.length - 1] === to && sign !== 0 && n.every((v, i) => i === 0 || Math.sign(v - (n[i - 1] as number)) === sign);
 }
 
 /** 見本 aggregator の箱を全て開き、幅 1200 の枠で描いた図 */

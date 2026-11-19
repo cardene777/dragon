@@ -233,7 +233,7 @@ export interface CaptionStep {
  */
 export async function captionSteps(html: string, width: number): Promise<CaptionStep[]> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     const count = await page.locator('[data-dragon="steps"] > li').count();
     const seen: CaptionStep[] = [];
@@ -271,7 +271,7 @@ export interface CaptionLayout {
 /** 書き出した HTML を動きを嫌う設定で幅 `width` で開き、1 段目の段の本文の帯の並べ方を読む (#3057) */
 export async function captionLayout(html: string, width: number): Promise<CaptionLayout> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     return page.evaluate(() => {
       const rect = (selector: string): Rect => {
@@ -305,7 +305,7 @@ export async function playerButtons(html: string, width: number, touch = false):
     html,
     { width, height: 2000 },
     async (page) => {
-      await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+      await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
       return page.evaluate(() =>
         [...document.querySelectorAll(".dg-btn")].map((button) => {
           const box = button.getBoundingClientRect();
@@ -375,7 +375,7 @@ export async function unfoldedSteps(html: string, width: number, at: number): Pr
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     const progress = (): Promise<Progress> =>
       page.evaluate(() => {
         const segs = [...document.querySelectorAll<HTMLElement>('[data-dragon="progress"] [data-dragon="segment"]')];
@@ -525,7 +525,7 @@ export async function drawnText(html: string): Promise<string> {
         copy.querySelectorAll("style").forEach((style) => style.remove());
         return copy.textContent ?? "";
       });
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     const playing = await read();
     await page.locator('[data-dragon="toggle"]').click();
     const paused = await read();
