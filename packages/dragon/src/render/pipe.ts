@@ -906,6 +906,10 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         }
         // ログの札は図を下げる高さに数えない。ログの有る呼び出しと無い呼び出しで、箱の置き場所を変えないため (Tracelyth #209)
         const logRects = placeLogs([...above.map((x) => x.r), ...timeline.steps.flatMap((_, s) => stackOf(s).cards)]);
+        // 札入れへずらす量は、札入れを作った時のログの札の所から測ってある。ログの札を置いた後は、置いた所から測り直す。
+        // 測り直さないと、置いた所に古いずらす量を足した、札入れの外の所 (呼び出しの札の上) に描く。
+        // 移す元の並べ方は覚えた並べ方をそのまま渡したので、2度目からはログの札が置いた所から描き始めて札入れに収まっていた (#3761)
+        rebuild();
         const lowest = Math.max(...above.map((x) => x.r.y + x.r.h), ...timeline.steps.flatMap((_, s) => stackOf(s).cards.map((c) => c.y + c.h)), ...logRects.map((r) => r.y + r.h));
         for (const r of logRects) if (r.x + r.w + P.margin > layout.width) layout.width = r.x + r.w + P.margin;
         if (lowest + P.margin > layout.height) layout.height = lowest + P.margin;
