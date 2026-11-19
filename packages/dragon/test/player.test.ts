@@ -783,12 +783,21 @@ describe("配管の図の再生 (#3418)", () => {
     expect(svgWidth(), "拡大の釦を押した後の図の幅").toBeCloseTo(base * 1.25, 0);
     click(host, "zoom-out");
     expect(level(), "縮小の釦を押した後の度合い").toBe("100%");
-    // Ctrl か Command を押しながらのホイールで拡大する。押さないホイールは拡大しない
-    frame.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
-    expect(level(), "押さないホイールで拡大した").toBe("100%");
+    // 縦に回すホイールは、修飾キーの有無に関わらず指した所を中心に拡大し、頁の拡大と送りを止める (Tracelyth #191)。
+    // #3418 は押さないホイールを頁の送りに任せたが、パッチの再生の部品 (#3761) に合わせた
+    const plain = new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true });
+    frame.dispatchEvent(plain);
+    expect(Number.parseInt(level(), 10), "押さないホイールで拡大しない").toBeGreaterThan(100);
+    expect(plain.defaultPrevented, "押さないホイールで頁を送る").toBe(true);
+    // 横の量が縦の量より大きい回し方は拡大せず、ブラウザに任せて図を横に送る
+    const turned = level();
+    const side = new WheelEvent("wheel", { deltaX: 100, deltaY: 10, bubbles: true, cancelable: true });
+    frame.dispatchEvent(side);
+    expect(level(), "横に回すホイールで拡大した").toBe(turned);
+    expect(side.defaultPrevented, "横に回すホイールの横の送りを止めた").toBe(false);
     const ctrl = new WheelEvent("wheel", { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true });
     frame.dispatchEvent(ctrl);
-    expect(Number.parseInt(level(), 10), "Ctrl を押しながらのホイールで拡大しない").toBeGreaterThan(100);
+    expect(Number.parseInt(level(), 10), "Ctrl を押しながらのホイールで拡大しない").toBeGreaterThan(Number.parseInt(turned, 10));
     expect(ctrl.defaultPrevented, "Ctrl を押しながらのホイールで頁が拡大する").toBe(true);
     frame.dispatchEvent(new WheelEvent("wheel", { deltaY: 400, metaKey: true, bubbles: true, cancelable: true }));
     expect(level(), "Command を押しながらのホイールで縮小しない").toBe("100%");

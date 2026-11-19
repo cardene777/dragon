@@ -268,20 +268,32 @@ describe("置き方の形", () => {
     for (const shape of ["ledger", "mesh", "bus"]) {
       const { layout, svg } = drawPipe(pipeText({ layout: shape, order, holds }));
       expect(layout.fixed?.shape, `${shape} の形`).toBe(shape);
-      // 槽はトークンごとの行に並べる。同じトークンの槽は同じ高さに、違うトークンの槽は違う高さに置く
       const rowY = (token: string): Set<number> => new Set(layout.tanks.filter((t) => t.token === token).map((t) => t.y));
-      expect(rowY("USDC").size, `${shape} のUSDCの槽が1つの行に無い`).toBe(1);
-      expect(rowY("WETH").size, `${shape} のWETHの槽が1つの行に無い`).toBe(1);
-      expect([...rowY("USDC")][0], `${shape} のUSDCとWETHが同じ行`).not.toBe([...rowY("WETH")][0]);
+      if (shape !== "mesh") {
+        // 帳簿型と母線型は槽をトークンごとの行に並べる。同じトークンの槽は同じ高さに、違うトークンの槽は違う高さに置く
+        expect(rowY("USDC").size, `${shape} のUSDCの槽が1つの行に無い`).toBe(1);
+        expect(rowY("WETH").size, `${shape} のWETHの槽が1つの行に無い`).toBe(1);
+        expect([...rowY("USDC")][0], `${shape} のUSDCとWETHが同じ行`).not.toBe([...rowY("WETH")][0]);
+      }
       if (shape === "ledger") {
         // 帳簿型は箱を持つトークンの行を囲む
         expect(layout.ledgers?.length ?? 0, "帳簿型の囲み").toBeGreaterThan(0);
         expect(countOf(svg, "dg-pp-ledger"), "帳簿型の囲みを描いていない").toBeGreaterThan(0);
       }
       if (shape === "mesh") {
-        // 網型はトークンの行ごとに全ての人の組をパイプで結ぶ (USDCを持つ3人は3組)
+        // #3720 は網型の槽もトークンごとの行に並べ、行ごとに全ての人の組をパイプで結んだ。パッチの並べ方 (#3761) は Tracelyth #221 と #225 の直しを持つ。
+        // 網型は全ての槽を1つの行に置き、人ごとの槽を丸の真下にトークンの行の順で横に並べ、トークンの数だけ縦に伸ばさない (Tracelyth #225)
+        expect(new Set(layout.tanks.map((t) => t.y)).size, "網型の槽が1つの行に無い").toBe(1);
+        for (const p of people(layout)) {
+          const mine = layout.tanks.filter((t) => t.party === p.id).sort((a, b) => a.x - b.x);
+          if (mine.length === 0) continue;
+          expect(mine.map((t) => t.token), `網型の ${p.id} の槽の並び`).toEqual(["USDC", "WETH"].filter((token) => mine.some((t) => t.token === token)));
+          const [first, last] = [mine[0] as Tank, mine.at(-1) as Tank];
+          expect(Math.abs((first.x + last.x + last.w) / 2 - (p.x + p.w / 2)), `網型の ${p.id} の槽が丸の真下に無い`).toBeLessThan(1);
+        }
+        // 網型は値が動いた組だけをパイプで結び、動かない組の線で図を込ませない (Tracelyth #221)。USDCはAliceからCarolへだけ動く
         const pairs = new Set(layout.valuePipes.filter((p) => p.token === "USDC").map((p) => [p.from, p.to].sort().join("-")));
-        expect(pairs.size, "網型のUSDCの組").toBe(3);
+        expect([...pairs], "網型のUSDCの組").toEqual(["alice-carol"]);
       }
       if (shape === "bus") {
         // 母線型は箱を持つトークンの行ごとに母線を引き、箱を行の左の端に置く
@@ -369,13 +381,11 @@ describe("トークンの箱と2人を結ぶ線", () => {
 });
 
 // 拡大の指定を 1 件で描き比べて置き比べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
-// 比べる元の、見本を枠の幅で描いた原寸と名前の字の高さは file を読み込む段で済ませ、件は置き方ごとに分ける
-const SWAP_DRAWN = await atLoad("配管の見本を 700px と 390px の枠で描く", () => {
+// 比べる元の、見本を枠の幅で描いた原寸は file を読み込む段で済ませ、件は置き方ごとに分ける
+const SWAP_DRAWN = await atLoad("配管の見本を 700px の枠で描く", () => {
   const source = example("swap.json");
   const wide = (api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout;
-  const phone = (api.renderDiagram(source, { lang: "ja", width: 390 }) as Rendered<PipeLayout>).layout;
-  const nameOf = (layout: PipeLayout): number => Math.min(...layout.parties.map((p) => p.label.h));
-  return { source, native: wide.width, name: nameOf(wide), phoneWidth: phone.width, phoneName: nameOf(phone) };
+  return { source, native: wide.width };
 });
 
 describe("再生の部品", () => {
@@ -435,14 +445,12 @@ describe("再生の部品", () => {
 
   it("port-player-zoom-options", () => {
     reduceMotion(true);
-    const { source, native, name } = SWAP_DRAWN.get();
+    const { source, native } = SWAP_DRAWN.get();
     expect(native, "見本の図が枠より狭い").toBeGreaterThan(700);
-    // fitWide は600px以上の枠で、枠より広い図を縮めて始める。全体を枠に収めると名前の字が10.5pxを下回る図は、名前の字が10.5pxに見える幅で始める (#3721)
+    // fitWide は600px以上の枠で、枠より広い図の全体を枠の幅に収めて始め、「+」で寄せる (Tracelyth #177)。
+    // #3721 は名前の字が10.5pxを下回る図を名前が10.5pxに見える幅で始めたが、パッチの並べ方 (#3761) はこの下限を持たない
     const fit = mount(source, 700, { lang: "ja", fitWide: true });
-    expect((name * 700) / native, "見本の図の全体を枠に収めても名前の字が10.5px以上").toBeLessThan(10.5);
-    expect(fit.shown(), "fitWide の図を縮めていない").toBeLessThan(native);
-    expect((name * fit.shown()) / native, "fitWide で始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
-    expect((name * fit.shown()) / native, "fitWide で名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + name * 0.02);
+    expect(fit.shown(), "fitWide の図が枠の幅に収まらない").toBeCloseTo(700, 0);
     expect(fit.level(), "fitWide の始めの度合い").toBe("100%");
     // startZoom はその度合いで始める
     expect(mount(source, 700, { lang: "ja", fitWide: true, startZoom: 1.5 }).level(), "startZoom 1.5 の始めの度合い").toBe("150%");
@@ -457,12 +465,10 @@ describe("再生の部品", () => {
   });
 
   it("port-player-zoom-options", () => {
-    // 携帯の幅の枠でも、名前の字が10.5pxに見える幅で始める (#3721)
+    // 600pxより狭い携帯の幅の枠には fitWide は効かず、槽の残高の字が読める幅で始めて横に送る (#3450、#3761)
     reduceMotion(true);
-    const { source, phoneWidth, phoneName } = SWAP_DRAWN.get();
-    const phoneShown = mount(source, 390, { lang: "ja", fitWide: true }).shown();
-    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
-    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + phoneName * 0.02);
+    const { source } = SWAP_DRAWN.get();
+    expect(mount(source, 390, { lang: "ja", fitWide: true }).shown(), "狭い枠で fitWide が効いた").toBeCloseTo(mount(source, 390, { lang: "ja" }).shown(), 0);
   });
 
   it("port-player-zoom-options", () => {

@@ -11,6 +11,9 @@
  * 部品の位置は置き場所 (`layout`) から読み、字の四角と見える時刻は、描く処理が崩れの確かめに渡す材料 (`findBreaks` の引数) から読む。
  * 数え方は検査の中に持ち、描く処理が持つ崩れの数え方 (`render/pipe-breaks.ts`) を使わない。数え方の誤りで両方が揃って見逃さないため。
  *
+ * #3761 で、Tracelythがパッチで当てた並べ方を元にした。#3721 の仕組み (ログの札の帯、枠の外の入力と出力の札、通り道の予約、前の値の行、流れの矢じり) を
+ * 確かめていた検査は、パッチの並べ方で同じ狙いを確かめる形に書き換え、Tracelythの図が描かない流れの矢じりの検査は外した。
+ *
  * 図は入口 (`@cardenelabs/dragon` = `dist`) で描く。
  */
 import { readFileSync } from "node:fs";
@@ -23,11 +26,12 @@ import { atLoad } from "./at-load";
  * 崩れを数える部品と知らせる文の元の code を、検査の外で先に読む。
  * 検査の中で初めて読むと、混んだ機械で変換だけで数秒かかる (#3410)
  */
-const [{ findBreaks }, { describeBreak, checkLayoutText }, { PIPE_LOOK }, page] = await Promise.all([
+const [{ findBreaks }, { describeBreak, checkLayoutText }, { PIPE_LOOK }, page, { FILL_NAME_PX, PIPE_FIRST, ZOOM }] = await Promise.all([
   import("../src/render/breaks"),
   import("../src/render/layout-check"),
   import("../src/look/pipe"),
   import("../src/export/page"),
+  import("../src/look/values"),
 ]);
 
 type Point = [number, number];
@@ -79,8 +83,6 @@ interface Flow {
   from: string;
   to: string;
   points: Point[];
-  /** 向きの矢じり。`dx` と `dy` は流れる向きの単位の向き */
-  chevrons?: { x: number; y: number; dx: number; dy: number }[];
 }
 interface Plate extends Rect {
   party: string;
@@ -101,6 +103,8 @@ interface Chip extends Rect {
   text: string;
   step: number;
   party?: string;
+  /** 入力と出力の札が付く槽のトークン */
+  token?: string;
   /** 戻り値の札が伝う道。札は道の始まりに描き、道の終わりで止まる */
   path?: Point[];
 }
@@ -163,7 +167,7 @@ interface PipeLayout {
   links: Link[];
   writes: Write[];
   pills: Pill[];
-  fixed?: { shape: string; order: string[]; routes?: [string, string][] };
+  fixed?: { shape: string; order: string[] };
   callCards?: CallCard[];
   logCards?: LogCard[];
 }
@@ -601,26 +605,21 @@ describe("線の通り道", () => {
     }
   });
 
-  it("pipe-routes-reserve-only-passed-calls", () => {
+  it("pipe-route-lines-keep-places", () => {
+    // #3721 の置き方は `route` の行で渡した組の通り道を空けたが、パッチの並べ方 (#3761) は通り道を空けない。
+    // Tracelythの図をパッチを当てた時のまま描くため、`route` の行は読むが、書いても人と箱と槽の置き場所は行を書かない図と同じ
     const passed: [string, string][] = [
       ["alice", "router1"],
       ["bob", "router2"],
       ["carol", "router3"],
       ["alice", "router3"],
     ];
+    const places = (L: PipeLayout): string =>
+      JSON.stringify([...L.parties.map((p) => [p.id, Math.round(p.x), Math.round(p.y)]), ...L.tanks.map((t) => [`${t.party}/${t.token}`, Math.round(t.x), Math.round(t.y)])].sort());
     for (const shape of SHAPES) {
-      const all = drawOnce(gridText(3, 3, { layout: shape, routes: passed })).layout;
-      // 置き方は渡した組の分だけ通り道を空け、渡した組に無い人と箱の組 (bob と router1 など) の通り道を空けない
-      const reserved = (all.fixed?.routes ?? []).map(([a, b]) => `${a}>${b}`).sort();
-      expect(reserved, `${shape} の空けた通り道`).toEqual(passed.map(([a, b]) => `${a}>${b}`).sort());
-      // 渡した組を変えずに段を減らしても、人と箱と槽の置き場所は変わらない
-      const fewer = drawOnce(gridText(3, 3, { layout: shape, routes: passed, only: [0] })).layout;
-      const places = (L: PipeLayout): string =>
-        JSON.stringify([...L.parties.map((p) => [p.id, Math.round(p.x), Math.round(p.y)]), ...L.tanks.map((t) => [`${t.party}/${t.token}`, Math.round(t.x), Math.round(t.y)])].sort());
-      expect(places(fewer), `${shape} で段を減らすと置き場所が動いた`).toBe(places(all));
-      // 組を書かない図は、段に出る呼び出しの組だけを空ける
+      const routed = drawOnce(gridText(3, 3, { layout: shape, routes: passed })).layout;
       const plain = drawOnce(gridText(3, 3, { layout: shape })).layout;
-      expect((plain.fixed?.routes ?? []).map(([a, b]) => `${a}>${b}`).sort(), `${shape} で組を書かない図の通り道`).toEqual(["alice>router1", "bob>router2", "carol>router3"]);
+      expect(places(routed), `${shape} で route の行を書くと置き場所が動いた`).toBe(places(plain));
     }
     // 組に知らない名前を書いた行は読まずに断る
     const refused = api.parseNotation(gridText(2, 2, { layout: "top", routes: [["alice", "nobody"]] }), { lang: "ja" });
@@ -680,134 +679,134 @@ describe("線の通り道", () => {
 // ---- 札と印
 
 describe("札と印", () => {
-  it("pipe-logs-sit-in-top-band", () => {
+  it("pipe-logs-stack-by-emitter", () => {
+    // #3721 はログの札を呼び出しの線より上の1本の帯に左から並べ、発した箱へ点線で結んだ。
+    // パッチの並べ方 (#3761) は、札を発した箱の札入れに入れる。上の形は箱の上の左半分に、下の形は箱の下の左半分に置き、
+    // 右半分は呼び出しの札に空ける (Tracelyth #165、#166)。札は発した箱の傍に積むので、点線で結ばない
     for (const shape of SHAPES) {
       const f = drawOnce(gridText(3, 3, { layout: shape, logs: 2 }));
       const L = f.layout;
       const cards = L.logCards ?? [];
       expect(cards.length, `${shape} のログの札`).toBe(6);
-      // 呼び出しの線より上の帯に置く
-      const callTop = Math.min(...L.mains.flatMap((m) => m.branches.flatMap((b) => b.points.map((p) => p[1]))));
-      for (const c of cards) expect(c.y + c.h, `${shape} の ${c.title} が呼び出しの線より上に無い`).toBeLessThanOrEqual(callTop + D);
-      // 発した順 (段の順、段の中は発した順) に左から並べる。2段にした時は上の段から読む
-      const order = [...cards].sort((a, b) => (a.step ?? 0) - (b.step ?? 0) || (a.event ?? 0) - (b.event ?? 0));
       expect(
-        order.every((c) => c.step !== undefined && c.event !== undefined),
+        cards.every((c) => c.step !== undefined && c.event !== undefined),
         `${shape} のログの札が発した段を持たない`,
       ).toBe(true);
-      const read = [...cards].sort((a, b) => a.y - b.y || a.x - b.x);
-      expect(read.map((c) => c.title), `${shape} の札の並び`).toEqual(order.map((c) => c.title));
-      // 発した箱へ点線で結ぶ。点線は札の下の縁から出て、発した箱の上の縁に着く
       for (const c of cards) {
         const box = L.parties.find((p) => p.id === c.party);
-        const [first, last] = [c.tether?.[0], c.tether?.at(-1)];
-        expect(first && Math.abs(first[1] - (c.y + c.h)) < 1, `${shape} の ${c.title} の点線が札の下の縁から出ない`).toBe(true);
-        expect(box && last && Math.abs(last[1] - box.y) < 1 && last[0] > box.x && last[0] < box.x + box.w, `${shape} の ${c.title} の点線が ${c.party} の上の縁に着かない`).toBe(true);
+        expect(box, `${shape} の ${c.title} を発した箱`).toBeDefined();
+        if (!box) continue;
+        if (shape === "bottom") expect(c.y, `${shape} の ${c.title} が ${c.party} の下に無い`).toBeGreaterThanOrEqual(box.y + box.h - D);
+        else expect(c.y + c.h, `${shape} の ${c.title} が ${c.party} の上に無い`).toBeLessThanOrEqual(box.y + D);
+        expect(c.x < box.x + box.w && c.x + c.w > box.x, `${shape} の ${c.title} が ${c.party} の上下から横に外れる`).toBe(true);
+        expect(c.x + c.w, `${shape} の ${c.title} が ${c.party} の右半分に掛かる`).toBeLessThanOrEqual(box.x + box.w / 2 + D);
       }
+      // 同じ箱の札は1列に、発した順 (段の順、段の中は発した順) に上から積む
+      for (const party of new Set(cards.map((c) => c.party))) {
+        const mine = cards.filter((c) => c.party === party);
+        const order = [...mine].sort((a, b) => (a.step ?? 0) - (b.step ?? 0) || (a.event ?? 0) - (b.event ?? 0));
+        const read = [...mine].sort((a, b) => a.y - b.y);
+        expect(read.map((c) => c.title), `${shape} の ${party} の札の並び`).toEqual(order.map((c) => c.title));
+        expect(new Set(mine.map((c) => Math.round(c.x))).size, `${shape} の ${party} の札が1列に並ばない`).toBe(1);
+      }
+      // 呼び出しの線は札の下を通らない。線が札入れの下を通ると、線が札に被って見える (Tracelyth #221)
+      const under: string[] = [];
+      for (const m of L.mains)
+        for (const br of m.branches) for (const seg of segsOf(br.points)) for (const c of cards) if (crosses(seg, c)) under.push(`${m.from}>${br.to} が ${c.title} の下を通る`);
+      expect([...new Set(under)], `${shape} の札の下を通る呼び出しの線`).toEqual([]);
     }
-    // 図の幅に並びきらない時は帯を2段にする
+    // 1つの箱が多くの札を発しても、札は図の中に収まり、重ならない
     const many = drawOnce(gridText(1, 1, { layout: "top", logs: 8 }));
     const cards = many.layout.logCards ?? [];
-    const rows = new Set(cards.map((c) => Math.round(c.y)));
-    expect(rows.size, "並びきらない札の帯の段").toBe(2);
-    for (const c of cards) expect(c.x >= 0 && c.x + c.w <= many.layout.width, `${c.title} が図の外にはみ出す`).toBe(true);
-    expect(overlapsOf(many), "2段にした札の重なり").toEqual([]);
-  });
-
-  it("pipe-value-pipes-carry-chevrons", () => {
-    for (const shape of [...SHAPES, undefined]) {
-      const f = drawOnce(gridText(3, 3, shape ? { layout: shape } : {}));
-      const flows = f.layout.flows.filter((x) => x.points.length > 1);
-      expect(flows.length, `${shape ?? "既定"} の流れ`).toBeGreaterThan(0);
-      for (const fl of flows) {
-        const chevrons = fl.chevrons ?? [];
-        const length = segsOf(fl.points).reduce((s, [a, b]) => s + Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]), 0);
-        expect(chevrons.length, `${shape ?? "既定"} の ${fl.token} ${fl.from}>${fl.to} (長さ ${Math.round(length)}) の矢じりの数`).toBeGreaterThanOrEqual(Math.max(1, Math.floor(length / 44) - 1));
-        // 道の上で隣どうしが44px離れ、流れる向きを指す
-        const walked = (p: { x: number; y: number }): number => {
-          let s = 0;
-          for (const [a, b] of segsOf(fl.points)) {
-            const onSeg = isFlat([a, b]) ? Math.abs(p.y - a[1]) < 1 && p.x >= Math.min(a[0], b[0]) - 1 && p.x <= Math.max(a[0], b[0]) + 1 : Math.abs(p.x - a[0]) < 1 && p.y >= Math.min(a[1], b[1]) - 1 && p.y <= Math.max(a[1], b[1]) + 1;
-            if (onSeg) {
-              const dir: Point = [Math.sign(b[0] - a[0]), Math.sign(b[1] - a[1])];
-              const c = chevrons.find((x) => x.x === p.x && x.y === p.y);
-              expect(c && c.dx === dir[0] && c.dy === dir[1], `${fl.token} ${fl.from}>${fl.to} の矢じりが流れる向きを指さない`).toBe(true);
-              return s + Math.abs(p.x - a[0]) + Math.abs(p.y - a[1]);
-            }
-            s += Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
-          }
-          return Number.NaN;
-        };
-        const at = chevrons.map(walked);
-        expect(at.every((d) => Number.isFinite(d)), `${fl.token} ${fl.from}>${fl.to} の矢じりが道の上に無い`).toBe(true);
-        for (let i = 1; i < at.length; i++) expect(Math.abs((at[i] as number) - (at[i - 1] as number) - 44), `${fl.token} ${fl.from}>${fl.to} の矢じりの間`).toBeLessThan(1);
-      }
-      // 1 本の流れの矢じりは 1 つの path の区切った道 (`M` で始まる 1 つずつ) にまとめて描く
-      const drawn = [...f.svg.matchAll(/class="dg-pp-chev" d="([^"]*)"/gu)].reduce((s, m) => s + ((m[1] ?? "").match(/M/gu) ?? []).length, 0);
-      expect(drawn, `${shape ?? "既定"} の矢じりを描いていない`).toBeGreaterThanOrEqual(flows.reduce((s, fl) => s + (fl.chevrons?.length ?? 0), 0));
-    }
+    expect(cards.length, "多くの札を発した図のログの札").toBe(8);
+    for (const c of cards) expect(c.x >= 0 && c.y >= 0 && c.x + c.w <= many.layout.width && c.y + c.h <= many.layout.height, `${c.title} が図の外にはみ出す`).toBe(true);
+    expect(overlapsOf(many), "積んだ札の重なり").toEqual([]);
   });
 
   it("pipe-prev-value-under-box", () => {
+    // パッチの並べ方 (#3761) は、値の箱の前の値を線で消して箱の下の行に置き、状態の語 (確定) を右に添える。行は槽の下の額と同じ高さに並ぶ。
+    // #3721 は消す線をやめて「前」の札を足したが、Tracelythの図をパッチを当てた時のまま描くので戻した
     for (const shape of [...SHAPES, undefined]) {
       const f = drawOnce(gridText(2, 2, shape ? { layout: shape } : {}));
-      const changed = f.layout.plates.filter((p) => !p.boxed && !p.row && p.was);
+      const L = f.layout;
+      const changed = L.plates.filter((p) => !p.boxed && !p.row && p.was);
       expect(changed.length, `${shape ?? "既定"} の前の値を持つ値の箱`).toBeGreaterThan(0);
       for (const p of changed) {
-        const bottom = p.y + p.h;
         const what = `${shape ?? "既定"} 段${p.step + 1} の ${p.party}.${p.name}`;
-        expect(p.strike, `${what} の前の値を線で消している`).toBeUndefined();
+        const { was, strike, tag } = p;
+        const frame = L.housings.find((h) => h.party === p.party);
+        expect(was && strike && tag && frame, `${what} の前の値か消す線か状態の語か持ち主の枠が無い`).toBeTruthy();
+        if (!was || !strike || !tag || !frame) continue;
+        // 前の値と状態の語は箱の下端より下で、持ち主の点線の枠の中に置く
         for (const [name, t] of [
-          ["前の札", p.before],
-          ["前の値", p.was],
-          ["確定の札", p.tag],
-        ] as [string, Text | undefined][]) {
-          expect(t, `${what} の${name}が無い`).toBeDefined();
-          if (!t) continue;
-          expect(t.y, `${what} の${name}が箱の下端より上`).toBeGreaterThanOrEqual(bottom - D);
-          expect(t.y + t.h, `${what} の${name}が箱の下端から24pxより下`).toBeLessThanOrEqual(bottom + 24);
+          ["前の値", was],
+          ["状態の語", tag],
+        ] as [string, Text][]) {
+          expect(t.y, `${what} の${name}が箱の下端より上`).toBeGreaterThanOrEqual(p.y + p.h - D);
+          expect(t.y + t.h, `${what} の${name}が枠の下の縁より下`).toBeLessThanOrEqual(frame.y + frame.h + D);
         }
+        // 消す線は前の値の字を横に貫く
+        expect(strike.x <= was.x + D && strike.x + strike.w >= was.x + was.w - D, `${what} の消す線が前の値の字の端まで届かない`).toBe(true);
+        expect(strike.y >= was.y && strike.y + strike.h <= was.y + was.h, `${what} の消す線が前の値の字の高さの外`).toBe(true);
+        // 状態の語は前の値の右に、重ねずに置く
+        expect(tag.x, `${what} の状態の語が前の値に重なる`).toBeGreaterThanOrEqual(was.x + was.w);
+        // 槽の下の額と同じ行に並ぶ
+        const amounts = L.levels.filter((lv) => lv.step === p.step).map((lv) => lv.text);
+        expect(amounts.length, `${what} と同じ段の槽の額`).toBeGreaterThan(0);
+        for (const a of amounts) expect(was.y < a.y + a.h && a.y < was.y + was.h, `${what} の前の値が槽の ${a.text} と同じ行に無い`).toBe(true);
       }
     }
   });
 
-  it("pipe-io-tags-outside-frame", () => {
-    // 交換の見本 (`swap`) と、人と箱の数を変えた図
-    const figures: [string, Figure][] = [
-      ["見本 swap", drawOnce(exampleText("swap.dragon"))],
-      ["見本 swap top", drawOnce(exampleText("swap.dragon").replace(/\n\n/u, "\nlayout top\n\n"))],
-      ...SHAPES.map((shape): [string, Figure] => [`${shape} 3人3箱`, drawOnce(gridText(3, 3, { layout: shape }))]),
+  it("pipe-io-tags-in-frame-margin", () => {
+    // パッチの並べ方 (#3761) は、入力と出力の札を始めた人 (alice) の槽にだけ付け、払った槽に入力を、受け取った槽に出力を付けて、
+    // 持ち主の点線の枠の中の、槽より上の余白に置く。#3721 は札を枠の外の上へ出し、交換で受け取った別の人にも出力を付けたが、
+    // Tracelythの図をパッチを当てた時のまま描くので戻した。受け取る槽を持たない交換 (見本 swap) は入力だけを付ける
+    const figures: [string, Figure, Record<string, string>][] = [
+      ["見本 swap", drawOnce(exampleText("swap.dragon")), { USDC: "入力" }],
+      ["見本 swap top", drawOnce(exampleText("swap.dragon").replace(/\n\n/u, "\nlayout top\n\n")), { USDC: "入力" }],
+      ...SHAPES.map((shape): [string, Figure, Record<string, string>] => [`${shape} 3人3箱`, drawOnce(gridText(3, 3, { layout: shape })), { TK1: "入力", TK3: "出力" }]),
     ];
-    for (const [what, f] of figures) {
+    for (const [what, f, marks] of figures) {
       const L = f.layout;
       const io = L.chips.filter((c) => c.kind === "io");
       expect(io.length, `${what} の入力と出力の札`).toBeGreaterThan(0);
-      const words = new Set(io.map((c) => c.text));
-      expect([...words].sort(), `${what} の札の語`).toEqual(["入力", "出力"]);
+      expect([...new Set(io.map((c) => c.party))], `${what} の札を持つ人`).toEqual(["alice"]);
       for (const step of new Set(io.map((c) => c.step))) {
         const here = io.filter((c) => c.step === step);
-        // 入力と出力は対で読む。札は槽の持ち主の枠に付けるので、受け取った分を別の人へ送る交換 (見本 swap) は、出力の札が受け取った人に付く
-        expect([...new Set(here.map((c) => c.text))].sort(), `${what} 段${step + 1} の入力と出力の対`).toEqual(["入力", "出力"]);
+        expect(Object.fromEntries(here.map((c) => [c.token, c.text])), `${what} 段${step + 1} の槽ごとの札`).toEqual(marks);
         for (const c of here) {
           const frame = L.housings.find((h) => h.party === c.party);
-          expect(frame, `${what} の ${c.party} の点線の枠`).toBeDefined();
-          if (!frame) continue;
-          expect(c.y + c.h, `${what} 段${step + 1} の ${c.party} の${c.text}の札が枠の上の縁に重なる`).toBeLessThanOrEqual(frame.y - 1);
-          expect(c.x >= frame.x - D && c.x + c.w <= frame.x + frame.w + D, `${what} 段${step + 1} の ${c.party} の${c.text}の札が枠の上に無い`).toBe(true);
+          const tank = L.tanks.find((t) => t.party === c.party && t.token === c.token);
+          expect(frame && tank, `${what} の ${c.party} の点線の枠か ${c.token} の槽`).toBeTruthy();
+          if (!frame || !tank) continue;
+          const where = `${what} 段${step + 1} の ${c.party} の${c.text}の札`;
+          // 枠の上の縁と槽の上の縁の間の余白に置き、枠の線にも槽にも重ねない
+          expect(c.y, `${where}が枠の上の縁に重なる`).toBeGreaterThanOrEqual(frame.y + 1);
+          expect(c.y + c.h, `${where}が槽に重なる`).toBeLessThanOrEqual(tank.y - 1);
+          expect(Math.abs(c.x + c.w / 2 - (tank.x + tank.w / 2)), `${where}が槽の真上に無い`).toBeLessThan(1);
         }
       }
     }
   });
 
   it("pipe-contracts-share-shape-and-height", () => {
+    // 呼ばれるコントラクトは全て四角の箱で描いて高さを揃え、トークンの箱も高さを揃える。
+    // どの段でも呼ばれない値の持ち主 (router3) は、パッチの並べ方 (#3761) どおり人と同じ大きさの丸で描く。
+    // #3721 は呼ばれない持ち主も四角の箱にしたが、Tracelythの図をパッチを当てた時のまま描くので戻した
     const drawn = DRAWN.get().figures;
     for (const t of CONTRACT_TEXTS) {
       const L = (drawn.get(t) as Figure).layout;
-      const contracts = L.parties.filter((p) => p.id.startsWith("router"));
-      expect(contracts.map((p) => p.shape), "コントラクトの形").toEqual(["cabinet", "cabinet", "cabinet"]);
-      expect(new Set(contracts.map((p) => Math.round(p.h))).size, "コントラクトの箱の高さが揃わない").toBe(1);
+      const shape = L.fixed?.shape ?? "既定";
+      const called = L.parties.filter((p) => p.id === "router1" || p.id === "router2");
+      expect(called.map((p) => p.shape), `${shape} の呼ばれるコントラクトの形`).toEqual(["cabinet", "cabinet"]);
+      expect(new Set(called.map((p) => Math.round(p.h))).size, `${shape} のコントラクトの箱の高さが揃わない`).toBe(1);
+      const idle = L.parties.find((p) => p.id === "router3");
+      const person = L.parties.find((p) => p.id === "alice");
+      expect(idle?.shape, `${shape} の呼ばれない router3 の形`).toBe("round");
+      expect([idle?.w, idle?.h].map((v) => Math.round(v ?? 0)), `${shape} の router3 が人と同じ大きさでない`).toEqual([person?.w, person?.h].map((v) => Math.round(v ?? -1)));
       const tokens = L.parties.filter((p) => p.shape === "token");
-      expect(new Set(tokens.map((p) => Math.round(p.h))).size, "トークンの箱の高さが揃わない").toBe(1);
+      expect(new Set(tokens.map((p) => Math.round(p.h))).size, `${shape} のトークンの箱の高さが揃わない`).toBe(1);
     }
   });
 
@@ -870,23 +869,30 @@ describe("再生の部品", () => {
   }
 
   // 2 つの枠と枠に収まる図を 1 件で描いて置くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。枠ごとの件に分ける
+  // #3721 は全体を枠に収めると名前の字が10.5pxを下回る図を、名前が10.5pxに見える幅で始めた。パッチの並べ方 (#3761) はこの下限を持たず、
+  // 600px以上の枠は `fitWide` だけなら全体を収め (Tracelyth #177)、`fitNarrow` も渡すと名前の字を `FILL_NAME_PX` に届く幅で始める (Tracelyth #230)。
+  // 600pxより狭い枠は `fitWide` を読まず、槽の残高の字が `PIPE_FIRST.narrowPx` に届く幅で始めて横に送る (#3450)
   describe.for([1200, 390])("%ipx の枠", (frame) => {
     it("pipe-fit-wide-keeps-readable-text", () => {
       const wide = parse(gridText(3, 3, { layout: "top" }));
       const layout = api.renderDiagram(wide, { lang: "ja", width: frame }).layout;
       expect(layout.width, "図が1300pxより狭い").toBeGreaterThan(1300);
-      const name = Math.min(...layout.parties.map((p) => p.label.h));
-      // 全体を枠に収めると名前の字が10.5pxを下回る図
-      expect((name * Math.min(frame, layout.width)) / layout.width, "全体を収めても字が読める図").toBeLessThan(10.5);
-      const m = mount(wide, frame, { lang: "ja", fitWide: true, minZoom: 0.25 });
-      const px = (name * m.shown()) / layout.width;
-      expect(px, `枠 ${frame}px で始めた名前の字の大きさ`).toBeGreaterThanOrEqual(10.5 - 1e-6);
-      expect(px, `枠 ${frame}px で字を10.5pxより大きく始めた`).toBeLessThan(10.5 + name * 0.02);
+      const phone = frame < ZOOM.fit;
+      // 600px以上の枠は人の名前の字、狭い枠は槽の残高の字の大きさを見る
+      const [what, floor, size] = phone
+        ? ["槽の残高の字", PIPE_FIRST.narrowPx, Math.min(...layout.levels.map((l) => l.text.h))]
+        : ["名前の字", FILL_NAME_PX, Math.min(...layout.parties.map((p) => p.label.h))];
+      // 全体を枠に収めると字が下限を下回る図
+      expect((size * Math.min(frame, layout.width)) / layout.width, `全体を収めても${what}が下限に届く図`).toBeLessThan(floor);
+      const m = mount(wide, frame, { lang: "ja", fitWide: true, ...(phone ? {} : { fitNarrow: true }), minZoom: 0.25 });
+      const px = (size * m.shown()) / layout.width;
+      expect(px, `枠 ${frame}px で始めた${what}の大きさ`).toBeGreaterThanOrEqual(floor - 1e-6);
+      expect(px, `枠 ${frame}px で${what}を${floor}pxより大きく始めた`).toBeLessThan(floor + size * 0.02);
     });
   });
 
   it("pipe-fit-wide-keeps-readable-text", () => {
-    // 全体を収めても字が10.5px以上の図は、今どおり全体を枠に収めて始める
+    // `fitWide` だけを渡した図は、枠より広ければ全体を枠に収め、狭ければ原寸のまま始める (Tracelyth #177)
     const small = parse(gridText(1, 1, { layout: "top" }));
     const fits = api.renderDiagram(small, { lang: "ja", width: 1200 }).layout;
     const m = mount(small, 1200, { lang: "ja", fitWide: true });

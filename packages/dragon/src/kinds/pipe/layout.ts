@@ -3934,6 +3934,12 @@ const PLAN_OF = new WeakMap<PipeLayout, number>();
 const NARROW_OVER = 1.06;
 
 function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: boolean, from = 0): PipeLayout {
+  /**
+   * `layout` の行を持つ図か。その図は置き直し (`placeTop`、`placeRows`) がこの組み方の部品を並べ直して描く。
+   * 置き直す図は Tracelyth のパッチの組み方のまま組み、置き直した図 (Tracelyth の図) を変えない。
+   * 管の道の直しは今の並べ方で描く図 (`layout` の行の無い図) だけに当てる (#3761)
+   */
+  const placedLater = diagram.layout !== undefined;
   const folds = diagram.pipe?.folds ?? [];
   const foldSteps = new Set(folds.map((f) => f.step));
   const hidden = new Set(folds.flatMap((f) => f.hidden));
@@ -4444,9 +4450,20 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const groupOfDef = (k: number): string => trunkOf.get(k) ?? `v${k}`;
 
   // ---- 組む。管が通らない時は、間を広げて組み直す
+  // 箱を載せる管の出口が箱の周りの空きに掛かって道が無かった箱。その箱の出口を空きの外へ出し、同じ組み方で 1 度だけ組み直す (#3761)
+  const clearDocks = new Set<string>();
+  /** 組んでいる途中で、出口を空きの外へ出す箱が増えたか。組み直している間 (`redoing`) は、増えても組むのをやめない */
+  let docksGrew = false;
+  let redoing = false;
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
+    docksGrew = false;
     result = attempt(plan);
+    if (!result && docksGrew) {
+      redoing = true;
+      result = attempt(plan);
+      redoing = false;
+    }
     if (result) {
       PLAN_OF.set(result, PLANS.indexOf(plan));
       break;
@@ -4778,6 +4795,11 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const y = t.y + (P.tank.ports[m.slot] as number);
       let x1: number;
       let x2: number;
+      // 箱は真ん中を管の高さに揃えて管が通り抜けるため (Tracelyth #168、#3720)、管が箱の際で折れると箱の周りの空きに掛かり、出口から先の道が無い。
+      // その箱を載せる管に道が無かった時は (`clearDocks`)、管が道を探し始める出口を箱の周りに空ける幅の外に置いて組み直す (#3761)。
+      // 道が在った図の出口は動かさない
+      const box = labelOf(m.box);
+      const out = clearDocks.has(m.box) ? P.bus.case / 2 + P.lane.clear : 0;
       if (m.gap) {
         const d = defs[m.def as number] as Def;
         const other = d.from === m.party ? d.to : d.from;
@@ -4785,9 +4807,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         x2 = tankOf(other, m.token).x;
       } else if (m.side === "right") {
         x1 = t.x + t.w;
-        x2 = left + m.w + (m.def === undefined ? 0 : P.lane.clear);
+        x2 = m.def === undefined ? left + m.w : Math.max(left + m.w + P.lane.clear, out > 0 ? box.x + box.w + out : 0);
       } else {
-        x1 = left - (m.def === undefined ? 0 : P.lane.clear);
+        x1 = m.def === undefined ? left : Math.min(left - P.lane.clear, out > 0 ? box.x - out : Number.POSITIVE_INFINITY);
         x2 = t.x;
       }
       let gx = left + PART_GAP;
@@ -4952,7 +4974,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     const vPad = vHalf + P.lane.clear;
     for (const id of order) {
       if (!visible.has(id) || (isBox(id) && !homeOfBox.has(id) && !xOf.has(id))) continue;
-      addObs(labelOf(id), vPad);
+      // 槽に載る箱は管の高さに真ん中を置くので、箱を載せる管が通り抜ける (Tracelyth #168、#3720)。
+      // その管の口から出口までの線だけが箱を越えてよい。越えられないと、箱を載せる管は道が無いとされ、囲いの中の字の上を通る折れ線で結ばれた (#3761)
+      addObs(labelOf(id), vPad, homeOfBox.has(id) ? `b:${id}` : undefined);
     }
     for (const h of housings) addObs(h, vPad, `h:${h.party}`);
     for (const [k, t] of tankRect) {
@@ -5098,12 +5122,17 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         /** 口の候補どうしを結ぶ。外側の口だけで道が無い時に限り、内側の口と囲いの中を使う */
         const join = (sa: PortChoice[], sb: PortChoice[]): { points: Point[]; a: PipePort; b: PipePort } | undefined => {
           const same = (p: PortChoice, q: Point): boolean => Math.abs(p.exit[0] - q[0]) < 0.5 && Math.abs(p.exit[1] - q[1]) < 0.5;
-          // 口から外の点までの線は道を探さずに引くため、先に引いた管がその線を越える口は使わない
-          const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token)]);
-          const clear = (p: PortChoice): boolean => same(p, [p.port.x, p.port.y]) || valueRouter.passable(stubAsk, [p.port.x, p.port.y], p.exit);
+          // 口から外の点までの線は道を探さずに引くため、先に引いた管がその線を越える口は使わない。
+          // 箱を載せる管の口から出口までの線は、載せた箱を越えてよい (置き直す図は除く、#3761)
+          const stubAsk = askOf([], [], [...own(d.from, d.token), ...own(d.to, d.token), ...(home && !placedLater ? (ownObs.get(`b:${home.box}`) ?? []) : [])]);
+          // 線は流れの向きに測る。同じ組の管は同じ向きの時だけ重なるため、受ける側の口は外の点から口へ向かう線で測る。
+          // 口から外へ向かう向きで測ると、先に同じ口へ入った同じ組の管と逆向きになり、幹の管が根の口を共に使えない (#3720)。
+          // 置き直す図は今までどおり口から外へ向かう向きで測る (#3761)
+          const clear = (p: PortChoice, into: boolean): boolean =>
+            same(p, [p.port.x, p.port.y]) || (into ? valueRouter.passable(stubAsk, p.exit, [p.port.x, p.port.y]) : valueRouter.passable(stubAsk, [p.port.x, p.port.y], p.exit));
           for (const loose of [false, true]) {
-            const xa = sa.filter((p) => (loose || !p.inner) && clear(p));
-            const xb = sb.filter((p) => (loose || !p.inner) && clear(p));
+            const xa = sa.filter((p) => (loose || !p.inner) && clear(p, false));
+            const xb = sb.filter((p) => (loose || !p.inner) && clear(p, !placedLater));
             if (xa.length === 0 || xb.length === 0 || (loose && xa.every((p) => !p.inner) && xb.every((p) => !p.inner))) continue;
             // 内側の口は槽の間を上か下へ抜ける。外側の口は外の点から横に進むほか、外の点で上か下へ折れてよい。
             // 外の点の筋を同じ組の幹が通る時は、外の点で幹に入る。1 つ先の点まで出てから折れると、幹の際で行って戻る段差になる
@@ -5207,6 +5236,19 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       },
     );
     const valuesFailed = best.got.failed.length;
+    // 道が無かった箱を載せる管のうち、出口が箱の周りの空きに掛かる管は、出口を空きの外へ出して同じ組み方で組み直す (#3761)
+    for (const k of placedLater ? [] : best.got.failed) {
+      const home = homes.find((m) => m.def === k && !m.gap);
+      const bay = home ? bayOf.get(home.box) : undefined;
+      if (!home || !bay || clearDocks.has(home.box)) continue;
+      const box = labelOf(home.box);
+      const out = P.bus.case / 2 + P.lane.clear;
+      if (home.side === "left" ? bay.x1 > box.x - out : bay.x2 < box.x + box.w + out) {
+        clearDocks.add(home.box);
+        docksGrew = true;
+      }
+    }
+    if (docksGrew && !redoing) return undefined;
     // 道が無いか曲がりすぎた管が残る時は、間を広げた組み方で組み直す
     if (valuesFailed + best.got.bent.length > 0 && !plan.last) return undefined;
     if (best.list !== ran || valuesFailed > 0) routeValues(best.list, valuesFailed > 0);
@@ -6904,11 +6946,14 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         // 離れた所が無い短い管では、部品の縁に触れても重ならない所にする
         let e = backTo(PART_GAP / 2);
         if (e >= whole) e = backTo(0);
-        // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる
+        // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる。
+        // 名札からは描く処理が札を描く間 (`PART_GAP / 2`) だけ離す。描く処理は名札から `PART_GAP / 2` 離れない札を描かないため (Tracelyth #221)、
+        // 2px だけ離した札は、名札の間を広げた図でも描かれずに消えていた (#3761)。置き直す図は札の道を引き直すので今までどおり
         if (e >= whole) {
           const caller = labelOf(c.from);
+          const gap = placedLater ? 2 : PART_GAP / 2;
           e = 0;
-          while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, 2)) e += 2;
+          while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, gap)) e += 2;
         }
         const path = e > 0 ? fromAlong([...started].reverse(), e).reverse() : started;
         chips.push(chipOf("return", ret.value, rectAt(path[0] as Point), ret.step, { party: c.to, path, call: c.index, event: ret.event }));
