@@ -7,6 +7,7 @@
  * ブラウザも読むので、Node の組み込みの module を読まない。
  */
 import { FIGURE_TEXT } from "../figure-text";
+import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { type Palette, paletteVars, resolvePalette, type Theme } from "../look/values";
 import { FORMAT_VERSION, fromModel } from "../model";
 import { pipeTexts } from "../pipe-player";
@@ -21,6 +22,7 @@ import { tryTexts } from "../try-player";
 import type { UserBlocks } from "../user-blocks";
 import { readDiagram } from "../version";
 import { DEFAULT_LANG, type NotationLang, textLang } from "../words";
+import { pipeLayouts } from "./layouts";
 
 /** 寄って見せる図で幅の指定が無い時の枠の幅。記事の本文ほどの幅 */
 export const FOLLOW_WIDTH = 728;
@@ -61,6 +63,8 @@ export interface PagePlan {
   source: Diagram;
   /** 線の描き方。頁は埋めた原本をこの描き方で描き直す (#3643) */
   line: LineStyle;
+  /** 頁に収める配管の図の並べ方 (#3748)。頁は道を探さずに最初の形と箱を 1 つ開いた形を描く。配管の図でなければ空 */
+  layouts: StoredPipeLayout[];
 }
 
 const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
@@ -156,5 +160,7 @@ export function planPage(input: unknown, options: PageOptions): PagePlan {
   // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
   // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)
   const source = withDefinitions(fromModel(rendered.source ?? diagram, FORMAT_VERSION), options.blocks);
-  return { rendered, said, lang, palette, vars, width, followSvg, texts, source, line };
+  // 並べ方は頁が描く物と同じ鍵になるよう、頁が読み直す原本を頁と同じ言葉で描いて組む。色味と線の描き方は並べ方を変えない
+  const layouts = diagram.kind === "pipe" ? pipeLayouts(source, { lang }) : [];
+  return { rendered, said, lang, palette, vars, width, followSvg, texts, source, line, layouts };
 }

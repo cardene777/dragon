@@ -27,7 +27,7 @@ import { ghostCard, path, side } from "../blocks/side-path/draw";
 import { endMark } from "../blocks/start-finish/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
 import { FIGURE_TEXT } from "../figure-text";
-import type { PipeWordsInput } from "../kinds/pipe/layout";
+import type { PipeWordsInput, StoredPipeLayout } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
@@ -113,6 +113,11 @@ export interface RenderOptions {
    * 絵柄の線と字と図の地の枠は変えず、図の形と字の位置も変えない。揺れは線の形から決めるので、同じ図は何度描いても同じ形になる
    */
   line?: LineStyle;
+  /**
+   * 配管の図の、build の時に組んで収めた並べ方 (#3748)。書き出した頁と見本帳が渡す。
+   * 図と言葉と語と code の指紋から作った鍵が合う並べ方が在れば、道を探さずにその並べ方で描く。合わなければその場で組む
+   */
+  layouts?: readonly StoredPipeLayout[];
 }
 
 /** 図の種類ごとの、呼ぶ側が渡す語 (#3584) */

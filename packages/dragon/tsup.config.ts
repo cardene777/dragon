@@ -1,5 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "tsup";
+import { srcFingerprint } from "./scripts/src-fingerprint.mjs";
 import type { UserBlock } from "./src/user-blocks";
 import { readBlocks } from "./src/user-blocks-read";
 // 共有の定義は Tabler の絵柄を持てる (#3489)。読む前に絵柄集の表を登録する。表は build が tsup の前に書き出す (`scripts/build-tabler.mjs`)
@@ -33,12 +35,14 @@ function sharedBlocks(): UserBlock[] {
 }
 /**
  * 本体を束ねる全ての設定に渡す。定義を引く処理 (`user-blocks.ts`) がどの入口にも入るため。
- * Tabler の絵柄を持つ共有のブロックの名前も入れ、軽い入口が絵柄集の表を読むかを最初に読む束で決める (#3489)
+ * Tabler の絵柄を持つ共有のブロックの名前も入れ、軽い入口が絵柄集の表を読むかを最初に読む束で決める (#3489)。
+ * `src` の指紋も入れる。収めた配管の図の並べ方の鍵に入り、組んだ code と描く code が違う時に収めた並べ方を使わせない (#3748)
  */
 const SHARED = sharedBlocks();
 const SHARED_BLOCKS = {
   __DRAGON_SHARED_BLOCKS__: JSON.stringify(SHARED),
   __DRAGON_SHARED_TABLER__: JSON.stringify(SHARED.flatMap((b) => (b.icon?.startsWith("tabler:") ? [b.name] : []))),
+  __DRAGON_SRC_FINGERPRINT__: JSON.stringify(srcFingerprint(fileURLToPath(new URL("./src/", import.meta.url)))),
 };
 
 /**

@@ -12,6 +12,8 @@ export const parts: KindParts<PipeLayout> = {
       lang,
       ...(options.words?.pipe === undefined ? {} : { words: options.words.pipe }),
       ...(options.width === undefined ? {} : { width: options.width }),
+      // 書き出した頁と見本帳が収めた並べ方 (#3748)
+      ...(options.layouts === undefined ? {} : { stored: options.layouts }),
     }),
   // 段ごとに図の全てを 1 枚の絵に描くので、描き方が全ての層を持つ
   draw: (layout, _diagram, ctx) => drawPipe(layout, ctx.t, ctx),
