@@ -44,33 +44,41 @@ hold pool: 10 WETH
 hold alice: 0 WETH
 
 step 1回目を任せる
+  say AliceがAggregatorに1回目を任せる。
   alice -> agg: 1回目 [fold]
 
 step Poolを呼ぶ
+  say AggregatorがPoolを呼ぶ。
   agg -> pool: 交換
 
 step WETHを送る
+  say PoolがWETHに1を送らせる。
   pool -> weth: 送る
   move weth: 1 pool -> alice
   return weth: true
   return pool: 1 WETH
 
 step 戻る
+  say Aggregatorが戻る。
   return agg: 1 WETH
 
 step 2回目を任せる
+  say AliceがAggregatorに2回目を任せる。
   alice -> agg: 2回目 [fold]
 
 step もう一度Poolを呼ぶ
+  say Aggregatorがもう一度Poolを呼ぶ。
   agg -> pool: 交換
 
 step もう一度送る
+  say Poolがもう一度WETHに1を送らせる。
   pool -> weth: 送る
   move weth: 1 pool -> alice
   return weth: true
   return pool: 1 WETH
 
 step また戻る
+  say Aggregatorがまた戻る。
   return agg: 1 WETH
 `;
 

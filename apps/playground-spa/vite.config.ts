@@ -8,6 +8,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { DEV_PORT, PREVIEW_PORT } from "./ports";
 import { createCspMetaPlugin } from "./vite-csp";
 import { createDevDistFreshnessPlugin } from "./vite-dev-dist-freshness";
+import { createPipeLayoutsPlugin } from "./vite-pipe-layouts";
 import { createScriptDemoPlugin } from "./vite-script-demo";
 import { createSiteFontPlugin } from "./vite-site-font";
 
@@ -52,6 +53,8 @@ export default defineConfig(({ command, mode }) => ({
     createCspMetaPlugin(),
     // 組み込みの見本の頁のscriptの1行の置き方が読む入口を写す (#3701)
     createScriptDemoPlugin(),
+    // 頁の配管の図の並べ方を build の時に組んで収める (#3748)。build の時だけ当たる
+    createPipeLayoutsPlugin(),
   ],
   resolve: {
     alias: {

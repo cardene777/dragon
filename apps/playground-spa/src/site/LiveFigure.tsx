@@ -8,8 +8,9 @@
  * `json` を渡すと、記法ではなく原本の JSON の字として読む (#3034、使い方の JSON の節)。
  * 後から読む種類の図は、種類の塊 (描く部品と、その種類の個別ブロックの読み方、#3349) が届いてから読む。塊が届くまでは枠に読み込み中を出す。
  * 足したブロックの定義を持つ記法は、定義を読む処理の塊 (#3399) が届いてから読む (#3407)。
+ * 配管の図は、見本帳の build が収めた並べ方 (`vite-pipe-layouts.ts`、#3748) を読んでから描き、道を探さずに描く。
  */
-import { type Diagram, diagramKind, type LineStyle, lookOf, mountDiagram, parseNotation, readDiagram, type Theme } from "@cardenelabs/dragon/light";
+import { type Diagram, diagramKind, type LineStyle, lookOf, mountDiagram, parseNotation, type Player, readDiagram, type StoredPipeLayout, type Theme } from "@cardenelabs/dragon/light";
 import { type ReactElement, useEffect, useMemo, useRef } from "react";
 
 import type { Lang } from "../text";
@@ -97,9 +98,20 @@ export function LiveFigure({ notation, lang, theme, palette, line, whole = false
   useEffect(() => {
     const el = host.current;
     if (!el || !diagram || !ready) return;
-    const player = mountDiagram(el, diagram, { palette, theme, lang, ...(line ? { line } : {}), pausedAt, onStep: (step) => stepTo.current?.(step) });
-    return () => player.destroy();
-  }, [diagram, ready, palette, theme, lang, line, pausedAt]);
+    let player: Player | undefined;
+    let gone = false;
+    const mount = (layouts?: StoredPipeLayout[]): void => {
+      if (gone) return;
+      player = mountDiagram(el, diagram, { palette, theme, lang, ...(line ? { line } : {}), ...(layouts ? { layouts } : {}), pausedAt, onStep: (step) => stepTo.current?.(step) });
+    };
+    // 配管の図は build が収めた並べ方を読んでから描き、道を探さずに描く (#3748)
+    if (diagram.kind === "pipe") void import("./pipe-layouts").then((m) => m.pipeLayoutsFor(notation, lang)).then(mount, () => mount());
+    else mount();
+    return () => {
+      gone = true;
+      player?.destroy();
+    };
+  }, [diagram, ready, palette, theme, lang, line, pausedAt, notation]);
 
   return (
     <div ref={host} className={className}>

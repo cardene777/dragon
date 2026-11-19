@@ -161,3 +161,18 @@
 | 置き場所を探す道具は、障りの物か置いた札から隙間8pxの内に入る候補を空いた候補として返さない。隙間がちょうど8pxの候補は空いた候補として返し、寸法が数でない障りの物は候補をふさがない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-refuses-spots-within-gap`が通る | #3737 |
 | 箱2を開いた`aggregator.json`を描く時、札の候補から道までの隔たりを測る回数が、直す前の37万回の10分の1 (3万7千回) より少ない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-open-aggregator-measures-fewer-spots`が通る | #3737 |
 | 配管の図の見本を言語と枠の幅ごとに描いた時、決まりの表への違反が0件のままである | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3737 |
+| 収めた並べ方を渡し、並べ方の覚えが無い状態 (新しいprocess) で箱2を開いた`aggregator.json`を1回目に描く時、`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-draws-without-route`が通る | #3748 |
+| 配管の原本58個を、書いたままの形と、`layout`の行を書かない形と、行を6つの形 (`PIPE_LAYOUTS`) に替えた形の528形 (最初に見える形と、箱を1つだけ開いた形) で描いた時、収めた並べ方を渡して描いた並べ方 (管の道と札の場所) と描いたSVGが、渡さずに描いた時と同じになる | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-matches-composed`が通る | #3748 |
+| 並べ方を収めた後に原本を変えた時、変える前の並べ方を使うことを拒み、その場で組んだ並べ方で描く | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-ignored-after-source-change`が通る | #3748 |
+| 描く言葉 (`lang`か渡した語) が収めた時と違う時、収めた並べ方を使うことを拒む | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-ignored-for-other-words`が通る | #3748 |
+| codeの指紋が描くcodeと違う並べ方 (別の`packages/dragon/src`から作った物) を使うことを拒む | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-ignored-for-other-code`が通る | #3748 |
+| codeの指紋は`packages/dragon/src`の全てのfileから作り、どれか1つのfileを変えると指紋が変わる | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`src-fingerprint-covers-every-src-file`が通る | #3748 |
+| 畳んだ箱をN個持つ配管の図を書き出す時、最初に見える形と、箱を1つだけ開いた形のN+1通りの並べ方を、書き出したHTMLに指紋つきで収める | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`export-stores-pipe-layouts`が通る | #3748 |
+| 畳んだ箱を2つ以上持つ図を書き出す時、2つ以上の箱を開いた組の並べ方を書き出したHTMLに収めることを拒む | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`export-skips-multi-open-layouts`が通る | #3748 |
+| 書き出したHTMLの頁で配管の図を最初に描く時と、畳んだ箱を1つ押して開いた時に、`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`exported-page-draws-pipe-without-route`が通る | #3748 |
+| `dragon embed`が、頁の配管の図の記法の塊ごとに、最初に見える形と、箱を1つだけ開いた形の並べ方を、埋めた頁に指紋つきで収める | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`embed-stores-pipe-layouts`が通る | #3748 |
+| 埋めた頁を開いた時、配管の図の記法の塊を`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`embedded-page-draws-pipe-without-route`が通る | #3748 |
+| 並べ方を収めていない頁 (jsDelivrの入口で手で書いた記法の頁) では、配管の図の記法の塊を今どおり頁で並べ方を組んで描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`page-blocks-compose-pipe-without-stored-layouts`が通る | #3748 |
+| 見本帳のbuildが見本帳の頁の描く配管の図の並べ方を収め、`LiveFigure`がその図を`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-layouts.test.ts`の検査`site-draws-pipe-with-stored-layouts`が通る | #3748 |
+| 時系列図だけを描く頁で、scriptの1行の入口が最初に読むscriptのgzip後の合計が、上限90,000バイトに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3748 |
+| 見本帳が最初に読むscriptとCSSのgzip後の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3748 |

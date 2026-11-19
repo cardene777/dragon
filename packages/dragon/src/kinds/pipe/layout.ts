@@ -15,6 +15,7 @@
  * 決まりの表 (`pipe-rules.ts`) は組んだ置き場所を後から測る。組み方は表を読まず、表の値が守れる間を空けて置く。
  * 狭い枠では、図を枠の幅に縮めても槽の残高と今の段の値が読める大きさの字で組み直す。
  * 並べ方は描き方を読まない。描く部品は `render/pipe.ts` とブロックの描き方が持つ (#3418)。
+ * 書き出した頁と見本帳は、build の時に組んだ並べ方を収めて渡す (`stored`、#3748)。鍵が合えば道を探さずにその並べ方で描く。
  */
 import { ETH } from "../../blocks/definition-values";
 import { joinWords } from "../../figure-text";
@@ -27,6 +28,8 @@ import { type Ask, type Dir, type End, gridLines, type Laid, type Obstacle, Rout
 import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf, tankHolds, tankToken } from "../../pipe-run";
 import { valveRects } from "../../pipe-valve";
 import { placeLayout } from "../../layout/pipe-place";
+import { sha256 } from "../../sha256";
+import { SRC_FINGERPRINT } from "../../src-fingerprint";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, PipeLayoutName, Step } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 
@@ -744,6 +747,17 @@ export interface PipeLayoutOptions {
   words?: PipeWordsInput;
   /** 描く枠の幅。`PIPE_LOOK.narrow.frame` より狭い枠では、槽の残高と今の段の値を大きな字で出す */
   width?: number;
+  /** build の時に組んで収めた並べ方 (#3748)。鍵 (`pipeLayoutKey`) が合う物が在れば、組まずにその並べ方を使う */
+  stored?: readonly StoredPipeLayout[];
+}
+
+/**
+ * 収めた並べ方 (#3748)。書き出した頁と見本帳が、組んだ並べ方を JSON にして持ち、描く時に渡す。
+ * 鍵は code の指紋と言葉と語と図から作るので、どれかが違う頁では使わずにその場で組む
+ */
+export interface StoredPipeLayout {
+  key: string;
+  layout: PipeLayout;
 }
 
 // ---- 字
@@ -1263,6 +1277,36 @@ const PLANS: Plan[] = [
 const CACHE = new Map<string, PipeLayout>();
 const CACHE_SIZE = 48;
 
+/** 言葉と渡した語の、覚えの鍵の頭。渡した語で札の幅が変わるので、語も鍵に入れる (#3584) */
+const saidOf = (options: PipeLayoutOptions): string => `${options.lang ?? DEFAULT_LANG}|${JSON.stringify(options.words ?? {})}`;
+const hashed = (code: string, said: string, model: string): string => sha256(`${code}|${said}|wide|${model}`);
+
+/**
+ * 収めた並べ方の鍵 (#3748)。code の指紋 (`code`、既定は build が埋めた `packages/dragon/src` の指紋) と、言葉と語と、並べる図から作る。
+ * 図は畳んだ箱を開いた後の図なので、開いた箱の組ごとに鍵が変わる
+ */
+export const pipeLayoutKey = (diagram: DiagramModel, options: Pick<PipeLayoutOptions, "lang" | "words"> = {}, code: string = SRC_FINGERPRINT): string =>
+  hashed(code, saidOf(options), JSON.stringify(diagram));
+
+/** 組んだ並べ方を集めている間の集め先。`collectPipeLayouts` の外では無い */
+let collected: Map<string, PipeLayout> | undefined;
+
+/**
+ * `run` の間に描いた配管の図の並べ方を、描く処理が書き換える前の形で鍵ごとに 1 つずつ集める (#3748)。
+ * 書き出す部品が頁に収める並べ方を作るのに使う
+ */
+export function collectPipeLayouts<T>(run: () => T): { value: T; layouts: StoredPipeLayout[] } {
+  const outer = collected;
+  const into = new Map<string, PipeLayout>();
+  collected = into;
+  try {
+    const value = run();
+    return { value, layouts: [...into].map(([key, layout]) => ({ key, layout })) };
+  } finally {
+    collected = outer;
+  }
+}
+
 /** 札の高さ */
 const IO_H = 20;
 /**
@@ -1507,19 +1551,29 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
   // 配管の図は電話の幅でも広い枠と同じ並びで描き、再生の部品が読める大きさで今の段へ寄せる (Tracelyth #87)。
   // 額と式の札を下の帯へ移す電話の並びでは、札入れと記録の札を描けない。枠の幅は受け取るが並びには使わない
   const narrow = false as boolean;
-  // 渡した語で札の幅が変わるので、語も覚えの鍵に入れる (#3584)
-  const said = `${lang}|${JSON.stringify(options.words ?? {})}`;
-  const key = `${said}|${narrow ? frame : "wide"}|${JSON.stringify(diagram)}`;
-  const hit = CACHE.get(key);
-  if (hit) return copyOf(hit);
+  const said = saidOf(options);
+  const model = JSON.stringify(diagram);
+  const key = `${said}|${narrow ? frame : "wide"}|${model}`;
   const remember = (k: string, layout: PipeLayout): PipeLayout => {
     if (CACHE.size >= CACHE_SIZE) CACHE.delete(CACHE.keys().next().value as string);
     CACHE.set(k, layout);
     return layout;
   };
+  // 収めた並べ方は覚えより先に引き、同じ process で前に組んだ並べ方より頁が渡した並べ方を使う。鍵は渡された時と集める時だけ作る。
+  // 渡された並べ方は覚えに入れない。入れると、並べ方を渡さずに同じ図を描く呼び出しにも渡された並べ方が届く
+  const storedKey = options.stored?.length || collected ? hashed(SRC_FINGERPRINT, said, model) : undefined;
+  /** 描く処理へ渡す写し。集めている間は、描く処理が書き換える前の写しを鍵ごとに集める */
+  const handOut = (layout: PipeLayout): PipeLayout => {
+    if (storedKey !== undefined) collected?.set(storedKey, copyOf(layout));
+    return copyOf(layout);
+  };
+  const given = storedKey === undefined ? undefined : options.stored?.find((s) => s.key === storedKey)?.layout;
+  if (given) return handOut(given);
+  const hit = CACHE.get(key);
+  if (hit) return handOut(hit);
   let sizes: Sizes = { amount: T.amount.size, chip: T.chip.size };
   // 狭い枠も、字の大きさを決めるために広い枠の図を先に組む。広い枠で描いた図が覚えに在ればそれを使う
-  const wideKey = `${said}|wide|${JSON.stringify(diagram)}`;
+  const wideKey = `${said}|wide|${model}`;
   // `layout` の行を持つ図は、今の並べ方で作った部品を、その行の形 (`auto` は選んだ形) へ置き直す (Tracelyth #165、#166)
   const composeWide = (): PipeLayout => {
     const made = compose(diagram, words, sizes, false);
@@ -1534,7 +1588,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     sizes = { amount: Math.max(T.amount.size, want), chip: Math.max(T.chip.size, want) };
     out = compose(diagram, words, sizes, true, PLAN_OF.get(out) ?? 0);
   }
-  return copyOf(narrow ? remember(key, out) : out);
+  return handOut(narrow ? remember(key, out) : out);
 }
 
 /**
