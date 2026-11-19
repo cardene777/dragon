@@ -101,10 +101,10 @@ describe("収めた並べ方で描く (#3748)", () => {
     // 並べ方の関数が受けた図 (畳んだ箱を開いた後の図) を捕まえる
     let model: unknown;
     const layout = parts.layout;
-    parts.layout = ((diagram, ...rest) => {
+    parts.layout = (diagram, ...rest) => {
       model = diagram;
       return layout(diagram, ...rest);
-    }) as typeof layout;
+    };
     let stored: Stored[];
     try {
       stored = probed(() => render(source, { lang: "ja" }));

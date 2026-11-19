@@ -25,7 +25,7 @@ vi.mock("@cardenelabs/dragon/light", async (original) => {
     ...light,
     mountDiagram: (host: HTMLElement, diagram: unknown, options: Record<string, unknown>) => {
       seen.options.push(options);
-      return light.mountDiagram(host, diagram as Parameters<typeof light.mountDiagram>[1], options);
+      return light.mountDiagram(host, diagram, options);
     },
   };
 });
@@ -75,9 +75,9 @@ describe("見本帳の配管の図 (#3748)", () => {
 
     // LiveFigure が並べ方の file を読み、再生の部品へ渡す
     const fetched: string[] = [];
-    vi.stubGlobal("fetch", async (url: string) => {
+    vi.stubGlobal("fetch", (url: string) => {
       fetched.push(String(url));
-      return String(url).endsWith(asset?.fileName ?? "-") ? new Response(asset?.source ?? "[]") : new Response("", { status: 404 });
+      return Promise.resolve(String(url).endsWith(asset?.fileName ?? "-") ? new Response(asset?.source ?? "[]") : new Response("", { status: 404 }));
     });
     const { LiveFigure } = built;
     expect(LiveFigure, "LiveFigure を読めない").toBeDefined();
@@ -86,8 +86,9 @@ describe("見本帳の配管の図 (#3748)", () => {
     document.body.appendChild(host);
     const root = createRoot(host);
     try {
-      await act(async () => {
+      await act(() => {
         root.render(createElement(LiveFigure, { notation: TEXT, lang: "ja", theme: "light", palette: "paper", whole: true }));
+        return Promise.resolve();
       });
       for (let i = 0; i < 100 && seen.options.length === 0; i++) await act(async () => new Promise((done) => setTimeout(done, 10)));
       expect(fetched.some((url) => url.endsWith(asset?.fileName ?? "-")), "LiveFigure が配管の図の並べ方の file を読まない").toBe(true);
@@ -95,7 +96,10 @@ describe("見本帳の配管の図 (#3748)", () => {
       expect(options, "LiveFigure が配管の図を描かない").toBeDefined();
       expect((options?.layouts as Stored[] | undefined)?.map((s) => s.key), "LiveFigure が収めた並べ方を再生の部品へ渡さない").toEqual(built.stored.map((s) => s.key));
     } finally {
-      await act(async () => root.unmount());
+      await act(() => {
+        root.unmount();
+        return Promise.resolve();
+      });
     }
   });
 });

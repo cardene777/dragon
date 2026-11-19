@@ -51,6 +51,8 @@ function sourceOf(file: string, row: Row): Record<string, unknown> {
 /** 道を探した回数を数えながら `run` を回す */
 function counted<T>(run: () => T): { value: T; routeCalls: number } {
   let routeCalls = 0;
+  // 置き換える前の route を取っておき、置き換えた関数が受けた this を渡して呼び、終わったら戻す
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const route = Router.prototype.route;
   Router.prototype.route = function (this: Router, ask: Parameters<typeof route>[0]) {
     routeCalls++;

@@ -30,13 +30,9 @@ async function fresh(): Promise<{ routeCalls: () => number; player: typeof impor
   // 種類の部品を登録する入口を先に読む
   await import("../src/index");
   const { Router } = await import("../src/pipe-route");
-  let calls = 0;
-  const route = Router.prototype.route;
-  Router.prototype.route = function (this: InstanceType<typeof Router>, ask: Parameters<typeof route>[0]) {
-    calls++;
-    return route.call(this, ask);
-  };
-  return { routeCalls: () => calls, player: await import("../src/player"), blocks: await import("../src/page-blocks") };
+  // 読み直すたびに別の Router を読むので、前の回に数えた回数を引き継がない
+  const route = vi.spyOn(Router.prototype, "route");
+  return { routeCalls: () => route.mock.calls.length, player: await import("../src/player"), blocks: await import("../src/page-blocks") };
 }
 
 /** 頁の記法の塊を描き終えるまで待つ */
@@ -110,7 +106,7 @@ describe("dragon embed が埋めた頁 (#3748)", () => {
     const { routeCalls, blocks } = await fresh();
     document.documentElement.lang = "ja";
     document.body.innerHTML = `${body}<script type="application/json" id="dragon-layouts">${JSON.stringify(stored).replace(/</gu, "\\u003c")}</script>`;
-    blocks.drawPageBlocks(document, async () => undefined);
+    blocks.drawPageBlocks(document, () => Promise.resolve());
     await settle(document);
     expect(document.querySelector(".dragon-figure svg"), "埋めた頁の塊を図に置き換えない").not.toBeNull();
     expect(routeCalls(), "埋めた頁で配管の図の塊を描いた時に道を探した回数").toBe(0);
@@ -120,7 +116,7 @@ describe("dragon embed が埋めた頁 (#3748)", () => {
     const { routeCalls, blocks } = await fresh();
     document.documentElement.lang = "ja";
     document.body.innerHTML = `<pre class="dragon">${escape(ONE_FOLD)}</pre>`;
-    blocks.drawPageBlocks(document, async () => undefined);
+    blocks.drawPageBlocks(document, () => Promise.resolve());
     await settle(document);
     expect(document.querySelector(".dragon-figure svg"), "並べ方を収めていない頁の塊を図に置き換えない").not.toBeNull();
     expect(routeCalls(), "並べ方を収めていない頁で、頁が並べ方を組まない").toBeGreaterThan(0);
