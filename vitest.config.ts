@@ -12,7 +12,8 @@ export default defineConfig({
   },
   test: {
     // 検査が作る一時フォルダは実行ごとの 1 つへまとめ、終わりに丸ごと消す (`run-tmp.ts`、#3587)。後の準備の段の一時フォルダも入るので最初に置く
-    // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
+    // 見本帳の test と、命令と書き出しの test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
+    // package の種類の test は種類を登録しない入口 (`src/core.ts`) と使う種類の登録の file を読む (#3763)。
     // `pnpm test` に build は含まれていないため、 古い `dist` が残っていると
     // src を壊しても通ってしまう。 走らせる前に検知する (#979)。
     // 1 回の実行は 5 分で止める (`run-limit.ts`、#3381)。見本帳の頁は要る時に 1 回の実行で 1 度だけ build する (`site-setup.ts`、#3381)
