@@ -177,6 +177,7 @@ export function doneMark(box: SceneBox, at: number, ctx: Ctx): string {
  * `grey` を立てると (状態遷移図、#3171)、済んだ段の縁取りを線と同じ灰にする。
  * 同じ所に後の段の番号が来る時 (`until`) は、その段が始まる時に素早く消して数字を入れ替える (#3184)。
  * 見えていない間は `visibility` も隠し、同じ所に重ねたまだ来ていない段の番号が、押した時に前の段の番号を遮らないようにする。
+ * 見える間は `visibility` を祖先から受け継ぎ、`visibility: hidden` の祖先 (隠したタブなど) の中では動く間も隠れたままにする (#3755)。
  */
 export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const { m } = ctx;
@@ -184,7 +185,7 @@ export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
   const a = span.start;
   const e = span.end;
   const { r, ring: rr } = LOOK.badge;
-  const shown = { visibility: "visible" };
+  const shown = { visibility: "inherit" };
   const hidden = { visibility: "hidden" };
   const swap = b.until === undefined ? undefined : (ctx.t.steps[b.until] as Span).start;
   // 次の段がすぐ入れ替える時は、塗った番号のまま素早く消し、縁取りを出さない

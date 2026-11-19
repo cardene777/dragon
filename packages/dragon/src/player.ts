@@ -954,8 +954,13 @@ export function mountDiagram(
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも、全体図を収める時は見える高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
     ?.ResizeObserver;
+  // 隠した枠 (`display: none`) の中では CSS の動きが止まり、見せ直すと動きが最初から数え直す。
+  // 枠の幅が 0 から戻った時は今の時刻から置き直し、図の動きを再生の時計に揃える (#3755)
+  let laidOut = frame.clientWidth > 0;
   const observer = Observer
     ? new Observer(() => {
+        const reshown = frame.clientWidth > 0 && !laidOut;
+        laidOut = frame.clientWidth > 0;
         const w = frameWidth();
         const h = frameHeight();
         const v = overviewHeight();
@@ -966,7 +971,8 @@ export function mountDiagram(
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height && v === visible))) {
-          if (svg) controls?.fit(frame, svg);
+          if (reshown) restart(now(), playing);
+          else if (svg) controls?.fit(frame, svg);
           // 枠の幅が変わらない時は送り位置を残す。読み手が引いて動かした所と拡大した所を、高さの変わりで戻さない
           settle();
           follow();

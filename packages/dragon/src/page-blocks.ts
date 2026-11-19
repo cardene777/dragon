@@ -6,6 +6,8 @@
  * 記法に誤りがある塊は図にせず、誤りの文を行ごとに並べた `<pre class="dragon-error">` に置き換える。
  * 言葉は頁の `lang` 属性が `ja` で始まれば日本語、ほかは英語にする。図の中の字と誤りの文の両方に使う。
  * 頁を読み終えた時に在る塊だけを描き、後から足した塊は見張らない。
+ * 読み終えた時に幅を持たない塊 (`display: none` で隠したタブの中など) は、幅を持った時に描く (#3755)。
+ * 図は枠の幅で見せ方を選ぶので、隠れた間に描くと幅の無い枠に描き、見えた時に図が空のまま残る。
  *
  * 属性 `data-header` を持つ塊は、図を描いた後に呼ぶ側の処理 (`framed`) へ渡して帯を付ける (#3699)。持たない塊は帯の無い図のまま。
  *
@@ -90,6 +92,21 @@ async function pageDefinitions(doc: Document, lang: NotationLang): Promise<UserB
   );
 }
 
+/** 塊が幅を持てば `run` を呼ぶ。幅を持たなければ、幅を持った時に 1 度だけ呼ぶ (#3755)。大きさを見張れない環境ではすぐ呼ぶ */
+function whenShown(block: Element, run: () => void): void {
+  const Observer = block.ownerDocument.defaultView?.ResizeObserver;
+  if (!Observer || block.getBoundingClientRect().width > 0) {
+    run();
+    return;
+  }
+  const observer = new Observer(() => {
+    if (block.getBoundingClientRect().width === 0) return;
+    observer.disconnect();
+    run();
+  });
+  observer.observe(block);
+}
+
 /** 頁の記法の塊。`<pre class="dragon">` と、Markdown の囲みから作った `<pre><code class="language-dragon">` の `<pre>` */
 const pageBlocks = (doc: Document): Element[] => [
   ...doc.querySelectorAll("pre.dragon"),
@@ -107,7 +124,7 @@ export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
-    for (const block of pageBlocks(doc)) void drawBlock(block, prepare, lang, defined, framed);
+    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, lang, defined, framed));
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();
