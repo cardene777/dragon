@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.78.0] - 2026-11-19
+
 ### Added
 
 - **`dragon export notes.md` writes one HTML page from a Markdown file, with the headings split into pages and tabs** (#3755)
@@ -15,6 +17,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - **A box link and a step source can name a place on the same page that starts with `#`** (#3755)
 
   `[link: #order]` is accepted in the notation and in the source JSON, next to paths that start with `/` and URLs that start with `http://` or `https://`. Other forms such as `javascript:` are still refused.
+
+### Changed
+
+- **A pipe diagram in an HTML file from `dragon export`, in a page from `dragon embed` and in the gallery is drawn the first time without searching for its line paths** (#3748)
+
+  The first time a new process drew a pipe diagram, it placed the parts and searched for the paths of the lines, which held up the main thread. `dragon export` for HTML, `dragon embed` and the gallery build now place each pipe diagram while they write the page, store the layout of the first view and of each view with one folded box opened, and pass the stored layouts to the drawing, which `renderDiagram` takes as `layouts`. A stored layout carries a key made from the diagram, the language, the words and a fingerprint of every file in `packages/dragon/src`; a layout whose key does not match is not used, and the diagram is placed on the spot as before. In 464 drawings of the 58 pipe examples with eight forms of the `layout` line, the layout and the SVG drawn from the stored layouts match those placed on the spot.
 
 ### Fixed
 

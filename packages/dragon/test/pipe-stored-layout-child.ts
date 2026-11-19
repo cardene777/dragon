@@ -15,6 +15,8 @@ const open = openText === "" ? [] : openText.split(",").map(Number);
 const layouts: unknown = layoutsFile ? JSON.parse(readFileSync(layoutsFile, "utf8")) : undefined;
 
 let routeCalls = 0;
+// 置き換える前の route を取っておき、置き換えた関数が受けた this を渡して呼ぶ
+// eslint-disable-next-line @typescript-eslint/unbound-method
 const route = Router.prototype.route;
 Router.prototype.route = function (this: Router, ask: Parameters<typeof route>[0]) {
   routeCalls++;
