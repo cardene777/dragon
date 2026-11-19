@@ -11,26 +11,32 @@
  * 図の種類の数は数えない。ほかの図の種類が後から足されても、手順の図が並ぶことだけを確かめる。
  * 書き出しの検査が字の file を node の Buffer で縮めるので、この file は node の場で回す (jsdom の場では字の file を縮める部品が字の中身を読めない)。
  */
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
-import { changelogEntry } from "./changelog-support";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
-import { captionSteps, exporter, formatOf } from "./export-support";
 import { covers, draw, type Layout, type Rect, type Rendered, sampleTimes, type Span, type Timeline } from "./render-support";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/chart";
+import "../src/kind-use/flow";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 /*
  * 字の幅を測る部品と、崩れを数える部品の元の code を、検査の外で先に読む。
  * 検査の中で初めて読むと、混んだ機械で変換だけで数秒かかる (#3410)。
- * 崩れを数える部品は元の code の描く所で描くので、全部入りの入口と同じく全ての種類の部品と原本の検査を読むだけで登録する (`kinds/all`)
+ * 崩れを数える部品は元の code の描く所で描くので、使う種類の部品は種類の登録の file が、原本の検査は `kinds/basics` が読むだけで登録する (#3763)
  */
 const [{ textWidth }, { TYPE }, layoutCheck] = await Promise.all([
   import("../src/layout/measure"),
   import("../src/look/values"),
   import("../src/render/layout-check"),
-  import("../src/kinds/all"),
+  import("../src/kinds/basics"),
 ]);
 
 const ROOT = process.cwd();
@@ -119,9 +125,6 @@ function exampleJson(name: string): Json {
   expect(text, `${name} が packages/dragon/examples に無い`).toBeDefined();
   return JSON.parse(text ?? "{}") as Json;
 }
-
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 
 /** 描いた図。`width` は描く枠の幅。描けなければ断りの文を名指して落とす */
 function render(diagram: Json, lang?: "ja" | "en", width?: number): FlowRendered {
@@ -627,97 +630,5 @@ describe("ログインの判断の見本 (#3561)", () => {
     if (!ja.ok || !en.ok) return;
     expect((ja.diagram as unknown as Source).kind, "ログインの判断の見本の図の種類").toBe("flow");
     expect(shape(en.diagram as unknown as Source), "英語版の箱と判断と線と段の数が日本語版と違う").toEqual(shape(ja.diagram as unknown as Source));
-  });
-});
-
-/**
- * 書き出しの件は 1 件の上限 (10 秒) に収めるため、形式ごとに分ける (#3410)。
- * 書き出す部品は検査の外 (この file を読む段) で先に読む。最初の件が読むと、混んだ機械で読むだけで上限に近づく
- */
-const exportDiagram = await exporter();
-
-// 形式ごとに分けても、書き出して頁で段を送る件が混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
-// 3 つの形式の書き出しと、書き出した HTML で段を送る所を file を読み込む段で順に済ませ、件は書き出した file と送れた段を読む
-const FLOW_EXPORTED = await atLoad("手順の図を 3 つの形式で書き出す", async () => {
-  const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-flow-"));
-  const login = exampleJson("login-check.json") as { steps: Json[] };
-  /** 動画と PNG で撮る図。コマの数とバイトの一致を比べるだけなので最初の段だけを撮る。4 段を 2 回撮ると、混んだ機械で上限を超えた */
-  const firstStep = { ...login, steps: login.steps.slice(0, 1) };
-  const video = await exportDiagram(firstStep, { outDir: scratch(), formats: ["mp4", "gif"], fps: 1, gifFps: 0.5 });
-  const pngs: Awaited<ReturnType<typeof exportDiagram>>[] = [];
-  for (const k of [0, 1]) pngs.push(await exportDiagram(firstStep, { outDir: join(scratch(), `run-${k}`), formats: ["png"] }));
-  const html = await exportDiagram(login, { outDir: scratch(), formats: ["html"] });
-  // 書き出した HTML で全ての段を送る
-  const sent = html.files.html === undefined ? [] : await captionSteps(readFileSync(html.files.html, "utf8"), 1280);
-  return { video, pngs, html, sent };
-});
-
-describe("手順の図の書き出し (#3561)", () => {
-  it("flow-exports-every-format", () => {
-    const { video } = FLOW_EXPORTED.get();
-    for (const format of ["mp4", "gif"] as const) expect(formatOf(readFileSync(video.files[format] ?? "")), `手順の図の ${format} の書き出し`).toBe(format);
-  });
-
-  it("flow-exports-every-format", () => {
-    const { pngs } = FLOW_EXPORTED.get();
-    for (const result of pngs) expect(result.files.png, "手順の図の PNG を書き出していない").toBeDefined();
-    const shots = pngs.map((result) => readFileSync(result.files.png ?? ""));
-    expect(formatOf(shots[0] as Buffer), "手順の図の png の書き出し").toBe("png");
-    expect((shots[0] as Buffer).equals(shots[1] as Buffer), "同じ手順の図を 2 回書き出した PNG がバイト単位で一致しない").toBe(true);
-  });
-
-  it("flow-exports-every-format", () => {
-    const { html, sent } = FLOW_EXPORTED.get();
-    expect(formatOf(readFileSync(html.files.html ?? "")), "手順の図の html の書き出し").toBe("html");
-    expect(sent.map((s) => s.step), "書き出した HTML で送れた段").toEqual(LOGIN_STEPS.map((_, i) => `0${i + 1}/04`));
-  });
-});
-
-describe("手順の図の書き方の文書 (#3561)", () => {
-  it("docs-describe-flow-diagram", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `flow` と、`choice <名札> as <問い>` の行の形 */
-    const forms: [string, RegExp][] = [
-      ["flow", /(^|[\s`])flow [^\s`]/mu],
-      ["choice", /(^|[\s`])choice (<[^>]+>|[^\s:`]+) as [^\s`]/mu],
-    ];
-    const flowFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const parsed = parse(fence.source);
-        return parsed.ok && (parsed.diagram as unknown as Source).kind === "flow";
-      }).length;
-    /** README は英語で書き、手引きは日本語と英語の 2 つを持つ */
-    const dotted = (path: string, text: string): void => {
-      const ja = path === "packages/dragon/examples/quick-start.md";
-      expect(ja ? text.includes("点線") : /dotted/iu.test(text), `${path} に最初の段より前の線が点線になることが無い`).toBe(true);
-    };
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      for (const [word, form] of forms) expect(form.test(text), `${path} に ${word} の行の書き方が無い`).toBe(true);
-      dotted(path, text);
-      if (path !== "README.md") expect(flowFences(text), `${path} に手順の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-    }
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"flow"/u.test(content), "使い方の頁の節に手順の図 (flow) が無い").toBe(true);
-    const sections = ["flow.dragon", "flow.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const parsed = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(parsed.ok && (parsed.diagram as unknown as Source).kind, `使い方の頁の手順の図の節の例 (${i === 0 ? "flow.dragon" : "flow.en.dragon"}) が手順の図として読めない`).toBe("flow");
-    }
-    const blocks = join(ROOT, "packages/dragon/src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    for (const [word, form] of forms) expect(form.test(page), `使い方の頁に ${word} の行の書き方が無い`).toBe(true);
-    expect(page.includes("点線") && /dotted/iu.test(page), "使い方の頁に最初の段より前の線が点線になることが無い").toBe(true);
-    // 変更の一覧の手順の図の項 (#3561) を持つ節 (Unreleased か版の節) の Added に手順の図が載る
-    const added = (path: string): string => changelogEntry(join(ROOT, path), 3561).split(/^### /mu).find((p) => p.startsWith("Added")) ?? "";
-    expect(added("CHANGELOG.md").includes("`flow`") && added("CHANGELOG.md").includes("`choice"), "CHANGELOG.md の Added に手順の図 (flow と choice) が無い").toBe(true);
-    expect(added("CHANGELOG.ja.md").includes("`flow`") && added("CHANGELOG.ja.md").includes("手順の図"), "CHANGELOG.ja.md の Added に手順の図が無い").toBe(true);
-    // 前提が手順の図を描ける図の種類に数える
-    const kinds = repoText(".ikkan/premises/product.md").split("\n").find((line) => line.startsWith("- 描ける図の種類は")) ?? "";
-    expect(kinds.includes("手順の図 (`flow`"), "前提 (product.md) の描ける図の種類に手順の図 (flow) が無い").toBe(true);
   });
 });

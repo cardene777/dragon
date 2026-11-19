@@ -8,11 +8,9 @@
  * 見本帳を開いた時に読まず、描く時に後から読む図の種類 (状態遷移図と枝分かれの図、#3248) は、
  * 定義が並べ方を読むと、描く所が最初に読む一覧を通して並べ方が最初に読む塊へ入る。
  * その種類の定義は並べ方を持たずに `later: true` を名乗り、描く所は後から読んだ部品の登録簿 (`kinds/registry.ts`) から並べ方を引く (#3347)。
+ * 最初に読む図の種類 (時系列図と構成図) の定義も並べ方を持たず、描く所は登録簿から並べ方を引く (#3763)。
  */
 import type { AttachHow, KindName } from "../blocks/block";
-import type { Layout } from "../layout/scene";
-import type { DiagramModel } from "../schema";
-import type { NotationLang } from "../words";
 
 interface KindBase {
   /** 置き場の dir の名前。最初の行の頭の語と同じ */
@@ -28,11 +26,13 @@ interface KindBase {
   short?: true;
 }
 
-/** 最初に読む図の種類。定義が並べ方を持つ */
+/**
+ * 最初に読む図の種類 (時系列図と構成図)。定義は並べ方を持たず、並べ方は種類の登録の file (`kind-use/<種類>.ts`) が登録簿へ登録する (#3763)。
+ * 定義が並べ方を読むと、描く所が読む一覧を通して、描く所を読む全ての検査が並べ方へたどり着く
+ */
 export interface EagerKind extends KindBase {
   later?: false;
-  /** 並べ方。`lang` は並べ方が出す字 (断りの文など) の言葉 */
-  layout: (diagram: DiagramModel, lang: NotationLang) => Layout;
+  layout?: undefined;
 }
 
 /** 後から読む図の種類。並べ方は置き場の `layout.ts` に持ち、後から読む入口 (`kinds/<種類>.ts`) が出す */

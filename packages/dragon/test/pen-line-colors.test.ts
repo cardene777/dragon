@@ -7,7 +7,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { beforeAll, describe, expect, it } from "vitest";
 import { fileChromium } from "./page-needs";
 import { draw, type Rendered, type RenderOptions } from "./render-support";

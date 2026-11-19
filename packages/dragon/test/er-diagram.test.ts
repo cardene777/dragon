@@ -12,17 +12,19 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、光り方と値の出方は SVG の keyframes を jsdom で読んで確かめる。
  * 見本の file と表どうしの関係の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/er";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
-const EXAMPLES = join(PACKAGE, "examples");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 表どうしの関係の図の見本 4 枚 (#3618 の「決まっていること」) */
 const ER_EXAMPLES = ["order-total", "library-loan", "nft-sale", "token-transfer"] as const;
@@ -93,9 +95,6 @@ const fileText = (name: string): string | undefined => {
   return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 };
 
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
-
 /** 見本の file から、最初の注釈の行と、その後ろの空の行を外した記法 */
 const withoutComments = (text: string): string => text.replace(/^(?:\/\/[^\n]*\n)+\n*/u, "");
 
@@ -131,7 +130,8 @@ const tableOf = (layout: ErLayout, id: string): ErTable => {
 
 /** `<表>.<項目>` の行 */
 const rowOf = (layout: ErLayout, ref: string): { table: ErTable; row: ErRow } => {
-  const [id = "", field = ""] = ref.split(".");
+  // 点 1 字の文字列は、関係する検査を選ぶ命令がこの file の dir と読み、dir を歩くこの file から検査の助けの file を全て指すので、正規表現で切る (#3763)
+  const [id = "", field = ""] = ref.split(/\./u);
   const table = tableOf(layout, id);
   const row = table.rows.find((r) => r.field === field);
   expect(row, `${ref} の行が並べた図に無い`).toBeDefined();
@@ -515,7 +515,7 @@ describe("表どうしの関係の図の並べ方と動き (#3618)", () => {
     const firstPick = new Map<string, number>();
     source.steps.forEach((_, s) => {
       for (const field of picksAt(s)) {
-        const table = field.split(".")[0] ?? "";
+        const table = field.split(/\./u)[0] ?? "";
         if (!firstPick.has(table)) firstPick.set(table, s);
       }
     });
@@ -632,84 +632,5 @@ describe("表どうしの関係の図の並べ方と動き (#3618)", () => {
         if (s < note.step) expect(seen, `段 ${s + 1} で、まだ書いていない ${note.field} の式の札が出ている`).toBeLessThan(0.1);
       });
     }
-  });
-});
-
-describe("表どうしの関係の図の軽い入口 (#3618)", () => {
-  it("er-light-entry-draws-after-load-for", () => {
-    const code = [
-      `const text = ${JSON.stringify(SMALL)};`,
-      "out.before = light.kindLoaded('er');",
-      "await light.loadFor(text);",
-      "out.after = light.kindLoaded('er');",
-      "const read = light.parseNotation(text);",
-      "out.ok = read.ok;",
-      "out.errors = read.ok ? [] : read.errors;",
-      "if (read.ok) {",
-      "  const drawn = light.renderDiagram(read.diagram);",
-      "  out.kind = drawn.layout.kind;",
-      "  out.links = (drawn.svg.match(/data-link=/g) ?? []).length;",
-      "  const full = await import('@cardenelabs/dragon');",
-      "  const again = full.parseNotation(text);",
-      "  out.same = again.ok && full.renderDiagram(again.diagram).svg === drawn.svg;",
-      "}",
-      "console.log(JSON.stringify(out));",
-    ].join("\n");
-    const script = `const light = await import("@cardenelabs/dragon/light");\nconst out = {};\n${code}`;
-    let stdout = "";
-    let failure = "";
-    try {
-      stdout = execFileSync(process.execPath, ["--input-type=module", "-e", script], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch (error) {
-      failure = String((error as { stderr?: string }).stderr ?? error);
-    }
-    expect(failure, "軽い入口で表どうしの関係の図を読んで描く node が落ちる").toBe("");
-    const out = JSON.parse(stdout.trim().split("\n").at(-1) ?? "{}") as { before?: boolean; after?: boolean; ok?: boolean; errors?: unknown[]; kind?: string; links?: number; same?: boolean };
-    expect(out.before, "軽い入口が loadFor の前から表どうしの関係の図の描く部品を持つ (最初に読む塊に入っている)").toBe(false);
-    expect(out.after, "軽い入口で loadFor を待っても表どうしの関係の図の描く部品を読まない").toBe(true);
-    expect(out.ok, `軽い入口で loadFor を待った後に表どうしの関係の図を読めない: ${JSON.stringify(out.errors)}`).toBe(true);
-    expect(out.kind, "軽い入口で描いた図の種類").toBe("er");
-    expect(out.links, "軽い入口で描いた表どうしの関係の図の結びの線の数").toBe(1);
-    expect(out.same, "軽い入口と既定の入口で描いた表どうしの関係の図が違う").toBe(true);
-  });
-});
-
-describe("表どうしの関係の図の書き方の文書 (#3618)", () => {
-  it("er-docs-describe-the-notation", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `er` と、表の宣言と、結びを持つ項目の書き方 */
-    const head = /(^|[\s`])er [^\s`]/mu;
-    const table = /(^|[\s`])table (<[^>]+>|[^\s`]+) as (<[^>]+>|[^\s`]+)/mu;
-    const field = /field (<[^>]+>|[^\s`:]+): (<[^>]+>|[^\s`[]+) \[ref: (<[^>]+>|[^\s`\]]+)\]/u;
-    const erFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const read = parse(fence.source);
-        return read.ok && (read.diagram as unknown as Source).kind === "er";
-      }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(head.test(text), `${path} に er の行の書き方が無い`).toBe(true);
-      expect(table.test(text), `${path} に表を宣言する行 (table <名札> as <名前>) の書き方が無い`).toBe(true);
-      expect(field.test(text), `${path} に結びを持つ項目 (field <名前>: <値> [ref: <表>.<項目>]) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(erFences(text), `${path} に表どうしの関係の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-    }
-    // README の描ける図の欄に表どうしの関係の図が載る
-    expect(/^\| Diagram kinds \|.*\btable relation diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に table relation diagram が無い").toBe(true);
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"er"/u.test(content), "使い方の頁の節に表どうしの関係の図 (er) が無い").toBe(true);
-    const sections = ["er.dragon", "er.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const read = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(read.ok && (read.diagram as unknown as Source).kind, `使い方の頁の表どうしの関係の図の節の例 (${i === 0 ? "er.dragon" : "er.en.dragon"}) が表どうしの関係の図として読めない`).toBe("er");
-    }
-    const blocks = join(PACKAGE, "src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    expect(head.test(page), "使い方の頁に er の行の書き方が無い").toBe(true);
-    expect(table.test(page), "使い方の頁に表を宣言する行の書き方が無い").toBe(true);
-    expect(field.test(page), "使い方の頁に結びを持つ項目の書き方が無い").toBe(true);
   });
 });

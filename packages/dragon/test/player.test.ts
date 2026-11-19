@@ -14,6 +14,9 @@ import { motionFrom, tagOpacity } from "./motion-support";
 import prepare, { FITTING, NARROW_SOURCES, PAN_FRAME, PHONE, PIPE_TEXT_SOURCES, READABLE_SOURCE } from "./player.prepare";
 import { prepared } from "./prepared";
 import { ARCADE_COLORS, cssVars, draw, figureVars, type LaidAction, type Player, type PlayerOptions } from "./render-support";
+import "../src/kind-use/flow";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
 
 /** 準備の段が描いた、置いた図と比べる側の配置と時刻の表 (`player.prepare.ts`、#3734)。件の中では図を置く仕事だけを行う */
 const drawn = (): Awaited<ReturnType<typeof prepare>> => prepared(import.meta.url);

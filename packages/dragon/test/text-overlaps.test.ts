@@ -15,8 +15,14 @@
 import { describe, expect, it } from "vitest";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
-import { renderDiagram, renderLayout } from "../src/render/svg";
+import { renderDiagram, renderLayout } from "../src/render/draw";
 import type { Diagram } from "../src/schema";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 type Overlap = { kind?: string; step: number; texts?: [string, string]; text?: string; line?: { from: string; to: string } };
 

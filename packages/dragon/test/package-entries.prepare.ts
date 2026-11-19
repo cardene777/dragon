@@ -102,7 +102,7 @@ function readmeErrors(): Promise<string[]> {
   const [first] = PLACE_SECTIONS;
   const code = mountExample(first.file, first.heading)
     .replaceAll('"@cardenelabs/dragon/fonts"', JSON.stringify(join(ROOT, "dist/fonts.js")))
-    .replaceAll('"@cardenelabs/dragon"', JSON.stringify(join(ROOT, "dist/index.js")));
+    .replaceAll(JSON.stringify(manifest().name), JSON.stringify(join(ROOT, "dist/index.js")));
   return typeErrors({ "example.mts": code });
 }
 

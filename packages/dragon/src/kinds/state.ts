@@ -7,3 +7,10 @@ export const parts: KindParts = {
   // 段で変わった値を今の状態の色で描き、帯の通った状態の点を着いた時刻に塗る (#3171)
   states: true,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    state: typeof import("./state");
+  }
+}

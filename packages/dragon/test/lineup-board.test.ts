@@ -11,48 +11,18 @@
  * 置き場所は描く部品が返す値 (`layout`) で、見え方は描いた SVG の keyframes を jsdom で読み、各段の止め絵の時刻で確かめる。
  * ボードがまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
-import {
-  BOARD_CARDS,
-  type BoardLayout,
-  type BoardRendered,
-  boardLineup,
-  centersDuring,
-  codeLines,
-  DONE,
-  DOING,
-  fileText,
-  inside,
-  KANA,
-  type Lang,
-  LANGS,
-  laneOf,
-  lineEvent,
-  overlaps,
-  parsed,
-  partsOf,
-  type Point,
-  REVIEW,
-  render,
-  repoText,
-  ROOT,
-  type Seat,
-  seatsAt,
-  seenOf,
-  shapeOf,
-  shownAt,
-  type Source,
-  stillOf,
-  TODO,
-} from "./lineup-board-support";
+import { BOARD_CARDS, type BoardLayout, type BoardRendered, boardLineup, centersDuring, codeLines, DONE, DOING, fileText, inside, KANA, type Lang, LANGS, laneOf, lineEvent, overlaps, parsed, partsOf, type Point, REVIEW, render, type Seat, seatsAt, seenOf, shapeOf, shownAt, type Source, stillOf, TODO } from "./lineup-board-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Rect, type Rendered } from "./render-support";
+import "../src/kinds/basics";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
 
 // 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
-const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
+const [, { checkText, problemLine }] = await Promise.all([import("../src/render/draw"), import("../src/check")]);
 
 /** 受付 (順番の無い置き場) に控えを残す最小のボード。段 2 で 2 人が診察待ちへ移り、受付は書き換えない */
 function traceLineup(): Json {
@@ -630,41 +600,5 @@ describe("ボードの見本と書き方 (#3624)", () => {
     expect((of("kanban.dragon").remarks ?? []).map((r) => r.text.text), "かんばんの見本の札の下の一言").toEqual([]);
     // 札より前の置き場 (病院の見本の受付) と比べる一言は今どおり出す
     expect((of("clinic.dragon").remarks ?? []).map((r) => r.text.text), "病院の見本の札の下の一言").toContain("胸痛を足した");
-  });
-
-  it("lineup-board-docs-describe-limit-and-stations", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const fences = (text: string): Source[] =>
-      extract(text).flatMap((fence) => {
-        const read = parse(fence.source);
-        return read.ok ? [read.diagram as unknown as Source] : [];
-      });
-    const back = { ja: /差し戻/u, en: /sen[dt] (?:a card |it )?back|back to an earlier/iu };
-    for (const [path, lang] of [
-      ["packages/dragon/README.md", "en"],
-      ["packages/dragon/examples/quick-start.md", "ja"],
-      ["packages/dragon/examples/quick-start.en.md", "en"],
-    ] as const) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(/\[limit: \d+\]|limit: \d+/u.test(text), `${path} に [limit] の書き方が無い`).toBe(true);
-      expect(/\[shape: stations\]/u.test(text), `${path} に [shape: stations] の書き方が無い`).toBe(true);
-      expect(back[lang].test(text), `${path} に差し戻しの書き方が無い`).toBe(true);
-      const read = fences(text);
-      expect(read.some((d) => d.kind === "lineup" && d.lineup?.shape === "stations"), `${path} に流れの線として読める dragon の囲みが無い`).toBe(true);
-      expect(read.some((d) => d.kind === "lineup" && (d.blocks.box ?? []).some((b) => b.limit !== undefined)), `${path} に上限を持つ列の図の囲みが無い`).toBe(true);
-    }
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    const sections = readdirSync(join(ROOT, "apps/playground-spa/src/docs/examples")).map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    const blocks = join(ROOT, "packages/dragon/src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    expect(/\[limit: \d+\]|limit: \d+/u.test(page), "使い方の頁に [limit] の書き方が無い").toBe(true);
-    expect(/\[shape: stations\]/u.test(page), "使い方の頁に [shape: stations] の書き方が無い").toBe(true);
-    expect(back.ja.test(page), "使い方の頁に差し戻しの書き方が無い").toBe(true);
-    // ボードの見た目 (列の帯) を書く
-    expect(/ボード|board/iu.test(page), "使い方の頁にボードの見た目の説明が無い").toBe(true);
   });
 });

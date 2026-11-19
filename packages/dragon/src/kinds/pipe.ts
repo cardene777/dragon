@@ -27,3 +27,10 @@ export const parts: KindParts<PipeLayout> = {
  * 再生の部品は配管の図を描けた後に、登録簿から引いて置く。最初に読む量に入れないため、この塊に置く
  */
 export { bindPipeZoom, mountPipeCalls, type PipeCalls, pipeBaseWidth, pipeReadableZoom, type PipeZoomCalls } from "../pipe-player";
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    pipe: typeof import("./pipe");
+  }
+}

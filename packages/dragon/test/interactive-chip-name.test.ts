@@ -14,6 +14,7 @@ import { TRY_LOOK } from "../src/look/try";
 import { TYPE } from "../src/look/values";
 import { draw, type Rect } from "./render-support";
 import { askStrip, figureOf, lastState, mountTry, parsedTry, releaseTry, send, sessionOf, tryLayout } from "./try-support";
+import "../src/kind-use/try";
 
 afterEach(releaseTry);
 

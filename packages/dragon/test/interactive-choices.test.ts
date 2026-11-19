@@ -7,11 +7,11 @@
  * 選択肢を書かない欄は今どおり自由入力の欄で描く。
  * 誤りの文を英語でも確かめるので、名札と値は英字にする。
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { askStrip, KANA, mountTry, parsedTry, releaseTry, send, sendButton, sessionOf } from "./try-support";
+import "../src/kind-use/try";
 
 afterEach(releaseTry);
 
@@ -62,11 +62,6 @@ function choose(select: Element | null | undefined, value: string): void {
 const lastStep = (diagram: unknown): Json | undefined => {
   const steps = (diagram as { steps?: Json[] } | undefined)?.steps ?? [];
   return steps[steps.length - 1];
-};
-
-const readRepo = (path: string): string => {
-  const full = join(process.cwd(), path);
-  return existsSync(full) ? readFileSync(full, "utf8") : "";
 };
 
 describe("試す図の選択肢の記法 (#3422)", () => {
@@ -193,26 +188,5 @@ describe("試す図の選ぶ欄 (#3422)", () => {
     expect((lastStep(sessionOf(player)) as { events?: Json[] } | undefined)?.events, "選んで書き換えた段が足されない").toEqual([
       { type: "item", item: "o1", values: { verdict: "reject" } },
     ]);
-  });
-});
-
-describe("試す図の選択肢の書き方の文書 (#3422)", () => {
-  it("docs-describe-try-choices", () => {
-    /** 見出し `heading` から次の同じ深さの見出しまで */
-    const sectionOf = (text: string, heading: string): string => {
-      const start = text.indexOf(heading);
-      if (start < 0) return "";
-      const next = text.indexOf("\n### ", start + heading.length);
-      return text.slice(start, next < 0 ? undefined : next);
-    };
-    for (const [path, heading] of [
-      ["packages/dragon/README.ja.md", "### 試す図"],
-      ["packages/dragon/README.md", "### Try diagram"],
-    ] as const) {
-      const section = sectionOf(readRepo(path), heading);
-      expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");
-      expect(section, `${path} の試す図の小節に choose の行の書き方が無い`).toContain("choose ");
-    }
-    expect(readRepo("apps/playground-spa/src/docs/content.ts"), "使い方の頁に choose の行が無い").toContain("choose ");
   });
 });

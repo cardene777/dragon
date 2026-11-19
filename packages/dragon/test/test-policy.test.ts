@@ -13,10 +13,13 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-/** 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる。読むのは 1 度だけ */
+/**
+ * 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる。読むのは 1 度だけ。
+ * 種類の検査から移した確かめ (`packages/dragon/test/*-checks.ts`) は、それを読む検査の file (`kind-playground.test.ts`、`kind-cli.test.ts`) が回すので、検査の file に数える (#3763)
+ */
 let sourcesRead: string | undefined;
 function testSources(): string {
-  sourcesRead ??= execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx"], { encoding: "utf8" })
+  sourcesRead ??= execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx", "packages/dragon/test/*-checks.ts"], { encoding: "utf8" })
     .split("\n")
     .filter((path) => path !== "" && existsSync(join(ROOT, path)))
     .map((path) => readFileSync(join(ROOT, path), "utf8"))

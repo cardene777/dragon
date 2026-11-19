@@ -1,10 +1,12 @@
 /**
  * 図を描いて動かす部分の検査が共に使う道具 (#2985)。
  *
- * 入口は `@cardenelabs/dragon` (= `dist`) から引く。`diagram-support.ts` の `api()` と同じく、
+ * 入口は種類を登録しない入口 (`src/core.ts`) から引き、検査は使う種類の登録の file (`src/kind-use/<種類>.ts`) を自分で読む (#3763)。`diagram-support.ts` の `api()` と同じく、
  * 入口がまだ出ていない時は「出ていない」と判定に出してから止める。
  */
-import * as dragon from "@cardenelabs/dragon";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
+import * as dragon from "../src/core";
 import { expect } from "vitest";
 
 export type Theme = "light" | "dark";
@@ -177,7 +179,7 @@ interface DrawApi {
 
 export function draw<K extends keyof DrawApi>(name: K): DrawApi[K] {
   const value = (dragon as unknown as Partial<DrawApi>)[name];
-  expect(value, `${name} が @cardenelabs/dragon から出ていない`).toBeDefined();
+  expect(value, `${name} が src/core から出ていない`).toBeDefined();
   return value as DrawApi[K];
 }
 

@@ -16,3 +16,10 @@ export const parts: KindParts = {
   draw: (layout, _diagram, ctx) => ({ after: () => stepMarks(layout, ctx), css: flowCss(ctx.id) }),
   states: true,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    flow: typeof import("./flow");
+  }
+}

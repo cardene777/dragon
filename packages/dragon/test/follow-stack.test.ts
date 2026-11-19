@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
 import { type Diagramish, overflow, place, releasePlaced } from "./follow-support";
 import { draw, type Rect } from "./render-support";
+import "../src/kind-use/lineup";
 
 /** `mounted` が置いた部品。検査ごとに片付ける */
 const players: { destroy(): void }[] = [];

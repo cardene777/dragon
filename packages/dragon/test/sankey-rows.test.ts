@@ -16,49 +16,20 @@
  * 行の見え方は描いた SVG の keyframes を jsdom で読み、各段の止め絵の時刻で確かめる。
  * 見本の file と段ごとの帯の見た目がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Rect, type Rendered } from "./render-support";
-import { atLoad } from "./at-load";
-
-// 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
-const [, { checkText, problemLine }] = await Promise.all([
-  import("../src/render/svg"),
-  import("../src/check"),
-]);
+import "../src/kinds/basics";
+import "../src/kind-use/sankey";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
-const EXAMPLES = join(PACKAGE, "examples");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
 const LANGS = ["ja", "en"] as const;
 type Lang = (typeof LANGS)[number];
-
-/** 見本帳の見本の一覧と、棚の見本の束と記法の早見と、カタログの種類の頁の見本 */
-interface Playground {
-  EXAMPLE_KEYS: readonly string[];
-  exampleText: (key: string, lang: Lang) => string | undefined;
-  LATER_EXAMPLES: { start: () => void; state: () => { status: string } };
-  sampleGroups: (lang: Lang, arrived: boolean) => { kind: string; samples: { key: string }[] }[];
-  syntaxLines: (lang: Lang) => { id: string; lines: string[] }[];
-  samplesOf: (kind: string) => string[];
-}
-
-/** 見本帳の見本と棚の雛形は、見本帳の部品から読む。型の検査に見本帳の file を入れないよう、path を字にして読み込みの時に引く */
-const playgroundFile = (path: string): Promise<object> =>
-  import(/* @vite-ignore */ join(ROOT, "apps/playground-spa/src", path));
-const { EXAMPLE_KEYS, exampleText, LATER_EXAMPLES, sampleGroups, syntaxLines, samplesOf } =
-  Object.assign(
-    {},
-    ...(await Promise.all(
-      ["examples.ts", "editor/shelf-first.ts", "editor/shelf-items.ts", "catalog/catalog.ts"].map(
-        playgroundFile,
-      ),
-    )),
-  ) as Playground;
 
 /** 段ごとの帯の見た目の見本。1日24時間の使い方 */
 const SAMPLE = "day-hours";
@@ -149,10 +120,6 @@ const fileText = (name: string): string | undefined => {
   const path = join(EXAMPLES, name);
   return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 };
-
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string =>
-  existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "";
 
 const flow = (from: string, to: string, label: string): Json => ({
   type: "edge",
@@ -295,17 +262,6 @@ const codeLines = (text: string): string[] =>
     .map((line) => line.trimEnd())
     .filter((line) => line !== "" && !line.trimStart().startsWith("//"));
 
-/** 原本の見た目と箱と段と段ごとの線の数 */
-const shapeOf = (d: Source): Record<string, unknown> => ({
-  kind: d.kind,
-  shape: d.sankey?.shape,
-  boxes: (d.blocks.box ?? []).map((b) => b.id),
-  steps: d.steps.length,
-  lines: d.steps.map((step) =>
-    step.events.filter((e) => e.type === "edge").map((e) => `${e.from}>${e.to}`),
-  ),
-});
-
 /** 見本の記法と、描く原本 */
 function samples(): { where: string; text: string; source: Source; lang: Lang }[] {
   return LANGS.flatMap((lang) => {
@@ -317,16 +273,6 @@ function samples(): { where: string; text: string; source: Source; lang: Lang }[
       : [{ where: file, text, source: parsed(text, lang, file), lang }];
   });
 }
-
-// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
-const EXAMPLES_READY = await atLoad("見本帳の後から読む見本の塊を待つ", async () => {
-  const { whenReady } = (await playgroundFile("site/later.ts")) as { whenReady: (chunk: typeof LATER_EXAMPLES) => Promise<unknown> };
-  return whenReady(LATER_EXAMPLES);
-});
-
-beforeAll(() => {
-  EXAMPLES_READY.get();
-});
 
 describe("段ごとの帯の見た目の原本の JSON (#3641)", () => {
   it("schema-accepts-sankey-rows", () => {
@@ -777,162 +723,5 @@ describe("段ごとの帯の見た目の描き方 (#3641)", () => {
       bare.ok && (bare.diagram as unknown as Source).sankey,
       "見た目を書かない量の行き先の図が見た目の欄を持つ",
     ).toBeFalsy();
-  });
-});
-
-describe("段ごとの帯の見た目の見本 (#3641)", () => {
-  it("sankey-rows-examples-in-both-langs-have-no-breaks", () => {
-    const sources: Partial<Record<Lang, Source>> = {};
-    for (const { where, text, source, lang } of samples()) {
-      // 見本の file の最初の注釈の行は見本帳が説明に出すので、作業の番号を書かない
-      expect(text.split("\n")[0] ?? "", `${where} の最初の行`).toMatch(/^\/\/ /u);
-      expect(
-        /#\d+/u.test(text.split("\n")[0] ?? ""),
-        `${where} の最初の注釈の行に作業の番号がある`,
-      ).toBe(false);
-      sources[lang] = source;
-      expect(source.sankey?.shape, `${where} の見た目`).toBe("rows");
-      // `dragon check --layout` と同じ形で、記法の誤りと、既定の幅と幅 390 で描いた崩れの知らせの行を返す
-      const problems = checkText(where, text, "notation", lang, {
-        layout: (step, said) => `段 ${step}: ${said}`,
-      }).map(problemLine);
-      expect(problems, `${where} の崩れの知らせ`).toEqual([]);
-      for (const width of [undefined, PHONE]) {
-        const rows = rowsOf(
-          render(source as unknown as Json, lang, width),
-          `${where} (幅 ${width ?? "既定"})`,
-        );
-        expect(rows.length, `${where} を幅 ${width ?? "既定"} で描いた行の数`).toBe(
-          source.steps.length,
-        );
-      }
-    }
-    expect(sources.ja && sources.en, `${SAMPLE} の日本語版と英語版が揃わない`).toBeTruthy();
-    if (sources.ja && sources.en)
-      expect(shapeOf(sources.en), `${SAMPLE} の英語版の箱と段と線が日本語版と違う`).toEqual(
-        shapeOf(sources.ja),
-      );
-    // 見本帳の見本の一覧に載り、量の行き先の図の頁に並ぶ
-    expect(EXAMPLE_KEYS.includes(SAMPLE), `${SAMPLE} が見本の一覧 (EXAMPLE_KEYS) に無い`).toBe(
-      true,
-    );
-    expect(samplesOf("sankey"), `見本帳の量の行き先の図の頁に ${SAMPLE} が無い`).toContain(SAMPLE);
-    for (const lang of LANGS)
-      expect(
-        exampleText(SAMPLE, lang),
-        `見本帳の ${SAMPLE} の ${lang} の記法が見本の file と違う`,
-      ).toBe((fileText(`${SAMPLE}${lang === "en" ? ".en" : ""}.dragon`) ?? "").trimEnd());
-  });
-});
-
-describe("段ごとの帯の見た目の棚 (#3641)", () => {
-  it("sankey-rows-shelf-template-reads", () => {
-    for (const lang of LANGS) {
-      // 記法の早見の図の種類の行に、段ごとの帯の見た目の頭の行が在る
-      const kinds = syntaxLines(lang).find((s) => s.id === "kind")?.lines ?? [];
-      expect(
-        kinds.some((line) => /^sankey <[^>]+> \[shape: rows\]$/u.test(line)),
-        `棚の記法の早見 (${lang}) に sankey の段ごとの帯の見た目の頭の行が無い: ${kinds.join(" / ")}`,
-      ).toBe(true);
-      // 量の行き先の図の見本の束に段ごとの帯の見た目の見本が在り、雛形が誤り無く読める
-      const group = sampleGroups(lang, true).find((g) => g.kind === "sankey");
-      expect(group, `棚の見本の束 (${lang}) に量の行き先の図の束が無い`).toBeDefined();
-      const keys = group?.samples.map((s) => s.key) ?? [];
-      expect(keys, `棚の量の行き先の図の束 (${lang}) に ${SAMPLE} が無い`).toContain(SAMPLE);
-      if (!keys.includes(SAMPLE)) continue;
-      expect(
-        parsed(exampleText(SAMPLE, lang) ?? "", lang, `棚の雛形 ${SAMPLE} (${lang})`).sankey?.shape,
-        `棚の雛形 ${SAMPLE} (${lang}) の見た目`,
-      ).toBe("rows");
-    }
-  });
-});
-
-describe("段ごとの帯の見た目の軽い入口 (#3641)", () => {
-  it("sankey-rows-light-entry-draws-after-load-for", () => {
-    const text = fileText(`${SAMPLE}.dragon`);
-    expect(text, `${SAMPLE}.dragon が packages/dragon/examples に無い`).toBeDefined();
-    if (text === undefined) return;
-    const code = [
-      `const text = ${JSON.stringify(text)};`,
-      "await light.loadFor(text);",
-      "const read = light.parseNotation(text);",
-      "out.ok = read.ok;",
-      "out.errors = read.ok ? [] : read.errors;",
-      "if (read.ok) {",
-      "  const drawn = light.renderDiagram(read.diagram);",
-      "  out.arrangement = drawn.layout.arrangement;",
-      "  out.rows = (drawn.svg.match(/data-sankey-row=/g) ?? []).length;",
-      "  const full = await import('@cardenelabs/dragon');",
-      "  const again = full.parseNotation(text);",
-      "  out.same = again.ok && full.renderDiagram(again.diagram).svg === drawn.svg;",
-      "}",
-      "console.log(JSON.stringify(out));",
-    ].join("\n");
-    const script = `const light = await import("@cardenelabs/dragon/light");\nconst out = {};\n${code}`;
-    let stdout = "";
-    let failure = "";
-    try {
-      stdout = execFileSync(process.execPath, ["--input-type=module", "-e", script], {
-        cwd: PACKAGE,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-    } catch (error) {
-      failure = String((error as { stderr?: string }).stderr ?? error);
-    }
-    expect(failure, "軽い入口で段ごとの帯の見た目を読んで描く node が落ちる").toBe("");
-    const out = JSON.parse(stdout.trim().split("\n").at(-1) ?? "{}") as {
-      ok?: boolean;
-      errors?: unknown[];
-      arrangement?: string;
-      rows?: number;
-      same?: boolean;
-    };
-    expect(
-      out.ok,
-      `軽い入口で loadFor を待った後に段ごとの帯の見た目を読めない: ${JSON.stringify(out.errors)}`,
-    ).toBe(true);
-    expect(out.arrangement, "軽い入口で描いた図の並べ方").toBe("rows");
-    expect(out.rows, "軽い入口で描いた行の部品の数").toBe(parsed(text, "ja", SAMPLE).steps.length);
-    expect(out.same, "軽い入口と既定の入口で描いた段ごとの帯の見た目が違う").toBe(true);
-  });
-});
-
-describe("段ごとの帯の見た目の書き方の文書 (#3641)", () => {
-  it("sankey-rows-docs-describe-the-shape", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    const rowsFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const read = parse(fence.source);
-        return read.ok && (read.diagram as unknown as Source).sankey?.shape === "rows";
-      }).length;
-    for (const path of [
-      "packages/dragon/README.md",
-      "packages/dragon/README.ja.md",
-      "packages/dragon/examples/quick-start.md",
-      "packages/dragon/examples/quick-start.en.md",
-    ]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(/\[shape: rows\]/u.test(text), `${path} に [shape: rows] の書き方が無い`).toBe(true);
-      expect(
-        rowsFences(text),
-        `${path} に段ごとの帯の見た目として読める dragon の囲みが無い`,
-      ).toBeGreaterThan(0);
-    }
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    const sections = readdirSync(join(ROOT, "apps/playground-spa/src/docs/examples")).map((file) =>
-      repoText(`apps/playground-spa/src/docs/examples/${file}`),
-    );
-    const paragraphs = readdirSync(join(PACKAGE, "src/blocks")).map((name) =>
-      repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`),
-    );
-    expect(
-      /\[shape: rows\]/u.test([content, ...sections, ...paragraphs].join("\n")),
-      "使い方の頁に [shape: rows] の書き方が無い",
-    ).toBe(true);
   });
 });

@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runCli } from "./export-support";
 import { draw } from "./render-support";
+import "../src/kind-use/sequence";
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 const JSON_FILE = join(EXAMPLES, "oauth.json");

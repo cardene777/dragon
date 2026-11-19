@@ -9,8 +9,13 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
+import "../src/kind-use/architecture";
+import "../src/kind-use/pipe";
+import "../src/kind-use/time";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /*
  * 崩れを数える処理と見た目の値の元の code を、検査の外 (この file を読む段) で先に読む。

@@ -9,6 +9,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { builtDir, firstLoadFiles, root } from "./playground-support";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "../../../../packages/dragon/test/all-kinds";
 
 const SRC = join(root, "packages/dragon/src");
 

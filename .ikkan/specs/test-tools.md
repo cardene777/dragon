@@ -97,10 +97,10 @@
 | Chromiumが字のfileを読めない時、使い回したChromiumでも、読めないfileを名指して書き出しを拒む | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-names-unreadable-font`が通る | #3599 |
 | 書き出す道具が無い時、子のプロセスで起こした命令は入れ方を添えて英語で書き出しを拒む | `pnpm exec vitest run packages/dragon/test/cli-language.test.ts`の検査`cli-chromium-refusal-in-english`が通る | #3599 |
 | 包んだ後も、packageの検査が全て通る | `pnpm exec vitest run packages/`が終わり方0で終わる | #3599 |
-| 量の図の書き出しの検査のfileを回した時、書き出しのthreadがChromiumを起こすのは1回で、書き出す件の前の準備で起こし、書き出しは同じChromiumを借りる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-export-thread-launches-once`が通る | #3602 |
-| 量の図をPNGと動画とHTMLに書き出せ、同じ原本を2回書き出したPNGがバイト単位で同じになる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-exports-every-format`が通る | #3602 |
-| 試す図の書き出しの検査は、子のNodeのプロセスで書き出しの命令を起こさず、書き出しのthreadで書き出す | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-export-spawns-no-cli`が通る | #3602 |
-| 試す図を書き出すと、書き手の段を全て描き、入力の欄を描かず、PNGのfileを書く | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-export-draws-author-steps`が通る | #3602 |
+| 量の図の書き出しの検査のfileを回した時、書き出しのthreadがChromiumを起こすのは1回で、書き出す件の前の準備で起こし、書き出しは同じChromiumを借りる | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`chart-export-thread-launches-once`が通る | #3602 |
+| 量の図をPNGと動画とHTMLに書き出せ、同じ原本を2回書き出したPNGがバイト単位で同じになる | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`chart-exports-every-format`が通る | #3602 |
+| 試す図の書き出しの検査は、子のNodeのプロセスで書き出しの命令を起こさず、書き出しのthreadで書き出す | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`interactive-export-spawns-no-cli`が通る | #3602 |
+| 試す図を書き出すと、書き手の段を全て描き、入力の欄を描かず、PNGのfileを書く | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`interactive-export-draws-author-steps`が通る | #3602 |
 | 関係する検査を選ぶ命令の3つの検査が、入力ごとの件になる。`related-follows-package-and-built-entries`は3件、`related-maps-materials-by-table`は2件、`related-table-covers-material-readers`は材料ごとの5件になる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-cases-follow-inputs`が通る | #3602 |
 | 分けた3つの検査と変えた検査のfileの件は、このrepoを読む時に関係する検査を選ぶ命令を子のプロセスで起こさず、fileを読み込む時に1度だけ作った索引から選ぶ | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-repo-cases-start-no-command`が通る | #3602 #3733 |
 | 分けた件が、命令の終わり方と選んだ検査のfileを今と同じ値で確かめ、材料ごとの件はその材料の名前を書く検査のfileを1件以上数える | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-follows-package-and-built-entries`と検査`related-maps-materials-by-table`と検査`related-table-covers-material-readers`が通る | #3602 |
@@ -174,3 +174,20 @@
 | 課題が名指さない19件 (時計の検査の前処理と、見本帳の8件とpackageの10件) も、後から読む塊をfileを読む段で待ち、どの検査のfileも塊の状態を25ミリ秒ずつ見て待つ繰り返しを持たない | `pnpm exec vitest run packages/dragon/test/hook-work.test.ts`の検査`hook-work-no-chunk-polling`が通る | #3759 |
 | 前処理に塊を待つ繰り返しか重い仕事の呼び出しを書き戻すか、時計の件に崩れの確かめを書き戻すと、見張りの検査がfileの名前と前処理か件の名前と呼び出しの名前を挙げて拒む | `pnpm exec vitest run packages/dragon/test/hook-work.test.ts`の検査`hook-work-finder-names-planted-work`と`hook-work-no-chunk-polling`と`hook-work-no-heavy-call-in-hooks`と`hook-work-clock-checks-at-load`が通る | #3759 |
 | 1件の検査の上限は10秒、1回の実行の上限は5分のまま変わらず、上限を変える環境変数の名前も変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`と`limit-env-names-unchanged`が通る | #3759 |
+| `packages/dragon/src/render/pipe.ts`を変えた時、関係する検査を選ぶ命令は130以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3763 |
+| `packages/dragon/src/render/venn.ts`を変えた時、関係する検査を選ぶ命令は110以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-venn-draw-picks-at-most-110`が通る | #3763 |
+| `packages/dragon/src/kinds/sequence/layout.ts`を変えた時、関係する検査を選ぶ命令は155以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-sequence-layout-picks-at-most-155`が通る | #3763 |
+| `render/pipe.ts`を変えた時、関係する検査を選ぶ命令は配管の図を描かない種類の検査 (`venn-diagram.test.ts`、`clock-look.test.ts`、`er-diagram.test.ts`) を選ばない | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-skips-other-kind-tests`が通る | #3763 |
+| どの種類の描く所を変えた時も、関係する検査を選ぶ命令は全ての種類を描く検査 (`packages/dragon/test/all-kinds.ts`をimportする検査、`examples.test.ts`、`export.test.ts`、`light-entry.test.ts`、見本帳の`playground.test.ts`) を選ぶ | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-all-kind-tests-picked-for-every-kind`が通る | #3763 |
+| 種類の置き場の一覧 (`kinds/index.ts`) に在る種類に、種類の登録のfileか、`kinds/all.ts`の登録か、`light.ts`の読み込みが欠けた時、検査は欠けた種類を名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`kind-registrations-match-kind-folders`が通る | #3763 |
+| `packages/dragon/test/`の検査のfileと助けのfileのうち、全ての種類を読む助けのfileを通らずに既定の入口 (`@cardenelabs/dragon`、`packages/dragon/src/index.ts`) を読むfileを、検査は名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`tests-read-default-entry-only-through-all-kinds`が通る | #3763 |
+| `packages/dragon/test/`と`apps/playground-spa/src/`の検査のfileと助けのfileのうち、全ての種類を読む助けのfileを読まずに、packageの根かsrcの根を指す字 (`"packages/dragon"`、`".."`、`"../src"`など) とdirを歩く処理を同じfileに書くfileを、検査は名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`tests-skip-package-root-walks`が通る | #3763 |
+| 登録簿 (`packages/dragon/src/kinds/registry.ts`) は種類のfileをimportせず、検査はimportした行を名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`registry-reads-no-kind-file`が通る | #3763 |
+| 軽い入口は、後から読む全ての種類について、`loadFor`の前は種類を読んでおらず、後は読んでいて、既定の入口と同じSVGを描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3763 |
+| 既定の入口は、読み込みを待たずに全ての種類の見本を同期で描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`default-entry-draws-every-kind`が通る | #3763 |
+| 軽い入口は、`loadFor`を待たずに時系列図と構成図を描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-draws-sequence-and-architecture-without-load`が通る | #3763 |
+| 軽い入口は、読んでいない種類の図を、種類の名前を含む誤りで拒む | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-refuses-unloaded-kind`が通る | #3763 |
+| 見本帳が最初に読むscriptとCSSは、gzipで184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3763 |
+| scriptの1行の入口が最初に読む量は、上限以下のまま | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3763 |
+| 種類とブロックの置き場の一覧は、dirから書き出した形のまま | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-registry-derived-from-folders`が通る | #3763 |
+| 関係する検査を選ぶ命令は、変えたfileへimportでたどれる検査のfileを選び、たどれない検査のfileを選ばない | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-picks-importers`と`related-skips-non-importers`が通る | #3763 |

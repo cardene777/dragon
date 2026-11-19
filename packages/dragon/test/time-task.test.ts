@@ -12,11 +12,18 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { fileChromium } from "./page-needs";
 import { draw, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 const [{ TYPE }, { textWidth }] = await Promise.all([import("../src/look/values"), import("../src/layout/measure")]);
 

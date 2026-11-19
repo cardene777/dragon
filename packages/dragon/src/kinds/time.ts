@@ -22,3 +22,10 @@ export const parts: KindParts<TimeLayout> = {
   },
   ownBoxes: true,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    time: typeof import("./time");
+  }
+}

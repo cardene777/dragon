@@ -16,9 +16,13 @@ import { hasWide, textBox } from "../src/layout/measure";
 import type { Point, Rect } from "../src/layout/scene";
 import { TYPE } from "../src/look/values";
 import { parseNotation } from "../src/parser";
-import { renderDiagram, renderLayout } from "../src/render/svg";
+import { renderDiagram, renderLayout } from "../src/render/draw";
 import { sansOf } from "../src/render/parts";
 import type { Diagram } from "../src/schema";
+import "../src/kinds/basics";
+import "../src/kind-use/try";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 /** 見本 `tx-block` の日本語と英語 */

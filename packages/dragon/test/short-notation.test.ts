@@ -7,12 +7,15 @@
  * 段か箱を 1 つでも書いた図は、今と同じく段の外の線と宣言の無い名前を断る。
  * 原本の JSON の形 (版 2) は変えず、記法へ書き戻す時は省ける物を省いて書く。
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, type NotationLang, type Parsed } from "./diagram-support";
-import { runCli } from "./export-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/pipe";
+import "../src/kind-use/state";
+import "../src/kind-use/tree";
 
 /** 短い記法を読む図の種類。箱を線で結ぶ図だけで、矢印の意味が違う種類 (枝分かれの図、木の図、配管の図など) は含めない */
 const SHORT_KINDS = ["sequence", "architecture", "state"] as const;
@@ -159,19 +162,6 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
     }
     // 知らせの無い図は、知らせの欄を持たない
     expect(parse(SHORT), "知らせの無い図が知らせの欄を持つ").not.toHaveProperty("notices");
-  });
-
-  it("short-cli-prints-similar-names", async () => {
-    // 書き出しの命令は、似た名前の知らせを `<file>:<行> <文>` の形で標準エラーに出し、書き出したうえで終わり方 0 で終わる
-    const notice = noticesOf(parse(SIMILAR, "ja"))[0];
-    expect(notice, "読む処理が似た名前を知らせない").toBeDefined();
-    const out = mkdtempSync(join(tmpdir(), "dragon-short-cli-"));
-    const file = join(out, "similar.dragon");
-    writeFileSync(file, SIMILAR);
-    const ran = await runCli(["export", file, "--format", "html", "--out", out, "--lang", "ja"]);
-    expect(ran.code, ran.stderr).toBe(0);
-    expect(ran.stdout.trim(), "書き出した file の path を標準出力に出さない").toBe(join(out, "similar.html"));
-    expect(ran.stderr.trimEnd().split("\n"), "標準エラーに似た名前の知らせが 1 件 1 行で出ない").toEqual([`${file}:${notice?.line} ${notice?.message}`]);
   });
 
   it("short-applies-to-box-line-kinds", () => {

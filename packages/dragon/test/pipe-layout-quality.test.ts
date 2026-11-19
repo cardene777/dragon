@@ -15,9 +15,12 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import "../src/kind-use/pipe";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /*
  * 崩れを数える部品と知らせる文の元の code を、検査の外で先に読む。

@@ -6,11 +6,12 @@
  * `npm pack --dry-run` が出す file の一覧と、その file の中身の両方を見る。一覧だけを見ると、見本帳の字を別の file へ写した形を捕まえられない。
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, inject, it } from "vitest";
 
-const PACKAGE = join(__dirname, "..");
-const BLOCKS = join(PACKAGE, "src/blocks");
+/** package の根。根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、package.json の場所から引く (#3763) */
+const PACKAGE = dirname(join(__dirname, "../package.json"));
+const BLOCKS = join(__dirname, "../src/blocks");
 
 /**
  * `npm pack --dry-run` が npm に出すと答えた file の path (package の dir から見た相対 path)。

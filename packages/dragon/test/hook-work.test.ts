@@ -23,7 +23,10 @@ const WATCHED = new Set([...HEAVY, "fileChromium", "checkText"]);
 /** 前処理を書く呼び出しの名前 */
 const HOOKS = new Set(["beforeAll", "beforeEach", "afterAll", "afterEach"]);
 
-/** 後から読む塊を待つ検査の file。前処理で塊を 25 ミリ秒ずつ見て待っていた 21 件 (#3759) */
+/**
+ * 後から読む塊を待つ検査の file。前処理で塊を 25 ミリ秒ずつ見て待っていた 21 件 (#3759)。
+ * package の 11 件は、種類の検査の file から見本帳の確かめと一緒に `*-playground-checks.ts` へ移した (#3763)
+ */
 const WAITING_FILES = [
   "apps/playground-spa/src/lib/catalog-bar.test.tsx",
   "apps/playground-spa/src/lib/catalog-head.test.tsx",
@@ -35,17 +38,17 @@ const WAITING_FILES = [
   "apps/playground-spa/src/lib/part-settings.test.tsx",
   "apps/playground-spa/src/lib/sankey-examples.test.ts",
   "apps/playground-spa/src/lib/venn-examples.test.ts",
-  "packages/dragon/test/band-look.test.ts",
-  "packages/dragon/test/chart-funnel.test.ts",
-  "packages/dragon/test/clock-look.test.ts",
-  "packages/dragon/test/dots-look.test.ts",
-  "packages/dragon/test/icon-paint.test.ts",
-  "packages/dragon/test/lineup-layers.test.ts",
-  "packages/dragon/test/lineup-stairs.test.ts",
-  "packages/dragon/test/lineup-stations.test.ts",
-  "packages/dragon/test/sankey-rows.test.ts",
-  "packages/dragon/test/sankey-treemap.test.ts",
-  "packages/dragon/test/scatter-look.test.ts",
+  "packages/dragon/test/band-look-playground-checks.ts",
+  "packages/dragon/test/chart-funnel-playground-checks.ts",
+  "packages/dragon/test/clock-look-playground-checks.ts",
+  "packages/dragon/test/dots-look-playground-checks.ts",
+  "packages/dragon/test/icon-paint-playground-checks.ts",
+  "packages/dragon/test/lineup-layers-playground-checks.ts",
+  "packages/dragon/test/lineup-stairs-playground-checks.ts",
+  "packages/dragon/test/lineup-stations-playground-checks.ts",
+  "packages/dragon/test/sankey-rows-playground-checks.ts",
+  "packages/dragon/test/sankey-treemap-playground-checks.ts",
+  "packages/dragon/test/scatter-look-playground-checks.ts",
 ] as const;
 
 /** 書き出しの検査。前処理で書き出しの部品を読み、Chromium を起こしていた */
@@ -203,7 +206,8 @@ function testFiles(): string[] {
       if (entry.name === "node_modules" || entry.name === "dist") continue;
       const path = join(dir, entry.name);
       if (entry.isDirectory()) walk(path);
-      else if (/\.test\.tsx?$/u.test(entry.name)) out.push(path);
+      // 種類の検査から移した確かめ (`*-checks.ts`) は、読む検査の file (`kind-playground.test.ts`、`kind-cli.test.ts`) が回すので歩く (#3763)
+      else if (/\.test\.tsx?$/u.test(entry.name) || /-checks\.ts$/u.test(entry.name)) out.push(path);
     }
   };
   for (const top of ["packages", "apps"]) walk(top);
