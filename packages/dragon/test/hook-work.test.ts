@@ -67,13 +67,14 @@ function calleeName(call: ts.CallExpression): string | undefined {
   return undefined;
 }
 
-/** 節の中の呼び出しの名前 */
+/** 節の中の呼び出しの名前。呼び出しに名前のまま渡した関数 (`beforeAll(setUp)`、`atLoad("…", exporter)`) も、渡した先が呼ぶので数える */
 function callNames(node: ts.Node): Set<string> {
   const names = new Set<string>();
   const visit = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
       const name = calleeName(n);
       if (name !== undefined) names.add(name);
+      for (const arg of n.arguments) if (ts.isIdentifier(arg)) names.add(arg.text);
     }
     ts.forEachChild(n, visit);
   };
@@ -251,6 +252,7 @@ describe("検査の前処理と件が待つ重い仕事 (#3759)", () => {
       "beforeAll(async () => { browser = await fileChromium(); });",
       "beforeEach(async () => { await setUp(); });",
       "const setUp = async () => { run = await exporter(); };",
+      "afterAll(setUp);",
       'const SAID = "for (;CHUNK.state().status === \\"loading\\";) checkText(x)";',
       'const READY = await atLoad("塊を待つ", () => whenReady(CHUNK));',
       "beforeAll(() => { READY.get(); });",
@@ -261,7 +263,11 @@ describe("検査の前処理と件が待つ重い仕事 (#3759)", () => {
     ].join("\n");
     const name = "planted.test.ts";
     expect(chunkPolls(planted, name), "塊を見て待つ繰り返し").toEqual([`${name}:3 後から読む塊の状態を見て待つ繰り返し`, `${name}:6 後から読む塊の状態を見て待つ繰り返し`]);
-    expect(heavyHooks(planted, name), "前処理の重い仕事").toEqual([`${name}:8 beforeAll が呼ぶ fileChromium`, `${name}:9 beforeEach が呼ぶ exporter`]);
+    expect(heavyHooks(planted, name), "前処理の重い仕事").toEqual([
+      `${name}:8 beforeAll が呼ぶ fileChromium`,
+      `${name}:9 beforeEach が呼ぶ exporter`,
+      `${name}:11 afterAll が呼ぶ exporter`,
+    ]);
     expect(caseWork(planted, name, "planted-check"), "件の中の崩れの確かめ").toEqual({ heavy: ["checkText"], readsLoaded: false });
     expect(caseWork(planted, name, "planted-check-via-helper"), "同じ file の関数を通した崩れの確かめ").toEqual({ heavy: ["checkText"], readsLoaded: false });
     expect(caseWork(planted, name, "planted-reads"), "読む段の結果を読むだけの件").toEqual({ heavy: [], readsLoaded: true });

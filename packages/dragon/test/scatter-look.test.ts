@@ -23,6 +23,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import { atLoad } from "./at-load";
 
 // 崩れの検査は src から読む。読む時間を検査の上限 (10 秒) に数えないよう、検査の中でなく file を読む時に読む
 const [, { checkText, problemLine }] = await Promise.all([import("../src/render/svg"), import("../src/check")]);
@@ -304,10 +305,14 @@ function expectRefused(text: string, name: string, line: number, words: string[]
 /** SCATTER の行の番号 (1 から数える) */
 const lineOf = (text: string, head: string): number => text.split("\n").findIndex((l) => l.startsWith(head)) + 1;
 
-beforeAll(async () => {
-  LATER_EXAMPLES.start();
-  for (let i = 0; i < 400 && LATER_EXAMPLES.state().status === "loading"; i += 1) await new Promise((resolve) => setTimeout(resolve, 25));
-  expect(LATER_EXAMPLES.state().status, "見本帳の後から読む見本の塊が届かない").toBe("ready");
+// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
+const EXAMPLES_READY = await atLoad("見本帳の後から読む見本の塊を待つ", async () => {
+  const { whenReady } = (await playgroundFile("site/later.ts")) as { whenReady: (chunk: typeof LATER_EXAMPLES) => Promise<unknown> };
+  return whenReady(LATER_EXAMPLES);
+});
+
+beforeAll(() => {
+  EXAMPLES_READY.get();
 });
 
 describe("点数で点を打つ見た目の原本の JSON (#3637)", () => {
