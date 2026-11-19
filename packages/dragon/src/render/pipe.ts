@@ -53,6 +53,7 @@ import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, esc, cssFont as font, r1, write } from "./parts";
+import { Shifter } from "./pipe-shift";
 import { far, gapOf, gridOf, PathPoints, SpotGrid } from "./pipe-spot";
 
 const P = PIPE_LOOK;
@@ -595,53 +596,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         out2.push([end, axis === "y" ? layout.height : layout.width]);
         return out2;
       };
-      // cut より先 (下か右) の物を d だけずらし、cut をまたぐ物は伸ばす。元へ戻す関数を返す
-      const shift = (axis: "x" | "y", cut: number | ((y: number) => number), d: number, extra: readonly object[]): (() => void) => {
-        const log: [Record<string | number, unknown>, string | number, unknown][] = [];
-        const put = (o: Record<string | number, unknown>, k: string | number, v: unknown): void => {
-          log.push([o, k, o[k]]);
-          o[k] = v;
-        };
-        const seen = new WeakSet<object>();
-        const POS = axis === "y" ? ["y", "y1", "y2", "cy", "base"] : ["x", "x1", "x2", "cx"];
-        const SIZE = axis === "y" ? "h" : "w";
-        const cutOf = typeof cut === "function" ? cut : () => cut;
-        const yOf = (o: Record<string, unknown>): number => typeof o.y === "number" ? o.y + (typeof o.h === "number" ? o.h / 2 : 0) : typeof o.y1 === "number" ? Math.min(o.y1, Number(o.y2)) : typeof o.cy === "number" ? o.cy : typeof o.base === "number" ? o.base : 0;
-        const walk = (o: unknown): void => {
-          if (o === null || typeof o !== "object" || seen.has(o)) return;
-          seen.add(o);
-          if (Array.isArray(o)) {
-            if (o.length === 2 && typeof o[0] === "number" && typeof o[1] === "number") {
-              const i = axis === "y" ? 1 : 0;
-              if (o[i] > cutOf(o[1])) put(o as unknown as Record<number, unknown>, i, o[i] + d);
-              return;
-            }
-            for (const v of o) walk(v);
-            return;
-          }
-          const rec = o as Record<string, unknown>;
-          const c0 = cutOf(yOf(rec));
-          const lead = rec[axis];
-          const size = rec[SIZE];
-          const across = typeof lead === "number" && typeof size === "number" && lead < c0 && lead + size > c0;
-          for (const [k, v] of Object.entries(rec)) {
-            if (typeof v === "number") {
-              if (POS.includes(k) && v > c0) put(rec, k, v + d);
-              else if (k === SIZE && across) put(rec, k, v + d);
-            } else walk(v);
-          }
-        };
-        for (const [k, v] of Object.entries(layout)) if (k !== "width" && k !== "height") walk(v);
-        for (const e of extra) walk(e);
-        const side = axis === "y" ? "height" : "width";
-        put(layout as unknown as Record<string, unknown>, side, layout[side] + d);
-        return () => {
-          for (let i = log.length - 1; i >= 0; i--) {
-            const [o, k, v] = log[i] as [Record<string | number, unknown>, string | number, unknown];
-            o[k] = v;
-          }
-        };
-      };
+      // cut より先 (下か右) の物を d だけずらし、cut をまたぐ物は伸ばす (`shifter.shift`)。元へ戻す関数を返す。
+      // 札を置く間は図に物を足し引きしないので、ずらす相手は 1 回目に並べた物を使い回す (#3751)
+      const shifter = new Shifter(layout as unknown as Record<string, unknown>);
       if (layout.fixed !== undefined) {
         // 固定した形の図 (Tracelyth #165) は、呼び出しの札を箱の上の右半分に出し、同じ時に出る札は上へ積む。
         // 札入れと札が図の上端からはみ出す時は、図の全体を下げてから置き直す
@@ -674,11 +631,11 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         // 札の帯を持つ形 (#3721) は、札入れと呼び出しの札を札の帯より下に置く。帯に届く時は、帯より下の物を下げる
         const band = layout.fixed.band;
         if (band && highest < band.bottom + GAP) {
-          shift("y", band.bottom, band.bottom + GAP - highest, []);
+          shifter.shift("y", band.bottom, band.bottom + GAP - highest, []);
           rebuild();
           above = placeAbove();
         } else if (highest < P.margin) {
-          shift("y", -1e9, P.margin - highest, []);
+          shifter.shift("y", -1e9, P.margin - highest, []);
           rebuild();
           above = placeAbove();
         }
@@ -708,13 +665,15 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           if (hi - lo >= need) continue;
           const gap = gapsOf("x", false).find(([g0, g1]) => g1 > lo && g0 < hi);
           if (gap) {
-            shift("x", (Math.max(gap[0], lo) + Math.min(gap[1], hi)) / 2, need - (hi - lo), []);
+            shifter.shift("x", (Math.max(gap[0], lo) + Math.min(gap[1], hi)) / 2, need - (hi - lo), []);
             rebuild();
             continue;
           }
           // 図の全体を通る縦の切れ目が無い時は、段の間の高さで切れ目を折り、上の段と下の段で別の位置を切る
           const segsAll = [...layout.lanes, ...layout.calls, ...layout.valuePipes ?? [], ...layout.flows ?? [], ...layout.writes ?? [], ...(layout.mains ?? []).flatMap((x) => x.branches ?? [])].flatMap((l) => (l.points ?? []).slice(1).map((q, i): [Point, Point] => [l.points[i] as Point, q]));
-          const clearAt = (x: number, keep2: (r: Rect) => boolean): boolean => !rigid(false).some((r) => keep2(r) && r.x < x && r.x + r.w > x);
+          // 動かない物は切れ目を探す間に変わらないので 1 度だけ集める (#3751)
+          const still = rigid(false);
+          const clearAt = (x: number, keep2: (r: Rect) => boolean): boolean => !still.some((r) => keep2(r) && r.x < x && r.x + r.w > x);
           for (const [y0, y1] of gapsOf("y", false)) {
             const jog = (y0 + y1) / 2;
             if (jog >= box.y) continue;
@@ -729,7 +688,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
             const b = Math.max(cl, ct);
             const crossing = segsAll.some(([p, q]) => (p[1] - jog) * (q[1] - jog) < 0 && Math.max(p[0], q[0]) > a && Math.min(p[0], q[0]) < b) || (layout.ties ?? []).some((t) => (t.y1 - jog) * (t.y2 - jog) < 0 && t.x > a && t.x < b);
             if (crossing) continue;
-            shift("x", (y) => y < jog ? ct : cl, need - (hi - lo), []);
+            shifter.shift("x", (y) => y < jog ? ct : cl, need - (hi - lo), []);
             rebuild();
             break;
           }
@@ -768,6 +727,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
             // 選ぶ札は道に近く、どの物にも重ならない札。安い判定から先に当てる
             if (!rowIn[j] || blocked[j] === 1) continue;
             const r = { x, y: rows[j] as number, w, h };
+            // 点数は入口までの隔たりの 4 分の 1 より小さくならないので、それだけで今の一番に届かない点は道を測らない (#3751)
+            const toEntry = far(r, entry) * 0.25;
+            if (best && toEntry >= best.score) continue;
             if (path.spans.every((b) => gapOf(r, b) > reach)) continue;
             const near3 = path.nearestWithin(r, reach);
             if (near3 > NEAR) continue;
@@ -781,7 +743,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
               }
             }
             above = above && flatD <= near3 + 1;
-            const score = near3 + far(r, entry) * 0.25 + (above ? 80 : 0);
+            const score = near3 + toEntry + (above ? 80 : 0);
             if (!best || score < best.score) best = { r, score, above };
           }
         }
@@ -806,16 +768,28 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           }
           const costOf = (g: { score: number; above: boolean }, d: number): number => d + g.score + (g.above ? 300 : 0);
           let pick: { t: { axis: "x" | "y"; cut: number; d: number }; cost: number } | undefined;
+          // 試して戻した後の避ける所と札入れは試す前と同じなので、作り直さずに試す前の物へ戻す (#3751)
+          const saved = { obst: obst.slice(), moved: [...movedKeys], cards: cardsAll.slice(), stacks: [...stacks] };
+          const restore = (): void => {
+            obst.length = 0;
+            for (const o of saved.obst) obst.push(o);
+            movedKeys.clear();
+            for (const k of saved.moved) movedKeys.add(k);
+            cardsAll.length = 0;
+            for (const c of saved.cards) cardsAll.push(c);
+            stacks.clear();
+            for (const [k, v] of saved.stacks) stacks.set(k, v);
+          };
           for (const t of tries) {
-            const undo = shift(t.axis, t.cut, t.d, kept.map((x) => x.r));
+            const undo = shifter.shift(t.axis, t.cut, t.d, kept.map((x) => x.r));
             rebuild();
             const g = fits(it, moreOf());
             if (g && (!pick || costOf(g, t.d) < pick.cost)) pick = { t, cost: costOf(g, t.d) };
             undo();
-            rebuild();
+            restore();
           }
           if (pick && (!got || pick.cost < costOf(got, 0))) {
-            shift(pick.t.axis, pick.t.cut, pick.t.d, kept.map((x) => x.r));
+            shifter.shift(pick.t.axis, pick.t.cut, pick.t.d, kept.map((x) => x.r));
             rebuild();
             got = fits(it, moreOf());
           }
@@ -852,11 +826,15 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         for (let j = 0; j < rows.length; j++) {
           if (!rowIn[j]) continue;
           const r = { x, y: rows[j] as number, w: tag.w, h: tag.h };
+          // 点数は重なりの分と入口までの隔たりの 4 分の 1 を足した値より小さくならないので、それだけで今の一番に届かない点は道を測らない (#3751)
+          const overlapped = spots.overlap(i, j) * 50;
+          const toEntry = far(r, entry) * 0.25;
+          if (best && overlapped + toEntry >= best.score) continue;
           // 同じ隔たりの点は先の点を取る
           const { point: nearest, d: near3 } = path.nearest(r);
           const e0: Point = [Math.max(r.x, Math.min(nearest[0], r.x + r.w)), Math.max(r.y, Math.min(nearest[1], r.y + r.h))];
           const crosses = near3 > 28 && layout.parties.some((o) => cross(e0, nearest, { x: o.x + 2, y: o.y + 2, w: o.w - 4, h: o.h - 4 }));
-          const score = spots.overlap(i, j) * 50 + near3 + far(r, entry) * 0.25 + (crosses ? 4e3 : 0);
+          const score = overlapped + near3 + toEntry + (crosses ? 4e3 : 0);
           if (!best || score < best.score) best = { r, score };
         }
       }
