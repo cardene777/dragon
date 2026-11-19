@@ -22,6 +22,9 @@ import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
 import { planPage } from "./page";
 
+/** 書き出した頁と見本帳に収める配管の図の並べ方を組む部品 (#3748)。見本帳の build が読む */
+export { pipeLayouts, type PipeLayoutsOptions } from "./layouts";
+
 export type ExportFormat = "mp4" | "gif" | "html" | "png";
 
 export interface ExportOptions {

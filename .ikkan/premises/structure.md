@@ -13,7 +13,7 @@
 | `packages/dragon/src/page` | mdから1つのHTMLの頁を書き出す処理 (#3755)。見出しを頁の組み立てに分ける処理 (`read.ts`)、mdをHTMLにする処理 (`markdown.ts`)、3つの組み立ての頁と見せる頁とタブを選ぶscript (`html.ts`)、別のfileを載せて図を確かめて書く処理 (`export.ts`)。命令 `dragon export <md>` とNodeの入口の `exportPage` が呼ぶ | `packages/dragon/src/node.ts`、`packages/dragon/src/cli.ts` |
 | `packages/dragon/test` | package と repo の仕組みの検査 | `vitest.config.ts` の `include` |
 | `packages/dragon/scripts` | 入れた依存が公開物と一致するかを確かめる script | `package.json` の `verify:deps` |
-| `apps/playground-spa/src` | 見本帳。経路と上の帯と編集画面のほかの画面を `src/site` に、編集画面を `Playground.tsx` に、外の頁がiframeで開く埋め込みの頁と、4つの置き方で同じ図を並べた組み込みの見本の頁を `src/embed` に (#3700、#3701)、頁と配信の仕組みの検査を `src/lib` に置く。buildの設定 `vite.config.ts` が使うpluginは `src` の隣の `vite-*.ts` に置き、見本の頁のscriptの1行の入口を写すpluginは `vite-script-demo.ts` (#3701) | `apps/playground-spa/src/main.tsx` |
+| `apps/playground-spa/src` | 見本帳。経路と上の帯と編集画面のほかの画面を `src/site` に、編集画面を `Playground.tsx` に、外の頁がiframeで開く埋め込みの頁と、4つの置き方で同じ図を並べた組み込みの見本の頁を `src/embed` に (#3700、#3701)、頁と配信の仕組みの検査を `src/lib` に置く。buildの設定 `vite.config.ts` が使うpluginは `src` の隣の `vite-*.ts` に置き、見本の頁のscriptの1行の入口を写すpluginは `vite-script-demo.ts` (#3701)、頁の配管の図の並べ方を収めるpluginは `vite-pipe-layouts.ts` (#3748) | `apps/playground-spa/src/main.tsx` |
 | `apps/playground-spa/scripts` | 公開の build を GitHub Pages へ配る script | `apps/playground-spa/package.json` の `deploy:pages` |
 | `docs/design` | 作り直す前の画面の設計図 (`app.pen`) と、図の種類ごとの記録 | `docs/design/README.md` |
 | `test-support` | vitest の前処理 | `vitest.config.ts` の `globalSetup` |

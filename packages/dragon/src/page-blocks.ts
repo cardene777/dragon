@@ -14,8 +14,11 @@
  * 頁の `<link rel="dragon-blocks" href="…">` が指す file は、使う人が足すブロックの定義として 1 度だけ読み、頁の全ての塊に渡す (#3399)。
  * file は記法 (`blocks 1` で始まる) か JSON (`"format": 1`) で書く。読む file は頁を書いた人が指した所だけで、定義は外の物を読ませない。
  * 定義を読めない時は、全ての塊をその誤りの文に置き換える。
+ *
+ * `dragon embed` が収めた配管の図の並べ方 (`#dragon-layouts`、#3748) が在れば全ての塊に渡し、鍵が合う図は道を探さずに描く。
  */
 import { dedent } from "./embed/dedent";
+import type { StoredPipeLayout } from "./kinds/pipe/layout";
 import { parseNotation } from "./parser";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type Player, type PlayerOptions } from "./player";
@@ -38,7 +41,29 @@ function errorBox(doc: Document, lines: string[]): HTMLElement {
   return box;
 }
 
-async function drawBlock(block: Element, prepare: (text: string) => Promise<void>, lang: NotationLang, defined: Promise<UserBlocks[]>, framed?: FramedBlock): Promise<void> {
+/**
+ * `dragon embed` が頁に収めた配管の図の並べ方 (`<script type="application/json" id="dragon-layouts">`、#3748)。
+ * 収めていない頁と、読めない字の頁では無い物とし、図はその場で並べ方を組んで描く
+ */
+function storedLayouts(doc: Document): StoredPipeLayout[] | undefined {
+  const text = doc.getElementById("dragon-layouts")?.textContent;
+  if (!text) return undefined;
+  try {
+    const read: unknown = JSON.parse(text);
+    return Array.isArray(read) ? (read as StoredPipeLayout[]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function drawBlock(
+  block: Element,
+  prepare: (text: string) => Promise<void>,
+  lang: NotationLang,
+  defined: Promise<UserBlocks[]>,
+  layouts: StoredPipeLayout[] | undefined,
+  framed?: FramedBlock,
+): Promise<void> {
   const doc = block.ownerDocument;
   const text = dedent(block.textContent ?? "");
   let blocks: UserBlocks | undefined;
@@ -59,7 +84,7 @@ async function drawBlock(block: Element, prepare: (text: string) => Promise<void
   host.className = "dragon-figure";
   block.replaceWith(host);
   try {
-    const options = { lang, ...(blocks ? { blocks } : {}) };
+    const options = { lang, ...(blocks ? { blocks } : {}), ...(layouts ? { layouts } : {}) };
     const drawn = mountDiagram(host, parsed.diagram, options);
     if (framed && block.hasAttribute("data-header")) framed(host, drawn, text, parsed.diagram, options);
   } catch (error) {
@@ -124,7 +149,8 @@ export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
-    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, lang, defined, framed));
+    const layouts = storedLayouts(doc);
+    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, lang, defined, layouts, framed));
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();
