@@ -8,6 +8,7 @@
 import type { Point, Rect } from "../src/layout/scene";
 import { describe, expect, it, vi } from "vitest";
 import { exampleJson } from "./diagram-data";
+import "../src/kind-use/pipe";
 
 type Spot = typeof import("../src/render/pipe-spot");
 
@@ -156,7 +157,7 @@ describe("道の点", () => {
  */
 const measured = await (async (): Promise<number | undefined> => {
   if (typeof spot.PathPoints !== "function") return undefined;
-  const { renderDiagram } = await import("../src/index");
+  const { renderDiagram } = await import("../src/core");
   const count = vi.spyOn(spot.PathPoints.prototype, "nearestWithin");
   try {
     renderDiagram(exampleJson("aggregator.json"), { open: [2] });

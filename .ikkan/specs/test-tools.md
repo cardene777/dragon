@@ -97,10 +97,10 @@
 | Chromiumが字のfileを読めない時、使い回したChromiumでも、読めないfileを名指して書き出しを拒む | `pnpm exec vitest run packages/dragon/test/export-language.test.ts`の検査`export-names-unreadable-font`が通る | #3599 |
 | 書き出す道具が無い時、子のプロセスで起こした命令は入れ方を添えて英語で書き出しを拒む | `pnpm exec vitest run packages/dragon/test/cli-language.test.ts`の検査`cli-chromium-refusal-in-english`が通る | #3599 |
 | 包んだ後も、packageの検査が全て通る | `pnpm exec vitest run packages/`が終わり方0で終わる | #3599 |
-| 量の図の書き出しの検査のfileを回した時、書き出しのthreadがChromiumを起こすのは1回で、書き出す件の前の準備で起こし、書き出しは同じChromiumを借りる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-export-thread-launches-once`が通る | #3602 |
-| 量の図をPNGと動画とHTMLに書き出せ、同じ原本を2回書き出したPNGがバイト単位で同じになる | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-exports-every-format`が通る | #3602 |
-| 試す図の書き出しの検査は、子のNodeのプロセスで書き出しの命令を起こさず、書き出しのthreadで書き出す | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-export-spawns-no-cli`が通る | #3602 |
-| 試す図を書き出すと、書き手の段を全て描き、入力の欄を描かず、PNGのfileを書く | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-export-draws-author-steps`が通る | #3602 |
+| 量の図の書き出しの検査のfileを回した時、書き出しのthreadがChromiumを起こすのは1回で、書き出す件の前の準備で起こし、書き出しは同じChromiumを借りる | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`chart-export-thread-launches-once`が通る | #3602 |
+| 量の図をPNGと動画とHTMLに書き出せ、同じ原本を2回書き出したPNGがバイト単位で同じになる | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`chart-exports-every-format`が通る | #3602 |
+| 試す図の書き出しの検査は、子のNodeのプロセスで書き出しの命令を起こさず、書き出しのthreadで書き出す | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`interactive-export-spawns-no-cli`が通る | #3602 |
+| 試す図を書き出すと、書き手の段を全て描き、入力の欄を描かず、PNGのfileを書く | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`interactive-export-draws-author-steps`が通る | #3602 |
 | 関係する検査を選ぶ命令の3つの検査が、入力ごとの件になる。`related-follows-package-and-built-entries`は3件、`related-maps-materials-by-table`は2件、`related-table-covers-material-readers`は材料ごとの5件になる | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-cases-follow-inputs`が通る | #3602 |
 | 分けた3つの検査と変えた検査のfileの件は、このrepoを読む時に関係する検査を選ぶ命令を子のプロセスで起こさず、fileを読み込む時に1度だけ作った索引から選ぶ | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-repo-cases-start-no-command`が通る | #3602 #3733 |
 | 分けた件が、命令の終わり方と選んだ検査のfileを今と同じ値で確かめ、材料ごとの件はその材料の名前を書く検査のfileを1件以上数える | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-follows-package-and-built-entries`と検査`related-maps-materials-by-table`と検査`related-table-covers-material-readers`が通る | #3602 |

@@ -13,6 +13,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, smallArchitecture, smallSequence } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 /** アイコンも置き場の枠も持つ箱が無い図の、名前と下の字の基準線の箱の真ん中からの下がり */
 const CENTERED = { name: 5, sub: 20 };

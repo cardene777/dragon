@@ -132,6 +132,8 @@
     "./dist/fonts.js",
     "./dist/fonts.cjs",
     "./src/kinds/all.ts",
+    "./src/kinds/basics.ts",
+    "./src/kind-use/*.ts",
     "./src/blocks/icon/sets-all.ts",
     "./src/render/pen-all.ts",
     "./src/render/look-all.ts",

@@ -16,14 +16,18 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { PNG } from "pngjs";
 import type { Page } from "playwright-core";
-import { parseNotation, renderDiagram } from "@cardenelabs/dragon";
+import { parseNotation, renderDiagram } from "../src/core";
 import { describe, expect, it } from "vitest";
 import type { Json } from "./diagram-support";
 import { exporter, readGif } from "./export-support";
 import { fileChromium } from "./page-needs";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
-const ROOT = join(process.cwd(), "packages/dragon");
-const require_ = createRequire(join(ROOT, "package.json"));
+/** package の package.json。package の根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、package.json から根を引く (#3763) */
+const MANIFEST = join(process.cwd(), "packages/dragon/package.json");
+const ROOT = dirname(MANIFEST);
+const require_ = createRequire(MANIFEST);
 const FONTS = join(ROOT, "node_modules/@fontsource-variable");
 const CAPTURE = join(ROOT, "dist/capture.js");
 

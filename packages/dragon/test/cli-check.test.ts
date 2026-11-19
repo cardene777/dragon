@@ -11,10 +11,13 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import { api, type LineError, type Parsed } from "./diagram-support";
 import { runCli } from "./export-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
 
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
 const CLI = join(process.cwd(), "packages/dragon/dist/cli.js");

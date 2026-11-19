@@ -14,14 +14,16 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, inject, it } from "vitest";
 import { flattenPath } from "../src/render/outline";
 import { atLoad } from "./at-load";
 import { api, type Json, smallArchitecture } from "./diagram-support";
 import { runCli } from "./export-support";
+import "../src/kind-use/architecture";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+/** package の根。根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、package.json の場所から引く (#3763) */
+const ROOT = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 /** Tabler の線の絵柄の置き場。devDependency の `@tabler/icons` が持つ */
 const TABLER = join(ROOT, "node_modules", "@tabler", "icons", "icons", "outline");
 const ICONS = (dragon as unknown as { ICONS: Record<string, string> }).ICONS;

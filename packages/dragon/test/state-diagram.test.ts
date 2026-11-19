@@ -15,6 +15,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
 import { covers, draw, gap, type Layout, type Rect, type Rendered, sampleTimes, type Span, type Timeline } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");

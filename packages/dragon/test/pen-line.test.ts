@@ -9,7 +9,7 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed, runCli } from "./export-support";

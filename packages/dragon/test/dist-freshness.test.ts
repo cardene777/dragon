@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -35,7 +35,7 @@ function tmp(): string {
 
 /** file を書いて更新時刻を指定する (秒)。 */
 function write(path: string, sec: number): void {
-  mkdirSync(join(path, ".."), { recursive: true });
+  mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, "x");
   utimesSync(path, sec, sec);
 }
@@ -221,7 +221,7 @@ function linkInto(pkgDir: string, name: string): string {
   const c = tmp();
   writeFileSync(join(c, "package.json"), JSON.stringify({ name: "consumer", version: "0.0.0" }));
   const at = join(c, "node_modules", name);
-  mkdirSync(join(at, ".."), { recursive: true });
+  mkdirSync(dirname(at), { recursive: true });
   symlinkSync(pkgDir, at);
   return c;
 }

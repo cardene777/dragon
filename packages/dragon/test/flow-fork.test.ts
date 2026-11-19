@@ -10,11 +10,12 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api, type Json } from "./diagram-support";
 import { draw, type LaidBox, type Layout, type Rendered, type Timeline } from "./render-support";
+import "../src/kind-use/flow";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");

@@ -19,6 +19,7 @@ import { layoutPipe, type PipeLayout } from "../src/kinds/pipe/layout";
 import { toModel } from "../src/model";
 import type { Diagram } from "../src/schema";
 import { api, type Json, type LineError } from "./diagram-support";
+import "../src/kind-use/pipe";
 
 const PIPE_DOC = join(process.cwd(), "plugins/dragon/skills/dragon/references/kinds/pipe.md");
 

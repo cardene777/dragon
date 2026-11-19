@@ -5,9 +5,13 @@
  * 混んだ機械で 1 件の上限 (10 秒) を超えた。件の中には、確かめる中身である jsdom で図を置く仕事だけを残す。
  * 比べる側は、件の中で描いていた時と同じ原本と設定で描く。件と準備で同じ物を使う値はここに置く。
  */
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { pipeTexts } from "../src/pipe-player";
 import { exampleJson } from "./diagram-data";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /** 携帯の幅 */
 export const PHONE = 390;

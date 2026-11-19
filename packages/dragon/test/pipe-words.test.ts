@@ -9,9 +9,12 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { mountDiagram, parseNotation, type Rendered, type RenderOptions, renderDiagram } from "@cardenelabs/dragon";
+import { mountDiagram, parseNotation, type Rendered, type RenderOptions, renderDiagram } from "../src/core";
 import { describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import "../src/kind-use/pipe";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 

@@ -12,6 +12,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/sequence";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");

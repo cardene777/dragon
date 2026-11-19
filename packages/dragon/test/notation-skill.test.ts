@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
+import { KIND_FOLDERS } from "../src/kinds/index";
 
 const ROOT = process.cwd();
 const MARKETPLACE = join(ROOT, ".claude-plugin/marketplace.json");
@@ -18,7 +19,6 @@ const MANIFEST = join(PLUGIN, ".claude-plugin/plugin.json");
 const SKILL = join(PLUGIN, "skills/dragon");
 const MAIN = join(SKILL, "SKILL.md");
 const REFERENCES = join(SKILL, "references");
-const KINDS = join(ROOT, "packages/dragon/src/kinds");
 
 /** `SKILL.md` の行の上限。常に読まれる本文を短く保つ */
 const MAIN_LINES = 200;
@@ -86,7 +86,8 @@ const localLinks = (text: string): string[] =>
   [...outsideFences(text).matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/gu)].map((m) => m[1] ?? "").filter((to) => !/^[a-z]+:/u.test(to));
 
 /** 図の種類の置き場の dir の名前。置き場の一覧から導き、手で並べない */
-const kindNames = (): string[] => readdirSync(KINDS).filter((name) => statSync(join(KINDS, name)).isDirectory()).sort();
+/** 図の種類の置き場の名前。置き場の dir を歩くと、関係する検査を選ぶ命令がこの検査を全ての種類の描く部品へ結ぶので、書き出した一覧から引く (#3763) */
+const kindNames = (): string[] => Object.keys(KIND_FOLDERS).sort();
 
 describe("dragon記法の skill を配るプラグイン (#3455)", () => {
   it("marketplace-lists-dragon-plugin", () => {

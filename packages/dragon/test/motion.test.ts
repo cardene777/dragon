@@ -10,6 +10,8 @@ import { describe, expect, it } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
 import { type Motion, motionOf } from "./motion-support";
 import type { Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 interface Event {
   type: string;

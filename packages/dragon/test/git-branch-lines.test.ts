@@ -11,6 +11,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/git";
+import "../src/kind-use/try";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /** 枝分かれの図の置き場所を決めた後に、分かれる線の出口を丸の真ん中へ戻すか。重なる線の知らせを確かめる検査だけが立てる */
 const overlap = vi.hoisted(() => ({ on: false }));
@@ -40,8 +45,8 @@ vi.mock("../src/kinds/git/layout", async (importOriginal) => {
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
 const [{ renderDiagram }, { parseNotation }, { checkLayoutText }, { checkText, problemLine }, { APART, LOOK }] = await Promise.all([
-  // 全ての図の種類の部品と個別ブロックの読み方を持つ入口から読む。描く本体だけを読むと、枝分かれの図の記法を読めない
-  import("../src/render/svg"),
+  // 図の種類の部品は上の種類の登録の file が、個別ブロックの読み方は `kinds/basics` が登録する (#3763)。描く本体だけを読むと、枝分かれの図の記法を読めない
+  import("../src/render/draw"),
   import("../src/parser"),
   import("../src/render/layout-check"),
   import("../src/check"),

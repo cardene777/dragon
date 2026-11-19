@@ -33,6 +33,9 @@ import { iconSetLoaded, registerTabler, usesTabler } from "./blocks/icon/sets";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
 import { lookOf, registerSequenceLook, sequenceLookLoaded } from "./render/look-store";
 import { type LineStyle, penLoaded, registerPen } from "./render/pen-store";
+// 時系列図と構成図の並べ方は初めから持つ。種類の登録の file が読み込みの時に登録簿へ登録する (#3763)
+import "./kind-use/architecture";
+import "./kind-use/sequence";
 
 export * from "./api";
 export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };

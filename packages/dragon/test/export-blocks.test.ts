@@ -8,11 +8,14 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { api, type LineError, type Parsed } from "./diagram-support";
 import { formatOf, runCliInProcess } from "./export-support";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 // 書き出しの撮る所だけを差し替え、動画に撮る絵 (SVG) を残す。動画に足したブロックが描かれるかを Chromium を起こさずに確かめる
 const shots = { still: [] as string[], film: [] as string[] };
@@ -36,7 +39,7 @@ vi.mock("../src/export/capture", async (importOriginal) => {
 // 共有のブロック集は組み立てが本体に埋める (`tsup.config.ts`)。元の code を直に読む時は空の集を置く。金庫の図は共有のブロックを使わない
 vi.stubGlobal("__DRAGON_SHARED_BLOCKS__", []);
 // 描く部品と書き出す部品の元の code は、検査の外 (この file を読む段) で先に読む (#3410)
-const [{ exportDiagram: exportSource }, { parseNotation: parseSource }] = await Promise.all([import("../src/export/index"), import("../src/parser"), import("../src/kinds/all")]);
+const [{ exportDiagram: exportSource }, { parseNotation: parseSource }] = await Promise.all([import("../src/export/index"), import("../src/parser"), import("../src/kinds/basics")]);
 
 const lines = (...rows: string[]): string => `${rows.join("\n")}\n`;
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-export-blocks-"));

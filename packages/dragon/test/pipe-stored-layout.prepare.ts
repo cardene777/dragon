@@ -14,10 +14,11 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pipeLayout from "../src/kinds/pipe/layout";
-import { renderDiagram } from "../src/index";
+import { renderDiagram } from "../src/core";
 import { parseNotation } from "../src/parser";
 import { Router } from "../src/pipe-route";
 import { CASES, langOfFile, REPO, type Row } from "./pipe-stored-layout-support";
+import "../src/kind-use/pipe";
 
 /** 収めた並べ方に付ける印。描いた並べ方に残れば、収めた並べ方を使ったと分かる */
 const PROBE = "stored-layout-probe";

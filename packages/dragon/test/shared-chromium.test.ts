@@ -14,6 +14,8 @@ import type { Browser } from "playwright-core";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { exporter } from "./export-support";
 import { fileChromium, fileChromiumLaunches } from "./page-needs";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
 
 const ROOT = process.cwd();
 const scratch = (): string => mkdtempSync(join(tmpdir(), "dragon-shared-chromium-"));

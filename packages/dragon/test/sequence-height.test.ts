@@ -7,6 +7,9 @@
 import { describe, expect, it } from "vitest";
 import type { Json } from "./diagram-support";
 import { draw, type Layout } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 const edge = (from: string, to: string, label?: string): Json => ({ type: "edge", from, to, ...(label === undefined ? {} : { label }), carry: { kind: "none" } });
 

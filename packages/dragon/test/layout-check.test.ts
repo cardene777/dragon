@@ -11,7 +11,7 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { casesNamed, runCli, runCliInProcess } from "./export-support";

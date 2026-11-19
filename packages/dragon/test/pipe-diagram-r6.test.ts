@@ -9,6 +9,8 @@ import { atLoad } from "./at-load";
 import { motionFrom } from "./motion-support";
 import { draw, figureVars, type Rendered } from "./render-support";
 import { type Point, exampleJson, repoText, render, partyOf, levelOf, tankOf, plateOf, center, lastStep, stillOf, partsOf, seen, classRules, roleOf, dashed, onPath, inside, changes, coinMoves, openedAggregator } from "./pipe-diagram-support";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
 
 // 件の中で見本を描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で描き、件は描いた物を読む
 const DRAWN = await atLoad("見本 swap と、箱を開いた Aggregator の図を描く", () => {

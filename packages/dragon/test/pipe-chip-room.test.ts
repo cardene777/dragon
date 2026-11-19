@@ -9,13 +9,15 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/pipe";
 
 /*
  * 描く部品と崩れを数える部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
 const [, { parseNotation }, { drawDiagram }, { findBreaks }, { MOTION }] = await Promise.all([
-  import("../src/kinds/all"),
+  import("../src/kinds/basics"),
   import("../src/parser"),
   import("../src/render/draw"),
   import("../src/render/breaks"),

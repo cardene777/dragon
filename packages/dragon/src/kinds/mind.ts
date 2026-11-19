@@ -10,3 +10,10 @@ export const parts: KindParts<MindLayout> = {
   focus: (layout, _diagram, step) => layout.ideas.filter((idea) => idea.step === step),
   overview: (layout) => layout.ideas.map((idea) => ({ rect: idea, band: false, color: idea.color })),
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    mind: typeof import("./mind");
+  }
+}

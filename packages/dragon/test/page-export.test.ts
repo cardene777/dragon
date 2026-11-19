@@ -10,7 +10,7 @@
  */
 import { existsSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 

@@ -13,14 +13,16 @@ import type { KindParts } from "../src/kinds/parts";
 import type { Layout } from "../src/layout/scene";
 import type { DiagramModel } from "../src/schema";
 import type { Timeline } from "../src/timeline";
+// 全ての種類の部品の組を確かめ、描く本体の字も読むので、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
 
 /*
  * 描く部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 検査の中で初めて読むと、混んだ機械で変換だけで 1 件の上限を超える (#3410)。
- * 全ての種類の部品と読み方は全部入りの入口と同じく読むだけで登録する (`kinds/all`)
+ * 全ての種類の部品と読み方は、全ての種類を読む助けの file (`all-kinds.ts`) が読むだけで登録する (#3763)
  */
 const [, registry, { renderDiagram }, { parseNotation }, { kindOf }, cycle, er] = await Promise.all([
-  import("../src/kinds/all"),
+  import("./all-kinds"),
   import("../src/kinds/registry"),
   import("../src/render/draw"),
   import("../src/parser"),
