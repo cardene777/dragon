@@ -7,6 +7,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import * as node from "@cardenelabs/dragon/node";
 import { expect } from "vitest";
 
 /** 頁の組み立て。mdの頭の`layout`の行に書く値 */
@@ -27,13 +28,16 @@ export type ExportPage = (
   options?: { outDir?: string; lang?: "ja" | "en" },
 ) => Promise<PageExport>;
 
-/** Nodeの入口の`exportPage`。入口が出さない時は判定の文で落とし、`undefined`を返す */
+/**
+ * Nodeの入口の`exportPage`。入口が出さない時は判定の文で落とし、`undefined`を返す。
+ * 入口は file を読む時に 1 度だけ読み、混んだ機械で読む時間を件の時間に入れない
+ */
 export async function exportPageTool(): Promise<ExportPage | undefined> {
-  const node = (await import(/* @vite-ignore */ "@cardenelabs/dragon/node")) as {
-    exportPage?: unknown;
-  };
-  expect(node.exportPage, "Nodeの入口が頁を書き出すexportPageを出さない").toBeTypeOf("function");
-  return typeof node.exportPage === "function" ? (node.exportPage as ExportPage) : undefined;
+  const entry = node as { exportPage?: unknown };
+  expect(entry.exportPage, "Nodeの入口が頁を書き出すexportPageを出さない").toBeTypeOf("function");
+  return Promise.resolve(
+    typeof entry.exportPage === "function" ? (entry.exportPage as ExportPage) : undefined,
+  );
 }
 
 /** 書き出した結果が書けた形か。書けなかった時は訳を添えて判定の文で落とす */

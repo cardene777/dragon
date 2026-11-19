@@ -10,10 +10,11 @@
  */
 import { existsSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import * as dragon from "@cardenelabs/dragon";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 
-import { runCliInProcess } from "./export-support";
+import { runCli } from "./export-support";
 import {
   expectWritten,
   exportPageTool,
@@ -180,42 +181,42 @@ describe("mdから頁を書き出す (#3755)", () => {
     ).toBe("ja");
   });
 
-  it("page-export-command-writes-html", async () => {
-    const md = writeNote();
-    const dir = dirname(md);
-    const ran = await runCliInProcess(["export", md]);
-    expect({ code: ran.code, stdout: ran.stdout }, `mdの書き出し: ${ran.stderr}`).toEqual({
-      code: 0,
-      stdout: `${join(dir, "notes.html")}\n`,
+  // mdの書き出しは Chromium を借りないので、命令は子の process で起こす。process の中で読み込むと、束ねた命令の file を読み替えるだけで混んだ機械で 10 秒を超える。
+  // 命令を起こす件は 1 件で命令を 1 回だけ起こす
+  describe.for(["mdの隣", "--out のフォルダ"] as const)("%sに書く", (where) => {
+    it("page-export-command-writes-html", async () => {
+      const md = writeNote();
+      const dir = where === "mdの隣" ? dirname(md) : tempDir("out");
+      const ran = await runCli(["export", md, ...(where === "mdの隣" ? [] : ["--out", dir])]);
+      expect(
+        { code: ran.code, stdout: ran.stdout },
+        `${where}へのmdの書き出し: ${ran.stderr}`,
+      ).toEqual({
+        code: 0,
+        stdout: `${join(dir, "notes.html")}\n`,
+      });
+      expect(
+        readFileSync(join(dir, "notes.html"), "utf8").startsWith("<!doctype html>"),
+        `${where}に頁を書かない`,
+      ).toBe(true);
     });
-    expect(
-      readFileSync(join(dir, "notes.html"), "utf8").startsWith("<!doctype html>"),
-      "mdの隣に頁を書かない",
-    ).toBe(true);
-    const out = tempDir("out");
-    const moved = await runCliInProcess(["export", md, "--out", out]);
-    expect(
-      { code: moved.code, stdout: moved.stdout },
-      `--out を付けたmdの書き出し: ${moved.stderr}`,
-    ).toEqual({ code: 0, stdout: `${join(out, "notes.html")}\n` });
-    expect(existsSync(join(out, "notes.html")), "--out のフォルダに頁を書かない").toBe(true);
   });
 
-  it("page-export-refuses-diagram-options", async () => {
-    for (const option of [
-      ["--fps", "30"],
-      ["--format", "html"],
-      ["--width", "600"],
-    ]) {
+  describe.for([
+    { option: "--fps", value: "30" },
+    { option: "--format", value: "html" },
+    { option: "--width", value: "600" },
+  ])("$option を付ける", ({ option, value }) => {
+    it("page-export-refuses-diagram-options", async () => {
       const md = writeNote();
-      const ran = await runCliInProcess(["export", md, ...option]);
-      expect(ran.code, `${option[0]} を付けたmdの書き出しの終わり方`).toBe(2);
-      expect(ran.stderr, `${option[0]} を付けたmdの書き出しの断り`).toContain(option[0]);
+      const ran = await runCli(["export", md, option, value]);
+      expect(ran.code, `${option} を付けたmdの書き出しの終わり方`).toBe(2);
+      expect(ran.stderr, `${option} を付けたmdの書き出しの断り`).toContain(option);
       expect(
         readdirSync(dirname(md)).filter((name) => name.endsWith(".html")),
-        `${option[0]} を拒んだのに頁を書いた`,
+        `${option} を拒んだのに頁を書いた`,
       ).toEqual([]);
-    }
+    });
   });
 
   it("node-entry-exports-page", async () => {
@@ -226,7 +227,7 @@ describe("mdから頁を書き出す (#3755)", () => {
     const path = expectWritten(await exportPage(md, { outDir: api }));
     expect(path, "exportPage が書いた file").toBe(join(api, "notes.html"));
     const cli = tempDir("cli");
-    const ran = await runCliInProcess(["export", md, "--out", cli]);
+    const ran = await runCli(["export", md, "--out", cli]);
     expect(ran.code, `命令の書き出し: ${ran.stderr}`).toBe(0);
     expect(readFileSync(path, "utf8"), "exportPage と命令が書いた頁").toBe(
       readFileSync(join(cli, "notes.html"), "utf8"),
@@ -273,8 +274,9 @@ describe("mdから頁を書き出す (#3755)", () => {
     }
   });
 
-  it("box-link-accepts-page-anchor", async () => {
-    const dragon = (await import(/* @vite-ignore */ "@cardenelabs/dragon")) as {
+  it("box-link-accepts-page-anchor", () => {
+    // 入口は file を読む時に 1 度だけ読み、件の時間に入れない
+    const api = dragon as unknown as {
       parseNotation(text: string): {
         ok: boolean;
         diagram?: { blocks: { box?: { link?: string }[] } };
@@ -284,7 +286,7 @@ describe("mdから頁を書き出す (#3755)", () => {
       renderDiagram(input: unknown): { svg: string };
     };
     for (const link of ["#order", "#配送"]) {
-      const parsed = dragon.parseNotation(
+      const parsed = api.parseNotation(
         `architecture 飛び先\nbox a as 受ける [link: ${link}]\nbox b as 払う\nstep 流す\n  a -> b\n`,
       );
       expect(parsed.ok, `記法の飛び先 ${link} を受けない: ${JSON.stringify(parsed.errors)}`).toBe(
@@ -292,15 +294,13 @@ describe("mdから頁を書き出す (#3755)", () => {
       );
       expect(parsed.diagram?.blocks.box?.[0]?.link, `記法の飛び先 ${link}`).toBe(link);
       const json: unknown = JSON.parse(JSON.stringify(parsed.diagram));
-      const read = dragon.readDiagram(json);
+      const read = api.readDiagram(json);
       expect(
         read.ok,
         `原本の JSON の飛び先 ${link} を受けない: ${JSON.stringify(read.errors)}`,
       ).toBe(true);
       if (read.ok)
-        expect(dragon.renderDiagram(json).svg, `飛び先 ${link} の link`).toContain(
-          `href="${link}"`,
-        );
+        expect(api.renderDiagram(json).svg, `飛び先 ${link} の link`).toContain(`href="${link}"`);
     }
   });
 });
