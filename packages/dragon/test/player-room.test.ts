@@ -10,6 +10,7 @@ import { expect, it } from "vitest";
 import { pageHtml } from "../src/export/html";
 import { planPage } from "../src/export/page";
 import { smallArchitecture } from "./diagram-support";
+import "../src/kind-use/architecture";
 
 it("html-page-keeps-bar-room", () => {
   const html = pageHtml(planPage(smallArchitecture(), { lang: "ja" }), "", "");

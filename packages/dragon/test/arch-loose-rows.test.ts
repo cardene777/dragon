@@ -9,8 +9,11 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
+import "../src/kind-use/architecture";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /* 見た目の値の元の code を、検査の外 (この file を読む段) で先に読む。検査の中で初めて読むと、混んだ機械で上限の10秒に近づく (#3410) */
 const { LOOK } = await import("../src/look/values");

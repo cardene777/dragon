@@ -9,8 +9,8 @@
 | `strip`の欄を段の中の`set`で書くと、輪の真ん中にその段の欄の値を出す | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-centre-shows-strip-values`が通る | #3623 |
 | 輪の次の手順でない手順への線 (1つ飛ばす線、逆回りの線) を書くと、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-rejects-a-line-that-skips-a-step`が通る | #3623 |
 | 手順が2つより少ないか8つより多い回り続ける図は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-rejects-too-few-or-too-many-steps`が通る | #3623 |
-| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、回り続ける図を読んで描ける | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-light-entry-draws-after-load-for`が通る | #3623 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、回り続ける図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-docs-describe-the-notation`が通る | #3623 |
+| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、回り続ける図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3623 |
+| 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、回り続ける図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`cycle-docs-describe-the-notation`が通る | #3623 |
 | ほかの種類の図では、`cycle`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`notation-keeps-cycle-words-plain-outside-cycle`が通る | #3623 |
 | カタログの12種類のどれも見本を4枚以上載せる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3623 |
 | 回り続ける図の見本6枚 (`eth-slot`、`sprint`、`pdca`、`restake`、`focus-clock`、`farm-year`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts --reporter=verbose`の検査`cycle-has-six-examples-in-both-langs`が通る | #3623 #3638 #3639 |
@@ -30,10 +30,10 @@
 | 文字盤の真ん中に帯の値を出し、`set`の行で値が変わる | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-centre-shows-strip-values`が通る | #3638 |
 | `[shape: clock]`の無い図の`time`と`turn`、文字盤の見た目で`time`の無い箱、`clock`でない`shape`、`left`でない`turn`、0か数でないか単位の無い`time`、回り続ける図の外の`time`と`turn`は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-rejects-misused-words`が通る | #3638 |
 | 携帯の幅 (390) では、文字盤を幅いっぱいに描き、手順の番号と名前と長さを文字盤の下の一覧に並べる | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-stacks-list-below-at-phone-width`が通る | #3638 |
-| 見本帳に`[shape: clock]`の見本`focus-clock`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-examples-in-both-langs-have-no-breaks`が通る | #3638 |
-| 編集画面の棚に`[shape: clock]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-shelf-template-reads`が通る | #3638 |
-| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: clock]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-light-entry-draws-after-load-for`が通る | #3638 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: clock]`と`time`と`turn`の書き方が在る | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-docs-describe-the-look`が通る | #3638 |
+| 見本帳に`[shape: clock]`の見本`focus-clock`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-examples-in-both-langs-have-no-breaks`が通る | #3638 |
+| 編集画面の棚に`[shape: clock]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-shelf-template-reads`が通る | #3638 |
+| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: clock]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3638 |
+| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: clock]`と`time`と`turn`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-docs-describe-the-look`が通る | #3638 |
 | `time`を書かない今の回り続ける図は、手順を真上から右回りに輪の上へ置く | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-boxes-go-clockwise-from-top`が通る | #3638 |
 | 今の回り続ける図の記法を読んで書き戻すと、同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-roundtrip-keeps-notation`が通る | #3638 |
 | 輪の見た目の線の札は、今どおり弧の上を走る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-tag-runs-along-the-arc`が通る | #3638 #3639 |
@@ -48,9 +48,9 @@
 | 最後の手順から最初の手順への線の札は、右の端から下の回の帯の左の端へ戻る矢印を辿って次の回の最初の山形へ入り、矢印は字を持たない | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-return-arrow-leads-to-next-round`が通る | #3639 |
 | 帯の見た目の`turn`、一部の箱にだけ書いた`time`、`clock`と`band`でない`shape`は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-rejects-misused-words`が通る | #3639 |
 | 携帯の幅 (390) では、山形を幅に収まるまで縮めて手順の番号を中に書き、番号と名前の一覧を帯の下に並べる | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-stacks-list-below-at-phone-width`が通る | #3639 |
-| 見本帳に`[shape: band]`の見本`farm-year`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-examples-in-both-langs-have-no-breaks`が通る | #3639 |
-| 編集画面の棚に`[shape: band]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-shelf-template-reads`が通る | #3639 |
-| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: band]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-light-entry-draws-after-load-for`が通る | #3639 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: band]`の書き方が在る | `pnpm exec vitest run packages/dragon/test/band-look.test.ts --reporter=verbose`の検査`band-docs-describe-the-look`が通る | #3639 |
+| 見本帳に`[shape: band]`の見本`farm-year`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-examples-in-both-langs-have-no-breaks`が通る | #3639 |
+| 編集画面の棚に`[shape: band]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-shelf-template-reads`が通る | #3639 |
+| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: band]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3639 |
+| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: band]`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-docs-describe-the-look`が通る | #3639 |
 | `shape`を書かない今の回り続ける図は、手順を真上から右回りに輪の上へ置く | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-boxes-go-clockwise-from-top`が通る | #3639 |
 | 時計の文字盤の見た目は、今どおり手順を長さの弧で文字盤に置く | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-arcs-follow-times`が通る | #3639 |

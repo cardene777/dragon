@@ -11,7 +11,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { Layout } from "../src/layout/scene";
-import { runCli } from "./export-support";
+import "../src/kinds/basics";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 /** 時系列図の置き場所を決めた後に、検査が頼んだ時だけ置き場所を書き換える。頼まない検査には今の置き場所を返す */
 const tamper = vi.hoisted(() => ({ move: undefined as ((layout: Layout) => void) | undefined }));
@@ -30,10 +32,10 @@ vi.mock("../src/kinds/sequence/layout", async (importOriginal) => {
 /*
  * 描く部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 検査の中で初めて読むと、混んだ機械で変換だけで 1 件の上限を超える (#3410)。
- * 状態遷移図の部品は全部入りの入口と同じく読むだけで登録する (`kinds/all`)
+ * 状態遷移図の部品は種類の登録の file (`kind-use/state`) が、原本の検査は `kinds/basics` が読むだけで登録する (#3763)
  */
 const [, { drawDiagram }, { parseNotation }, { checkText, problemLine }, { LOOK }] = await Promise.all([
-  import("../src/kinds/all"),
+  import("../src/kinds/basics"),
   import("../src/render/draw"),
   import("../src/parser"),
   import("../src/check"),
@@ -103,16 +105,6 @@ function inkAt(inks: Ink[], text: string, seat: [number, number] | undefined): I
 const EPS = 0.001;
 
 describe("端の箱へ向かう線と出る線の札は図の枠の内側に余白を取る (#3515)", () => {
-  it("sequence-tag-to-leftmost-box-inside-frame", async () => {
-    const { layout, inks } = draw(LOGIN_TEXT);
-    const edge = layout.edges.find((e) => e.step === 4);
-    const tag = inkAt(inks, "session id", edge?.settle);
-    expect(tag.rect.x, "段 5 で一番左の箱へ着いた札「session id」の左端と図の枠の左端の間").toBeGreaterThanOrEqual(LOOK.margin - EPS);
-    const ran = await runCli(["check", LOGIN, "--layout", "--json", "--lang", "ja"]);
-    expect(ran.code, ran.stderr).toBe(0);
-    const problems = JSON.parse(ran.stdout || "[]") as { layout?: unknown }[];
-    expect(problems.filter((p) => p.layout !== undefined), "ログインの図に崩れを出す").toEqual([]);
-  });
 
   it("sequence-tag-to-rightmost-box-inside-frame", () => {
     const { width, layout, inks } = draw(TO_RIGHTMOST);

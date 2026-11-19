@@ -13,6 +13,8 @@ import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed, runCliInProcess } from "./export-support";
 import { draw, figureVars, type Palette } from "./render-support";
+// 全ての種類の見本を描くので、全ての種類を読む (#3763)
+import "./all-kinds";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");

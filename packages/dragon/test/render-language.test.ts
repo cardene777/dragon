@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
 import { draw, type Lang, type Player } from "./render-support";
+import "../src/kind-use/sequence";
 
 /** 仮名と漢字。英語の字に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;

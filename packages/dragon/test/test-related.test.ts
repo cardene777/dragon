@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { casesNamed } from "./export-support";
+import { casesNamed } from "./case-support";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const RUNNER = join(ROOT, "scripts/test-related.mjs");

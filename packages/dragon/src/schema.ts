@@ -75,7 +75,7 @@ export interface Box {
   color?: Color;
   icon?: string;
   region?: string;
-  /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
+  /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL か、`#` で始まる頁の中の場所 (#3199、#3755) */
   link?: string;
   /** 列の図の箱の並べ方 (#3351)。`none` は順番の無い置き場で、書かない箱は上から実行する札 */
   order?: "none";

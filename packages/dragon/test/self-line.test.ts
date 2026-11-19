@@ -16,8 +16,13 @@ import { type Layout, LOOP_ROOM, type Point, type Rect, type SceneEdge } from ".
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { describeOverlap, type Overlap } from "../src/render/ink";
-import { renderDiagram } from "../src/render/svg";
+import { renderDiagram } from "../src/render/draw";
 import type { Diagram } from "../src/schema";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const FIXTURES = join(process.cwd(), "packages/dragon/test/fixtures");
 

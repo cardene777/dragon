@@ -10,6 +10,7 @@ import { expect } from "vitest";
 import { api, type Json } from "./diagram-support";
 import type { Motion } from "./motion-support";
 import { draw, type Rect, type Rendered } from "./render-support";
+import "../src/kind-use/lineup";
 
 export const ROOT = process.cwd();
 export const EXAMPLES = join(ROOT, "packages/dragon/examples");

@@ -4,11 +4,14 @@
  * 原本の file を読み書きする部品は、頁で描く入口 (`index.ts`) に置かない。
  * 頁を束ねる道具 (Next.js の Turbopack など) は、呼ぶかどうかに関わらず入口の file の読み込みを全て解くため、
  * 頁の入口に Node の組み込みの module を読む部品が 1 つでも在ると、ブラウザ向けの build が止まる。
+ * mdから1つのHTMLの頁を書き出す `exportPage` (#3755) も file を読み書きするので、ここから出す。
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { registerValidator } from "./schema";
 import { VALIDATOR } from "./schemas/validator";
 import { FORMAT_VERSION, readDiagram } from "./version";
+
+export { exportPage, type PageError, type PageExport, type PageExportOptions } from "./page/export";
 
 // 原本の file を移す入口は原本の JSON を読むので、原本の形の検査を初めから持つ (#3400)
 registerValidator(VALIDATOR);

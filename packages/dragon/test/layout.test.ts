@@ -7,6 +7,8 @@
 import { describe, expect, it } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
 import { draw, gap, type Layout, longestSegment } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 const edge = (from: string, to: string, label: string, labelSide?: string): Json => ({
   type: "edge",

@@ -16,10 +16,10 @@
 | 段を送った時、点は群れごとに少しずらした時刻に滑り始める | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-groups-slide-with-a-stagger`が通る | #3635 |
 | 段を送って件数が増えた時は増えた分の点が弾んで現れ、減った時は減った分の点が消えていく | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-added-pop-and-removed-fade`が通る | #3635 |
 | 枠の幅に390を渡して描いた時、全体の箱を上に置き、点の群れをその下に積む | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-stack-box-above-groups-at-phone-width`が通る | #3635 |
-| 点で数える見た目の見本2枚 (一般の量の図`device-dots`とWeb3の集合の重なりの図`wallet-dots`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じで、枠の幅を渡さない時と390を渡した時に`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-examples-in-both-langs-have-no-breaks`が通る | #3635 |
-| 編集画面の棚に点で数える見た目の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-shelf-template-reads`が通る | #3635 |
-| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、点で数える見た目の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-light-entry-draws-after-load-for`が通る | #3635 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`と、AIのskillの量の図と集合の重なりの図の手引きに、点で数える見た目の書き方と量の図の`set none`の書き方が在る | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`dots-docs-describe-the-look`が通る | #3635 |
+| 点で数える見た目の見本2枚 (一般の量の図`device-dots`とWeb3の集合の重なりの図`wallet-dots`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じで、枠の幅を渡さない時と390を渡した時に`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`dots-examples-in-both-langs-have-no-breaks`が通る | #3635 |
+| 編集画面の棚に点で数える見た目の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`dots-shelf-template-reads`が通る | #3635 |
+| 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、点で数える見た目の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3635 |
+| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`と、AIのskillの量の図と集合の重なりの図の手引きに、点で数える見た目の書き方と量の図の`set none`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`dots-docs-describe-the-look`が通る | #3635 |
 | `[shape: donut]`と`[shape: bar]`の量の図で`set none: <数>`を書いた段で、どこにも入らない件数を項目の後ろに灰色の弧か棒で描き、集合の重なりの図と同じ言葉 (`どれにも入らない`、`In none`) で名前を出す | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`chart-none-draws-grey-in-donut-and-bar`が通る | #3635 |
 | `[shape: funnel]`の量の図で`set none: <数>`を書いた時は、今どおり宣言していない項目として誤りを返し、図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/dots-look.test.ts`の検査`chart-funnel-keeps-none-undeclared`が通る | #3635 |
 | 今の量の図の記法 (`[shape: donut]`と`[shape: bar]`) を読んで書き戻すと、今と同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-roundtrip-keeps-json-identical`が通る | #3635 |

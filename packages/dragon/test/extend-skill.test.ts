@@ -11,6 +11,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as blockIndex from "../src/blocks/index";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const SKILL = join(ROOT, ".claude/skills/dragon-extend");

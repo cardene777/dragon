@@ -2,9 +2,9 @@
 
 | 条件 | 確かめ方 | 出元 |
 |---|---|---|
-| 描く入口 (`@cardenelabs/dragon`) の`editorUrl`に記法を渡すと、エディタの`/dragon/editor`の頁のURLを返し、その`#`から後ろを`apps/playground-spa/src/share.ts`の`fromHash`に渡すと、日本語と絵文字を含む記法でも同じ文字列が返る | `pnpm exec vitest run packages/dragon/test/editor-url.test.ts`の検査`editor-url-roundtrip`が通る | #3644 |
+| 描く入口 (`@cardenelabs/dragon`) の`editorUrl`に記法を渡すと、エディタの`/dragon/editor`の頁のURLを返し、その`#`から後ろを`apps/playground-spa/src/share.ts`の`fromHash`に渡すと、日本語と絵文字を含む記法でも同じ文字列が返る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`editor-url-roundtrip`が通る | #3644 |
 | `editorUrl`に`base`を渡すと、その置き場の`editor`の頁のURLを返し、渡さない時は公開したエディタの置き場を使う | `pnpm exec vitest run packages/dragon/test/editor-url.test.ts`の検査`editor-url-base`が通る | #3644 |
-| エディタの共有のURLは描く入口の関数で作り、`share.ts`は記法をURLの形にする処理を自分で持たない | `pnpm exec vitest run packages/dragon/test/editor-url.test.ts`の検査`playground-share-uses-package`が通る | #3644 |
+| エディタの共有のURLは描く入口の関数で作り、`share.ts`は記法をURLの形にする処理を自分で持たない | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`playground-share-uses-package`が通る | #3644 |
 | 書き出す入口 (`@cardenelabs/dragon/capture`) が package の`exports`に在り、Node の組み込みの module を読まない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`capture-entry-browser-safe`が通る | #3644 |
 | 描く入口の書き出した file は、詰める道具 (`gifenc`と`mediabunny`) を読まない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`main-entry-skips-encoders`が通る | #3644 |
 | Chromium の頁で描いた図を書き出す入口の関数に渡すと、GIFとMP4のBlobを返し、コマの数と縦横の大きさが同じ図を`exportDiagram`で書き出したfileと同じになる | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-film-matches-export`が通る | #3644 |

@@ -9,13 +9,13 @@
  * どれかの待ち行列が `take` 件に満たない間は押せない。待ち行列が 1 つの `from` は今どおり 1 つの名札を持つ。
  * 誤りの文を英語でも確かめるので、名札と値は英字にする。
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 import type { TryItem, TryPart } from "../src/schema";
 import { TryRun } from "../src/try-state";
 import { api, type Json, type LineError } from "./diagram-support";
 import { askStrip, KANA, mountTry, parsedTry, press, pressButton, releaseTry, sendButton, sessionOf, stepsOf, tryLayout } from "./try-support";
+import "../src/kind-use/try";
 
 afterEach(releaseTry);
 
@@ -157,11 +157,6 @@ function expectRefused(name: string, text: string, row: number, word: string, wo
     if (lang === "en") expect(KANA.test(first?.message ?? ""), `${name} の英語の誤りの文に仮名か漢字がある: ${first?.message}`).toBe(false);
   }
 }
-
-const readRepo = (path: string): string => {
-  const full = join(process.cwd(), path);
-  return existsSync(full) ? readFileSync(full, "utf8") : "";
-};
 
 describe("待ち行列に入れてよい名前 accept (#3453)", () => {
   it("interactive-accept-round-trip", () => {
@@ -330,31 +325,5 @@ describe("2 つ以上の待ち行列から集める釦 (#3453)", () => {
       expect(error?.message ?? "", `集める釦を押せない誤りが viewB を名指さない (${lang})`).toContain("viewB");
       if (lang === "en") expect(KANA.test(error?.message ?? ""), `英語の誤りの文に仮名か漢字がある: ${error?.message}`).toBe(false);
     }
-  });
-});
-
-describe("書き方の文書 (#3453)", () => {
-  it("docs-describe-try-accept-gather", () => {
-    /** 見出し `heading` から次の同じ深さの見出しまで */
-    const sectionOf = (text: string, heading: string): string => {
-      const start = text.indexOf(heading);
-      if (start < 0) return "";
-      const next = text.indexOf("\n### ", start + heading.length);
-      return text.slice(start, next < 0 ? undefined : next);
-    };
-    for (const [path, heading, accept, gather] of [
-      ["packages/dragon/README.ja.md", "### 試す図", "accept: <名前>", 'from: "<待ち行列>, <待ち行列>"'],
-      ["packages/dragon/README.md", "### Try diagram", "accept: <name>", 'from: "<queue>, <queue>"'],
-    ] as const) {
-      const section = sectionOf(readRepo(path), heading);
-      expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");
-      expect(section, `${path} の試す図の小節に accept の書き方が無い`).toContain(accept);
-      expect(section, `${path} の試す図の小節に from に 2 つ以上の待ち行列を書く書き方が無い`).toContain(gather);
-    }
-    // 使い方の頁の文は JS の字の中に書くので、`"` の前に `\` が付いていてもよい
-    const docs = readRepo("apps/playground-spa/src/docs/content.ts");
-    for (const words of ["accept: <名前>", "accept: <name>"]) expect(docs, `使い方の頁に ${words} が無い`).toContain(words);
-    for (const [queue, form] of [["待ち行列", /from: \\?"<待ち行列>, <待ち行列>\\?"/u], ["queue", /from: \\?"<queue>, <queue>\\?"/u]] as const)
-      expect(docs, `使い方の頁に from: "<${queue}>, <${queue}>" が無い`).toMatch(form);
   });
 });

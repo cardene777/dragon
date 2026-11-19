@@ -9,6 +9,6 @@ import { LINK_URL } from "./block";
 
 export const shape: BlockShape = {
   definitions: {
-    url: { description: "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL", type: "string", pattern: LINK_URL },
+    url: { description: "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所", type: "string", pattern: LINK_URL },
   },
 };

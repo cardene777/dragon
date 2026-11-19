@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { expect } from "vitest";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { draw, type Player, type PlayerOptions, type Rect } from "./render-support";
+import "../src/kind-use/try";
 
 /** 仮名と漢字 */
 export const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;

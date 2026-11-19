@@ -59,6 +59,20 @@
 | `common-parts-draw-tree` | `apps/playground-spa/src/lib/tree-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
 | `common-parts-draw-git` | `apps/playground-spa/src/lib/git-catalog.test.ts` | 同じく、図の種類ごとの繰り返し | `catalog-common-parts-listed` |
 | `related-split-cases-start-one-command` | `packages/dragon/test/test-related.test.ts` | このrepoを読む件が命令を1回ずつ起こすことを確かめていた (#3602)。命令は起こすたびにrepoの全てのfileを読み直し、混んだ機械で1件10秒を超えたので、このrepoを読む件は命令を起こさず、fileを読み込む時に1度だけ作った索引から選ぶ形にした (#3733) | `related-repo-cases-start-no-command`、`related-cases-follow-inputs` |
+| `venn-light-entry-draws-after-load-for` | `packages/dragon/test/venn-diagram.test.ts` | 種類の検査が子のNodeで軽い入口を読み、`loadFor`の後に描けるかを確かめていた。種類の検査が軽い入口を読むと、関係する検査を選ぶ命令が全ての種類の描く所を変えた時にその検査を選ぶので、軽い入口の検査の見本ごとの件へ移した (#3763) | `light-entry-draws-each-later-kind-after-load-for` |
+| `lineup-stairs-light-entry-draws-after-load-for` | `packages/dragon/test/lineup-stairs.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `cycle-light-entry-draws-after-load-for` | `packages/dragon/test/cycle-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `clock-light-entry-draws-after-load-for` | `packages/dragon/test/clock-look.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `band-light-entry-draws-after-load-for` | `packages/dragon/test/band-look.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `sankey-light-entry-draws-after-load-for` | `packages/dragon/test/sankey-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `sankey-rows-light-entry-draws-after-load-for` | `packages/dragon/test/sankey-rows.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `sankey-treemap-light-entry-draws-after-load-for` | `packages/dragon/test/sankey-treemap.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `er-light-entry-draws-after-load-for` | `packages/dragon/test/er-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `matrix-light-entry-draws-after-load-for` | `packages/dragon/test/matrix-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `scatter-light-entry-draws-after-load-for` | `packages/dragon/test/scatter-look.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `mind-light-entry-draws-after-load-for` | `packages/dragon/test/mind-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `icon-paint-light-entry-draws-after-load-for` | `packages/dragon/test/icon-paint.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `dots-light-entry-draws-after-load-for` | `packages/dragon/test/dots-look.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
 
 ## 速くした検査
 

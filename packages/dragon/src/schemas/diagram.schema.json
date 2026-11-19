@@ -3214,9 +3214,9 @@
       }
     },
     "url": {
-      "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL",
+      "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所",
       "type": "string",
-      "pattern": "^(/|https?://)"
+      "pattern": "^(/|https?://|#.)"
     },
     "scale": {
       "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",

@@ -28,3 +28,10 @@ export const parts: KindParts<LineupLayout> = {
   top: (layout) => Math.max(...[layout.heading, ...layout.headlines.flatMap((h) => (h.say ? [h.title, h.say] : [h.title]))].map((t) => t.y + t.h)),
   ownBoxes: true,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    lineup: typeof import("./lineup");
+  }
+}

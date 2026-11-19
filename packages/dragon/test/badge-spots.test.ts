@@ -13,6 +13,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /** 構成図の置き場所を決めた後に、段 `step` の番号を最初の囲みの下の枠線へ動かすか。枠線の知らせを確かめる検査だけが立てる */
 const onFrame = vi.hoisted(() => ({ step: undefined as number | undefined }));
@@ -36,7 +44,7 @@ vi.mock("../src/kinds/architecture/layout", async (importOriginal) => {
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
 const [{ renderDiagram }, { parseNotation }, { findBreaks }, { checkLayoutText, describeBreak }, { checkText, problemLine }, { LOOK }] = await Promise.all([
-  import("../src/render/svg"),
+  import("../src/render/draw"),
   import("../src/parser"),
   import("../src/render/breaks"),
   import("../src/render/layout-check"),

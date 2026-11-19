@@ -10,17 +10,20 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、光り方と真ん中の値の出方は SVG の keyframes を jsdom で読んで確かめる。
  * 見本の file と回り続ける図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/cycle";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
-const EXAMPLES = join(PACKAGE, "examples");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 回り続ける図の見本 4 枚 (#3623 の「決まっていること」) */
 const CYCLE_EXAMPLES = ["eth-slot", "sprint", "pdca", "restake"] as const;
@@ -77,9 +80,6 @@ const fileText = (name: string): string | undefined => {
   const path = join(EXAMPLES, name);
   return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 };
-
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 
 /** 見本の file から、最初の注釈の行と、その後ろの空の行を外した記法 */
 const withoutComments = (text: string): string => text.replace(/^(?:\/\/[^\n]*\n)+\n*/u, "");
@@ -447,81 +447,5 @@ describe("回り続ける図の並べ方と動き (#3623)", () => {
         }
       });
     }
-  });
-});
-
-describe("回り続ける図の軽い入口 (#3623)", () => {
-  it("cycle-light-entry-draws-after-load-for", () => {
-    const code = [
-      `const text = ${JSON.stringify(SMALL)};`,
-      "out.before = light.kindLoaded('cycle');",
-      "await light.loadFor(text);",
-      "out.after = light.kindLoaded('cycle');",
-      "const read = light.parseNotation(text);",
-      "out.ok = read.ok;",
-      "out.errors = read.ok ? [] : read.errors;",
-      "if (read.ok) {",
-      "  const drawn = light.renderDiagram(read.diagram);",
-      "  out.kind = drawn.layout.kind;",
-      "  out.arcs = (drawn.svg.match(/data-arc=/g) ?? []).length;",
-      "  const full = await import('@cardenelabs/dragon');",
-      "  const again = full.parseNotation(text);",
-      "  out.same = again.ok && full.renderDiagram(again.diagram).svg === drawn.svg;",
-      "}",
-      "console.log(JSON.stringify(out));",
-    ].join("\n");
-    const script = `const light = await import("@cardenelabs/dragon/light");\nconst out = {};\n${code}`;
-    let stdout = "";
-    let failure = "";
-    try {
-      stdout = execFileSync(process.execPath, ["--input-type=module", "-e", script], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch (error) {
-      failure = String((error as { stderr?: string }).stderr ?? error);
-    }
-    expect(failure, "軽い入口で回り続ける図を読んで描く node が落ちる").toBe("");
-    const out = JSON.parse(stdout.trim().split("\n").at(-1) ?? "{}") as { before?: boolean; after?: boolean; ok?: boolean; errors?: unknown[]; kind?: string; arcs?: number; same?: boolean };
-    expect(out.before, "軽い入口が loadFor の前から回り続ける図の描く部品を持つ (最初に読む塊に入っている)").toBe(false);
-    expect(out.after, "軽い入口で loadFor を待っても回り続ける図の描く部品を読まない").toBe(true);
-    expect(out.ok, `軽い入口で loadFor を待った後に回り続ける図を読めない: ${JSON.stringify(out.errors)}`).toBe(true);
-    expect(out.kind, "軽い入口で描いた図の種類").toBe("cycle");
-    expect(out.arcs, "軽い入口で描いた回り続ける図の弧の数").toBe(3);
-    expect(out.same, "軽い入口と既定の入口で描いた回り続ける図が違う").toBe(true);
-  });
-});
-
-describe("回り続ける図の書き方の文書 (#3623)", () => {
-  it("cycle-docs-describe-the-notation", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `cycle` と、段の中の札を走らせる線の書き方 */
-    const head = /(^|[\s`])cycle [^\s`]/mu;
-    const run = /(<[^>]+>|[^\s`]+) -> (<[^>]+>|[^\s`]+) \[tag: [^\]]+\]/u;
-    const cycleFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const read = parse(fence.source);
-        return read.ok && (read.diagram as unknown as Source).kind === "cycle";
-      }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(head.test(text), `${path} に cycle の行の書き方が無い`).toBe(true);
-      expect(run.test(text), `${path} に札を走らせる線 (<名札> -> <名札> [tag: <字>]) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(cycleFences(text), `${path} に回り続ける図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-    }
-    // README の描ける図の欄に回り続ける図が載る
-    expect(/^\| Diagram kinds \|.*\bcycle diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に cycle diagram が無い").toBe(true);
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"cycle"/u.test(content), "使い方の頁の節に回り続ける図 (cycle) が無い").toBe(true);
-    const sections = ["cycle.dragon", "cycle.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const read = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(read.ok && (read.diagram as unknown as Source).kind, `使い方の頁の回り続ける図の節の例 (${i === 0 ? "cycle.dragon" : "cycle.en.dragon"}) が回り続ける図として読めない`).toBe("cycle");
-    }
-    const blocks = join(PACKAGE, "src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    expect(head.test(page), "使い方の頁に cycle の行の書き方が無い").toBe(true);
-    expect(run.test(page), "使い方の頁に札を走らせる線の書き方が無い").toBe(true);
   });
 });

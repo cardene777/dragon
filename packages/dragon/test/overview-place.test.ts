@@ -11,6 +11,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
 import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, gap, type Lang, type Player, type Rect } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 type Diagramish = { [key: string]: Json };
 

@@ -6,10 +6,11 @@
  * repo の README 2 つと npm の頁の README 2 つの入れ方の節の前に思想の節を置き、同じ言葉の版どうしで中身を揃える。
  * あわせて、repo の README の最初の図の節が script の 1 行の入口を示し、描ける図の欄が全ての図の種類を挙げることを確かめる。
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { KIND_FOLDERS } from "../src/kinds/index";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const CATALOG = "https://cardene777.github.io/dragon/";
@@ -49,11 +50,11 @@ const AI_WRITES = {
 const ideaSections = (): { lang: keyof typeof LANGS; path: string; section: string }[] =>
   (Object.keys(LANGS) as (keyof typeof LANGS)[]).flatMap((lang) => [LANGS[lang].repo, LANGS[lang].npm].map((path) => ({ lang, path, section: sectionOf(read(path), LANGS[lang].idea) })));
 
-/** 図の種類の置き場の dir の名前。種類の一覧は置き場から導く */
-const kindNames = (): string[] =>
-  readdirSync(join(ROOT, "packages/dragon/src/kinds"))
-    .filter((name) => statSync(join(ROOT, "packages/dragon/src/kinds", name)).isDirectory())
-    .sort();
+/**
+ * 図の種類の置き場の dir の名前。種類の一覧は置き場から書き出した一覧 (`kinds/index.ts`) から導く。
+ * 置き場の dir を歩くと、関係する検査を選ぶ命令がこの検査を全ての種類の描く部品へ結ぶ (#3763)
+ */
+const kindNames = (): string[] => Object.keys(KIND_FOLDERS).sort();
 
 /** README が図の種類を呼ぶ名前 */
 const KIND_LABELS: Record<"ja" | "en", Record<string, string>> = {

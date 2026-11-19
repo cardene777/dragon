@@ -9,6 +9,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { overflow, place, releasePlaced, round } from "./follow-support";
 import type { Rect } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 /** 時系列図と構成図の見本 */
 const SAMPLES = [

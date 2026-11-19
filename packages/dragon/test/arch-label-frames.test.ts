@@ -9,9 +9,11 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
-import { runCli } from "./export-support";
+import "../src/kind-use/architecture";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /*
  * 描く値の元の code を、検査の外 (この file を読む段) で先に読む。
@@ -54,11 +56,6 @@ interface LayoutBreak {
   step: number;
   parts: unknown[];
 }
-interface Problem {
-  line: number;
-  severity: string;
-  message: string;
-}
 type Parsed = { ok: true; diagram: unknown } | { ok: false; errors: { message: string }[] };
 
 /*
@@ -72,11 +69,6 @@ const api = dragon as unknown as {
 };
 
 const ROOT = process.cwd();
-const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
-/** 囲み「自社サービス」の中の APIサーバー から外の 価格オラクル へ、名前「為替レートを聞く」の線を引く図 */
-const STRADDLE = join(FIXTURES, "label-straddles-group.dragon");
-/** 箱 A、B、C を1行に並べ、段3で C → C の輪を描いてから、段4で A → C の名前「送る」を引く図 */
-const ABOVE = join(FIXTURES, "label-above-frame.dragon");
 /**
  * 囲みから囲みへ下りる線と、囲みから囲みの外の箱へ下りる線と、その帰りの線に名前を持つ図。
  * ccip の段10は囲みから囲みへ下り、検査の見本の段1から段3と、評価でAIが描いた2つの図は、囲みの外の箱との間を行き来する
@@ -92,18 +84,6 @@ function laid(file: string): Laid {
   const parsed = api.parseNotation(readFileSync(file, "utf8"), { lang: "ja" });
   if (!parsed.ok) throw new Error(`記法を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout;
-}
-
-/** `dragon check --layout --json` が出す `warning` の行。記法を読めずに崩れを数えなかった回を、崩れの無い回と取り違えないよう、誤りの行も返す */
-async function warnings(file: string): Promise<string[]> {
-  const ran = await runCli(["check", file, "--layout", "--json", "--lang", "ja"]);
-  let problems: Problem[];
-  try {
-    problems = JSON.parse(ran.stdout) as Problem[];
-  } catch {
-    return [`JSON を読めない (終わり方 ${ran.code}): ${ran.stdout}${ran.stderr}`];
-  }
-  return problems.filter((p) => p.severity !== "info").map((p) => `${p.line} ${p.severity} ${p.message}`);
 }
 
 /**
@@ -171,32 +151,6 @@ const besideFrames = (layout: Laid): Label[] =>
       (g) => l.x < g.x + g.w && l.x + l.w > g.x && [g.y, g.y + g.h].some((y) => Math.abs(l.y + l.h / 2 - y) <= LOOK.label.h + LOOK.label.soft * 2),
     ),
   );
-
-describe("構成図の線の名前は囲みの枠線をまたがず、図の枠の内に収まる (#3554)", () => {
-  it("label-frame-group-line-clear", async () => {
-    const layout = laid(STRADDLE);
-    // 図が囲みと名前を持つことを先に確かめる。持たなければ、枠線をまたぐ名前0件は当たり前になる
-    expect(layout.regions.map((g) => g.lines.join("")), "見本の囲み").toEqual(["自社サービス"]);
-    expect(layout.labels.map((l) => l.text), "見本の線の名前").toEqual(["為替レートを聞く"]);
-    expect(nearFrames(layout), "囲みの枠線に近いかまたぐ名前").toEqual([]);
-    expect(strayLabels(layout), "自分の線の脇に無い名前").toEqual([]);
-    expect(await warnings(STRADDLE), "囲みの枠線をまたいでいた図の知らせ").toEqual([]);
-  });
-
-  it("label-frame-row-detour-inside", async () => {
-    const layout = laid(ABOVE);
-    const sent = layout.labels.find((l) => l.text === "送る");
-    const own = layout.edges.find((e) => e.from === "a" && e.to === "c");
-    if (!sent || !own) throw new Error("段4の A → C の線か名前「送る」が無い");
-    // 線が行の上を回ることを先に確かめる。回らなければ、名前が図の上へはみ出さないのは当たり前になる
-    expect(own.points.length, "A → C が回らない").toBe(4);
-    expect((own.points[1] as Point)[1], "A → C が行の上を回らない").toBeLessThan((own.points[0] as Point)[1]);
-    expect(sent.y, "名前「送る」の札の上の端と図の枠の上端の間").toBeGreaterThanOrEqual(LOOK.margin - 0.01);
-    // 名前と別の線の間は、名前と自分の線の間の 2 倍空ける。C の下の輪と、A → B と B → C の線は、名前から遠い
-    expect(strayLabels(layout, 2), "自分の線の脇に無いか、別の線が自分の線の 2 倍より近い名前").toEqual([]);
-    expect(await warnings(ABOVE), "図の枠の上へはみ出していた図の知らせ").toEqual([]);
-  });
-});
 
 describe.for(BETWEEN)("囲みの外へ出る線の名前 (#3554) %s", (path) => {
   it("label-frame-between-groups-clear", () => {

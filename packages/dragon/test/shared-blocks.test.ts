@@ -8,7 +8,7 @@
  * 読んだ図は、使った共有の定義を原本の JSON の定義の欄 (`define`) に入れ、JSON だけを受け取った側でも同じ図を描ける。
  * 図の頭に同じ名前の定義が在る時は、図の頭の定義が効く。共有の集に後から同じ名前が足されても、前に書いた図の意味が変わらないため。
  */
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";

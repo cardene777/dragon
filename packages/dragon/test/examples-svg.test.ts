@@ -7,7 +7,7 @@
  * 食い違った時は、作り直す前の版 (印 `v0.47.0`) の dist で同じ見本を描いて見比べる。
  */
 import { readFileSync } from "node:fs";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { describe, expect, it } from "vitest";
 import { fingerprints, OUT } from "../scripts/snapshot-examples.mjs";
 

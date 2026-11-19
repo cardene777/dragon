@@ -14,10 +14,11 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pipeLayout from "../src/kinds/pipe/layout";
-import { renderDiagram } from "../src/index";
+import { renderDiagram } from "../src/core";
 import { parseNotation } from "../src/parser";
 import { Router } from "../src/pipe-route";
 import { CASES, langOfFile, REPO, type Row } from "./pipe-stored-layout-support";
+import "../src/kind-use/pipe";
 
 /** 収めた並べ方に付ける印。描いた並べ方に残れば、収めた並べ方を使ったと分かる */
 const PROBE = "stored-layout-probe";
@@ -51,6 +52,8 @@ function sourceOf(file: string, row: Row): Record<string, unknown> {
 /** 道を探した回数を数えながら `run` を回す */
 function counted<T>(run: () => T): { value: T; routeCalls: number } {
   let routeCalls = 0;
+  // 置き換える前の route を取っておき、置き換えた関数が受けた this を渡して呼び、終わったら戻す
+  // eslint-disable-next-line @typescript-eslint/unbound-method
   const route = Router.prototype.route;
   Router.prototype.route = function (this: Router, ask: Parameters<typeof route>[0]) {
     routeCalls++;

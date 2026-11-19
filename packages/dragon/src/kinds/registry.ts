@@ -5,48 +5,26 @@
  * 再生の部品 (`player.ts`) は、試す図と配管の図の再生の部品を種類の名前を書いて引く。
  * 全部入りの入口は読み込みの時に全ての種類を登録し (`all.ts`)、軽い入口は `loadKind` か `loadFor` が種類を読んだ時に登録する (`light.ts`)。
  * ブロックの読み方は別の登録簿 (`blocks/reading.ts`) が持ち、軽い入口は書いた図が使う個別ブロックの読み方を種類の部品と別に読む (#3349)。
- * 時系列図と構成図は図の種類の置き場 (`kinds/<種類>/`) に並べ方を持ち、登録せずに描く所が置き場の一覧 (`kinds/index.ts`) から引く (#3345)。
+ * 時系列図と構成図の並べ方は、種類の登録の file (`kind-use/<種類>.ts`) がここへ登録し、描く所が名前で引く (`eagerLayout`、#3763)。
+ *
+ * この file は種類の file を読まない。種類の部品の型は、後から読む種類の file (`kinds/<種類>.ts`) が `LaterKinds` に足す (#3763)。
+ * ここが種類の file を読むと、描く所を読む全ての検査が全ての種類の file へたどり着き、変更に関係する検査だけを選べなくなる
  */
 import { FIGURE_TEXT } from "../figure-text";
+import type { Layout } from "../layout/scene";
+import type { DiagramModel } from "../schema";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import type { KindParts } from "./parts";
-import type * as checkout from "./checkout";
-import type * as chart from "./chart";
-import type * as cycle from "./cycle";
-import type * as er from "./er";
-import type * as flow from "./flow";
-import type * as git from "./git";
-import type * as lineup from "./lineup";
-import type * as matrix from "./matrix";
-import type * as mind from "./mind";
-import type * as pipe from "./pipe";
-import type * as sankey from "./sankey";
-import type * as state from "./state";
-import type * as time from "./time";
-import type * as tree from "./tree";
-import type * as tryKind from "./try";
-import type * as venn from "./venn";
 
 /** 後から読む種類の名前。部品の型から導くと、部品の型が軽い入口の型の file へ漏れるので字で書く */
 export type LaterKind = "checkout" | "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
 
+/**
+ * 後から読む種類の名前と、その種類の描く部品の file (`kinds/<種類>.ts`) が出す物の型。
+ * 種類の file が `declare module "./registry"` で自分の行を足す。ここは行を持たず、種類の file を読まない (#3763)
+ */
 export interface LaterKinds {
-  checkout: typeof checkout;
-  chart: typeof chart;
-  cycle: typeof cycle;
-  er: typeof er;
-  flow: typeof flow;
-  git: typeof git;
-  lineup: typeof lineup;
-  matrix: typeof matrix;
-  mind: typeof mind;
-  pipe: typeof pipe;
-  sankey: typeof sankey;
-  state: typeof state;
-  time: typeof time;
-  tree: typeof tree;
-  try: typeof tryKind;
-  venn: typeof venn;
+  [kind: string]: { parts: KindParts } | undefined;
 }
 
 /** 後から読む種類 */
@@ -56,24 +34,46 @@ export function notationReader(text: string): KindParts["notation"] {
   return [...notations.values()].find(n => n.matches(text));
 }
 
-const registered: Partial<LaterKinds> = {};
+const registered: Partial<Record<LaterKind, { parts: KindParts }>> = {};
 const notations = new Map<string, NonNullable<KindParts['notation']>>();
 
-export function registerKind<K extends LaterKind>(kind: K, parts: LaterKinds[K]): void {
+export function registerKind<K extends LaterKind>(kind: K, parts: NonNullable<LaterKinds[K]>): void {
   registered[kind] = parts;
   if (parts.parts.notation) notations.set(kind, parts.parts.notation);
 }
 
-/** 種類の部品を今すぐ描ける形で持っているか。時系列図と構成図は常に持つ */
+/** 最初から読む種類の名前。既定の入口と軽い入口は、どちらも読み込みの時に並べ方を登録する */
+export type EagerKindName = "architecture" | "sequence";
+
+/** 最初から読む種類の並べ方。`lang` は並べ方が出す字 (断りの文など) の言葉 */
+export type EagerLayout = (diagram: DiagramModel, lang: NotationLang) => Layout;
+
+const EAGER_KINDS: readonly EagerKindName[] = ["architecture", "sequence"];
+const eagerLayouts = new Map<string, EagerLayout>();
+
+/** 最初から読む種類の並べ方を登録する。種類の登録の file (`kind-use/sequence.ts`、`kind-use/architecture.ts`) が呼ぶ (#3763) */
+export function registerEagerLayout(kind: EagerKindName, layout: EagerLayout): void {
+  eagerLayouts.set(kind, layout);
+}
+
+/** 最初から読む種類の並べ方。登録していない時は、種類の名前を含む誤りで止まる */
+export function eagerLayout(kind: EagerKindName, lang: NotationLang = DEFAULT_LANG): EagerLayout {
+  const layout = eagerLayouts.get(kind);
+  if (layout === undefined) throw new Error(FIGURE_TEXT[lang].kindNotLoaded(kind));
+  return layout;
+}
+
+/** 種類の部品を今すぐ描ける形で持っているか。時系列図と構成図は、既定の入口と軽い入口では常に持つ */
 export function kindLoaded(kind: string | undefined): boolean {
+  if ((EAGER_KINDS as readonly (string | undefined)[]).includes(kind)) return eagerLayouts.has(kind as string);
   return !(LATER_KINDS as readonly (string | undefined)[]).includes(kind) || registered[kind as LaterKind] !== undefined;
 }
 
 /** 種類の部品。読んでいない時は、種類の名前を含む誤りで止まる */
-export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = DEFAULT_LANG): LaterKinds[K] {
+export function kindParts<K extends LaterKind>(kind: K, lang: NotationLang = DEFAULT_LANG): NonNullable<LaterKinds[K]> {
   const parts = registered[kind];
   if (parts === undefined) throw new Error(FIGURE_TEXT[lang].kindNotLoaded(kind));
-  return parts;
+  return parts as NonNullable<LaterKinds[K]>;
 }
 
 /**

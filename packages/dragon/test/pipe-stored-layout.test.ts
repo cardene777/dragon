@@ -13,13 +13,14 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { planPage } from "../src/export/page";
 import { pageHtml } from "../src/export/html";
-import { renderDiagram } from "../src/index";
+import { renderDiagram } from "../src/core";
 import { parts } from "../src/kinds/pipe";
 import * as pipeLayout from "../src/kinds/pipe/layout";
 import { parseNotation } from "../src/parser";
 import type prepare from "./pipe-stored-layout.prepare";
 import { prepared } from "./prepared";
 import { CASES, ONE_FOLD, REPO, TWO_FOLDS } from "./pipe-stored-layout-support";
+import "../src/kind-use/pipe";
 
 const PROBE = "stored-layout-probe";
 type Stored = { key: string; layout: Record<string, unknown> };
@@ -101,10 +102,10 @@ describe("収めた並べ方で描く (#3748)", () => {
     // 並べ方の関数が受けた図 (畳んだ箱を開いた後の図) を捕まえる
     let model: unknown;
     const layout = parts.layout;
-    parts.layout = ((diagram, ...rest) => {
+    parts.layout = (diagram, ...rest) => {
       model = diagram;
       return layout(diagram, ...rest);
-    }) as typeof layout;
+    };
     let stored: Stored[];
     try {
       stored = probed(() => render(source, { lang: "ja" }));

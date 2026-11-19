@@ -7,18 +7,19 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as pipeRules from "../src/pipe-rules";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/layout";
 import { toModel } from "../src/model";
 import { type Ask, Router } from "../src/pipe-route";
 import type { Diagram } from "../src/schema";
-import { casesNamed } from "./export-support";
+import { casesNamed } from "./case-support";
 import type { Json } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, gap, type Rect, type Rendered } from "./render-support";
 import { ROOT, SAMPLES, RETURN_CASES, KANA, type Point, type Writing, type Party, type Level, type Main, type Plate, type PipeLayout, type PipeRendered, box, bal, call, ret, move, emit, stepOf, pipeOf, exampleJson, render, partyOf, levelOf, tankOf, center, within, lastStep, stillOf, seenOf, partsOf, seen, onPath, alongPath, inside, segmentsOf } from "./pipe-diagram-support";
+import "../src/kind-use/pipe";
 
 // ---- 決まりの表と組み方 (#3418)
 
@@ -91,11 +92,15 @@ interface Violation {
 /** 崩れの 8 種類。背景の 6 種類と、字に線がかかる形と、線の小さな段差と揃わない間 */
 const BREAKAGES = ["crowded", "behind-tag", "tangled", "gauge-astray", "tie-crossing", "lopsided", "text-under-line", "jog"] as const;
 
-/** 決まりの表と違反を数える処理。`@cardenelabs/dragon` から引く */
+/**
+ * 決まりの表と違反を数える処理。既定の入口が出す元の file (`src/pipe-rules.ts`) から引く。
+ * 既定の入口は全ての種類を読むので、引くと配管の図でない種類を変えた時もこの検査が選ばれる (#3763)。
+ * 既定の入口が出すことは、全ての種類を読む検査 (`light-entry.test.ts` の `default-entry-exports-pipe-rules`) が確かめる
+ */
 function rulesApi(): { rules: readonly PipeRule[]; violations: (layout: unknown, rules?: readonly PipeRule[]) => Violation[] } {
-  const lib = dragon as unknown as { PIPE_RULES?: readonly PipeRule[]; pipeViolations?: (layout: unknown, rules?: readonly PipeRule[]) => Violation[] };
-  expect(lib.PIPE_RULES, "配管の図の決まりの表 (PIPE_RULES) が @cardenelabs/dragon から出ていない").toBeDefined();
-  expect(lib.pipeViolations, "決まりの表への違反を数える処理 (pipeViolations) が @cardenelabs/dragon から出ていない").toBeTypeOf("function");
+  const lib = pipeRules as unknown as { PIPE_RULES?: readonly PipeRule[]; pipeViolations?: (layout: unknown, rules?: readonly PipeRule[]) => Violation[] };
+  expect(lib.PIPE_RULES, "配管の図の決まりの表 (PIPE_RULES) が src/pipe-rules から出ていない").toBeDefined();
+  expect(lib.pipeViolations, "決まりの表への違反を数える処理 (pipeViolations) が src/pipe-rules から出ていない").toBeTypeOf("function");
   return { rules: lib.PIPE_RULES ?? [], violations: lib.pipeViolations ?? (() => []) };
 }
 
@@ -203,6 +208,24 @@ function generatedPipe(seed: number, long: boolean): Json {
 
 /** 見本と言葉と枠の幅の組 */
 const exampleCases = SAMPLES.flatMap((name) => (["ja", "en"] as const).flatMap((lang) => ([1280, 390] as const).map((width) => [name, lang, width] as const)));
+
+// 箱 2 を開いた aggregator の道を探す回数は、同じ図を描く前の file を読み込む段で数える。描いた図は並べ方の覚えに入り、覚えに在る図は道を探さない。
+// 描く助けの file も `src` の並べ方を読むので、数える前に描くと覚えを引いて 0 回になる (#3763)。キーは見本の file の名前
+const AGGREGATOR_SEARCHES = await atLoad("箱 2 を開いた aggregator を幅 390 で並べ、道を探す回数を数える", () =>
+  new Map(
+    (["ja", "en"] as const).map((lang): [string, number] => {
+      const file = lang === "ja" ? "aggregator.json" : "aggregator.en.json";
+      const model = foldModel(toModel(exampleJson(file) as unknown as Diagram), [2], lang);
+      const route = vi.spyOn(Router.prototype, "route");
+      try {
+        layoutPipe(model, { lang, width: 390 });
+        return [file, route.mock.calls.length];
+      } finally {
+        route.mockRestore();
+      }
+    }),
+  ),
+);
 
 // 見本ごとの件の中で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。全ての見本と言葉と枠の幅の図を file を読み込む段で描き、
 // 件は描いた置き場所を読む。キーは `見本 言葉 幅`。Aggregator は 2 つ目の箱を開いて描く
@@ -335,21 +358,14 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
   describe.for([
     ["aggregator.json", "ja"],
     ["aggregator.en.json", "en"],
-  ] as const)("%s", ([file, lang]) => {
+  ] as const)("%s", ([file]) => {
     it("pipe-narrow-open-aggregator-searches-fewer", () => {
       // 幅 390 で箱 2 を開いた aggregator は、組み方を 3 通り試し、管の道を何度も探す。
       // 直す前は、広い枠と狭い枠を合わせて 515 回探した (#3603)。並べ方の覚えに在る図は探さないので、0 回は数えない。
       // `src` の並べ方を呼び、数える `Router` と並べ方が使う `Router` を同じ module にする (`dist` は別の `Router` を持つ)
-      const model = foldModel(toModel(exampleJson(file) as unknown as Diagram), [2], lang);
-      const route = vi.spyOn(Router.prototype, "route");
-      try {
-        layoutPipe(model, { lang, width: 390 });
-        const searches = route.mock.calls.length;
-        expect(searches, `${file} の道を 1 度も探していない。覚えに在る図を使った`).toBeGreaterThan(0);
-        expect(searches, `${file} の道を探す回数`).toBeLessThan(515);
-      } finally {
-        route.mockRestore();
-      }
+      const searches = AGGREGATOR_SEARCHES.get().get(file) ?? 0;
+      expect(searches, `${file} の道を 1 度も探していない。覚えに在る図を使った`).toBeGreaterThan(0);
+      expect(searches, `${file} の道を探す回数`).toBeLessThan(515);
     });
   });
 

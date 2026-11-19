@@ -17,13 +17,13 @@
 | 手順の図を0.25秒ごとに止めて数えた時、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`flow-keeps-motion-rules`が通る | #3561 |
 | ログインの判断の図を日本語と英語で、枠の幅を渡さない時と390を渡した時に描いた時、`dragon check --layout`がどの段でも崩れを何も出さない | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`flow-examples-pass-layout-check`が通る | #3561 |
 | 手順の図の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画のfileに色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3561 |
-| `dragon export`が手順の図をmp4、GIF、HTML、PNGの4つに書き出し、同じJSONを2回書き出したPNGがバイト単位で一致し、書き出したHTMLで全ての段を送れる | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`flow-exports-every-format`が通る | #3561 |
+| `dragon export`が手順の図をmp4、GIF、HTML、PNGの4つに書き出し、同じJSONを2回書き出したPNGがバイト単位で一致し、書き出したHTMLで全ての段を送れる | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`flow-exports-every-format`が通る | #3561 |
 | `packages/dragon/examples`にログインの判断の図の日本語と英語の記法とJSONの4つのfileがあり、英語版の箱と判断と線と段の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`flow-example-files-match`が通る | #3561 |
 | 今の見本の描いた形は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3561 |
 | 軽い入口が手順の図を読んで描き、既定の入口と同じSVGを出す | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-samples-cover-kinds`と`light-entry-draws-same-svg`と`default-entry-draws-every-kind`が通る | #3561 |
 | repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3561 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3561 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`flow`と`choice`の行の書き方と、最初の段より前の線が点線になることが載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに手順の図が載り、`.ikkan/premises/product.md`が手順の図を描ける図の種類に数える | `pnpm exec vitest run packages/dragon/test/flow-diagram.test.ts`の検査`docs-describe-flow-diagram`が通る | #3561 |
+| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`flow`と`choice`の行の書き方と、最初の段より前の線が点線になることが載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに手順の図が載り、`.ikkan/premises/product.md`が手順の図を描ける図の種類に数える | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-flow-diagram`が通る | #3561 |
 | AIのskillに全ての図の種類の`references/kinds/<種類>.md`が在って`SKILL.md`が全てを名指し、記法の囲みが全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-covers-every-kind`と`skill-fences-parse`が通る | #3561 |
 | 図の種類を足した時に触る登録先が全て一覧に載り、見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`extend-registry-covers-kind-additions`と`page-bundle-within-budget`が通る | #3561 |
 | 見本`login-all-paths`を描いた時、段3の`pw -> otp`と`pw -> err`の線の出発の時刻が同じで、段の印の点が同じ時刻に2つ走り出す | `pnpm exec vitest run packages/dragon/test/flow-fork.test.ts`の検査`fork-lines-start-together`が通る | #3579 |

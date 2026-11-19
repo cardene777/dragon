@@ -8,6 +8,14 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, exampleText, type LineError, type Parsed } from "./diagram-support";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
+import "../src/kind-use/flow";
+import "../src/kind-use/git";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 /** 仮名と漢字。英語の誤りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;

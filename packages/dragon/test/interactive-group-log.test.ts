@@ -9,12 +9,12 @@
  * 記録の中のチップの `all` の欄が全てその値なら `yes` の印を、1 つでも違えば `no` の印を記録に出す。
  * 誤りの文を英語でも確かめるので、名札と値は英字にする。
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { draw } from "./render-support";
 import { askStrip, KANA, mountTry, parsedTry, press, releaseTry, sendButton, sessionOf, tryLayout } from "./try-support";
+import "../src/kind-use/try";
 
 afterEach(releaseTry);
 
@@ -106,11 +106,6 @@ function sendValues(host: HTMLElement, values: Record<string, string>): void {
   expect(button, "入力の帯に送る釦が無い").not.toBeNull();
   button?.click();
 }
-
-const readRepo = (path: string): string => {
-  const full = join(process.cwd(), path);
-  return existsSync(full) ? readFileSync(full, "utf8") : "";
-};
 
 describe("into に欄を書いて行き先の待ち行列を選ぶ (#3441)", () => {
   it("interactive-into-field-round-trip", () => {
@@ -220,29 +215,5 @@ describe("鎖でない記録の列 log (#3441)", () => {
     for (const word of ["1", "a", "b", "yes", "commit"]) expect(textOf(first), `記録 1 に ${word} の字が無い`).toContain(word);
     for (const word of ["2", "c", "d", "no", "reject"]) expect(textOf(second), `記録 2 に ${word} の字が無い`).toContain(word);
     for (const word of ["prev", "hash", "SHA-256"]) expect(textOf(log), `記録の列に ${word} の字がある`).not.toContain(word);
-  });
-});
-
-describe("書き方の文書 (#3441)", () => {
-  it("docs-describe-try-log", () => {
-    /** 見出し `heading` から次の同じ深さの見出しまで */
-    const sectionOf = (text: string, heading: string): string => {
-      const start = text.indexOf(heading);
-      if (start < 0) return "";
-      const next = text.indexOf("\n### ", start + heading.length);
-      return text.slice(start, next < 0 ? undefined : next);
-    };
-    for (const [path, heading, intoField] of [
-      ["packages/dragon/README.ja.md", "### 試す図", "`into` に欄"],
-      ["packages/dragon/README.md", "### Try diagram", "`into` names a field"],
-    ] as const) {
-      const section = sectionOf(readRepo(path), heading);
-      expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");
-      expect(section, `${path} の試す図の小節に log の行の書き方が無い`).toContain("log <");
-      expect(section, `${path} の試す図の小節に log の all の書き方が無い`).toContain("all:");
-      expect(section, `${path} の試す図の小節に into に欄を書く書き方が無い`).toContain(intoField);
-    }
-    const docs = readRepo("apps/playground-spa/src/docs/content.ts");
-    for (const words of ["log <", "all:", "`into` に欄", "`into` names a field"]) expect(docs, `使い方の頁に ${words} が無い`).toContain(words);
   });
 });

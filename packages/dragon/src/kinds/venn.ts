@@ -8,3 +8,10 @@ export const parts: KindParts<VennLayout> = {
   layout: (diagram, lang, options) => layoutVenn(diagram, lang, options.width),
   draw: (layout, _diagram, ctx) => drawVenn(layout, ctx),
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    venn: typeof import("./venn");
+  }
+}
