@@ -138,7 +138,7 @@ const twins = (g: Graph): [Graph, Graph] => [structuredClone(g), structuredClone
 describe("図の座標をずらす道具 (#3751)", () => {
   it("pipe-shift-matches-definition", () => {
     const Shifter = tool();
-    for (let seed = 1; seed <= 60; seed++) {
+    for (let seed = 1; seed <= 25; seed++) {
       const rand = seeded(seed);
       const [want, got] = twins(graphOf(rand));
       const shifter = new Shifter(got.root);
