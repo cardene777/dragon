@@ -46,9 +46,10 @@ describe("mdから頁を書き出す (#3755)", () => {
     const doc = documentOf(expectWritten(await exportPage(md)));
     const order = pageOf(doc, "order");
     // .md は md として、ほかの文字の file は名前を付けた code の囲みとして載る
-    expect(order?.querySelector("table")?.textContent ?? "", "載せた設計書の md の表").toContain(
-      "注文の番号",
-    );
+    expect(
+      [...(order?.querySelectorAll("table") ?? [])].map((table) => table.textContent ?? ""),
+      "載せた設計書の md の表",
+    ).toContainEqual(expect.stringContaining("注文の番号"));
     expect(order?.textContent ?? "", "載せた設計書の md の見出し").toContain("注文の設計");
     expect(order?.textContent ?? "", "md の字のまま載った").not.toContain("|---|");
     const code = [...(order?.querySelectorAll("pre > code") ?? [])].map((c) => c.textContent);

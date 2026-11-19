@@ -40,7 +40,11 @@
     {
       "pattern": "builtDir",
       "why": "build した頁の中身を読む検査は、準備の段が build した頁を使う。頁の build は頁の入口と、頁の html と、build の設定を読む",
-      "to": ["apps/playground-spa/src/main.tsx", "apps/playground-spa/index.html", "apps/playground-spa/vite.config.ts"]
+      "to": [
+        "apps/playground-spa/src/main.tsx",
+        "apps/playground-spa/index.html",
+        "apps/playground-spa/vite.config.ts"
+      ]
     }
   ],
   "materials": [
@@ -62,7 +66,10 @@
     },
     {
       "files": ["test-support/fixtures/limits/**"],
-      "tests": ["packages/dragon/test/test-limits.test.ts", "packages/dragon/test/test-tmp.test.ts"],
+      "tests": [
+        "packages/dragon/test/test-limits.test.ts",
+        "packages/dragon/test/test-tmp.test.ts"
+      ],
       "why": "時間の上限の検査と一時フォルダの検査が起こす、見本の検査とその設定"
     },
     {
@@ -84,6 +91,11 @@
       "files": ["docs/adr/**"],
       "tests": [],
       "why": "判断の記録 (#3698)。人が読む文で、検査は読まない"
+    },
+    {
+      "files": ["GLOSSARY.md"],
+      "tests": [],
+      "why": "用語の表 (#3755)。人が読む文で、検査は読まない"
     },
     {
       "files": [".claude/**", ".agents/**", ".github/**"],
@@ -110,9 +122,7 @@
       "why": "repo の取り決めと、外の道具の設定。読む検査は字で名前を書くので、命令が字から選ぶ"
     },
     {
-      "files": [
-        "packages/dragon/blocks/**"
-      ],
+      "files": ["packages/dragon/blocks/**"],
       "tests": [
         "packages/dragon/test/shared-blocks.test.ts",
         "packages/dragon/test/user-blocks.test.ts",
@@ -126,7 +136,10 @@
     },
     {
       "files": ["scripts/layout-breaks-record.mjs", "scripts/plugin-eval-record.mjs"],
-      "tests": ["packages/dragon/test/layout-check.test.ts", "packages/dragon/test/plugin-eval.test.ts"],
+      "tests": [
+        "packages/dragon/test/layout-check.test.ts",
+        "packages/dragon/test/plugin-eval.test.ts"
+      ],
       "why": "見本の崩れの一覧と、プラグインの評価の記録を書き直す script (#3484)。検査は script が書いた一覧と記録を読む"
     }
   ]

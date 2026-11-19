@@ -902,7 +902,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Region and box | `icon` | Icon next to the name |
 | Idea | `color` | The colour of an idea in a mind map, from the same roles as regions and boxes. On a branch, its lines and leaves take the colour, and a branch without one gets a colour no other branch has taken |
 | Axis | `from`, `to` | The two ends of an axis in a two-axis matrix. `from` is the low end (left on the horizontal axis, bottom on the vertical one) and `to` the high end. Leave them out and no end text shows |
-| Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/` or a URL that starts with `http://` or `https://` |
+| Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#` |
 | Source of a step | `url` | Where the source is. Takes the same forms as `link` |
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |
 | Line and strip value | `tag` | The text of a tag that travels on the line, or a tag on a strip field |

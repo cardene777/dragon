@@ -116,6 +116,7 @@ The script loads from jsDelivr with the version pinned up to the middle number (
 It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
+A block that has no width then, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
 Indentation that every line of a block shares is removed before reading, and `<` in the notation is written as `&lt;`.
 A block with an error in its notation is not drawn, and its error lines are shown in its place (`<pre class="dragon-error">`).
 The text in the diagram and the error lines are in Japanese when the page's `lang` starts with `ja`, and in English otherwise.
@@ -126,6 +127,88 @@ The file fetches nothing from outside, and draws in the device's fonts because t
 
 ```sh
 dragon embed page.html
+```
+
+## Write a page from Markdown
+
+`dragon export notes.md` reads a Markdown file and writes one HTML page, `notes.html`, next to it (`--out <dir>` picks the folder).
+The page holds the prose, the tables and the `dragon` code blocks of the file, and splits the headings into pages and tabs.
+The same work is `exportPage(file, { outDir, lang })` from `@cardenelabs/dragon/node`.
+
+| Heading | Becomes |
+|---|---|
+| `#` | The page title |
+| Text before the first `##` | The entry, the first thing the page shows |
+| `##` | A group of items |
+| `###` | An item, which has its own page |
+| `####` | A tab, in the entry and in an item page |
+| `#####` | A tab inside a tab |
+
+The default layout shows the entry with one card per item, grouped by `##`, and a card moves to the item's page without reloading.
+An item page leads back to the entry and to the items before and after it.
+Choose another layout with a `layout` line between `---` lines at the top: `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them.
+`layout: entry` is the default.
+
+A box in a diagram moves to an item when its link names that item's place, written `[link: #<place>]`.
+A place is made from the heading text the way GitHub makes heading anchors: letters become lowercase, punctuation is dropped, and spaces become `-`, so `### Take the order` is `#take-the-order`.
+`#<item>/<tab>` opens a tab of an item, and the address of the page keeps the item and the tab that are open.
+A link to a place the page does not have stops the export.
+
+A line that holds only `![name](path)` puts that file in the page: a `.md` file as Markdown, a `.dragon` file as a diagram, and any other text file as a code block named `name`.
+An image file stays an image.
+Only files in the folder of the Markdown file and below are read, and a line that points outside stops the export.
+
+Raw HTML in the Markdown is shown as text and never runs.
+The words the page adds are in Japanese when the text has kana or kanji and in English otherwise, and `--lang ja` or `--lang en` picks them.
+The page draws its diagrams with the jsDelivr script line, so pass the page to `dragon embed` for a file that opens without the network.
+An error in the notation of a diagram, an unknown `layout`, or a `###` before the first `##` stops the export with the file and line.
+The export accepts only `--out` and `--lang`, and refuses the options for diagrams such as `--fps`.
+
+The worked example in [`examples/page/`](examples/page/page.en.md) uses every rule.
+
+````md
+---
+layout: entry
+---
+
+# From order to delivery
+
+How a shop takes an order and delivers the goods.
+
+#### Overview diagram
+
+```dragon
+architecture From order to delivery
+box web as Order screen [link: #take-the-order]
+box pay as Payment system [link: #take-the-payment]
+step Pay
+  web -> pay: Order
+```
+
+## Intake
+
+### Take the order
+
+#### Result
+
+Took 12 orders.
+
+#### Full output
+
+![Intake design](parts/design.en.md)
+
+## Payment
+
+### Take the payment
+
+#### How it works
+
+![Payment diagram](parts/pay.en.dragon)
+````
+
+```sh
+dragon export notes.md
+dragon embed notes.html
 ```
 
 ## Put it on a page
@@ -422,7 +505,7 @@ A diagram with no `box` line makes a box of each name on the lines in the order 
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
 A destination in the `link` attribute of a box line makes that box a link in the drawn diagram.
 A `source <name> [url: <URL>]` line inside a step is a source of that step; a step can have any number, and they are listed as links in the step list that screen readers read.
-A destination or source URL is a path that starts with `/`, or a URL that starts with `http://` or `https://`.
+A destination or source URL is a path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#`.
 
 ```dragon
 architecture Send orders to the warehouse
