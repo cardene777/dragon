@@ -2,6 +2,6 @@
 import type { BlockDesc } from "../../gallery";
 
 export const desc: BlockDesc = {
-  ja: "箱に書く飛び先。描いた図ではその箱が link になり、押すと中の仕組みを描いた頁などへ移る。/ で始まる path か、http:// か https:// で始まる URL で書く。",
-  en: "Where a box leads. The box becomes a link in the drawn diagram, for example to the page that draws what is inside it. Write a path that starts with / or a URL that starts with http:// or https://.",
+  ja: "箱に書く飛び先。描いた図ではその箱が link になり、押すと中の仕組みを描いた頁などへ移る。/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所で書く。",
+  en: "Where a box leads. The box becomes a link in the drawn diagram, for example to the page that draws what is inside it. Write a path that starts with /, a URL that starts with http:// or https://, or a place on the page that starts with #.",
 };

@@ -51,6 +51,9 @@ export function textLang(diagram: Pick<Diagram, "title" | "steps">): NotationLan
   return [diagram.title, ...diagram.steps.map((step) => step.body)].some((text) => KANA_KANJI.test(text)) ? "ja" : "en";
 }
 
+/** 字に仮名か漢字があるか。mdから書き出す頁 (#3755) が、頁に足す字の言葉を本文から決めるために使う */
+export const hasKanaKanji = (text: string): boolean => KANA_KANJI.test(text);
+
 const keys = <K extends string>(table: Record<K, true>): K[] => Object.keys(table) as K[];
 
 /** 図の種類。最初の行の頭の語 */

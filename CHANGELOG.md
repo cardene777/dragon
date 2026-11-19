@@ -6,6 +6,26 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **`dragon export notes.md` writes one HTML page from a Markdown file, with the headings split into pages and tabs** (#3755)
+
+  `#` is the page title, the text before the first `##` is the entry, `##` is a group, `###` is an item with its own page, `####` is a tab in the entry and in an item page, and `#####` is a tab inside a tab. The default layout (`layout: entry`) shows the entry with one card per item, grouped by `##`, and a card moves to the item's page without reloading; the item page leads back to the entry and to the items before and after it. `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them. The address of the page keeps the item and the tab that are open, so reloading opens them again. A box in a diagram moves to an item when its link names the item's place, such as `[link: #take-the-order]`, made from the heading text the way GitHub makes heading anchors. A line that holds only `![name](path)` puts a `.md` file in the page as Markdown, a `.dragon` file as a diagram and any other text file as a named code block, and reads only files in the folder of the Markdown file and below. Raw HTML is shown as text. The words the page adds follow the language of the text, and `--lang` picks them. A notation error, a link to a missing place, an include outside the folder, an unknown `layout` or a `###` before the first `##` stops the export with the file and line, and the export refuses the diagram options such as `--fps`. The same work is `exportPage` from `@cardenelabs/dragon/node`, and the worked example is in `packages/dragon/examples/page/`.
+
+- **A box link and a step source can name a place on the same page that starts with `#`** (#3755)
+
+  `[link: #order]` is accepted in the notation and in the source JSON, next to paths that start with `/` and URLs that start with `http://` or `https://`. Other forms such as `javascript:` are still refused.
+
+### Fixed
+
+- **A diagram block hidden when the page loads is drawn when it is shown, and a diagram hidden and shown again keeps its motion in step with the player** (#3755)
+
+  The script line drew every block when the page loaded, so a block inside a tab hidden with `display: none` was drawn into a frame with no width and stayed empty when the tab opened. A block that has no width then is now drawn when it first gets a width. A drawn diagram that was hidden and shown again restarted its motion from the beginning while the player's clock kept running, so the picture showed an earlier step than the step number; the player now places the picture at the clock's time when the frame gets its width back.
+
+- **Step numbers stay hidden inside an ancestor hidden with `visibility: hidden`** (#3755)
+
+  The step number marks set `visibility: visible` while they moved, which showed them through a tab hidden with `visibility: hidden`. They now take their visibility from the ancestor while they are shown, so a visible diagram shows them as before.
+
 ## [0.77.1] - 2026-11-18
 
 ### Changed

@@ -1,0 +1,15 @@
+sequence Take the payment
+
+box shop as Shop desk
+box payments as Payment company
+box store as Warehouse
+
+step Ask for the money
+  say The shop asks the payment company for the order's money.
+  shop -> payments: Charge
+step Learn it is paid
+  say The payment company replies that the payment went through.
+  payments -> shop: Paid
+step Pass it on
+  say The shop passes the paid order to the warehouse.
+  shop -> store: Paid order

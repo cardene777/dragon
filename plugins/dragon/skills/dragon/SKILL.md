@@ -161,6 +161,7 @@ Pick the way the destination supports. Details and code are in [setup](reference
 | An app | `npm install @cardenelabs/dragon`, then `parseNotation` and `renderDiagram`, or the player `mountDiagram` |
 | A tool or page that wants the diagram with its bar (Code, Editor, Copy, Export) | One of four ways: `data-header` on the script block, `mountDragon`, `<dragon-diagram>`, or an iframe from `embedUrl`. See [embed](references/embed.md) |
 | A file that opens offline | `dragon embed page.html` |
+| An explanation with several diagrams, split into pages and tabs | Write it in Markdown (`#` title, `##` groups, `###` items, `####` tabs, `[link: #<item>]` on overview boxes, `![name](file to include)` alone on a line to include a file) and run `dragon export notes.md`. Pick `layout: sidebar` or `layout: tabs` at the top; the default is `entry`. See the package README |
 
 Keep the `.dragon` file next to any exported image so the diagram can be edited and exported again.
 
