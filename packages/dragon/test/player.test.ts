@@ -1214,3 +1214,56 @@ describe("狭い枠で配管の図を箱の名前が読める大きさから始�
     }
   });
 });
+
+describe("再生の帯の釦の絵柄 (#3752)", () => {
+  /** 釦の絵柄を字で描いた時の字。字は小さく釦の真ん中より下に寄るので、絵柄はCSSの形で描く */
+  const GLYPHS = /[↺‹›❚▶−+]/u;
+  /** 釦の要素の中の絵柄の名前 */
+  const iconsOf = (button: Element | null): string[] =>
+    [...(button?.querySelectorAll<HTMLElement>(".dg-ic") ?? [])].map((icon) => icon.dataset.icon ?? "");
+
+  it("player-buttons-carry-icons", () => {
+    prefersReducedMotion(true);
+    for (const name of ["oauth.json", "swap.json"]) {
+      const { host } = mount(exampleJson(name));
+      // 動きを嫌う設定では止めて置くので、再生の釦は流す絵柄を持つ。配管の図は拡大と縮小の釦も持つ
+      const want: [string, string][] = [
+        ["restart", "restart"],
+        ["prev", "prev"],
+        ["toggle", "play"],
+        ["next", "next"],
+        ...(name === "swap.json" ? ([["zoom-out", "zoom-out"], ["zoom-in", "zoom-in"]] as [string, string][]) : []),
+      ];
+      for (const [button, icon] of want) {
+        const el = host.querySelector<HTMLButtonElement>(`button[data-dragon="${button}"]`);
+        expect(el, `${name} の ${button} の釦が無い`).not.toBeNull();
+        expect(iconsOf(el), `${name} の ${button} の釦の絵柄`).toEqual([icon]);
+        expect(el?.textContent ?? "", `${name} の ${button} の釦が字で絵柄を描く`).not.toMatch(GLYPHS);
+      }
+      // 再生の釦は絵柄の右に、読み上げの名前と同じ名前を字で持つ。押して流すと止める絵柄と名前に替わる
+      const toggle = host.querySelector<HTMLButtonElement>('button[data-dragon="toggle"]');
+      const named = (): { text: string; label: string } => ({ text: toggle?.textContent?.trim() ?? "", label: toggle?.getAttribute("aria-label") ?? "" });
+      expect(named().text, `${name} の止めた図の再生の釦に名前が無い`).toMatch(/\p{L}{2,}/u);
+      expect(named().text, `${name} の止めた図の再生の釦の名前`).toBe(named().label);
+      const paused = named().text;
+      toggle?.click();
+      expect(iconsOf(toggle), `${name} の流した図の再生の釦の絵柄`).toEqual(["pause"]);
+      expect(named().text, `${name} の流した図の再生の釦の名前`).toBe(named().label);
+      expect(named().text, `${name} の流した図の再生の釦の名前が替わらない`).not.toBe(paused);
+      expect(toggle?.textContent ?? "", `${name} の流した図の再生の釦が字で絵柄を描く`).not.toMatch(GLYPHS);
+    }
+  });
+
+  it("player-bar-keeps-svg-to-figure", () => {
+    prefersReducedMotion(true);
+    for (const name of ["oauth.json", "swap.json", "api.json"]) {
+      const { host } = mount(exampleJson(name));
+      // 図を置いた頁がsvgの全てに大きさを当てても崩れないよう、再生の帯の釦と進み具合はsvgの要素を使わない (#3499)。
+      // 頁の処理と検査が図のsvgを探す時に、図の外のsvgを拾わない
+      const outer = [...host.querySelectorAll("svg")].filter((svg) => !svg.parentElement?.closest("svg"));
+      expect(outer.length, `${name} の再生の部品の中の、図の中に無いsvgの数`).toBe(1);
+      expect(outer[0]?.closest(".dg-frame"), `${name} のsvgが図の枠の外に在る`).not.toBeNull();
+      expect(host.querySelector(".dg-bar svg"), `${name} の再生の帯にsvgの要素が在る`).toBeNull();
+    }
+  });
+});
