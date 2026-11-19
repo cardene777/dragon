@@ -10,8 +10,8 @@
 import { mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import type { Browser } from "playwright-core";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { atLoad } from "./at-load";
 import { exporter } from "./export-support";
 import { fileChromium, fileChromiumLaunches } from "./page-needs";
 
@@ -31,43 +31,51 @@ const SMALL = {
   sequence: { lifelines: ["a", "b"] },
 };
 
+// 書き出しの部品を読む仕事、Chromium を起こす仕事、PNG を書き出す仕事は、file を読み込む段で済ませる。
+// 件の外の前処理で済ませても、混んだ機械で前処理の上限 (10 秒) を超えた (#3759)。件は書き出した結果と数を読む
+const EXPORTER = await atLoad("書き出しの部品を読む", exporter);
+const CHROMIUM = await atLoad("file の Chromium を起こす", fileChromium);
+
+/** 既定の名前で書き出す時の鍵 */
+const DEFAULT_NAME = "既定の名前";
+
+/** 名前ごとに PNG を書き出し、その間に file の Chromium で頁を開いた回数と、書き出した後の Chromium の様子を返す */
+async function exportWatched(names: readonly string[]) {
+  const exportDiagram = EXPORTER.get();
+  const browser = CHROMIUM.get();
+  const opened = vi.spyOn(browser, "newPage");
+  const contextsBefore = browser.contexts().length;
+  const dir = scratch();
+  try {
+    const sizes: Record<string, number> = {};
+    for (const name of names) {
+      const result = await exportDiagram(SMALL, { outDir: dir, ...(name === DEFAULT_NAME ? {} : { name }), formats: ["png"] });
+      sizes[name] = statSync(result.files.png as string).size;
+    }
+    return { sizes, opened: opened.mock.calls.length, launches: fileChromiumLaunches(), connected: browser.isConnected(), contextsBefore, contextsAfter: browser.contexts().length };
+  } finally {
+    opened.mockRestore();
+  }
+}
+
+const TWICE = await atLoad("PNG を 2 回書き出す", () => exportWatched(["one", "two"]));
+const ONCE = await atLoad("PNG を既定の名前で 1 回書き出す", () => exportWatched([DEFAULT_NAME]));
+
 describe("書き出しの検査が file で 1 つの Chromium を使う (#3599)", () => {
-  // 書き出しの部品を読むのと Chromium を起こすのは、件の外の前処理で済ませる。混んだ機械で 1 件の上限 (10 秒) に入れないため
-  let exportDiagram: Awaited<ReturnType<typeof exporter>>;
-  let browser: Browser;
-  beforeAll(async () => {
-    exportDiagram = await exporter();
-    browser = await fileChromium();
+  it("shared-chromium-launches-once-per-file", () => {
+    const twice = TWICE.get();
+    for (const name of ["one", "two"]) expect(twice.sizes[name], `${name} の PNG が空`).toBeGreaterThan(0);
+    // 2 回とも file の Chromium で頁を開いたなら、書き出しは自分で Chromium を起こしていない
+    expect(twice.opened, "PNG を 2 回書き出す間に file の Chromium で頁を開いた回数").toBe(2);
+    expect(twice.launches, "file で Chromium を起こした回数").toBe(1);
   });
 
-  it("shared-chromium-launches-once-per-file", async () => {
-    const opened = vi.spyOn(browser, "newPage");
-    const dir = scratch();
-    try {
-      for (const name of ["one", "two"]) {
-        const result = await exportDiagram(SMALL, { outDir: dir, name, formats: ["png"] });
-        expect(statSync(result.files.png as string).size, `${name} の PNG が空`).toBeGreaterThan(0);
-      }
-      // 2 回とも file の Chromium で頁を開いたなら、書き出しは自分で Chromium を起こしていない
-      expect(opened, "PNG を 2 回書き出す間に file の Chromium で頁を開いた回数").toHaveBeenCalledTimes(2);
-      expect(fileChromiumLaunches(), "file で Chromium を起こした回数").toBe(1);
-    } finally {
-      opened.mockRestore();
-    }
-  });
-
-  it("shared-chromium-is-file-chromium", async () => {
-    const opened = vi.spyOn(browser, "newPage");
-    const contexts = browser.contexts().length;
-    try {
-      const result = await exportDiagram(SMALL, { outDir: scratch(), formats: ["png"] });
-      expect(statSync(result.files.png as string).size, "PNG が空").toBeGreaterThan(0);
-      expect(opened, "書き出しが file の Chromium で頁を開いていない").toHaveBeenCalled();
-      expect(browser.isConnected(), "書き出しが閉じた時に file の Chromium まで閉じた").toBe(true);
-      expect(browser.contexts().length, "書き出しが開いた頁を閉じずに残した").toBe(contexts);
-    } finally {
-      opened.mockRestore();
-    }
+  it("shared-chromium-is-file-chromium", () => {
+    const once = ONCE.get();
+    expect(once.sizes[DEFAULT_NAME], "PNG が空").toBeGreaterThan(0);
+    expect(once.opened, "書き出しが file の Chromium で頁を開いていない").toBeGreaterThan(0);
+    expect(once.connected, "書き出しが閉じた時に file の Chromium まで閉じた").toBe(true);
+    expect(once.contextsAfter, "書き出しが開いた頁を閉じずに残した").toBe(once.contextsBefore);
   });
 });
 

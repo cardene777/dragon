@@ -381,10 +381,14 @@ const lineOf = (text: string, head: string): number => text.split("\n").findInde
 const timesText = (times: string[]): string =>
   ["cycle 長さの輪 [shape: clock]", "", ...times.map((t, i) => `box s${i + 1} as 手順${i + 1} [time: ${t}]`), "", "step 始める", "  say 始める。", ""].join("\n");
 
-beforeAll(async () => {
-  LATER_EXAMPLES.start();
-  for (let i = 0; i < 400 && LATER_EXAMPLES.state().status === "loading"; i += 1) await new Promise((resolve) => setTimeout(resolve, 25));
-  expect(LATER_EXAMPLES.state().status, "見本帳の後から読む見本の塊が届かない").toBe("ready");
+// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
+const EXAMPLES_READY = await atLoad("見本帳の後から読む見本の塊を待つ", async () => {
+  const { whenReady } = (await playgroundFile("site/later.ts")) as { whenReady: (chunk: typeof LATER_EXAMPLES) => Promise<unknown> };
+  return whenReady(LATER_EXAMPLES);
+});
+
+beforeAll(() => {
+  EXAMPLES_READY.get();
 });
 
 describe("時計の文字盤の見た目の原本の JSON (#3638)", () => {
@@ -466,6 +470,10 @@ describe("時計の文字盤の見た目の記法 (#3638)", () => {
 
 // 短い手順の時計を描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で描き、件はその置き場所を読む
 const SHORT_CLOCK = await atLoad("短い手順を持つ時計を描く", () => renderClock(SHORT));
+// 崩れの確かめは 1 つの言葉で混んだ機械なら 6 秒前後かかり、2 つの言葉で 1 件の上限 (10 秒) を超えた (#3759)。これも file を読み込む段で済ませる
+const SHORT_CHECKS = await atLoad("短い手順を持つ時計の崩れを 2 つの言葉で確かめる", () =>
+  LANGS.map((lang) => ({ lang, problems: checkText("short.dragon", SHORT, "notation", lang, { layout: (step, said) => `段 ${step}: ${said}` }).map(problemLine) })),
+);
 
 describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
   it("clock-arcs-follow-times", () => {
@@ -664,10 +672,9 @@ describe("時計の文字盤の見た目の並べ方と動き (#3638)", () => {
         expect(gap(ra, rb), `${a}と${b}が重なる`).toBeGreaterThan(0);
       }
     // 引き出した図も崩れの知らせを出さない
-    for (const lang of LANGS) {
-      const problems = checkText("short.dragon", SHORT, "notation", lang, { layout: (step, said) => `段 ${step}: ${said}` }).map(problemLine);
-      expect(problems, `短い手順を持つ図の崩れの知らせ (${lang})`).toEqual([]);
-    }
+    const checks = SHORT_CHECKS.get();
+    expect(checks.map((c) => c.lang), "崩れを確かめた言葉").toEqual([...LANGS]);
+    for (const { lang, problems } of checks) expect(problems, `短い手順を持つ図の崩れの知らせ (${lang})`).toEqual([]);
   });
 
   it("clock-centre-shows-strip-values", () => {
