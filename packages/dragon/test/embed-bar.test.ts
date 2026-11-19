@@ -628,6 +628,9 @@ const STEPPED = [
 /** 段を送る4つの釦の名前 */
 const STEP_BUTTONS = ["restart", "prev", "toggle", "next"] as const;
 
+/** 箱と区画の絵柄の後ろの四角を持つ構成図 (#3752) */
+const ARCHITECTURE = ["architecture 配り方", "group web as 頁 [icon: app]", "  box app as アプリ [icon: app]", "  box cdn as 配る所 [icon: server]", "end", "step 読む", "  app -> cdn: 読む"].join("\n");
+
 /** 頁の中の釦の箱 (px) */
 interface Box {
   x: number;
@@ -713,7 +716,7 @@ describe("再生の帯の釦と進み具合 (#3752)", () => {
             names.map((name) => {
               const button = scope.querySelector<HTMLElement>(`button[data-dragon="${name}"]`);
               const box = button?.getBoundingClientRect();
-              const icon = button?.querySelector<HTMLElement>(".dg-ic")?.getBoundingClientRect();
+              const icon = button?.querySelector<HTMLElement>(".dg-btn-ic")?.getBoundingClientRect();
               const style = button ? getComputedStyle(button) : undefined;
               return {
                 where,
@@ -736,6 +739,28 @@ describe("再生の帯の釦と進み具合 (#3752)", () => {
         }
       }));
   });
+
+  it("player-icons-leave-figure-tiles", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // 再生の釦の絵柄の見た目は、図の箱と区画と中身の帯の絵柄の後ろの四角 (`rect.dg-ic`、`rect.dg-bi`) に当たらない。
+      // 当たると四角が縮んで左上に寄り、絵柄が四角から右下へはみ出す
+      await mountSideBySide(page, 760, ARCHITECTURE);
+      const tiles = await page.evaluate(() => {
+        const scopes: [string, ParentNode][] = [
+          ["帯つきの図", document.querySelector(".dragon-frame")!.shadowRoot!],
+          ["帯の無い図", document.getElementById("plain")!],
+        ];
+        return scopes.flatMap(([where, scope]) =>
+          [...scope.querySelectorAll<SVGRectElement>("svg.dg rect.dg-ic, svg.dg rect.dg-bi")].map((tile) => ({
+            where,
+            drawn: getComputedStyle(tile).width,
+            written: `${tile.getAttribute("width")}px`,
+          })),
+        );
+      });
+      expect(tiles.length, "図に絵柄の後ろの四角が無い").toBeGreaterThan(0);
+      for (const tile of tiles) expect(tile.drawn, `${tile.where}の絵柄の後ろの四角の幅が書いた幅と違う`).toBe(tile.written);
+    }));
 
   it("player-buttons-center-on-caption", () =>
     withFrame({ lang: "ja" }, async (page) => {

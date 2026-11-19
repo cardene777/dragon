@@ -1220,7 +1220,7 @@ describe("再生の帯の釦の絵柄 (#3752)", () => {
   const GLYPHS = /[↺‹›❚▶−+]/u;
   /** 釦の要素の中の絵柄の名前 */
   const iconsOf = (button: Element | null): string[] =>
-    [...(button?.querySelectorAll<HTMLElement>(".dg-ic") ?? [])].map((icon) => icon.dataset.icon ?? "");
+    [...(button?.querySelectorAll<HTMLElement>(".dg-btn-ic") ?? [])].map((icon) => icon.dataset.icon ?? "");
 
   it("player-buttons-carry-icons", () => {
     prefersReducedMotion(true);
