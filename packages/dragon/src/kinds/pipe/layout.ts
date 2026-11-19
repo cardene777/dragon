@@ -285,51 +285,11 @@ export interface PipeFlow extends PipeAt {
   points: Point[];
   /** 向きの印の場所と向き。`vertical` は縦に走る所の印で、`dir` は右か下へ流れる時 1、左か上へ -1 */
   arrow: { x: number; y: number; dir: 1 | -1; vertical: boolean };
-  /**
-   * 管の上に並べる向きの矢じり (#3721)。道に沿って `PIPE_CHEVRON` ごとに置き、`dx` と `dy` は流れる向きの単位の向き。
-   * 描く処理は札入れと札を置く時に道を伸ばすので、描く時に道が決まってから書く
-   */
-  chevrons?: { x: number; y: number; dx: number; dy: number }[];
   tone: number;
   /** この段で流れたか。流れた段は斜線の液の塊が管を通り抜ける */
   fresh: boolean;
   /** 槽へ書く値の差の玉に書く差の字 (`+1`、Tracelyth #207) */
   label?: string;
-}
-/** 値の管の上の向きの矢じり 1 つ */
-type PipeChevron = NonNullable<PipeFlow["chevrons"]>[number];
-/** 矢じりの間 (px、道に沿った長さ) */
-export const PIPE_CHEVRON = 44;
-/** 角の手前と先でこの長さより角に近い矢じりは、角の手前の線分の終わりに置く。折れた所でどちらの線分の向きか迷わないため */
-const CORNER_SNAP = 1;
-
-/**
- * 流れの道 `points` の上に、道の始まりから半分の間を空けて `PIPE_CHEVRON` ごとに置く向きの矢じり (#3721)。
- * どこを切り取っても流れる向きが読めるよう、短い道にも 1 つは置く
- */
-export function chevronsOf(points: readonly Point[]): PipeChevron[] {
-  const segs = points.slice(1).map((b, i) => [points[i] as Point, b] as const).filter(([a, b]) => a[0] !== b[0] || a[1] !== b[1]);
-  const lens = segs.map(([a, b]) => Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]));
-  const total = lens.reduce((s, x) => s + x, 0);
-  if (total <= 0) return [];
-  const out: PipeChevron[] = [];
-  for (let d = Math.min(PIPE_CHEVRON / 2, total / 2); d < total; d += PIPE_CHEVRON) {
-    let walked = 0;
-    for (let k = 0; k < segs.length; k++) {
-      const len = lens[k] as number;
-      const [a, b] = segs[k] as readonly [Point, Point];
-      if (walked + len + CORNER_SNAP < d && k < segs.length - 1) {
-        walked += len;
-        continue;
-      }
-      const at = Math.min(len, d - walked);
-      const dx = Math.sign(b[0] - a[0]);
-      const dy = Math.sign(b[1] - a[1]);
-      out.push({ x: a[0] + dx * at, y: a[1] + dy * at, dx, dy });
-      break;
-    }
-  }
-  return out;
 }
 
 export interface PipeCallLane {
@@ -4484,22 +4444,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const groupOfDef = (k: number): string => trunkOf.get(k) ?? `v${k}`;
 
   // ---- 組む。管が通らない時は、間を広げて組み直す
-  // 戻り値の札が管に収まらなかった時は、その管の2人の間を札の幅だけ広げ、同じ組み方で1度だけ組み直す (#3607)。
-  // 札の幅を全ての戻り値の管に前もって足すと、収まっていた図まで広がるので、収まらなかった管だけに足す
-
-  /** 戻り値の札が収まらなかった管 (`呼んだ者>呼ばれた者`) と、2人の間に足す長さ */
-  const roomFor = new Map<string, number>();
-  /** 組んでいる途中で戻り値の札が収まらなかった管と、足す長さ */
-  const cramped = new Map<string, number>();
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
-    cramped.clear();
     result = attempt(plan);
-    if (result && cramped.size > 0) {
-      for (const [pipe, room] of cramped) roomFor.set(pipe, Math.max(roomFor.get(pipe) ?? 0, room));
-      cramped.clear();
-      result = attempt(plan) ?? result;
-    }
     if (result) {
       PLAN_OF.set(result, PLANS.indexOf(plan));
       break;
@@ -4527,9 +4474,6 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const between = homes.filter((m) => m.gap && m.party === l);
       return Math.max(P.housing.gap, between.reduce((s, m) => s + m.w, 0) + P.lane.clear * 2) + laneW + plan.gap;
     };
-    /** 前の組みで戻り値の札が収まらなかった、`from` と `to` の間の管に足す長さ。どちら向きの管でも足す (#3607) */
-    const returnRun = (from: string, to: string): number =>
-      (roomFor.get(`${from}>${to}`) ?? 0) + (roomFor.get(`${to}>${from}`) ?? 0);
     const roomW = (h: string): number => roomOf(h) + eventW(h) + PART_GAP;
     const lay = (band: readonly string[], start: number, want?: Map<string, number>): void => {
       let x = start;
@@ -4538,7 +4482,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         const lw = dockW(h, "left");
         const rw = dockW(h, "right");
         const w = Math.max(lw + inner.w + rw, roomW(h) + lw + rw);
-        if (i > 0) x += gapW(band[i - 1] as string) + returnRun(band[i - 1] as string, h);
+        if (i > 0) x += gapW(band[i - 1] as string);
         const wanted = want?.get(h);
         if (wanted !== undefined) x = Math.max(x, wanted - w / 2);
         cols.set(h, { id: h, x, w, hx: x + lw + (w - lw - rw - inner.w) / 2 });
@@ -4611,7 +4555,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (other === id || isBox(other) || bandOf(other) === 1) continue;
         const ow = roomOf(other);
         // 呼ぶ者の横には、弁を載せて向きを変えるまでの長さと、呼ばれた側の手前で向きを揃える長さを空ける
-        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + returnRun(id, other) + APPROACH + PART_GAP);
+        const gap = Math.max(P.cabinet.gap + plan.gap / 2, callerRun(id) + callerRun(other) + APPROACH + PART_GAP);
         if (rowOf(other) === row) occ.push([cx - ow / 2 - gap, cx + ow / 2 + eventW(other) + gap]);
         if (holding.has(other) && rowOf(other) < row) occ.push([cx - P.lane.clear * 2, cx + P.lane.clear * 2]);
       }
@@ -6962,11 +6906,6 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
         if (e >= whole) e = backTo(0);
         // どこにも空きが無い時は、今までどおり呼んだ側の名札に札が載らない手前で止める。崩れの確かめが札と部品の重なりを知らせる
         if (e >= whole) {
-          // 次の組みで、この管の2人の間を札の幅だけ広げる
-          cramped.set(
-            `${c.from}>${c.to}`,
-            Math.max(cramped.get(`${c.from}>${c.to}`) ?? 0, w + PART_GAP),
-          );
           const caller = labelOf(c.from);
           e = 0;
           while (e < whole / 2 && !apart(rectAt(along(started, whole - e)), caller, 2)) e += 2;

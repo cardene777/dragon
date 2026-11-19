@@ -44,7 +44,6 @@ import {
   along,
   anchorLinks,
   callCardSize,
-  chevronsOf,
   clearTail,
   lengthOf,
   LOG_TYPE,
@@ -228,8 +227,6 @@ const PIPE_CSS = [
   `.dg-pp-ring{fill:none;stroke:var(--c);stroke-width:${P.ring.width}}`,
   // イベントの札
   `.dg-pp-chip{fill:var(--surf);stroke:var(--c);stroke-width:${S.on}}`,
-  // 値の管の流れの上の向きの矢じり (#3721)。液の上に地の色で描く
-  ".dg-pp-chev{fill:none;stroke:var(--surf);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}",
   // 札の帯の札から発した箱へ結ぶ点線 (#3721)
   `.dg-pp-tether{fill:none;stroke:var(--c);stroke-width:${S.on};stroke-dasharray:2 4;stroke-linecap:round;stroke-linejoin:round}`,
   ".dg-pp-chip-provisional{stroke-dasharray:3 2}",
@@ -1338,8 +1335,6 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     out.push(`<path class="dg-pp-under" data-pipe-crossing="${k.call}" data-pipe-token="${k.token}" data-pipe-under="${k.pipe}" d="${d}"/>`);
   }
 
-  // 流れの向きの矢じりは、札入れと札を置いて道を伸ばし終えた道の上に置く (#3721)
-  for (const fl of layout.flows) fl.chevrons = chevronsOf(fl.points);
   timeline.steps.forEach((span, s) => {
     const { a, b } = spanOf(s);
     const whole: Shown[] = [[a, b + f]];
@@ -1403,21 +1398,6 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         }),
       ];
     };
-    /**
-     * 流れの道の上の向きの矢じり (#3721)。どこを切り取っても流れる向きが読める。
-     * 1 本の流れの矢じりは 1 つの path の区切った道にまとめる。矢じりごとに要素を作ると、長い管を持つ図 (見本 `aggregator`) で要素が段ごとに数千増え、置く時の読み込みが遅くなる
-     */
-    const chevrons = (fl: PipeFlow): string => {
-      const a = P.flow.chevron / 2;
-      const d = (fl.chevrons ?? [])
-        .map((c) => {
-          const [bx, by] = [c.x - c.dx * a * 0.5, c.y - c.dy * a * 0.5];
-          const [nx, ny] = [-c.dy * a, c.dx * a];
-          return `M ${r1(bx + nx)} ${r1(by + ny)} L ${r1(c.x + c.dx * a * 0.5)} ${r1(c.y + c.dy * a * 0.5)} L ${r1(bx - nx)} ${r1(by - ny)}`;
-        })
-        .join(" ");
-      return d === "" ? "" : `<path class="dg-pp-chev" d="${d}"/>`;
-    };
     // 値の管を流れた分。この段で流れた分は、出来事の時刻に流れの先が管を進む
     for (const fl of here) {
       const attrs = on({ flow: `${fl.from}>${fl.to}`, token: fl.token, state: fl.state });
@@ -1425,7 +1405,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const prev = layout.flows.find((x) => x.step === s - 1 && x.id === fl.id);
       if (t !== undefined && prev) parts.push(vanish(t, flow(prev, ctx, "")));
       const plan = fl.fresh && t !== undefined && fl.points.length > 1 && !gulpOf(fl.points) ? planOf(fl, t) : undefined;
-      parts.push(appear(t, flow(fl, ctx, attrs, fl.fresh ? t : undefined, plan) + chevrons(fl)));
+      parts.push(appear(t, flow(fl, ctx, attrs, fl.fresh ? t : undefined, plan)));
     }
     // 網型の横の管が縦の管の上を通る所 (Tracelyth #168)。縦の管と、縦の管を流れる値を背景の色で切り、横の管を描き直す。
     // 横の管を値が流れる時は、流れの先が着いた時から描き直した所にも値を描く
