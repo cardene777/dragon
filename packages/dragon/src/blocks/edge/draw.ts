@@ -5,13 +5,16 @@
  * 道の形と曲がり角の丸め (`pathOf`) と矢じり (`arrowHead`) は、状態遷移図の通らない道と同じ下請けを使う。
  */
 import type { SceneEdge } from "../../layout/scene";
-import { EASE } from "../../look/values";
+import { EASE, LOOK } from "../../look/values";
 import { ALWAYS } from "../../render/ink";
 import type { Frame } from "../../render/motion";
 import { arrowHead, type Ctx, pathOf } from "../../render/parts";
 import { cs } from "../color/draw";
 import type { EdgeTime } from "../../timeline";
 import { USER_DASH, userEdgeOf } from "../../user-blocks";
+
+/** 使う人が足した線のブロックの、線の形ごとの点線の模様 (#3399)。定義は user-blocks が持ち、時系列図の描き方がここから読む (Tracelyth #93) */
+export { USER_DASH };
 
 /**
  * 線。点線で道を見せておき、その段で色の線を引いて、段の終わりまで流れる点で向きを見せる。
@@ -66,11 +69,13 @@ export function edge(e: SceneEdge, time: EdgeTime, ctx: Ctx, past = false, since
   const dashed = dash === undefined ? "" : ` stroke-dasharray="${dash}"`;
   // 線を起こした操作の番号 (`op`、#3720) を持つ線は、`data-op="段/番号"` で持つ。外の画面がコードの行と結ぶ
   const op = e.op === undefined ? "" : ` data-op="${e.step}/${e.op}"`;
-  const path = `<path class="dg-e" d="${d}"${dashed}${op}/><path class="dg-eh" d="${head}"/>`;
+  // お金の矢印のように、並びが呼び出しより太い線を持つ時はその太さで描く (Tracelyth #86)
+  const thick = e.width !== undefined && e.width > LOOK.stroke.edgeOn ? `stroke-width:${e.width}px;stroke-linecap:round` : "";
+  const path = `<path class="dg-e" d="${d}"${dashed}${thick ? ` style="${thick}"` : ""}${op}/><path class="dg-eh" d="${head}"/>`;
   const on =
     dash === undefined
-      ? `<path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}"/>`
-      : `<path class="dg-e-on dg-a" d="${d}" style="${line};stroke-dasharray:${dash}"/>`;
+      ? `<path class="dg-e-on dg-a" pathLength="1" d="${d}" style="${line}${thick ? `;${thick}` : ""}"/>`
+      : `<path class="dg-e-on dg-a" d="${d}" style="${line};stroke-dasharray:${dash}${thick ? `;${thick}` : ""}"/>`;
   return {
     base: `${since > 0 ? `<g class="dg-a" style="${m.vis(since)}">${path}</g>` : path}${past ? `<path class="dg-e-past dg-a" d="${d}"${dashed} style="${grey}"/><path class="dg-eh-past dg-a" d="${head}" style="${grey}"/>` : ""}`,
     lit: `<g style="${cs(added?.color ?? e.color)}">${on}<path class="dg-eh-on dg-a" d="${head}" style="${hk}"/><path class="dg-flow dg-a" d="${d}" style="${flow}"/></g>`,

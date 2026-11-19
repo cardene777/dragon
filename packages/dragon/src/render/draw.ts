@@ -353,6 +353,41 @@ export interface FollowFrame {
 }
 
 /**
+ * 等幅の字では … の3つの点が1文字の幅に詰まって _ に見え、... は3文字分の幅を取って点が大きく離れるので、
+ * 等幅の字で描く字の … は、点だけを普通の字の ... で描く (Tracelyth #234, #236)。字の幅は textWidth が普通の字の ... の幅で測る。
+ * 字体は図の CSS の class から読み、同じ重みの規則は後の規則が勝ち、字体の規則を持たない要素は親の字体を継ぐ
+ */
+function monoDots(body: string, css: string): string {
+  if (!body.includes("…")) return body;
+  const rules: { classes: string[]; family: string }[] = [];
+  for (const [, selectors, decl] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const family = /var\(--(mono|sans)\)/.exec(decl as string)?.[1];
+    if (!family) continue;
+    for (const s of (selectors as string).split(",")) {
+      const last = s.trim().split(/[\s>+~]+/).pop() ?? "";
+      if (/^(?:\.[\w-]+)+$/.test(last)) rules.push({ classes: last.slice(1).split("."), family });
+    }
+  }
+  const familyOf = (attrs: string, parent: string | undefined): string | undefined => {
+    const own = /\bstyle="[^"]*var\(--(mono|sans)\)/.exec(attrs)?.[1];
+    if (own) return own;
+    const classes = new Set((/\bclass="([^"]*)"/.exec(attrs)?.[1] ?? "").split(/\s+/));
+    let found = parent;
+    for (const r of rules) if (r.classes.every((c) => classes.has(c))) found = r.family;
+    return found;
+  };
+  const stack: { tag: string; family: string | undefined }[] = [];
+  return body.replace(/<(\/?)([a-zA-Z][\w-]*)([^>]*)>|[^<]+/g, (part: string, close?: string, tag?: string, attrs?: string) => {
+    const top = stack.at(-1);
+    if (tag === undefined) return top?.family === "mono" && (top.tag === "text" || top.tag === "tspan") ? part.replaceAll("…", MONO_DOTS) : part;
+    if (close) stack.pop();
+    else if (!(attrs as string).endsWith("/")) stack.push({ tag, family: familyOf(attrs as string, top?.family) });
+    return part;
+  });
+}
+const MONO_DOTS = '<tspan style="font-family:var(--sans)">...</tspan>';
+
+/**
  * 図を描く。`follow` を渡すと、寄って追う窓と隅の全体図で描く。`ink` を渡すと、描いた字の四角と見えている間をそこへ記録する (#3175)。
  * `framed`には、時間軸の囲みの枠の内に収める部品を記録する (#3527)。
  * `pieces` を渡すと、配管の図の描いた部品をそこへ記録する (#3523)。`strokes`には、時間軸の図の針と範囲の囲みの線を記録する (#3631)
@@ -547,7 +582,7 @@ export function drawSvg(
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
-    `<style>${css}</style><defs>${shadow}</defs>${view.body}</svg>`
+    `<style>${css}</style><defs>${shadow}</defs>${monoDots(view.body, css)}</svg>`
   );
 }
 
@@ -625,6 +660,7 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
  * 時系列図は頭の箱 `heads` を窓の上端の頭の列に貼り、窓が横に動く時だけ一緒に動かす。頭の箱は図の上端に在り、線を追う窓からは外れるため。
  * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
  * 頭の列の箱はアイコンを外した 2 段にして低く貼り、線は図の頭の箱の下から見せ始める (#3120)。
+ * 見た目を選んだ時系列図は頭の列に列の頭と頭の下の器と札を留め、線は器と札の下から見せ始め、全体図を出さず窓を縦に長く取る (Tracelyth #91、#93)。
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
  */

@@ -211,6 +211,7 @@ function sameJson(a: unknown, b: unknown): boolean {
 
 /** 描く処理の形の図を、`omit` の物を省いて記法に書く */
 function printModel(diagram: DiagramModel, omit: Omissions): string {
+  // パイプ図の置き方の行 (`layout <形>`、Tracelyth #165) は、図の種類の行の次の行に書く
   const blocks = [
     // 量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641) と時系列図 (#3720) の見た目と、
     // 点で数える見た目の 1 点の件数と、点数で点を打つ見た目の表の欄と、時計の文字盤の見た目の回る向きは図の種類の行の属性なので、見た目のブロックでなくここで書く

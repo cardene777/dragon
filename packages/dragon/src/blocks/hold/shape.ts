@@ -40,7 +40,7 @@ export const shape: BlockShape = {
     },
     holdLink: {
       description:
-        "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる",
+        "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる。tank は数を残高と同じ槽で描く値 (Tracelyth #207) で、ほかの欄を持たない",
       oneOf: [
         {
           type: "object",
@@ -59,6 +59,14 @@ export const shape: BlockShape = {
           properties: {
             on: { $ref: "#/definitions/id" },
             unit: { type: "string", minLength: 1 },
+          },
+        },
+        {
+          type: "object",
+          additionalProperties: false,
+          required: ["tank"],
+          properties: {
+            tank: { const: true },
           },
         },
       ],

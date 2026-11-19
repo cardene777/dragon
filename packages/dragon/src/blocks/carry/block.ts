@@ -14,9 +14,10 @@ export type Carry = { kind: "envelope" } | { kind: "tag"; text: string } | { kin
 /** `carry` に書ける運ぶ物。封筒は書かない時、札は `tag` で書く。型が欠けを止める (原本の運ぶ物の値に語が無い時は型の検査が落ちる) */
 export const CARRIES = Object.keys({ coin: true, none: true } satisfies Record<Exclude<Carry["kind"], "envelope" | "tag">, true>) as Exclude<Carry["kind"], "envelope" | "tag">[];
 
+// 線の行の属性の `op` は線を起こした記録の操作の番号 (Tracelyth #93)。線の行の属性の並びに足し、線の行を読む処理 (`edge/read.ts`) が読む
 export const block: Block = {
   name: "carry",
   rank: 84,
   attach: { how: "ride-on-line", except: ["pipe"] },
-  words: { attrs: { edge: ["carry", "tag"] } },
+  words: { attrs: { edge: ["carry", "tag", "op"] } },
 };
