@@ -11,3 +11,10 @@ export const parts: KindParts<ChartLayout> = {
   layout: (diagram, lang, options) => layoutChart(diagram, { lang, ...(options.width === undefined ? {} : { width: options.width }) }),
   draw: drawChart,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    chart: typeof import("./chart");
+  }
+}

@@ -3,14 +3,15 @@
  *
  * 描く入口 (`@cardenelabs/dragon`) の `editorUrl` は、記法の文字列を受けて、エディタの `editor` の頁の URL を返す。
  * 記法は URL の `#n=` の後ろに、UTF-8 の byte を URL に載る形の base64 (`-` と `_` を使い、末尾の `=` を外す) にして詰める。
- * 見本帳のエディタは同じ `#n=` を `apps/playground-spa/src/share.ts` の `fromHash` で読み戻すので、往復して同じ記法に戻るかを確かめる。
+ * 見本帳のエディタは同じ `#n=` を `apps/playground-spa/src/share.ts` の `fromHash` で読み戻す。
+ * 往復して同じ記法に戻るかは、見本帳の確かめを集めた検査 (`kind-playground.test.ts`) が確かめる (#3763)。
  * 見本帳の共有の URL も同じ関数で作り、記法を URL の形にする処理を 1 か所に持つ。
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
-import { fromHash, toHash } from "../../../apps/playground-spa/src/share";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 type EditorUrl = (source: string, options?: { base?: string }) => string;
 
@@ -37,20 +38,6 @@ const SOURCES = [
 ];
 
 describe("エディタで開く URL (#3644)", () => {
-  it("editor-url-roundtrip", () => {
-    const make = editorUrl();
-    // 並べた記法が base64 の `+` と `/` と末尾の `=` を本当に出す (選んだ入力が境目を通っている)
-    const plain = (text: string): string => Buffer.from(text, "utf8").toString("base64");
-    expect(SOURCES.some((s) => plain(s).includes("+")) && SOURCES.some((s) => plain(s).includes("/")), "並べた記法が + と / を出さない").toBe(true);
-    expect(new Set(SOURCES.map((s) => (plain(s).match(/=*$/u)?.[0] ?? "").length)), "並べた記法の末尾の = の数").toEqual(new Set([0, 1, 2]));
-    for (const source of SOURCES) {
-      const url = make(source);
-      expect(url.startsWith(`${PUBLISHED}editor#n=`), `${JSON.stringify(source)} の URL ${url} がエディタの頁を指さない`).toBe(true);
-      const hash = url.slice(url.indexOf("#"));
-      expect(hash, `${JSON.stringify(source)} の # の後ろが URL に載る形の base64 でない`).toMatch(/^#n=[A-Za-z0-9_-]*$/u);
-      expect(fromHash(hash), `${JSON.stringify(source)} を fromHash で読み戻した記法`).toBe(source);
-    }
-  });
 
   it("editor-url-base", () => {
     const make = editorUrl();
@@ -69,19 +56,6 @@ describe("エディタで開く URL (#3644)", () => {
       const url = make(source, { base });
       expect(url.slice(0, url.indexOf("#")), `置き場 ${base} の頁`).toBe(page);
       expect(hash(url), `置き場 ${base} でも # の後ろは同じ`).toBe(hash(published));
-    }
-  });
-
-  it("playground-share-uses-package", () => {
-    const make = editorUrl();
-    const share = readFileSync(join(process.cwd(), "apps/playground-spa/src/share.ts"), "utf8");
-    // 記法を URL の形にする処理 (UTF-8 にする、base64 にする、`+` と `/` を替える) を share.ts が持たない
-    expect(share.includes("TextEncoder"), "share.ts が記法を UTF-8 の byte にしている").toBe(false);
-    expect(/\bbtoa\(/u.test(share), "share.ts が base64 にしている").toBe(false);
-    expect(/from "@cardenelabs\/dragon(?:\/light)?"/u.test(share) && share.includes("editorUrl"), "share.ts が描く入口の editorUrl を読まない").toBe(true);
-    for (const source of SOURCES) {
-      const url = make(source);
-      expect(toHash(source), `${JSON.stringify(source)} の共有の # の後ろ`).toBe(url.slice(url.indexOf("#")));
     }
   });
 });

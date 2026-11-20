@@ -13,6 +13,10 @@ import { describe, expect, it } from "vitest";
 import { closestPair, type Sight } from "./color-vision";
 import { exampleJson, smallSequence } from "./diagram-support";
 import { ARCADE_COLORS, draw, figureClass, figureVars, type Lang } from "./render-support";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 const PACKAGE = fileURLToPath(new URL("../", import.meta.url));
 const SLOTS = ["c-blue", "c-amber", "c-green", "c-violet", "c-rose"];

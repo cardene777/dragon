@@ -8,6 +8,7 @@
 import type { Point, Rect } from "../src/layout/scene";
 import { describe, expect, it, vi } from "vitest";
 import { exampleJson } from "./diagram-data";
+import "../src/kind-use/pipe";
 
 type Spot = typeof import("../src/render/pipe-spot");
 
@@ -151,25 +152,36 @@ describe("道の点", () => {
 });
 
 /*
- * 箱 2 を開いた aggregator を描く時に、札の候補から道までの隔たりを測る回数 (#3737)。
- * 直す前は、重なりを見る前に 37 万回測った。描く仕事は重いので、件の中でなく file を読み込む段で 1 回だけ描いて数える
+ * 箱 2 を開いた aggregator を描く時に、札の候補から道までの隔たりを測る回数 (#3737、#3751)。
+ * 1 つ目の札探し (`nearestWithin`) は、直す前は重なりを見る前に 37 万回測った。
+ * 置き場の決まらなかった札を探し直す 2 つ目の札探し (`nearest`) は、直す前は格子の全ての点で 3 万 414 回測った。
+ * 描く仕事は重いので、件の中でなく file を読み込む段で 1 回だけ描いて両方を数える
  */
-const measured = await (async (): Promise<number | undefined> => {
+const measured = await (async (): Promise<{ within: number; nearest: number } | undefined> => {
   if (typeof spot.PathPoints !== "function") return undefined;
-  const { renderDiagram } = await import("../src/index");
-  const count = vi.spyOn(spot.PathPoints.prototype, "nearestWithin");
+  const { renderDiagram } = await import("../src/core");
+  const within = vi.spyOn(spot.PathPoints.prototype, "nearestWithin");
+  const nearest = vi.spyOn(spot.PathPoints.prototype, "nearest");
   try {
     renderDiagram(exampleJson("aggregator.json"), { open: [2] });
-    return count.mock.calls.length;
+    return { within: within.mock.calls.length, nearest: nearest.mock.calls.length };
   } finally {
-    count.mockRestore();
+    within.mockRestore();
+    nearest.mockRestore();
   }
 })();
 
 describe("描く仕事", () => {
   it("pipe-open-aggregator-measures-fewer-spots", () => {
     tools();
-    expect(measured, "箱 2 を開いた aggregator.json の札の候補から道までの隔たりを 1 度も測っていない").toBeGreaterThan(0);
-    expect(measured, "箱 2 を開いた aggregator.json の札の候補から道までの隔たりを測る回数").toBeLessThan(37_000);
+    expect(measured?.within, "箱 2 を開いた aggregator.json の札の候補から道までの隔たりを 1 度も測っていない").toBeGreaterThan(0);
+    expect(measured?.within, "箱 2 を開いた aggregator.json の札の候補から道までの隔たりを測る回数").toBeLessThan(37_000);
+  });
+
+  // 2 つ目の札探しは、点数の下限 (重なりの分と入口までの隔たりの 4 分の 1) だけで今の一番に届かない候補の道を測らない (#3751)
+  it("pipe-open-aggregator-skips-far-spots", () => {
+    tools();
+    expect(measured?.nearest, "箱 2 を開いた aggregator.json の 2 つ目の札探しで道までの隔たりを 1 度も測っていない").toBeGreaterThan(0);
+    expect(measured?.nearest, "箱 2 を開いた aggregator.json の 2 つ目の札探しで道までの隔たりを測る回数").toBeLessThan(3_000);
   });
 });

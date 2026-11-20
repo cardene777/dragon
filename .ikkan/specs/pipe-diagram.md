@@ -22,7 +22,7 @@
 | 配管の図を0.25秒ごとに止めて数えた時、段の番号はその段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-keeps-motion-rules`が通る | #3389 |
 | 今ある全ての色味で交換の図を描いた時、関係者と槽と管の位置と大きさが色味によらず同じで、変わるのは色の値だけ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-same-in-every-palette`が通る | #3389 |
 | `packages/dragon/examples`に見本6組の日本語と英語の記法とJSONがあり、英語版の関係者と段と段ごとの出来事の数が日本語版と同じ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-example-files-match`が通る | #3389 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、配管の図の頭の語`pipe`と、`hold`、`move`、`write`、`check`、`return`、`revert`、`emit`、`calc`の行と、`[value]`、`[call]`、`[fold]`、`[fail]`の印の書き方が載る | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`docs-describe-pipe-diagram`が通る | #3389 |
+| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、配管の図の頭の語`pipe`と、`hold`、`move`、`write`、`check`、`return`、`revert`、`emit`、`calc`の行と、`[value]`、`[call]`、`[fold]`、`[fail]`の印の書き方が載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-pipe-diagram`が通る | #3389 |
 | repoの全ての`.dragon`のfileを誤り無く読み、見本帳の全ての見本でどの段でも字が重ならず、描画のfileが値を共通の値の表からだけ読み、記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3389 |
 | ほかの図の描き方は今どおりで、OAuthは12段、CCIPは13段、入札は7段が順に動き、箱どうしと線の名前と箱が10px以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`auction-renders-7-steps`と`layout-keeps-10px-gap`が通る | #3389 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3389 |
@@ -154,12 +154,12 @@
 | 置き場所の検査`dragon check --layout`が、重なりと文字の上を通る線と高さ200px以上の空き帯を持つパイプ図を拒む | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`layout-check-refuses-pipe-breaks`が通る | #3721 |
 | 人と箱の左右の順と表の左右の順は、記法に書いた順のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-notation-order`が通る | #3721 |
 | 呼び出しの線とパイプの色と太さは今のまま | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-keeps-line-colors-and-widths`が通る | #3721 |
-| 配管の図の見本6つを日本語と英語と幅1280と390で描いた置き場所 (`layout`) の指紋と、箱2を開いた`aggregator`の指紋が、記録した指紋と同じになる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3737 |
+| 配管の図の見本6つを日本語と英語と幅1280と390で描いた置き場所 (`layout`) の指紋と、箱2を開いた`aggregator`の指紋が、記録した指紋と同じになる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3737 #3751 |
 | 札の候補を格子に並べた時、置き場所を探す道具は、どの候補についても、障りの物か置いた札に隙間8pxの内まで重なるかの答えと、重なる面積の和を、障りの物を全部見る定義と同じ値で返す。障りの物の寸法が数でない時、格子の64升を超える大きな物、置いた札を含む場面を種から作って確かめる | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-grid-matches-definition`が通る | #3737 |
 | 置き場所を探す道具は、札から一番近い道の点とその隔たりを、全部の点を順に見る定義と同じ点と値で返し、同じ隔たりの点が2つ在る時は先の点を返す。札から56px以内に点が在る時の一番近い隔たりも、定義と同じ値で返す | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-nearest-matches-definition`が通る | #3737 |
 | 置き場所を探す道具は、障りの物か置いた札から隙間8pxの内に入る候補を空いた候補として返さない。隙間がちょうど8pxの候補は空いた候補として返し、寸法が数でない障りの物は候補をふさがない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-spot-refuses-spots-within-gap`が通る | #3737 |
 | 箱2を開いた`aggregator.json`を描く時、札の候補から道までの隔たりを測る回数が、直す前の37万回の10分の1 (3万7千回) より少ない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-open-aggregator-measures-fewer-spots`が通る | #3737 |
-| 配管の図の見本を言語と枠の幅ごとに描いた時、決まりの表への違反が0件のままである | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3737 |
+| 配管の図の見本を言語と枠の幅ごとに描いた時、決まりの表への違反が0件のままである | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3737 #3751 |
 | 収めた並べ方を渡し、並べ方の覚えが無い状態 (新しいprocess) で箱2を開いた`aggregator.json`を1回目に描く時、`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-draws-without-route`が通る | #3748 |
 | 配管の原本58個を、書いたままの形と、`layout`の行を書かない形と、行を6つの形 (`PIPE_LAYOUTS`) に替えた形の528形 (最初に見える形と、箱を1つだけ開いた形) で描いた時、収めた並べ方を渡して描いた並べ方 (管の道と札の場所) と描いたSVGが、渡さずに描いた時と同じになる | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-matches-composed`が通る | #3748 |
 | 並べ方を収めた後に原本を変えた時、変える前の並べ方を使うことを拒み、その場で組んだ並べ方で描く | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-ignored-after-source-change`が通る | #3748 |
@@ -175,3 +175,10 @@
 | 見本帳のbuildが見本帳の頁の描く配管の図の並べ方を収め、`LiveFigure`がその図を`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run apps/playground-spa/src/lib/pipe-layouts.test.ts`の検査`site-draws-pipe-with-stored-layouts`が通る | #3748 |
 | 時系列図だけを描く頁で、scriptの1行の入口が最初に読むscriptのgzip後の合計が、上限90,000バイトに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3748 |
 | 見本帳が最初に読むscriptとCSSのgzip後の合計が、今の上限に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3748 |
+| 札を置く隙間を作るために図の座標をずらす道具は、ずらす相手を1回目に並べた後も、図の全てを辿ってずらす定義と同じ値へずらし、返した関数で元の値へ戻す。同じ物を2か所から指す図、数の2つ組、座標と大きさの欄、外から渡した札の枠、関数で決める切れ目を含む図を種から作り、縦と横に続けてずらして確かめる | `pnpm exec vitest run packages/dragon/test/pipe-shift.test.ts`の検査`pipe-shift-matches-definition`が通る | #3751 |
+| 図の座標をずらす道具は、切れ目より手前 (上か左) の物の座標を動かさず、数でない欄と、ずらす軸でない欄 (縦にずらす時の`x`と`w`) を書き換えず、2か所から指す同じ物を2度ずらさない | `pnpm exec vitest run packages/dragon/test/pipe-shift.test.ts`の検査`pipe-shift-keeps-what-it-must-not-move`が通る | #3751 |
+| 箱2を開いた`aggregator.json`を描く時、置き場の決まらなかった札を探し直す2つ目の札探しで、札の候補から道までの隔たりを測る回数が、直す前の3万414回の10分の1 (3千回) より少ない | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-open-aggregator-skips-far-spots`が通る | #3751 |
+| 箱2を開いた`aggregator.json`を描く時、札を置ける所を探す1つ目の札探しで道までの隔たりを測る回数が、3万7千回より少ないままである | `pnpm exec vitest run packages/dragon/test/pipe-spot.test.ts`の検査`pipe-open-aggregator-measures-fewer-spots`が通る | #3751 |
+| 収めた並べ方を渡して描いた配管の図の並べ方とSVGが、渡さずに描いた時と同じままである | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-draws-without-route`が通る | #3751 |
+| 箱を開いた`aggregator`を携帯の幅に置いた時、字が読める大きさのままである | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-keeps-text-readable`が通る | #3751 |
+| 見本帳の頁が最初に読むscriptとCSSが、gzipで184KB以下のままである | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3751 |

@@ -10,3 +10,10 @@ export const parts: KindParts<GitLayout> = {
     return { base: git.links, lit: git.lines, node: git.commits, top: git.tags };
   },
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    git: typeof import("./git");
+  }
+}

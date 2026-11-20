@@ -11,6 +11,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, type Player } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 type Diagramish = { [key: string]: Json };
 type View = "fixed" | "follow";

@@ -9,6 +9,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /*
  * 描く部品と崩れを数える部品の元の code を、検査の外 (この file を読む段) で先に読む。
@@ -16,7 +21,7 @@ import { describe, expect, it } from "vitest";
  */
 const [{ renderDiagram }, { parseNotation }, { checkText, problemLine }, { APART }] =
   await Promise.all([
-    import("../src/render/svg"),
+    import("../src/render/draw"),
     import("../src/parser"),
     import("../src/check"),
     import("../src/look/values"),

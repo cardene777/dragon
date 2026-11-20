@@ -10,13 +10,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 // 状態遷移図と枝分かれの図の記法を読むので、全部入りの入口と同じく全てのブロックの読み方を登録する (#3349)
-import "../src/kinds/all";
 import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { badgeRect, type Carried, cardOf, carried, carrierRect, doneRect, overlap, seatedAt, shownSlots, slotFramesOf, waiting } from "./carrier-support";
 import { api } from "./diagram-support";
 import { type Motion, motionOf } from "./motion-support";
 import type { Rect } from "./render-support";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/state";
+import "../src/kind-use/sequence";
 
 const diagram = (lines: string[]): unknown => {
   const parsed = parseNotation(lines.join("\n"));

@@ -14,3 +14,10 @@ export const parts: KindParts<ErLayout> = {
   draw: (layout, diagram, ctx) => ({ ...drawEr(layout, diagram, ctx), edge: () => undefined }),
   focus: erFocusParts,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    er: typeof import("./er");
+  }
+}

@@ -19,3 +19,7 @@
 | 見る場所が無い時、命令が検出ありの 1 と別の終了 2 で終わる | `pnpm exec vitest run packages/dragon/test/dependency-vulnerability-check.test.ts`の検査`"見る場所が無い時は検出ありと別の状態で終わる"`が通る | #3498 |
 | 受容記録のどの記録も、理由と今日より後の期限と、lockfile に実在する`名前@版`の名指しを持つ | `pnpm exec vitest run packages/dragon/test/dependency-vulnerability-check.test.ts`の検査`"どの記録も守るべき形を持つ"`が通る | #3498 |
 | 1 件の検査の上限は 10 秒のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3498 |
+| `pnpm-lock.yaml`は、6.4.6より前のviteの版を持たない | `pnpm exec vitest run packages/dragon/test/vite-version.test.ts`の検査`lock-has-no-vite-before-6-4-6`が通る | #3754 |
+| `apps/playground-spa/package.json`のviteの範囲は、下限が6.4.6以上で、6.4.5以前の版を受け付けない | `pnpm exec vitest run packages/dragon/test/vite-version.test.ts`の検査`playground-vite-range-starts-at-6-4-6`が通る | #3754 |
+| 依存を上げた後も、dragonの検査が全て通る | `bash -c 'pnpm build && pnpm typecheck && pnpm test:related'`が終了 0 | #3754 |
+| 依存を上げた後も、`apps/playground-spa`を組み立てられる | `bash -c 'pnpm build && pnpm typecheck && pnpm test:related'`が終了 0 | #3754 |

@@ -9,6 +9,9 @@ import { along, frameLines, onFrameLine } from "../src/layout/scene";
 import { LOOK } from "../src/look/values";
 import { exampleJson, type Json } from "./diagram-support";
 import { covers, draw, type Rendered, sampleTimes, type Span } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 interface EdgeEvent {
   type: string;

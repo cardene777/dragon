@@ -12,6 +12,13 @@ import { atLoad } from "./at-load";
 import { exampleJson } from "./diagram-support";
 import { type Diagramish, type Placed, place, releasePlaced } from "./follow-support";
 import { draw, type Player, type Rect } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 /** 表を持つ見本。原本の `strip` を持つ物を全て挙げる */
 const WITH_STRIP = ["oauth", "payment", "ccip", "finality", "withdraw", "merkle", "order", "rebase", "merge"] as const;

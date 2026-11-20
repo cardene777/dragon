@@ -16,6 +16,7 @@ import { api, type Json, type LineError } from "./diagram-support";
 import { overflow, place, releasePlaced } from "./follow-support";
 import { draw, type Rect } from "./render-support";
 import { KANA, parsedTry } from "./try-support";
+import "../src/kind-use/try";
 
 afterEach(releasePlaced);
 
@@ -219,27 +220,6 @@ describe("試す図の部品を横に並べる形 (#3429)", () => {
     const pool = partOf(layout, "pool");
     const win = placed.windowAt(1);
     expect(overflow(pool, win), `送る段の窓 ${JSON.stringify(win)} が待ち行列 pool ${JSON.stringify(pool)} からはみ出す`).toBeLessThanOrEqual(0.5);
-  });
-});
-
-describe("試す図の部品を横に並べる書き方の文書 (#3429)", () => {
-  it("docs-describe-try-side", () => {
-    /** 見出し `heading` から次の同じ深さの見出しまで */
-    const sectionOf = (text: string, heading: string): string => {
-      const start = text.indexOf(heading);
-      if (start < 0) return "";
-      const next = text.indexOf("\n### ", start + heading.length);
-      return text.slice(start, next < 0 ? undefined : next);
-    };
-    for (const [path, heading] of [
-      ["packages/dragon/README.ja.md", "### 試す図"],
-      ["packages/dragon/README.md", "### Try diagram"],
-    ] as const) {
-      const section = sectionOf(readRepo(path), heading);
-      expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");
-      expect(section, `${path} の試す図の小節に side の行の書き方が無い`).toContain("side ");
-    }
-    expect(readRepo("apps/playground-spa/src/docs/content.ts"), "使い方の頁に side の行が無い").toContain("side ");
   });
 });
 

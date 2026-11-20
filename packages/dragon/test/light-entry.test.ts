@@ -13,6 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { casesNamed } from "./export-support";
 import { KIND_FOLDERS } from "../src/kinds/index";
+// 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
+// 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
+import type {} from "./all-kinds";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
@@ -446,6 +449,53 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     });
   });
 
+  /**
+   * 種類の検査が子の Node で 1 つずつ持っていた確かめ (`<種類>-light-entry-draws-after-load-for`) を、見本ごとの件にまとめる (#3763)。
+   * 種類の検査が軽い入口を読むと、関係する検査を選ぶ命令が全ての種類の描く所を変えた時にその検査を選ぶため。
+   * 後から読む種類の見本に、見た目を替える行 (`[shape: ...]`) の見本と色付きの絵柄の定義を持つ見本を足す。
+   * 色付きの絵柄の見本は構成図で、構成図は軽い入口が最初から持つ
+   */
+  describe.for([
+    ...Object.entries(LATER_SAMPLES).map(([kind, file]) => ({ name: kind, kind, file })),
+    { name: "lineup [shape: stairs]", kind: "lineup", file: "video-publish.dragon" },
+    { name: "cycle [shape: clock]", kind: "cycle", file: "focus-clock.dragon" },
+    { name: "cycle [shape: band]", kind: "cycle", file: "farm-year.dragon" },
+    { name: "sankey [shape: rows]", kind: "sankey", file: "day-hours.dragon" },
+    { name: "sankey [shape: treemap]", kind: "sankey", file: "phone-storage.dragon" },
+    { name: "matrix [shape: scatter]", kind: "matrix", file: "feature-scores.dragon" },
+    { name: "chart [shape: dots]", kind: "chart", file: "device-dots.dragon" },
+    { name: "architecture の色付きの絵柄", kind: "architecture", file: "photo-delivery.dragon" },
+  ])("$name", ({ kind, file }) => {
+    it("light-entry-draws-each-later-kind-after-load-for", async () => {
+      const whole = await wholeEntry();
+      const text = readFileSync(join(EXAMPLES, file), "utf8");
+      const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+      expect(light.kindLoaded(kind), `${file} の種類 (${kind}) を loadFor の前に読んでいたか`).toBe(!(kind in LATER_SAMPLES));
+      await light.loadFor(text);
+      expect(light.kindLoaded(kind), `${file} の種類 (${kind}) を loadFor の後に読んでいない`).toBe(true);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${file} を loadFor の後に読めない`).toBe(true);
+      const expected = whole.parseNotation(text);
+      expect(parsed.ok ? light.renderDiagram(parsed.diagram).svg : "", `${file} を軽い入口で描いた SVG が既定の入口と違う`).toBe(expected.ok ? whole.renderDiagram(expected.diagram).svg : "");
+    });
+  });
+
+  // 時系列図と構成図は軽い入口が最初から持ち、loadFor を待たずに描く (#3763)
+  it("light-draws-sequence-and-architecture-without-load", async () => {
+    const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+    const architecture = "architecture 橋\n\nbox eth as Ethereum\nbox cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+    for (const [kind, text] of [
+      ["sequence", INTRO],
+      ["architecture", architecture],
+    ] as const) {
+      expect(light.kindLoaded(kind), `${kind} を最初から持たない`).toBe(true);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${kind} を待たずに読めない`).toBe(true);
+      const svg = parsed.ok ? light.renderDiagram(parsed.diagram).svg : "";
+      expect(svg, `${kind} を待たずに描けない`).toContain('data-dragon="figure"');
+    }
+  });
+
   it("light-load-readings-leaves-renderer-out", () => {
     const out = loadedAfter(`
       const text = ${JSON.stringify(TIME_NO_ZOOM)};
@@ -665,6 +715,13 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
       expect(rendered.timeline.stills.length, `${file} の段の時刻`).toBeGreaterThan(0);
       expect(["fixed", "follow"], `${file} の見せ方`).toContain(whole.chooseView(rendered, 1280).mode);
     });
+  });
+
+  // 配管の図の決まりの表の検査 (`pipe-diagram-rules.test.ts`) は表を元の file から引くので、既定の入口が出すことはここで確かめる (#3763)
+  it("default-entry-exports-pipe-rules", async () => {
+    const whole = (await importEntry<Entry>(name)) as unknown as { PIPE_RULES?: unknown; pipeViolations?: unknown } | undefined;
+    expect(whole?.PIPE_RULES, "配管の図の決まりの表 (PIPE_RULES) が既定の入口から出ていない").toBeDefined();
+    expect(whole?.pipeViolations, "決まりの表への違反を数える処理 (pipeViolations) が既定の入口から出ていない").toBeTypeOf("function");
   });
 
   // 全ての見本を既定の入口で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける

@@ -7,6 +7,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 describe("原本の JSON の検査", () => {
   it("validator-matches-schema", async () => {

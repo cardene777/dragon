@@ -13,6 +13,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed } from "./export-support";
 import { draw, type Player, type Rect, type Theme } from "./render-support";
+// 全ての種類の見本を描くので、全ての種類を読む (#3763)
+import "./all-kinds";
 
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");

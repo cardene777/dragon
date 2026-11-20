@@ -12,6 +12,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson } from "./diagram-support";
 import { type Diagramish, overflow, place, type Placed, releasePlaced, round } from "./follow-support";
 import { draw } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 /** 編集画面の幅 390px (携帯) と 860px (記法と並べた時) の、図の枠の幅 */
 const WIDTHS = [390, 560] as const;

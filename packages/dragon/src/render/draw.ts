@@ -2,7 +2,7 @@
  * 原本の JSON から図を描く本体。置き場所と時刻の表を作り、部品を重なりの順に並べて SVG にする。
  * 後から読む種類の並べ方と札の時刻の直しと描き方と段で動く物は、種類の名前で登録簿から引いた部品の組 (`kinds/parts.ts`) から呼ぶので、読んでいない種類は描けない (`kinds/registry.ts`、#3248)。
  * 本体は種類の名前を並べた分かれ道を持たず、種類を足しても本体の字は増えない (#3656)。
- * 時系列図と構成図の並べ方は、図の種類の置き場 (`kinds/<種類>/`) の一覧 `KIND_FOLDERS` から引く (#3345)。
+ * 時系列図と構成図の並べ方は、種類の登録の file (`kind-use/<種類>.ts`) が登録した物を登録簿から引く (#3345、#3763)。
  * 置き場へ移したブロックの部品は、ブロックの置き場の描き方 (`blocks/<名前>/draw.ts`) から引く。動きの名前は呼んだ順に番号が付くので、呼ぶ順は変えない。
  *
  * 動きは全て SVG の中の CSS の keyframes が回す。1 周の長さは `--T`、止める時刻は `--at`、
@@ -37,9 +37,7 @@ import {
   type SceneStrip,
   unionRect,
 } from "../layout/scene";
-import { KIND_FOLDERS } from "../kinds/index";
-import type { Kind } from "../kinds/kind";
-import { partsOf } from "../kinds/registry";
+import { eagerLayout, partsOf } from "../kinds/registry";
 import { FONTS } from "../look/fonts";
 import {
   type ColorKey,
@@ -69,9 +67,6 @@ import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
 import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
-
-/** 置き場を持つ図の種類を、図の種類の名前で引く表 */
-const FOLDERS: Readonly<Partial<Record<string, Kind>>> = KIND_FOLDERS;
 
 export interface RenderOptions {
   /** Native input diagrams align their SVG ports to the controls' measured rectangles. */
@@ -970,15 +965,14 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   const model = toModel(read.diagram);
   const parts = partsOf(model.kind, lang);
   const diagram = parts?.fold?.(model, options, lang) ?? model;
-  // 置き場を持つ図の種類は、置き場の並べ方で並べる (#3345)。後から読む図の種類 (#3347) は部品の組の並べ方で並べ、
-  // 知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
-  const folder = FOLDERS[diagram.kind];
+  // 後から読む図の種類 (#3347) は部品の組の並べ方で並べ、時系列図は登録簿に登録した並べ方で並べ (#3345、#3763)、
+  // 構成図と知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
   const look = sequenceLookFor(diagram, lang);
   const layout = look
     ? look.layout(diagram, lang)
-    : folder?.layout
-      ? folder.layout(diagram, lang)
-      : (parts?.layout(diagram, lang, options) ?? KIND_FOLDERS.architecture.layout(diagram, lang));
+    : parts
+      ? parts.layout(diagram, lang, options)
+      : eagerLayout(diagram.kind === "sequence" ? "sequence" : "architecture", lang)(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };

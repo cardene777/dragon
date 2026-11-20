@@ -13,6 +13,10 @@ import { describe, expect, it } from "vitest";
 import { exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
 import { draw, type LaidAction, type LaidLabel, type Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 /** 見本の 10 枚 (英語の写しを除く) */
 const EXAMPLES = ["api", "ccip", "intro", "merge", "oauth", "order", "payment", "rebase", "retry", "wallet"] as const;

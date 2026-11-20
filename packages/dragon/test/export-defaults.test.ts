@@ -11,8 +11,10 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { film } from "../src/export/capture";
 import { exportDiagram } from "../src/export/index";
-import { renderDiagram } from "../src/render/svg";
+import { renderDiagram } from "../src/render/draw";
 import { smallArchitecture } from "./diagram-support";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
 
 vi.mock("../src/export/capture", async (original) => {
   const real = await original<typeof import("../src/export/capture")>();

@@ -10,6 +10,10 @@ import { FIGURE_TEXT } from "../src/figure-text";
 import { PIPE_TEXT } from "../src/kinds/pipe/layout";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { draw, type Lang, type Player } from "./render-support";
+import "../src/kind-use/pipe";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/try";
 
 /** 和文 (漢字、ひらがな、カタカナ、長音) と英数字の間の空白 */
 const GAP =

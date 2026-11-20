@@ -216,7 +216,7 @@
 | 箱が図の左端と上端に在る 4 つの見本 (corner-note、corner-empty、corner-slot、時系列図の書き込みだけの段) で、線の無い段の番号が図の外へはみ出さない | `pnpm exec vitest run packages/dragon/test/corner-badge.test.ts`の検査`corner-badge-inside-figure`が通る | #3187 |
 | 線の無い段が同じ箱か中身の帯を続けて書き換える時、後の段の番号は前の段の番号の脇に並び、全ての段で `overlaps` が 0 件。同じ角で数字を入れ替える形から、脇に並べる形に変えた (#3525) | `pnpm exec vitest run packages/dragon/test/badge-pile.test.ts`の検査`corner-badges-sit-side-by-side`が通る | #3187 |
 | 重なりを知らせる文は、番号を絵柄に重ねた図で、日本語と英語の文を出す。重なりは描いた後の置き場所を書き換えて作る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3187 |
-| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
+| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`export-quiet-without-overlaps`が通る | #3187 |
 | 見本帳の部品の見本、使い方の頁の例、packages/dragon/examples の全ての見本の全ての段で、`overlaps` が 0 件のまま | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3187 |
 | `dragon export` に英語の見本 `order.en.json` と `--format png --lang en` を渡した時、終わり方 0 で PNG が書き出される | `pnpm test`の検査`export-english-only-png`が通る | #3212 |
 | 英語の見本 10 個と、全体で止めて見せる図に全角空白 (`U+3000`) を `Noto Sans JP` の file `[117]` の他の字なしで描く図のそれぞれで、書き出した HTML が埋める字の file を Chromium で 1 つずつ読ませると、全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3212 |

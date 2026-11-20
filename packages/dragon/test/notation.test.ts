@@ -13,6 +13,8 @@ import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, exampleText, type Json, type LineError, type Parsed, reversedKeys } from "./diagram-support";
 import { draw } from "./render-support";
+// 全ての種類の見本を描くので、全ての種類を読む (#3763)
+import "./all-kinds";
 
 const EXAMPLES = ["intro", "oauth", "ccip"] as const;
 

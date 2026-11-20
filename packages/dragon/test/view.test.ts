@@ -7,6 +7,8 @@
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, type Json, patched } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 const READABLE = 10.5;
 

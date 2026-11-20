@@ -10,9 +10,16 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import "../src/kind-use/architecture";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
+// 時系列図をパイプ図の部品で描く見た目 (#3720) も描くので、見た目の登録も読む
+import "../src/render/look-all";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 type Point = [number, number];
 interface Rect {

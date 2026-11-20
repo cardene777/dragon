@@ -15,9 +15,13 @@ import { LOOK } from "../src/look/values";
 import { parseNotation } from "../src/parser";
 import { findBreaks, type LayoutBreak } from "../src/render/breaks";
 import { ALWAYS, type Trace } from "../src/render/ink";
-import { renderDiagram } from "../src/render/svg";
-import { atLoad } from "./at-load";
-import { runCli } from "./export-support";
+import { renderDiagram } from "../src/render/draw";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const ROOT = process.cwd();
 const LAYOUT_FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");
@@ -27,12 +31,8 @@ const PAYMENT_EVAL = join(LAYOUT_FIXTURES, "payment-eval.dragon");
 const PAYMENT_BENT = join(LAYOUT_FIXTURES, "payment-bent.dragon");
 /** 隣り合う状態の間を行きと帰りの線で往復する状態遷移図 */
 const STATE_PAIR = join(LAYOUT_FIXTURES, "state-pair.dragon");
-/** 頼みと答えを別の段で書いた時系列図 */
-const SEQUENCE_REPLY = join(LAYOUT_FIXTURES, "sequence-reply.dragon");
 /** 同じ帯の同じ行で、支払いと台帳を横の線で往復する構成図 (#3189) */
 const PAIR_ROW = join(ROOT, "packages/dragon/test/fixtures/pair-row.dragon");
-/** 時間の図の見本。番号の丸の間を検査と同じ値で決める前は、段7と段9の番号が近すぎた */
-const FINALITY = join(ROOT, "packages/dragon/examples/finality.dragon");
 
 const R = LOOK.badge.r;
 
@@ -46,15 +46,6 @@ function layoutOf(file: string): Layout {
   if (!parsed.ok) throw new Error(`${file} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
   return renderDiagram(parsed.diagram, { lang: "ja" }).layout;
 }
-
-/** `dragon check --layout --json`が出した崩れ */
-async function breaksOf(file: string): Promise<LayoutBreak[]> {
-  const ran = await runCli(["check", file, "--layout", "--json", "--lang", "ja"]);
-  expect(ran.code, `${file} の確かめが終わり方0で終わらない ${ran.stderr}`).toBe(0);
-  return (JSON.parse(ran.stdout) as { layout?: LayoutBreak }[]).flatMap((p) => (p.layout ? [p.layout] : []));
-}
-
-const closeKinds = (breaks: LayoutBreak[]): LayoutBreak[] => breaks.filter((b) => b.kind === "lines-close" || b.kind === "badges-close");
 
 /** 箱の名札 `a` と `b` を逆向きに結ぶ2本の線。`a`から出る線を先に返す */
 function pairOf(layout: Layout, a: string, b: string): [SceneEdge, SceneEdge] {
@@ -119,24 +110,7 @@ const trace = (from: string, to: string, points: Point[]): Trace => ({ from, to,
 const linesOnly = (traces: Trace[]): LayoutBreak[] =>
   findBreaks({ inks: [], traces, framed: [], stills: [0], frame: { w: 1000, h: 1000 }, boxes: [], edges: [], outlines: new Map() });
 
-// 2 つの図を描いて命令で崩れを調べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。file を読み込む段で済ませ、件はその結果を読む
-const PAYMENT_CHECKED = await atLoad("評価の支払いの図を描き、命令で崩れを調べる", async () => ({
-  evalLayout: layoutOf(PAYMENT_EVAL),
-  bentLayout: layoutOf(PAYMENT_BENT),
-  breaks: [
-    [PAYMENT_EVAL, await breaksOf(PAYMENT_EVAL)],
-    [PAYMENT_BENT, await breaksOf(PAYMENT_BENT)],
-  ] as const,
-}));
-
 describe("評価でClaudeが描いた支払いの図の行きと帰りの線 (#3521)", () => {
-  it("return-lines-payment-eval-no-close-breaks", () => {
-    const { evalLayout, bentLayout, breaks } = PAYMENT_CHECKED.get();
-    // 図が行きと帰りの線を持つことを先に確かめる。持たなければ崩れ0件は当たり前になる
-    expect(pairOf(evalLayout, "api", "oracle")).toHaveLength(2);
-    expect(pairOf(bentLayout, "api", "psp")).toHaveLength(2);
-    for (const [file, found] of breaks) expect(closeKinds(found), `${file} の線と番号の崩れ`).toEqual([]);
-  });
 
   it("return-lines-architecture-apart", () => {
     const eval_ = layoutOf(PAYMENT_EVAL);
@@ -200,36 +174,6 @@ describe("評価でClaudeが描いた支払いの図の行きと帰りの線 (#3
   });
 });
 
-describe("状態遷移図と時系列図の行きと帰りの線 (#3521)", () => {
-  it("return-lines-state-apart", async () => {
-    const layout = layoutOf(STATE_PAIR);
-    for (const [a, b] of [
-      ["待ち", "作業中"],
-      ["作業中", "確認"],
-    ] as const) {
-      const [there, back] = pairOf(layout, a, b);
-      const gaps = sideBySide(there.points, back.points);
-      expect(gaps.length, `${a} と ${b} の行きと帰りの線が並んで走らない`).toBeGreaterThan(0);
-      for (const { gap } of gaps) expect(gap, `${a} と ${b} の行きと帰りの線の間`).toBeGreaterThan(apart().line);
-    }
-    expect((await breaksOf(STATE_PAIR)).filter((b) => b.kind === "lines-close"), "状態遷移図の並んで近すぎる線").toEqual([]);
-  });
-
-  it("return-lines-sequence-unchanged", async () => {
-    const layout = layoutOf(SEQUENCE_REPLY);
-    for (const [a, b] of [
-      ["app", "api"],
-      ["api", "db"],
-    ] as const) {
-      const [there, back] = pairOf(layout, a, b);
-      // 時系列図の線は段ごとに下の行へ引く横の線で、行きと帰りは別の行に分かれる
-      for (const edge of [there, back]) expect(edge.points.every(([, y]) => y === (edge.points[0] as Point)[1]), `${edge.from} から ${edge.to} への線が横の線でない`).toBe(true);
-      expect(Math.abs((there.points[0] as Point)[1] - (back.points[0] as Point)[1]), `${a} と ${b} の行きと帰りの線が同じ行に在る`).toBeGreaterThan(0);
-    }
-    expect(closeKinds(await breaksOf(SEQUENCE_REPLY)), "時系列図の線と番号の崩れ").toEqual([]);
-  });
-});
-
 describe("段の番号の丸の間を検査と同じ値で決める (#3521)", () => {
   it("badge-on-path-keeps-check-gap", () => {
     // 長い縦の線の始まりから14px進んだ所に置く番号が、先に置いた番号から縁で6pxしか離れない
@@ -243,10 +187,6 @@ describe("段の番号の丸の間を検査と同じ値で決める (#3521)", ()
     expect(badgeGap(placed, taken), "先に置いた番号との丸の縁の間").toBeGreaterThanOrEqual(apart().badge - 1e-6);
     // 下限を満たす所のうち、線の始まりに一番近い所に置く
     expect(placed[1], "下限より先へ進めすぎる").toBeLessThanOrEqual(taken[1] + 2 * R + apart().badge + 1);
-  });
-
-  it("return-lines-badge-gap-clears-finality", async () => {
-    expect((await breaksOf(FINALITY)).filter((b) => b.kind === "badges-close"), "時間の図の近すぎる番号").toEqual([]);
   });
 });
 

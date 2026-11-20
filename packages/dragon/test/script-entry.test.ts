@@ -21,6 +21,9 @@ import { describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
 import { fileChromium } from "./page-needs";
+// 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
+// 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
+import type {} from "./all-kinds";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CDN = join(ROOT, "dist/cdn");

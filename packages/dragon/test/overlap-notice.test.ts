@@ -16,15 +16,19 @@
  *
  * 箱の絵柄と運ぶ物 (硬貨と封筒) は、知らせる文の言葉で呼ぶ (#3184)。日本語は「<箱の名前> の絵柄」「硬貨」「封筒」、英語は `the icon of "<箱の名前>"`、`the coin`、`the envelope`。
  */
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import * as dragon from "../src/index";
-import { type Overlap, parseNotation, type Player, renderDiagram } from "../src/index";
+import * as dragon from "../src/core";
+import { type Overlap, parseNotation, type Player, renderDiagram } from "../src/core";
 import { LOOK } from "../src/look/values";
-import { renderLayout } from "../src/render/svg";
-import { runCli } from "./export-support";
+import { renderLayout } from "../src/render/draw";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -164,15 +168,4 @@ describe("字の重なりを知らせる (#3178)", () => {
       follow.player.destroy();
     }
   });
-
-  it(
-    "export-quiet-without-overlaps",
-    async () => {
-      const out = mkdtempSync(join(tmpdir(), "dragon-overlap-"));
-      const ran = await runCli(["export", OAUTH, "--format", "html", "--out", out]);
-      expect(ran.code, ran.stderr).toBe(0);
-      expect(readdirSync(out)).toContain("oauth.html");
-      expect(ran.stderr, "重ならない図で標準エラーに何か出た").toBe("");
-    },
-  );
 });

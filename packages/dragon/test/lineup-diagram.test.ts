@@ -42,6 +42,13 @@ import {
   type Rendered,
   sampleTimes,
 } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
 

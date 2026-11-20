@@ -37,7 +37,7 @@
 | 時間軸の図でない図の寄って追う窓は今のまま | `pnpm exec vitest run packages/dragon/test/follow-badge.test.ts`の検査`follow-window-shows-step-badge`が通る | #3284 |
 | 見本`finality`を日本語と英語で描いた時、段3、段9、段10の止め絵で、針の頭と終わりの点と全ての目盛りの字が、時間軸の囲みの枠の線から4px以上内側に収まる | `pnpm exec vitest run packages/dragon/test/time-axis-inside.test.ts`の検査`time-axis-needle-inside-panel`が通る | #3527 |
 | 見本`withdraw`を日本語と英語で描いた時、段4の止め絵で、右端の目盛りの字 (「10 日」と「10 d」) と最後の目盛りの線が、時間軸の囲みの枠の線から4px以上内側に収まる | `pnpm exec vitest run packages/dragon/test/time-axis-inside.test.ts`の検査`time-axis-last-tick-inside-panel`が通る | #3527 |
-| 時間軸の節目の字が囲みの枠を越える図に`dragon check --layout`を打つと、字が見え始める段の`step`の行を名指し、段の番号とその字と時間軸の囲みを名指す`warning`の行を出し、終わり方は0 | `pnpm exec vitest run packages/dragon/test/time-axis-inside.test.ts`の検査`layout-check-finds-time-text-on-panel-edge`が通る | #3527 |
+| 時間軸の節目の字が囲みの枠を越える図に`dragon check --layout`を打つと、字が見え始める段の`step`の行を名指し、段の番号とその字と時間軸の囲みを名指す`warning`の行を出し、終わり方は0 | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`layout-check-finds-time-text-on-panel-edge`が通る | #3527 |
 | 針か時刻の目盛りの線が時間軸の囲みの枠を越えるか、枠の線から4px未満に近づく時、崩れの知らせは針か目盛りの線と時間軸の囲みを名指し、続く段の同じ崩れを最初に見える段の1件にまとめる | `pnpm exec vitest run packages/dragon/test/time-axis-inside.test.ts`の検査`layout-check-names-needle-and-ticks`が通る | #3527 |
 | 見本の崩れの一覧に`finality`と`withdraw`の新しい崩れが載らず、見本の崩れが一覧と合う | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3527 |
 | 時間軸の図の今の描き方 (10段の動き、目盛りの等間隔、時刻の字の言葉、日の目盛りの軸) を保つ | `pnpm exec vitest run packages/dragon/test/time-diagram.test.ts`の検査`finality-renders-10-steps`と`time-axis-places-units-evenly`と`time-axis-labels-follow-language`と`withdraw-renders-day-axis`が通る | #3527 |

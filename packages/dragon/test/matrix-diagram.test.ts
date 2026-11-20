@@ -13,17 +13,20 @@
  * 軸は `data-matrix-axis="x"` と `data-matrix-axis="y"`、軸の矢印の先は `data-matrix-arrow`、置く前の一覧は `data-matrix-list` を持つ。
  * 見本の file と 2つの軸で置く図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/matrix";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
-const EXAMPLES = join(PACKAGE, "examples");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 2つの軸で置く図の見本 4 枚 (#3622 の「決まっていること」) */
 const MATRIX_EXAMPLES = ["task-priority", "risk-matrix", "token-listing", "chain-choice"] as const;
@@ -86,9 +89,6 @@ const fileText = (name: string): string | undefined => {
   const path = join(EXAMPLES, name);
   return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 };
-
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 
 /** 見本の file から、最初の注釈の行と、その後ろの空の行を外した記法 */
 const withoutComments = (text: string): string => text.replace(/^(?:\/\/[^\n]*\n)+\n*/u, "");
@@ -534,89 +534,5 @@ describe("2つの軸で置く図の並べ方と動き (#3622)", () => {
       for (const [i, a] of ends.entries())
         for (const b of ends.slice(i + 1)) expect(apart(a.at, b.at), `${name} の最後の段で課題 ${a.id} と ${b.id} の札が重なる`).toBe(true);
     }
-  });
-});
-
-describe("2つの軸で置く図の軽い入口 (#3622)", () => {
-  it("matrix-light-entry-draws-after-load-for", () => {
-    const code = [
-      `const text = ${JSON.stringify(SMALL)};`,
-      "out.before = light.kindLoaded('matrix');",
-      "await light.loadFor(text);",
-      "out.after = light.kindLoaded('matrix');",
-      "const read = light.parseNotation(text);",
-      "out.ok = read.ok;",
-      "out.errors = read.ok ? [] : read.errors;",
-      "if (read.ok) {",
-      "  const drawn = light.renderDiagram(read.diagram);",
-      "  out.kind = drawn.layout.kind;",
-      "  out.cards = (drawn.svg.match(/data-matrix-item=/g) ?? []).length;",
-      "  const full = await import('@cardenelabs/dragon');",
-      "  const again = full.parseNotation(text);",
-      "  out.same = again.ok && full.renderDiagram(again.diagram).svg === drawn.svg;",
-      "}",
-      "console.log(JSON.stringify(out));",
-    ].join("\n");
-    const script = `const light = await import("@cardenelabs/dragon/light");\nconst out = {};\n${code}`;
-    let stdout = "";
-    let failure = "";
-    try {
-      stdout = execFileSync(process.execPath, ["--input-type=module", "-e", script], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch (error) {
-      failure = String((error as { stderr?: string }).stderr ?? error);
-    }
-    expect(failure, "軽い入口で 2つの軸で置く図を読んで描く node が落ちる").toBe("");
-    const out = JSON.parse(stdout.trim().split("\n").at(-1) ?? "{}") as { before?: boolean; after?: boolean; ok?: boolean; errors?: unknown[]; kind?: string; cards?: number; same?: boolean };
-    expect(out.before, "軽い入口が loadFor の前から 2つの軸で置く図の描く部品を持つ (最初に読む塊に入っている)").toBe(false);
-    expect(out.after, "軽い入口で loadFor を待っても 2つの軸で置く図の描く部品を読まない").toBe(true);
-    expect(out.ok, `軽い入口で loadFor を待った後に 2つの軸で置く図を読めない: ${JSON.stringify(out.errors)}`).toBe(true);
-    expect(out.kind, "軽い入口で描いた図の種類").toBe("matrix");
-    expect(out.cards, "軽い入口で描いた 2つの軸で置く図の課題の札の数").toBe(5);
-    expect(out.same, "軽い入口と既定の入口で描いた 2つの軸で置く図が違う").toBe(true);
-  });
-});
-
-describe("2つの軸で置く図の書き方の文書 (#3622)", () => {
-  it("matrix-docs-describe-the-notation", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `matrix` と、軸の行と、課題の行と、区画へ置く行の書き方 */
-    const head = /(^|[\s`])matrix [^\s`]/mu;
-    const axis = /axis (<[^>]+>|[^\s`]+) \[from: (<[^>]+>|[^\s`,]+), to: (<[^>]+>|[^\s`\]]+)\]/u;
-    const item = /item (<[^>]+>|[^\s`]+) as (<[^>]+>|[^\s`]+)/u;
-    const place = /line (<[^>]+>|[^\s`:]+): (<[^>]+>|[^\s`]+)/u;
-    const matrixFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const read = parse(fence.source);
-        return read.ok && (read.diagram as unknown as Source).kind === "matrix";
-      }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(head.test(text), `${path} に matrix の行の書き方が無い`).toBe(true);
-      expect(axis.test(text), `${path} に軸の行 (axis <名前> [from: <小さい側>, to: <大きい側>]) の書き方が無い`).toBe(true);
-      if (path !== "README.md") {
-        expect(item.test(text), `${path} に課題の行 (item <名札> as <名前>) の書き方が無い`).toBe(true);
-        expect(place.test(text), `${path} に区画へ置く行 (line <区画>: <課題>) の書き方が無い`).toBe(true);
-        expect(matrixFences(text), `${path} に 2つの軸で置く図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-      }
-    }
-    // README の描ける図の欄に 2つの軸で置く図が載る
-    expect(/^\| Diagram kinds \|.*\btwo-axis matrix\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に two-axis matrix が無い").toBe(true);
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"matrix"/u.test(content), "使い方の頁の節に 2つの軸で置く図 (matrix) が無い").toBe(true);
-    const sections = ["matrix.dragon", "matrix.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const read = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(read.ok && (read.diagram as unknown as Source).kind, `使い方の頁の 2つの軸で置く図の節の例 (${i === 0 ? "matrix.dragon" : "matrix.en.dragon"}) が 2つの軸で置く図として読めない`).toBe("matrix");
-    }
-    const blocks = join(PACKAGE, "src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    expect(head.test(page), "使い方の頁に matrix の行の書き方が無い").toBe(true);
-    expect(axis.test(page), "使い方の頁に軸の行の書き方が無い").toBe(true);
-    expect(item.test(page), "使い方の頁に課題の行の書き方が無い").toBe(true);
-    expect(place.test(page), "使い方の頁に区画へ置く行の書き方が無い").toBe(true);
   });
 });

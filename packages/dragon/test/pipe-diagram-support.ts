@@ -8,6 +8,7 @@ import { expect } from "vitest";
 import type { Json } from "./diagram-support";
 import type { Motion } from "./motion-support";
 import { draw, type Rect, type Rendered } from "./render-support";
+import "../src/kind-use/pipe";
 
 export const ROOT = process.cwd();
 export const EXAMPLES = join(ROOT, "packages/dragon/examples");

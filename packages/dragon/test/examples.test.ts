@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Diagram } from "../src/schema";
 import { api, exampleText } from "./diagram-support";
+// 全ての種類の見本を描くので、全ての種類を読む (#3763)
+import "./all-kinds";
 
 const examples = join(process.cwd(), "packages/dragon/examples");
 

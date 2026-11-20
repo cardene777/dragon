@@ -21,3 +21,10 @@ export const parts: KindParts<SankeyLayout> = {
   // 出どころと行き先を結ぶ線は帯が描くので、共通の線は描かない
   draw: (layout, _diagram, ctx) => ({ ...drawSankey(layout, ctx), edge: () => undefined }),
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    sankey: typeof import("./sankey");
+  }
+}
