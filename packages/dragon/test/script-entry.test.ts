@@ -421,8 +421,15 @@ describe("script の1行の入口 (#3343)", () => {
   it("script-entry-adds-bar-with-data-header", async () => {
     if (!entryBuilt()) return;
     await withPage(`<pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page) => {
-      await settle(page, 2);
-      await page.waitForFunction(() => document.querySelector(".dragon-figure .dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
+      // 構成図は並べ方の塊を読んでから描くので、帯の図が帯の内側 (shadow root) へ移った後に描くことがある (#3782)。
+      // 頁の表に在る図だけを数えると 2 つ揃う時が来ないので、図ごとに帯の内側か外側で描けたかを待つ
+      await page
+        .waitForFunction(() => {
+          const figures = [...document.querySelectorAll(".dragon-figure")];
+          const drawn = figures.filter((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
+          return document.querySelectorAll("pre.dragon").length === 0 && drawn.length === 2 && document.querySelector(".dragon-figure .dragon-frame") !== null;
+        }, null, { timeout: QUICK_SETTLE })
+        .catch(() => undefined);
       const figures = await page.evaluate(() =>
         [...document.querySelectorAll(".dragon-figure")].map((figure) => {
           const root = figure.querySelector(".dragon-frame")?.shadowRoot;

@@ -113,7 +113,7 @@ step Press sign in
 ```
 
 The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
-It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
+It loads the renderer for `sequence` first, and the renderer of any other kind, `architecture` included, only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
 A block that has no width then, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
