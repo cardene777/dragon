@@ -191,3 +191,9 @@
 | scriptの1行の入口が最初に読む量は、上限以下のまま | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3763 |
 | 種類とブロックの置き場の一覧は、dirから書き出した形のまま | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-registry-derived-from-folders`が通る | #3763 |
 | 関係する検査を選ぶ命令は、変えたfileへimportでたどれる検査のfileを選び、たどれない検査のfileを選ばない | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-picks-importers`と`related-skips-non-importers`が通る | #3763 |
+| `.ikkan/specs/`の全ての行で、確かめ方の命令が名指す検査のfileか、そのfileがimportする助けのfileに、その後に書いた名前の検査が在る。`pipe-diagram.md`と`interactive-diagram.md`の行も含む | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-rows-name-existing-tests`が通る | #3768 |
+| 確かめ方の命令が名指したfileに無く、別の検査のfileに在る名前を書いた行を、記録のfileと行と名前と名指したfileを挙げて拒む | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-test-files-reject-name-in-another-file`が通る | #3768 |
+| 確かめ方の命令が名指した検査のfileが無い行を拒む。`.test.ts`と書き、同じ名前の`.test.tsx`だけが在る行もこれに当たる | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-test-files-reject-missing-named-file`が通る | #3768 |
+| 名指したfileがimportする助けのfile (`kind-cli.test.ts`が読む`*-cli-checks.ts`など) に在る名前を、名指したfileの検査として通せる | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-test-files-read-imported-helpers`が通る | #3768 |
+| 1つの命令が検査のfileを2つ以上名指す行では、名前がどれか1つのfileに在れば通せる | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-test-files-accept-any-named-file`が通る | #3768 |
+| 検査のfileを名指さない命令 (`pnpm test`など) の後に書いた名前は、全ての検査のfileのどこかに在れば通せる | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`spec-test-files-search-unnamed-rows-everywhere`が通る | #3768 |
