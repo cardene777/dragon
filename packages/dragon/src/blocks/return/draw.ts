@@ -56,11 +56,11 @@ export function dashMovers(d: string, g: StreamRun): string {
  */
 export const FLOW_CSS = [
   ".dg-pp-ccase{fill:none;stroke:var(--line);stroke-width:8;stroke-linejoin:round;stroke-linecap:butt}",
-  ".dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
+  ".dg-pp-pcase{fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
   ".dg-pp-ctrack{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
+  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
   ".dg-pp-cdone{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
+  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
   ".mv-s1{fill:none;stroke:var(--k);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:34 96;stroke-linejoin:round}",
   ".mv-s2{fill:none;stroke:var(--k);stroke-width:3.5;stroke-linecap:round;stroke-dasharray:16 64;opacity:.6;stroke-linejoin:round}",
   ".dg-pp-lcard{fill:var(--surf);stroke:var(--hair);stroke-width:1.5}",
@@ -88,7 +88,7 @@ export const FLOW_CSS = [
   ".dg-pp-deep{display:none}",
   ".dg-pp-shine{fill:color-mix(in srgb,var(--ink) 4%,transparent)}",
   ".dg-pp-ctrack{stroke:color-mix(in srgb,var(--c) 22%,var(--surf));stroke-width:16}",
-  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:8}",
+  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:11}",
 ];
 
 /** 本管と枝の外の管 */

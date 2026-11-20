@@ -193,11 +193,37 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
 }
 
 /**
+ * 値の管の線。折れ線の角を半径 `PIPE_LOOK.bend` の弧で曲げる (#3783)。隣の辺が短い角は、その辺の半分を半径にする。
+ * 並びの点は変えず、描く線だけを丸めるので、管を避ける確かめは今の折れ線のまま働く
+ */
+export function bentLine(points: readonly Point[]): string {
+  const at = (p: Point): string => `${r1(p[0])} ${r1(p[1])}`;
+  const first = points[0];
+  if (first === undefined) return "";
+  let d = `M ${at(first)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const [a, b, c] = [points[i - 1], points[i], points[i + 1]] as [Point, Point, Point];
+    const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+    const r = Math.min(PIPE_LOOK.bend, ab / 2, bc / 2);
+    // 真っすぐ続く点と重なった点は曲げずに通る
+    const straight = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < 1e-6;
+    if (r <= 0 || straight) {
+      d += ` L ${at(b)}`;
+      continue;
+    }
+    d += ` L ${at([b[0] + ((a[0] - b[0]) * r) / ab, b[1] + ((a[1] - b[1]) * r) / ab])} Q ${at(b)} ${at([b[0] + ((c[0] - b[0]) * r) / bc, b[1] + ((c[1] - b[1]) * r) / bc])}`;
+  }
+  const last = points[points.length - 1];
+  return points.length > 1 && last !== undefined ? `${d} L ${at(last)}` : d;
+}
+
+/**
  * 値の管。持ち主の槽の横の口どうしを結ぶ折れ線を、壁 (`dg-pp-pcase`) と空洞 (`dg-pp-pbore`) の 2 本の線で描き、流れる値は空洞の中を通す (Tracelyth #168)。
  * `attrs` は部品の印 (`data-pipe-value` など)
  */
 export function valuePipe(points: readonly Point[], attrs = ""): string {
-  const d = `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
+  const d = bentLine(points);
   return `<g${attrs}><path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pbore" d="${d}"/></g>`;
 }
 
@@ -285,7 +311,7 @@ export function pointAlong(points: readonly Point[], d: number): Point {
  * `plan` は流れの先が道の頭から進んだ割合 (0 から 1) の時刻の組。移す額の札と同じ時刻に角を通し、札を流れの先に載せる (Tracelyth #168)
  */
 export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: readonly (readonly [number, number])[]): string {
-  const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
+  const d = bentLine(f.points);
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
   const head = `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">`;
   if (at === undefined) return `${head}<path class="dg-pp-tpast" d="${d}"/></g>`;

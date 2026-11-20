@@ -41,6 +41,7 @@ interface ValuePipe {
   points: Point[];
 }
 interface Layout {
+  chips?: Array<Rect & { kind: string }>;
   tanks: Tank[];
   parties: Party[];
   ties: Tie[];
@@ -145,9 +146,20 @@ describe("トップページの図の良い所を取り込んだパイプ図", (
     for (const name of NAMES) {
       const { svg, layout } = drawn(name);
       const ties = [...svg.matchAll(/<path class="dg-pp-tie" d="M ([\d.]+) ([\d.]+) V ([\d.]+)"/g)].map((m) => ({ x: Number(m[1]), y1: Number(m[2]), y2: Number(m[3]) }));
+      const written = [...svg.matchAll(/<text class="dg-pp-tok" x="([\d.]+)" y="([\d.]+)">([^<]*)</g)].map((m) => ({ x: Number(m[1]), base: Number(m[2]), text: m[3] }));
+      // 値の管は太さ24。管の縁から名前までを空ける
+      const pipeRects = layout.valuePipes.flatMap((v) =>
+        v.points.slice(1).map((q, i) => {
+          const p = v.points[i] as Point;
+          return { x: Math.min(p[0], q[0]) - 12, y: Math.min(p[1], q[1]) - 12, w: Math.abs(q[0] - p[0]) + 24, h: Math.abs(q[1] - p[1]) + 24 };
+        }),
+      );
       for (const t of layout.tanks) {
         titles++;
         const n = t.title;
+        if (!written.some((w) => w.text === n.text && near(w.x, n.x) && near(w.base, n.base))) bad.push(`${name} ${t.party} ${t.token}: 描いた名前の場所が並びの名前の場所と違う`);
+        for (const r of pipeRects) if (n.x < r.x + r.w && n.x + n.w > r.x && n.y < r.y + r.h && n.y + n.h > r.y) bad.push(`${name} ${t.party} ${t.token}: 名前が値の管に重なる`);
+        for (const c of (layout.chips ?? []).filter((x) => x.kind === "io")) if (n.x < c.x + c.w && n.x + n.w > c.x && n.y < c.y + c.h && n.y + n.h > c.y) bad.push(`${name} ${t.party} ${t.token}: 名前が入力と出力の印に重なる`);
         if (n.base > t.y - 4) bad.push(`${name} ${t.party} ${t.token}: 名前の基準線 ${n.base} がガラスの上端 ${t.y} より上に無い`);
         const label = layout.parties.find((p) => p.id === t.party)?.label;
         if (label && n.y < label.y + label.h && n.y + n.h > label.y && n.x < label.x + label.w && n.x + n.w > label.x) bad.push(`${name} ${t.party} ${t.token}: 名前が名札の字と重なる`);
