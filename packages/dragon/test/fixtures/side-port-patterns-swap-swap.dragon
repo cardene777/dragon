@@ -1,0 +1,42 @@
+pipe SwapRouter.swapExactTokensForTokensを実行
+layout mesh
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool as LiquidityPool
+box weth as WETH
+box bob as Bob
+
+hold alice: 1000 USDC, 0 WETH
+hold pool: 1900 USDC, 10 WETH
+hold bob: 0 USDC, 0 WETH
+hold usdc: "allowance[Alice][SwapRouter]" 200 [from: alice, to: router, unit: USDC]
+
+step AliceがSwapRouterのswapExactTokensForTokensを呼ぶ
+  say AliceがSwapRouter.swapExactTokensForTokensを呼び出します。途中でLiquidityPool.token0を読み取ります。スワップは、プールにトークンを入れて別のトークンを受け取る仕組みです。受け取る量はプールの残高の比で決まり、最低受取量に届かないとリバートします。
+  alice -> router: swapExactTokensForTokens(amountIn: 100 USDC, amountOutMin: 0.45 WETH, to: bob)
+
+step 100 USDCがAliceからLiquidityPoolへ移る
+  say SwapRouterがUSDC.transferFromを呼び出します。100 USDCがAliceからLiquidityPoolへ移動します。USDCのallowance[Alice][SwapRouter]を200から100 USDCに書き換えます。
+  router -> usdc: transferFrom(from: alice, to: pool, amount: 100 USDC)
+  write usdc: "allowance[Alice][SwapRouter]" 100
+  move usdc: 100 alice -> pool
+  emit usdc: Transfer(from: alice, to: pool, amount: 100 USDC)
+  return usdc
+
+step SwapRouterがLiquidityPoolのswapを呼ぶ
+  say SwapRouterがLiquidityPool.swapを呼び出します。LiquidityPoolのreserve0を1,900から2,000 USDCに書き換えます。LiquidityPoolのreserve1を10から9.5 WETHに書き換えます。
+  router -> pool: swap(amountIn: 100 USDC, amountOutMin: 0.45 WETH, to: bob)
+
+step 0.5 WETHがLiquidityPoolからBobへ移る
+  say LiquidityPoolがWETH.transferを呼び出します。0.5 WETHがLiquidityPoolからBobへ移動します。
+  pool -> weth: transfer(to: bob, amount: 0.5 WETH)
+  move weth: 0.5 pool -> bob
+  emit weth: Transfer(from: pool, to: bob, amount: 0.5 WETH)
+  return weth
+  return pool: 0.5 WETH
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。allowance[Alice][SwapRouter]は200から100 USDCになりました。SwapRouter.swapExactTokensForTokensは0.5 WETHを返しました。
+  return router: 0.5 WETH

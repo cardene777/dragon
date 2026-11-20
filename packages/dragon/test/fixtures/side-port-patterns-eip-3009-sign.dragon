@@ -1,0 +1,27 @@
+pipe USDC.transferWithAuthorizationを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box ecrecover as ecrecover
+box bob as Bob
+box carol as Carol
+
+hold alice: 1000 USDC
+hold bob: 0 USDC
+hold carol: 0 USDC
+hold usdc: "authorizationState[Alice][0x8b1c…1c2d]" false [on: alice]
+
+step 100 USDCがAliceからBobへ移る
+  say BobがUSDC.transferWithAuthorizationを呼び出します。100 USDCがAliceからBobへ移動します。USDCのauthorizationState[Alice][0x8b1c…1c2d]をfalseからtrueに書き換えます。途中でUSDCがecrecoverに署名と署名したハッシュを渡し、署名した人としてAliceを受け取ります。EIP-3009は、許可を経ずに持ち主の署名だけでトークンを送る仕組みです。permitのように許可を書き換えてから受け取るのではなく、トークンが署名した中身のとおりにその場で送ります。署名の番号は順に進める数ではなく持ち主が選ぶ32 byteの値で、トークンは使った番号をauthorizationStateに記録し、同じ番号の署名を2度使わせません。
+  bob -> usdc: transferWithAuthorization(from: alice, to: bob, value: 100 USDC, validAfter: 0, validBefore: 1893456000, nonce: 0x8b1c…1c2d, v: 28, r: 0xcf95…4455, s: 0x230e…19fb)
+  usdc -> ecrecover: ecrecover(hash: 0xa35f…3071, v: 28, r: 0xcf95…4455, s: 0x230e…19fb)
+  return ecrecover: Alice
+  write usdc: "authorizationState[Alice][0x8b1c…1c2d]" true
+  emit usdc: AuthorizationUsed(authorizer: alice, nonce: 0x8b1c…1c2d)
+  move usdc: 100 alice -> bob
+  emit usdc: Transfer(from: alice, to: bob, value: 100 USDC)
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。authorizationState[Alice][0x8b1c…1c2d]はfalseからtrueになりました。
+  return usdc: ok

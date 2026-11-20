@@ -1,0 +1,25 @@
+pipe USDC.burnを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+box carol as Carol
+box addr-00000000 as 0x0000…0000
+
+hold alice: 1000 USDC
+hold bob: 200 USDC
+hold carol: 0 USDC
+hold addr-00000000: 0 USDC
+hold usdc: "totalSupply" 1200
+
+step 50 USDCがAliceから0x0000…0000へ移る
+  say AliceがUSDC.burnを呼び出します。50 USDCがAliceから0x0000…0000へ移動します。USDCのtotalSupplyを1,200から1,150 USDCに書き換えます。
+  alice -> usdc: burn(amount: 50 USDC)
+  write usdc: "totalSupply" 1150
+  move usdc: 50 alice -> addr-00000000
+  emit usdc: Transfer(from: alice, to: addr-00000000, amount: 50 USDC)
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。totalSupplyは1,200から1,150 USDCになりました。
+  return usdc: ok
