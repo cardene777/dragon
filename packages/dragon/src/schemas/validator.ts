@@ -7,7 +7,8 @@
  * 全部を持つ入口は読み込みの時に登録し、軽い入口は原本の JSON を読む前にだけこの塊を後から読む
  */
 import { funnelErrors } from "../blocks/chart-shape/funnel";
+import { holdLinkErrors } from "../blocks/hold/link-fields";
 import { tablerErrors } from "../blocks/icon/set-fields";
 import shape from "./validate-diagram.js";
 
-export const VALIDATOR = { shape, tablerErrors, funnelErrors };
+export const VALIDATOR = { shape, tablerErrors, funnelErrors, holdLinkErrors };

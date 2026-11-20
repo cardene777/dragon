@@ -10,7 +10,7 @@ import { join } from "node:path";
 import * as pipeRules from "../src/pipe-rules";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
-import { foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/layout";
+import { along, foldPipe as foldModel, layoutPipe, tryOrders } from "../src/kinds/pipe/layout";
 import { toModel } from "../src/model";
 import { type Ask, Router } from "../src/pipe-route";
 import type { Diagram } from "../src/schema";
@@ -747,10 +747,12 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
     const plates = layout.plates.filter((p) => p.party === "proxy" && !(p as Plate & { boxed?: boolean }).boxed);
     expect(plates.length, "Proxy の値の札の数").toBeGreaterThan(0);
     for (const p of plates) expect(inside(p, housing as Rect), `段 ${p.step + 1} の Proxy の ${p.name} の札が囲いの外に在る`).toBe(true);
-    // write の段で札の値が替わり、前の値を線で消さずに残し (#3721)、確定するまで暫定の印で描く
+    // write の段で札の値が替わり、前の値を消し線で残し、確定するまで暫定の印で描く。
+    // 消し線は Tracelyth の配管の図の形を元にした時に戻した (#3761)
     const written = layout.plates.find((p) => p.party === "proxy" && p.name === "deposits[alice]" && p.step === 5);
     expect([written?.value, written?.was?.text, written?.state], "write の段の Proxy の deposits[alice] の札").toEqual(["1", "0", "provisional"]);
-    expect(written?.strike, "write の段の前の値に消し線が在る").toBeUndefined();
+    const was = written?.was ?? { x: Number.NaN, y: 0, w: 0, h: 0 };
+    expect(written?.strike !== undefined && (written.strike?.x ?? Infinity) <= was.x + 1 && (written.strike?.x ?? 0) + (written.strike?.w ?? 0) >= was.x + was.w - 1, "write の段の前の値に消し線が無い").toBe(true);
   });
 
   it("pipe-dims-parts-that-did-not-move", () => {
@@ -787,10 +789,19 @@ describe("配管の図の決まりの表と組み方 (#3418)", () => {
       return [Number(chip.getAttribute("data-pipe-x") ?? 0) + (v[0] ?? 0), Number(chip.getAttribute("data-pipe-y") ?? 0) + (v[1] ?? 0)];
     };
     const points = lane?.points ?? [];
-    const callee = points[points.length - 1] as Point;
     const first = posAt(span.start + 0.05);
     const end = posAt(stillOf(rendered, 5));
-    expect(Math.hypot(first[0] - callee[0], first[1] - callee[1]), "戻り値の札が呼ばれた側から動き出さない").toBeLessThanOrEqual(40);
+    // 動き出す所は呼び出しの管の上の、呼ばれた側の端から、この段に出ている呼び出しの札と箱を避けられる一番近い所。
+    // 呼ばれた側の端のすぐ上は呼び出しの札に重なるので、札は管の頭を切り詰めた所から動き出す (Tracelyth #221、#3761)
+    const size = composed(rendered).chips.find((c) => c.kind === "return" && c.step === 5) ?? { w: 0, h: 0 };
+    const chipAt = (p: Point): Rect => ({ x: p[0] - size.w / 2, y: p[1] - size.h / 2, w: size.w, h: size.h });
+    const cards = ((layout as unknown as { callCards?: (Rect & { shown: [number, number][] })[] }).callCards ?? []).filter((cc) => cc.shown.some(([u, v]) => u < span.end && span.start < v));
+    const solids: Rect[] = [...layout.parties, ...cards];
+    const nearest = (p: Point): number => Math.min(...solids.map((r) => gap(chipAt(p), r)));
+    expect(onPath(first, points, 6), "戻り値の札が呼び出しの管の上から動き出さない").toBe(true);
+    expect(nearest(first), "戻り値の札が動き出す所で呼び出しの札か箱に重なる").toBeGreaterThan(0);
+    // 4px 呼ばれた側へ寄せると、札は呼び出しの札か箱との間を 4px 保てない
+    expect(nearest(along(points, alongPath(first, points, 6) + 4)), "戻り値の札が、呼び出しの札と箱を避けられる所より呼ばれた側から離れて動き出す").toBeLessThan(4);
     // 着く所は呼び出しの管の上の、動き出した所より呼んだ側の所。呼んだ側の名札の手前に並ぶ弁と計器を避けて止まるので、
     // 名札の際とは限らない (#3523)
     expect(onPath(end, points, 6), "戻り値の札が呼び出しの管の上に止まらない").toBe(true);

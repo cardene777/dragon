@@ -5,23 +5,28 @@
  * 槽の下に 3 桁ごとに区切った大きな数 (今の残高) を書き、変わった段から確定するまで、その下に増えた分か減った分と暫定の語を添える。確定した段は確定の語を添える (#3418)。
  * 暫定の槽は増えた分を斜線で、減った分を点線の枠で示し、前の水位に点線を引く。確定した槽は緑の縁、取り消した槽は桃色の縁で描く。
  * 値の管は、持ち主の槽の横の口どうしを結ぶ折れ線で描く (#3418)。トークンの Contract は箱で描き、管の弁の真上に置いて軸で結ぶ。
- * `move` と `[value]` で流れた分は管に沿った点線と向きの印で描き、流れた段は斜線の液の塊が管を通り抜ける。暫定か確定かは管に残さず、点線か実線かと槽の斜線で示す。
- * 弁は 2 つの三角を向かい合わせた形で、取っ手が開くと管の向きに倒れる。弁と計器と名札は呼び出しの管と値の管の両方が使う。
+ * `move` と `[value]` で流れた分は通った道の淡い跡で描き、流れた段は管に液が満ちて 2 本の筋が流れる (Tracelyth #221)。暫定か確定かは管に残さず、跡の色と槽の斜線で示す。
+ * 弁は 2 つの三角を向かい合わせた形で描き、軸と取っ手は描かない。弁と計器と名札は呼び出しの管と値の管の両方が使う。
  * 角を落とす色味 (#3344) では、槽とトークンの箱の右上と左下を落とし、つやと取っ手の角を丸めない。
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
  */
 import type { PipeFlow, PipeLedger, PipeLevel, PipeParty, PipeState, PipeTank, PipeText } from "../../kinds/pipe/layout";
-import { simplifyPath } from "../../layout/pipe-place";
+import { simplifyPath } from "../../kinds/pipe/layout";
 import type { Point, Rect } from "../../layout/scene";
 import { FLOW_MOVE, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import { EASE, MOTION, type TextStyle } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Shown } from "../../render/ink";
-import type { Frame } from "../../render/motion";
+import type { Frame, Motion } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
-import { dashMovers, maskOf, streamId } from "../return/draw";
+import { dashMovers, maskOf, streamId, type StreamRun } from "../return/draw";
 import { undoneMark } from "../revert/draw";
+
+/**
+ * 移す額の札が管を流れる動き (Tracelyth #168)。値は値の表 (`look/pipe.ts`) が持ち、配管の図の並べ方と描き方がここから読む
+ */
+export { FLOW_MOVE };
 
 const P = PIPE_LOOK;
 const T = PIPE_TYPE;
@@ -104,12 +109,44 @@ export function tank(t: PipeTank, edge: "final" | "rolled" | "", inside: string,
   );
 }
 
+// 槽の数が変わる時に、液面が動く間に前の値から次の値へ数えて見せる途中の値 (Tracelyth #221)。
+// 数として読めない値と、桁が多く浮動小数で正しく数えられない値は数えず、空の並びを返して今までどおり入れ替える
+const COUNT_FRAMES = 8;
+export function countSteps(fromText: string | undefined, toText: string | undefined): string[] {
+  const read = (s: string | undefined): { n: number; places: number } | undefined => {
+    const raw = String(s ?? "").replace(/,/g, "");
+    if (!/^-?\d+(\.\d+)?$/.test(raw)) return undefined;
+    return { n: Number(raw), places: raw.includes(".") ? (raw.split(".")[1] as string).length : 0 };
+  };
+  const from = read(fromText),
+    to = read(toText);
+  if (!from || !to || from.n === to.n) return [];
+  const places = Math.max(from.places, to.places);
+  if (places > 6 || Math.abs(from.n) > 1e15 || Math.abs(to.n) > 1e15) return [];
+  const show = (n: number): string => {
+    const [whole, frac] = Math.abs(n).toFixed(places).split(".") as [string, string | undefined];
+    return `${n < 0 ? "-" : ""}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${frac ? `.${frac}` : ""}`;
+  };
+  const out: string[] = [];
+  for (let k = 1; k < COUNT_FRAMES; k++) {
+    const e = 1 - Math.pow(1 - k / COUNT_FRAMES, 3);
+    const v = show(from.n + (to.n - from.n) * e);
+    if (v !== show(from.n) && v !== show(to.n) && v !== out[out.length - 1]) out.push(v);
+  }
+  return out;
+}
+// 数え上げの途中の値を、前の値と重ねず瞬時に切り替えて出す。最後の値だけはステップの終わりにほかの絵と同じ速さで消す
+export function countShown(m: Motion, from: number, to: number, fadeOut: boolean): string {
+  return m.kf([[0, { opacity: 0 }], [from, { opacity: 0 }], [from + 0.01, { opacity: 1 }], [to, { opacity: 1 }, EASE.inOut], [Math.min(to + (fadeOut ? MOTION.fade : 0.01), m.total), { opacity: 0 }], [m.total, { opacity: 0 }]]);
+}
+
 /**
  * 水と、槽の下の数と、増えた分か減った分と語。`at` を渡すと、その時刻に水が段の始まりの水位 (`from`) から今の水位へ動く。
  * 暫定で増えた分は斜線の帯が下から伸び、暫定で減った分は液が縮んで点線の枠が残り、ほかは水面がそのまま上下する。
- * 水は切り抜きの下の端より下まで伸ばし、下がる時にも底が空かないようにする
+ * 水は切り抜きの下の端より下まで伸ばし、下がる時にも底が空かないようにする。
+ * `bare` を立てると槽の下の数を描かない。数え上げる槽は数を別に描くため (Tracelyth #221)
  */
-export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attrs: string, at?: number): string {
+export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attrs: string, at?: number, bare = false): string {
   const bottom = t.y + t.h - P.tank.pad;
   const deep = t.h;
   const tone = `--pp-t:var(--pp-tone${t.tone})`;
@@ -151,7 +188,7 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
     (lv.tag ? write(ctx.ink, "dg-pp-tagw", lv.tag.x, lv.tag.base, lv.tag.text, T.tag, shown) : "");
   return (
     `<g${attrs} class="dg-pp-lv dg-pp-lv-${lv.state}" style="${cs(STATE_COLOR[lv.state])}">${water}${marks.join("")}` +
-    `${sizedText(ctx, "dg-pp-num", lv.text, T.amount, shown)}${sub}</g>`
+    `${bare ? "" : sizedText(ctx, "dg-pp-num", lv.text, T.amount, shown)}${sub}</g>`
   );
 }
 
@@ -179,7 +216,6 @@ export function valve(x: number, y: number, vertical: boolean, attrs = "", open 
     `</g>`
   );
 }
-
 
 /**
  * トークンの箱。名前と、名前の下の小さな字 (`balanceOf`、Tracelyth #175) と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。
@@ -244,9 +280,9 @@ export function pointAlong(points: readonly Point[], d: number): Point {
 }
 
 /**
- * 流れた分。流れなかった段は、管の空洞の太さの薄い跡 (`dg-pp-tpast`) で描き、取り消した分は桃色で描く。
- * `at` を渡すと、その時刻に流れの先が管の始まりから終わりへ進み、進んだ所の中を 2 本の筋が流れる (Tracelyth #168)。`attrs` は部品の印。
- * `plan` は流れの先が道の頭から進んだ割合 (0 から 1) の時刻の組。移す額の札と同じ時刻に角を通し、札を流れの先に載せる
+ * 流れた分。通った道を淡い跡 (`dg-pp-tpast`) で描く。暫定の分、確定した分、取り消した分は跡の色で分ける。`attrs` は部品の印。
+ * `at` を渡すと、その時刻から跡が道の頭から伸び、管の液は流れの先まで満ちた後、元の側から引いて行き先へ抜け、中を 2 本の筋が流れる (Tracelyth #221)。
+ * `plan` は流れの先が道の頭から進んだ割合 (0 から 1) の時刻の組。移す額の札と同じ時刻に角を通し、札を流れの先に載せる (Tracelyth #168)
  */
 export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: readonly (readonly [number, number])[]): string {
   const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
@@ -254,6 +290,7 @@ export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: r
   const head = `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">`;
   if (at === undefined) return `${head}<path class="dg-pp-tpast" d="${d}"/></g>`;
   const id = streamId();
+  // 跡は流れの先まで伸びる。`plan` を渡した流れは札と同じ時刻に角を通す
   const frames: Frame[] = plan
     ? [[0, { "stroke-dashoffset": 1 }], ...plan.map(([t, frac]): Frame => [t, { "stroke-dashoffset": +(1 - frac).toFixed(4) }]), [ctx.m.total, { "stroke-dashoffset": 0 }]]
     : [
@@ -263,9 +300,34 @@ export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: r
         [ctx.m.total, { "stroke-dashoffset": 0 }],
       ];
   const reveal = ctx.m.kf(frames);
-  const g = { m: ctx.m, t0: at, tEnd: Math.min(ctx.m.total, at + 8), w: 1.4 };
+  const g: StreamRun = { m: ctx.m, t0: at, tEnd: Math.min(ctx.m.total, at + 8), w: 1.4 };
   const look = "--k:var(--pp-t);--w:1.4";
-  return `${head}${maskOf(id, d, reveal)}<g mask="url(#${id})" style="${look}"><path class="dg-pp-mtrack" d="${d}"/>${dashMovers(d, g)}</g></g>`;
+  // 管の液は流れの先まで満ちた後、元の側から引いて行き先へ抜ける。通った道は淡い跡として残す (Tracelyth #221)
+  const full = plan ? (plan[plan.length - 1] as readonly [number, number])[0] : Math.min(at + FLOW_MOVE.travel, ctx.m.total);
+  const gone = Math.min(full + 0.2 + FLOW_MOVE.travel, ctx.m.total);
+  const liquid = ctx.m.kf(
+    plan
+      ? [
+          [0, { "stroke-dashoffset": 1 }],
+          ...plan.map(([t, frac]): Frame => [t, { "stroke-dashoffset": +(1 - frac).toFixed(4) }]),
+          [Math.min(full + 0.2, ctx.m.total), { "stroke-dashoffset": 0 }, EASE.inOut],
+          [gone, { "stroke-dashoffset": -1 }],
+          [ctx.m.total, { "stroke-dashoffset": -1 }],
+        ]
+      : [
+          [0, { "stroke-dashoffset": 1 }],
+          [at, { "stroke-dashoffset": 1 }, EASE.inOut],
+          [full, { "stroke-dashoffset": 0 }],
+          [Math.min(full + 0.2, ctx.m.total), { "stroke-dashoffset": 0 }, EASE.inOut],
+          [gone, { "stroke-dashoffset": -1 }],
+          [ctx.m.total, { "stroke-dashoffset": -1 }],
+        ],
+  );
+  const wet = `${id}-w`;
+  return (
+    `${head}${maskOf(id, d, reveal)}<g mask="url(#${id})"><path class="dg-pp-tpast" d="${d}"/></g>` +
+    `${maskOf(wet, d, liquid)}<g mask="url(#${wet})" style="${look}"><path class="dg-pp-mtrack" d="${d}"/>${dashMovers(d, g)}</g></g>`
+  );
 }
 
 /** 点の並びの最後を `cut` だけ手前で止める。矢じりの先と線の端を重ねないため */

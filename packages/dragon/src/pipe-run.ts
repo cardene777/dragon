@@ -160,6 +160,8 @@ interface Named {
 export class PipeRun {
   readonly balances = new Map<string, string>();
   readonly values = new Map<string, string>();
+  /** 槽で描く値 (`[tank]`) の持ち主と名前 (Tracelyth #207) */
+  readonly gauges = new Set<string>();
   readonly frames: PipeFrame[] = [];
   /** 出ていて取り消されていないイベントの番号 (出した順) */
   emitted: number[] = [];
@@ -174,6 +176,9 @@ export class PipeRun {
         this.balances.set(keyOf(hold.box, tankToken(hold.token, hold.tokenId)), hold.amount);
         const owner = boxes.find((b) => b.name === hold.token);
         if (hold.token !== ETH && owner) this.tokens.set(owner.id, hold.token);
+      } else if (hold.link?.tank) {
+        this.balances.set(keyOf(hold.box, hold.name), hold.value);
+        this.gauges.add(keyOf(hold.box, hold.name));
       } else this.values.set(keyOf(hold.box, hold.name), hold.value);
     }
   }
@@ -269,6 +274,10 @@ export class PipeRun {
   write(event: PipeWrite): string | PipeFault {
     if (this.readOnly()) return { fault: "readOnly" };
     const owner = this.ownerOf(event.box);
+    if (this.gauges.has(keyOf(owner, event.name))) {
+      this.balances.set(keyOf(owner, event.name), event.value);
+      return owner;
+    }
     if (!this.values.has(keyOf(owner, event.name))) return { fault: "noPlate", owner };
     this.values.set(keyOf(owner, event.name), event.value);
     return owner;

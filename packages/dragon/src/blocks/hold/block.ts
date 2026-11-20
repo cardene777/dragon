@@ -18,10 +18,14 @@
 import type { Block } from "../block";
 
 /**
- * 値の持ち分の線 (Tracelyth #107)。2人をキーに持つ値は別の2人の `from` と `to` を持ち、2人を結ぶ点線と札で描く。
- * 1人をキーに持つ値は `on` を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 `unit` を足せる
+ * 値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の `from` と `to` を持ち、2人を結ぶ点線と札で描く。
+ * 1人をキーに持つ値は `on` を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 `unit` を足せる。
+ * `tank` は数を残高と同じ槽で描く値 (Tracelyth #207) で、ほかの欄を持たない
  */
-export type PipeHoldLink = { from: string; to: string; unit?: string; on?: undefined } | { on: string; unit?: string; from?: undefined; to?: undefined };
+export type PipeHoldLink =
+  | { from: string; to: string; unit?: string; on?: undefined; tank?: undefined }
+  | { on: string; unit?: string; from?: undefined; to?: undefined; tank?: undefined }
+  | { tank: true; from?: undefined; to?: undefined; on?: undefined; unit?: undefined };
 
 /**
  * 始めの値。残高は持ち主とトークンと量と、NFT と ERC-1155 のトークンの番号 `tokenId`。残高でない値は持ち主と名前と値と、持ち分の線 `link`。

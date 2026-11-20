@@ -30,6 +30,13 @@ export const PIPE_TYPE = {
   io: text(11, 700),
   head: text(10.5, 700),
   chip: text(11, 700, "mono"),
+  // 線を移動する書き換えの札 (allowance の前と後) と差の札は、ほかの札と同じ大きさの字で書き、図の中で目立たせすぎない (Tracelyth #221)
+  link: text(11, 600, "mono"),
+  linkDelta: text(11, 700, "mono"),
+  // 使う側が持つ券 (Tracelyth #221)。1行目の何をしてよいかは本文の字体、2行目の残りは数字の字体で書く
+  ticketTitle: text(13, 500),
+  ticketValue: text(13, 600, "mono"),
+  ticketNow: text(13, 700, "mono"),
   args: text(10.5, 500, "mono"),
   cardTitle: text(10.5, 600),
   cardValue: text(14, 700, "mono"),
@@ -59,9 +66,10 @@ export const PIPE_PAINT = { reveal: "#fff", badge: "#fff" } as const;
 /**
  * 2人をキーに持つ値の線 (#107)。札は列の上の段に置き、値の名前の頭と、変わった段は前と後の値、変わらない段は今の値と単位を書く。
  * `h` は札の高さ、`padX` は札の左右の余白、`gap` は線の段どうしの間、`deltaGap` と `deltaPadX` は増減の札との間と余白、
- * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ
+ * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ。
+ * 線の札と増減の札は間を空けずにつなぐ (`deltaGap` が 0)。間を空けると、間に線の切れ端が見える (Tracelyth #221)
  */
-export const LINK = { h: 26, padX: 10, gap: 10, deltaGap: 6, deltaPadX: 8, side: 12, arrow: 6, lift: 12 } as const;
+export const LINK = { h: 26, padX: 10, gap: 10, deltaGap: 0, deltaPadX: 8, side: 12, arrow: 6, lift: 12 } as const;
 
 /**
  * トークンの箱の残高の行 (Tracelyth #171、#175)。`head` は箱の上の辺から最初の行までの見出しの高さ、`subY` は見出しの下の字の基準線、`pitch` は行の送り、

@@ -23,7 +23,8 @@
  * 要点 (`gist`) を書いた段は、矢印の後ろに要点の札を置く (#3464)。
  * 矢印と記録は配管の図の描く部品と同じ塊が持ち、配管の図を描けた後に登録簿から引いて置く。
  * 配管の図の枠 (`[data-dragon="zoom-frame"]`、図が枠より広い間は `[data-dragon="pan"]`) は図を 100% から 400% まで拡大でき、
- * 釦、Ctrl か Command を押しながらのホイール、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
+ * 釦、縦に回すホイール (Tracelyth #191)、ダブルクリックで拡大し、拡大した図を引いて枠の中を縦横に送る。
+ * `options.canvas` を渡した 600px 以上の枠は、枠を送らず図を窓の中で動かすキャンバス式の窓にする (Tracelyth #197)。
  * 100% の図は、枠の幅が `ZOOM.fit` より狭い時は枠の幅に収め、広い時は縮めずに置く。配管の図は枠の幅を渡して描く。
  * ただし狭い枠に収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
@@ -89,12 +90,23 @@ export interface PlayerOptions extends RenderOptions {
    */
   zoom?: "readable";
   /**
-   * 配管の図で、原寸の幅が枠より広い時に、図の全体を枠の幅に収めて始める (Tracelyth #177)。
-   * ただし全体を収めると関係者の名前の字が画面で 10.5px を下回る図は、名前の字が 10.5px に見える大きさで始めて横に送る (#3721)。
+   * 600px 以上の枠に置いた配管の図で、原寸の幅が枠より広い時に、図の全体を枠の幅に収めて始める (Tracelyth #177)。
    * 「+」で原寸より大きく寄せ、「−」で全体の大きさまで戻す。書かなければ原寸で始め、原寸より縮めない。
-   * 原寸が枠に収まる図には効かない
+   * 原寸が枠に収まる図と、600px より狭い枠には効かない
    */
   fitWide?: boolean;
+  /**
+   * `fitWide` と一緒に渡すと、600px 以上の枠では原寸が枠より狭い図も枠の幅に広げて始める (Tracelyth #194)。
+   * 広げるのは原寸までにし (Tracelyth #221)、枠の幅に収めると人の名前の字が `FILL_NAME_PX` より小さくなる図は、名前がその大きさになる幅で描く (Tracelyth #230)。
+   * 広げた大きさを 100% と書き、「+」で寄せ、「−」で始めの大きさより小さくする。書かなければ狭い図は原寸で始める
+   */
+  fitNarrow?: boolean;
+  /**
+   * 600px 以上の枠では、配管の図をキャンバス式の窓に置く (Tracelyth #197)。枠は送らず、図を窓の中で上下左右どこへでも
+   * 引いて動かし、ホイールで指した所を中心に拡大と縮小する。段を選ぶと今の段の寄る所が窓に入るよう図を動かす。
+   * 枠の高さは置いた頁が決める。600px より狭い枠と書かない時は今までどおり枠を送る
+   */
+  canvas?: boolean;
   /**
    * 「−」で小さくできる下限を、始めの大きさに対する割合で渡す (Tracelyth #179)。0 より大きく 1 より小さい数だけを読み、
    * それ以外と書かない時は始めの大きさより小さくしない。拡大と縮小のボタンは始めの大きさをまたぐ時に始めの大きさで 1 度止まる
@@ -160,6 +172,9 @@ function checkSpeed(speed: number): number {
 const font = (t: TextStyle): string => `font:${t.weight} ${t.size}px var(--${t.family})`;
 const px = (v: number): string => `${v}px`;
 
+/** キャンバス式の窓 (Tracelyth #197)。`keep` は窓に残す図の端の幅 (px)、`ms` は段へ寄せる動きの長さ */
+const CANVAS = { keep: 64, ms: 450 } as const;
+
 function playerCss(): string {
   const P = LOOK.player;
   const C = LOOK.corner.cut;
@@ -176,6 +191,9 @@ function playerCss(): string {
     `.dg-player .dg-frame:is([data-dragon="pan"],[data-dragon="zoom-frame"])>svg{max-width:none;margin-inline:auto}`,
     // 送れる図は引いて動かせることを指の形で示し、引く間に字を選ばない
     `.dg-player .dg-frame:is([data-dragon="pan"],[data-zoomed]){cursor:grab;user-select:none}`,
+    // キャンバス式の窓は枠を送らず、図を窓の中で上下左右どこへでも動かす。指で引いても枠を送らない (Tracelyth #197)
+    `.dg-player .dg-frame[data-dragon="canvas"]{position:relative;overflow:hidden;cursor:grab;user-select:none;touch-action:none}`,
+    `.dg-player .dg-frame[data-dragon="canvas"]>svg{max-width:none;margin:0;transform-origin:0 0}`,
     `.dg-player .dg-frame[data-drag]{cursor:grabbing}`,
     `.dg-ov{position:relative;height:${px(P.overview)};margin-top:${px(P.overviewGap - P.gap)};border-radius:${px(P.overview / 2)};background:var(--hair)}`,
     `.dg-ov-t{position:absolute;top:0;bottom:0;border-radius:${px(P.overview / 2)};background:var(--mute)}`,
@@ -272,6 +290,8 @@ function ensureCss(doc: Document, styles?: Styles): void {
 export const BUTTON_TEXT = { restart: "↺", prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
 /** 配管の図だけが置く拡大と縮小の釦の字 (#3418)。配管の図を HTML に書き出す時だけ、字の file に残す */
 export const ZOOM_TEXT = { out: "−", in: "+" } as const;
+/** 拡大と縮小の釦に描く絵柄の道 (24 の升の中の線)。字の代わりに線で描き、どの字の file でも同じ形に見せる */
+const ZOOM_PATH = { out: "M5 12h14", in: "M12 5v14M5 12h14" } as const;
 
 /** 図の上に四角を描く時の SVG の名前空間 */
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -421,8 +441,20 @@ export function mountDiagram(
   // 見える語りの 1 つずつも読み上げから隠す
   for (const shown of [no, title, body]) shown.setAttribute("aria-hidden", "true");
   // 配管の図の拡大と縮小の釦と、今の拡大の度合いの札 (#3418)
-  const zoomOutButton = button("zoom-out", words.zoomOut, ZOOM_TEXT.out);
-  const zoomInButton = button("zoom-in", words.zoomIn, ZOOM_TEXT.in);
+  // 釦は字の代わりに線の絵柄を描き、読み上げの名前を指した時の札にも出す
+  const zoomButton = (name: string, label: string, path: string): HTMLButtonElement => {
+    const b = button(name, label, "");
+    b.title = label;
+    const svg = doc.createElementNS(SVG_NS, "svg");
+    for (const [k, v] of Object.entries({ width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "aria-hidden": "true", focusable: "false" })) svg.setAttribute(k, v);
+    const line = doc.createElementNS(SVG_NS, "path");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+    b.appendChild(svg);
+    return b;
+  };
+  const zoomOutButton = zoomButton("zoom-out", words.zoomOut, ZOOM_PATH.out);
+  const zoomInButton = zoomButton("zoom-in", words.zoomIn, ZOOM_PATH.in);
   const zoomLevel = doc.createElement("span");
   zoomLevel.className = "dg-zl";
   zoomLevel.dataset.dragon = "zoom-level";
@@ -579,6 +611,11 @@ export function mountDiagram(
   let zoom = 1;
   // 見る人が図を送るか拡大と縮小をした後は、段が進んでも枠を関係者の所へ送らない。段を選ぶか、流し始めるか、最初へ戻すと送り直す (Tracelyth #183)
   let held = false;
+  // キャンバス式の窓 (`canvas`) で、窓の左上から見た図の左上の位置の逆向き。図を左へ動かすと増える (Tracelyth #197)
+  let viewX = 0;
+  let viewY = 0;
+  /** 段へ寄せる動きの、次の絵を頼んだ番号。動いていない時は 0 */
+  let tween = 0;
   /**
    * 拡大していない配管の図の幅 (px) と、読める大きさで始める図 (`zoom: "readable"`) の拡大の度合い (#3418、#3450、#3483、#3721)。
    * 決め方は配管の図にしか要らないので配管の図の塊が持ち (`pipe-player.ts`)、配管の図を描けた後に登録簿から引く。最初に読む量に入れないため (#3721)。
@@ -597,8 +634,58 @@ export function mountDiagram(
   const scale = (): number => shownWidth() / rendered.layout.width;
   /** 横に送るか (#3398)。置いた配管の図が枠より広い時だけ、縮めずに枠の中を横に送る。拡大して枠より広くなった図も送る (#3418) */
   const pans = (): boolean => isPipe && shownWidth() > frameWidth() + 0.5;
+  /** 置いた図の高さ (px) */
+  const shownHeight = (): number => (shownWidth() * rendered.layout.height) / rendered.layout.width;
+  // 600px 以上の枠では、`canvas` を渡した配管の図をキャンバス式の窓に置く。狭い枠は今までどおり枠を送る (Tracelyth #197)
+  const canvasOn = (): boolean => options.canvas === true && isPipe && frameWidth() >= ZOOM.fit;
+  /** 枠が今キャンバス式の窓か */
+  const inCanvas = (): boolean => frame.dataset.dragon === "canvas";
+  /** キャンバス式の窓の中の図を、今の位置へ動かす */
+  const paint = (): void => {
+    if (svg) svg.style.transform = `translate(${px(-viewX)},${px(-viewY)})`;
+  };
+  /** 段へ寄せる動きを止める */
+  const stopTween = (): void => {
+    if (tween) win?.cancelAnimationFrame?.(tween);
+    tween = 0;
+  };
+  // 図を窓の外へ全部は出さない。図の端を縦横それぞれ 64px は窓に残す
+  const keepIn = (left: number, top: number): [number, number] => {
+    const vw = frame.clientWidth;
+    const vh = frame.clientHeight;
+    const keepX = Math.min(CANVAS.keep, shownWidth());
+    const keepY = Math.min(CANVAS.keep, shownHeight());
+    return [
+      vw > 0 ? Math.min(shownWidth() - keepX, Math.max(keepX - vw, left)) : left,
+      vh > 0 ? Math.min(shownHeight() - keepY, Math.max(keepY - vh, top)) : top,
+    ];
+  };
+  /** キャンバス式の窓の中の図を、窓の左上から見て (`left`, `top`) の所が窓の左上に来るよう動かす。`smooth` なら滑らかに動かす */
+  const moveView = (left: number, top: number, smooth: boolean): void => {
+    stopTween();
+    const [x, y] = keepIn(left, top);
+    if (!smooth || typeof win?.requestAnimationFrame !== "function") {
+      viewX = x;
+      viewY = y;
+      paint();
+      return;
+    }
+    const fromX = viewX;
+    const fromY = viewY;
+    const begin = win.performance.now();
+    const tick = (t: number): void => {
+      const p = Math.min(1, Math.max(0, (t - begin) / CANVAS.ms));
+      const eased = 1 - (1 - p) ** 3;
+      viewX = fromX + (x - fromX) * eased;
+      viewY = fromY + (y - fromY) * eased;
+      paint();
+      tween = p < 1 ? win.requestAnimationFrame(tick) : 0;
+    };
+    tween = win.requestAnimationFrame(tick);
+  };
   /** 全体の線を、枠が図のどこを見ているかに合わせる */
   const follow = (): void => {
+    if (inCanvas()) return;
     const total = shownWidth();
     thumb.style.left = `${(frame.scrollLeft / total) * 100}%`;
     thumb.style.width = `${(Math.min(frameWidth(), total) / total) * 100}%`;
@@ -612,12 +699,33 @@ export function mountDiagram(
     const fits = size <= view ? Math.min(Math.max(middle, x + size - view), x) : start ? x : middle;
     return Math.round(Math.min(Math.max(0, fits), Math.max(0, total - view)));
   };
+  // 寄る所が窓に入っていれば動かさず、外れた分だけ動かす。窓より広い寄る所は始まりの端を窓の端に合わせる。真ん中へ寄せると、窓より少し広い図が両端の人を切って始まる (Tracelyth #230)
+  const into = (x: number, size: number, view: number, total: number, at: number): number => {
+    if (size > view) return reach(x, size, view, total, true);
+    const from = Math.min(Math.max(0, at), Math.max(0, total - view));
+    const left = x < from ? x : x + size > from + view ? x + size - view : from;
+    return Math.round(Math.min(Math.max(0, left), Math.max(0, total - view)));
+  };
   /**
    * 今の段に関わる関係者の所へ送る。関わる関係者が枠に収まる時は全員を枠に入れ、収まらない時は真ん中を枠の真ん中に置く。
    * 読める大きさで始めた狭い枠では、真ん中に置くとどの関係者の名前も枠に入らないので、左の端の関係者を枠の左に置く (#3483)。
    * 拡大して縦にも送る図は、縦も同じく送る (#3418)。流している時は滑らかに送り、動きを嫌う設定と止めて送る時は一度に送る
    */
   const panTo = (): void => {
+    // キャンバス式の窓は、今の段の寄る所が窓に入るよう図を動かす。窓より狭い図は横の真ん中に、窓より低い図は縦の真ん中に置く (Tracelyth #205)
+    if (inCanvas()) {
+      if (held) return;
+      const k = scale();
+      const focus = (rendered.layout as { focus?: (Rect & { step: number })[] }).focus?.find((f) => f.step === step);
+      const vw = frame.clientWidth;
+      const vh = frame.clientHeight;
+      const tw = shownWidth();
+      const th = shownHeight();
+      const left = tw <= vw ? (tw - vw) / 2 : focus ? into(focus.x * k, focus.w * k, vw, tw, viewX) : Math.min(Math.max(0, viewX), tw - vw);
+      const top = th <= vh ? (th - vh) / 2 : focus ? into(focus.y * k, focus.h * k, vh, th, viewY) : Math.min(Math.max(0, viewY), th - vh);
+      moveView(left, top, playing && !reduce);
+      return;
+    }
     if (frame.dataset.dragon !== "pan") return;
     if (held) {
       follow();
@@ -652,16 +760,26 @@ export function mountDiagram(
   const settle = (): void => {
     if (!svg) return;
     if (isPipe) {
+      const canvas = canvasOn();
       const wide = pans();
-      frame.dataset.dragon = wide ? "pan" : "zoom-frame";
+      frame.dataset.dragon = canvas ? "canvas" : wide ? "pan" : "zoom-frame";
       svg.style.width = px(shownWidth());
       const tall = baseWidth() * Math.min(zoom, readableZoom());
-      if (zoom > ZOOM.min && !options.fitHeight) frame.style.height = px((tall * rendered.layout.height) / rendered.layout.width);
+      // キャンバス式の窓の高さは置いた頁が決める
+      if (zoom > ZOOM.min && !options.fitHeight && !canvas) frame.style.height = px((tall * rendered.layout.height) / rendered.layout.width);
       else frame.style.removeProperty("height");
       if (zoom > ZOOM.min) frame.dataset.zoomed = "";
       else delete frame.dataset.zoomed;
-      if (!wide) overview.remove();
+      if (!wide || canvas) overview.remove();
       else if (!overview.isConnected) frame.after(overview);
+      // キャンバス式の窓をやめた枠は、動かした図を元の位置へ戻す
+      if (canvas) paint();
+      else if (svg.style.transform) {
+        stopTween();
+        viewX = 0;
+        viewY = 0;
+        svg.style.removeProperty("transform");
+      }
       showZoom();
       return;
     }
@@ -680,6 +798,19 @@ export function mountDiagram(
     if (ratio === 1) return;
     held = true;
     const box = frame.getBoundingClientRect();
+    // キャンバス式の窓は、指した所の下の図の点を動かさずに拡大と縮小する (Tracelyth #197)
+    if (inCanvas()) {
+      const cx = at ? at.x - box.left - frame.clientLeft : frame.clientWidth / 2;
+      const cy = at ? at.y - box.top - frame.clientTop : frame.clientHeight / 2;
+      const px = viewX + cx;
+      const py = viewY + cy;
+      stopTween();
+      zoom = next;
+      settle();
+      moveView(px * ratio - cx, py * ratio - cy, false);
+      options.onZoom?.(zoom);
+      return;
+    }
     const ax = at ? at.x - box.left : frame.clientWidth / 2;
     const ay = at ? at.y - box.top : frame.clientHeight / 2;
     // 枠より狭い図は真ん中に置くので、図の左の端と枠の左の端の間を除いて図の中の点を求める
@@ -946,10 +1077,16 @@ export function mountDiagram(
   progress.addEventListener("click", onProgress);
   frame.addEventListener("click", onFigure);
   frame.addEventListener("scroll", onPan);
-  // 配管の図の拡大と縮小と引いて送る動き (#3418) は、配管の図の塊の受け手が受ける。最初に読む量に入れないため (#3720)
-  const unbindZoom = isPipe
-    ? kindParts("pipe", lang).bindPipeZoom(frame, zoomInButton, zoomOutButton, { zoom: () => zoom, zoomTo, hold, follow })
-    : undefined;
+  // 配管の図の拡大と縮小と引いて送る動き (#3418) は、配管の図の塊の受け手が受ける。最初に読む量に入れないため (#3720)。
+  // キャンバス式の窓 (Tracelyth #197) の中の図の位置は再生の部品が持ち、受け手には窓か否かと、位置を読む口と動かす口を渡す
+  const zoomCalls = {
+    zoom: () => zoom,
+    zoomTo,
+    hold,
+    follow,
+    canvas: { on: inCanvas, view: (): [number, number] => [viewX, viewY], move: moveView, stop: stopTween },
+  };
+  const unbindZoom = isPipe ? kindParts("pipe", lang).bindPipeZoom(frame, zoomInButton, zoomOutButton, zoomCalls) : undefined;
 
   // 枠の大きさが変わったら見せ方を選び直す。寄って追う窓は幅 (高さに収める時は高さも、全体図を収める時は見える高さも) で決まるので、変われば描き直す
   const Observer = (win as (Window & { ResizeObserver?: typeof ResizeObserver }) | null)
@@ -966,7 +1103,7 @@ export function mountDiagram(
         const v = overviewHeight();
         const rearranged = arrange(w);
         // 読める大きさで始める図は、枠の幅が変わって描き直した時に度合いを求め直す。600px 以上へ広がると拡大を外す。
-        // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)
+        // 高さだけが変わった時は求め直さず、読み手が拡大した所を残す (#3483)。`startZoom` で始めた度合いも戻さない (Tracelyth #181)
         if (rearranged && options.zoom && !kept) zoom = readableZoom();
         const chosen = viewOf(w, h);
         controls?.arrange(chosen, w);
@@ -976,6 +1113,8 @@ export function mountDiagram(
           // 枠の幅が変わらない時は送り位置を残す。読み手が引いて動かした所と拡大した所を、高さの変わりで戻さない
           settle();
           follow();
+          // キャンバス式の窓の大きさが変わった時は、見る人が動かしていなければ今の段の寄る所へ置き直す (Tracelyth #197)
+          if (inCanvas() && !held) panTo();
           return;
         }
         const t = now();
@@ -1028,6 +1167,7 @@ export function mountDiagram(
     },
     destroy: () => {
       if (timer !== undefined) win?.clearInterval(timer);
+      stopTween();
       observer?.disconnect();
       controls?.destroy();
       prevButton.removeEventListener("click", onPrev);

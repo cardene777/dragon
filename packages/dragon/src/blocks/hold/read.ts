@@ -123,11 +123,13 @@ function readHold(source: SourceLine, state: ParseState): void {
     return;
   }
   const named = readValueName(source, rest, state);
+  // 値の後ろの持ち分の線の属性 (`[from: <名札>, to: <名札>]` か `[on: <名札>]` か `[tank]`) は値に含めない (Tracelyth #107、#133)
   const tail = named ? holdLinkTail(text, named.end) : undefined;
   const value = named ? text.slice(named.end, tail ?? text.length).trim() : "";
   if (!named || value === "") throw fail(source, 0, m.holdShape);
   if (state.figure.pipe.holds.some((h) => "name" in h && h.box === box && h.name === named.name)) throw fail(source, rest, m.holdTwice(box, named.name));
   const link = tail === undefined ? undefined : readHoldLink(source, tail, state);
+  if (link?.tank && !isAmount(value)) throw fail(source, rest, m.badAmount(value));
   state.figure.pipe.holds.push({ box, name: named.name, value, ...(link ? { link } : {}) });
 }
 
@@ -190,15 +192,22 @@ function verifyRoutes(state: ParseState): void {
 
 /** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
 const HOLD_LINK_KEYS = ["from", "to", "on", "unit"];
-/** 値の後ろに置いた持ち分の線の属性 (`[from: a, to: b]` か `[on: a]`) の頭の位置。無ければ undefined */
+/** 値の後ろに置いた持ち分の線の属性 (`[from: a, to: b]` か `[on: a]` か `[tank]`) の頭の位置。無ければ undefined */
 function holdLinkTail(text: string, from: number): number | undefined {
-  const found = /\s(\[\s*(?:from|to|on|unit)\s*:[^[\]]*\])$/u.exec(text.slice(from));
+  const found = /\s(\[\s*(?:(?:from|to|on|unit)\s*:|tank\s*(?=\]))[^[\]]*\])$/u.exec(text.slice(from));
   return found ? from + found.index + 1 : undefined;
 }
-/** 持ち分の線の属性を読む。別の2人の `from` と `to` か、1人の `on` だけを通す */
+/**
+ * 持ち分の線の属性を読む。別の2人の `from` と `to` か、1人の `on` だけを通す。
+ * `[tank]` は数を残高と同じ槽で描く値で、ほかの鍵と一緒に書けない (Tracelyth #207)
+ */
 function readHoldLink(source: SourceLine, at: number, state: ParseState): PipeHoldLink {
   const { m } = state;
-  const attrs = readAttrs(source, at, HOLD_LINK_KEYS, m);
+  const attrs = readAttrs(source, at, HOLD_LINK_KEYS, m, ["tank"]);
+  if (attrs.has("tank")) {
+    if (attrs.size > 1) throw fail(source, at, m.holdShape);
+    return { tank: true };
+  }
   const box = (key: string): string | undefined => {
     const a = attrs.get(key);
     return a ? state.boxAt(source, a.value, a.at) : undefined;
@@ -214,6 +223,7 @@ function readHoldLink(source: SourceLine, at: number, state: ParseState): PipeHo
 /** 持ち分の線の属性を書き戻す字。線を持たない値は空 */
 function holdLinkText(link: PipeHoldLink | undefined): string {
   if (!link) return "";
+  if (link.tank) return " [tank]";
   const unit = link.unit ? `, unit: ${link.unit}` : "";
   return link.on !== undefined ? ` [on: ${link.on}${unit}]` : ` [from: ${link.from}, to: ${link.to}${unit}]`;
 }
