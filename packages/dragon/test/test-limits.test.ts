@@ -112,9 +112,11 @@ describe("検査の時間の上限 (#3381)", () => {
 
   it("limit-env-names-unchanged", () => {
     // 上限を変える環境変数は下げる 2 つだけ (#3734)。検査が重い時に上限を緩める環境変数を足すと、遅い検査を上限だけ緩めて残す道ができる。
-    // 検査の設定と準備の段と検査の道具 (検査の file でない file) が読む、名前に LIMIT を含む環境変数の名前を集める
+    // 検査の設定と準備の段と検査の道具 (検査の file でない file) と、関門の命令が vitest へ渡す報告の部品 (`scripts/`、#3740) が読む、
+    // 名前に LIMIT を含む環境変数の名前を集める
     const files = [
       "vitest.config.ts",
+      ...readdirSync(join(ROOT, "scripts")).filter((name) => name.endsWith(".mjs")).map((name) => `scripts/${name}`),
       ...readdirSync(join(ROOT, "test-support")).filter((name) => name.endsWith(".ts")).map((name) => `test-support/${name}`),
       ...readdirSync(join(ROOT, "packages/dragon/test")).filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts")).map((name) => `packages/dragon/test/${name}`),
       ...readdirSync(join(ROOT, "apps/playground-spa/src/lib")).filter((name) => /-setup\.ts$/u.test(name)).map((name) => `apps/playground-spa/src/lib/${name}`),
