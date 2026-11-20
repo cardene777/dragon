@@ -196,13 +196,19 @@ function playerCss(): string {
     `.dg-tb{${font(TYPE.stepBody)};font-size:${px(TYPE.stepBody.size)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}`,
     `.dg-ctl{display:flex;align-items:center;gap:${px(P.gap)};min-width:0}`,
     `.dg-btns{display:flex;gap:${px(P.segmentGap)};flex:none}`,
-    `.dg-btn{min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
+    // 釦は絵柄 (と再生の釦の名前) を縦横の真ん中に置く。字の並ぶ基準の線に置くと、絵柄が釦の真ん中より下に寄る (#3752)
+    `.dg-btn{display:inline-flex;align-items:center;justify-content:center;gap:${px(P.iconGap)};min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
     `.dg-btn[data-dragon="toggle"]{padding:0 ${px(P.button / 2)};background:var(--c-blue);border-color:var(--c-blue);color:var(--on-c)}`,
     `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
+    iconCss(),
+    // 進み具合は済んだ段を呼び出しの色で塗り切り、今の段を流した時間の分だけ左から塗り進め、まだの段を塗らない (#3752)。
+    // 塗りは段の帯の後ろの飾り (`::after`) を横に伸ばして描き、今の段の割合は再生の時計が `--p` に書く
     `.dg-segs{display:flex;gap:${px(P.segmentGap)};flex:1;min-width:0}`,
-    `.dg-seg{flex:1;min-width:${px(P.focus)};height:${px(P.segment)};border-radius:${px(P.segment / 2)};background:var(--line);cursor:pointer}`,
-    `.dg-seg[data-state="done"]{background:color-mix(in srgb,var(--c-blue) ${P.segmentPast}%,var(--line))}`,
-    `.dg-seg[data-state="now"]{background:var(--c-blue)}`,
+    `.dg-seg{position:relative;overflow:hidden;flex:1;min-width:${px(P.focus)};height:${px(P.segment)};border-radius:${px(P.segment / 2)};background:var(--line);cursor:pointer}`,
+    `.dg-seg::after{content:"";position:absolute;inset:0;background:var(--c-blue);transform-origin:0 50%;transform:scaleX(0);transition:transform ${P.segmentFill}s linear}`,
+    `.dg-seg[data-state="done"]::after{transform:none}`,
+    `.dg-seg[data-state="now"]::after{transform:scaleX(var(--p,1))}`,
+    "@media (prefers-reduced-motion: reduce){.dg-seg::after{transition:none}}",
     `.dg-sr{position:absolute;width:${hidden};height:${hidden};margin:-${hidden};padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}`,
     // 積む帯は操作の段 (釦と進み具合) を図のすぐ下に置き、段を送る釦を携帯の最初の画面に収める (#3061)。
     // その下の番号の右に題、その下に説明文を帯の全幅で置く。説明文を番号の右の欄に入れると行が増えて帯が高くなり、
@@ -214,8 +220,9 @@ function playerCss(): string {
     // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文の字を小さくし、帯を低く保つ (#3061)
     `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}` +
       `.dg-tt{font-size:${px(TYPE.stepTitleNarrow.size)}}.dg-tb{font-size:${px(TYPE.stepBodyNarrow.size)};line-height:${P.bodyLineNarrow}}}`,
-    // 広い帯は題と説明文の右に釦、その下の行に全幅の進み具合。題と説明文を隠した頁 (見本帳の欄) では釦が左に寄る
-    `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-btns{justify-self:start;align-self:start}.dg-segs{grid-column:1/-1}}`,
+    // 広い帯は題と説明文の右に釦、その下の行に全幅の進み具合。題と説明文を隠した頁 (見本帳の欄) では釦が左に寄る。
+    // 釦の段と、段の番号と題と説明文の塊は、互いの縦の真ん中に揃える。説明文が何行でも釦が塊の上の端に寄らない (#3752)
+    `@container dg-bar (width >= ${px(P.wide)}){.dg-lay{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:${px(P.captionGap)};row-gap:${px(P.progressGap)}}.dg-ctl{display:contents}.dg-say{align-self:center}.dg-btns{justify-self:start;align-self:center}.dg-segs{grid-column:1/-1}}`,
     // 指で触る時は、広い帯でも段を送る釦を指で押せる大きさにする (#3076)。並びは変えない
     `@media (pointer: coarse){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}}`,
     // 配管の図の帯は段の番号と題を出し、段の説明の文は出さない (#3450)。段の動きは図の下の矢印が見せ、説明の文は読み上げの一覧が読む。
@@ -227,8 +234,37 @@ function playerCss(): string {
     `.dg-zl{${font(TYPE.stepNo)};min-width:${px(P.button * 1.5)};text-align:center;color:var(--mute)}`,
     `.dg-zm .dg-btn:disabled{opacity:${ZOOM.dim};cursor:default}`,
     ".dg-player[data-pipe] .dg-ctl{flex-wrap:wrap}",
-    `@container dg-bar (width >= ${px(P.wide)}){.dg-player[data-pipe] .dg-lay{grid-template-columns:minmax(0,1fr) auto auto}.dg-zm{grid-area:1/3;align-self:start}}`,
+    `@container dg-bar (width >= ${px(P.wide)}){.dg-player[data-pipe] .dg-lay{grid-template-columns:minmax(0,1fr) auto auto}.dg-zm{grid-area:1/3;align-self:center}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
+  ].join("");
+}
+
+/**
+ * 段を送る釦と拡大の釦の絵柄 (#3752)。`svg`の要素を使わず、`.dg-btn-ic`の枠の前後の飾り (`::before`、`::after`) に縁と塗りと回転で描く。
+ * 図を置いた頁が`svg`の全てに大きさを当てても、絵柄は膨らまない (#3499)。形は 18px の枠に描いた座標を、枠の大きさに比べて伸ばす。
+ * 山形は正方形の 2 辺の縁を 45 度回した形で、角の側に寄って見えるので、角と反対の側へずらして見た目の真ん中を枠の真ん中に置く。
+ * やり直しは上の縁を抜いた輪を左に 45 度回して 9 時から 12 時を空け、12 時の切れ目に左向きの三角を付ける
+ */
+function iconCss(): string {
+  const P = LOOK.player;
+  const u = (v: number): string => px((v * P.icon) / 18);
+  const line = px(P.iconLine);
+  const at = (name: string, part = "before"): string => `.dg-btn-ic[data-icon="${name}"]::${part}`;
+  const chevron = (name: string, edges: string, shift: number): string =>
+    `${at(name)}{left:50%;top:50%;width:${u(7)};height:${u(7)};border:solid;border-width:${edges};transform:translate(-50%,-50%) translateX(${u(shift)}) rotate(45deg)}`;
+  const bar = `background:currentColor;width:${u(10)};height:${line}`;
+  return [
+    `.dg-btn-ic{position:relative;flex:none;width:${px(P.icon)};height:${px(P.icon)}}`,
+    `.dg-btn-ic::before,.dg-btn-ic::after{content:"";position:absolute;box-sizing:border-box}`,
+    chevron("prev", `0 0 ${line} ${line}`, 2),
+    chevron("next", `${line} ${line} 0 0`, -2),
+    `${at("restart")}{left:${u(3)};top:${u(4)};width:${u(12)};height:${u(12)};border:${line} solid;border-top-color:transparent;border-radius:50%;transform:rotate(-45deg)}`,
+    `${at("restart", "after")}{left:${u(5)};top:${px((0.5 * P.icon) / 18 + P.iconLine / 2)};border-style:solid;border-width:${u(3.5)} ${u(4.5)} ${u(3.5)} 0;border-color:transparent currentColor transparent transparent}`,
+    `${at("pause")},${at("pause", "after")}{top:${u(3)};width:${u(3.5)};height:${u(12)};border-radius:${u(1)};background:currentColor}`,
+    `${at("pause")}{left:${u(4)}}${at("pause", "after")}{right:${u(4)}}`,
+    `${at("play")}{left:${u(4.5)};top:${u(3)};width:${u(10)};height:${u(12)};background:currentColor;clip-path:polygon(0 0,100% 50%,0 100%)}`,
+    `${at("zoom-out")},${at("zoom-in")}{left:${u(4)};top:calc(50% - ${px(P.iconLine / 2)});${bar}}`,
+    `${at("zoom-in", "after")}{left:calc(50% - ${px(P.iconLine / 2)});top:${u(4)};${bar};width:${line};height:${u(10)}}`,
   ].join("");
 }
 
@@ -268,10 +304,6 @@ function ensureCss(doc: Document, styles?: Styles): void {
   doc.head.appendChild(style);
 }
 
-/** 釦に出す字。HTML に書き出す時は、この字も字の file に残す。 */
-export const BUTTON_TEXT = { restart: "↺", prev: "‹", pause: "❚❚", play: "▶", next: "›" } as const;
-/** 配管の図だけが置く拡大と縮小の釦の字 (#3418)。配管の図を HTML に書き出す時だけ、字の file に残す */
-export const ZOOM_TEXT = { out: "−", in: "+" } as const;
 
 /** 図の上に四角を描く時の SVG の名前空間 */
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -360,19 +392,34 @@ export function mountDiagram(
   frame.className = "dg-frame";
   /** 図の枠の中身の幅。枠を測れない時は置く所の中身の幅。どちらも測れない時は 0 */
   const measuredWidth = (): number => frame.clientWidth || hostWidth();
-  const button = (name: string, label: string, text: string): HTMLButtonElement => {
+  /** 釦の絵柄の要素 (#3752)。形は見た目の`.dg-btn-ic[data-icon]`が描き、読み上げは釦の名前が読む */
+  const iconOf = (name: string): HTMLElement => {
+    const i = doc.createElement("i");
+    i.className = "dg-btn-ic";
+    i.dataset.icon = name;
+    i.setAttribute("aria-hidden", "true");
+    return i;
+  };
+  const button = (name: string, label: string, icon: string): HTMLButtonElement => {
     const b = doc.createElement("button");
     b.type = "button";
     b.className = "dg-btn";
     b.dataset.dragon = name;
     b.setAttribute("aria-label", label);
-    b.textContent = text;
+    b.append(iconOf(icon));
     return b;
   };
-  const restartButton = button("restart", words.restart, BUTTON_TEXT.restart);
-  const prevButton = button("prev", words.prev, BUTTON_TEXT.prev);
-  const toggleButton = button("toggle", words.pause, `${BUTTON_TEXT.pause} ${words.pause}`);
-  const nextButton = button("next", words.next, BUTTON_TEXT.next);
+  const restartButton = button("restart", words.restart, "restart");
+  const prevButton = button("prev", words.prev, "prev");
+  const toggleButton = button("toggle", words.pause, "pause");
+  const nextButton = button("next", words.next, "next");
+  /** 再生の釦は、流している間は止める絵柄と名前を、止めている間は流す絵柄と名前を持つ (#3398、#3752) */
+  const showToggle = (play: boolean): void => {
+    const label = play ? words.pause : words.play;
+    toggleButton.setAttribute("aria-label", label);
+    toggleButton.replaceChildren(iconOf(play ? "pause" : "play"), doc.createTextNode(label));
+  };
+  showToggle(true);
   const buttons = doc.createElement("div");
   buttons.className = "dg-btns";
   // 置いた頁の言葉と違っても、釦の名前を名前の言葉の声で読ませる
@@ -421,8 +468,8 @@ export function mountDiagram(
   // 見える語りの 1 つずつも読み上げから隠す
   for (const shown of [no, title, body]) shown.setAttribute("aria-hidden", "true");
   // 配管の図の拡大と縮小の釦と、今の拡大の度合いの札 (#3418)
-  const zoomOutButton = button("zoom-out", words.zoomOut, ZOOM_TEXT.out);
-  const zoomInButton = button("zoom-in", words.zoomIn, ZOOM_TEXT.in);
+  const zoomOutButton = button("zoom-out", words.zoomOut, "zoom-out");
+  const zoomInButton = button("zoom-in", words.zoomIn, "zoom-in");
   const zoomLevel = doc.createElement("span");
   zoomLevel.className = "dg-zl";
   zoomLevel.dataset.dragon = "zoom-level";
@@ -771,17 +818,31 @@ export function mountDiagram(
     });
     return found;
   };
+  /**
+   * 今の段の進み具合の帯を、段の始まりから今の時刻までの割合で塗る (#3752)。
+   * 止め絵の時刻で塗り切るので、段を送って止めた図は今の段を塗り切り、流している間は止め絵へ向けて塗り進める
+   */
+  const fillNow = (): void => {
+    const span = timeline.steps[step];
+    const segment = progress.children[step] as HTMLElement | undefined;
+    if (!span || !segment) return;
+    const length = (timeline.stills[step] ?? span.end) - span.start;
+    const part = length > 0 ? Math.min(1, Math.max(0, (now() - span.start) / length)) : 1;
+    segment.style.setProperty("--p", part.toFixed(3));
+  };
   const show = (): void => {
     const current = steps[step];
     no.textContent = stepNo(step, count);
     title.textContent = current?.title ?? "";
     body.textContent = current?.body ?? "";
-    toggleButton.setAttribute("aria-label", playing ? words.pause : words.play);
-    toggleButton.textContent = playing ? `${BUTTON_TEXT.pause} ${words.pause}` : `${BUTTON_TEXT.play} ${words.play}`;
+    showToggle(playing);
     for (const segment of progress.children) {
-      const i = Number((segment as HTMLElement).dataset.step);
-      (segment as HTMLElement).dataset.state = i < step ? "done" : i === step ? "now" : "todo";
+      const el = segment as HTMLElement;
+      const i = Number(el.dataset.step);
+      el.dataset.state = i < step ? "done" : i === step ? "now" : "todo";
+      if (i !== step) el.style.removeProperty("--p");
     }
+    fillNow();
     panTo();
     if (svg) controls?.mark(svg, step);
     calls?.show(rendered.diagram, step);
@@ -897,8 +958,9 @@ export function mountDiagram(
     if (s !== step) {
       step = s;
       show();
-    }
-  }, 120);
+    } else fillNow();
+    // 今の段の塗りを書き直す間は、塗りを伸ばす動きの長さと同じにし、塗りを途切れずに伸ばす (#3752)
+  }, LOOK.player.segmentFill * 1000);
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? restart(now(), false) : resume());
