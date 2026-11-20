@@ -117,9 +117,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
     expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(110);
   });
 
-  it("related-sequence-layout-picks-at-most-155", () => {
+  // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
+  it("related-sequence-layout-picks-at-most-156", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(155);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(156);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
