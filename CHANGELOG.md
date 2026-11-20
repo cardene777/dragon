@@ -6,6 +6,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **In the mesh layout of a pipe diagram, a pipe between two tanks that are not next to each other leaves from the side of the tank** (#3775)
+
+  The pipe used to leave from the bottom of the tank, 9px in from the corner, to keep clear of the balance text under the tank. That point sat on the rounded corner, so the end of the pipe looked detached from the tank. The pipe now leaves from a side of the tank and goes down outside it. When the people between the two tanks hold no tank and no plate, the two sides are joined by one straight pipe, as two tanks next to each other already are. A tank with no free side still sends the pipe from its bottom.
+
 ## [0.79.0] - 2026-11-20
 
 ### Added
