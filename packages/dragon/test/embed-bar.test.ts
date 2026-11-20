@@ -416,9 +416,9 @@ async function placeOnPage(page: Page, width: number): Promise<void> {
 /** 窓`name`を開き直し、窓と、窓を開いたボタンと、帯の枠の左右の端を返す */
 async function openedMenu(page: Page, name: string): Promise<{ left: number; right: number; buttonRight: number; frameLeft: number; frameRight: number }> {
   await expectToggle(page, name);
-  const toggle = page.locator(`.dg-header-actions > [data-action="${name}"] > button`);
-  if ((await menuState(page, name)) === "open") await toggle.click();
-  await toggle.click();
+  // 開いた窓は下の段のボタンに重なるので、Escape で閉じてから押す
+  if ((await menuState(page, "copy")) === "open" || (await menuState(page, "export")) === "open") await page.keyboard.press("Escape");
+  await page.locator(`.dg-header-actions > [data-action="${name}"] > button`).click();
   expect(await menuState(page, name), `${name}の窓が開かない`).toBe("open");
   return page.evaluate((menu) => {
     const frame = document.querySelector<HTMLElement>(".dragon-frame")!;
