@@ -304,6 +304,7 @@ export function branchChanges(root, base) {
 /**
  * 検査の file を回し、1 回の実行が上限で止まった時は、終わっていない file だけを次の実行で回して全部が回るまで続ける。
  * `run(files, out)` は 1 回の実行を回して終わり方を返す。止める段は `out` に、終わっていない file (`unfinished`) と、終わった file で落ちた検査 (`failed`) を JSON で書く。
+ * 読む所か前処理で落ちて落ちた件を持たない file は、`failed` に file の名前で入る (#3800)。
  * 止まった実行で落ちた検査は、続きが全部通っても終わり方 1 にして最後に名前を出す。`say` は人に見せる文を受ける
  */
 export function runUntilFinished(files, run, say) {

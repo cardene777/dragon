@@ -92,6 +92,41 @@ const PROBE = await atLoad("書き先を受け継がない見本", () => {
   }
 });
 
+/** 止める段が `DRAGON_UNFINISHED_OUT` に書く、終わっていない file と落ちた物の名前 */
+interface Leftover {
+  unfinished?: string[];
+  failed?: string[];
+}
+
+/** 続きを回す命令の処理 (`scripts/test-related.mjs` の `runUntilFinished`、#3386) の形 */
+type Until = (files: string[], run: (files: string[], out: string) => number | null, say: (text: string) => void) => number;
+
+const LOAD_FAIL = `${FIXTURES}/load-fail.fixture.ts`;
+const HOOK_FAIL = `${FIXTURES}/hook-fail.fixture.ts`;
+const WAIT = `${FIXTURES}/wait-then-pass.fixture.ts`;
+
+const LOAD_FAILED = await atLoad("読む所で落ちる見本を続きの実行へ渡す", async () => {
+  // 1 回目は、読む所で落ちる見本と前処理で落ちる見本を 7 秒待つ見本と並べて回し、上限 3 秒で止める。落ちる 2 つは上限より前に終わる。
+  // 続きの実行では待つ見本を待たずに通し、続きが全て通った後も、1 回目に落ちた file の名前で終わり方 1 になるかを見る (#3800)。
+  // `slow-test.fixture.ts` は自分で長い上限を書く件が必ず落ちるので、続きの実行で通す見本には使わない
+  const { runUntilFinished } = (await import(join(ROOT, "scripts/test-related.mjs"))) as { runUntilFinished: Until };
+  const runs: { files: string[]; code: number | null; written?: Leftover; brief: string }[] = [];
+  const said: string[] = [];
+  const status = runUntilFinished(
+    [LOAD_FAIL, HOOK_FAIL, WAIT],
+    (left, out) => {
+      const ran = runFixture(
+        left.map((path) => path.slice(FIXTURES.length + 1)),
+        { DRAGON_RUN_LIMIT_MS: "3000", FIXTURE_SLEEP_MS: runs.length === 0 ? "7000" : "0", DRAGON_UNFINISHED_OUT: out },
+      );
+      runs.push({ files: left, code: ran.code, written: existsSync(out) ? (JSON.parse(readFileSync(out, "utf8")) as Leftover) : undefined, brief: ran.brief });
+      return ran.code;
+    },
+    (text) => said.push(text),
+  );
+  return { status, runs, said: said.join("\n") };
+});
+
 describe("検査の時間の上限 (#3381)", () => {
   it("test-limit-is-ten-seconds", ({ task }) => {
     expect(task.timeout, "1 件の検査の上限が 10 秒でない").toBe(10_000);
@@ -161,5 +196,49 @@ describe("検査の時間の上限 (#3381)", () => {
     expect(probed, `見本の検査が、受け取った書き先を書いていない:\n${ran.brief}`).toBe(true);
     expect(seen, "検査の file の process が、続きを回す命令の書き先を受け継いだ").toBeNull();
     expect(wrote, "上限で止まっていない実行が、書き先に書いた").toBe(false);
+  });
+
+  it("run-limit-names-load-failed-file", () => {
+    // 上限で止めた時、読む所で落ちた file (落ちた件を 1 つも持たない) の名前を、落ちた物として書く (#3800)
+    const first = LOAD_FAILED.get().runs[0];
+    expect(first?.written, `上限で止めた時に、終わっていない file を書いていない:\n${first?.brief ?? ""}`).toBeDefined();
+    expect(first?.written?.unfinished, `読む所で落ちる見本が、上限より前に終わらなかった:\n${first?.brief ?? ""}`).not.toContain(LOAD_FAIL);
+    expect(first?.written?.failed, "読む所で落ちた file の名前を、落ちた物として書いていない").toContain(LOAD_FAIL);
+  });
+
+  it("run-limit-names-hook-failed-file", () => {
+    // 上限で止めた時、前処理 (`beforeAll`) で落ちて中の件が全て飛ばされた file の名前を、落ちた物として書く (#3800)。#3798 の検査がこの形で落ちた
+    const first = LOAD_FAILED.get().runs[0];
+    expect(first?.written?.unfinished, `前処理で落ちる見本が、上限より前に終わらなかった:\n${first?.brief ?? ""}`).not.toContain(HOOK_FAIL);
+    expect(first?.written?.failed, "前処理で落ちて件が全て飛ばされた file の名前を、落ちた物として書いていない").toContain(HOOK_FAIL);
+  });
+
+  it("continued-run-fails-on-load-failed-file", () => {
+    // 続きの実行が全て通っても、1 回目に読む所で落ちた file の名前を出して終わり方 1 で終わる (#3800)
+    const { status, runs, said } = LOAD_FAILED.get();
+    expect(runs.map((run) => run.files), "1 回目が上限で止まった後に、終わっていない file だけを続きで回していない").toEqual([[LOAD_FAIL, HOOK_FAIL, WAIT], [WAIT]]);
+    expect(runs[1]?.code, `続きの実行が通らなかった:\n${runs[1]?.brief ?? ""}`).toBe(0);
+    expect(status, "続きが全て通った後に、1 回目に読む所で落ちた file を落ちた物に数えず、終わり方 0 で終わった").toBe(1);
+    expect(said, "1 回目に読む所で落ちた file の名前を出していない").toContain(LOAD_FAIL);
+    expect(said, "1 回目に前処理で落ちた file の名前を出していない").toContain(HOOK_FAIL);
+  });
+
+  it("run-limit-keeps-load-failed-file-out-of-unfinished", () => {
+    // 読む所で落ちた file は終わった file に数え、続きの実行で回し直さない (#3800)。回し直すと、負荷で落ちた file が続きで通った時に 1 回目の失敗が消える
+    const { runs } = LOAD_FAILED.get();
+    expect(runs[0]?.written?.unfinished, "読む所で落ちた file か前処理で落ちた file を、終わっていない file に数えた").toEqual([WAIT]);
+    const rerun = runs.slice(1).flatMap((run) => run.files);
+    expect(rerun, "読む所で落ちた file を、続きの実行で回し直した").not.toContain(LOAD_FAIL);
+    expect(rerun, "前処理で落ちた file を、続きの実行で回し直した").not.toContain(HOOK_FAIL);
+  });
+
+  it("run-limit-names-failed-test-not-its-file", () => {
+    // 件が落ちた file は落ちた件の名前だけを書き、file の名前を重ねて書かない (#3800)。重ねると、同じ失敗を 2 度数えて名前を出す
+    const { written } = UNFINISHED.get();
+    const files = [`${FIXTURES}/quick-fail.fixture.ts`, `${FIXTURES}/long-run.fixture.ts`, `${FIXTURES}/slow-test.fixture.ts`];
+    expect(
+      (written.failed ?? []).filter((name) => files.includes(name)),
+      "件が落ちた file か終わっていない file の名前を、落ちた物として書いた",
+    ).toEqual([]);
   });
 });

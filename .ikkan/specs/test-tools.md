@@ -216,3 +216,12 @@
 | 1件の検査の上限は10秒のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3740 |
 | 1回の実行の上限は5分のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`が通る | #3740 |
 | 上限を変える環境変数は`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`の2つのままで、`scripts/`の部品を含めて増やせない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`limit-env-names-unchanged`が通る | #3740 |
+| 1回の実行の上限で止まった回に、検査のfileを読む所 (一番上の段) で落ちたfileが在る時、止める段は`DRAGON_UNFINISHED_OUT`に書くJSONの`failed`にそのfileのpathを書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-names-load-failed-file`が通る | #3800 |
+| 1回の実行の上限で止まった回に、fileの`beforeAll`で落ちて中の件が全て`skip`のfileが在る時、止める段はJSONの`failed`にそのfileのpathを書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-names-hook-failed-file`が通る | #3800 |
+| 上限で止まった回に読む所で落ちたfileが在る時、続きの実行が全て通っても、続きを回す命令の処理 (`scripts/test-related.mjs`の`runUntilFinished`) は終わり方1を返し、そのfileのpathを落ちた物として出す | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`continued-run-fails-on-load-failed-file`が通る | #3800 |
+| 止める段は、読む所で落ちたfileを終わっていないfileに数えず、続きの実行で回し直さない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-keeps-load-failed-file-out-of-unfinished`が通る | #3800 |
+| 上限で止まった回に件が落ちたfileは、今どおり落ちた件の名前を`file > 組 > 件`の形で`failed`に書く | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-writes-unfinished-files`と`run-limit-names-failed-test-not-its-file`が通る | #3800 |
+| 止める段は、件が落ちたfileのpathを、件の名前に重ねて`failed`に書かない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-names-failed-test-not-its-file`が通る | #3800 |
+| 上限で止まらずに終わった回は、続きを回さずにvitestの終わり方をそのまま返す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-continues-unfinished-files`が通る | #3800 |
+| 上限で止まった実行の中で終わったfileに落ちた件が在った時は、今どおり続きが全部通っても終わり方1で終わり、落ちた件の名前を出す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-keeps-failures-across-runs`が通る | #3800 |
+| 1件の上限10秒と1回の実行の上限5分と、上限を変える環境変数の名前 (`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`) は変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`と`limit-env-names-unchanged`が通る | #3800 |
