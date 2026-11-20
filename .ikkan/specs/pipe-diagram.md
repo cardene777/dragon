@@ -26,12 +26,12 @@
 | repoの全ての`.dragon`のfileを誤り無く読み、見本帳の全ての見本でどの段でも字が重ならず、描画のfileが値を共通の値の表からだけ読み、記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3389 |
 | ほかの図の描き方は今どおりで、OAuthは12段、CCIPは13段、入札は7段が順に動き、箱どうしと線の名前と箱が10px以上離れる | `pnpm test`の検査`oauth-renders-12-steps`と`ccip-renders-13-steps`と`auction-renders-7-steps`と`layout-keeps-10px-gap`が通る | #3389 |
 | 一式が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3389 |
-| トークンの箱は、`hold`で宣言したその箱の値(許可額など)を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3398 |
-| `calc`を行う関係者の2つの槽の間に変換器を描き、その関係者の槽を点線の囲いで囲み、計算する段で変換器を値の色にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-converter-between-tanks`が通る | #3398 |
-| 呼び出しの段で管が光って弁の取っ手が回り、`move`の段で液が値の管を流れて槽の水位が変わり、`check`の段で計器の針が振れて印が付く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-motions`が通る | #3398 #3418 |
+| トークンの箱は、`hold`で宣言したその箱の値(許可額など)を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3398 |
+| `calc`を行う関係者の2つの槽の間に変換器を描き、その関係者の槽を点線の囲いで囲み、計算する段で変換器を値の色にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-converter-between-tanks`が通る | #3398 |
+| 呼び出しの段で管が光って弁の取っ手が回り、`move`の段で液が値の管を流れて槽の水位が変わり、`check`の段で計器の針が振れて印が付く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-motions`が通る | #3398 #3418 |
 | 図の横幅が枠を超える時、段を進めると枠の中の図がその段に関わる関係者の所へ横に送られ、手でも横に動かせ、図の下の細い線が全体のどこを見ているかを示す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3398 |
-| 色味を指定せずに描いた配管の図は色味`sea`の値で描き、色味を指定した時はその色味で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-default-palette-is-sea`が通る | #3398 #3418 |
-| 槽と値の管とトークンの箱と弁は`blocks/hold/draw.ts`、計器は`blocks/check/draw.ts`、変換器は`blocks/calc/draw.ts`、値の札は`blocks/write/draw.ts`、丸の名札とContractの箱は`blocks/box/draw.ts`が描き、配管の図の描き方(`render/pipe.ts`)はそれらを呼んで組む | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-parts-live-in-blocks`が通る | #3398 |
+| 色味を指定せずに描いた配管の図は色味`sea`の値で描き、色味を指定した時はその色味で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-default-palette-is-sea`が通る | #3398 #3418 |
+| 槽と値の管とトークンの箱と弁は`blocks/hold/draw.ts`、計器は`blocks/check/draw.ts`、変換器は`blocks/calc/draw.ts`、値の札は`blocks/write/draw.ts`、丸の名札とContractの箱は`blocks/box/draw.ts`が描き、配管の図の描き方(`render/pipe.ts`)はそれらを呼んで組む | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-parts-live-in-blocks`が通る | #3398 |
 | 配管の図の見本の記法と原本のJSONの形は変わらず、記法から読んだJSONが同じ名前のJSONと一致する | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-compiles-pipe-examples-to-json`が通る | #3398 |
 | 見本の全てを記法、JSON、記法、JSONの順に往復した時、最初と最後のJSONが一致する | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-roundtrip-keeps-json-identical`が通る | #3398 |
 | 槽の水位はトークンごとに量に比例し、`move`の段で送り手の槽が下がって受け手の槽が上がり、流れた分は確定するまで斜線の暫定で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-move-shifts-tank-levels`が通る | #3398 |
@@ -44,34 +44,34 @@
 | 全ての色味で、関係者と槽と管の位置と大きさが同じで、変わるのは色の値だけ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-same-in-every-palette`が通る | #3398 #3418 |
 | 配管の図以外の見本のSVGと置き場所と時刻は変わらない(配管の図の見本の指紋だけを取り直す) | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3398 #3418 |
 | 動きを減らす設定では各段の止まった絵を出し、段の題と本文を読み上げに出す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`reduced-motion-shows-stills`と`steps-exposed-to-screen-readers`が通る | #3398 #3418 |
-| 配管の図の決まりの表が、部品の種類の組ごとの最小の間、線が部品を通ってよい口、線どうしの間と交わり方、1本の管が折れてよい回数を持ち、背景の6種類の崩れと、字に線がかかる形と、線の小さな段差と揃わない間の8種類をそれぞれ受け持つ決まりがある | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-table-covers-eight-breakages`が通る | #3418 |
-| 6つの見本(`swap`、`swap-revert`、`swap-retry`、`swap-two-hops`、`vault-proxy`、`aggregator`)の日本語版と英語版の全ての段の止め絵を、全ての色味で幅1280と幅390の枠に描いた時、決まりの表への違反を数える検査が0件を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3418 |
-| 関係者と槽と流れの数を変えて機械で作った図と、関係者とトークンに英語の長い名前を付けた図を幅1280と幅390の枠に描いた時、違反を数える検査が0件を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-generated-figures`が通る | #3418 |
-| 決まりの表の値を1つ壊して描いた時、違反を数える検査がその決まりの名前を出して落ちる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-broken-value-names-the-rule`が通る | #3418 |
-| 図を1列に並べず、名札を呼び出しの深さで段を下げ、槽を持ち主ごとの囲いにまとめ、流れでつながる囲いを隣に置き、1列で隣にできない流れは囲いを下の段に置いて輪にする(見本`swap-two-hops`ではPool2の囲いがPool1の囲いより下の段に在り、WETHとDAIの値の管が輪を作る) | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-compose-by-calls-and-flows`が通る | #3418 |
-| 値の管は槽の横の口どうしを結び、1本の幹を共に通る同じ組の管(次の行)のほかは管どうしを重ねて走らせない。呼び出しの管が値の管を越える所は直角に1回だけ値の管の下をくぐり、名札と槽を横切らない。呼び出しの弁は管が横か縦に走る所に、計器は横に走る所に、間を空けて並ぶ | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-pipes-join-side-ports-and-cross-under`が通る | #3418 |
-| 同じトークンで同じ槽を端に持つ値の管が2本以上在る時、管は槽の1つの口を共に出て1本の幹を重なって通り、相手の近くで枝に分かれる。幹の管は同じ組の管を突き抜けて越えない(見本`aggregator`では、Aggregatorの`USDC`の槽から3つのPoolへ出る管と、3つのPoolからAggregatorの`WETH`の槽へ入る管がそれぞれ幹を作る) | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-value-pipes-share-a-trunk`が通る | #3418 |
-| 決まりの表が、呼び出しの管の弁の胴と軸と閉じた取っ手と開いた取っ手の形と、ほかの線の縁の間の下限(3px)を持つ。弁が載る管と、弁の所でその管と重なって走る同じ者の管は測らない。弁の取っ手をほかの管に重ねて描くと、違反を数える検査がこの決まりの名前を出す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-valve-clearance`が通る | #3418 |
-| 見本`aggregator`の箱を全て開いた図を幅1280の枠に描いた最後の段で、呼び出しの管どうしが交わる所が12以下(直す前は25)、呼び出しの管が値の管を越える所が16以下(直す前は26)、1本の呼び出しの管が越える線が7本以下(直す前は10)になる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-aggregator-untangled`が通る | #3418 |
-| 全ての見本で槽と弁と計器と名札の高さが見本`swap`と同じ寸法で、込み合う図でも部品を小さくせず間を広げて図を大きくする。幅1280の枠で描いた時、槽の数字は22px、名前は15px、値の箱は26pxを超えず、名札の幅は名前の長さに合わせ、図の中の札の角の丸みは6px以下にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-text-caps-and-square-labels`が通る | #3418 |
-| 値の管に流れた量を単位つきで出し、計器に単位つきの式(見本`swap-two-hops`の`160 DAI ≥ 150 DAI`)を出し、始めた人が払った槽に入力、受け取った槽に出力の印を付ける。段ごとの吹き出しは出さない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-values-have-roles`が通る | #3418 |
-| 槽の下に今の残高を出し、変わった段から増えた分か減った分(`+100 USDC`の形)と暫定の語を、確定した後は確定の語を添え、前の値の消し線は出さない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-tank-shows-balance-and-change`が通る | #3418 |
-| `emit`の段で、イベントの札を出したContractの箱の横に出し、図の上の端にイベントの列を描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-emit-beside-emitter`が通る | #3418 |
-| `hold`で宣言した残高以外の値の札を持つContractの囲いの中に並べ、`write`の段で札の値が替わり、前の値を消し線で残し、確定するまで暫定の印で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-write-plates-sit-in-owner-housing`が通る | #3418 |
-| どの段でも、その段で動いた部品(流れた値の管、回った弁、振れた計器、計算した変換器、出したイベント)を明るく描き、動かなかった部品を薄く描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-dims-parts-that-did-not-move`が通る | #3418 |
-| `return`の段で、戻り値の札が呼び出しの管を伝って呼んだ側の名札まで動く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-return-travels-back-along-call`が通る | #3418 |
-| 枠の幅が390の時、図を枠の幅に合わせて全体を出し、全ての槽の残高と、今の段で動いた値(流れた量、確認の式)を画面で10px以上に見える字で出す。済んだ段の値と計算とイベントと戻り値と槽の下の増減は図に出さず、呼び出しの一覧で読める | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-narrow-shows-balances-and-current-value`が通る | #3418 |
+| 配管の図の決まりの表が、部品の種類の組ごとの最小の間、線が部品を通ってよい口、線どうしの間と交わり方、1本の管が折れてよい回数を持ち、背景の6種類の崩れと、字に線がかかる形と、線の小さな段差と揃わない間の8種類をそれぞれ受け持つ決まりがある | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-table-covers-eight-breakages`が通る | #3418 |
+| 6つの見本(`swap`、`swap-revert`、`swap-retry`、`swap-two-hops`、`vault-proxy`、`aggregator`)の日本語版と英語版の全ての段の止め絵を、全ての色味で幅1280と幅390の枠に描いた時、決まりの表への違反を数える検査が0件を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3418 |
+| 関係者と槽と流れの数を変えて機械で作った図と、関係者とトークンに英語の長い名前を付けた図を幅1280と幅390の枠に描いた時、違反を数える検査が0件を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-generated-figures`が通る | #3418 |
+| 決まりの表の値を1つ壊して描いた時、違反を数える検査がその決まりの名前を出して落ちる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-broken-value-names-the-rule`が通る | #3418 |
+| 図を1列に並べず、名札を呼び出しの深さで段を下げ、槽を持ち主ごとの囲いにまとめ、流れでつながる囲いを隣に置き、1列で隣にできない流れは囲いを下の段に置いて輪にする(見本`swap-two-hops`ではPool2の囲いがPool1の囲いより下の段に在り、WETHとDAIの値の管が輪を作る) | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-compose-by-calls-and-flows`が通る | #3418 |
+| 値の管は槽の横の口どうしを結び、1本の幹を共に通る同じ組の管(次の行)のほかは管どうしを重ねて走らせない。呼び出しの管が値の管を越える所は直角に1回だけ値の管の下をくぐり、名札と槽を横切らない。呼び出しの弁は管が横か縦に走る所に、計器は横に走る所に、間を空けて並ぶ | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-pipes-join-side-ports-and-cross-under`が通る | #3418 |
+| 同じトークンで同じ槽を端に持つ値の管が2本以上在る時、管は槽の1つの口を共に出て1本の幹を重なって通り、相手の近くで枝に分かれる。幹の管は同じ組の管を突き抜けて越えない(見本`aggregator`では、Aggregatorの`USDC`の槽から3つのPoolへ出る管と、3つのPoolからAggregatorの`WETH`の槽へ入る管がそれぞれ幹を作る) | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-value-pipes-share-a-trunk`が通る | #3418 |
+| 決まりの表が、呼び出しの管の弁の胴と軸と閉じた取っ手と開いた取っ手の形と、ほかの線の縁の間の下限(3px)を持つ。弁が載る管と、弁の所でその管と重なって走る同じ者の管は測らない。弁の取っ手をほかの管に重ねて描くと、違反を数える検査がこの決まりの名前を出す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-valve-clearance`が通る | #3418 |
+| 見本`aggregator`の箱を全て開いた図を幅1280の枠に描いた最後の段で、呼び出しの管どうしが交わる所が12以下(直す前は25)、呼び出しの管が値の管を越える所が16以下(直す前は26)、1本の呼び出しの管が越える線が7本以下(直す前は10)になる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-aggregator-untangled`が通る | #3418 |
+| 全ての見本で槽と弁と計器と名札の高さが見本`swap`と同じ寸法で、込み合う図でも部品を小さくせず間を広げて図を大きくする。幅1280の枠で描いた時、槽の数字は22px、名前は15px、値の箱は26pxを超えず、名札の幅は名前の長さに合わせ、図の中の札の角の丸みは6px以下にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-text-caps-and-square-labels`が通る | #3418 |
+| 値の管に流れた量を単位つきで出し、計器に単位つきの式(見本`swap-two-hops`の`160 DAI ≥ 150 DAI`)を出し、始めた人が払った槽に入力、受け取った槽に出力の印を付ける。段ごとの吹き出しは出さない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-values-have-roles`が通る | #3418 |
+| 槽の下に今の残高を出し、変わった段から増えた分か減った分(`+100 USDC`の形)と暫定の語を、確定した後は確定の語を添え、前の値の消し線は出さない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-tank-shows-balance-and-change`が通る | #3418 |
+| `emit`の段で、イベントの札を出したContractの箱の横に出し、図の上の端にイベントの列を描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-emit-beside-emitter`が通る | #3418 |
+| `hold`で宣言した残高以外の値の札を持つContractの囲いの中に並べ、`write`の段で札の値が替わり、前の値を消し線で残し、確定するまで暫定の印で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-write-plates-sit-in-owner-housing`が通る | #3418 |
+| どの段でも、その段で動いた部品(流れた値の管、回った弁、振れた計器、計算した変換器、出したイベント)を明るく描き、動かなかった部品を薄く描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-dims-parts-that-did-not-move`が通る | #3418 |
+| `return`の段で、戻り値の札が呼び出しの管を伝って呼んだ側の名札まで動く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-return-travels-back-along-call`が通る | #3418 |
+| 枠の幅が390の時、図を枠の幅に合わせて全体を出し、全ての槽の残高と、今の段で動いた値(流れた量、確認の式)を画面で10px以上に見える字で出す。済んだ段の値と計算とイベントと戻り値と槽の下の増減は図に出さず、呼び出しの一覧で読める | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-narrow-shows-balances-and-current-value`が通る | #3418 |
 | 配管の図の再生の枠は、拡大と縮小の釦と拡大の度合いの百分率を持ち、CtrlかCommandを押しながらのホイールで拡大と縮小ができ、拡大した図を引いて動かせ、ダブルクリックで押した所を中心に拡大する | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3418 |
 | `dragon export`で書き出した見本`aggregator`のHTMLで畳んだ箱を押すと、段の番号を出さないまま進み具合の帯が8つから14に分かれ、今の段が4つ目になる | `pnpm exec vitest run packages/dragon/test/export.test.ts`の検査`export-pipe-opens-inner-steps-by-progress`が通る | #3418 |
-| 見本`swap`の5段目と最後の段は、[#3398](https://github.com/cardene777/dragon/issues/3398)で本人が良しとした絵と同じ並び(関係者の左右と上下の順、槽の順、値の管がつなぐ槽)で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-swap-keeps-approved-arrangement`が通る | #3418 |
+| 見本`swap`の5段目と最後の段は、[#3398](https://github.com/cardene777/dragon/issues/3398)で本人が良しとした絵と同じ並び(関係者の左右と上下の順、槽の順、値の管がつなぐ槽)で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-swap-keeps-approved-arrangement`が通る | #3418 |
 | 槽の水位はトークンごとに同じ尺で量に比例し、0より多い量は最小の帯より低くならない。`move`の段で送り手の槽が下がって受け手の槽が上がり、流れた分は確定するまで斜線の暫定で描く | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-move-shifts-tank-levels`が通る | #3418 |
-| 槽はつやと5本の目盛りとトークンの名前を持ち、下に3桁ごとに区切った数を出し、トークンごとに液の色を分ける | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-tank-parts`が通る | #3418 |
-| `check`の計器は、トークンのContractが確かめる時と、確かめた者がその後に払うトークンの単位を式が持つ時は値の管の上に、ほかの確認は確かめる関係者を呼んだ管の上に描き、確かめた段の後も針と通ったか落ちたかの印を残す。図の上に確認の印の列は描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-gauge-on-pipe`が通る | #3418 |
-| トークンの箱は、`hold`で宣言したその箱の値を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3418 |
-| `calc`を行う関係者の2つの槽の間に変換器を描き、計算する段で変換器を値の色にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-converter-between-tanks`が通る | #3418 |
-| 見本`aggregator`の箱を全て開いた図の最後の段で、AliceとRouterとBobの残高の槽が全て図の中に描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-final-step-draws-all-tanks`が通る | #3418 |
+| 槽はつやと5本の目盛りとトークンの名前を持ち、下に3桁ごとに区切った数を出し、トークンごとに液の色を分ける | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-tank-parts`が通る | #3418 |
+| `check`の計器は、トークンのContractが確かめる時と、確かめた者がその後に払うトークンの単位を式が持つ時は値の管の上に、ほかの確認は確かめる関係者を呼んだ管の上に描き、確かめた段の後も針と通ったか落ちたかの印を残す。図の上に確認の印の列は描かない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-gauge-on-pipe`が通る | #3418 |
+| トークンの箱は、`hold`で宣言したその箱の値を名前の下に書き、`write`の段で前の値を消し線で残す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3418 |
+| `calc`を行う関係者の2つの槽の間に変換器を描き、計算する段で変換器を値の色にする | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-converter-between-tanks`が通る | #3418 |
+| 見本`aggregator`の箱を全て開いた図の最後の段で、AliceとRouterとBobの残高の槽が全て図の中に描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-final-step-draws-all-tanks`が通る | #3418 |
 | 時刻表の段の番号の札は、その段が始まるまで出ない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-keeps-motion-rules`が通る | #3418 |
-| 槽と値の管とトークンの箱と弁は`blocks/hold/draw.ts`、計器は`blocks/check/draw.ts`、変換器は`blocks/calc/draw.ts`、値の札は`blocks/write/draw.ts`、名札とContractの箱は`blocks/box/draw.ts`が描き、配管の図の描き方(`render/pipe.ts`)はそれらを呼んで組む | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-r6-parts-live-in-blocks`が通る | #3418 |
+| 槽と値の管とトークンの箱と弁は`blocks/hold/draw.ts`、計器は`blocks/check/draw.ts`、変換器は`blocks/calc/draw.ts`、値の札は`blocks/write/draw.ts`、名札とContractの箱は`blocks/box/draw.ts`が描き、配管の図の描き方(`render/pipe.ts`)はそれらを呼んで組む | `pnpm exec vitest run packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-parts-live-in-blocks`が通る | #3418 |
 | 配管の図の見本の記法と原本のJSONの形は変わらず、記法から読んだJSONが同じ名前のJSONと一致し、記法とJSONを往復しても最初と最後のJSONが一致する | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-compiles-pipe-examples-to-json`と`pipe-roundtrip-keeps-json-identical`が通る | #3418 |
 | 図の横幅が枠を超える時、段を進めると枠の中の図がその段に関わる関係者の所へ送られ、手でも動かせ、図の下の細い線が全体のどこを見ているかを示す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3418 |
 | 段を持つ全ての図の再生の操作は、やり直しの釦、名前の付いた再生の釦、段ごとに分けた進み具合の帯を持ち、配管の図でない図は大きな段の題と題の下の小さな段の説明文を持つ | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-r6-controls`が通る | #3418 |
@@ -83,7 +83,7 @@
 | 書き出した頁の字の file に残す配管の図の字(`pipeTexts`)は、見本の全ての段で図の下の矢印と要点の札と呼び出しの結果が出す字を全て含む | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`pipe-texts-cover-flows`が通る | #3464 |
 | 配管の図でない図に配管の図の行(`move`など)を書くと、今どおり配管の図だけで書けると知らせる誤りで止まる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-limits-pipe-lines-to-pipe`が通る | #3464 |
 | 配管の図の見本の記法と原本のJSONは、往復しても今どおり同じJSONになる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-roundtrip-keeps-json-identical`が通る | #3464 |
-| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3464 |
+| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3464 |
 | 記法の行の頭の語は、今どおり1つの語を1つのブロックだけが持つ | `pnpm exec vitest run packages/dragon/test/blocks.test.ts`の検査`block-heads-owned-once`が通る | #3464 |
 | 見本帳の部品は、今どおり記法の全ての語を受け持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-cover-every-word`が通る | #3464 |
 | AIのskillの記法の囲みは、今どおり全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-fences-parse`が通る | #3464 |
@@ -94,7 +94,7 @@
 | 配管の図で札が弁か計器か箱に重なる時、`dragon check --layout`がその段と札と部品を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-chip-over-pipe-part`が通る | #3523 |
 | 配管の図で管が箱の縁の角の後ろを通る時と、2本の管が逆向きに1本の管を共に通る時と、弁の胴がほかの管に近すぎる時、`dragon check --layout`がその段と管か弁を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-pipes-overlapping`が通る | #3523 |
 | 常に、見本の`.dragon`に、数えた一覧 (`packages/dragon/test/fixtures/layout-breaks.json`) に無い崩れが出ない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3523 |
-| 常に、配管の図の見本と機械で作った図は、配管の図の決まりの表に違反しない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と`pipe-rules-zero-violations-in-generated-figures`が通る | #3523 |
+| 常に、配管の図の見本と機械で作った図は、配管の図の決まりの表に違反しない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と`pipe-rules-zero-violations-in-generated-figures`が通る | #3523 |
 | `renderDiagram`に`words.pipe.tags`を渡すと、槽の下の暫定、確定、取り消しの語が渡した語で描かれ、元の語が図に残らない | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-tags-replaced`が通る | #3584 |
 | `mountDiagram`に同じ語を渡すと、置いた図の槽の下の語が渡した語になり、畳んだ箱を押して描き直した後も渡した語のまま描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-mount-keeps-words`が通る | #3584 |
 | `words.pipe.io`を渡すと、始めた人と受け取った人の槽の札が渡した語で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-io-replaced`が通る | #3584 |
@@ -102,11 +102,11 @@
 | 一部の語だけを渡した時は、渡していない語が描く言葉の今の語で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-partial-keeps-rest`が通る | #3584 |
 | 今の語より長い語を渡しても、槽の札が長い語の幅で組まれ、重なりの数が今の語で描いた時より増えない | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-long-words-fit`が通る | #3584 |
 | 語を渡さない時と、空の`words`か空の`words.pipe`を渡した時の図が、今の図と同じ字で描かれる | `pnpm exec vitest run packages/dragon/test/pipe-words.test.ts`の検査`pipe-words-absent-same-svg`が通る | #3584 |
-| 配管の図の管を引く順を試す時、ある回の結果 (道の無い管、曲がりすぎた管などの数) が前の最良より良くならなかったら、次の順を試さずにやめる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-order-tries-stop-without-gain`が通る | #3603 |
-| 引く順を試す時、前の最良より良くなった回の後は次の順を試し、悪い管が0になった回か4回目でやめ、最良の回の順を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-order-tries-keep-going-while-better`が通る | #3603 |
-| 幅390で箱2を開いた`aggregator`を日本語と英語で組む時、管の道を探す回数が、直す前の515回より少ない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-narrow-open-aggregator-searches-fewer`が通る | #3603 |
-| 配管の見本の全ての言語と幅と開いた箱で、置き場所の指紋が記録した指紋と同じで、管の線を1本も変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3603 |
-| 配管の見本の全てで決まりの表の違反が0で、狭い幅で再生した配管の図の字が読める大きさで描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と検査`player-pipe-narrow-keeps-text-readable`が通る | #3603 |
+| 配管の図の管を引く順を試す時、ある回の結果 (道の無い管、曲がりすぎた管などの数) が前の最良より良くならなかったら、次の順を試さずにやめる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-order-tries-stop-without-gain`が通る | #3603 |
+| 引く順を試す時、前の最良より良くなった回の後は次の順を試し、悪い管が0になった回か4回目でやめ、最良の回の順を返す | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-order-tries-keep-going-while-better`が通る | #3603 |
+| 幅390で箱2を開いた`aggregator`を日本語と英語で組む時、管の道を探す回数が、直す前の515回より少ない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-narrow-open-aggregator-searches-fewer`が通る | #3603 |
+| 配管の見本の全ての言語と幅と開いた箱で、置き場所の指紋が記録した指紋と同じで、管の線を1本も変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3603 |
+| 配管の見本の全てで決まりの表の違反が0で、狭い幅で再生した配管の図の字が読める大きさで描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`と検査`player-pipe-narrow-keeps-text-readable`が通る | #3603 |
 | 変えたfileを確かめる2つの検査のfileが全て通り、packageの検査の一式 (`pnpm exec vitest run packages/`) も全て通る | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts packages/dragon/test/player.test.ts`が終わり方0で終わる | #3603 |
 | `mint usdc: 100 -> alice`を読み、aliceの槽が100増える | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-mint-fills-receiver`が通る | #3722 |
 | `burn usdc: 100 alice`を読み、aliceの槽が100減る | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-burn-drains-holder`が通る | #3722 |
