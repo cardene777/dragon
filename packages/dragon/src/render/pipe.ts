@@ -38,7 +38,7 @@ import {
   valuePipe,
   valve,
 } from "../blocks/hold/draw";
-import { callCase, FLOW_CSS, lineOf, litPipe, STREAM } from "../blocks/return/draw";
+import { bentLine, callCase, FLOW_CSS, litPipe, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   along,
@@ -1308,7 +1308,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 地の細い線だけになると、外側の呼び出しの管より細く平らに見えるため (Tracelyth #209)
     for (const c of layout.calls.filter((x) => x.depth > 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      const d = lineOf(c.lit ?? c.points);
+      const d = bentLine(c.lit ?? c.points);
       parts.push(
         `<g class="dg-a" style="${m.vis(t, b)}"><g${on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "back" })} class="dg-pp-cstream" style="${cs("blue")}"><path class="dg-pp-ctrack" d="${d}"/></g>${kindCore({ kind: c.kind, width: c.width }, d)}</g>`,
       );

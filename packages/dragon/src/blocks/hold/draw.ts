@@ -20,7 +20,7 @@ import type { Shown } from "../../render/ink";
 import type { Frame, Motion } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
-import { dashMovers, maskOf, streamId, type StreamRun } from "../return/draw";
+import { bentLine, dashMovers, maskOf, streamId, type StreamRun } from "../return/draw";
 import { undoneMark } from "../revert/draw";
 
 /**
@@ -190,32 +190,6 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
     `<g${attrs} class="dg-pp-lv dg-pp-lv-${lv.state}" style="${cs(STATE_COLOR[lv.state])}">${water}${marks.join("")}` +
     `${bare ? "" : sizedText(ctx, "dg-pp-num", lv.text, T.amount, shown)}${sub}</g>`
   );
-}
-
-/**
- * 値の管の線。折れ線の角を半径 `PIPE_LOOK.bend` の弧で曲げる (#3783)。隣の辺が短い角は、その辺の半分を半径にする。
- * 並びの点は変えず、描く線だけを丸めるので、管を避ける確かめは今の折れ線のまま働く
- */
-export function bentLine(points: readonly Point[]): string {
-  const at = (p: Point): string => `${r1(p[0])} ${r1(p[1])}`;
-  const first = points[0];
-  if (first === undefined) return "";
-  let d = `M ${at(first)}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    const [a, b, c] = [points[i - 1], points[i], points[i + 1]] as [Point, Point, Point];
-    const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
-    const r = Math.min(PIPE_LOOK.bend, ab / 2, bc / 2);
-    // 真っすぐ続く点と重なった点は曲げずに通る
-    const straight = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < 1e-6;
-    if (r <= 0 || straight) {
-      d += ` L ${at(b)}`;
-      continue;
-    }
-    d += ` L ${at([b[0] + ((a[0] - b[0]) * r) / ab, b[1] + ((a[1] - b[1]) * r) / ab])} Q ${at(b)} ${at([b[0] + ((c[0] - b[0]) * r) / bc, b[1] + ((c[1] - b[1]) * r) / bc])}`;
-  }
-  const last = points[points.length - 1];
-  return points.length > 1 && last !== undefined ? `${d} L ${at(last)}` : d;
 }
 
 /**
