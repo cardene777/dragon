@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-11-20
+
 ### Added
 
 - **The player takes `canvas` and `fitNarrow` for pipe diagrams** (#3761)

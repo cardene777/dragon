@@ -222,6 +222,22 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-79-0-lists-tracelyth-patch", () => {
+    // Tracelyth が当てていたパッチの直しを取り込んだ変更 (#3761) を 0.79.0 で出す (#3771)。最初の項は再生の部品の `canvas` と `fitNarrow`
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 79, `package の版 ${version()} が 0.79.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.0"), "0.79.0");
+      expect(released, `${file} に日付付きの ## [0.79.0] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3761)")) ?? "";
+      expect(entry, `${file} の 0.79.0 の節に (#3761) の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.79.0 の節の最初の (#3761) の項が \`canvas\` を名指さない`).toContain("`canvas`");
+      // 次の版の項は Unreleased に積まれるので、0.79.0 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3761) が残る`).not.toContain("(#3761)");
+    }
+  });
+
   it("changelog-0-78-0-lists-page-export", () => {
     // md から頁を書き出す命令と入口 (#3755) と、書き出した頁と埋めた頁に配管の図の並べ方を収めた変更 (#3748) を 0.78.0 で出す (#3760)
     const [major = 0, minor = 0] = version().split(".").map(Number);
