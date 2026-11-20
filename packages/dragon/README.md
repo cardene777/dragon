@@ -129,6 +129,34 @@ The file fetches nothing from outside, and draws in the device's fonts because t
 dragon embed page.html
 ```
 
+### A still figure
+
+When a page such as a report or an explainer should show the last step in one picture instead of stepping through the diagram, add `data-still` to the block.
+
+```html
+<pre class="dragon" data-still>
+chart Sales by product in thousands of yen [shape: bar]
+
+item croissant as Croissant
+item melon as Melon bun
+
+step This week
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+A block with `data-still` gets no player (the buttons, the step number, the step title and text, and the progress bar), and is replaced by an SVG that draws the last step (`<div class="dragon-figure dragon-still">`).
+A chart draws its values and shows the diagram title where the step title would be.
+A flow draws every line its steps passed as a solid line.
+Its fonts fall back to the device's sans-serif after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
+It uses the `clear` palette by default, which sits well on a white page, and turns dark when the page's `<html>` has `data-theme="dark"`, or when the device prefers a dark scheme and the page does not have `data-theme="light"`.
+The figure never grows wider than its own width, and shrinks with its aspect ratio kept when its frame is narrower.
+
+Pass a page whose blocks are all still to `dragon embed`, and it draws the blocks as SVGs in place and adds no bundled script.
+On a page that also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the moving ones.
+From the package, pass `figure: true` to `renderDiagram` to get the same SVG.
+
 ## Write a page from Markdown
 
 `dragon export notes.md` reads a Markdown file and writes one HTML page, `notes.html`, next to it (`--out <dir>` picks the folder).

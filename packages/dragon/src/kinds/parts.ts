@@ -64,6 +64,8 @@ export interface KindParts<L extends Layout = Layout> {
   };
   mountInput?(this: void, host: HTMLElement, diagram: import("../schema").Diagram, options: import("../player").PlayerOptions): import("../player").Player;
 
+  /** 止めて置く図 (`figure: true`、#3801) を並べる前に原本を直す。量の図は、段を送らない図で何の図かを伝えるため、段の名前の所に図の題を出す */
+  figure?(this: void, model: DiagramModel): DiagramModel;
   /** 並べる前に原本を直す。配管の図は、開くと頼まれていない呼び出しの内側の段を 1 つの段にまとめる (#3389) */
   fold?(this: void, model: DiagramModel, options: KindOptions, lang: NotationLang): DiagramModel;
   /** 並べ方 */

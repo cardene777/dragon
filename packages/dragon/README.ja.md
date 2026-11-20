@@ -133,6 +133,34 @@ script の 1 行を、全ての図の種類を持つ束ねた script に置き�
 dragon embed page.html
 ```
 
+### 止めて置く図
+
+レポートや説明の頁のように、図を段で送らずに最後の段の形を 1 枚で見せたい時は、塊に属性 `data-still` を付ける。
+
+```html
+<pre class="dragon" data-still>
+chart 商品ごとの売り上げ (千円) [shape: bar]
+
+item croissant as クロワッサン
+item melon as メロンパン
+
+step 今週
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+`data-still` を持つ塊は、再生の部品 (釦、段の番号、段の題と本文、進みの帯) を置かず、最後の段の形を描いた SVG (`<div class="dragon-figure dragon-still">`) に置き換わる。
+量の図は値まで描き、段の名前の所に図の題を出す。
+手順の図は、段が通った線を全て実線で描く。
+字は同梱の字の後に端末の sans-serif を持つので、同梱の字を読まない頁でも明朝に落ちない。
+色味は既定で頁の白い地に馴染む `clear` を使い、頁の `<html>` が `data-theme="dark"` を持つ時と、`data-theme="light"` でない頁で端末が暗い表示の時に、暗い色に変わる。
+図は自分の幅より広く伸ばさず、枠が狭い時は縦横の比を保って縮める。
+
+止めて置く塊だけの頁を `dragon embed` に渡すと、塊を SVG に描いて置き換え、束ねた script を入れない。
+動く塊が混ざる頁では、止めて置く塊だけを SVG に描き、動く塊のために束ねた script を入れる。
+package から描く時は、`renderDiagram` に `figure: true` を渡すと同じ SVG を返す。
+
 ## mdから頁を書き出す
 
 `dragon export notes.md` は md の file を読み、HTML の頁 `notes.html` を 1 つ md の隣に書く (`--out <dir>` で書く先のフォルダを選ぶ)。

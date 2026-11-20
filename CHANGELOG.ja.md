@@ -6,6 +6,10 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- 属性`data-still`を持つ塊は止めて置く図に置き換わる。再生の部品と段の番号を持たない最後の段のSVGで、量の図は段の名前の所に図の題を出し、字は一般のsans-serifに落ち、色味は既定で`clear`を使い、頁の`data-theme`と端末の暗い表示に従って色が変わる。`renderDiagram`は`figure: true`で同じSVGを返し、`dragon embed`は止めて置く塊をSVGに描いて、動く塊が残らない頁には束ねたscriptを入れない (#3801)
+
 ## [0.79.2] - 2026-11-20
 
 ### Changed

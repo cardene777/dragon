@@ -6,6 +6,7 @@
  * 図の字の CSS は jsDelivr から読む `<link>` を頁に1度だけ足す。
  * `dragon embed <HTML>` は入口の1行を束ねた script の中身に置き換え、外へ通信しない1 file を書く。
  * 埋めた頁でも `data-header` を持つ塊には同じ帯が付き、帯のエクスポートは外を読まずに書き出せる4つの形式だけを出す (#3786)。
+ * `data-still` を持つ塊は SVG に描いてから埋め、動く塊が残らない頁には束ねた script を入れない (#3801)。
  *
  * 入口の file は build した `dist/cdn` から読む。頁は `http://localhost/` に置き、入口と塊も同じ置き場から渡す。
  * 外への通信は全て止め、何を取りに行ったかを数える。
@@ -819,4 +820,80 @@ describe("dragon embed の頁の帯 (#3786)", () => {
       expect(seen.errors, "帯のボタンを押した時に頁で起きた例外").toEqual([]);
       expect(seen.outside, "帯のボタンを押した時に埋めた頁が外へ取りに行った物").toEqual([]);
     }));
+});
+
+/** 止めて置く量の図 (#3801)。段の名前 (今週) と図の題 (品ごとの売り上げ) が違う */
+const STILL_BAR = "chart 品ごとの売り上げ [shape: bar]\n\nitem bread as パン\nitem sweets as 菓子パン\n\nstep 今週\n  say 今週の売り上げ。\n  set bread: 268\n  set sweets: 141\n";
+/** 頁の中の script を外した字。束ねた script は止めて置く図を描く字を持つので、頁に置いた物だけを数える */
+const withoutScripts = (html: string): string => html.replace(/<script\b[\s\S]*?<\/script>/gu, "");
+
+describe("頁の塊を止めて置く (#3801)", () => {
+  it("page-still-block-places-svg-without-player", () =>
+    withPage(`<pre class="dragon" data-still>${escape(STILL_BAR)}</pre>`, async (page) => {
+      await page.waitForSelector(".dragon-still svg.dg", { timeout: QUICK_SETTLE }).catch(() => undefined);
+      const found = await page.evaluate(() => ({
+        svg: document.querySelectorAll(".dragon-still svg.dg").length,
+        player: document.querySelectorAll('[data-dragon="player"], .dg-player, .dg-bar, .dg-btn').length,
+        block: document.querySelectorAll("pre.dragon").length,
+        title: document.querySelector("[data-chart-title]")?.getAttribute("data-chart-title") ?? "",
+      }));
+      expect(found, "止めて置く塊を置き換えた物").toEqual({ svg: 1, player: 0, block: 0, title: "品ごとの売り上げ" });
+    }));
+
+  it("page-still-block-shows-notation-errors", () =>
+    withPage(`<pre class="dragon" data-still>${escape(BROKEN)}</pre>`, async (page) => {
+      await page.waitForSelector("pre.dragon-error", { timeout: QUICK_SETTLE }).catch(() => undefined);
+      const found = await page.evaluate(() => ({ errors: document.querySelectorAll("pre.dragon-error").length, svg: document.querySelectorAll("svg.dg").length }));
+      expect(found, "誤りのある止めて置く塊を置き換えた物").toEqual({ errors: 1, svg: 0 });
+    }));
+});
+
+describe("dragon embed の止めて置く図 (#3801)", () => {
+  let dir = "";
+  let stillOnly = "";
+  let mixed = "";
+  // 止めて置く塊だけの頁と、動く塊も置いた頁を、file で 1 度ずつ `dragon embed` で埋める。命令を起こす秒数を件ごとに払わない
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), "dragon-embed-still-"));
+    const [major, minor] = version().split(".");
+    const page = (blocks: string[]): string =>
+      [
+        "<!doctype html>",
+        '<html lang="ja"><head><meta charset="utf-8">',
+        `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@${major}.${minor}/dist/cdn/dragon.js"></script>`,
+        "</head><body>",
+        ...blocks,
+        "</body></html>",
+      ].join("\n");
+    const still = `<pre class="dragon" data-still>${escape(STILL_BAR)}</pre>`;
+    const sources = { stillOnly: page([still, still]), mixed: page([still, `<pre class="dragon">${escape(SEQUENCE)}</pre>`]) };
+    const embed = async (name: keyof typeof sources): Promise<string> => {
+      const source = join(dir, `${name}.html`);
+      const out = join(dir, `${name}.offline.html`);
+      writeFileSync(source, sources[name]);
+      const ran = await runCli(["embed", source, "--out", out]);
+      expect(ran.code, `dragon embed の終わり方 (${ran.stderr})`).toBe(0);
+      return readFileSync(out, "utf8");
+    };
+    [stillOnly, mixed] = await Promise.all([embed("stillOnly"), embed("mixed")]);
+  });
+  afterAll(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("embed-still-only-page-has-no-script", () => {
+    const body = withoutScripts(stillOnly);
+    expect(body.match(/<svg[^>]*class="dg dg-/gu)?.length, "止めて置く塊を描いた SVG の数").toBe(2);
+    expect(body, "量の図の題").toContain('data-chart-title="品ごとの売り上げ"');
+    expect(stillOnly, "動く塊が残らない頁に入れた script").not.toMatch(/<script\b/u);
+    expect(stillOnly, "残った記法の塊").not.toMatch(/<pre\b[^>]*class="dragon"/u);
+  });
+
+  it("embed-mixed-page-keeps-script", () => {
+    const body = withoutScripts(mixed);
+    expect(body.match(/<svg[^>]*class="dg dg-/gu)?.length, "止めて置く塊を描いた SVG の数").toBe(1);
+    expect(body.match(/<pre class="dragon">/gu)?.length, "動く塊の数").toBe(1);
+    expect(mixed, "動く塊を描く束ねた script").toMatch(/<script\b[^>]*>[\s\S]{1000,}<\/script>/u);
+    expect(mixed, "入口の1行").not.toMatch(/dist\/cdn\/dragon\.js/u);
+  });
 });
