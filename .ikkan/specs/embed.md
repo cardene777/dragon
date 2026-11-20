@@ -53,3 +53,18 @@
 | 帯の無い図の再生の帯は自分では余白を付けず、段の番号の左の端を図の枠の左の端に揃えて、余白を置いた頁に任せる | `pnpm exec vitest run`の検査`plain-bar-leaves-room-to-page`が通る | #3744 |
 | 1 fileのHTMLは、今と同じく再生の部品の下に12px、再生の帯と呼び出しの欄の左右に16pxの余白を付ける | `pnpm exec vitest run`の検査`html-page-keeps-bar-room`が通る | #3744 |
 | scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 |
+| `dragon embed`で埋めた頁を通信を止めて開いた時、`data-header`を持つ塊ごとに帯 (`[data-dragon-header]`) が1つ付き、帯のボタンがjsDelivrの1行の入口の頁と同じコード、エディタ、コピー、エクスポート、拡大の順に並ぶ | `pnpm exec vitest run`の検査`offline-page-frames-header-blocks`が通る | #3786 |
+| 埋めた頁で`data-header`を持たない塊は、帯の無い図のまま描ける | `pnpm exec vitest run`の検査`offline-page-leaves-plain-blocks-bare`が通る | #3786 |
+| 通信を止めて開いた埋めた頁で、帯のボタンとエクスポートの窓とコピーの窓の項目を1つずつ押した時、書き出せなかった知らせか頁の例外を出す項目が0個になる | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
+| 埋めた頁の帯は、どのボタンを押しても頁の外のfileを読みに行くことができない | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
+| 埋めた頁の帯のエクスポートの窓は、画像の見出しの下にPNGとSVGを、記法の見出しの下にdragon記法とJSONを並べる | `pnpm exec vitest run`の検査`offline-export-menu-lists-four-formats`が通る | #3786 |
+| 埋めた頁の帯のエクスポートの窓からは、HTML、GIF、MP4と動きの見出しを選べない | `pnpm exec vitest run`の検査`offline-export-menu-lists-four-formats`が通る | #3786 |
+| npmの帯 (`mountFramedDiagram`) のエクスポートの窓は、今と同じく画像、動き、記法の見出しの下に7つの形式を並べる | `pnpm exec vitest run`の検査`export-menu-groups-seven-formats`が通る | #3786 |
+| jsDelivrの1行の入口の頁で帯のエクスポートのHTMLを押すと、今と同じく入口の置き場から書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run`の検査`script-entry-adds-bar-with-data-header`が通る | #3786 |
+| npmの帯 (`mountFramedDiagram`) でエクスポートのHTMLを押すと、今と同じく隣の書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run`の検査`frame-export-html-loads-capture`が通る | #3786 |
+| 帯を出さずに置いた図 (`mountDragon`の`header: false`) の`export("html")`は、今と同じく再生のscriptを埋めたHTMLを返す | `pnpm exec vitest run`の検査`sdk-headless-exports-html`が通る | #3786 |
+| 頁の幅360px (左右に16pxの余白) で帯のエクスポートの窓とコピーの窓を開いた時、どちらの窓も左端が0px以上、右端が360px以下になる | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3786 |
+| 帯の枠の幅が280px (頁の幅312px、左右に16pxの余白) の時、エクスポートの窓の幅は枠の幅から20pxを引いた260pxになり、窓は枠の左右の縁を越えられない | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3786 |
+| 頁の幅1000pxで帯のエクスポートの窓を開いた時、窓の右端は今と同じくエクスポートのボタンの右端と揃い、窓の幅は300pxのまま | `pnpm exec vitest run`の検査`frame-menu-aligns-right-on-wide-page`が通る | #3786 |
+| jsDelivrの1行の入口が最初に読むscriptの量 (gzipした後) は、上限の90,000 byteを超えられない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3786 |
+| `dragon embed`が書く頁は今と同じく1つのfileで、外への通信を止めて開くと塊が図に置き換わる | `pnpm exec vitest run`の検査`embed-writes-offline-file`が通る | #3786 |

@@ -17,6 +17,7 @@
  * 読む処理は軽い入口を通らずに `light-load.ts` から読み、軽い入口が出す既定の入口の部品 (`api.ts`) を最初に読む file に入れない。
  */
 import "./kind-use/sequence";
+import { loadCapture } from "./frame/capture-load.mjs";
 import { kindLoaded, partsOf } from "./kinds/registry";
 import { diagramKind, loadFor } from "./light-load";
 import { toModel } from "./model";
@@ -54,8 +55,9 @@ addFontLinks(document);
 drawPageBlocks(
   document,
   prepare,
+  // 帯のHTMLとGIFとMP4は、入口の隣の書き出す部品 (`dist/cdn/capture.js`) を読んで作る (#3786)
   (host, drawn, source, diagram, options) => {
-    void import("./frame/framed").then(({ frameDrawn }) => frameDrawn(host, drawn, source, diagram, options, mountDiagram, NOTATION_WORDS));
+    void import("./frame/framed").then(({ frameDrawn }) => frameDrawn(host, drawn, source, diagram, options, mountDiagram, NOTATION_WORDS, loadCapture));
   },
   // 配管の図は、描いた後の空いた時間に畳んだ箱を 1 つだけ開いた形を先に組み、箱を押した時に道を探さない (#3753)
   (diagram, options) => {
