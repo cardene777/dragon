@@ -1,5 +1,6 @@
 /** Article chrome shared by embedders; the native player owns diagram inputs. */
 import { parseNotation, mountDiagram, NOTATION_WORDS, type Diagram, type PlayerOptions, type Player } from '@cardenelabs/dragon';
+import { loadCapture } from './capture-load.mjs';
 import { createDragonFrame as createFrame, diagramEditorUrl as editorUrl } from './dragon-frame.mjs';
 import { mountInFrame } from './framed';
 import type { HeaderColors, FigureHeader } from './header';
@@ -38,12 +39,12 @@ export interface DiagramFrame {
   connect(): void;
   destroy(): void;
 }
-export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame => createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS });
+export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame => createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture });
 export const diagramEditorUrl: (source: string) => string = editorUrl;
 
 /** Mount notation with source tabs, editor navigation, fullscreen and exports. */
 export function mountFramedDiagram(host: HTMLElement, source: string, options: PlayerOptions & FrameOptions = {}): { player: Player; frame: DiagramFrame; destroy(): void } {
   const parsed = parseNotation(source);
   if (!parsed.ok) throw new Error(parsed.errors.map(e => `${e.line}: ${e.message}`).join('\n'));
-  return mountInFrame(host, source, parsed.diagram, options, mountDiagram, NOTATION_WORDS);
+  return mountInFrame(host, source, parsed.diagram, options, mountDiagram, NOTATION_WORDS, loadCapture);
 }

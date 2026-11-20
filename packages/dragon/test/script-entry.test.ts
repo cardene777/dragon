@@ -5,6 +5,7 @@
  * 入口は軽い入口 (`@cardenelabs/dragon/light`) と同じく、書いた図の種類の塊だけを後から読む。
  * 図の字の CSS は jsDelivr から読む `<link>` を頁に1度だけ足す。
  * `dragon embed <HTML>` は入口の1行を束ねた script の中身に置き換え、外へ通信しない1 file を書く。
+ * 埋めた頁でも `data-header` を持つ塊には同じ帯が付き、帯のエクスポートは外を読まずに書き出せる4つの形式だけを出す (#3786)。
  *
  * 入口の file は build した `dist/cdn` から読む。頁は `http://localhost/` に置き、入口と塊も同じ置き場から渡す。
  * 外への通信は全て止め、何を取りに行ったかを数える。
@@ -17,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import type { Page } from "playwright-core";
 import * as dragon from "@cardenelabs/dragon";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { runCli } from "./export-support";
 import { fileChromium } from "./page-needs";
@@ -375,15 +376,61 @@ describe("script の1行の入口 (#3343)", () => {
       expect(scripts, "最初に読んだ script に入口が在る").toContain(ENTRY);
       const sizes = Object.fromEntries(scripts.map((file) => [file, gzipSync(readFileSync(join(CDN, file))).length]));
       const total = Object.values(sizes).reduce((sum, size) => sum + size, 0);
+      // 次に入口へ足す課題が、上限までの空きを測り直さずに知れるよう、合計と空きを出す (#3782)
+      console.info(`最初に読む script の gzip 後の合計 ${total} byte (file ${scripts.length} 個、上限 ${FIRST_LOAD_BUDGET} byte、空き ${FIRST_LOAD_BUDGET - total} byte)`);
       expect(total, `最初に読む script の gzip 後の合計 (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(FIRST_LOAD_BUDGET);
+    });
+  });
+
+  it("script-entry-leaves-architecture-layout-out", async () => {
+    // 構成図の並べ方は、構成図の塊を置いた頁だけが後から読む。時系列図だけの頁は読まない (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/kinds/architecture/layout.ts");
+    expect(holding.length, "構成図の並べ方を持つ file の数").toBeGreaterThan(0);
+    await withPage(`<pre class="dragon">${escape(SEQUENCE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect((await counts(page)).drawn, "時系列図を描く").toBe(1);
+      expect(requests.scripts.filter((file) => holding.includes(file)), "時系列図だけの頁で読んだ、構成図の並べ方を持つ file").toEqual([]);
+    });
+  });
+
+  it("script-entry-draws-architecture-after-loading-layout", async () => {
+    // 構成図の塊を置いた頁は、本体が最初に読む file の外に在る構成図の並べ方の塊を読んでから描く (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/kinds/architecture/layout.ts");
+    const first = entryFiles();
+    expect(holding.filter((file) => first.has(file)), "構成図の並べ方を持つ、最初に読む file").toEqual([]);
+    await withPage(`<pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect(await counts(page), "構成図の塊が1つの図に置き換わる").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      expect(requests.scripts.filter((file) => holding.includes(file)).length, "構成図の頁で読んだ、構成図の並べ方を持つ file の数").toBe(1);
+    });
+  });
+
+  it("script-entry-leaves-api-only-parts-out", async () => {
+    // 軽い入口が並べ直して出す部品 (`api.ts`) だけが読む物は、1行の入口が最初に読む file に入れない。エディタの URL は帯の塊が読む (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/editor-url.ts");
+    expect(holding.length, "エディタの URL の部品を持つ file の数").toBeGreaterThan(0);
+    await withPage(`<pre class="dragon">${escape(SEQUENCE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect((await counts(page)).drawn, "時系列図を描く").toBe(1);
+      expect(requests.scripts.filter((file) => holding.includes(file)), "帯の無い頁で読んだ、エディタの URL の部品を持つ file").toEqual([]);
     });
   });
 
   it("script-entry-adds-bar-with-data-header", async () => {
     if (!entryBuilt()) return;
     await withPage(`<pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page) => {
-      await settle(page, 2);
-      await page.waitForFunction(() => document.querySelector(".dragon-figure .dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
+      // 構成図は並べ方の塊を読んでから描くので、帯の図が帯の内側 (shadow root) へ移った後に描くことがある (#3782)。
+      // 頁の表に在る図だけを数えると 2 つ揃う時が来ないので、図ごとに帯の内側か外側で描けたかを待つ
+      await page
+        .waitForFunction(() => {
+          const figures = [...document.querySelectorAll(".dragon-figure")];
+          const drawn = figures.filter((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
+          return document.querySelectorAll("pre.dragon").length === 0 && drawn.length === 2 && document.querySelector(".dragon-figure .dragon-frame") !== null;
+        }, null, { timeout: QUICK_SETTLE })
+        .catch(() => undefined);
       const figures = await page.evaluate(() =>
         [...document.querySelectorAll(".dragon-figure")].map((figure) => {
           const root = figure.querySelector(".dragon-frame")?.shadowRoot;
@@ -617,4 +664,159 @@ describe("script の1行の入口 (#3343)", () => {
     );
     expect(stale, `入口の1行が package の版 ${major}.${minor} 以外を指す`).toEqual([]);
   });
+});
+
+/** 帯のボタンの並び。jsDelivr の入口の頁の帯と同じ (`script-entry-adds-bar-with-data-header`) */
+const BAR_BUTTONS = ["code", "editor", "copy", "export", "expand"];
+
+/** 埋めた頁を開いて見たこと */
+interface OfflineSeen {
+  /** 頁が外へ取りに行った URL。開いた頁の通信だけを数え、エディタを開く新しいタブは数えない */
+  outside: string[];
+  /** 頁で起きた例外 */
+  errors: string[];
+}
+
+describe("dragon embed の頁の帯 (#3786)", () => {
+  let dir = "";
+  let offline = "";
+  // 帯つきの塊 (時系列図) と帯の無い塊 (構成図) を置いた頁を、file で 1 度だけ `dragon embed` で埋める。命令を起こす秒数を件ごとに払わない
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), "dragon-embed-header-"));
+    const [major, minor] = version().split(".");
+    const source = join(dir, "page.html");
+    offline = join(dir, "page.offline.html");
+    writeFileSync(
+      source,
+      [
+        "<!doctype html>",
+        '<html lang="ja"><head><meta charset="utf-8">',
+        `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@${major}.${minor}/dist/cdn/dragon.js"></script>`,
+        '</head><body style="margin:0;padding:16px">',
+        `<pre class="dragon" data-header>${escape(SEQUENCE)}</pre>`,
+        `<pre class="dragon">${escape(ARCHITECTURE)}</pre>`,
+        "</body></html>",
+      ].join("\n"),
+    );
+    const ran = await runCli(["embed", source, "--out", offline]);
+    expect(ran.code, `dragon embed の終わり方 (${ran.stderr})`).toBe(0);
+  });
+  afterAll(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** 埋めた頁を外への通信を全て止めて開き、塊が全て図になるまで待って `run` を回す */
+  async function withOffline<T>(run: (page: Page, seen: OfflineSeen) => Promise<T>): Promise<T> {
+    const context = await (await fileChromium()).newContext({ viewport: { width: 760, height: 900 } });
+    const seen: OfflineSeen = { outside: [], errors: [] };
+    try {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      await context.route(/^https?:/u, (route) => route.abort());
+      const page = await context.newPage();
+      page.on("request", (request) => {
+        const url = request.url();
+        if (!/^(file|data|blob):/u.test(url)) seen.outside.push(url);
+      });
+      page.on("pageerror", (error) => seen.errors.push(error.message));
+      await page.goto(pathToFileURL(offline).href);
+      // 帯つきの図は帯の内側 (shadow root) に描き直すので、図ごとに帯の内側か外側で描けたかを待つ
+      await page
+        .waitForFunction(() => {
+          const figures = [...document.querySelectorAll(".dragon-figure")];
+          return document.querySelectorAll("pre.dragon").length === 0 && figures.length === 2 && figures.every((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
+        }, null, { timeout: QUICK_SETTLE })
+        .catch(() => undefined);
+      return await run(page, seen);
+    } finally {
+      await context.close();
+    }
+  }
+
+  /** 図ごとの帯の数と帯のボタンの並びと、図を描けたか */
+  const figuresOf = (page: Page): Promise<{ headers: number; buttons: string[]; drawn: boolean }[]> =>
+    page.evaluate(() =>
+      [...document.querySelectorAll(".dragon-figure")].map((figure) => {
+        const root = figure.querySelector(".dragon-frame")?.shadowRoot;
+        return {
+          headers: root ? root.querySelectorAll("[data-dragon-header]").length : figure.querySelectorAll("[data-dragon-header]").length,
+          buttons: root ? [...root.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]")].map((el) => el.dataset.action ?? "") : [],
+          drawn: (root ?? figure).querySelector('[data-dragon="player"] svg') !== null,
+        };
+      }),
+    );
+
+  it("offline-page-frames-header-blocks", () =>
+    withOffline(async (page, seen) => {
+      const [framed] = await figuresOf(page);
+      expect(framed, "data-header を持つ塊の図").toEqual({ headers: 1, buttons: BAR_BUTTONS, drawn: true });
+      expect(seen.errors, "頁で起きた例外").toEqual([]);
+    }));
+
+  it("offline-page-leaves-plain-blocks-bare", () =>
+    withOffline(async (page) => {
+      const figures = await figuresOf(page);
+      expect(figures, "埋めた頁の図の数").toHaveLength(2);
+      expect(figures[1], "data-header を持たない塊は、帯の無い図のまま描く").toEqual({ headers: 0, buttons: [], drawn: true });
+    }));
+
+  it("offline-export-menu-lists-four-formats", () =>
+    withOffline(async (page) => {
+      const toggle = page.locator('.dg-header-actions > [data-action="export"] > button');
+      expect(await toggle.count(), "埋めた頁の帯にエクスポートの窓を開くボタンが無い").toBe(1);
+      await toggle.click();
+      const menu = await page.evaluate(() => {
+        const el = document.querySelector(".dragon-frame")!.shadowRoot!.querySelector<HTMLElement>('[data-menu="export"]')!;
+        const groups: { group: string; formats: string[] }[] = [];
+        for (const child of el.querySelectorAll<HTMLElement>("[data-group],[data-format]")) {
+          if (child.dataset.group) groups.push({ group: child.dataset.group, formats: [] });
+          else groups.at(-1)?.formats.push(child.dataset.format ?? "");
+        }
+        return { groups, motion: el.querySelectorAll('[data-group="motion"],[data-format="html"],[data-format="gif"],[data-format="mp4"]').length };
+      });
+      expect(menu.groups, "埋めた頁のエクスポートの窓の見出しと形式").toEqual([
+        { group: "images", formats: ["png", "svg"] },
+        { group: "notation", formats: ["dragon", "json"] },
+      ]);
+      expect(menu.motion, "埋めた頁のエクスポートの窓に残った動きの見出しと HTML、GIF、MP4").toBe(0);
+    }));
+
+  it("offline-header-buttons-work-without-network", () =>
+    withOffline(async (page, seen) => {
+      expect((await figuresOf(page))[0]?.buttons, "埋めた頁の帯のボタン").toEqual(BAR_BUTTONS);
+      const status = page.locator(".dragon-frame .status");
+      const clearStatus = () => page.evaluate(() => (document.querySelector(".dragon-frame")!.shadowRoot!.querySelector(".status")!.textContent = ""));
+      /** 窓 `menu` を開いて項目 `item` を押し、知らせの欄に出た字を返す */
+      const pick = async (menu: string, item: string): Promise<string> => {
+        await clearStatus();
+        await page.locator(`.dg-header-actions > [data-action="${menu}"] > button`).click();
+        await page.locator(`[data-menu="${menu}"] ${item}`).click();
+        await expect.poll(() => status.textContent(), { timeout: QUICK_SETTLE }).toMatch(/^(?!エクスポートしています).+/u);
+        return (await status.textContent()) ?? "";
+      };
+      const said: Record<string, string> = {};
+      for (const kind of ["source", "image", "url"]) said[`copy:${kind}`] = await pick("copy", `[data-copy="${kind}"]`);
+      for (const format of ["png", "svg", "dragon", "json"]) {
+        const saved = page.waitForEvent("download", { timeout: QUICK_SETTLE });
+        said[`export:${format}`] = await pick("export", `[data-format="${format}"]`);
+        await saved;
+      }
+      expect(said, "コピーとエクスポートの項目を押した時の知らせ").toEqual({
+        "copy:source": "記法をコピーしました。",
+        "copy:image": "画像をコピーしました。",
+        "copy:url": "エディタのURLをコピーしました。",
+        "export:png": "ファイルを保存しました。",
+        "export:svg": "ファイルを保存しました。",
+        "export:dragon": "ファイルを保存しました。",
+        "export:json": "ファイルを保存しました。",
+      });
+      // エディタと拡大とコードは知らせを出さずに動く。拡大は開いて閉じ、コードは開いたまま終える
+      await clearStatus();
+      await page.locator('.dg-header-actions > [data-action="editor"]').click();
+      await page.locator('.dg-header-actions > [data-action="expand"]').click();
+      await page.locator('.dg-header-actions > [data-action="expand"]').click();
+      await page.locator('.dg-header-actions > [data-action="code"]').click();
+      expect(await status.textContent(), "エディタと拡大とコードを押した時の知らせ").toBe("");
+      expect(seen.errors, "帯のボタンを押した時に頁で起きた例外").toEqual([]);
+      expect(seen.outside, "帯のボタンを押した時に埋めた頁が外へ取りに行った物").toEqual([]);
+    }));
 });

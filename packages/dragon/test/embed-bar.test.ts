@@ -293,6 +293,18 @@ describe("エクスポートの窓", () => {
       expect(JSON.parse(json.text)).toMatchObject({ kind: "sequence", title: "注文" });
     }));
 
+  it("frame-export-html-loads-capture", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // npm の帯の HTML は、押した時に隣の書き出す部品 (`capture.js`) を読み、再生の script を埋めた頁を書き出す (#3786)
+      await mount(page);
+      await expectToggle(page, "export");
+      await page.locator('.dg-header-actions > [data-action="export"] > button').click();
+      const [download] = await Promise.all([page.waitForEvent("download", { timeout: 8000 }), page.locator('[data-menu="export"] [data-format="html"]').click()]);
+      expect(download.suggestedFilename(), "HTMLのエクスポートのfileの名前").toMatch(/\.html$/u);
+      expect(readFileSync(await download.path(), "utf8").includes("DragonPlayer.mountDiagram"), "書き出した頁が再生の script を埋めて図を置く").toBe(true);
+      expect(await statusText(page), "HTMLのエクスポートの知らせ").toBe("操作できるHTMLを保存しました。開くと初期条件から始まります。");
+    }));
+
   it("export-options-scale-and-transparent-png", () =>
     withFrame({ lang: "ja" }, async (page) => {
       await mount(page);
@@ -363,7 +375,60 @@ describe("窓の開き方", () => {
       await page.mouse.click(stage.x, stage.y);
       expect([await menuState(page, "copy"), await menuState(page, "export")]).toEqual(["closed", "closed"]);
     }));
+
+  it("frame-menus-fit-narrow-page", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // 携帯の幅では帯のボタンが 2 段に折り返し、エクスポートのボタンは 2 段目の左に来る (#3786)
+      await placeOnPage(page, 360);
+      const narrow = { export: await openedMenu(page, "export"), copy: await openedMenu(page, "copy") };
+      for (const [name, box] of Object.entries(narrow)) {
+        expect(box.left, `頁の幅360pxで${name}の窓の左端が画面の外`).toBeGreaterThanOrEqual(0);
+        expect(box.right, `頁の幅360pxで${name}の窓の右端が画面の外`).toBeLessThanOrEqual(360);
+      }
+      // 帯の枠が 280px の時、窓の幅は枠の幅から 20px を引いた幅に縮み、枠の左右の縁を越えない
+      await page.setViewportSize({ width: 312, height: 900 });
+      const thin = await openedMenu(page, "export");
+      expect(thin.frameRight - thin.frameLeft, "帯の枠の幅").toBeCloseTo(280, 0);
+      expect(thin.right - thin.left, "帯の枠が280pxの時のエクスポートの窓の幅").toBeCloseTo(260, 0);
+      expect(thin.left, "エクスポートの窓が帯の枠の左の縁を越えた").toBeGreaterThanOrEqual(thin.frameLeft);
+      expect(thin.right, "エクスポートの窓が帯の枠の右の縁を越えた").toBeLessThanOrEqual(thin.frameRight);
+    }));
+
+  it("frame-menu-aligns-right-on-wide-page", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      await placeOnPage(page, 1000);
+      const wide = await openedMenu(page, "export");
+      expect(Math.abs(wide.right - wide.buttonRight), `頁の幅1000pxでエクスポートの窓の右端 (${wide.right}) がボタンの右端 (${wide.buttonRight}) と揃わない`).toBeLessThan(0.5);
+      expect(wide.right - wide.left, "頁の幅1000pxのエクスポートの窓の幅").toBeCloseTo(300, 0);
+    }));
 });
+
+/** 頁の幅を`width`にし、左右に 16px の余白を置いて、帯つきの図を頁の幅いっぱいに置く */
+async function placeOnPage(page: Page, width: number): Promise<void> {
+  await page.setViewportSize({ width, height: 900 });
+  await page.evaluate(() => {
+    document.body.style.padding = "0 16px";
+    document.getElementById("host")!.style.width = "auto";
+  });
+  await mount(page);
+}
+
+/** 窓`name`を開き直し、窓と、窓を開いたボタンと、帯の枠の左右の端を返す */
+async function openedMenu(page: Page, name: string): Promise<{ left: number; right: number; buttonRight: number; frameLeft: number; frameRight: number }> {
+  await expectToggle(page, name);
+  // 開いた窓は下の段のボタンに重なるので、Escape で閉じてから押す
+  if ((await menuState(page, "copy")) === "open" || (await menuState(page, "export")) === "open") await page.keyboard.press("Escape");
+  await page.locator(`.dg-header-actions > [data-action="${name}"] > button`).click();
+  expect(await menuState(page, name), `${name}の窓が開かない`).toBe("open");
+  return page.evaluate((menu) => {
+    const frame = document.querySelector<HTMLElement>(".dragon-frame")!;
+    const root = frame.shadowRoot!;
+    const box = root.querySelector(`[data-menu="${menu}"]`)!.getBoundingClientRect();
+    const button = root.querySelector(`[data-action="${menu}"] > button`)!.getBoundingClientRect();
+    const edge = frame.getBoundingClientRect();
+    return { left: box.left, right: box.right, buttonRight: button.right, frameLeft: edge.left, frameRight: edge.right };
+  }, name);
+}
 
 describe("帯の言葉", () => {
   it("bar-text-follows-lang-setting-then-page", () =>

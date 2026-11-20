@@ -6,6 +6,7 @@
  * ここで描く図は小さな見本 (畳んだ箱を 1 つか 2 つ持つ) だけにする。
  *
  * 収めた並べ方を使ったかは、並べ方に付けた印の欄 (`__probe`) が描いた並べ方に残るかで見る。
+ * jsDelivr の入口が先に組んだ並べ方で描いた形も、書いたままの原本の全てで組まずに描いた形と比べる (#3753)。
  */
 import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,7 +20,7 @@ import * as pipeLayout from "../src/kinds/pipe/layout";
 import { parseNotation } from "../src/parser";
 import type prepare from "./pipe-stored-layout.prepare";
 import { prepared } from "./prepared";
-import { CASES, ONE_FOLD, REPO, TWO_FOLDS } from "./pipe-stored-layout-support";
+import { CASES, caseId, ONE_FOLD, PIPE_SOURCES, REPO, TWO_FOLDS } from "./pipe-stored-layout-support";
 import "../src/kind-use/pipe";
 
 const PROBE = "stored-layout-probe";
@@ -72,6 +73,24 @@ describe("収めた並べ方で描く (#3748)", () => {
       expect(form.sameSvg, `${name} の SVG が、収めずに描いた時と違う`).toBe(true);
     }
     expect(result?.routeCalls, `${id} を収めた並べ方で描き直した時に道を探した回数`).toBe(0);
+  });
+
+  // jsDelivr の入口が先に組んだ並べ方で描いた形を、書いたままの原本の全てで組まずに描いた形と比べる (#3753)
+  it.each(PIPE_SOURCES)("ahead-layout-matches-composed", (file) => {
+    const { ahead, cases } = built();
+    expect(ahead.error, "先に組んでから描き直す子の process が描けない").toBeUndefined();
+    const got = ahead.files?.[file];
+    expect(got?.error, `${file} を先に組んでから描き直せない`).toBeUndefined();
+    const base = cases[caseId(file, "as-written")]?.base ?? [];
+    expect(base.length, `${file} を組まずに描いた形が無い`).toBeGreaterThan(0);
+    const forms = got?.forms ?? [];
+    expect(forms.map((form) => form.open), `${file} の描き直した形`).toEqual(base.map((form) => form.open));
+    for (const [index, form] of forms.entries()) {
+      const name = `${file} 開いた箱 [${form.open.join(",")}]`;
+      expect(form.layout, `${name} を先に組んだ後に描いた並べ方 (管の道と札の場所) が、組まずに描いた時と違う`).toBe(base[index]?.layout);
+      expect(form.svg, `${name} を先に組んだ後に描いた SVG が、組まずに描いた時と違う`).toBe(base[index]?.svg);
+      if (form.open.length > 0) expect(form.routeCalls, `${name} を先に組んだ後に、箱を押して描いた時に道を探した回数`).toBe(0);
+    }
   });
 
   it("stored-layout-ignored-after-source-change", () => {

@@ -290,6 +290,17 @@ describe("帯を出さない置き方", () => {
       await page.evaluate(() => (window as unknown as EmbedWindow).embed.copy("url"));
       await expect.poll(() => clipboardText(page), { timeout: 3000 }).toBe(editor.url);
     }));
+
+  it("sdk-headless-exports-html", () =>
+    withEmbed(async (page) => {
+      // 帯を出さない図の HTML も、呼んだ時に隣の書き出す部品 (`capture.js`) を読み、再生の script を埋めた頁を返す (#3786)
+      await mount(page, { header: false, pausedAt: 0 });
+      const html = await page.evaluate(async () => {
+        const blob = await (window as unknown as EmbedWindow).embed.export("html");
+        return { type: blob.type, player: (await blob.text()).includes("DragonPlayer.mountDiagram") };
+      });
+      expect(html, "帯を出さない図の HTML のエクスポート").toEqual({ type: "text/html;charset=utf-8", player: true });
+    }));
 });
 
 describe("置いた頁への知らせ", () => {

@@ -18,7 +18,7 @@
 | 入口の script が最初に読む量 (圧縮後) が上限 90,000 byte に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3375 |
 | `dragon embed`で書いた1 file を外への通信を止めて開くと、塊が図に置き換わる | `pnpm exec vitest run`の検査`embed-writes-offline-file`が通る | #3375 |
 | README の1行は package の今の版の真ん中の数までを指す jsDelivr の URL のまま変わらない | `pnpm exec vitest run`の検査`readme-shows-script-entry`が通る | #3375 |
-| 時系列図だけを描く頁で、1行の入口から最初に読むscriptの合計がgzipで上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3657 |
+| 時系列図だけを描く頁で、1行の入口から最初に読むscriptの合計がgzipで上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3657 #3753 |
 | 回り続ける図、表どうしの関係の図、考えを広げる地図、集合の重なりの図、2つの軸で置く図だけが使うブロック (`ring`、`table`、`idea`、`circle`、`axis`、`matrix-item`) の定義は、build した1行の入口で`box`のブロックの定義と同じfileに入り、そのブロックだけの最初に読むfileを作らない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-kind-blocks-share-one-file`が通る | #3657 |
 | 中身の帯を描く処理 (`src/blocks/strip/draw.ts`) と色を読む処理 (`src/blocks/color/read.ts`) は、build した1行の入口で本体 (`dragon-main.js`) に入り、回り続ける図と考えを広げる地図の後から読む塊のためだけの最初に読むfileを作らない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-shared-parts-stay-in-main`が通る | #3657 |
 | 時系列図だけを描く頁は後から読む図の種類の塊を読まず、枝分かれの図を描く頁はその種類の塊を読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3657 #3706 |
@@ -44,3 +44,20 @@
 | 時系列図だけの頁で、1行の入口が最初に読むscriptのgzip後の合計は上限90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3706 |
 | 種類だけが使うブロックの定義は、buildした1行の入口で`box`のブロックの定義と同じfileに入る | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-kind-blocks-share-one-file`が通る | #3706 |
 | 後から読む個別ブロックの読み方で読んだ記法の見本は、既定の入口と同じSVGになり、ほかの種類の個別ブロックを読まない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`が通る | #3706 |
+| jsDelivrの入口 (`script.ts`) で`aggregator`の記法の塊を描いた頁で、最初の図を描いた後の空いた時間に箱2を開いた形を先に組み終えると、読み手が箱2を押して開いた時に`Router.route`を1回も呼ばずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`script-entry-box-click-draws-without-route`が通る | #3753 |
+| jsDelivrの入口は、最初の図を描くまでに箱を開いた形を組まない。最初の図を描いた時点で道を探した回数は、畳んだ形を組む分だけである | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`script-entry-draws-first-figure-before-ahead`が通る | #3753 |
+| 見本の配管の原本58個の書いたままの形と、箱を1つだけ開いた形を合わせた66形の全てで、先に組んだ後に描いた管の道と札の場所とSVGが、組まずに描いた物と同じで、違いが0件である。箱を1つだけ開いた8形は、箱を押して描いた時に道を探した回数が0回である | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`ahead-layout-matches-composed`が通る | #3753 |
+| 畳んだ箱を2つ以上持つ図では、2つ以上の箱を開いた組を先に組まない。1つ目の箱を押した後に2つ目の箱を押した時は、その場で組む | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`ahead-skips-multi-open-forms`が通る | #3753 |
+| 同じ頁に記法の違う配管の図を2つ置くと、それぞれの箱を押した時に、その図の記法から組んだ並べ方で描き、もう片方の図の並べ方では描かない | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`ahead-keeps-each-notation-layout`が通る | #3753 |
+| `dragon embed`が埋めた頁の入口 (`script-offline.ts`) は、塊を描いた後の空いた時間に箱を開いた形を組まない | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`embed-page-does-not-compose-ahead`が通る | #3753 |
+| 収めた並べ方で描いた管の道と札の場所が、`layout`の行を替えた528形の全てで、組んで描いた物と同じである | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-matches-composed`が通る | #3753 |
+| `dragon embed`が埋めた頁で、配管の図の塊を道を探さずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`embedded-page-draws-pipe-without-route`が通る | #3753 |
+| 時系列図だけの頁で、1行の入口が最初に読むfileは構成図の並べ方 (`src/kinds/architecture/layout.ts`) を持たない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-leaves-architecture-layout-out`が通る | #3782 |
+| 構成図の塊を置いた頁では、1行の入口が構成図の並べ方を持つ塊を後から読み、構成図を描ける | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-architecture-after-loading-layout`が通る | #3782 |
+| 1行の入口が最初に読むfileは、`api.ts`だけが読むエディタのURLの部品 (`src/editor-url.ts`) を持たない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-leaves-api-only-parts-out`が通る | #3782 |
+| 時系列図だけの頁で、1行の入口が最初に読むscriptのgzip後の合計は上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3782 |
+| 時系列図と構成図の塊を置いた頁で、2つの塊が両方とも図に置き換わる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-replaces-every-block`が通る | #3782 |
+| 時系列図だけの頁は後から読む種類の塊を読まず、枝分かれの図の頁はその種類の塊を読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3782 |
+| 属性`data-header`を持つ時系列図の塊は帯つきの図で、持たない構成図の塊は帯の無い図で描く | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-adds-bar-with-data-header`が通る | #3782 |
+| buildした1行の入口で、ブロックの定義を持つ最初に読むfileは1つだけで、中身の帯を描く処理と色を読む処理は本体に入る | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-block-definitions-share-one-file`と`script-entry-shared-parts-stay-in-main`が通る | #3782 |
+| npmの軽い入口は、時系列図と構成図を`loadFor`を待たずに描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-draws-sequence-and-architecture-without-load`が通る | #3782 |

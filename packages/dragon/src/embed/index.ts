@@ -13,6 +13,7 @@
  */
 import { parseNotation, mountDiagram, type Diagram, type Player, type PlayerOptions } from '@cardenelabs/dragon';
 import { stylesFor } from '../adopt-css';
+import { loadCapture } from '../frame/capture-load.mjs';
 import { createDiagramActions, type DiagramActions } from '../frame/diagram-actions.mjs';
 import { mountFramedDiagram } from '../frame/index';
 import type { HeaderColors } from '../frame/header';
@@ -165,7 +166,7 @@ export function mountDragon(host: HTMLElement, source: string, options: EmbedOpt
       stage.remove();
       throw error;
     }
-    const headlessActions = createDiagramActions(host.ownerDocument, stage, source, diagram, notify);
+    const headlessActions = createDiagramActions(host.ownerDocument, stage, source, diagram, notify, loadCapture);
     headlessActions.connect();
     let disposed = false;
     return {
