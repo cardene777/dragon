@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.1] - 2026-11-20
+
 ### Fixed
 
 - **In the mesh layout of a pipe diagram, a pipe between two tanks that are not next to each other leaves from the side of the tank** (#3775)
