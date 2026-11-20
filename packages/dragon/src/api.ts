@@ -173,7 +173,7 @@ export type {
   PipeWrite as PipeWritePlaced,
   StoredPipeLayout,
 } from "./kinds/pipe/layout";
-export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow, ChartSpot, FunnelGap, FunnelPlan, FunnelRow, FunnelTotal } from "./kinds/chart/layout";
+export type { ChartArc, ChartBarRow, ChartLayout, ChartLayoutOptions, ChartLegendRow, ChartPlan, ChartRow, ChartSpot, FunnelGap, FunnelPlan, FunnelRow, FunnelTotal, LineKey, LinePlan, LineSeries, LineTick } from "./kinds/chart/layout";
 export type { LineupAhead, LineupAheadTag, LineupArrow, LineupAt, LineupBack, LineupBand, LineupBandNote, LineupCount, LineupGhost, LineupHeadline, LineupLane, LineupLayout, LineupLegendRow, LineupMark, LineupNeedle, LineupPick, LineupRemark, LineupRoleCard, LineupRun, LineupScale, LineupScaleTick, LineupSeal, LineupSeat, LineupStamp as LineupStampPlaced, LineupStations, LineupStationsLine, LineupStop, LineupText, LineupTick, LineupValue, TextLine } from "./kinds/lineup/layout";
 /** 階段の見た目の目盛りの単位 (#3640) */
 export type { TimeUnit } from "./blocks/ring/limits";

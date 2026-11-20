@@ -1,0 +1,41 @@
+// 小さなベーカリーの1週間の売り上げを、店頭と通販の2本の線で日ごとに比べる。
+// 値は形を見せるための見本の数で、実際の調べた数ではない。
+chart ベーカリーの1週間の売り上げ (円) [shape: line]
+
+item shop as 店頭 [color: amber]
+item online as 通販 [color: blue]
+
+step 月
+  say 週の初めは、店頭が42,000円、通販が12,000円だった。
+  set shop: 42000
+  set online: 12000
+
+step 火
+  say 雨の火曜は、店頭が38,000円に減り、通販が15,000円に増えた。
+  set shop: 38000
+  set online: 15000
+
+step 水
+  say 水曜は、店頭が45,000円に戻り、通販は14,000円だった。
+  set shop: 45000
+  set online: 14000
+
+step 木
+  say 木曜は、店頭が40,000円で、通販が18,000円に増えた。
+  set shop: 40000
+  set online: 18000
+
+step 金
+  say 金曜は、仕事帰りの客で店頭が56,000円に伸びた。
+  set shop: 56000
+  set online: 22000
+
+step 土
+  say 土曜は、店頭が週で一番多い78,000円になった。
+  set shop: 78000
+  set online: 20000
+
+step 日
+  say 日曜は、店頭が71,000円で、通販が週で一番多い26,000円になった。
+  set shop: 71000
+  set online: 26000
