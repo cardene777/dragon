@@ -182,3 +182,15 @@
 | 収めた並べ方を渡して描いた配管の図の並べ方とSVGが、渡さずに描いた時と同じままである | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-draws-without-route`が通る | #3751 |
 | 箱を開いた`aggregator`を携帯の幅に置いた時、字が読める大きさのままである | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-keeps-text-readable`が通る | #3751 |
 | 見本帳の頁が最初に読むscriptとCSSが、gzipで184KB以下のままである | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3751 |
+| `layout top`と`layout bottom`の図を描いた時、値の管は槽の左か右の縁の口から出入りし、口から横へ真っすぐ出る | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-pipes-leave-tanks-from-side`が通る | #3761 |
+| `route`の行を書いた図を描いた時、人と箱と槽を行を書かない図と同じ所に置く | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-route-lines-keep-places`が通る | #3761 |
+| ログの札を発した箱の札入れに積み、札から箱へ点線を引かない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-logs-stack-by-emitter`が通る | #3761 |
+| 入力と出力の札を、始めた人の槽の持ち主の点線の枠の中の、槽より上の余白に置く | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-io-tags-in-frame-margin`が通る | #3761 |
+| 書き込んだ値を、箱の行で前の値から次の値へ数えて見せる | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-diagram-r6.test.ts`の検査`pipe-r6-token-box-holds-values`が通る | #3761 |
+| 移した額を、払った人と受け取った人の両方の槽で前の量から次の量へ数えて見せる | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-move-shifts-tank-levels`が通る | #3761 |
+| 書き込みの線を札で描き、`dragon.checkLayoutText`が崩れを返さない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-port.test.ts`の検査`port-write-links-clear-of-chips`が通る | #3761 |
+| 全ての見本で、呼び出しの管が1本の値の管を2回以上越える道を採らない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-pipes-join-side-ports-and-cross-under`が通る | #3761 |
+| 全ての見本と言葉と枠の幅で、決まりの表への違反を出さない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3761 |
+| 見本に、崩れの一覧に無い崩れを出さない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3761 |
+| 戻り値の札が管に収まらない時は、2人の間を広げて札を収める | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-chip-room.test.ts`の検査`pipe-widens-for-long-return-chip`が通る | #3761 |
+| scriptの1行の入口が最初に読む量が上限を超えない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3761 |
