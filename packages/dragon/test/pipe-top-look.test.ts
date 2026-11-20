@@ -127,6 +127,40 @@ describe("トップページの図の良い所を取り込んだパイプ図", (
     expect(bad, "丸くない値の管の角").toEqual([]);
   });
 
+  it("pipe-call-corners-round", () => {
+    const bad: string[] = [];
+    let corners = 0;
+    for (const name of NAMES) {
+      const { svg } = drawn(name);
+      const lines = [...svg.matchAll(/<path class="dg-pp-(ccase|ctrack|cdone)"[^>]* d="([^"]+)"/g)].map((m) => ({ cls: m[1] as string, d: m[2] as string }));
+      for (const { cls, d } of lines) {
+        // 本管と枝は 1 つの d に M で区切って並ぶ。区切りごとに角を見る
+        for (const part of d.split(/(?=M )/)) {
+          const cmds = commands(part);
+          for (let i = 1; i < cmds.length; i++) {
+            const [p, q] = [cmds[i - 1], cmds[i]] as [{ c: string; n: number[] }, { c: string; n: number[] }];
+            const end = (x: { c: string; n: number[] }): Point => (x.c === "Q" ? [x.n[2] as number, x.n[3] as number] : [x.n[0] as number, x.n[1] as number]);
+            if (q.c === "Q") {
+              corners++;
+              const [cx, cy] = [q.n[0] as number, q.n[1] as number];
+              const before = Math.hypot(end(p)[0] - cx, end(p)[1] - cy);
+              const after = Math.hypot((q.n[2] as number) - cx, (q.n[3] as number) - cy);
+              if (before > RADIUS + 0.05 || !near(before, after)) bad.push(`${name} ${cls}: 角 (${cx},${cy}) の弧の半径が ${before} と ${after}`);
+              continue;
+            }
+            const next = cmds[i + 1];
+            if (q.c !== "L" || next?.c !== "L") continue;
+            const [a, b, c] = [end(p), end(q), end(next)];
+            const turn = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]));
+            if (turn > 1e-3) bad.push(`${name} ${cls}: 角 (${b.join(",")}) が直角のまま (${part.trim()})`);
+          }
+        }
+      }
+    }
+    expect(corners, "数えた呼び出しの管の角の数").toBeGreaterThan(NAMES.length);
+    expect(bad, "丸くない呼び出しの管の角").toEqual([]);
+  });
+
   it("pipe-value-tube-ink-edge", () => {
     const { svg } = drawn("erc20-transferfrom-0");
     const cases = cssRules(svg, "dg-pp-pcase");
