@@ -23,6 +23,7 @@ import { textWidth } from "../src/layout/measure";
 import { CHART_LOOK, CHART_TYPE } from "../src/look/chart";
 import { BAND_LOOK, BAND_TYPE } from "../src/look/cycle";
 import { LOOK } from "../src/look/values";
+import { Motion } from "../src/render/motion";
 
 const ROOT = process.cwd();
 
@@ -256,6 +257,74 @@ describe("止めて置く手順の帯 (#3809)", () => {
       expect(name.y + size * 0.2, `${name.text} の字の下の端`).toBeLessThanOrEqual(seg.bottom);
       expect(name.x - w / 2, `${name.text} の字の左の端`).toBeGreaterThanOrEqual(seg.left + BAND_LOOK.point);
       expect(name.x + w / 2, `${name.text} の字の右の端`).toBeLessThanOrEqual(seg.right - BAND_LOOK.point);
+    }
+  });
+});
+
+/** 急に上り下りする折れ線 */
+const STEEP_LINE = "chart 日ごとの売り上げ [shape: line]\n\nitem sales as 売り上げ\n\nstep 火\n  say 10。\n  set sales: 10\nstep 水\n  say 95。\n  set sales: 95\nstep 木\n  say 5。\n  set sales: 5\n";
+/** 部品の style の性質 `prop` の字 */
+const styleProp = (style: string, prop: string): string | undefined => new RegExp(`(?:^|;)${prop}:([^;]+)`, "u").exec(style)?.[1];
+
+describe("止めて置く図は動きに頼らない (#3812)", () => {
+  it("still-figure-has-no-keyframes", () => {
+    for (const source of [FLOW, BAR, LONG_DONUT, STEEP_LINE, BAND]) {
+      const { svg } = figure(source);
+      expect(svg, `${source.split("\n")[0]} の keyframes`).not.toContain("@keyframes");
+      expect(svg, `${source.split("\n")[0]} の animation-name`).not.toMatch(/animation-name:/u);
+    }
+  });
+
+  it("still-figure-donut-arcs-keep-shares", () => {
+    const { svg } = figure(LONG_DONUT);
+    const arcs = [...svg.matchAll(/<circle class="dg-ch-arc[^"]*" cx="[-\d.]+" cy="[-\d.]+" r="([-\d.]+)"[^>]*data-chart-arc="(\w+)" style="([^"]*)"/gu)];
+    expect(arcs.map((a) => a[2]), "弧の項目").toEqual(["bread", "sweets", "drinks"]);
+    const c = 2 * Math.PI * Number(arcs[0]?.[1]);
+    const gap = CHART_LOOK.donut.gap;
+    let start = 0;
+    [0.6, 0.27, 0.13].forEach((share, k) => {
+      const style = arcs[k]?.[3] ?? "";
+      const dash = (styleProp(style, "stroke-dasharray") ?? "").trim().split(/\s+/u).map(Number);
+      const offset = Number(styleProp(style, "stroke-dashoffset"));
+      expect(((dash[0] ?? 0) + gap) / c, `${arcs[k]?.[2]} の弧の長さの割合`).toBeCloseTo(share, 2);
+      expect((-offset - gap / 2) / c, `${arcs[k]?.[2]} の弧の始まり`).toBeCloseTo(start, 2);
+      expect(Number(styleProp(style, "opacity")), `${arcs[k]?.[2]} の弧の濃さ`).toBe(1);
+      start += share;
+    });
+  });
+
+  it("still-figure-bars-keep-lengths", () => {
+    const { svg } = figure(BAR);
+    const bars = new Map([...svg.matchAll(/<rect class="dg-ch-bar[^"]*"[^>]*data-chart-bar="(\w+)" style="([^"]*)"/gu)].map((b) => [b[1], b[2] ?? ""]));
+    expect([...bars.keys()], "棒の項目").toEqual(["bloom", "first"]);
+    expect(styleProp(bars.get("bloom") ?? "", "transform"), "30 の棒の長さ").toBe("scaleX(0.25)");
+    expect(styleProp(bars.get("first") ?? "", "transform"), "120 の棒の長さ").toBe("scaleX(1)");
+  });
+
+  it("motion-freeze-writes-values-at-time", () => {
+    const points: [number, Record<string, string | number>][] = [
+      [0, { opacity: 0, transform: "scaleX(0)" }],
+      [4, { opacity: 0, transform: "scaleX(0)" }],
+      [6, { opacity: 1, transform: "scaleX(1)" }],
+      [9, { opacity: 1, transform: "scaleX(1)" }],
+    ];
+    const settled = new Motion("t", 10, 9, 8);
+    expect(settled.kf(points), "動き終えた時刻の値").toBe("opacity:1;transform:scaleX(1)");
+    const moving = new Motion("t", 10, 9, 5);
+    expect(moving.kf(points), "動いている途中の時刻の値").toBe("opacity:0.5;transform:scaleX(0.5)");
+    expect([...settled.frames, ...moving.frames], "止める時刻を渡した時の keyframes").toEqual([]);
+    const free = new Motion("t", 10, 9);
+    expect(free.kf(points), "止める時刻を渡さない時").toBe("animation-name:t-0");
+    expect(free.frames.length, "止める時刻を渡さない時の keyframes").toBe(1);
+  });
+
+  it("moving-figure-keeps-keyframes", () => {
+    for (const source of [BAR, LONG_DONUT, STEEP_LINE]) {
+      for (const options of [{ lang: "ja" as const }, { lang: "ja" as const, still: true }]) {
+        const { svg } = renderDiagram(read(source), options);
+        expect(svg, `${source.split("\n")[0]} の keyframes (${JSON.stringify(options)})`).toContain("@keyframes");
+        expect(svg, `${source.split("\n")[0]} の animation-name (${JSON.stringify(options)})`).toMatch(/animation-name:/u);
+      }
     }
   });
 });
