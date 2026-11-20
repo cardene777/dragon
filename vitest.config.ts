@@ -10,23 +10,6 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./apps/playground-spa/src", import.meta.url)),
     },
   },
-  plugins: [
-    {
-      // 書き出す部品を読む処理 (`src/frame/capture-load.mjs`、#3786) は、束ねた入口の隣に在る `capture.js` を読む。
-      // src の隣には無いので、src を読む検査では src の書き出す部品 (`src/capture/index.ts`) に向ける。
-      // 向けないと、jsdom の検査は読めない import で file ごと落ちる (`pipe-ahead.test.ts`、#3801)。dist を読む検査はこの規則に当たらない
-      name: "dragon-capture-in-src",
-      enforce: "pre",
-      resolveId(source: string, importer: string | undefined) {
-        if (
-          source !== "./capture.js" ||
-          !importer?.replaceAll("\\", "/").endsWith("/packages/dragon/src/frame/capture-load.mjs")
-        )
-          return null;
-        return fileURLToPath(new URL("./packages/dragon/src/capture/index.ts", import.meta.url));
-      },
-    },
-  ],
   test: {
     // 検査が作る一時フォルダは実行ごとの 1 つへまとめ、終わりに丸ごと消す (`run-tmp.ts`、#3587)。後の準備の段の一時フォルダも入るので最初に置く
     // test は `@cardenelabs/dragon` を package として import する = `dist` を読む。
