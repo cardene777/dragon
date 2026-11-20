@@ -57,6 +57,8 @@ interface Party extends Rect {
 interface Tank extends Rect {
   party: string;
   token: string;
+  /** 槽の名前の字の箱 */
+  title?: Rect;
 }
 interface Level {
   party: string;
@@ -791,7 +793,11 @@ describe("札と印", () => {
           // 枠の上の縁と槽の上の縁の間の余白に置き、枠の線にも槽にも重ねない
           expect(c.y, `${where}が枠の上の縁に重なる`).toBeGreaterThanOrEqual(frame.y + 1);
           expect(c.y + c.h, `${where}が槽に重なる`).toBeLessThanOrEqual(tank.y - 1);
-          expect(Math.abs(c.x + c.w / 2 - (tank.x + tank.w / 2)), `${where}が槽の真上に無い`).toBeLessThan(1);
+          // 槽の名前を外の上に置いた槽 (#3783) では、名前を左の端へ、札を右の端へ寄せて同じ行に並べる
+          const title = tank.title;
+          const beside = title !== undefined && title.y < c.y + c.h && c.y < title.y + title.h;
+          const off = beside ? Math.abs(c.x + c.w - (tank.x + tank.w)) : Math.abs(c.x + c.w / 2 - (tank.x + tank.w / 2));
+          expect(off, beside ? `${where}が槽の右の端に揃わない` : `${where}が槽の真上に無い`).toBeLessThan(1);
         }
       }
     }
@@ -1056,9 +1062,10 @@ describe("今を守る", () => {
       "dg-pp-ccase": "fill:none;stroke:var(--line);stroke-width:16;stroke-linejoin:round",
       "dg-pp-ctrack": "fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round",
       "dg-pp-cdone": "fill:none;stroke:var(--c);stroke-width:12;opacity:.3;stroke-linejoin:round",
-      "dg-pp-pcase": "fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round",
-      "dg-pp-pbore": "fill:none;stroke:color-mix(in srgb,var(--line) 22%,var(--surf));stroke-width:8;stroke-linejoin:round",
-      "dg-pp-mtrack": "fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round",
+      // 値の管の壁は墨の色で、空洞と流れる液を11にして両側に細い縁を残す (#3783)
+      "dg-pp-pcase": "fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round",
+      "dg-pp-pbore": "fill:none;stroke:color-mix(in srgb,var(--line) 22%,var(--surf));stroke-width:11;stroke-linejoin:round",
+      "dg-pp-mtrack": "fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round",
       "dg-pp-hl": "stroke:var(--pp-t);stroke-width:4",
       "dg-pp-wr": "fill:none;stroke:var(--c);stroke-width:1.75;stroke-dasharray:4 3",
     };
