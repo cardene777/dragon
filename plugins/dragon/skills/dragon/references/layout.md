@@ -62,7 +62,7 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 - `panel-edge` on a point label: A point near the right end writes its name and `note` text to the right of its flag. Shorten the text, or place the point at an earlier unit. A `panel-edge` on the needle, the ticks or a tick label comes from how dragon draws, so report it.
 - `badge-on-frame`: dragon moves a step number along its line off the borders, so this only shows when no spot on the line is clear. Keep it and report it.
 - `label-on-frame`: In an architecture diagram, dragon already puts the name of a line that leaves a group clear of the group's border, widens the gap between two groups when the name has no room there, and makes room above the top row for a name over a detour. If it still shows, shorten the name or reorder the boxes so the line does not leave the group next to another line. Otherwise keep it and report it.
-- `title-outside-ring`: dragon does not wrap a step title. Shorten it to about 7 Japanese characters or 14 Latin letters and move the rest to `say`, or draw the diagram with `[shape: bar]`, which writes the step title on its own line.
+- `title-outside-ring`: the step title does not fit inside the ring even on two smaller lines. Shorten it to about 12 Japanese characters or 22 Latin letters and move the rest to `say`, or draw the diagram with `[shape: bar]`, which writes the step title on its own line.
 
 Do not drop content the explanation needs just to clear a warning.
 

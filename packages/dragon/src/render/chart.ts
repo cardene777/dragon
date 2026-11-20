@@ -75,7 +75,7 @@ function stepTitles(plan: ChartPlan, diagram: DiagramModel, ctx: Ctx): string {
       const lead = size * CHART_LOOK.donut.titleLead;
       const first = cy - (lead * (lines.length - 1)) / 2 + size * CHART_LOOK.donut.titleDrop;
       const placed = lines.map((text, k) => ({ text, y: first + k * lead }));
-      return chartLines(ctx, "dg-ch-t", plan.title.x, placed, CHART_TYPE.title, attr, { ...options, ...(size === CHART_TYPE.title.size ? {} : { size }) });
+      return chartLines(ctx, "dg-ch-t", plan.title.x, run.text, placed, CHART_TYPE.title, attr, { ...options, ...(size === CHART_TYPE.title.size ? {} : { size }) });
     })
     .join("");
 }

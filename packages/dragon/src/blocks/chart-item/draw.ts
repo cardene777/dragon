@@ -39,13 +39,17 @@ export function chartText(ctx: Ctx, cls: string, x: number, y: number, text: str
 }
 
 /**
- * 折った行を 1 つの字に描き、行ごとの字の四角を字の記録に残す (#3809)。行は `<tspan>` で、`y` は行の基準線。
- * 名札の属性は字に 1 つだけ付けるので、検査と読み上げの道具は折る前の字で引ける
+ * 折った行を 1 つの字に描き、全ての行を囲む四角を折る前の字 `text` の記録として残す (#3809)。行は `<tspan>` で、`y` は行の基準線。
+ * 記録も名札の属性も折る前の字で 1 つだけ持つので、崩れの検査は名前を 1 度だけ名指し、検査と読み上げの道具は折る前の字で引ける
  */
-export function chartLines(ctx: Ctx, cls: string, x: number, lines: readonly { text: string; y: number }[], style: TextStyle, attrs: string, options: ChartTextOptions = {}): string {
+export function chartLines(ctx: Ctx, cls: string, x: number, text: string, lines: readonly { text: string; y: number }[], style: TextStyle, attrs: string, options: ChartTextOptions = {}): string {
   const { shown = ALWAYS, anchor, motion, ring, size } = options;
   const drawn = size === undefined ? style : { ...style, size };
-  for (const line of lines) ctx.ink.push({ text: line.text, rect: textBox(line.text, x, line.y, drawn, anchor), shown, ...(ring ? { ring } : {}) });
+  const rects = lines.map((line) => textBox(line.text, x, line.y, drawn, anchor));
+  const left = Math.min(...rects.map((r) => r.x));
+  const top = Math.min(...rects.map((r) => r.y));
+  const rect = { x: left, y: top, w: Math.max(...rects.map((r) => r.x + r.w)) - left, h: Math.max(...rects.map((r) => r.y + r.h)) - top };
+  ctx.ink.push({ text, rect, shown, ...(ring ? { ring } : {}) });
   const anchored = anchor ? ` text-anchor="${anchor}"` : "";
   const styles = [size === undefined ? "" : `font-size:${r1(size)}px`, motion ?? ""].filter((s) => s !== "");
   const styled = styles.length === 0 ? "" : ` style="${styles.join(";")}"`;

@@ -58,7 +58,7 @@ export const CHART_LOOK = {
     titleDrop: 0.35,
     titlePad: 8,
     titleLead: 1.2,
-    titleMin: 11,
+    titleMin: 12,
   },
   bar: {
     h: 22,
