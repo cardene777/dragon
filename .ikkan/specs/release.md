@@ -18,4 +18,4 @@
 | npmへ出す時の検査`prepublishOnly`は、検査の一式 (`pnpm run test`とvitest) を回さない | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`prepublish-skips-the-whole-suite`が通る | #3717 |
 | npmへ出す時の検査`prepublishOnly`は、型の検査とbuildを回し、buildの後に`check:pack`を回す | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`prepublish-builds-and-checks-pack`が通る | #3717 |
 | 管理者向けの決まり`docs/maintaining.md`の節`npmへ出す時の検査`が、npmへ出す時は型の検査とbuildと`check:pack`を回し、一式は配る前の関門が1回だけ回すと書く | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts --reporter=verbose`の検査`maintaining-says-suite-runs-once-before-release`が通る | #3717 |
-| READMEと使い方の頁とプラグインの文書と検査の頁が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts --reporter=verbose`の検査`pinned-script-lines-follow-package-version`が通る | #3760 #3771 #3776 |
+| READMEと使い方の頁とプラグインの文書と検査の頁が書くscriptの1行は、どれもpackageの今の版の真ん中の数までを指し、古い版を指す行を拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts --reporter=verbose`の検査`pinned-script-lines-follow-package-version`が通る | #3760 #3771 #3776 #3793 |
