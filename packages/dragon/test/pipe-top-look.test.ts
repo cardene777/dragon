@@ -1,12 +1,13 @@
 /**
  * Tracelythのトップページの図の良い所をパイプ図に取り込む (#3783)。
  *
- * 値の管の角を半径16pxで丸め、管の縁を細い墨の線にし、槽の名前を槽の外の上に置き、槽の液面を波打たせる。
+ * 値の管と呼び出しの管の角を図のほかの線と同じ共通の半径で丸め、管の縁を細い墨の線にし、槽の名前を槽の外の上に置き、槽の液面を波打たせる。
  * 記法はTracelythのカタログで槽どうしを繋ぐ管が出る14枚の図 (#3775で写した記法) を使う。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "../src/core";
+import { LOOK } from "../src/look/values";
 import { describe, expect, it } from "vitest";
 import "../src/kind-use/pipe";
 // 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
@@ -70,8 +71,8 @@ const NAMES = [
   "patterns-swap-slipped",
   "patterns-swap-swap",
 ];
-/** 管の角を丸める半径 */
-const RADIUS = 16;
+/** 管の角を丸める半径。図のほかの線と同じ共通の半径 */
+const RADIUS = LOOK.edge.bend;
 
 function drawn(name: string): { svg: string; layout: Layout } {
   const parsed = api.parseNotation(readFileSync(join(FIXTURES, `side-port-${name}.dragon`), "utf8"), { lang: "ja" });
