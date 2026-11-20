@@ -11,17 +11,13 @@
 import type { PipeMain } from "../../kinds/pipe/layout";
 import type { Point } from "../../layout/scene";
 import { PIPE_PAINT, PIPE_TYPE } from "../../look/pipe";
-import type { Corner } from "../../look/values";
 import type { Motion } from "../../render/motion";
-import { cssFont, pathOf, r1 } from "../../render/parts";
+import { cssFont, r1 } from "../../render/parts";
 import { kindCore } from "../call/draw";
 import { cs } from "../color/draw";
 
-/**
- * 管の線。値の管も呼び出しの管も、図のほかの線と同じ共通の線の道 (`pathOf`) で描く (#3783)。
- * 角は共通の半径 (`LOOK.edge.bend`) で丸め、角を落とす色味 (`corner` の `cut`) では直角のまま描く。並びの点は変えない
- */
-export const pipeLine = (points: readonly Point[], corner: Corner): string => (points.length < 2 ? "" : pathOf([...points], corner));
+/** 点の並びの道。角は丸めず、管の継ぎ目の形のまま描く */
+export const lineOf = (points: readonly Point[]): string => `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
 
 /** 流れを見せる切り抜きの番号と、番号を数えている図の名前 */
 export const STREAM = { n: 0, of: "" };
@@ -60,11 +56,11 @@ export function dashMovers(d: string, g: StreamRun): string {
  */
 export const FLOW_CSS = [
   ".dg-pp-ccase{fill:none;stroke:var(--line);stroke-width:8;stroke-linejoin:round;stroke-linecap:butt}",
-  ".dg-pp-pcase{fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
+  ".dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
   ".dg-pp-ctrack{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
+  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
   ".dg-pp-cdone{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
+  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
   ".mv-s1{fill:none;stroke:var(--k);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:34 96;stroke-linejoin:round}",
   ".mv-s2{fill:none;stroke:var(--k);stroke-width:3.5;stroke-linecap:round;stroke-dasharray:16 64;opacity:.6;stroke-linejoin:round}",
   ".dg-pp-lcard{fill:var(--surf);stroke:var(--hair);stroke-width:1.5}",
@@ -92,14 +88,14 @@ export const FLOW_CSS = [
   ".dg-pp-deep{display:none}",
   ".dg-pp-shine{fill:color-mix(in srgb,var(--ink) 4%,transparent)}",
   ".dg-pp-ctrack{stroke:color-mix(in srgb,var(--c) 22%,var(--surf));stroke-width:16}",
-  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:11}",
+  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:8}",
 ];
 
 /** 本管と枝の外の管 */
-export function callCase(main: PipeMain, corner: Corner): string {
+export function callCase(main: PipeMain): string {
   const d = [main.points, ...main.branches.map((b) => b.points)]
     .filter((p) => p.length > 1)
-    .map((p) => pipeLine(p, corner))
+    .map(lineOf)
     .join(" ");
   return `<path class="dg-pp-ccase" d="${d}"/>`;
 }
@@ -109,8 +105,8 @@ export function callCase(main: PipeMain, corner: Corner): string {
  * 確定した段の管 (`good`) と、流れの動き (`run`) を渡さない管は、流れ終えた跡 (`dg-pp-cdone`) で描く。
  * `run` を渡すと、帯の中を 2 本の筋が流れる (Tracelyth #168)。`draw` を渡すと、帯がその style の動きで呼んだ者の側から見えていく
  */
-export function litPipe(lane: { kind: string; width: number; points: Point[] }, corner: Corner, attrs: string, shown: string, good = false, draw = "", run?: Omit<StreamRun, "w">): string {
-  const d = pipeLine(lane.points, corner);
+export function litPipe(lane: { kind: string; width: number; points: Point[] }, attrs: string, shown: string, good = false, draw = "", run?: Omit<StreamRun, "w">): string {
+  const d = lineOf(lane.points);
   const tone = cs(good ? "green" : "blue");
   if (good || !run) return `<g class="dg-a" style="${shown}"><path${attrs} class="dg-pp-cdone" style="${tone}" d="${d}"/></g>`;
   const id = streamId();
