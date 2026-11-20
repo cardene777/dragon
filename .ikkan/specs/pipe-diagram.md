@@ -194,3 +194,7 @@
 | 見本に、崩れの一覧に無い崩れを出さない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3761 |
 | 戻り値の札が管に収まらない時は、2人の間を広げて札を収める | `pnpm exec vitest run --reporter=verbose packages/dragon/test/pipe-chip-room.test.ts`の検査`pipe-widens-for-long-return-chip`が通る | #3761 |
 | scriptの1行の入口が最初に読む量が上限を超えない | `pnpm exec vitest run --reporter=verbose packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3761 |
+| Tracelythのカタログの14枚の網型の図で、槽と槽を繋ぐ値の管の口は、どれも槽の左か右の側面に在り、管の縁が丸めた角に掛からない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-on-flat-side`が通る | #3775 |
+| 間の人が槽を持たない2つの槽 (発行の図のBobとゼロのアドレス) は、側面どうしを1本の真っすぐな管で繋ぐ | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-straight-over-empty-column`が通る | #3775 |
+| 槽の下を回る管は、どの槽にも槽の下の残高の文字にも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-under-clears-tanks-and-text`が通る | #3775 |
+| 隣り合う槽 (送金の図のAliceとBob) は、今どおり側面の真ん中の口どうしを真っすぐ繋ぐ | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-adjacent-unchanged`が通る | #3775 |
