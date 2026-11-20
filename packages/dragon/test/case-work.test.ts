@@ -124,6 +124,15 @@ const RULES: Rule[] = [
   { file: `${A}lib/line-style.test.tsx`, name: "stage-picks-pen-line", load: 1 },
   { file: `${A}lib/playground.test.ts`, name: "page-bundle-within-budget", load: 0 },
   { file: `${A}lib/split-bars.test.tsx`, name: "split-code-drag-widens-code", load: 1 },
+  // 子の Node で命令を起こす件と書き出しの入口を読む件、箱を開いた aggregator を jsdom に置く件は、仕事を読む段で済ませる (#3739)
+  { file: `${T}export-leftovers.test.ts`, name: "export-failure-leaves-no-out-dir", load: 0, child: true },
+  { file: `${T}export-leftovers.test.ts`, name: "export-failure-writes-no-html", load: 0, child: true },
+  { file: `${T}export-leftovers.test.ts`, name: "export-failure-keeps-existing-dir", load: 0, child: true },
+  { file: `${T}export-leftovers.test.ts`, name: "export-write-failure-removes-created-dir", load: 0, child: true },
+  { file: `${T}player.test.ts`, name: "player-pans-wide-figure", load: 0, child: true },
+  { file: `${T}player.test.ts`, name: "player-pipe-flows-show-moves", load: 0, child: true },
+  { file: `${T}player.test.ts`, name: "player-pipe-flows-show-calls-and-returns", load: 0, child: true },
+  { file: `${T}player.test.ts`, name: "player-pipe-narrow-keeps-text-readable", load: 0, child: true },
 ];
 
 /** 数える道具を読む。無い時は undefined */
