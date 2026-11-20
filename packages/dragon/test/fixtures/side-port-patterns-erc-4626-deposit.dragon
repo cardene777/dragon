@@ -1,0 +1,37 @@
+pipe vUSDC.depositを実行
+layout mesh
+
+box alice as Alice
+box vault as vUSDC
+box usdc as USDC
+box bob as Bob
+box carol as Carol
+box addr-00000000 as 0x0000…0000
+
+hold alice: 1000 USDC, 0 vUSDC
+hold bob: 0 USDC, 0 vUSDC
+hold carol: 0 USDC, 0 vUSDC
+hold addr-00000000: 100 vUSDC
+hold vault: 0 USDC
+hold vault: "_totalSupply" 0
+hold usdc: "_allowances[Alice][vUSDC]" 100 [from: alice, to: vault, unit: USDC]
+
+step 100 vUSDCが0x0000…0000からAliceへ移る
+  say AliceがvUSDC.depositを呼び出します。100 vUSDCが0x0000…0000からAliceへ移動します。vUSDCの_totalSupplyを0から100 vUSDCに書き換えます。途中でUSDC.balanceOfを読み取ります。ERC-4626は、資産を預けると持ち分のトークンを発行し、持ち分を戻すと資産を返す金庫の決まりです。受け取る持ち分と戻る資産は、金庫の資産と発行した持ち分の比で決まります。OpenZeppelinの金庫は仮想の持ち分と資産を1つずつ足して比を求めるので、最初の預け入れは1対1になります。
+  alice -> vault: deposit(assets: 100 USDC, receiver: alice)
+  write vault: "_totalSupply" 100
+  move vault: 100 addr-00000000 -> alice
+  emit vault: Transfer(from: addr-00000000, to: alice, value: 100 vUSDC)
+  emit vault: Deposit(sender: alice, owner: alice, assets: 100 USDC, shares: 100 vUSDC)
+
+step 100 USDCがAliceからvUSDCへ移る
+  say vUSDCがUSDC.transferFromを呼び出します。100 USDCがAliceからvUSDCへ移動します。USDCの_allowances[Alice][vUSDC]を100から0 USDCに書き換えます。
+  vault -> usdc: transferFrom(from: alice, to: vault, value: 100 USDC)
+  write usdc: "_allowances[Alice][vUSDC]" 0
+  move usdc: 100 alice -> vault
+  emit usdc: Transfer(from: alice, to: vault, value: 100 USDC)
+  return usdc
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。_totalSupplyは0から100 vUSDCになりました。_allowances[Alice][vUSDC]は100から0 USDCになりました。vUSDC.depositは100 vUSDCを返しました。
+  return vault: 100 vUSDC

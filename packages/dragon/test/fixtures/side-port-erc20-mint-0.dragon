@@ -1,0 +1,25 @@
+pipe USDC.mintを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+box carol as Carol
+box addr-00000000 as 0x0000…0000
+
+hold alice: 1000 USDC
+hold bob: 200 USDC
+hold carol: 0 USDC
+hold addr-00000000: 100 USDC
+hold usdc: "totalSupply" 1200
+
+step 100 USDCが0x0000…0000からBobへ移る
+  say AliceがUSDC.mintを呼び出します。100 USDCが0x0000…0000からBobへ移動します。USDCのtotalSupplyを1,200から1,300 USDCに書き換えます。
+  alice -> usdc: mint(to: bob, amount: 100 USDC)
+  write usdc: "totalSupply" 1300
+  move usdc: 100 addr-00000000 -> bob
+  emit usdc: Transfer(from: addr-00000000, to: bob, amount: 100 USDC)
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。totalSupplyは1,200から1,300 USDCになりました。
+  return usdc: ok

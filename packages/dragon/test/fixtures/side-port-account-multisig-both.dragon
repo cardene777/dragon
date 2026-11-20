@@ -1,0 +1,35 @@
+pipe Multisig.execTransactionを実行
+layout mesh
+
+box alice as Alice
+box multisig as Multisig
+box ecrecover as ecrecover
+box tusd as TUSD
+box bob as Bob
+box carol as Carol
+
+hold multisig: 1000 TUSD
+hold alice: 0 TUSD
+hold bob: 0 TUSD
+hold carol: 0 TUSD
+hold multisig: "nonce" 0 [tank]
+
+step Multisigのnonceが0から1になる
+  say AliceがMultisig.execTransactionを呼び出します。Multisigのnonceを0から1に書き換えます。途中でMultisigがecrecoverに署名と署名したハッシュを渡し、署名した人としてBobを受け取ります。途中でMultisigがecrecoverに署名と署名したハッシュを渡し、署名した人としてAliceを受け取ります。署名は、AliceとBobがトランザクションのハッシュに対して作った2つです。Multisigは、所有者の署名を決めた数(閾値)だけ集めた時だけ実行するアカウントです。所有者は実行する中身のハッシュにトランザクションの外で署名し、誰か1人が署名をまとめて渡します。Multisigは署名から署名した人を求め、所有者が閾値の数だけそろった時だけ呼びます。
+  alice -> multisig: execTransaction(to: tusd, value: 0, data: 0xa905…e100, signatures: 0x2b81…db1b)
+  multisig -> ecrecover: ecrecover(hash: 0xc1d0…927f, v: 28, r: 0x2b81…1dc4, s: 0x4f6e…c513)
+  return ecrecover: Bob
+  multisig -> ecrecover: ecrecover(hash: 0xc1d0…927f, v: 27, r: 0x0f50…f6b8, s: 0x74d0…c3db)
+  return ecrecover: Alice
+  write multisig: "nonce" 1
+
+step 100 TUSDがMultisigからBobへ移る
+  say MultisigがTUSD.transferを呼び出します。100 TUSDがMultisigからBobへ移動します。
+  multisig -> tusd: transfer(to: bob, value: 100 TUSD)
+  move tusd: 100 multisig -> bob
+  emit tusd: Transfer(from: multisig, to: bob, value: 100 TUSD)
+  return tusd
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。nonceは0から1になりました。Multisig.execTransactionはtrueを返しました。
+  return multisig

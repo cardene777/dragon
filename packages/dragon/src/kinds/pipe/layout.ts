@@ -2605,6 +2605,7 @@ function fadedPeople(diagram: DiagramModel, parties: { has(id: string): boolean 
 // `up` は同じ人から別の箱へ上げる呼び出しどうしの横の間、`linkOut` は丸の上から出す2人を結ぶ線の、丸の真ん中からの隔たり、`entry` は呼び出しの入口と縁の間。
 // `drop` は帳簿型で人の名前から張り出しまでの間、`tabPad` は張り出しの左の縁と箱の間、`encPad` は囲みと入れ物の間、`gauge` は囲みの下に吊るす計器の高さ。
 // `slotIn` と `slotOut` は槽の下から出るパイプの、槽の真ん中からの隔たりの幅 (槽の下の数字を避ける)。
+// `sideOut` は槽の側面から出て下りるパイプの、槽の縁からの隔たり。管の太さ (24) の半分と隙間の 12 (#3775)。
 // `busDrop` は母線型で入れ物の下の縁から母線までの間、`boxGap` は母線型の箱と最初の入れ物の間、`entryGap` は母線型の箱の横の縁に入る呼び出しどうしの縦の間
 const ROW_LOOK = {
   gap: 96,
@@ -2620,6 +2621,7 @@ const ROW_LOOK = {
   gauge: 80,
   slotIn: 40,
   slotOut: 54,
+  sideOut: 24,
   busDrop: 30,
   boxGap: 56,
   entryGap: 18,
@@ -2639,34 +2641,56 @@ function laneUp<Q extends { i: number; j: number }>(pairs: readonly Q[]): { sort
   }
   return { sorted, laneOf, count: lanes.length };
 }
-// 通り道に置いた組の道。左の槽 `a` の下の縁から下り、通り道を通って右の槽 `b` の下の縁へ上がる。`floor` は一番上の通り道の高さ。
-// 同じ槽の同じ側から出る線は、遠い相手へ向かう線ほど槽の真ん中の近くから出すので、同じ槽から出る線どうしは交わらない
-function underRoutes<Q extends { i: number; j: number; a: Rect; b: Rect }>(pairs: readonly Q[], floor: number): Map<Q, Point[]> {
+/** 槽の下を回る管が槽から出る所。左か右の側面か、底 */
+type UnderSide = "left" | "right" | "bottom";
+// 通り道に置いた組の道。左の槽 `a` から出て通り道を通り、右の槽 `b` へ入る。`floor` は一番上の通り道の高さ。
+// `open` が側面を空いていると答える槽は、側面の口 (`PIPE_LOOK.tank.ports[1]`) から横へ出て、槽の外を下りる (#3775)。
+// 底の口は残高の文字を避けて丸めた角の上に乗り、管が槽から浮いて見えたため。
+// 近い相手へ向かう組から相手を向く側面を取り、取られた側面や塞がった側面の組は反対の側面から出る。遠い相手ほど下の通り道を通るので、反対の側面から出て槽の下を回る管は、相手を向く側面から下りる管に交わらない。
+// どちらの側面も使えない槽は底から出し、同じ槽の底から出る線は、遠い相手へ向かう線ほど槽の真ん中の近くから出すので交わらない
+function underRoutes<Q extends { i: number; j: number; a: Rect; b: Rect }>(
+  pairs: readonly Q[],
+  floor: number,
+  open?: (t: Rect, side: "left" | "right") => boolean,
+): Map<Q, Point[]> {
   const R = ROW_LOOK;
   const { sorted, laneOf } = laneUp(pairs);
+  const used = new Map<Rect, Set<UnderSide>>();
+  const pick = (t: Rect, toward: "left" | "right"): UnderSide => {
+    const taken = used.get(t) ?? new Set<UnderSide>();
+    used.set(t, taken);
+    for (const side of [toward, toward === "left" ? "right" : "left"] as const)
+      if (open?.(t, side) && !taken.has(side)) {
+        taken.add(side);
+        return side;
+      }
+    return "bottom";
+  };
+  const sides = new Map(sorted.map((p) => [p, { a: pick(p.a, "right"), b: pick(p.b, "left") }]));
   const xs = new Map(sorted.map((p) => [p, {}]));
   const spread = (m: number, k: number): number => (m === 1 ? (R.slotIn + R.slotOut) / 2 : R.slotOut - (k * (R.slotOut - R.slotIn)) / (m - 1));
   for (const side of ["a", "b"] as const) {
     const byTank = new Map<Rect, Q[]>();
-    for (const p of sorted) byTank.set(p[side], [...(byTank.get(p[side]) ?? []), p]);
+    for (const p of sorted) if ((sides.get(p) as { a: UnderSide; b: UnderSide })[side] === "bottom") byTank.set(p[side], [...(byTank.get(p[side]) ?? []), p]);
     for (const [t, list] of byTank)
       list.forEach((p, k) => {
         (xs.get(p) as { a?: number; b?: number })[side] = round3(t.x + t.w / 2 + (side === "a" ? 1 : -1) * spread(list.length, k));
       });
   }
+  // 側面の口から出た管は、槽の縁から管の太さの半分と隙間の分だけ外を下りる
+  const portY = P.tank.ports[1] as number;
+  const leg = (t: Rect, side: UnderSide, x: number | undefined, y: number): Point[] => {
+    if (side === "bottom") return [[x as number, round3(t.y + t.h)], [x as number, y]];
+    const edge = side === "left" ? t.x : t.x + t.w;
+    const out = round3(edge + (side === "left" ? -1 : 1) * R.sideOut);
+    return [[round3(edge), round3(t.y + portY)], [out, round3(t.y + portY)], [out, y]];
+  };
   return new Map(
     sorted.map((p): [Q, Point[]] => {
       const y = round3(floor + (laneOf.get(p) as number) * R.lane);
-      const { a: xa, b: xb } = xs.get(p) as { a: number; b: number };
-      return [
-        p,
-        [
-          [xa, round3(p.a.y + p.a.h)],
-          [xa, y],
-          [xb, y],
-          [xb, round3(p.b.y + p.b.h)],
-        ],
-      ];
+      const { a: xa, b: xb } = xs.get(p) as { a?: number; b?: number };
+      const { a: sa, b: sb } = sides.get(p) as { a: UnderSide; b: UnderSide };
+      return [p, [...leg(p.a, sa, xa, y), ...leg(p.b, sb, xb, y).reverse()]];
     }),
   );
 }
@@ -2922,7 +2946,16 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     // 左の人の槽の右に札が在る時は、横線が札を横切るので槽の下を通す
     return a[a.length - 1] === token && b[0] === token && besideW(people[q.i] as string) === 0;
   };
-  const below = (q: RowPair, token: string): boolean => !mesh || q.j - q.i > 1 || !faces(q, token);
+  // 隣り合わない2人も、間の人が槽も札も持たなければ、槽の側面どうしを真っすぐ結ぶ (#3775)。間には何も描かないので、横線が何も横切らない
+  const emptyBetween = (q: RowPair): boolean =>
+    people.slice(q.i + 1, q.j).every((id) => slotsOf(id).length === 0 && !(out.plates ?? []).some((pl) => pl.party === id));
+  const below = (q: RowPair, token: string): boolean => !mesh || !faces(q, token) || !emptyBetween(q);
+  // 槽の下を回る管が側面から出られるか (#3775)。右は人の槽の右端で札が並ばない時、左は人の槽の左端の時に空く
+  const sideOpen = (t: Rect, side: "left" | "right"): boolean => {
+    const { party, token } = t as PipeTank;
+    const slots = slotsOf(party);
+    return side === "right" ? slots[slots.length - 1] === token && besideW(party) === 0 : slots[0] === token;
+  };
   const lanesBelow = rowPairs.map((list, r) => laneUp(list.filter((q) => below(q, rows[r] as string))).count);
 
   // 箱の大きさ。網型は下から入る呼び出しの口が並ぶだけ広げ、母線型は左の縁から入る呼び出しが並ぶだけ高くする
@@ -3211,6 +3244,7 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
         .filter((q) => below(q, token))
         .map((q) => ({ ...q, a: tankOf(people[q.i] as string, token) as PipeTank, b: tankOf(people[q.j] as string, token) as PipeTank, q })),
       floorY[r] as number,
+      mesh ? sideOpen : undefined,
     );
     const routeOf = new Map<RowPair, Point[]>();
     for (const [p, pts] of unders) routeOf.set(p.q, pts);

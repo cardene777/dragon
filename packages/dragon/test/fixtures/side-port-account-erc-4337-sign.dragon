@@ -1,0 +1,58 @@
+pipe EntryPoint.handleOpsを実行
+layout mesh
+
+box bundler as Bundler
+box entryPoint as EntryPoint
+box smartAccount as SmartAccount
+box ecrecover as ecrecover
+box paymaster as Paymaster
+box tusd as TUSD
+box bob as Bob
+box alice as Alice
+box carol as Carol
+
+hold smartAccount: 1000 TUSD
+hold entryPoint: 1 ETH
+hold alice: 0 TUSD
+hold bob: 0 TUSD
+hold carol: 0 TUSD
+hold bundler: 0 TUSD, 0 ETH
+hold entryPoint: "nonces[SmartAccount]" 0 [on: smartAccount]
+
+step EntryPointのnonces[SmartAccount]が0から1になる
+  say BundlerがEntryPoint.handleOpsを呼び出します。EntryPointのnonces[SmartAccount]を0から1に書き換えます。EntryPointのdeposits[Paymaster]を1から0.999877285 ETHに書き換えます。UserOpの署名は、AliceがUserOpのハッシュに対して作った物です。ERC-4337では、アカウントの持ち主はトランザクションを送らず、UserOpという依頼に署名だけを作ります。BundlerがUserOpをEntryPointのhandleOpsへ渡し、EntryPointはアカウントのvalidateUserOpで署名を、PaymasterのvalidatePaymasterUserOpで手数料を払うかを確かめてから、UserOpのcallDataをアカウントに呼ばせます。手数料はPaymasterがEntryPointに預けたETHから引かれ、Bundlerが受け取ります。
+  bundler -> entryPoint: "handleOps(ops: [(smartAccount, 0, 0x, 0xb61d…0000, 0x0000…0d40, 50000, 0x0000…ca00, paymaster, 0x0908…9c1b)], beneficiary: bundler)"
+  write entryPoint: "nonces[SmartAccount]" 1
+
+step EntryPointがSmartAccountのvalidateUserOpを呼ぶ
+  say EntryPointがSmartAccount.validateUserOpを呼び出します。途中でSmartAccountがecrecoverに署名と署名したハッシュを渡し、署名した人としてAliceを受け取ります。
+  entryPoint -> smartAccount: validateUserOp(userOp: (smartAccount, 0, 0x, 0xb61d…0000, 0x0000…0d40, 50000, 0x0000…ca00, paymaster, 0x0908…9c1b), userOpHash: 0x7dd6…77df, 0)
+  smartAccount -> ecrecover: ecrecover(hash: 0x9ec8…84be, v: 27, r: 0x0908…8be9, s: 0x7d9f…819c)
+  return ecrecover: Alice
+  return smartAccount: 0
+
+step EntryPointがPaymasterのvalidatePaymasterUserOpを呼ぶ
+  say EntryPointがPaymaster.validatePaymasterUserOpを呼び出します。
+  entryPoint -> paymaster: validatePaymasterUserOp(userOp: (smartAccount, 0, 0x, 0xb61d…0000, 0x0000…0d40, 50000, 0x0000…ca00, paymaster, 0x0908…9c1b), 0x7dd6…77df, 450000000000000)
+  return paymaster: 0
+
+step EntryPointがSmartAccountのexecuteを呼ぶ
+  say EntryPointがSmartAccount.executeを呼び出します。
+  entryPoint -> smartAccount: execute(to: tusd, value: 0, data: 0xa905…e100)
+
+step 100 TUSDがSmartAccountからBobへ移る
+  say SmartAccountがTUSD.transferを呼び出します。100 TUSDがSmartAccountからBobへ移動します。
+  smartAccount -> tusd: transfer(to: bob, value: 100 TUSD)
+  move tusd: 100 smartAccount -> bob
+  emit tusd: Transfer(from: smartAccount, to: bob, value: 100 TUSD)
+  return tusd
+  return smartAccount: ok
+
+step 0.000122715 ETHがEntryPointからBundlerへ移る
+  say EntryPointがBundlerへ0.000122715 ETHを送ります。
+  entryPoint -> bundler: ETHを送る [value: 0.000122715 ETH]
+  return bundler: ok
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。nonces[SmartAccount]は0から1になりました。
+  return entryPoint: ok

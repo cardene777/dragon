@@ -1,0 +1,39 @@
+pipe BadgeAccount.executeを実行
+layout mesh
+
+box alice as Alice
+box registry as ERC6551Registry
+box badge as Badge
+box badgeAccount as BadgeAccount
+box implementation as ERC6551Account
+box tusd as TUSD
+box bob as Bob
+box carol as Carol
+
+hold badgeAccount: 1000 TUSD
+hold alice: 0 TUSD
+hold bob: 0 TUSD
+hold carol: 0 TUSD
+hold badge: "トークンID[Alice]" 1 [on: alice]
+hold badgeAccount: "state" 0 [tank]
+
+step AliceがBadgeAccountのexecuteを呼ぶ
+  say AliceがBadgeAccount.executeを呼び出します。ERC-6551では、NFTの1つ1つが自分のアカウントを持ちます。アカウントのアドレスはNFTのコントラクトとトークンIDから決まるので、作る前からトークンを受け取れます。アカウントを使えるのはNFTを持つ人だけで、NFTを渡すとアカウントの持ち主も替わります。
+  alice -> badgeAccount: execute(to: tusd, value: 0, data: 0xa905…e100, operation: 0)
+
+step BadgeAccountのstateが0から1になる
+  say BadgeAccountがERC6551Accountのexecuteの処理を借りて、自分のstateを0から1に書き換えます。途中でBadge.ownerOfを読み取ります。
+  badgeAccount -> implementation: execute(to: tusd, value: 0, data: 0xa905…e100, operation: 0) [call: delegate]
+  write implementation: "state" 1
+
+step 100 TUSDがBadgeAccountからBobへ移る
+  say BadgeAccountがTUSD.transferを呼び出します。100 TUSDがBadgeAccountからBobへ移動します。
+  badgeAccount -> tusd: transfer(to: bob, value: 100 TUSD)
+  move tusd: 100 badgeAccount -> bob
+  emit tusd: Transfer(from: badgeAccount, to: bob, value: 100 TUSD)
+  return tusd
+  return implementation: ok
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。stateは0から1になりました。
+  return badgeAccount: ok

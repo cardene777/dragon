@@ -1,0 +1,34 @@
+pipe Permit2.permitTransferFromを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box permit2 as Permit2
+box ecrecover as ecrecover
+box bob as Bob
+box carol as Carol
+
+hold alice: 1000 USDC
+hold bob: 0 USDC
+hold carol: 0 USDC
+hold permit2: "nonceBitmap[Alice][0]" 0 [on: alice]
+hold usdc: "_allowances[Alice][Permit2]" 1000 [from: alice, to: permit2, unit: USDC]
+
+step Permit2のnonceBitmap[Alice][0]が0から1になる
+  say BobがPermit2.permitTransferFromを呼び出します。Permit2のnonceBitmap[Alice][0]を0から1に書き換えます。途中でPermit2がecrecoverに署名と署名したハッシュを渡し、署名した人としてAliceを受け取ります。Permit2は、ERC-2612のpermitと違ってトークンが署名の仕組みを持たなくても使える、全てのトークンの共通の窓口です。持ち主はトークンごとにPermit2へ1度だけ許可を出し、その後は送るたびに署名を作ります。Permit2は署名ごとの使い捨ての番号をnonceBitmapのbitに印として立て、同じ番号の署名を2度使わせません。
+  bob -> permit2: permitTransferFrom(permit: ((usdc, 100000000), 0, 1893456000), transferDetails: (bob, 100000000), owner: alice, signature: 0xf51f…321b)
+  write permit2: "nonceBitmap[Alice][0]" 1
+  permit2 -> ecrecover: ecrecover(hash: 0x8956…3609, v: 27, r: 0xf51f…aa1e, s: 0x47ed…fc32)
+  return ecrecover: Alice
+
+step 100 USDCがAliceからBobへ移る
+  say Permit2がUSDC.transferFromを呼び出します。100 USDCがAliceからBobへ移動します。USDCの_allowances[Alice][Permit2]を1,000から900 USDCに書き換えます。
+  permit2 -> usdc: transferFrom(from: alice, to: bob, value: 100 USDC)
+  write usdc: "_allowances[Alice][Permit2]" 900
+  move usdc: 100 alice -> bob
+  emit usdc: Transfer(from: alice, to: bob, value: 100 USDC)
+  return usdc
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。nonceBitmap[Alice][0]は0から1になりました。_allowances[Alice][Permit2]は1,000から900 USDCになりました。
+  return permit2: ok
