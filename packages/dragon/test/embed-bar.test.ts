@@ -603,6 +603,195 @@ async function barRooms(page: Page): Promise<{ framed: BarRoom; plain: BarRoom }
   });
 }
 
+/**
+ * 頁の字の間と大文字の指定 (#3787)。影の根の外から帯と図の字へ受け継がれ、エンジンが字の幅の表で測った札と箱から字がはみ出す。
+ * 同じ頁でCSSを足す前と後を測り、帯と図の字が頁のCSSの無い時と同じに描かれるかを見る
+ */
+const PAGE_SPACING = "body{letter-spacing:.12em;word-spacing:.3em;text-transform:uppercase}";
+/** 帯の頭のボタンと行の高さを変える頁のCSS (#3787)。軽い再生部品を持つサイトが置く形 */
+const PAGE_BUTTONS =
+  "button{background:#e11d48;color:#fff;border:0;border-radius:999px;padding:12px 24px;font-size:18px;font-weight:700;text-transform:uppercase;min-height:48px;min-width:96px;box-shadow:0 3px 0 #9f1239}div{line-height:2.4}";
+/** 字の間と大文字で崩れる図。札と段の説明に英字を持つ */
+const SPACING_SOURCE =
+  "sequence ブラウザからログインしてAPIを呼ぶ\nbox browser as 利用者のブラウザ\nbox app as アプリ\nstep ログインを押す\n  say 利用者がlogin buttonを押す。\n  browser -> app: GET /login";
+
+/** 頁の頭にCSSを置く。同じ頁で何度呼んでも1つのstyle要素を書き換える */
+async function setPageCss(page: Page, css: string): Promise<void> {
+  await page.evaluate((text) => {
+    let el = document.getElementById("page-css");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "page-css";
+      document.head.append(el);
+    }
+    el.textContent = text;
+  }, css);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+/** `#host`に帯つきの図を、頁の下の`#plain`に同じ記法の帯の無い図を、どちらも幅760pxで置く */
+async function mountBoth(page: Page, source: string): Promise<void> {
+  await page.evaluate((text) => {
+    const w = window as unknown as {
+      dragonFrame: { mountFramedDiagram(host: HTMLElement, source: string, options: object): unknown };
+      dragonCore: { parseNotation(text: string): { ok: boolean; diagram?: unknown }; mountDiagram(host: HTMLElement, diagram: unknown, options: object): unknown };
+    };
+    w.dragonFrame.mountFramedDiagram(document.getElementById("host")!, text, { pausedAt: 0 });
+    const plain = document.createElement("div");
+    plain.id = "plain";
+    plain.style.width = "760px";
+    document.body.append(plain);
+    const parsed = w.dragonCore.parseNotation(text);
+    if (!parsed.ok) throw new Error("帯の無い図の記法を読めない");
+    w.dragonCore.mountDiagram(plain, parsed.diagram, { pausedAt: 0 });
+  }, source);
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/** 字の間と大文字の計算値と、描いた幅 (px) */
+interface Spacing {
+  text: string;
+  letterSpacing: string;
+  wordSpacing: string;
+  textTransform: string;
+  width: number;
+}
+
+/** 帯つきの図と帯の無い図のSVGの全ての字、帯つきの図の帯の題と全てのボタンの計算値と寸法 */
+async function readFrameText(page: Page): Promise<{ framed: Spacing[]; plain: Spacing[]; header: { height: number; title: Spacing; buttons: Spacing[] } }> {
+  return page.evaluate(() => {
+    const read = (el: Element): Spacing => {
+      const style = getComputedStyle(el);
+      return {
+        text: el.textContent?.trim() ?? "",
+        letterSpacing: style.letterSpacing,
+        wordSpacing: style.wordSpacing,
+        textTransform: style.textTransform,
+        width: Math.round(el.getBoundingClientRect().width * 10) / 10,
+      };
+    };
+    const texts = (svg: SVGSVGElement | null): Spacing[] => (svg ? [...svg.querySelectorAll("text")].map(read) : []);
+    const root = document.querySelector(".dragon-frame")!.shadowRoot!;
+    const header = root.querySelector("[data-dragon-header]")!;
+    return {
+      framed: texts(root.querySelector<SVGSVGElement>("svg.dg")),
+      plain: texts(document.querySelector<SVGSVGElement>("#plain svg.dg")),
+      header: {
+        height: Math.round(header.getBoundingClientRect().height * 10) / 10,
+        title: read(header.querySelector(".dg-header-title")!),
+        buttons: [...header.querySelectorAll(".dg-header-actions > :is(button,a), .dg-header-actions > :not(button,a) > button")].map(read),
+      },
+    };
+  });
+}
+
+/** `#host`に置いた`createFigureHeader`の帯の高さと、題と全てのボタンの計算値と寸法 */
+async function readFigureHeader(
+  page: Page,
+): Promise<{ height: number; title: string; buttons: { text: string; height: number; boxShadow: string; minWidth: string; letterSpacing: string; textTransform: string }[] }> {
+  return page.evaluate(() => {
+    const bar = document.querySelector("#host [data-dragon-header]")!;
+    const round = (n: number) => Math.round(n * 10) / 10;
+    const title = getComputedStyle(bar.querySelector(".dg-header-title")!);
+    return {
+      height: round(bar.getBoundingClientRect().height),
+      title: `${title.letterSpacing} ${title.textTransform}`,
+      buttons: [...bar.querySelectorAll(".dg-header-actions > :is(button,a)")].map((el) => {
+        const style = getComputedStyle(el);
+        return {
+          text: el.textContent ?? "",
+          height: round(el.getBoundingClientRect().height),
+          boxShadow: style.boxShadow,
+          minWidth: style.minWidth,
+          letterSpacing: style.letterSpacing,
+          textTransform: style.textTransform,
+        };
+      }),
+    };
+  });
+}
+
+describe("頁のCSSが帯と図の字に入らない (#3787)", () => {
+  it("frame-text-ignores-page-spacing", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      await mountBoth(page, SPACING_SOURCE);
+      const bare = await readFrameText(page);
+      expect(bare.framed.length, "帯つきの図のSVGに字が無い").toBeGreaterThan(0);
+      expect(bare.plain.length, "帯の無い図のSVGに字が無い").toBeGreaterThan(0);
+      await setPageCss(page, PAGE_SPACING);
+      const styled = await readFrameText(page);
+      // 字の間を自分で決めない字は normal と 0px と none のまま、頁のCSSの無い時と同じ幅で描く
+      expect(styled.framed, "帯つきの図の字が頁の字の間と大文字を受け継いだ").toEqual(bare.framed);
+      expect(styled.plain, "帯の無い図の字が頁の字の間と大文字を受け継いだ").toEqual(bare.plain);
+      expect(
+        styled.framed.some((text) => text.letterSpacing === "normal" && text.wordSpacing === "0px" && text.textTransform === "none"),
+        "字の間を自分で決めない字が無い",
+      ).toBe(true);
+      // 帯の題と全てのボタンは、<a>で作るエディタも<button>と同じく頁の字の間と大文字を受けない
+      expect([styled.header.title, ...styled.header.buttons].map((el) => `${el.letterSpacing} ${el.textTransform}`), "帯の題かボタンが頁の字の間と大文字を受け継いだ").toEqual(
+        [styled.header.title, ...styled.header.buttons].map(() => "normal none"),
+      );
+      expect(styled.header, "帯の高さかボタンの幅が頁のCSSで変わった").toEqual(bare.header);
+    }));
+
+  it("player-text-ignores-page-spacing", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      await mountBoth(page, SPACING_SOURCE);
+      await setPageCss(page, PAGE_SPACING);
+      const parts = await page.evaluate(() =>
+        ["step-title", "step-body"].map((part) => {
+          const el = document.querySelector(`#plain [data-dragon="${part}"]`);
+          if (!el) return `${part} 無い`;
+          const style = getComputedStyle(el);
+          return `${part} ${style.letterSpacing} ${style.textTransform}`;
+        }),
+      );
+      expect(parts, "帯の無い図の再生の帯の段の題か本文が頁の字の間と大文字を受け継いだ").toEqual(["step-title normal none", "step-body normal none"]);
+    }));
+
+  it("figure-header-ignores-page-css", () =>
+    withFrame({ lang: "ja" }, async (page) => {
+      // 軽い再生部品を持つサイトと同じく、帯の頭を頁の中に置き、題と4つのボタンを並べる
+      await page.addScriptTag({ type: "module", content: 'import("/header.js").then((m) => { window.dragonHeader = m; }, (e) => { window.headerError = String(e); });' });
+      await page.waitForFunction(() => "dragonHeader" in window || "headerError" in window);
+      expect(await page.evaluate(() => (window as unknown as { headerError?: string }).headerError), "頁が帯の頭の入口を読めない").toBeUndefined();
+      await page.evaluate(() => {
+        const { createFigureHeader } = (
+          window as unknown as { dragonHeader: { createFigureHeader: (doc: Document, options: object) => { element: HTMLElement; actions: HTMLElement } } }
+        ).dragonHeader;
+        const header = createFigureHeader(document, { title: "注文の流れ", mark: { href: "#", label: "dragon" } });
+        const make = (tag: string, text: string): HTMLElement => {
+          const el = document.createElement(tag);
+          el.textContent = text;
+          el.setAttribute(tag === "a" ? "href" : "type", tag === "a" ? "#" : "button");
+          return el;
+        };
+        header.actions.append(make("button", "コード"), make("a", "エディタ"), make("button", "コピー"), make("button", "拡大"));
+        document.getElementById("host")!.append(header.element);
+      });
+      await setPageCss(page, PAGE_BUTTONS);
+      const pressed = await readFigureHeader(page);
+      expect(pressed.buttons.map((button) => button.text), "帯の頭のボタンが4つ並んでいない").toEqual(["コード", "エディタ", "コピー", "拡大"]);
+      for (const button of pressed.buttons) {
+        expect(
+          { boxShadow: button.boxShadow, minWidth: button.minWidth, textTransform: button.textTransform },
+          `頁のbuttonの指定が帯のボタン「${button.text}」に影か最小の幅か大文字を付けた`,
+        ).toEqual({ boxShadow: "none", minWidth: "0px", textTransform: "none" });
+      }
+      expect(pressed.buttons.map((button) => button.height), "帯のボタンの高さが頁の行の高さで変わった").toEqual([30, 30, 30, 30]);
+      expect(pressed.height, "帯の高さが頁のCSSで変わった").toBe(49);
+      await setPageCss(page, PAGE_SPACING);
+      const spaced = await readFigureHeader(page);
+      expect([spaced.title, ...spaced.buttons.map((button) => `${button.text} ${button.letterSpacing} ${button.textTransform}`)], "帯の題かボタンが頁の字の間と大文字を受け継いだ").toEqual([
+        "normal none",
+        "コード normal none",
+        "エディタ normal none",
+        "コピー normal none",
+        "拡大 normal none",
+      ]);
+    }));
+});
+
 describe("帯つきの図の線と再生の帯の余白 (#3744)", () => {
   it("frame-diagram-keeps-plain-strokes", () =>
     withFrame({ lang: "ja" }, async (page) => {
