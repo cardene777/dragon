@@ -29,8 +29,15 @@ interface Page {
   scheduled: () => number;
 }
 
+/**
+ * 件の外で jsDelivr の入口と描く部品を読んだ時の誤り。読めた時は空。
+ * 件の外で落とすと vitest は件を全て飛ばし、検査の file の失敗が件の名前で見えない (#3798)。誤りを控え、件の中で落とす
+ */
+let warmError = "";
+
 /** module を読み直し、記法の塊を `body` に置いた頁で入口 `entry` を読み、塊が図に置き換わるまで待つ */
 async function openPage(body: string, entry: "script" | "script-offline"): Promise<Page> {
+  expect(warmError, "件の外で jsDelivr の入口と描く部品を読めない").toBe("");
   vi.resetModules();
   const queued: (() => void)[] = [];
   let scheduled = 0;
@@ -76,7 +83,9 @@ const stepCount = (figure: Element): number => figure.querySelectorAll('[data-dr
 // 入口と描く部品の module を件の外で 1 度読み、件の中で読み直す時に変換を待たない。入口は空の頁を描くだけで終わる
 beforeAll(async () => {
   vi.stubGlobal("__DRAGON_FONT_VERSIONS__", {});
-  await Promise.all([import("../src/script"), import("../src/kinds/pipe"), import("../src/kind-use/pipe"), import("../src/core"), import("../src/parser")]);
+  await Promise.all([import("../src/script"), import("../src/kinds/pipe"), import("../src/kind-use/pipe"), import("../src/core"), import("../src/parser")]).catch((error: unknown) => {
+    warmError = String(error);
+  });
 });
 beforeAll(async () => {
   await import("../src/script-offline");
