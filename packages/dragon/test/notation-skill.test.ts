@@ -403,7 +403,8 @@ const referenceFiles = (): string[] => markdownUnder(REFERENCES).map((path) => r
 /** 参照の file の中身の名前。図の種類の file は種類の名前、ほかは file の名前 */
 const contentName = (file: string): string => file.replace(/^references\/(?:kinds\/)?/u, "").replace(/\.md$/u, "");
 /** 宣言が出す中身 */
-const provided = (): Record<string, Record<string, unknown>> => (json(MUSUBI).provides ?? {}) as Record<string, Record<string, unknown>>;
+/** musubi.json が出す中身。名前ごとのバージョンと file */
+const provided = (): Record<string, { version?: string; file?: string }> => (json(MUSUBI).provides ?? {}) as Record<string, { version?: string; file?: string }>;
 
 describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
   it("skill-musubi-provides-every-reference", () => {
@@ -412,9 +413,10 @@ describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
     expect(files.length, "参照の file を数えられない").toBeGreaterThan(kindNames().length);
     expect(json(MUSUBI).musubi, "musubi の定義の版").toBe("2026-11-20");
     const provides = provided();
-    const missing = files.filter((file) => provides[contentName(file)]?.file !== file || provides[contentName(file)]?.version !== "1.0.0");
-    expect(missing, "版 1.0.0 の中身として出していない参照の file").toEqual([]);
-    const absent = Object.values(provides).map((content) => String(content.file ?? "")).filter((file) => !existsSync(join(SKILL, file)));
+    // 中身のバージョンは中身を変えるたびに musubi の決まりで上がるので、MAJOR.MINOR.PATCH の形だけを見る (#3809)
+    const missing = files.filter((file) => provides[contentName(file)]?.file !== file || !/^\d+\.\d+\.\d+$/u.test(provides[contentName(file)]?.version ?? ""));
+    expect(missing, "MAJOR.MINOR.PATCH のバージョンの中身として出していない参照の file").toEqual([]);
+    const absent = Object.values(provides).map((content) => content.file ?? "").filter((file) => !existsSync(join(SKILL, file)));
     expect(absent, "中身が名指すのに無い file").toEqual([]);
   });
 
@@ -423,7 +425,7 @@ describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
     const provides = provided();
     const files = new Set(referenceFiles());
     expect(Object.keys(provides).length, "中身を数えられない").toBeGreaterThan(0);
-    const outside = Object.entries(provides).filter(([, content]) => !files.has(String(content.file))).map(([name]) => name);
+    const outside = Object.entries(provides).filter(([, content]) => !files.has(content.file ?? "")).map(([name]) => name);
     const extra = Object.entries(provides).filter(([, content]) => Object.keys(content).some((key) => key !== "version" && key !== "file")).map(([name]) => name);
     expect(outside, "references の下に無い file を名指す中身").toEqual([]);
     expect(extra, "version と file の他の欄を持つ中身").toEqual([]);

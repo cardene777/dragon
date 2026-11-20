@@ -102,7 +102,8 @@ export interface RenderOptions {
    * 頁に止めて置く図 (#3801)。最後の段の止め絵の時刻を図の中に書き込み、再生の部品が無くても最後の段の形を描く。
    * 段の番号の丸を出さず、量の図は段の名前の所に図の題を出す。字の並びは一般の sans-serif と monospace に落ちる。
    * 色味を渡さない時は、頁の白い地に馴染む `clear` で描く (配管の図は今どおり `sea`)。
-   * 色は頁の `data-theme="dark"` の時と、`data-theme="light"` でない頁で暗い `prefers-color-scheme` の時に暗い色に変わる
+   * 色は頁の `data-theme="dark"` の時と、`data-theme="light"` でない頁で暗い `prefers-color-scheme` の時に暗い色に変わる。
+   * 頁が `--dragon-figure-background` を渡すと、図の地をその色で塗る。手順の帯 (`cycle` の `[shape: band]`) は番号の丸の空きを取らず、手順の名前を山形の中に書く (#3809)
    */
   figure?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
@@ -586,7 +587,7 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "") : "";
+  const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
@@ -605,12 +606,15 @@ export interface StillFigure {
 /**
  * 止めて置く図の見た目の規則 (#3801)。図の根に止め絵の時刻を書き込み、動きを止めたまま最後の段の形を描く。
  * 字の並びは同梱した字の後に一般の字を持ち、同梱した字を読まない頁でも明朝に落ちない。
- * 頁の `data-theme="dark"` と、`data-theme="light"` でない頁の暗い `prefers-color-scheme` で、暗い色味の色に替える
+ * 頁の `data-theme="dark"` と、`data-theme="light"` でない頁の暗い `prefers-color-scheme` で、暗い色味の色に替える。
+ * 地の色 (`--bg`) は頁が `--dragon-figure-background` を渡した時にその色を読み、図の地も `--bg` で塗る縁取りや札の地も頁の枠の色に揃える (#3809)。
+ * 渡さない頁では色味の地の色のまま描く
  */
-function figureCss(id: string, figure: StillFigure, lookDark: string): string {
-  const dark = `${paletteVars(figure.dark, "dark")}${lookDark ? `;${lookDark}` : ""}`;
+function figureCss(id: string, figure: StillFigure, lookDark: string, lightBg: string): string {
+  const pageBg = (bg: string): string => `--bg:var(--dragon-figure-background,${bg})`;
+  const dark = `${paletteVars(figure.dark, "dark")}${lookDark ? `;${lookDark}` : ""};${pageBg(figure.dark.dark.bg ?? "")}`;
   return (
-    `.dg-${id}{${FONT_STACK_VARS};--at:${figure.at};--play:paused}` +
+    `.dg-${id}{${FONT_STACK_VARS};--at:${figure.at};--play:paused;${pageBg(lightBg)}}` +
     `:root[data-theme="dark"] .dg-${id}{${dark}}` +
     `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dg-${id}{${dark}}}`
   );

@@ -8,13 +8,14 @@
  * 弧と棒と段ごとの字は、検査と読み上げの道具が引けるよう `data-chart-*` に項目の名札か段の名前を持つ。
  * この file は後から読む量の図の塊 (`kinds/chart.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
-import { barName, chartText, itemAttr, legendRow } from "../blocks/chart-item/draw";
+import { barName, chartLines, chartText, itemAttr, legendRow } from "../blocks/chart-item/draw";
 import { arcMotion, barMotion, runSpan, textRuns } from "../blocks/chart-set/draw";
 import { barTrack, ringTrack } from "../blocks/chart-shape/draw";
 import { cs } from "../blocks/color/draw";
 import type { ChartLayout, ChartPlan } from "../kinds/chart/layout";
 import type { Rect } from "../layout/scene";
 import { textWidth } from "../layout/measure";
+import { anyTwoRows, twoRows } from "../layout/rows";
 import { CHART_LOOK, CHART_TYPE } from "../look/chart";
 import { DOTS_CSS, drawDots } from "./dots";
 import { MOTION, type TextStyle } from "../look/values";
@@ -53,19 +54,61 @@ const FUNNEL_CSS = [
 
 /**
  * 段ごとの段の名前。同じ名前が続く段は 1 つの字にまとめる。
- * ドーナツの名前は輪の真ん中に折り返さず描くので、輪の線の内側の縁の円を記録に残し、崩れの検査が収まるかを見る
+ * ドーナツの名前は輪の真ん中に描き、輪の線の内側の縁の円を記録に残して、崩れの検査が収まるかを見る。
+ * 内側の縁から余白を空けた円に 1 行で収まらない名前は 2 行に折り、2 行でも収まらない時は字を小さくする (#3809)
  */
 function stepTitles(plan: ChartPlan, diagram: DiagramModel, ctx: Ctx): string {
   const { m } = ctx;
   const { ring } = plan;
-  const inside = ring ? { ring: { cx: ring.cx, cy: ring.cy, r: ring.r - ring.width / 2 } } : {};
+  const inner = ring ? { cx: ring.cx, cy: ring.cy, r: ring.r - ring.width / 2 } : undefined;
   return textRuns(diagram.steps.map((step) => step.title))
     .map((run) => {
       const [a, b] = runSpan(run, 0, ctx);
       const attr = ` data-chart-title="${esc(run.text)}"`;
-      return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, { shown: [[a, b + MOTION.fade]], anchor: plan.title.anchor, motion: m.vis(a, b), ...inside });
+      const options = { shown: [[a, b + MOTION.fade]] as [number, number][], anchor: plan.title.anchor, motion: m.vis(a, b), ...(inner ? { ring: inner } : {}) };
+      const fitted = inner ? { ...ringTitle(run.text, inner), cy: inner.cy } : undefined;
+      if (!fitted || (fitted.lines.length === 1 && fitted.size === CHART_TYPE.title.size)) {
+        return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, options);
+      }
+      // 行の並びの真ん中を輪の真ん中に置き、1 行の時と同じく基準線を字の大きさの `titleDrop` の割合だけ下げる
+      const { lines, size, cy } = fitted;
+      const lead = size * CHART_LOOK.donut.titleLead;
+      const first = cy - (lead * (lines.length - 1)) / 2 + size * CHART_LOOK.donut.titleDrop;
+      const placed = lines.map((text, k) => ({ text, y: first + k * lead }));
+      return chartLines(ctx, "dg-ch-t", plan.title.x, run.text, placed, CHART_TYPE.title, attr, { ...options, ...(size === CHART_TYPE.title.size ? {} : { size }) });
     })
     .join("");
+}
+
+/**
+ * 輪の真ん中の名前の行と字の大きさ (#3809)。字の四角の角が、輪の線の内側の縁から `titlePad` だけ内の円に収まるかで決める。
+ * 1 行で収まればそのまま、収まらなければ折れる所 (`layout/rows.ts`) のうち 2 行の幅の広い方が一番狭くなる所で折り、それでも収まらなければ収まるまで字を小さくする。
+ * 字を `titleMin` まで小さくしても収まらない時は、`titleMin` の大きさで描き、崩れの検査に収まらないことを数えさせる
+ */
+function ringTitle(text: string, inner: { r: number }): { lines: string[]; size: number } {
+  const D = CHART_LOOK.donut;
+  const room = inner.r - D.titlePad;
+  const fits = (lines: string[], size: number): boolean => {
+    const style: TextStyle = { ...CHART_TYPE.title, size };
+    const lead = size * D.titleLead;
+    return lines.every((line, k) => {
+      const base = -(lead * (lines.length - 1)) / 2 + k * lead + size * D.titleDrop;
+      const half = textWidth(line, style) / 2;
+      const far = Math.max(Math.abs(base - size * 0.8), Math.abs(base + size * 0.2));
+      return Math.hypot(half, far) <= room;
+    });
+  };
+  const top = CHART_TYPE.title.size;
+  if (fits([text], top)) return { lines: [text], size: top };
+  // 空白と読点と助詞の後で折れる所を先に見て、無い時 (漢字だけの名前など) は字の間の全ての所から選ぶ
+  const wide = (rows: string[]): number => Math.max(...rows.map((row) => textWidth(row, CHART_TYPE.title)));
+  const words = twoRows(text);
+  const splits = words.length > 0 ? words : anyTwoRows(text);
+  const lines = [...splits].sort((p, q) => wide(p) - wide(q))[0] ?? [text];
+  for (let size = top; size >= D.titleMin; size -= 0.5) {
+    if (fits(lines, size)) return { lines, size };
+  }
+  return { lines, size: D.titleMin };
 }
 
 /** ドーナツの輪と弧と凡例。凡例の割合は段ごとに、値を段の合計で割って整数に丸めた百分率 */

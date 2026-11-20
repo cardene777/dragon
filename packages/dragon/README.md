@@ -151,6 +151,9 @@ A chart draws its values and shows the diagram title where the step title would 
 A flow draws every line its steps passed as a solid line.
 Its fonts fall back to the device's sans-serif after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
 It uses the `clear` palette by default, which sits well on a white page, and turns dark when the page's `<html>` has `data-theme="dark"`, or when the device prefers a dark scheme and the page does not have `data-theme="light"`.
+To paint the figure with the page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.
+The background, the outlines of lines, and the plates behind labels then take that color on light and dark pages alike.
+A donut writes a middle name that does not fit inside the ring on two lines, and a step band (`cycle` with `[shape: band]`) writes each step name inside its chevron.
 The figure never grows wider than its own width, and shrinks with its aspect ratio kept when its frame is narrower.
 
 Pass a page whose blocks are all still to `dragon embed`, and it draws the blocks as SVGs in place and adds no bundled script.

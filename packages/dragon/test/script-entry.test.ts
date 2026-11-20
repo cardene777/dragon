@@ -824,6 +824,10 @@ describe("dragon embed の頁の帯 (#3786)", () => {
 
 /** 止めて置く量の図 (#3801)。段の名前 (今週) と図の題 (品ごとの売り上げ) が違う */
 const STILL_BAR = "chart 品ごとの売り上げ [shape: bar]\n\nitem bread as パン\nitem sweets as 菓子パン\n\nstep 今週\n  say 今週の売り上げ。\n  set bread: 268\n  set sweets: 141\n";
+/** 名前が輪の内側に 1 行で収まらない、止めて置くドーナツ (#3809) */
+const STILL_DONUT = "chart 売り上げの割合 [shape: donut]\n\nitem bread as パン\nitem sweets as 菓子パン\n\nstep 今週\n  say 売り上げの内訳。\n  set bread: 60\n  set sweets: 40\n";
+/** 止めて置く手順の帯 (#3809) */
+const STILL_BAND = "cycle 淹れ方 [shape: band]\n\nbox grind as 挽く\nbox pour as 注ぐ\n\nstep 挽く\n  say 豆を挽く。\nstep 注ぐ\n  say お湯を注ぐ。\n  grind -> pour [carry: none]\n";
 /** 頁の中の script を外した字。束ねた script は止めて置く図を描く字を持つので、頁に置いた物だけを数える */
 const withoutScripts = (html: string): string => html.replace(/<script\b[\s\S]*?<\/script>/gu, "");
 
@@ -852,7 +856,8 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
   let dir = "";
   let stillOnly = "";
   let mixed = "";
-  // 止めて置く塊だけの頁と、動く塊も置いた頁を、file で 1 度ずつ `dragon embed` で埋める。命令を起こす秒数を件ごとに払わない
+  let look = "";
+  // 止めて置く塊だけの頁と、動く塊も置いた頁と、見た目を頁に合わせる図 (#3809) の頁を、file で 1 度ずつ `dragon embed` で埋める。命令を起こす秒数を件ごとに払わない
   beforeAll(async () => {
     dir = mkdtempSync(join(tmpdir(), "dragon-embed-still-"));
     const [major, minor] = version().split(".");
@@ -866,7 +871,11 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
         "</body></html>",
       ].join("\n");
     const still = `<pre class="dragon" data-still>${escape(STILL_BAR)}</pre>`;
-    const sources = { stillOnly: page([still, still]), mixed: page([still, `<pre class="dragon">${escape(SEQUENCE)}</pre>`]) };
+    const sources = {
+      stillOnly: page([still, still]),
+      mixed: page([still, `<pre class="dragon">${escape(SEQUENCE)}</pre>`]),
+      look: page([`<pre class="dragon" data-still>${escape(STILL_DONUT)}</pre>`, `<pre class="dragon" data-still>${escape(STILL_BAND)}</pre>`]),
+    };
     const embed = async (name: keyof typeof sources): Promise<string> => {
       const source = join(dir, `${name}.html`);
       const out = join(dir, `${name}.offline.html`);
@@ -875,7 +884,7 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
       expect(ran.code, `dragon embed の終わり方 (${ran.stderr})`).toBe(0);
       return readFileSync(out, "utf8");
     };
-    [stillOnly, mixed] = await Promise.all([embed("stillOnly"), embed("mixed")]);
+    [stillOnly, mixed, look] = await Promise.all([embed("stillOnly"), embed("mixed"), embed("look")]);
   });
   afterAll(() => {
     if (dir) rmSync(dir, { recursive: true, force: true });
@@ -895,5 +904,21 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
     expect(body.match(/<pre class="dragon">/gu)?.length, "動く塊の数").toBe(1);
     expect(mixed, "動く塊を描く束ねた script").toMatch(/<script\b[^>]*>[\s\S]{1000,}<\/script>/u);
     expect(mixed, "入口の1行").not.toMatch(/dist\/cdn\/dragon\.js/u);
+  });
+
+  it("embed-still-figure-follows-page-look", () => {
+    const body = withoutScripts(look);
+    expect(body.match(/--bg:var\(--dragon-figure-background,/gu)?.length ?? 0, "頁の色を読む地の数").toBeGreaterThanOrEqual(2);
+    const title = /<text[^>]*data-chart-title="売り上げの割合"[^>]*>([\s\S]*?)<\/text>/u.exec(body)?.[1] ?? "";
+    expect(title.match(/<tspan\b/gu)?.length ?? 0, "ドーナツの名前の行の数").toBe(2);
+    // 山形の線は上の縁 (M) から先の点を通って下の縁 (2 つ目の L) へ回る
+    for (const id of ["grind", "pour"]) {
+      const seg = new RegExp(`<g data-segment="${id}" data-round="0"[^>]*><path class="dg-bd-seg" d="M[-\\d.]+ ([-\\d.]+)H[-\\d.]+L[-\\d.]+ [-\\d.]+L[-\\d.]+ ([-\\d.]+)`, "u").exec(body);
+      const name = new RegExp(`<g data-band-name="${id}"><text class="dg-bd-name" x="[-\\d.]+" y="([-\\d.]+)"`, "u").exec(body);
+      expect(seg, `${id} の山形`).not.toBeNull();
+      expect(name, `${id} の名前`).not.toBeNull();
+      const [top, bottom, base] = [Number(seg?.[1]), Number(seg?.[2]), Number(name?.[1])];
+      expect(base > top && base < bottom, `${id} の名前の基準線 ${String(base)} が山形の上の縁 ${String(top)} と下の縁 ${String(bottom)} の間に在る`).toBe(true);
+    }
   });
 });

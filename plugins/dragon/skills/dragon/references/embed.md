@@ -47,6 +47,8 @@ step This week
 
 Run `dragon embed page.html` to make a file that reads nothing from outside. When every block is still, it draws them as SVGs and adds no script. From the package, `renderDiagram(diagram, { figure: true })` returns the same SVG.
 
+Set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`, to paint the figure background, the line outlines, and the label plates with the page's color on light and dark pages. A donut wraps a middle name that does not fit the ring onto two lines, and a step band (`cycle` with `[shape: band]`) writes the step names inside the chevrons.
+
 ## The SDK function
 
 ```ts
