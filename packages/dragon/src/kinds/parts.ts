@@ -18,8 +18,11 @@ import type { DiagramModel } from "../schema";
 import type { Timeline } from "../timeline";
 import type { NotationLang } from "../words";
 
-/** 並べ方と並べる前の直しが読む、描く時に渡した設定。枠の幅と、開く呼び出しの番号と、呼ぶ側が渡す語と、収めた配管の図の並べ方 (#3748) */
-export type KindOptions = Pick<RenderOptions, "width" | "open" | "words" | "anchors" | "overlay" | "layouts">;
+/**
+ * 並べ方と並べる前の直しが読む、描く時に渡した設定。枠の幅と、開く呼び出しの番号と、呼ぶ側が渡す語と、収めた配管の図の並べ方 (#3748)。
+ * 止めて置く図か (`figure`) も渡し、段の番号の丸を描かない図の並べ方は丸の空きを取らない (#3809)
+ */
+export type KindOptions = Pick<RenderOptions, "width" | "open" | "words" | "anchors" | "overlay" | "layouts" | "figure">;
 
 /** 種類の描き方が描いた物。図の層ごとの字と、描く本体に渡す物 */
 export interface KindDrawn {

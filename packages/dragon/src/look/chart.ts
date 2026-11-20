@@ -31,6 +31,8 @@ export const CHART_TYPE = {
  * `donut` はドーナツで、輪の線の真ん中の半径 `r`、輪の太さ `width`、隣の弧との隙間の長さ `gap`、輪と凡例の間 `legendGap`、
  * 凡例の行の送り `row`、色の見本の一辺 `swatch` と角の丸み `swatchRadius`、見本と名前の間 `swatchGap`、名前と割合の間 `shareGap`、
  * 図の枠が凡例を輪の右に置けない狭さの時に輪と凡例の間を縦に空ける `below`。輪の真ん中の段の名前の基準線は、字の大きさの `titleDrop` の割合だけ真ん中より下げる。
+ * 真ん中の名前は、字の四角の角が輪の線の内側の縁から `titlePad` だけ内の円に収まらない時に 2 行に折り、行の送りは字の大きさの `titleLead` 倍にする。
+ * 2 行でも収まらない時は字を小さくし、`titleMin` より小さくしない (#3809)。
  * `bar` は横棒で、棒の高さ `h`、棒どうしの間 `gap`、角の丸み `radius`、名前と棒の間 `nameGap`、一番大きい値の棒の長さ `track` と、狭い枠で縮める下限 `trackMin`、
  * 棒の端と値の間 `valueGap`、段の番号と段の名前の間 `titleGap`、段の名前の行と最初の棒の間 `top`。名前と値の基準線は、棒の真ん中から字の大きさの `textDrop` の割合だけ下げる。
  * `funnel` は漏斗の見た目 (#3621) で、棒の高さ `h`、段どうしの間 `gap`、角の丸み `radius`、段の番号と段の名前の間 `badgeGap`、
@@ -54,6 +56,9 @@ export const CHART_LOOK = {
     shareGap: 18,
     below: 28,
     titleDrop: 0.35,
+    titlePad: 8,
+    titleLead: 1.2,
+    titleMin: 11,
   },
   bar: {
     h: 22,
