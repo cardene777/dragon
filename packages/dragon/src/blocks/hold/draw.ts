@@ -20,7 +20,7 @@ import type { Shown } from "../../render/ink";
 import type { Frame, Motion } from "../../render/motion";
 import { type Ctx, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
-import { dashMovers, maskOf, streamId, type StreamRun } from "../return/draw";
+import { bentLine, dashMovers, maskOf, streamId, type StreamRun } from "../return/draw";
 import { undoneMark } from "../revert/draw";
 
 /**
@@ -197,7 +197,7 @@ export function level(lv: PipeLevel, t: PipeTank, ctx: Ctx, shown: Shown[], attr
  * `attrs` は部品の印 (`data-pipe-value` など)
  */
 export function valuePipe(points: readonly Point[], attrs = ""): string {
-  const d = `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
+  const d = bentLine(points);
   return `<g${attrs}><path class="dg-pp-pcase" d="${d}"/><path class="dg-pp-pbore" d="${d}"/></g>`;
 }
 
@@ -285,7 +285,7 @@ export function pointAlong(points: readonly Point[], d: number): Point {
  * `plan` は流れの先が道の頭から進んだ割合 (0 から 1) の時刻の組。移す額の札と同じ時刻に角を通し、札を流れの先に載せる (Tracelyth #168)
  */
 export function flow(f: PipeFlow, ctx: Ctx, attrs: string, at?: number, plan?: readonly (readonly [number, number])[]): string {
-  const d = `M ${f.points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
+  const d = bentLine(f.points);
   const tone = `--pp-t:var(--pp-tone${f.tone})`;
   const head = `<g${attrs} class="dg-pp-trace dg-pp-trace-${f.state}" style="${tone};${cs(STATE_COLOR[f.state])}">`;
   if (at === undefined) return `${head}<path class="dg-pp-tpast" d="${d}"/></g>`;

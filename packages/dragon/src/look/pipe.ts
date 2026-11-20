@@ -121,7 +121,7 @@ export const PIPE_ROWS = {
  * - `gauge` は計器で、半径 `r` (呼び出しの管も値の管も同じ)、値の管から計器の真ん中まで `up`、通ったかの印の離れ `lampGap` と半径 `lamp`、
  *   針の先の空き `needle` と付け根の半径 `hub`、目盛りの帯の内側 `zone`、針の向き (確かめる前 `unseen`、通った `ok`、落ちた `fail`)、管の上の離れ `stemGap`
  * - `converter` は変換器の半径
- * - `tank` は槽で、幅 `w`、同じ持ち主の槽の間 `inner`、ガラスの高さ `h`、ガラスの内側の余白 `pad`、角 `radius` と水の角 `innerRadius`、名前の基準線 `titleY` と字の間 (字の大きさに対する割合) `titleTrack`、
+ * - `tank` は槽で、幅 `w`、同じ持ち主の槽の間 `inner`、ガラスの高さ `h`、ガラスの内側の余白 `pad`、角 `radius` と水の角 `innerRadius`、ガラスの上の端から外の上の名前の基準線まで `titleGap`、上から管が2本以上入る槽でガラスの中に置く名前の基準線 `titleY` と字の間 (字の大きさに対する割合) `titleTrack`、
  *   つや `shine`、目盛り `tick`、一番多い量の水位の割合 `fill`、0 より多い量の水位の下限 `least`、槽の下から残高の基準線まで `numberY`、
  *   残高から増減の基準線まで `deltaY`、増減から暫定か確定の語の基準線まで `tagY`、字の幅の余白 `numberPad`、前の水位の線のはみ出し `markOut`、
  *   値の管の口を置く高さの候補 (ガラスの上の端から) `ports`
@@ -131,6 +131,7 @@ export const PIPE_ROWS = {
  * - `band` は囲いの段で、名札の下の端から囲いまで `tag`、段の下の端から次の段の名札まで `next`、下の段の名札の高さの帯 `tags`
  * - `lane` は管を通す道で、平行な管の真ん中どうしの間 `pitch`、管と部品の間 `clear`、図の外側の道の数 `outer`
  * - `bus` は値の管で、外の太さ `case`、中の太さ `core`、変換器と槽を結ぶ管の太さ `stub`、弁から箱へ上る軸の空き `valveUp`
+ * - `bend` は値の管の折れ線の角を丸める半径 (Tracelyth のトップページの図の管と同じ 16)
  * - `flow` は流れた分で、太さ `width`、同じ管で重なる分をずらす間 `track`、点線 `dash`、向きの印の大きさ `chevron`、斜線の幅 `stripe`、
  *   流れた段に管を通る斜線の液の塊の長さ `slug` (管の長さに対する割合。試作の4配管と同じ 0.34)
  * - `write` は書き込む管で、札の上の端から折れる高さまで `turn`
@@ -161,6 +162,7 @@ export const PIPE_LOOK = {
     pad: 6,
     radius: 18,
     innerRadius: 13,
+    titleGap: 8,
     titleY: 30,
     titleTrack: 0.1,
     shine: { x: 12, y: 16, w: 7, short: 40 },
@@ -182,6 +184,7 @@ export const PIPE_LOOK = {
   band: { tag: 18, next: 30, tags: 76 },
   lane: { pitch: 38, clear: 12, outer: 6 },
   bus: { case: PIPE_FIRST.busCase, core: 16, stub: 6, valveUp: 14 },
+  bend: 16,
   flow: { width: 4, track: 8, dash: "2 9", chevron: 7, stripe: 9, slug: 0.34 },
   write: { turn: 24 },
   card: { top: 16, h: 46, padX: 12, gap: 10, icon: 22, titleY: 18, valueY: 36 },
