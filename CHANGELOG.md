@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.2] - 2026-11-20
+
+### Changed
+
+- **Pipe diagrams round the corners of their pipes, draw value pipes as an outlined tube, put tank names above the glass, and make the liquid wave** (#3783)
+
+  Value pipes, call pipes and flow lines now bend through the same shared line path as the other diagrams, with the shared 12px radius; the arcade palette keeps square bends. A value pipe is a 14px ink stroke with an 11px bore, leaving a 1.5px rim on each side. A tank name sits outside, above the glass, with 8px between the bottom of its text box and the top of the glass. When the name shares the row with the input and output tags, the name goes to the left edge and the tags to the right edge. The top of the liquid is cut into a wave that drifts sideways, and stays still when reduced motion is requested.
+
 ## [0.79.1] - 2026-11-20
 
 ### Fixed
