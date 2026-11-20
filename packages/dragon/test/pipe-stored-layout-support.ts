@@ -8,6 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseNotation } from "../src/parser";
 import { PIPE_LAYOUTS } from "../src/schema";
 
 /** repo の根。検査は repo の根で回す */
@@ -31,6 +32,15 @@ export const CASES: readonly { id: string; file: string; row: Row }[] = PIPE_SOU
 
 /** 原本の file が描く字の言葉 */
 export const langOfFile = (file: string): "ja" | "en" => (/\.en\.(json|dragon)$/u.test(file) ? "en" : "ja");
+
+/** 配管の原本を書いたままの形で読む。JSON の原本はそのまま返し、記法の原本は読んだ原本を返す */
+export function readSource(file: string): Record<string, unknown> {
+  const text = readFileSync(join(REPO, file), "utf8");
+  if (file.endsWith(".json")) return JSON.parse(text) as Record<string, unknown>;
+  const read = parseNotation(text, { lang: langOfFile(file) });
+  if (!read.ok) throw new Error(`${file}: ${JSON.stringify(read.errors)}`);
+  return read.diagram as unknown as Record<string, unknown>;
+}
 
 /** 2 つの畳んだ箱を持つ配管の図の記法。箱が N 個の図で N+1 通りを収め、2 つを開いた組を収めないことを確かめる */
 export const TWO_FOLDS = `pipe 2つの畳み

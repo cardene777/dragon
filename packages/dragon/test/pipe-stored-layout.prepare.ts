@@ -7,6 +7,9 @@
  *    描いた時に組んだ並べ方を集めて (`collectPipeLayouts`)、集めた並べ方を渡して描き直す。
  *    渡した並べ方を使ったか (印の欄 `__probe` が描いた並べ方に残るか) と、描いた並べ方と SVG が渡さずに描いた時と同じかを返す。
  *
+ * 3. 配管の原本の全てを書いたままの形で、新しい process (`tsx`) で最初に見える形を描き、畳んだ箱を 1 つだけ開いた形を先に組んでから (#3753)、
+ *    全ての形を描き直す。描き直した並べ方と SVG の指紋と、描き直した時に道を探した回数を返す。比べる元は 2 の書いたままの形の指紋。
+ *
  * まだ作っていない部品は無い物として名指して返し、準備の段では落とさない。件がその名前を挙げて落ちる。
  */
 import { execFileSync } from "node:child_process";
@@ -14,10 +17,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pipeLayout from "../src/kinds/pipe/layout";
+import { createHash } from "node:crypto";
 import { renderDiagram } from "../src/core";
-import { parseNotation } from "../src/parser";
 import { Router } from "../src/pipe-route";
-import { CASES, langOfFile, REPO, type Row } from "./pipe-stored-layout-support";
+import { CASES, langOfFile, readSource, REPO, type Row } from "./pipe-stored-layout-support";
 import "../src/kind-use/pipe";
 
 /** 収めた並べ方に付ける印。描いた並べ方に残れば、収めた並べ方を使ったと分かる */
@@ -31,16 +34,7 @@ const missing = (name: string): string => `${name} が無い`;
 
 /** 原本を読み、`layout` の行を `row` の形にした原本を返す */
 function sourceOf(file: string, row: Row): Record<string, unknown> {
-  const text = readFileSync(join(REPO, file), "utf8");
-  const lang = langOfFile(file);
-  let base: Record<string, unknown>;
-  if (file.endsWith(".json")) base = JSON.parse(text) as Record<string, unknown>;
-  else {
-    const read = parseNotation(text, { lang });
-    if (!read.ok) throw new Error(`${file}: ${JSON.stringify(read.errors)}`);
-    base = read.diagram as unknown as Record<string, unknown>;
-  }
-  const diagram = structuredClone(base);
+  const diagram = structuredClone(readSource(file));
   // 原本の形 (版2) は図の欄の中に layout を持つ。版1の形は頭に持つ
   const inner = diagram.diagram;
   const target = (inner !== null && typeof inner === "object" ? inner : diagram) as Record<string, unknown>;
@@ -73,11 +67,22 @@ interface FormResult {
   sameSvg: boolean;
 }
 
+/** 描いた形の並べ方と SVG の指紋。先に組んでから描いた形と比べる (#3753) */
+export interface DrawnForm {
+  open: number[];
+  layout: string;
+  svg: string;
+}
+
+const fingerprint = (text: string): string => createHash("sha256").update(text).digest("hex");
+
 interface CaseResult {
   error?: string;
   stored?: number;
   routeCalls?: number;
   forms?: FormResult[];
+  /** 書いたままの形で組まずに描いた形の指紋 */
+  base?: DrawnForm[];
 }
 
 function compareCase(file: string, row: Row, collect: Collect | undefined): CaseResult {
@@ -103,7 +108,8 @@ function compareCase(file: string, row: Row, collect: Collect | undefined): Case
       return { open: b.open, usedStored, sameLayout: JSON.stringify(drawn.layout) === b.layout, sameSvg: drawn.svg === b.svg };
     }),
   );
-  return { stored: layouts.length, routeCalls, forms };
+  const drawn = row === "as-written" ? { base: base.map((b) => ({ open: b.open, layout: fingerprint(b.layout), svg: fingerprint(b.svg) })) } : {};
+  return { stored: layouts.length, routeCalls, forms, ...drawn };
 }
 
 interface FirstDraw {
@@ -136,6 +142,18 @@ async function firstDraw(): Promise<FirstDraw> {
   }
 }
 
+/** 先に組んでから描き直した原本ごとの形。`routeCalls` は描き直した時に道を探した回数 */
+export interface AheadResult {
+  error?: string;
+  files?: Record<string, { error?: string; forms?: (DrawnForm & { routeCalls: number })[] }>;
+}
+
+/** 配管の原本の全てを、新しい process で先に組んでから描き直す (#3753) */
+function aheadDraw(): AheadResult {
+  const out = execFileSync(join(REPO, "node_modules/.bin/tsx"), [join(REPO, "packages/dragon/test/pipe-ahead-child.ts")], { cwd: REPO, encoding: "utf8" });
+  return JSON.parse(out.trim().split("\n").pop() ?? "{}") as AheadResult;
+}
+
 export default async function prepare() {
   const collect = (pipeLayout as unknown as { collectPipeLayouts?: Collect }).collectPipeLayouts;
   const cases: Record<string, CaseResult> = {};
@@ -152,5 +170,11 @@ export default async function prepare() {
   } catch (error) {
     first = { error: error instanceof Error ? error.message : String(error) };
   }
-  return { cases, first };
+  let ahead: AheadResult;
+  try {
+    ahead = aheadDraw();
+  } catch (error) {
+    ahead = { error: error instanceof Error ? error.message : String(error) };
+  }
+  return { cases, first, ahead };
 }
