@@ -9,14 +9,13 @@
  * 止めて置く塊 (`data-still`) は、最後の段の形を描いた SVG に置き換えてから埋める (#3801)。動く塊が残らない頁には script を入れない。
  */
 import { readFileSync } from "node:fs";
-// 止めて置く塊はどの種類の図も node で描くので、全ての種類の部品を登録する (#3801)
-import "../kinds/all";
 import { iconsElement } from "../blocks/icon/page-icons";
 import { dedent } from "../embed/dedent";
 import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { parseNotation } from "../parser";
 import { STILL_ATTR, stillFigureHtml } from "../still-figure";
 import type { NotationLang } from "../words";
+// 並べ方を組む処理 (`./layouts`) は全ての種類の部品を登録する (`render/svg.ts`)。止めて置く塊もこの登録で描く (#3801)
 import { pipeLayouts } from "./layouts";
 
 /** 埋める script。build で `script-offline.ts` を 1 file に束ねた物 */

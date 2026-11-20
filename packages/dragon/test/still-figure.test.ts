@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * 頁に止めて置く図 (#3801)。
  *
@@ -8,19 +7,17 @@
  * 色は頁の `data-theme` と `prefers-color-scheme` に従って暗い色に変わる。
  *
  * 頁の塊は属性 `data-still` を持つ時、再生の部品を置かずにこの SVG に置き換わる。
- * `dragon embed` は止めて置く塊を SVG に描いてから埋め、動く塊が残らない頁には束ねた script を入れない。
+ * 頁の塊と `dragon embed` の件は、組み立てた1行の入口と命令を回す `script-entry.test.ts` が確かめる。
+ * 1行の入口は時系列図を最初から読み、埋める処理は全ての種類を読むので、ここで回すと、どの種類を変えてもこの検査が選ばれる (#3763)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { parseNotation, renderDiagram } from "../src/api";
-import { embedPageWith } from "../src/export/embed";
 import "../src/kinds/basics";
 import "../src/kind-use/chart";
 import "../src/kind-use/flow";
-import "../src/kind-use/sequence";
-import { cdnPage, escapeHtml, withSite } from "./cdn-page-support";
 
 const ROOT = process.cwd();
 
@@ -28,13 +25,8 @@ const ROOT = process.cwd();
 const BAR = "chart 注いだお湯の量 [shape: bar]\n\nitem bloom as 蒸らし\nitem first as 1回目まで\n\nstep 注ぐ\n  say 3回に分けて注ぐ。\n  set bloom: 30\n  set first: 120\n";
 /** ドーナツの量の図 */
 const DONUT = "chart 種類ごとの割合 [shape: donut]\n\nitem bread as パン\nitem sweets as 菓子パン\n\nstep 今週\n  say 売り上げの内訳。\n  set bread: 268\n  set sweets: 141\n";
-/** 段の番号の丸を描く時系列図 */
-const SEQUENCE = "sequence 注文\n\nbox user as 利用者\nbox shop as 店\n\nstep 頼む\n  user -> shop: 注文\nstep 返す\n  shop -> user: 受付\n";
-/** 誤りのある記法 */
-const BROKEN = "chart 壊れた図 [shape: bar]\n\nitem a as 項目\n\nstep 段\n  set a: たくさん\n";
-
-/** 図を待つ長さ。1 件の上限 (10 秒) より短く待つ */
-const WAIT = 6_000;
+/** 段の番号の丸を描く、2 段の流れ図 */
+const FLOW = "flow 注文の流れ\n\nbox order as 注文\nbox pay as 支払い\nbox ship as 発送\n\nstep 受ける\n  say 注文を受ける。\n  order -> pay: 確かめる\nstep 送る\n  say 品を送る。\n  pay -> ship: 送る\n";
 
 function read(source: string) {
   const parsed = parseNotation(source, { lang: "ja" });
@@ -53,17 +45,14 @@ const rootRules = (svg: string): string => {
 };
 const varOf = (rules: string, name: string): string | undefined => new RegExp(`(?:^|;)--${name}:([^;]+)`, "u").exec(rules)?.[1];
 
-const stillBlock = (source: string): string => `<pre class="dragon" data-still>${escapeHtml(source)}</pre>`;
-const movingBlock = (source: string): string => `<pre class="dragon">${escapeHtml(source)}</pre>`;
-
 describe("止めて置く図を描く", () => {
   it("still-figure-hides-step-badges", () => {
-    expect(figure(SEQUENCE).svg).not.toMatch(/class="dg-bd"/u);
+    expect(figure(FLOW).svg).not.toMatch(/class="dg-bd"/u);
     expect(figure(BAR).svg).not.toMatch(/class="dg-bd"/u);
   });
 
   it("still-figure-freezes-at-last-step", () => {
-    for (const source of [SEQUENCE, BAR]) {
+    for (const source of [FLOW, BAR]) {
       const rendered = figure(source);
       const last = rendered.timeline.stills[rendered.timeline.steps.length - 1];
       const rules = rootRules(rendered.svg);
@@ -107,52 +96,9 @@ describe("止めて置く図を描く", () => {
   });
 
   it("still-figure-off-keeps-render", () => {
-    const { svg } = renderDiagram(read(SEQUENCE), { lang: "ja" });
+    const { svg } = renderDiagram(read(FLOW), { lang: "ja" });
     expect(svg).toMatch(/class="dg-bd"/u);
     expect(varOf(rootRules(svg), "play")).toBeUndefined();
-  });
-});
-
-describe("頁の塊を止めて置く", () => {
-  it("page-still-block-places-svg-without-player", async () => {
-    const found = await withSite({ "index.html": cdnPage(stillBlock(BAR)) }, "index.html", async (page) => {
-      await page.waitForSelector("svg.dg", { timeout: WAIT }).catch(() => undefined);
-      return page.evaluate(() => ({
-        svg: document.querySelectorAll("svg.dg").length,
-        player: document.querySelectorAll(".dg-player, .dg-bar, .dg-btn").length,
-        block: document.querySelectorAll("pre.dragon").length,
-        title: document.querySelector("[data-chart-title]")?.getAttribute("data-chart-title") ?? "",
-      }));
-    });
-    expect(found).toEqual({ svg: 1, player: 0, block: 0, title: "注いだお湯の量" });
-  });
-
-  it("page-still-block-shows-notation-errors", async () => {
-    const found = await withSite({ "index.html": cdnPage(stillBlock(BROKEN)) }, "index.html", async (page) => {
-      await page.waitForSelector("pre.dragon-error", { timeout: WAIT }).catch(() => undefined);
-      return page.evaluate(() => ({ errors: document.querySelectorAll("pre.dragon-error").length, svg: document.querySelectorAll("svg.dg").length }));
-    });
-    expect(found).toEqual({ errors: 1, svg: 0 });
-  });
-});
-
-describe("止めて置く塊を埋める", () => {
-  /** 束ねた script の代わりの字。中身を読まずに、入ったかだけを見る */
-  const SCRIPT = "/* offline bundle */";
-
-  it("embed-still-only-page-has-no-script", () => {
-    const html = embedPageWith(cdnPage(stillBlock(BAR) + stillBlock(DONUT)), SCRIPT) ?? "";
-    expect(html.match(/<svg[^>]*class="dg dg-/gu)?.length).toBe(2);
-    expect(html).not.toContain(SCRIPT);
-    expect(html).not.toMatch(/dist\/cdn\/dragon\.js/u);
-    expect(html).not.toMatch(/<pre\b[^>]*class="dragon"/u);
-  });
-
-  it("embed-mixed-page-keeps-script", () => {
-    const html = embedPageWith(cdnPage(stillBlock(BAR) + movingBlock(SEQUENCE)), SCRIPT) ?? "";
-    expect(html.match(/<svg[^>]*class="dg dg-/gu)?.length).toBe(1);
-    expect(html).toContain(SCRIPT);
-    expect(html.match(/<pre class="dragon">/gu)?.length).toBe(1);
   });
 });
 

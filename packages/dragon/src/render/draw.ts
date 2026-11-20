@@ -614,12 +614,6 @@ function figureCss(id: string, figure: StillFigure, lookDark: string): string {
   );
 }
 
-/** 止めて置く量の図は、段の名前の所に図の題を出す (#3801)。段を送らない図では、最後の段の名前より何の図かを伝える */
-function figureModel(model: DiagramModel): DiagramModel {
-  if (model.kind !== "chart" || !model.title) return model;
-  return { ...model, steps: model.steps.map((step) => ({ ...step, title: model.title })) };
-}
-
 /** 番号の丸が値の表の上に在るか。表の値だけが変わる段の丸は表の隅に置かれる */
 function onStrip(layout: Layout, badge: { y: number }): boolean {
   return layout.strip !== undefined && badge.y >= layout.strip.y;
@@ -1001,9 +995,10 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 後から読む種類は、種類の名前で引いた部品の組が並べる前の直しと並べ方を持つ (#3656)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
-  // 止めて置く図 (#3801) は、並べる前に段の名前を直す
-  const model = options.figure === true ? figureModel(toModel(read.diagram)) : toModel(read.diagram);
-  const parts = partsOf(model.kind, lang);
+  // 止めて置く図 (#3801) は、種類の部品の組が持つ止めて置く時の直し (量の図は段の名前の所に図の題を出す) を、並べる前に当てる
+  const given = toModel(read.diagram);
+  const parts = partsOf(given.kind, lang);
+  const model = options.figure === true ? (parts?.figure?.(given) ?? given) : given;
   const diagram = parts?.fold?.(model, options, lang) ?? model;
   // 後から読む図の種類 (#3347) は部品の組の並べ方で並べ、時系列図は登録簿に登録した並べ方で並べ (#3345、#3763)、
   // 構成図と知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
