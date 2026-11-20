@@ -5,7 +5,7 @@ import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
 import { CAPTURE_FORMATS, createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { EDGE_PLAYER_ROOM_CSS } from '../look/player-room';
-import { FONT_STACK_VARS } from '../look/values';
+import { FONT_STACK_VARS, PLAIN_TEXT } from '../look/values';
 
 export function diagramEditorUrl(source) {
   return editorUrl(source);
@@ -34,10 +34,11 @@ const MENU_ROOM=10;
  * 帯と、帯の内側の見た目。図の字の変数は代わりの字の並びで上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695)。
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする。
  * 帯の内側の影の根には図のSVGも描くので、帯の釦の絵柄の線の決まりは帯の段 (`[data-dragon-header]`) の中のSVGだけに当て、図の字と地に縁取りを付けない (#3744)。
- * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)
+ * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)。
+ * 置いた頁の字の間と大文字の指定は影の根の中へ受け継がれるので、帯の枠の根で戻す (`look/plain-text.ts`、#3787)
  */
 const FRAME_CSS = `
-:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
+:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;${PLAIN_TEXT};border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
 *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}[data-dragon-header] svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pop{position:relative}[data-dragon-header] .dg-header-actions svg.chevron{width:12px;height:12px}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:220px;margin:0;padding:6px;border:1px solid var(--h-line);border-radius:10px;background:var(--h-bg);color:var(--h-fg);box-shadow:0 12px 35px #0002}
