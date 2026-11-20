@@ -17,6 +17,7 @@
 型検査はbuildした`dist`の型の定義を読み、`dist`の無い作業場所では`TS2307`で落ちるので、buildの後に回す (#3732)。
 一式は版を出す前に配る前の関門が1回だけ回す (#3381)。
 一式は 1 件 10 秒、1 回の実行 5 分の上限の中で終わるので、重さを `軽い` と書く。
+届く検査と一式は、1件の上限の4割以上かかった件を実行の終わりに名前と秒数で一覧にする報告の部品 (`scripts/near-limit-reporter.mjs`) をvitestへ渡す (#3740)。関門が時間切れで落ちる前に、軽くする件を知るため。一覧は知らせるだけで終わり方を変えず、設定 (`vitest.config.ts`) に書かないのは、書くと届く検査が全ての検査を選ぶため。
 検査は package の検査 (`packages/`) と見本帳の検査 (`apps/`) の 2 回の実行に分けて回す。1 回で回すと、機械が混んだ時に 5 分の上限を超えて残りを回さずに止まるため (#3463)。
 一式の最後に、依存の脆弱性を本物の `osv-scanner` で 1 回だけ見る (`bash scripts/check-dependency-vulnerabilities.sh`、#3498)。外の脆弱性の一覧に問い合わせ、応答が遅いと 1 回 15 秒を超えるので、1 件 10 秒の上限がある検査の外で走らせる。検査の中では代わりの道具で命令の判定だけを見る。外の一覧が止まっている時は終了 2 で止まる。
 
@@ -31,12 +32,12 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 
 | 欄 | 中身 |
 |---|---|
-| 一式 | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose && bash scripts/check-dependency-vulnerabilities.sh'` |
+| 一式 | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && bash scripts/check-dependency-vulnerabilities.sh'` |
 | 通った行の形 | `^\s*✓\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
 | 届く検査 | `bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'` |
-| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
+| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
 | 配る先との整合 | `node scripts/release-checks.mjs target` |

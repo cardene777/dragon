@@ -342,6 +342,29 @@ describe("上限で止まった実行の続き (#3386)", () => {
   });
 });
 
+/** vitest へ渡す引数を組む関数。まだ無い時もこの file の他の検査を走らせるため、読めない時は undefined を返す */
+type VitestArgs = (pass: string[], files: string[]) => string[];
+
+describe("上限に近い件の一覧 (#3740)", () => {
+  it("related-run-passes-near-limit-reporter", () => {
+    // 関門の命令は、1 件の上限に近い件を名前と秒数で出す報告の部品を vitest へ渡す。
+    // vitest は命令で渡した報告の部品だけを使うので、既定の報告も一緒に渡す。命令の続きに報告を渡した時は、そちらを既定の代わりに使う
+    const args = (runner as { vitestArgs?: VitestArgs }).vitestArgs;
+    expect(args, "vitest へ渡す引数を組む関数 (scripts/test-related.mjs の vitestArgs) が無い").toBeTypeOf("function");
+    if (args === undefined) return;
+    const reporter = "--reporter=./scripts/near-limit-reporter.mjs";
+    expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
+    const plain = args([], ["a.test.ts"]);
+    expect(plain, "報告の部品を渡していない").toContain(reporter);
+    expect(plain, "既定の報告を残していない").toContain("--reporter=default");
+    expect(plain.at(-1), "検査の file を最後に渡していない").toBe("a.test.ts");
+    const verbose = args(["--reporter=verbose"], ["a.test.ts"]);
+    expect(verbose, "命令の続きに報告を渡した時に、報告の部品を渡していない").toContain(reporter);
+    expect(verbose, "命令の続きに渡した報告を使っていない").toContain("--reporter=verbose");
+    expect(verbose, "命令の続きに報告を渡したのに、既定の報告も足した").not.toContain("--reporter=default");
+  });
+});
+
 /** 1 件で入力を順に回していた 3 つの検査。入力ごとの件に分けた (#3602) */
 const SPLIT = ["related-follows-package-and-built-entries", "related-maps-materials-by-table", "related-table-covers-material-readers"];
 /**

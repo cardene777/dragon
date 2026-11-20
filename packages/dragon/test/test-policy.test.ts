@@ -255,6 +255,17 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(related, "届く検査が package を build してから関係する検査を回す形でない").toBeGreaterThan(build);
   });
 
+  it("suite-commands-pass-near-limit-reporter", () => {
+    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package と見本帳の 2 つの実行の両方で渡す (#3740)
+    expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
+    const missing = ["一式", "配る前のテスト"].flatMap((field) => {
+      const runs = commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step));
+      if (runs.length !== 2) return [`${field} の vitest の実行が 2 つでない (${runs.length} 個)`];
+      return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
+    });
+    expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
+  });
+
   it("reached-checks-typecheck-after-build", () => {
     // 届く検査は検査の file の型も見る。`pnpm test:related` が起こす vitest は型を見ないため、
     // #3717 の型の誤りが実装の関門を通り、#3728 の配る前の関門で初めて見つかった (#3730)
