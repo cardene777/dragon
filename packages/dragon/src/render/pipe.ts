@@ -38,7 +38,7 @@ import {
   valuePipe,
   valve,
 } from "../blocks/hold/draw";
-import { bentLine, callCase, FLOW_CSS, litPipe, STREAM } from "../blocks/return/draw";
+import { callCase, FLOW_CSS, litPipe, pipeLine, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   along,
@@ -1269,7 +1269,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         const attrs = ` class="dg-pp-housing" data-pipe-housing="${h.party}"`;
         return frameShape(ctx.corner, attrs, h, `<rect${attrs} x="${r1(h.x)}" y="${r1(h.y)}" width="${r1(h.w)}" height="${r1(h.h)}" rx="${P.tank.radius + P.housing.pad / 2}"/>`);
       }),
-    ...layout.mains.map(callCase),
+    ...layout.mains.map((main) => callCase(main, ctx.corner)),
     // 名前のすぐ下に入れ物が在る時の短い線は、切れ端に見えるので描かない (Tracelyth #221)
     ...layout.ties.filter((t) => t.y2 - t.y1 >= 24).map((t) => `<path class="dg-pp-tie" d="M ${r1(t.x)} ${r1(t.y1)} V ${r1(t.y2)}"/>`),
     // 処理を借りる呼び出しの線の札 (Tracelyth #207)
@@ -1297,18 +1297,18 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
               [opened + MOTION.draw, { "stroke-dashoffset": 0 }],
               [m.total, { "stroke-dashoffset": 0 }],
             ]);
-      parts.push(litPipe(lane, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shownAt, false, draw, { m, t0: opened ?? a, tEnd: shut ?? b, pre: opened === undefined }));
+      parts.push(litPipe(lane, ctx.corner, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shownAt, false, draw, { m, t0: opened ?? a, tEnd: shut ?? b, pre: opened === undefined }));
     }
     // 一番外の呼び出しが戻って全てが確定した段は、送り手から出る管を確定の色で光らせる
     for (const c of layout.calls.filter((x) => x.depth === 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
+      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, ctx.corner, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
     }
     // 内側の呼び出しは、戻った後もその段の間は管を落ち着いた色で残す。
     // 地の細い線だけになると、外側の呼び出しの管より細く平らに見えるため (Tracelyth #209)
     for (const c of layout.calls.filter((x) => x.depth > 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      const d = bentLine(c.lit ?? c.points);
+      const d = pipeLine(c.lit ?? c.points, ctx.corner);
       parts.push(
         `<g class="dg-a" style="${m.vis(t, b)}"><g${on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "back" })} class="dg-pp-cstream" style="${cs("blue")}"><path class="dg-pp-ctrack" d="${d}"/></g>${kindCore({ kind: c.kind, width: c.width }, d)}</g>`,
       );
@@ -1357,10 +1357,10 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 値の管。その段で流れた管と、流れた分の印が替わった管だけを濃く描く
     for (const x of trunks) parts.push(dimmed(trunkLit(x), `<g data-pipe-trunk="${esc(x.token)}"><path class="dg-pp-pcase" d="${x.d}"/></g>`));
     layout.valuePipes.forEach((pipe, k) =>
-      parts.push(dimmed(moved(k), valuePipe(pipe.points, on({ value: pipe.token, pipe: k, ...(pipe.holder !== undefined ? { holder: pipe.holder } : {}) })))),
+      parts.push(dimmed(moved(k), valuePipe(pipe.points, ctx.corner, on({ value: pipe.token, pipe: k, ...(pipe.holder !== undefined ? { holder: pipe.holder } : {}) })))),
     );
     for (const x of trunks) parts.push(dimmed(trunkLit(x), `<g data-pipe-trunk="${esc(x.token)}"><path class="dg-pp-pbore" d="${x.d}"/></g>`));
-    for (const stub of layout.stubs) parts.push(dimmed(false, valuePipe(stub.points, on({ stub: stub.token }))));
+    for (const stub of layout.stubs) parts.push(dimmed(false, valuePipe(stub.points, ctx.corner, on({ stub: stub.token }))));
     // 移す額の札がトークンの箱に入って出る図 (固定した形を持たない図) の、札を飲み込む箱
     const gulpOf = (path: readonly Point[]): PipeParty | undefined =>
       layout.fixed !== undefined

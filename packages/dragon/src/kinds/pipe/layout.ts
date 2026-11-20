@@ -3899,7 +3899,8 @@ function placeTankTitles(out: PipeLayout): void {
       if (onTop(pts[0])) return [{ x: (pts[0] as Point)[0], from: pts[2]?.[0] }];
       return [];
     });
-    const base = drops.length > 1 ? t.y + P.tank.titleY : t.y - P.tank.titleGap;
+    // 外の上に置く名前は、字の箱の下の端をガラスの上の端から `titleGap` 離す (部品どうしの間の下限と同じ)
+    const base = drops.length > 1 ? t.y + P.tank.titleY : t.y - P.tank.titleGap - (n.y + n.h - n.base);
     const drop = drops.length === 1 ? drops[0] : undefined;
     // 管が左から来る時は右へ、右から来る時と真上から来る時は左へ置く
     const x = drop === undefined ? n.x : drop.from !== undefined && drop.from < drop.x ? drop.x + half : drop.x - half - n.w;
@@ -6594,7 +6595,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           party: h,
           token,
           // 名前は槽の外の上に置く (#3783)。上から槽へ入る管が在る時は、仕上げ (`finishPipe`) が管の横へずらす
-          title: { ...textAt(token, cx, glass.y - P.tank.titleGap, T.tankTitle, "middle"), x: cx - titleW(token) / 2, w: titleW(token) },
+          title: { ...textAt(token, cx, glass.y - P.tank.titleGap - T.tankTitle.size * 0.2, T.tankTitle, "middle"), x: cx - titleW(token) / 2, w: titleW(token) },
           tone: toneOf(token),
           ...(gaugeKeys.has(keyOf(h, token)) ? { gauge: true } : {}),
         };
