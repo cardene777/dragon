@@ -10,6 +10,7 @@
 import "./band-look-playground-checks";
 import "./chart-diagram-playground-checks";
 import "./chart-funnel-playground-checks";
+import "./chart-line-playground-checks";
 import "./clock-look-playground-checks";
 import "./cycle-diagram-playground-checks";
 import "./dots-look-playground-checks";
