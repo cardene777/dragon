@@ -3909,7 +3909,7 @@ function placeTankTitles(out: PipeLayout): void {
     // 始めた人の槽の上の入力と出力の印と並ぶ時は、名前を槽の左の端へ、印を右の端へ寄せる
     const marks = (out.chips ?? []).filter((c) => c.kind === "io" && c.party === t.party && c.token === t.token && c.x < n.x + n.w && c.x + c.w > n.x && c.y < n.y + n.h && c.y + c.h > n.y);
     const mark = marks[0];
-    if (mark !== undefined && drop === undefined && n.w + mark.w + P.tie.gap <= t.w) {
+    if (mark !== undefined && drop === undefined && n.w + mark.w + P.tank.titleGap <= t.w) {
       n.x = t.x;
       // 印は枠と字を別に持つので、両方を同じだけ動かす
       const seen = new WeakSet<object>();

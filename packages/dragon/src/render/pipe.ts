@@ -71,7 +71,7 @@ import {
 } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
-import { FLOW_MOVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
+import { FLOW_MOVE, LIQUID_WAVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
@@ -94,8 +94,6 @@ const mix = (a: string, pct: number, b: string): string => `color-mix(in srgb,${
  * 配管の図の部品の見た目。どの値も値の表から読む。配管の図の SVG にだけ書く。
  * 試作の色の役は、呼び出しを `--c-blue`、値を `--c-amber`、確かめるを `--c-violet`、確定を `--c-green`、取り消しを `--c-rose`、暫定の印を `--c-slate` に当てる
  */
-/** 液の上端の波。幅 60 の波を横に並べた形で液を切り抜き、その下は全て残す (#3783) */
-const WAVE = `url(data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="10" viewBox="0 0 60 10"><path d="M0 5 Q15 0 30 5 T60 5 V10 H0 Z"/></svg>').replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}) repeat-x 0 0 / 60px 10px,linear-gradient(#000,#000) no-repeat 0 9px / 100% 100%`;
 
 const PIPE_CSS = [
   // 液の色。トークンごとに 3 つの色を順に使う
@@ -128,8 +126,8 @@ const PIPE_CSS = [
   ".dg-pp-glass-on{stroke:var(--c)}",
   ".dg-pp-deep{pointer-events:none}",
   // 液の上端を波の形に切り抜くマスクを重ね、横へ流して揺らす (#3783)。動きを減らす設定では流さない
-  `.dg-pp-liq{fill:var(--pp-t);-webkit-mask:${WAVE};mask:${WAVE};animation:dg-pp-wave ${M.wave}s linear infinite}`,
-  "@keyframes dg-pp-wave{to{-webkit-mask-position:-60px 0,0 9px;mask-position:-60px 0,0 9px}}",
+  `.dg-pp-liq{fill:var(--pp-t);-webkit-mask:${LIQUID_WAVE.mask};mask:${LIQUID_WAVE.mask};animation:dg-pp-wave ${M.wave}s linear infinite}`,
+  `@keyframes dg-pp-wave{to{-webkit-mask-position:${LIQUID_WAVE.to};mask-position:${LIQUID_WAVE.to}}}`,
   "@media (prefers-reduced-motion:reduce){.dg-pp-liq{animation:none}}",
   `.dg-pp-ghost{fill:none;stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:5 5}`,
   `.dg-pp-mark{stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:3 5}`,

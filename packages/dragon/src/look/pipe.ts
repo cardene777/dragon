@@ -64,6 +64,21 @@ export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: P
 export const PIPE_PAINT = { reveal: "#fff", badge: "#fff" } as const;
 
 /**
+ * 槽の液の上端を波の形に切り抜くマスク (#3783)。幅 `w`、高さ `h` の波を横に並べ、上の端から `edge` より下は全て残す。
+ * `mask` は液の `mask` の値、`to` は波を1つ分横へ流した時の `mask-position`。マスクは明るさでなく形だけを読むので、地の色は黒にする
+ */
+export const LIQUID_WAVE = (() => {
+  const [w, h, edge] = [60, 10, 9];
+  const shape = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="M0 ${h / 2} Q${w / 4} 0 ${w / 2} ${h / 2} T${w} ${h / 2} V${h} H0 Z"/></svg>`;
+  // CSS の url() の中で括弧と引用符が値を切らないよう、encodeURIComponent が残す分も符号にする
+  const url = encodeURIComponent(shape).replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return {
+    mask: `url(data:image/svg+xml,${url}) repeat-x 0 0 / ${w}px ${h}px,linear-gradient(#000,#000) no-repeat 0 ${edge}px / 100% 100%`,
+    to: `-${w}px 0,0 ${edge}px`,
+  };
+})();
+
+/**
  * 2人をキーに持つ値の線 (#107)。札は列の上の段に置き、値の名前の頭と、変わった段は前と後の値、変わらない段は今の値と単位を書く。
  * `h` は札の高さ、`padX` は札の左右の余白、`gap` は線の段どうしの間、`deltaGap` と `deltaPadX` は増減の札との間と余白、
  * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ。
