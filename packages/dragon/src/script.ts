@@ -17,8 +17,8 @@
  * 読む処理は軽い入口を通らずに `light-load.ts` から読み、軽い入口が出す既定の入口の部品 (`api.ts`) を最初に読む file に入れない。
  */
 import "./kind-use/sequence";
-import { partsOf } from "./kinds/registry";
-import { loadFor } from "./light-load";
+import { kindLoaded, partsOf } from "./kinds/registry";
+import { diagramKind, loadFor } from "./light-load";
 import { toModel } from "./model";
 import { drawPageBlocks } from "./page-blocks";
 import { mountDiagram } from "./player";
@@ -41,10 +41,19 @@ function addFontLinks(doc: Document): void {
   }
 }
 
+/**
+ * 塊の記法を描く前に、描くのに要る部品を読む。構成図の塊の時は、構成図の並べ方の登録の file も後から読む (#3782)。
+ * 構成図を後から読むのはこの入口だけで、軽い入口と共に使う読む処理 (`light-load.ts`) には置かない (理由はそちらの file の頭に在る)
+ */
+async function prepare(text: string): Promise<void> {
+  const layout = diagramKind(text) === "architecture" && !kindLoaded("architecture") ? import("./kind-use/architecture") : undefined;
+  await Promise.all([loadFor(text), layout]);
+}
+
 addFontLinks(document);
 drawPageBlocks(
   document,
-  loadFor,
+  prepare,
   (host, drawn, source, diagram, options) => {
     void import("./frame/framed").then(({ frameDrawn }) => frameDrawn(host, drawn, source, diagram, options, mountDiagram, NOTATION_WORDS));
   },

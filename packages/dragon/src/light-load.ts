@@ -5,8 +5,9 @@
  * 軽い入口は既定の入口と同じ部品 (`api.ts`) も出すので、通ると 1 行の入口が使わない部品 (エディタの URL など) まで最初に読む file に入る。
  *
  * この file は種類の登録の file (`kind-use/<種類>.ts`) を読み込みの時に読まない。
- * 軽い入口は時系列図と構成図の並べ方を初めから登録し、script の1行の入口は時系列図だけを初めから登録する。
- * 構成図の並べ方を登録していない時は、`loadFor` と `loadKind` が構成図の登録の file を後から読む。
+ * 軽い入口は時系列図と構成図の並べ方を初めから登録し、script の1行の入口は時系列図だけを初めから登録して構成図の登録の file を自分で後から読む。
+ * この file は構成図の登録の file を後から読まない。読むと esbuild が軽い入口の build で構成図の登録を入口の外の塊へ分け、
+ * 軽い入口を束ねる見本帳の build が副作用だけの import を外し、構成図を登録しないまま描いて落ちるため。
  */
 import { readingLoaded, registerReading } from "./blocks/reading";
 import { KIND_FOLDERS } from "./kinds/index";
@@ -71,8 +72,6 @@ async function registerParts<K extends LaterKind>(kind: K): Promise<void> {
 
 /** 種類の描く部品を読む。読んでいれば何もしない */
 async function loadParts(kind: string | undefined): Promise<void> {
-  // 構成図の並べ方は、初めから登録していない入口 (script の1行の入口) でだけ、登録の file を読んで登録する (#3782)
-  if (kind === "architecture" && !kindLoaded(kind)) await import("./kind-use/architecture");
   if (isLater(kind) && !kindLoaded(kind)) await registerParts(kind);
 }
 
@@ -87,14 +86,11 @@ async function loadBlocks(names: readonly string[]): Promise<void> {
 }
 
 /**
- * 種類の描く部品と、その種類の個別ブロックの読み方を全て読む。時系列図の部品は初めから持ち、構成図の部品は軽い入口だけが初めから持つ。
+ * 種類の描く部品と、その種類の個別ブロックの読み方を全て読む。時系列図と構成図の部品は初めから持つ。
  * 読んだ後はその種類の原本の JSON も描けるよう、原本の形の検査も読む (#3400)。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
 export async function loadKind(kind: string | undefined): Promise<void> {
-  if (!isLater(kind)) {
-    await Promise.all([loadParts(kind), loadValidator()]);
-    return;
-  }
+  if (!isLater(kind)) return loadValidator();
   await Promise.all([loadParts(kind), loadBlocks(LATER_BLOCKS.filter((name) => blockKinds(name).includes(kind))), loadValidator()]);
 }
 
