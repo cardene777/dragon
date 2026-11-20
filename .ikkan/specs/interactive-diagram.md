@@ -81,7 +81,7 @@
 | 幅390の枠に置いたほかの5つの見本と箱を閉じた`aggregator`は、今どおり図を枠の幅に収めて横に送らず、残高の字が画面で10.5px以上に見える | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-narrow-fits-readable-figures`が通る | #3450 |
 | 配管の図は拡大の釦とホイールとダブルクリックで拡大でき、拡大した図を引いて動かせる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-zooms-and-pans`が通る | #3450 |
 | 幅1200の枠に置いた箱を開いた`aggregator`は、今どおり縮めずに置いて横に送り、段を送ると関わる関係者の所へ枠を送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pans-wide-figure`が通る | #3450 |
-| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3450 |
+| 6つの見本の全ての段を幅1280と幅390の枠に描いた時、決まりの表への違反が0件のまま | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3450 |
 | 配管の図の再生の部品は、図の下に段の番号と題を出し、段の説明の文を画面に出さない。読み上げの一覧には段の題と本文を今どおり出す | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-bar-shows-step-title`が通る | #3450 |
 | 値が動く段では、動いた値ごとに送る側、量とトークン、受ける側を1本の実線の矢印で出し、呼び出しと返した値の矢印は出さない(見本`swap-two-hops`の段3は1本、箱を開いた`aggregator`の段7は2本) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-moves`が通る | #3450 |
 | 確かめる段は、満たすか満たさないかの札を式の前に置いた1行を出す(見本`swap`の段9、見本`swap-revert`の段9)。取り消す段は理由を1回だけ出し、同じ理由で続けて取り消した呼び出しを、取り消した側から戻る先までの関係者の道1本にまとめる(見本`swap-revert`の段10は、LiquidityPool、SwapRouter、Aliceの順の道1本) | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-pipe-flows-show-checks-and-reverts`が通る | #3450 |
