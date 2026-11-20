@@ -75,6 +75,8 @@ export interface SceneEdge {
   wait?: Point;
   /** 線を起こした操作の番号 (#3720)。時系列図の線だけが持ち、描いた線が `data-op` で持つ */
   op?: number;
+  /** 線の太さ (px)。お金の矢印のように呼び出しより太い線だけが持つ (Tracelyth #86) */
+  width?: number;
 }
 
 export interface SceneLabel extends Rect {

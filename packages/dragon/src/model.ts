@@ -57,7 +57,8 @@ const rooted = (from: object): Obj => Object.fromEntries(ROOTED.flatMap((key) =>
  * 描く処理の形を版2の原本にする。空の並びは書かず、`blocks` の欄は `HOMES` の順に並べる。
  * 試す図 (#3337) は版1に無かった種類なので `HOMES` を通さず、部品 (`part`) とチップ (`item`) と並べる組 (`side`) と関門 (`check`、#3476) をこの順に置く。
  * 量の図 (#3560) も版1に無かった種類で、見た目と項目を `blocks` でなく根の種類の欄 (`chart`) のまま移す。2つの軸で置く図 (#3622) の軸と課題と、回り続ける図の見た目 (#3638) も根の欄 (`matrix` と `cycle`) のまま移す
- * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く
+ * 手順の図 (#3561) も版1に無かった種類なので、箱 (`box`) と判断 (`choice`) と中身の帯 (`strip`) と今回は通らない道 (`path`) をこの順に置く。
+ * パイプ図の置き方 (`layout`、Tracelyth #165) は、見せ方と同じく根の欄のまま移す
  */
 export function fromModel(model: DiagramModel, version: number): Diagram {
   const own = readyParts(model.kind)?.model;
