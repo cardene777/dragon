@@ -409,7 +409,7 @@ describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
   it("skill-musubi-provides-every-reference", () => {
     const files = referenceFiles();
     // 走査の空振りを避ける。参照の file は記法と図の種類の分だけある
-    expect(files.length, "参照の file を数えられない").toBeGreaterThan(KIND_FOLDERS.length);
+    expect(files.length, "参照の file を数えられない").toBeGreaterThan(kindNames().length);
     expect(json(MUSUBI).musubi, "musubi の定義の版").toBe("2026-11-20");
     const provides = provided();
     const missing = files.filter((file) => provides[contentName(file)]?.file !== file || provides[contentName(file)]?.version !== "1.0.0");
