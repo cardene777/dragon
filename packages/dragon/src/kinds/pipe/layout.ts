@@ -3881,50 +3881,6 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
  */
 const copyOf = (layout: PipeLayout): PipeLayout => structuredClone(layout);
 
-/**
- * 槽の名前を槽の外の上に置き直し、名前に重なる名札からの点線を名前の手前で切る (#3783)。
- * 上から槽へ入る管 (箱から自分の槽へ書き込む管、母線から下りる管) が1本在る槽は、名前を管の横の、管が来ない側へずらす。
- * 2本以上が上から入る槽は、名前を置ける所が無いのでガラスの中の上に置く
- */
-function placeTankTitles(out: PipeLayout): void {
-  const P = PIPE_LOOK;
-  const half = P.bus.case / 2 + P.tie.gap;
-  const lines: Point[][] = [...(out.valuePipes ?? []).map((v) => v.points), ...(out.stubs ?? []).map((s) => s.points)];
-  for (const t of out.tanks ?? []) {
-    const n = t.title;
-    const onTop = (p: Point | undefined): boolean => p !== undefined && Math.abs(p[1] - t.y) < 1 && p[0] > t.x && p[0] < t.x + t.w;
-    const drops = lines.flatMap((pts) => {
-      const last = pts.length - 1;
-      if (onTop(pts[last])) return [{ x: (pts[last] as Point)[0], from: pts[last - 2]?.[0] }];
-      if (onTop(pts[0])) return [{ x: (pts[0] as Point)[0], from: pts[2]?.[0] }];
-      return [];
-    });
-    const base = drops.length > 1 ? t.y + P.tank.titleY : t.y - P.tank.titleGap;
-    const drop = drops.length === 1 ? drops[0] : undefined;
-    // 管が左から来る時は右へ、右から来る時と真上から来る時は左へ置く
-    const x = drop === undefined ? n.x : drop.from !== undefined && drop.from < drop.x ? drop.x + half : drop.x - half - n.w;
-    // 名前の物は描く処理も同じ物を持つので、置き換えずに中身を書き換える
-    Object.assign(n, { x, y: n.y + base - n.base, base });
-    // 始めた人の槽の上の入力と出力の印と並ぶ時は、名前を槽の左の端へ、印を右の端へ寄せる
-    const marks = (out.chips ?? []).filter((c) => c.kind === "io" && c.party === t.party && c.token === t.token && c.x < n.x + n.w && c.x + c.w > n.x && c.y < n.y + n.h && c.y + c.h > n.y);
-    const mark = marks[0];
-    if (mark !== undefined && drop === undefined && n.w + mark.w + P.tie.gap <= t.w) {
-      n.x = t.x;
-      // 印は枠と字を別に持つので、両方を同じだけ動かす
-      const seen = new WeakSet<object>();
-      for (const c of marks) moveParts(c, t.x + t.w - c.w - c.x, 0, seen);
-    }
-  }
-  for (const tie of out.ties ?? []) {
-    const lo = Math.min(tie.y1, tie.y2);
-    const hit = (out.tanks ?? []).map((t) => t.title).filter((n) => tie.x > n.x && tie.x < n.x + n.w && n.y < Math.max(tie.y1, tie.y2) && n.y + n.h > lo);
-    if (hit.length === 0) continue;
-    const top = Math.min(...hit.map((n) => n.y)) - P.tie.gap;
-    if (tie.y1 <= tie.y2) tie.y2 = Math.max(tie.y1, top);
-    else tie.y1 = Math.max(tie.y2, top);
-  }
-}
-
 // 並べ終えた図の仕上げ (Tracelyth #207)。槽へ書く値の書き込みの線を、書いた箱から槽への管と書いた段に流れる差の玉に変え、
 // 槽の値を持つコントラクトを箱と槽ごと1つの枠で囲み、処理を借りる呼び出しの線に札を付け、置き直した箱に重なるログの札をずらす
 function finishPipe(out: PipeLayout): PipeLayout {
@@ -4036,7 +3992,6 @@ function finishPipe(out: PipeLayout): PipeLayout {
     hs.enclosed = true;
   }
   if (out.enclosures.length > 0) out.ties = (out.ties ?? []).filter((t) => !(out.enclosures as PipeEnclosure[]).some((e) => e.party === t.party));
-  placeTankTitles(out);
   // 戻りの札は線を辿って端で止まる。止まる所が囲む枠をまたぐ時は、線を手前で切って枠の外で止める
   const restOf = (c: PipeChip): Rect => {
     const e = c.path?.[c.path.length - 1];
@@ -6593,8 +6548,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           ...glass,
           party: h,
           token,
-          // 名前は槽の外の上に置く (#3783)。上から槽へ入る管が在る時は、仕上げ (`finishPipe`) が管の横へずらす
-          title: { ...textAt(token, cx, glass.y - P.tank.titleGap, T.tankTitle, "middle"), x: cx - titleW(token) / 2, w: titleW(token) },
+          title: { ...textAt(token, cx, glass.y + P.tank.titleY, T.tankTitle, "middle"), x: cx - titleW(token) / 2, w: titleW(token) },
           tone: toneOf(token),
           ...(gaugeKeys.has(keyOf(h, token)) ? { gauge: true } : {}),
         };

@@ -10,37 +10,14 @@
  */
 import type { PipeMain } from "../../kinds/pipe/layout";
 import type { Point } from "../../layout/scene";
-import { PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../../look/pipe";
+import { PIPE_PAINT, PIPE_TYPE } from "../../look/pipe";
 import type { Motion } from "../../render/motion";
 import { cssFont, r1 } from "../../render/parts";
 import { kindCore } from "../call/draw";
 import { cs } from "../color/draw";
 
-/**
- * 管の線。値の管も呼び出しの管も、折れ線の角を半径 `PIPE_LOOK.bend` の弧で曲げる (#3783)。隣の辺が短い角は、その辺の半分を半径にする。
- * 並びの点は変えず、描く線だけを丸めるので、管を避ける確かめは今の折れ線のまま働く
- */
-export function bentLine(points: readonly Point[]): string {
-  const at = (p: Point): string => `${r1(p[0])} ${r1(p[1])}`;
-  const first = points[0];
-  if (first === undefined) return "";
-  let d = `M ${at(first)}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    const [a, b, c] = [points[i - 1], points[i], points[i + 1]] as [Point, Point, Point];
-    const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
-    const r = Math.min(PIPE_LOOK.bend, ab / 2, bc / 2);
-    // 真っすぐ続く点と重なった点は曲げずに通る
-    const straight = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < 1e-6;
-    if (r <= 0 || straight) {
-      d += ` L ${at(b)}`;
-      continue;
-    }
-    d += ` L ${at([b[0] + ((a[0] - b[0]) * r) / ab, b[1] + ((a[1] - b[1]) * r) / ab])} Q ${at(b)} ${at([b[0] + ((c[0] - b[0]) * r) / bc, b[1] + ((c[1] - b[1]) * r) / bc])}`;
-  }
-  const last = points[points.length - 1];
-  return points.length > 1 && last !== undefined ? `${d} L ${at(last)}` : d;
-}
+/** 点の並びの道。角は丸めず、管の継ぎ目の形のまま描く */
+export const lineOf = (points: readonly Point[]): string => `M ${points.map((p) => `${r1(p[0])} ${r1(p[1])}`).join(" L ")}`;
 
 /** 流れを見せる切り抜きの番号と、番号を数えている図の名前 */
 export const STREAM = { n: 0, of: "" };
@@ -79,11 +56,11 @@ export function dashMovers(d: string, g: StreamRun): string {
  */
 export const FLOW_CSS = [
   ".dg-pp-ccase{fill:none;stroke:var(--line);stroke-width:8;stroke-linejoin:round;stroke-linecap:butt}",
-  ".dg-pp-pcase{fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
+  ".dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round;stroke-linecap:butt}",
   ".dg-pp-ctrack{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
+  ".dg-pp-mtrack{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
   ".dg-pp-cdone{fill:none;stroke:color-mix(in srgb,var(--c) 34%,var(--surf));stroke-width:8;stroke-linejoin:round}",
-  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:11;stroke-linejoin:round}",
+  ".dg-pp-tpast{fill:none;stroke:color-mix(in srgb,var(--pp-t) 40%,var(--surf));stroke-width:8;stroke-linejoin:round}",
   ".mv-s1{fill:none;stroke:var(--k);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:34 96;stroke-linejoin:round}",
   ".mv-s2{fill:none;stroke:var(--k);stroke-width:3.5;stroke-linecap:round;stroke-dasharray:16 64;opacity:.6;stroke-linejoin:round}",
   ".dg-pp-lcard{fill:var(--surf);stroke:var(--hair);stroke-width:1.5}",
@@ -111,14 +88,14 @@ export const FLOW_CSS = [
   ".dg-pp-deep{display:none}",
   ".dg-pp-shine{fill:color-mix(in srgb,var(--ink) 4%,transparent)}",
   ".dg-pp-ctrack{stroke:color-mix(in srgb,var(--c) 22%,var(--surf));stroke-width:16}",
-  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:11}",
+  ".dg-pp-mtrack{stroke:color-mix(in srgb,var(--pp-t) 62%,var(--surf));stroke-width:8}",
 ];
 
 /** 本管と枝の外の管 */
 export function callCase(main: PipeMain): string {
   const d = [main.points, ...main.branches.map((b) => b.points)]
     .filter((p) => p.length > 1)
-    .map(bentLine)
+    .map(lineOf)
     .join(" ");
   return `<path class="dg-pp-ccase" d="${d}"/>`;
 }
@@ -129,7 +106,7 @@ export function callCase(main: PipeMain): string {
  * `run` を渡すと、帯の中を 2 本の筋が流れる (Tracelyth #168)。`draw` を渡すと、帯がその style の動きで呼んだ者の側から見えていく
  */
 export function litPipe(lane: { kind: string; width: number; points: Point[] }, attrs: string, shown: string, good = false, draw = "", run?: Omit<StreamRun, "w">): string {
-  const d = bentLine(lane.points);
+  const d = lineOf(lane.points);
   const tone = cs(good ? "green" : "blue");
   if (good || !run) return `<g class="dg-a" style="${shown}"><path${attrs} class="dg-pp-cdone" style="${tone}" d="${d}"/></g>`;
   const id = streamId();

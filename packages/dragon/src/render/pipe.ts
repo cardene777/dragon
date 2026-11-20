@@ -38,7 +38,7 @@ import {
   valuePipe,
   valve,
 } from "../blocks/hold/draw";
-import { bentLine, callCase, FLOW_CSS, litPipe, STREAM } from "../blocks/return/draw";
+import { callCase, FLOW_CSS, lineOf, litPipe, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   along,
@@ -94,9 +94,6 @@ const mix = (a: string, pct: number, b: string): string => `color-mix(in srgb,${
  * 配管の図の部品の見た目。どの値も値の表から読む。配管の図の SVG にだけ書く。
  * 試作の色の役は、呼び出しを `--c-blue`、値を `--c-amber`、確かめるを `--c-violet`、確定を `--c-green`、取り消しを `--c-rose`、暫定の印を `--c-slate` に当てる
  */
-/** 液の上端の波。幅 60 の波を横に並べた形で液を切り抜き、その下は全て残す (#3783) */
-const WAVE = `url(data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="10" viewBox="0 0 60 10"><path d="M0 5 Q15 0 30 5 T60 5 V10 H0 Z"/></svg>').replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}) repeat-x 0 0 / 60px 10px,linear-gradient(#000,#000) no-repeat 0 9px / 100% 100%`;
-
 const PIPE_CSS = [
   // 液の色。トークンごとに 3 つの色を順に使う
   `.dg-pp{--pp-tone0:var(--c-amber);--pp-tone1:${mix("var(--c-amber)", 48, "var(--ink2)")};--pp-tone2:${mix("var(--c-rose)", 70, "var(--c-amber)")}}`,
@@ -106,10 +103,9 @@ const PIPE_CSS = [
   `.dg-pp-ctag text{${font(T.chip)};fill:var(--c)}`,
   `.dg-pp-housing{fill:${mix("var(--surf)", 55, "transparent")};stroke:var(--line);stroke-width:${S.hair + 0.5};stroke-dasharray:6 6}`,
   // 値の管と流れた分
-  // 値の管の壁は墨の細い縁にする。空洞を壁より 3 細く描き、両側に 1.5 の縁を残す (#3783)
-  `.dg-pp-pcase{fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round}`,
+  `.dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round}`,
   // 値の管の空洞。流れる値と流れた跡は空洞の太さで描く (Tracelyth #168)
-  `.dg-pp-pbore{fill:none;stroke:${mix("var(--line)", 22, "var(--surf)")};stroke-width:11;stroke-linejoin:round}`,
+  `.dg-pp-pbore{fill:none;stroke:${mix("var(--line)", 22, "var(--surf)")};stroke-width:8;stroke-linejoin:round}`,
   // 網型で横の管が縦の管の上を通る所。縦の管を背景の色で切ってから横の管を描き直す
   ".dg-pp-gap{fill:none;stroke:var(--bg);stroke-width:22}",
   // 帳簿型のトークンごとの囲みと張り出し
@@ -127,10 +123,7 @@ const PIPE_CSS = [
   `.dg-pp-glass{fill:${mix("var(--surf)", 80, "transparent")};stroke:var(--line);stroke-width:${S.edgeOn + 0.5}}`,
   ".dg-pp-glass-on{stroke:var(--c)}",
   ".dg-pp-deep{pointer-events:none}",
-  // 液の上端を波の形に切り抜くマスクを重ね、横へ流して揺らす (#3783)。動きを減らす設定では流さない
-  `.dg-pp-liq{fill:var(--pp-t);-webkit-mask:${WAVE};mask:${WAVE};animation:dg-pp-wave ${M.wave}s linear infinite}`,
-  "@keyframes dg-pp-wave{to{-webkit-mask-position:-60px 0,0 9px;mask-position:-60px 0,0 9px}}",
-  "@media (prefers-reduced-motion:reduce){.dg-pp-liq{animation:none}}",
+  ".dg-pp-liq{fill:var(--pp-t)}",
   `.dg-pp-ghost{fill:none;stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:5 5}`,
   `.dg-pp-mark{stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:3 5}`,
   ".dg-pp-mark-rolled{stroke:var(--c-rose)}",
@@ -151,7 +144,7 @@ const PIPE_CSS = [
   // 流れの先を道の頭から見せる切り抜きと、流れ終えた跡と、移す額の札 (Tracelyth #168)
   `.dg-pp-reveal{fill:none;stroke:${PIPE_PAINT.reveal};stroke-width:44;stroke-dasharray:1 1}`,
   `.dg-pp-cdone{fill:none;stroke:var(--c);stroke-width:12;opacity:.3;stroke-linejoin:round}`,
-  `.dg-pp-tpast{fill:none;stroke:var(--pp-t);stroke-width:11;opacity:.32;stroke-linejoin:round}`,
+  `.dg-pp-tpast{fill:none;stroke:var(--pp-t);stroke-width:8;opacity:.32;stroke-linejoin:round}`,
   ".dg-pp-trace-rolled .dg-pp-tpast{stroke:var(--c-rose)}",
   `.dg-pp-coin rect{fill:var(--pp-t);stroke:var(--surf);stroke-width:2.5}`,
   `.dg-pp-coin text{${font(T.chip)};fill:var(--on-c)}`,
@@ -1308,7 +1301,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 地の細い線だけになると、外側の呼び出しの管より細く平らに見えるため (Tracelyth #209)
     for (const c of layout.calls.filter((x) => x.depth > 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      const d = bentLine(c.lit ?? c.points);
+      const d = lineOf(c.lit ?? c.points);
       parts.push(
         `<g class="dg-a" style="${m.vis(t, b)}"><g${on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "back" })} class="dg-pp-cstream" style="${cs("blue")}"><path class="dg-pp-ctrack" d="${d}"/></g>${kindCore({ kind: c.kind, width: c.width }, d)}</g>`,
       );
