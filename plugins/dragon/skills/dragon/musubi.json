@@ -1,0 +1,97 @@
+{
+  "musubi": "2026-11-20",
+  "provides": {
+    "blocks": {
+      "version": "1.0.0",
+      "file": "references/blocks.md"
+    },
+    "embed": {
+      "version": "1.0.0",
+      "file": "references/embed.md"
+    },
+    "layout": {
+      "version": "1.0.0",
+      "file": "references/layout.md"
+    },
+    "notation": {
+      "version": "1.0.0",
+      "file": "references/notation.md"
+    },
+    "setup": {
+      "version": "1.0.0",
+      "file": "references/setup.md"
+    },
+    "architecture": {
+      "version": "1.0.0",
+      "file": "references/kinds/architecture.md"
+    },
+    "chart": {
+      "version": "1.0.0",
+      "file": "references/kinds/chart.md"
+    },
+    "checkout": {
+      "version": "1.0.0",
+      "file": "references/kinds/checkout.md"
+    },
+    "cycle": {
+      "version": "1.0.0",
+      "file": "references/kinds/cycle.md"
+    },
+    "er": {
+      "version": "1.0.0",
+      "file": "references/kinds/er.md"
+    },
+    "flow": {
+      "version": "1.0.0",
+      "file": "references/kinds/flow.md"
+    },
+    "git": {
+      "version": "1.0.0",
+      "file": "references/kinds/git.md"
+    },
+    "lineup": {
+      "version": "1.0.0",
+      "file": "references/kinds/lineup.md"
+    },
+    "matrix": {
+      "version": "1.0.0",
+      "file": "references/kinds/matrix.md"
+    },
+    "mind": {
+      "version": "1.0.0",
+      "file": "references/kinds/mind.md"
+    },
+    "pipe": {
+      "version": "1.0.0",
+      "file": "references/kinds/pipe.md"
+    },
+    "sankey": {
+      "version": "1.0.0",
+      "file": "references/kinds/sankey.md"
+    },
+    "sequence": {
+      "version": "1.0.0",
+      "file": "references/kinds/sequence.md"
+    },
+    "state": {
+      "version": "1.0.0",
+      "file": "references/kinds/state.md"
+    },
+    "time": {
+      "version": "1.0.0",
+      "file": "references/kinds/time.md"
+    },
+    "tree": {
+      "version": "1.0.0",
+      "file": "references/kinds/tree.md"
+    },
+    "try": {
+      "version": "1.0.0",
+      "file": "references/kinds/try.md"
+    },
+    "venn": {
+      "version": "1.0.0",
+      "file": "references/kinds/venn.md"
+    }
+  }
+}
