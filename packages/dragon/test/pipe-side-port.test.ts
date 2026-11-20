@@ -69,10 +69,11 @@ function layoutOf(name: string): Layout {
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${e.line}行目 ${e.message}`).join("\n"));
   return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout;
 }
-/** 槽と槽を繋ぐ値の管と、両端の槽 */
+/** 2人の槽と槽を繋ぐ値の管と、両端の槽。箱から自分の槽へ書き込む管 (`from`と`to`が同じ) は数えない */
 function tankPipes(l: Layout): Array<{ pipe: ValuePipe; a: Tank; b: Tank }> {
   const tank = (party: string, token: string) => l.tanks.find((t) => t.party === party && t.token === token);
   return l.valuePipes.flatMap((pipe) => {
+    if (pipe.from === pipe.to) return [];
     const a = tank(pipe.from, pipe.token);
     const b = tank(pipe.to, pipe.token);
     return a && b ? [{ pipe, a, b }] : [];
