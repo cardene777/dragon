@@ -28,6 +28,25 @@ step Place the order
 </pre>
 ```
 
+## A still figure on a report or explainer page
+
+When the page should show the last step in one picture, such as a chart in a report or a flow in an explainer, add `data-still` to the block instead of `data-header`.
+The block becomes an SVG of the last step with no player: no buttons, step numbers, step captions, or progress bar.
+A chart shows its values and the diagram title, a flow draws every passed line solid, the fonts fall back to sans-serif, the palette defaults to `clear`, and the colors turn dark with the page's `data-theme="dark"` or the device's dark scheme.
+
+```html
+<pre class="dragon" data-still>
+chart Sales by product in thousands of yen [shape: bar]
+item croissant as Croissant
+item melon as Melon bun
+step This week
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+Run `dragon embed page.html` to make a file that reads nothing from outside. When every block is still, it draws them as SVGs and adds no script. From the package, `renderDiagram(diagram, { figure: true })` returns the same SVG.
+
 ## The SDK function
 
 ```ts

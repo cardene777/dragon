@@ -10,6 +10,7 @@
  * 図は枠の幅で見せ方を選ぶので、隠れた間に描くと幅の無い枠に描き、見えた時に図が空のまま残る。
  *
  * 属性 `data-header` を持つ塊は、図を描いた後に呼ぶ側の処理 (`framed`) へ渡して帯を付ける (#3699)。持たない塊は帯の無い図のまま。
+ * 属性 `data-still` を持つ塊は、再生の部品を置かず、最後の段の形を描いた SVG (`div.dragon-figure.dragon-still`) に置き換える (#3801)。
  *
  * 頁の `<link rel="dragon-blocks" href="…">` が指す file は、使う人が足すブロックの定義として 1 度だけ読み、頁の全ての塊に渡す (#3399)。
  * file は記法 (`blocks 1` で始まる) か JSON (`"format": 1`) で書く。読む file は頁を書いた人が指した所だけで、定義は外の物を読ませない。
@@ -24,6 +25,7 @@ import { parseNotation } from "./parser";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type Player, type PlayerOptions } from "./player";
 import type { Diagram } from "./schema";
+import { STILL_ATTR, stillFigureHtml } from "./still-figure";
 import type { NotationLang } from "./words";
 
 /** 属性 `data-header` を持つ塊の、描いた図を受け取る処理。図を描いた後に呼ぶ (#3699) */
@@ -82,6 +84,18 @@ async function drawBlock(
   const parsed = parseNotation(text, { lang, ...(blocks ? { blocks } : {}) });
   if (!parsed.ok) {
     block.replaceWith(errorBox(doc, parsed.errors.map((error) => `${error.line}: ${error.message}`)));
+    return;
+  }
+  // 属性 `data-still` を持つ塊は、再生の部品を置かず、最後の段の形を描いた SVG に置き換える (#3801)
+  if (block.hasAttribute(STILL_ATTR)) {
+    const width = Math.round(block.getBoundingClientRect().width);
+    try {
+      const holder = doc.createElement("div");
+      holder.innerHTML = stillFigureHtml(parsed.diagram, { lang, ...(blocks ? { blocks } : {}), ...(width > 0 ? { width } : {}) });
+      block.replaceWith(holder.firstElementChild ?? holder);
+    } catch (error) {
+      block.replaceWith(errorBox(doc, [detail(error)]));
+    }
     return;
   }
   // 図は枠の幅で見せ方を選ぶので、枠を頁に置いてから描く

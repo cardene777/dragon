@@ -94,6 +94,8 @@ export interface Ctx {
   corner: Corner;
   /** 暗い色味で描くか (#3721)。配管の図は薄く描く部品を明るい色味より濃くし、暗い地でも同じだけ見えるようにする */
   dark?: boolean;
+  /** 頁に止めて置く図か (#3801)。段を送らないので、段の番号の丸を描かない */
+  figure?: boolean;
   /** 運ぶ物が置き場に座っている所と間 (#3518)。箱の置き場の枠は、運ぶ物が座っている間だけ見せる */
   seats: Seat[];
   /**
@@ -180,6 +182,8 @@ export function doneMark(box: SceneBox, at: number, ctx: Ctx): string {
  * 見える間は `visibility` を祖先から受け継ぎ、`visibility: hidden` の祖先 (隠したタブなど) の中では動く間も隠れたままにする (#3755)。
  */
 export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
+  // 止めて置く図は段を送らないので、段の番号を出さない (#3801)
+  if (ctx.figure) return "";
   const { m } = ctx;
   const span = ctx.t.steps[b.step] as Span;
   const a = span.start;

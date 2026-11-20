@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A block with `data-still` is replaced by a still figure: an SVG of the last step with no player, no step numbers, chart titles in place of step titles, a sans-serif fallback, the `clear` palette by default, and colors that follow the page's `data-theme` and the device's dark scheme. `renderDiagram` returns the same SVG with `figure: true`, and `dragon embed` draws still blocks as SVGs and adds no bundled script when no moving block is left (#3801)
+
 ## [0.79.2] - 2026-11-20
 
 ### Changed

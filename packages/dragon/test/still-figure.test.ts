@@ -48,7 +48,8 @@ const idOf = (svg: string): string => /class="dg dg-([A-Za-z0-9_-]+)"/u.exec(svg
 /** 図の根の規則 (`.dg-<id>{...}`) の中身を全て繋げた字 */
 const rootRules = (svg: string): string => {
   const id = idOf(svg);
-  return [...styleOf(svg).matchAll(new RegExp(`(?:^|\\})\\.dg-${id}\\{([^}]*)\\}`, "gu"))].map((m) => m[1]).join(";");
+  // 規則の終わりの `}` を前の一致が使うので、後ろ読みで規則の頭を見る
+  return [...styleOf(svg).matchAll(new RegExp(`(?<=^|\\})\\.dg-${id}\\{([^}]*)\\}`, "gu"))].map((m) => m[1]).join(";");
 };
 const varOf = (rules: string, name: string): string | undefined => new RegExp(`(?:^|;)--${name}:([^;]+)`, "u").exec(rules)?.[1];
 
