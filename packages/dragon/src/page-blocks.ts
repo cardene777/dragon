@@ -16,6 +16,7 @@
  * 定義を読めない時は、全ての塊をその誤りの文に置き換える。
  *
  * `dragon embed` が収めた配管の図の並べ方 (`#dragon-layouts`、#3748) が在れば全ての塊に渡し、鍵が合う図は道を探さずに描く。
+ * `drawn` を渡すと、全ての塊の図を描いた後に、描いた原本と設定を渡す。jsDelivr の入口はここで配管の図の箱を開いた形を先に組む (#3753)。
  */
 import { dedent } from "./embed/dedent";
 import type { StoredPipeLayout } from "./kinds/pipe/layout";
@@ -27,6 +28,9 @@ import type { NotationLang } from "./words";
 
 /** 属性 `data-header` を持つ塊の、描いた図を受け取る処理。図を描いた後に呼ぶ (#3699) */
 export type FramedBlock = (host: HTMLElement, drawn: Player, source: string, diagram: Diagram, options: PlayerOptions) => void;
+
+/** 塊の図を描いた後に、描いた原本と設定を受け取る処理 (#3753) */
+export type DrawnBlock = (diagram: Diagram, options: PlayerOptions & { lang: NotationLang }) => void;
 
 const detail = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -63,6 +67,7 @@ async function drawBlock(
   defined: Promise<UserBlocks[]>,
   layouts: StoredPipeLayout[] | undefined,
   framed?: FramedBlock,
+  drawnBlock?: DrawnBlock,
 ): Promise<void> {
   const doc = block.ownerDocument;
   const text = dedent(block.textContent ?? "");
@@ -87,6 +92,7 @@ async function drawBlock(
     const options = { lang, ...(blocks ? { blocks } : {}), ...(layouts ? { layouts } : {}) };
     const drawn = mountDiagram(host, parsed.diagram, options);
     if (framed && block.hasAttribute("data-header")) framed(host, drawn, text, parsed.diagram, options);
+    drawnBlock?.(parsed.diagram, options);
   } catch (error) {
     host.replaceWith(errorBox(doc, [detail(error)]));
   }
@@ -140,17 +146,17 @@ const pageBlocks = (doc: Document): Element[] => [
 
 /**
  * 頁の記法の塊を全て図に置き換える。`prepare` は記法を読む前に待ち、その記法が使う部品を読む。
- * `framed` を渡すと、属性 `data-header` を持つ塊の図を描いた後にそれへ渡す。
+ * `framed` を渡すと、属性 `data-header` を持つ塊の図を描いた後にそれへ渡す。`drawnBlock` を渡すと、全ての塊の図を描いた後にそれへ渡す。
  * 頁を読み終える前に呼ばれた時は、読み終えてから置き換える
  */
-export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise<void>, framed?: FramedBlock): void {
+export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise<void>, framed?: FramedBlock, drawnBlock?: DrawnBlock): void {
   const lang: NotationLang = doc.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
   const draw = (): void => {
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
     const layouts = storedLayouts(doc);
-    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, lang, defined, layouts, framed));
+    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, lang, defined, layouts, framed, drawnBlock));
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();

@@ -3,6 +3,7 @@
  * 準備の file (`pipe-stored-layout.prepare.ts`) が `tsx` で起こす。並べ方の覚えは process の中だけに在るので、新しい process は前に描いた覚えを持たない。
  *
  * 頁の入口と同じく最初に見える形を描いてから先に組む。空いた時間に回す仕事は、預かった時にすぐ回す。
+ * 原本を読む部品と種類の部品の組は、jsDelivr の入口と同じ物を渡す。
  * 原本ごとに、描き直した形の並べ方と SVG の指紋と、描き直した時に道を探した回数を、最後の 1 行の JSON で出す。
  *
  * 使い方: `tsx pipe-ahead-child.ts`
@@ -10,12 +11,16 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { renderDiagram } from "../src/core";
+import { partsOf } from "../src/kinds/registry";
+import { toModel } from "../src/model";
 import { Router } from "../src/pipe-route";
+import { withUserBlocks } from "../src/user-blocks";
+import { readDiagram } from "../src/version";
 import { langOfFile, PIPE_SOURCES, readSource, REPO } from "./pipe-stored-layout-support";
 import "../src/kind-use/pipe";
 
 type Laid = { svg: string; layout: { folds?: { call: number }[] } };
-type ComposeAhead = (source: unknown, options: { lang: "ja" | "en" }, idle: (run: () => void) => void) => void;
+type ComposeAhead = (source: unknown, options: { lang: "ja" | "en" }, use: unknown, idle: (run: () => void) => void) => void;
 
 const fingerprint = (text: string): string => createHash("sha256").update(text).digest("hex");
 const render = (source: unknown, options: Record<string, unknown>): Laid => renderDiagram(source, options) as unknown as Laid;
@@ -41,7 +46,8 @@ if (typeof ahead !== "function") {
       const source = readSource(file);
       const lang = langOfFile(file);
       const closed = render(source, { lang });
-      ahead(source, { lang }, (run) => run());
+      // jsDelivr の入口 (`script.ts`) と同じ部品を渡す
+      ahead(source, { lang }, { readDiagram, toModel, partsOf, withUserBlocks }, (run) => run());
       const forms = [[], ...(closed.layout.folds ?? []).map((fold) => [fold.call])].map((open) => {
         const before = routeCalls;
         const drawn = render(source, { lang, open });
