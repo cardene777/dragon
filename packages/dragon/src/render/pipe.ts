@@ -38,7 +38,7 @@ import {
   valuePipe,
   valve,
 } from "../blocks/hold/draw";
-import { callCase, FLOW_CSS, lineOf, litPipe, STREAM } from "../blocks/return/draw";
+import { callCase, FLOW_CSS, litPipe, pipeLine, STREAM } from "../blocks/return/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   along,
@@ -71,7 +71,7 @@ import {
 } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
-import { FLOW_MOVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
+import { FLOW_MOVE, LIQUID_WAVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
 import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
@@ -94,6 +94,7 @@ const mix = (a: string, pct: number, b: string): string => `color-mix(in srgb,${
  * 配管の図の部品の見た目。どの値も値の表から読む。配管の図の SVG にだけ書く。
  * 試作の色の役は、呼び出しを `--c-blue`、値を `--c-amber`、確かめるを `--c-violet`、確定を `--c-green`、取り消しを `--c-rose`、暫定の印を `--c-slate` に当てる
  */
+
 const PIPE_CSS = [
   // 液の色。トークンごとに 3 つの色を順に使う
   `.dg-pp{--pp-tone0:var(--c-amber);--pp-tone1:${mix("var(--c-amber)", 48, "var(--ink2)")};--pp-tone2:${mix("var(--c-rose)", 70, "var(--c-amber)")}}`,
@@ -103,9 +104,10 @@ const PIPE_CSS = [
   `.dg-pp-ctag text{${font(T.chip)};fill:var(--c)}`,
   `.dg-pp-housing{fill:${mix("var(--surf)", 55, "transparent")};stroke:var(--line);stroke-width:${S.hair + 0.5};stroke-dasharray:6 6}`,
   // 値の管と流れた分
-  `.dg-pp-pcase{fill:none;stroke:var(--line);stroke-width:14;stroke-linejoin:round}`,
+  // 値の管の壁は墨の細い縁にする。空洞を壁より 3 細く描き、両側に 1.5 の縁を残す (#3783)
+  `.dg-pp-pcase{fill:none;stroke:var(--ink);stroke-width:14;stroke-linejoin:round}`,
   // 値の管の空洞。流れる値と流れた跡は空洞の太さで描く (Tracelyth #168)
-  `.dg-pp-pbore{fill:none;stroke:${mix("var(--line)", 22, "var(--surf)")};stroke-width:8;stroke-linejoin:round}`,
+  `.dg-pp-pbore{fill:none;stroke:${mix("var(--line)", 22, "var(--surf)")};stroke-width:11;stroke-linejoin:round}`,
   // 網型で横の管が縦の管の上を通る所。縦の管を背景の色で切ってから横の管を描き直す
   ".dg-pp-gap{fill:none;stroke:var(--bg);stroke-width:22}",
   // 帳簿型のトークンごとの囲みと張り出し
@@ -123,7 +125,10 @@ const PIPE_CSS = [
   `.dg-pp-glass{fill:${mix("var(--surf)", 80, "transparent")};stroke:var(--line);stroke-width:${S.edgeOn + 0.5}}`,
   ".dg-pp-glass-on{stroke:var(--c)}",
   ".dg-pp-deep{pointer-events:none}",
-  ".dg-pp-liq{fill:var(--pp-t)}",
+  // 液の上端を波の形に切り抜くマスクを重ね、横へ流して揺らす (#3783)。動きを減らす設定では流さない
+  `.dg-pp-liq{fill:var(--pp-t);-webkit-mask:${LIQUID_WAVE.mask};mask:${LIQUID_WAVE.mask};animation:dg-pp-wave ${M.wave}s linear infinite}`,
+  `@keyframes dg-pp-wave{to{-webkit-mask-position:${LIQUID_WAVE.to};mask-position:${LIQUID_WAVE.to}}}`,
+  "@media (prefers-reduced-motion:reduce){.dg-pp-liq{animation:none}}",
   `.dg-pp-ghost{fill:none;stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:5 5}`,
   `.dg-pp-mark{stroke:var(--t-slate);stroke-width:${S.edgeOn};stroke-dasharray:3 5}`,
   ".dg-pp-mark-rolled{stroke:var(--c-rose)}",
@@ -144,7 +149,7 @@ const PIPE_CSS = [
   // 流れの先を道の頭から見せる切り抜きと、流れ終えた跡と、移す額の札 (Tracelyth #168)
   `.dg-pp-reveal{fill:none;stroke:${PIPE_PAINT.reveal};stroke-width:44;stroke-dasharray:1 1}`,
   `.dg-pp-cdone{fill:none;stroke:var(--c);stroke-width:12;opacity:.3;stroke-linejoin:round}`,
-  `.dg-pp-tpast{fill:none;stroke:var(--pp-t);stroke-width:8;opacity:.32;stroke-linejoin:round}`,
+  `.dg-pp-tpast{fill:none;stroke:var(--pp-t);stroke-width:11;opacity:.32;stroke-linejoin:round}`,
   ".dg-pp-trace-rolled .dg-pp-tpast{stroke:var(--c-rose)}",
   `.dg-pp-coin rect{fill:var(--pp-t);stroke:var(--surf);stroke-width:2.5}`,
   `.dg-pp-coin text{${font(T.chip)};fill:var(--on-c)}`,
@@ -1262,7 +1267,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         const attrs = ` class="dg-pp-housing" data-pipe-housing="${h.party}"`;
         return frameShape(ctx.corner, attrs, h, `<rect${attrs} x="${r1(h.x)}" y="${r1(h.y)}" width="${r1(h.w)}" height="${r1(h.h)}" rx="${P.tank.radius + P.housing.pad / 2}"/>`);
       }),
-    ...layout.mains.map(callCase),
+    ...layout.mains.map((main) => callCase(main, ctx.corner)),
     // 名前のすぐ下に入れ物が在る時の短い線は、切れ端に見えるので描かない (Tracelyth #221)
     ...layout.ties.filter((t) => t.y2 - t.y1 >= 24).map((t) => `<path class="dg-pp-tie" d="M ${r1(t.x)} ${r1(t.y1)} V ${r1(t.y2)}"/>`),
     // 処理を借りる呼び出しの線の札 (Tracelyth #207)
@@ -1290,18 +1295,18 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
               [opened + MOTION.draw, { "stroke-dashoffset": 0 }],
               [m.total, { "stroke-dashoffset": 0 }],
             ]);
-      parts.push(litPipe(lane, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shownAt, false, draw, { m, t0: opened ?? a, tEnd: shut ?? b, pre: opened === undefined }));
+      parts.push(litPipe(lane, ctx.corner, on({ branch: `${lane.from}>${lane.to}`, call: lane.call, pipe: "open" }), shownAt, false, draw, { m, t0: opened ?? a, tEnd: shut ?? b, pre: opened === undefined }));
     }
     // 一番外の呼び出しが戻って全てが確定した段は、送り手から出る管を確定の色で光らせる
     for (const c of layout.calls.filter((x) => x.depth === 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
+      parts.push(litPipe({ kind: c.kind, width: c.width, points: c.lit }, ctx.corner, on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "done" }), m.vis(t, b), true));
     }
     // 内側の呼び出しは、戻った後もその段の間は管を落ち着いた色で残す。
     // 地の細い線だけになると、外側の呼び出しの管より細く平らに見えるため (Tracelyth #209)
     for (const c of layout.calls.filter((x) => x.depth > 0 && x.close?.how === "return" && x.close.step === s)) {
       const t = timeOf(s, c.close?.event) ?? a;
-      const d = lineOf(c.lit ?? c.points);
+      const d = pipeLine(c.lit ?? c.points, ctx.corner);
       parts.push(
         `<g class="dg-a" style="${m.vis(t, b)}"><g${on({ branch: `${c.from}>${c.to}`, call: c.index, pipe: "back" })} class="dg-pp-cstream" style="${cs("blue")}"><path class="dg-pp-ctrack" d="${d}"/></g>${kindCore({ kind: c.kind, width: c.width }, d)}</g>`,
       );
@@ -1350,10 +1355,10 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 値の管。その段で流れた管と、流れた分の印が替わった管だけを濃く描く
     for (const x of trunks) parts.push(dimmed(trunkLit(x), `<g data-pipe-trunk="${esc(x.token)}"><path class="dg-pp-pcase" d="${x.d}"/></g>`));
     layout.valuePipes.forEach((pipe, k) =>
-      parts.push(dimmed(moved(k), valuePipe(pipe.points, on({ value: pipe.token, pipe: k, ...(pipe.holder !== undefined ? { holder: pipe.holder } : {}) })))),
+      parts.push(dimmed(moved(k), valuePipe(pipe.points, ctx.corner, on({ value: pipe.token, pipe: k, ...(pipe.holder !== undefined ? { holder: pipe.holder } : {}) })))),
     );
     for (const x of trunks) parts.push(dimmed(trunkLit(x), `<g data-pipe-trunk="${esc(x.token)}"><path class="dg-pp-pbore" d="${x.d}"/></g>`));
-    for (const stub of layout.stubs) parts.push(dimmed(false, valuePipe(stub.points, on({ stub: stub.token }))));
+    for (const stub of layout.stubs) parts.push(dimmed(false, valuePipe(stub.points, ctx.corner, on({ stub: stub.token }))));
     // 移す額の札がトークンの箱に入って出る図 (固定した形を持たない図) の、札を飲み込む箱
     const gulpOf = (path: readonly Point[]): PipeParty | undefined =>
       layout.fixed !== undefined

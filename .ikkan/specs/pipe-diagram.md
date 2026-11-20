@@ -198,3 +198,12 @@
 | 間の人が槽を持たない2つの槽 (発行の図のBobとゼロのアドレス) は、側面どうしを1本の真っすぐな管で繋ぐ | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-straight-over-empty-column`が通る | #3775 |
 | 槽の下を回る管は、どの槽にも槽の下の残高の文字にも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-under-clears-tanks-and-text`が通る | #3775 |
 | 隣り合う槽 (送金の図のAliceとBob) は、今どおり側面の真ん中の口どうしを真っすぐ繋ぐ | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-adjacent-unchanged`が通る | #3775 |
+| パイプ図の値の管の折れ線は、どの角も図のほかの線と同じ共通の半径12px (隣の辺の半分より短い時はその半分) の弧で曲がり、直角の角を持たない | `pnpm exec vitest run packages/dragon/test/pipe-top-look.test.ts --reporter=verbose`の検査`pipe-value-corners-round`が通る | #3783 |
+| 値の管の壁は墨の色 (`--ink`) の14pxの線で、空洞は11pxの線なので、管の縁が1.5pxの細い墨の線になる | `pnpm exec vitest run packages/dragon/test/pipe-top-look.test.ts --reporter=verbose`の検査`pipe-value-tube-ink-edge`が通る | #3783 |
+| 槽の名前の字は槽のガラスの上端より上に在り、名札の字と値の管と入力と出力の印に重ならず、名前に重なる名札からの点線を描かない | `pnpm exec vitest run packages/dragon/test/pipe-top-look.test.ts --reporter=verbose`の検査`pipe-tank-name-above-glass`が通る | #3783 |
+| 槽の液に上端を波の形に切り抜くマスクがかかって横へ流れ、動きを減らす設定の時は流れない | `pnpm exec vitest run packages/dragon/test/pipe-top-look.test.ts --reporter=verbose`の検査`pipe-tank-liquid-waves`が通る | #3783 |
+| 呼び出しの管の折れ線も、値の管と同じ共通の半径12pxの弧で曲がり、直角の角を持たない | `pnpm exec vitest run packages/dragon/test/pipe-top-look.test.ts --reporter=verbose`の検査`pipe-call-corners-round`が通る | #3783 |
+| 隣り合わない槽を繋ぐ管の両端は、槽の角の丸みを除いた平らな辺の上に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts --reporter=verbose`の検査`pipe-side-port-on-flat-side`が通る | #3783 |
+| 槽の下を回る管は、槽と残高の字を横切らない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts --reporter=verbose`の検査`pipe-side-port-under-clears-tanks-and-text`が通る | #3783 |
+| 角を落とす色味 (arcade) では、管を含む全ての線の45度以上の折れ目を直角で描く | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts --reporter=verbose`の検査`arcade-draws-square-line-bends`が通る | #3783 |
+| 外の上に置いた槽の名前の字の箱とガラスの間は、部品どうしの間の下限8px以上空く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts --reporter=verbose`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3783 |
