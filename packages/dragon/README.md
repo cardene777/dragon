@@ -1037,7 +1037,7 @@ The box of the whole holds empty dots from before the first step, and in the ste
 The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
 Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
 Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
-With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel refuses `set none`.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel and a line chart refuse `set none`.
 
 ```dragon
 chart Devices of 1,000 people [shape: dots]
@@ -1066,6 +1066,34 @@ step Mac
 step None of them
   say The 50 people who use none of them stay grey in the box of the whole.
   set none: 50
+```
+
+`chart <title> [shape: line]` draws how amounts change over time as a line chart.
+Each `item` is one line in its own color with its name in the legend at the top, and each `step` is one point on the time axis, labeled with the step title.
+`set <id>: <value>` gives the item's value at that step, and a step without `set` keeps the previous value.
+The value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10.
+Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point.
+A line chart needs at least two steps, and an item that never gets a value and `set none` are errors when the notation is read.
+
+```dragon
+chart A bakery's sales over one week (yen) [shape: line]
+
+item shop as Counter [color: amber]
+item online as Online [color: blue]
+
+step Mon
+  say The week starts with 42,000 yen at the counter and 12,000 yen online.
+  set shop: 42000
+  set online: 12000
+
+step Tue
+  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
+  set shop: 38000
+  set online: 15000
+
+step Wed
+  say The counter comes back to 45,000 yen.
+  set shop: 45000
 ```
 
 ```dragon

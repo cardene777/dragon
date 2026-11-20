@@ -4,7 +4,7 @@
  *
  * 量の図の `item <名札> as <名前> [color: <色>]` の行を、行の形 (`take`) で読む。量の図に書ける行は項目と値と段の行だけで、
  * ほかの行の頭の語 (`checkHead`) と線の行は誤りで止める。項目が 1 つも無い図は読み終えた時 (`finish`) に止める。
- * `none` (#3635) は漏斗のほかの見た目でどの項目にも入らない数を書く語 (`set none: <値>`) なので、その見た目では項目の名札に使えない
+ * `none` (#3635) は漏斗と折れ線 (#3802) のほかの見た目でどの項目にも入らない数を書く語 (`set none: <値>`) なので、その見た目では項目の名札に使えない
  */
 import { attrs, shown } from "../../print-kit";
 import { fail, isOneOf, readDeclared } from "../../read-kit";
@@ -23,8 +23,14 @@ const CHART_LINES: readonly string[] = [
   ...["item", "set", "step", "say", "code", "source"],
 ];
 
-/** どの項目にも入らない数を書く語 (#3635)。漏斗のほかの見た目の量の図では項目の名札に使えない */
+/** どの項目にも入らない数を書く語 (#3635)。漏斗と折れ線のほかの見た目の量の図では項目の名札に使えない */
 export const CHART_NONE = "none";
+
+/**
+ * 見た目 `shape` の量の図が、どの項目にも入らない数 (`set none`) を描くか。漏斗は段の数が減る図で、折れ線 (#3802) は時間の軸の上の量の図なので、
+ * どちらも `none` を描かず、`none` を普通の名札として読む
+ */
+export const takesNone = (shape: string | undefined): boolean => shape !== "funnel" && shape !== "line";
 
 export interface ChartItemMessages {
   /** `item` の行が 1 つも無い量の図 */
@@ -35,7 +41,7 @@ export interface ChartItemMessages {
   chartNoLine: (word: string) => string;
   /** 量の図に線の行を書いた */
   chartNoEdge: string;
-  /** 漏斗のほかの見た目の量の図で、項目の名札に `none` を書いた (#3635) */
+  /** 漏斗と折れ線のほかの見た目の量の図で、項目の名札に `none` を書いた (#3635) */
   chartNoneId: string;
 }
 
@@ -73,12 +79,12 @@ export const reading: BlockReading<ChartItemMessages> = {
     if (!CHART_LINES.includes(word)) throw fail(source, 0, state.m.chartNoLine(word));
   },
   reserved: (source, id, at, state) => {
-    if (id === CHART_NONE && state.figure.chart.shape?.value !== "funnel") throw fail(source, at, state.m.chartNoneId);
+    if (id === CHART_NONE && takesNone(state.figure.chart.shape?.value)) throw fail(source, at, state.m.chartNoneId);
   },
   finish: (state, head) => {
     const { chart } = state.figure;
     if (chart.items.length === 0) throw fail(head, 0, state.m.chartNoItems);
-    // 見た目は見た目のブロックが `donut` か `bar` か `funnel` か `dots` と、1 点の件数は 0 より大きい数と確かめた
+    // 見た目は見た目のブロックが `donut` か `bar` か `funnel` か `dots` か `line` と、1 点の件数は 0 より大きい数と確かめた
     state.figure.root = { ...state.figure.root, chart: { shape: chart.shape?.value as ChartShape, ...(chart.unit ? { unit: Number(chart.unit.value) } : {}), items: chart.items } };
   },
   read: none("量の図の item の行は、列の図のチップの語なので行の形 (take) で読む"),

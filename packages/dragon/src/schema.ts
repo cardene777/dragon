@@ -745,11 +745,11 @@ interface Validate {
   errors?: readonly object[] | null;
 }
 
-/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、漏斗の見た目の値の検査 (#3621) */
+/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、量の図の漏斗 (#3621) と折れ線 (#3802) の見た目の値の検査 */
 interface Validator {
   shape: Validate;
   tablerErrors: (input: unknown, m: TablerMessages) => FieldError[];
-  funnelErrors: (input: unknown, lang: NotationLang) => FieldError[];
+  chartErrors: (input: unknown, lang: NotationLang) => FieldError[];
   /** 値の持ち分の線が同じ人どうしを結ぶかの検査 (Tracelyth #133)。形の決まりは2つの欄の値を比べられないため */
   holdLinkErrors: (input: unknown, message: string) => FieldError[];
 }
@@ -775,15 +775,15 @@ export const validatorLoaded = (): boolean => validator !== undefined;
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
   if (validator === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
-  const { shape: validate, tablerErrors, funnelErrors, holdLinkErrors } = validator;
+  const { shape: validate, tablerErrors, chartErrors, holdLinkErrors } = validator;
   const version1 = isVersion1(input);
   const lang = options.lang ?? DEFAULT_LANG;
   const m = FIELD_MESSAGES[lang];
   // 絵柄集の絵柄は、形が名前の書き方だけを決めるので、絵柄集に在るかをここで確かめる (#3493)。
   // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる。
-  // 量の図の漏斗の見た目の値が段を進むほど減るかも、形に書けないのでここで確かめる (#3621)。
+  // 量の図の漏斗の見た目の値が段を進むほど減るかと、折れ線の見た目の段の数と値を書かない項目も、形に書けないのでここで確かめる (#3621、#3802)。
   // 値の持ち分の線が別の2人を結ぶかも、形が2つの欄を比べられないのでここで確かめる (Tracelyth #133)
-  const sets = [...tablerErrors(input, m), ...funnelErrors(input, lang), ...holdLinkErrors(input, m.oneOf)];
+  const sets = [...tablerErrors(input, m), ...chartErrors(input, lang), ...holdLinkErrors(input, m.oneOf)];
   if (typeof input === "object" && input !== null && (input as Diagram).kind) {
     const native = readyParts((input as Diagram).kind)?.validate;
     if (native) sets.push(...native(input as Diagram).map(message => ({pointer:"/blocks",message})));

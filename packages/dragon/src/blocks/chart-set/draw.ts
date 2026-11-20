@@ -6,6 +6,8 @@
  * ドーナツの弧は輪の円の線を `stroke-dasharray` の長さで切り、`stroke-dashoffset` で始まりの角度へ送る。円は 12 時の向きから描くよう回してある。
  * 隣の弧と続いて 1 本に見えないよう、弧の両端を `gap` の半分ずつ削る。
  * 横棒は一番大きい値の棒の長さの四角を、左端を軸に `scaleX` で値の割合まで縮める。
+ * 折れ線 (#3802) は線を最初の点から結んだ 1 本の線にし、線の長さの `stroke-dasharray` を `stroke-dashoffset` で送って、
+ * 段の始まりから前の段の点までの長さを新しい段の点までの長さへ伸ばす。
  * ドーナツの凡例の割合と横棒の端の値は段ごとの字で、同じ字が続く段は 1 つの字にまとめて出したままにする。
  * この file は量の図を描く部品 (`render/chart.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
@@ -57,6 +59,15 @@ export function arcMotion(arcs: ChartArc[], r: number, ctx: Ctx): string {
 export function barMotion(ratios: number[], ctx: Ctx): string {
   const state = (ratio: number): Props => ({ transform: `scaleX(${Math.round(ratio * 1000) / 1000})`, opacity: ratio > 0 ? 1 : 0 });
   return ctx.m.kf(stepFrames(ctx, ratios.map(state), () => state(0)));
+}
+
+/**
+ * 1 本の折れ線の動き (#3802)。`drawn` は段ごとの、最初の点からその段の点までの線の長さ、`length` は線の全ての長さ。
+ * 値を書く前の段と、最初の段の前と、繰り返す前は長さ 0 にする
+ */
+export function lineMotion(drawn: number[], length: number, ctx: Ctx): string {
+  const state = (d: number): Props => ({ "stroke-dashoffset": r2(length - d) });
+  return ctx.m.kf(stepFrames(ctx, drawn.map(state), () => state(0)));
 }
 
 /** 同じ字が続く段のまとまり。`from` から `to` までの段 (`to` を含む) に字 `text` を出す */
