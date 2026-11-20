@@ -68,3 +68,13 @@
 | 頁の幅1000pxで帯のエクスポートの窓を開いた時、窓の右端は今と同じくエクスポートのボタンの右端と揃い、窓の幅は300pxのまま | `pnpm exec vitest run`の検査`frame-menu-aligns-right-on-wide-page`が通る | #3786 |
 | jsDelivrの1行の入口が最初に読むscriptの量 (gzipした後) は、上限の90,000 byteを超えられない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3786 |
 | `dragon embed`が書く頁は今と同じく1つのfileで、外への通信を止めて開くと塊が図に置き換わる | `pnpm exec vitest run`の検査`embed-writes-offline-file`が通る | #3786 |
+| 頁が`body{letter-spacing:.12em;word-spacing:.3em;text-transform:uppercase}`を持つ時、帯つきの図と`mountDiagram`で置いた帯の無い図の両方で、図のSVGの全ての`text`の`letter-spacing`と`word-spacing`と`text-transform`の計算値と描いた字の幅が、頁のCSSの無い時と同じになる。字の間を自分で決めない字では、計算値は`normal`と`0px`と`none`になる | `pnpm exec vitest run`の検査`frame-text-ignores-page-spacing`が通る | #3787 |
+| 同じ頁で、帯つきの図の帯の題と、`<a>`で作るエディタを含む帯の全てのボタンの`letter-spacing`が`normal`、`text-transform`が`none`になり、帯の高さと各ボタンの幅が頁のCSSの無い時と同じになる | `pnpm exec vitest run`の検査`frame-text-ignores-page-spacing`が通る | #3787 |
+| 同じ頁で、帯の無い図の再生の帯 (`.dg-player`) の段の題と段の本文の`letter-spacing`が`normal`、`text-transform`が`none`になる | `pnpm exec vitest run`の検査`player-text-ignores-page-spacing`が通る | #3787 |
+| 頁が`button{background:#e11d48;color:#fff;border:0;border-radius:999px;padding:12px 24px;font-size:18px;font-weight:700;text-transform:uppercase;min-height:48px;min-width:96px;box-shadow:0 3px 0 #9f1239}`と`div{line-height:2.4}`を持つ時、頁のCSSは`createFigureHeader`で作った帯のボタンに影と最小の幅と大文字を付けられない。ボタンの`box-shadow`は`none`、`min-width`は`0px`、`text-transform`は`none`になる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| 同じ頁で、題と4つのボタンを置いた`createFigureHeader`の帯は、ボタンの高さが30px、帯の高さが49pxのまま描かれる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| 頁が`body{letter-spacing:.12em;word-spacing:.3em;text-transform:uppercase}`を持つ時、`createFigureHeader`で作った帯の題と全てのボタンの`letter-spacing`が`normal`、`text-transform`が`none`になる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| `createFigureHeader`は今と同じく`element`、`title`、`actions`、`settings`、`setColors`を返し、帯の頭を頁の中に置く | `pnpm exec vitest run`の検査`site-mark-and-favicon-match-the-bar-mark`と`catalog-card-has-the-bar`と`"header layout and controls remain the same when the embedder changes its colors"`が通る | #3787 |
+| 見本帳の帯は今と同じく、帯の頭の`actions`と`settings`へ見本帳のボタンと色味の選ぶ欄と拡大縮小を差し込む | `pnpm exec vitest run`の検査`catalog-bar-holds-theme-and-zoom`と`catalog-bar-code-toggles-source`が通る | #3787 |
+| 帯つきの図のSVGの全ての要素の縁取りの有無と線の太さは、同じ記法の帯の無い図と同じ | `pnpm exec vitest run`の検査`frame-diagram-keeps-plain-strokes`が通る | #3787 |
+| jsDelivrの1行の入口が時系列図の頁で最初に読むscriptのgzip後の合計は90,000 byte以下 | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3787 |

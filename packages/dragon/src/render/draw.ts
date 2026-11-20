@@ -51,6 +51,7 @@ import {
   LOOK,
   type Palette,
   paletteVars,
+  PLAIN_TEXT,
   resolvePalette,
   type Theme,
   TYPE,
@@ -160,7 +161,8 @@ const PAST = `color-mix(in srgb,var(--mute) ${X.past}%,var(--bg))`;
 
 /** 部品の見た目。どの値も値の表から読む。 */
 const PART_CSS = [
-  ".dg{display:block;width:100%;height:auto;overflow:visible}",
+  // 字の大きさは字の幅の表で測るので、置いた頁の字の間と大文字を受け継がない (#3787)
+  `.dg{display:block;width:100%;height:auto;overflow:visible;${PLAIN_TEXT}}`,
   ".dg .dg-a{animation-duration:var(--T);animation-timing-function:linear;animation-iteration-count:infinite;animation-fill-mode:both;animation-delay:calc(var(--at,0) * -1s);animation-play-state:var(--play,running)}",
   ".dg .dg-popc{transform-box:fill-box;transform-origin:center}",
   ".dg-bg{fill:var(--bg)}",
