@@ -297,7 +297,7 @@ describe("折れ線の見た目の描き方 (#3802)", () => {
     ] as const) {
       const one = smallLine() as unknown as { steps: { events: Json[] }[] };
       for (const step of one.steps) step.events = [setEvent("a", most), setEvent("b", 0)];
-      const drawn = motionFrom(render(one as unknown as Json));
+      const drawn = motionFrom(render(one));
       expect(
         partsOf(drawn, "[data-chart-tick]").map((el) => el.getAttribute("data-chart-tick")),
         `一番大きい値が ${most} の縦の軸の値`,
@@ -314,7 +314,7 @@ describe("折れ線の見た目の描き方 (#3802)", () => {
       { id: "c", name: "卸し" },
     ];
     for (const step of three.steps) step.events.push(setEvent("c", 3000));
-    cases.push({ where: "色を書かない 3 本", diagram: three as unknown as Json, names: ["店頭", "通販", "卸し"] });
+    cases.push({ where: "色を書かない 3 本", diagram: three, names: ["店頭", "通販", "卸し"] });
     for (const { where, diagram, names } of cases) {
       const motion = motionFrom(render(diagram));
       const ids = names.map((_, i) => String.fromCharCode(97 + i));
@@ -416,7 +416,7 @@ describe("折れ線の見た目の描き方 (#3802)", () => {
     let rendered: Rendered | undefined;
     let refusal = "";
     try {
-      rendered = renderDiagram(read.diagram as never, { lang: "ja", still: true, figure: true }) as unknown as Rendered;
+      rendered = renderDiagram(read.diagram, { lang: "ja", still: true, figure: true });
     } catch (error) {
       refusal = String(error);
     }
@@ -498,14 +498,14 @@ describe("折れ線にならない書き方 (#3802)", () => {
     ];
     for (const [name, diagram, pointer] of cases) {
       for (const lang of LANGS) {
-        const checked = validate(diagram as unknown as Json, { lang });
+        const checked = validate(diagram, { lang });
         expect(pointers(checked), `${name} の原本の誤りの場所 (${lang}): ${JSON.stringify(checked.ok ? [] : checked.errors)}`).toContain(pointer);
         const messages = checked.ok ? [] : checked.errors.filter((e) => e.pointer === pointer).map((e) => e.message);
         expect(messages.length, `${name} の原本の誤りの文 (${lang})`).toBeGreaterThan(0);
         for (const message of messages) expect(KANA.test(message), `${name} の原本の誤りの文の言葉 (${lang}): ${message}`).toBe(lang === "ja");
         let refused = "";
         try {
-          draw("renderDiagram")(diagram as unknown as Json, { lang });
+          draw("renderDiagram")(diagram, { lang });
         } catch (error) {
           refused = String(error);
         }
