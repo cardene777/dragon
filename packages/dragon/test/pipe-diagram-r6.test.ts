@@ -44,7 +44,7 @@ describe("第6回の試作の形の配管の図 (#3398)", () => {
     const texts = [...drawn.querySelectorAll("text, tspan")].map((t) => t.textContent ?? "");
     for (const want of [name, "100"]) expect(texts, `描いた write の段の許可額の札に ${want} が無い`).toContain(want);
     // 書き込んだ値は、箱の行の値が前の値から次の値へ数えて見せる (Tracelyth #221、#3761)
-    const row = [...motion.doc.querySelectorAll(".dg-pp-tplate .dg-pp-tval")].filter((el) => Math.abs(Number(el.getAttribute("y")) - written.text.base) < 0.5);
+    const row = [...motion.doc.querySelectorAll(".dg-pp-tplate .dg-pp-tval")].filter((el) => Math.abs(Number(el.getAttribute("y")) - (written.text.base ?? Number.NaN)) < 0.5);
     const shown = shownTexts(rendered, motion, 4, row);
     expect(countsFromTo(shown, "100", "0"), `write の段の許可額が 100 から 0 へ数えない (${shown.join(" / ")})`).toBe(true);
   });

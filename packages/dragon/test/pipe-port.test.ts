@@ -181,7 +181,6 @@ function drawPipe(text: string, options: Record<string, unknown> = {}): Rendered
   return api.renderDiagram(parse(text), { lang: "ja", ...options }) as Rendered<PipeLayout>;
 }
 
-const overlaps = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const people = (layout: PipeLayout): Party[] => layout.parties.filter((p) => p.shape === "round");
 const partyOf = (layout: PipeLayout, id: string): Party => {
   const found = layout.parties.find((p) => p.id === id);
@@ -338,21 +337,20 @@ describe("トークンの箱と2人を結ぶ線", () => {
   });
 
   it("port-write-links-clear-of-chips", () => {
+    // #3720 は2人を結ぶ値を点線と線の札で描いたが、パッチの並べ方 (#3761) は使う側が持つ券で描き、2人を結ぶ線を描かない (Tracelyth #221)。
+    // 券は全ての置き場が決まった後に重ならない所へ置き直すので、描いた図の崩れの確かめで、券がほかの札と針と札入れに重ならないことを見る
     for (const steps of [SENT, DENIED]) {
-      const { layout, svg } = drawPipe(pipeText({ layout: "top", steps }));
+      const text = pipeText({ layout: "top", steps });
+      const { layout, svg } = drawPipe(text);
       const links = layout.links ?? [];
-      expect(links.length, "2人を結ぶ線").toBeGreaterThan(0);
-      expect(countOf(svg, "dg-pp-rell"), "2人を結ぶ点線を描いていない").toBeGreaterThan(0);
+      expect(links.length, "2人を結ぶ値").toBeGreaterThan(0);
       for (const l of links) {
-        expect([l.from, l.to, l.owner], "線の両端と持ち主").toEqual(["alice", "bob", "usdc"]);
-        const label = l.delta ? { x: l.label.x, y: l.label.y, w: l.delta.x + l.delta.w - l.label.x, h: l.label.h } : l.label;
-        const others: [string, Rect][] = [
-          ...layout.gauges.map((g): [string, Rect] => ["requireの針", g]),
-          ...(layout.callCards ?? []).map((c): [string, Rect] => ["呼び出しの札", c]),
-          ...(layout.wallets ?? []).map((w): [string, Rect] => ["札入れ", w]),
-        ];
-        for (const [what, rect] of others) expect(overlaps(label, rect), `段 ${l.step + 1} の線の札が${what}に重なる`).toBe(false);
+        expect([l.from, l.to, l.owner], "値の両端と持ち主").toEqual(["alice", "bob", "usdc"]);
+        expect((l.label as { ticket?: unknown }).ticket, `段 ${l.step + 1} の値を券で描いていない`).toBeDefined();
       }
+      expect(countOf(svg, "dg-pp-tkt"), "券を描いていない").toBeGreaterThan(0);
+      expect(countOf(svg, "dg-pp-rell"), "券で描く値に2人を結ぶ点線を描いた").toBe(0);
+      expect(dragon.checkLayoutText(text, { lang: "ja" }), "券を置いた図の崩れ").toEqual([]);
     }
     // 同じ人を2度書いた線は読まずに断る
     expect(refused(pipeText({ allowance: ALLOWANCE.replace("to: bob", "to: alice") })), "同じ人を2度書いた線").not.toBe("");

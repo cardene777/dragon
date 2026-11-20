@@ -1306,10 +1306,19 @@ interface Plan {
   outer: number;
   /** 最後の組み方。値の管がほかの値の管を越えてよい (決まりの表が違反に数える) */
   last: boolean;
+  /**
+   * 下の段の囲いを横にずらす長さ。
+   * 下の段は上の段の真ん中の下へ寄せるため、上の段の幹の筋と下の段の口の筋の隔たりが箱の幅で決まり、
+   * 同じ組の管が並べない隔たりになると、間を広げても管が通らない。筋 1 本分ずらすと隔たりが変わる (#3720)。
+   * 間を広げる組み方より先に試す。間を広げて組むと管の道が長くなり、通らない組み方を組む時間が延びる
+   */
+  shift?: number;
 }
 
 const PLANS: Plan[] = [
   { gap: 0, lanes: 1, rows: 0, outer: 2, last: false },
+  { gap: 0, lanes: 1, rows: 0, outer: 2, last: false, shift: P.lane.pitch },
+  { gap: 0, lanes: 1, rows: 0, outer: 2, last: false, shift: -P.lane.pitch },
   { gap: P.lane.pitch, lanes: 2, rows: P.lane.pitch, outer: 3, last: false },
   { gap: P.lane.pitch * 2, lanes: 3, rows: P.lane.pitch, outer: P.lane.outer, last: false },
   { gap: P.lane.pitch * 2, lanes: 3, rows: P.lane.pitch, outer: P.lane.outer, last: true },
@@ -1855,6 +1864,21 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
     for (let j = ps.length - 2; j >= 0; j--)
       if ((ps[j + 1] as number) > hi || (ps[j] as number) > (ps[j + 1] as number) - L.port) ps[j] = Math.min(ps[j] as number, Math.min(ps[j + 1] as number, hi) - L.port);
     if (ps.length > 0 && (ps[ps.length - 1] as number) > hi) ps[ps.length - 1] = hi;
+    // 口は、ほかの箱へ向かうパイプが上げる所から離す。近いと、口へ曲がる線とその上げる線が並んで重なって走った (#3761)
+    const mine = new Set<TopCall | TopValue>(list);
+    const foreign = [...riserX.entries()].filter(([item, x]) => !mine.has(item) && x > lo - L.port && x < hi + L.port).map(([, x]) => x);
+    const clearOf = (x: number): boolean => foreign.every((r) => Math.abs(r - x) >= L.port / 2);
+    for (let j = 0; j < ps.length; j++) {
+      if (clearOf(ps[j] as number)) continue;
+      const least = j > 0 ? (ps[j - 1] as number) + L.port : lo;
+      const most = j < ps.length - 1 ? (ps[j + 1] as number) - L.port : hi;
+      for (let d = 2; d <= L.port * 2; d += 2) {
+        const x = [(ps[j] as number) + d, (ps[j] as number) - d].find((c) => c >= least && c <= most && clearOf(c));
+        if (x === undefined) continue;
+        ps[j] = x;
+        break;
+      }
+    }
     list.forEach((item, j) => portX.set(item, ps[j] as number));
     // 口へ横に寄るパイプは、口から遠いパイプほど箱の近くで曲げて、ほかのパイプを越えない
     const lefts = list.filter((item) => riserX.get(item) < (portX.get(item) as number) - 0.5);
@@ -1863,6 +1887,50 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
     rights.forEach((item, j) => turnOf.set(item, j));
     levels = Math.max(levels, lefts.length, rights.length);
   });
+  // 曲げる帯の段は、箱ごとでなく図の全てのパイプで分ける。箱ごとに分けると、違う箱へ曲がるパイプが同じ段を重なって走った (#3761)。
+  // 箱ごとに決めた段の順に、横に走る所が重ならない最も箱に近い段へ置く。同じ箱へ曲がるパイプは横に走る所が重なるので、箱ごとの順は崩れない
+  {
+    const spanOfTurn = (item: TopCall | TopValue): [number, number] => {
+      const a = riserX.get(item);
+      const b = portX.get(item) as number;
+      return [Math.min(a, b), Math.max(a, b)];
+    };
+    const lengthOfTurn = (item: TopCall | TopValue): number => spanOfTurn(item)[1] - spanOfTurn(item)[0];
+    const turning = [...turnOf.keys()].sort((a, b) => (turnOf.get(a) as number) - (turnOf.get(b) as number) || lengthOfTurn(a) - lengthOfTurn(b));
+    const apartBy = PIPE_LOOK.call.case;
+    const placed = new Map<TopCall | TopValue, number>();
+    const free = (item: TopCall | TopValue, k: number): boolean => {
+      const [lo, hi] = spanOfTurn(item);
+      return [...placed].every(([o, j]) => o === item || j !== k || !(spanOfTurn(o)[0] < hi + apartBy && lo < spanOfTurn(o)[1] + apartBy));
+    };
+    const put = (item: TopCall | TopValue, from: number): void => {
+      let k = from;
+      while (!free(item, k)) k++;
+      placed.set(item, k);
+    };
+    // 口へ曲がる線の下りる所と、ほかのパイプの上げる所が近い時は、口へ曲がる方を箱に近い段に置く。
+    // 逆だと、上げる線が曲がる段まで来る間、口へ下りる線と並んで重なって走った (#3761)。
+    // 互いに近い2本と、輪になる決まりは守れないので数えず、決まりの順に段を置く。
+    const close = (a: TopCall | TopValue, b: TopCall | TopValue): boolean => a !== b && Math.abs((portX.get(a) as number) - riserX.get(b)) < L.port / 2;
+    const below = new Map(turning.map((b) => [b, turning.filter((a) => close(a, b) && !close(b, a))]));
+    const done = new Set<TopCall | TopValue>();
+    const visiting = new Set<TopCall | TopValue>();
+    const order: (TopCall | TopValue)[] = [];
+    const visit = (item: TopCall | TopValue): void => {
+      if (done.has(item) || visiting.has(item)) return;
+      visiting.add(item);
+      for (const a of below.get(item) ?? []) visit(a);
+      visiting.delete(item);
+      done.add(item);
+      order.push(item);
+    };
+    // 輪は、描かない取っておいただけの呼び出しから辿り始め、守れない決まりを描かない呼び出しの側に寄せる
+    const shown = new Set<TopCall | TopValue>([...values, ...calls]);
+    for (const item of [...turning.filter((x) => !shown.has(x)), ...turning.filter((x) => shown.has(x))]) visit(item);
+    for (const item of order) put(item, Math.max(0, ...(below.get(item) ?? []).filter((a) => placed.has(a)).map((a) => (placed.get(a) as number) + 1)));
+    for (const [item, k] of placed) turnOf.set(item, k);
+    levels = Math.max(0, ...placed.values()) + (placed.size > 0 ? 1 : 0);
+  }
 
   // 縦の位置。上の形は箱、曲げる帯、人の列の順に上から置き、箱は下端を揃え、値の札が多い箱は上へ伸ばす。
   // 下の形は人の列、書き換えの点線が横へ通る帯、曲げる帯、箱の順に上から置き、箱は上端を揃えて下へ伸ばす。
@@ -1891,6 +1959,62 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
   const laneCalls = calls.filter((c) => c.way === "row" && !sideBySide.has(c));
   const rowCalls = laneCalls.length;
   const fromBox = laneCalls.filter((c) => parties.get(c.from)?.shape === "token" && parties.get(c.to)?.shape !== "token");
+  // 入れ物の下を回る槽のパイプ (#3761)。槽の横の口から出て隣の槽か札との間を下り、入れ物の下で横へ走ってから上げる所へ向かう。
+  // 槽の下から出ると残高の字の上を通り、どのパイプも入れ物の下の同じ高さを走ると重なっていたので、下りる所を隣との間に置き、
+  // 横へ走る段をパイプごとに分ける。短いパイプほど入れ物に近い段を使い、長いパイプがその下を回るので、下りる線と上げる線は横へ走る線を越えにくい
+  const UNDER_STEP = L.lane;
+  /** 槽のパイプが出る横の口の側。人を横へ動かした後、縦に動かす前の位置で決める */
+  const sides = new Map(
+    values.map((v): [TopValue, "left" | "right"] => [
+      v,
+      v.way === "outer-left" ? "left" : v.way === "outer-right" ? "right" : riserX.get(v) > v.tank.x + shiftOf(v.holder)[0] + v.tank.w / 2 ? "right" : "left",
+    ]),
+  );
+  const valueSide = (v: TopValue): "left" | "right" => sides.get(v) ?? "right";
+  /** 入れ物の下を回るパイプが下りる横の位置。槽の横に槽も札も無いパイプは横の口から真っすぐ出るので持たない */
+  const dropX = new Map<TopValue, number>();
+  const sharing = new Map<string, TopValue[]>();
+  for (const v of values) {
+    const t = v.tank;
+    const side = valueSide(v);
+    const cx = (r: Rect): number => r.x + r.w / 2;
+    const others = [...tanksOf(v.holder), ...(out.plates ?? []).filter((q) => q.party === v.holder)].filter((o) => o !== t);
+    const near = others.filter((o) => (side === "left" ? cx(o) < cx(t) : cx(o) > cx(t)));
+    // 列の外側から上げるパイプは、持ち主より外に人か箱が並ぶ時、横の口から真っすぐ出るとその入れ物と札の中を通る。
+    // 持ち主の入れ物のすぐ外を下り、入れ物の下を回って外側へ出る
+    const i = index.get(v.holder);
+    const beyond = v.way === "outer-right" ? i < n - 1 : v.way === "outer-left" ? i > 0 : false;
+    if (near.length === 0 && !beyond) continue;
+    const g = groupOf(v.holder);
+    const edge = near.length > 0 ? (side === "left" ? Math.max(...near.map((o) => o.x + o.w)) : Math.min(...near.map((o) => o.x))) : undefined;
+    const at =
+      (edge !== undefined ? ((side === "left" ? t.x : t.x + t.w) + edge) / 2 : side === "left" ? g.x - L.lane / 2 : g.x + g.w + L.lane / 2) + shiftOf(v.holder)[0];
+    dropX.set(v, at);
+    const key = `${v.holder}\0${Math.round(at)}`;
+    sharing.set(key, [...(sharing.get(key) ?? []), v]);
+  }
+  // 同じ間を2本が下りる時は、左の槽から出るパイプを左に、右の槽から出るパイプを右に置き、2本を交えない
+  for (const list of sharing.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => a.tank.x - b.tank.x);
+    list.forEach((v, j) => dropX.set(v, (dropX.get(v) as number) + (j - (list.length - 1) / 2) * UNDER_STEP));
+  }
+  const underLevel = new Map<TopValue, number>();
+  const spanOf = (v: TopValue): [number, number] => {
+    const a = dropX.get(v) as number;
+    const b = riserX.get(v);
+    return [Math.min(a, b), Math.max(a, b)];
+  };
+  const taken: [number, number][][] = [];
+  for (const v of [...dropX.keys()].sort((a, b) => spanOf(a)[1] - spanOf(a)[0] - (spanOf(b)[1] - spanOf(b)[0]))) {
+    const [lo, hi] = spanOf(v);
+    let k = 0;
+    while ((taken[k] ?? []).some(([a, b]) => a < hi + UNDER_STEP && lo < b + UNDER_STEP)) k++;
+    (taken[k] ??= []).push([lo, hi]);
+    underLevel.set(v, k);
+  }
+  /** 入れ物の下で、いちばん入れ物に近い段より下に足す高さ */
+  const underExtra = Math.max(0, taken.length - 1) * UNDER_STEP;
   let boxTop: number, boxBottom: number, bandTop: number, rowTop: number, laneBelow!: number;
   if (!down) {
     boxTop = P.margin + L.cards;
@@ -1906,7 +2030,7 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
         return g.y + g.h - parties.get(id).y;
       }),
     );
-    laneBelow = rowTop + reach + L.under;
+    laneBelow = rowTop + reach + L.under + underExtra;
     boxTop = laneBelow + L.writes + L.clear / 2 + levels * L.turn + L.band;
     boxBottom = boxTop + L.boxH;
     bandTop = boxTop - L.band;
@@ -1978,19 +2102,22 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
       [px, bottom(item.box ?? item.to)],
     ];
   };
-  // 槽の横の口。その側に槽か札が並ぶ時は、槽の下から出て入れ物の下を回る
+  // 槽の横の口。その側に槽か札が並ぶ時は、隣との間を下りて入れ物の下を回る。下りる所と横へ走る段は並べる前に決めた (#3761)
+  const underTop =
+    Math.max(
+      ...people.map((id) => {
+        const h = housingOf(id);
+        const g = groupOf(id);
+        return h ? h.y + h.h : g.y + g.h;
+      }),
+    ) + L.under;
   const exitOf = (v: TopValue, side: "left" | "right"): Point[] => {
     const t = v.tank;
-    const cx = (r: Rect): number => r.x + r.w / 2;
-    const others = [...tanksOf(v.holder), ...(out.plates ?? []).filter((p) => p.party === v.holder)].filter((o) => o !== t);
-    const outer = others.every((o) => (side === "left" ? cx(o) > cx(t) : cx(o) < cx(t)));
-    if (outer) return [[side === "left" ? t.x : t.x + t.w, t.y + PORT_Y]];
-    const h = housingOf(v.holder);
-    const below = (h ? h.y + h.h : t.y + t.h) + L.under;
-    return [
-      [t.x + t.w / 2, t.y + t.h],
-      [t.x + t.w / 2, below],
-    ];
+    const port: Point = [side === "left" ? t.x : t.x + t.w, t.y + PORT_Y];
+    const x = dropX.get(v);
+    if (x === undefined) return [port];
+    const y = underTop + (underLevel.get(v) ?? 0) * UNDER_STEP;
+    return [port, [x, port[1]], [x, y]];
   };
   const valueRoute = (v: TopValue): Point[] => {
     const x = riserX.get(v);
@@ -2004,7 +2131,7 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
       const y0 = (start[start.length - 1] as Point)[1];
       return simplify([...start, [x, y0], [x, mid(v.box)], [box(v.box).x + box(v.box).w, mid(v.box)]]);
     }
-    const start = exitOf(v, x > v.tank.x + v.tank.w / 2 ? "right" : "left");
+    const start = exitOf(v, valueSide(v));
     const y0 = (start[start.length - 1] as Point)[1];
     return simplify([...start, [x, y0], ...rise(v, x)]);
   };
@@ -2064,6 +2191,7 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
         }),
       ) +
       L.under +
+      underExtra +
       ROW_LOOK.lane;
     const dim = fadedPeople(diagram, parties, people);
     for (const [q, pts] of underRoutes(
@@ -2268,17 +2396,15 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
   }
 
   // 2人を結ぶ線は、槽の下を通す。同じ人の同じ側に着く線は、下を通る線ほど内側に端を置き、線どうしが交わらない
-  const exitsBelow = (v: TopValue): boolean => {
-    const pts = routeOf.get(v);
-    return pts !== undefined && Math.abs((pts[0] as Point)[1] - (v.tank.y + v.tank.h)) < 0.5;
-  };
+  // 入れ物の下を回る槽のパイプが在る時は、いちばん下の段より下を通す (#3761)
   const lowest = Math.max(
     ethLow,
     ...people.map((id) => {
       const h = housingOf(id);
       const g = groupOf(id);
-      return (h ? h.y + h.h : g.y + g.h) + (values.some((v) => v.holder === id && exitsBelow(v)) ? L.under : 0);
+      return h ? h.y + h.h : g.y + g.h;
     }),
+    ...(dropX.size > 0 ? [underTop + underExtra] : []),
   );
   const keyOf = (l: PipeLink): string => `${l.owner}\0${l.name}`;
   const groups = [...new Set((out.links ?? []).map(keyOf))];
@@ -2518,7 +2644,7 @@ function laneUp<Q extends { i: number; j: number }>(pairs: readonly Q[]): { sort
 function underRoutes<Q extends { i: number; j: number; a: Rect; b: Rect }>(pairs: readonly Q[], floor: number): Map<Q, Point[]> {
   const R = ROW_LOOK;
   const { sorted, laneOf } = laneUp(pairs);
-  const xs = new Map(sorted.map((p) => [p, {} as { a?: number; b?: number }]));
+  const xs = new Map(sorted.map((p) => [p, {}]));
   const spread = (m: number, k: number): number => (m === 1 ? (R.slotIn + R.slotOut) / 2 : R.slotOut - (k * (R.slotOut - R.slotIn)) / (m - 1));
   for (const side of ["a", "b"] as const) {
     const byTank = new Map<Rect, Q[]>();
@@ -2829,17 +2955,17 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     }
     if (ledger && box !== undefined) {
       tabY[r] = y + (rowBoxes.indexOf(box) === 0 ? R.drop : (carded(box) ? L.cards : 0) + R.rowGap + n * R.lane);
-      rowY[r] = (tabY[r] as number) + heights.get(box) + 46 + R.encPad;
-      y = (rowY[r] as number) + houseH + R.encPad + (gauged(box) ? R.gauge : 0);
+      rowY[r] = (tabY[r]) + heights.get(box) + 46 + R.encPad;
+      y = (rowY[r]) + houseH + R.encPad + (gauged(box) ? R.gauge : 0);
       return;
     }
     rowY[r] = y + (r === 0 ? R.tie : R.rowGap);
-    y = (rowY[r] as number) + houseH;
+    y = (rowY[r]) + houseH;
     floorY[r] = y + L.under;
-    if ((lanesBelow[r] as number) > 0) y = (floorY[r] as number) + ((lanesBelow[r] as number) - 1) * R.lane;
+    if ((lanesBelow[r] as number) > 0) y = (floorY[r]) + ((lanesBelow[r] as number) - 1) * R.lane;
     if (bus && box !== undefined) {
-      busY[r] = (rowY[r] as number) + houseH + R.busDrop;
-      y = (busY[r] as number) + heights.get(box) / 2 + (carded(box) ? L.cards - R.rowGap : 0);
+      busY[r] = (rowY[r]) + houseH + R.busDrop;
+      y = (busY[r]) + heights.get(box) / 2 + (carded(box) ? L.cards - R.rowGap : 0);
     }
   });
 
@@ -2892,7 +3018,7 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     const beside = below && besideW(h.party) > 0;
     const i = index.get(h.party);
     const dx = beside ? round3((colX[i] as number) + tanksW(h.party) / 2 + TANK_GAP + PAD - left) : below ? round3((colX[i] as number) - (left + right) / 2) : 0;
-    const dy = beside ? round3(meshY - (h.y + d[1])) : below ? round3((plateTop as number) - (h.y + d[1])) : 0;
+    const dy = beside ? round3(meshY - (h.y + d[1])) : below ? round3((plateTop) - (h.y + d[1])) : 0;
     // 人と一緒に動かした札をもう一度動かすので、動かした物の記録を分ける
     const again = new WeakSet<object>();
     for (const p of [...own, ...(out.columns ?? []).filter((c) => c.party === h.party)]) moveParts(p, dx, dy, again);
@@ -3869,8 +3995,9 @@ function finishPipe(out: PipeLayout): PipeLayout {
     }
     if (cut) c.path = cut;
   }
-  // 戻りの札が止まる所が弁に重なる時は、呼び出しの管を呼んだ側から辿り直し、弁と計器と人と箱と槽のどれからも離れた最初の所で止める。
-  // 弁は並べ終えた後の所に在るので、組む時に避けた所でも、置き直した図と弁を管の真ん中へ寄せた図では札が弁に重なっていた (#3761)
+  // 戻りの札が止まる所が弁かほかの線に重なる時は、呼び出しの管を呼んだ側から辿り直し、弁と計器と人と箱と槽とほかの線のどれからも離れた最初の所で止める。
+  // 弁は並べ終えた後の所に在るので、組む時に避けた所でも、置き直した図と弁を管の真ん中へ寄せた図では札が弁に重なっていた。
+  // 呼んだ側の手前で止めた札は、その手前を横切るほかの呼び出しの線の下にも隠れていた (#3761)
   const valveBlocks = [
     ...(out.mains ?? []).flatMap((m) => m.branches.flatMap((b) => valveRects(b.valve.x, b.valve.y, b.valve.vertical, b.valve.under))),
     ...(out.buses ?? []).flatMap((b) => (b.valve ? valveRects(b.valve.x, b.valve.y, false, false) : [])),
@@ -3879,7 +4006,21 @@ function finishPipe(out: PipeLayout): PipeLayout {
   for (const c of out.chips ?? []) {
     if (c.kind !== "return" || !(c.w > 0) || !c.path || c.path.length < 2) continue;
     const rectAt = ([x, y]: Point): Rect => ({ x: x - c.w / 2, y: y - c.h / 2, w: c.w, h: c.h });
-    if (valveBlocks.every((v) => apart(rectAt(c.path?.[c.path.length - 1] as Point), v, 0))) continue;
+    /** 札の真ん中が載っていない線の、線の太さの四角。札は自分が載る線の上には描いてよい */
+    const lines = [
+      ...(out.calls ?? []).map((l) => ({ points: l.points, half: PIPE_LOOK.call.case / 2 })),
+      // 値のパイプは14の太さの縁で描く (`.dg-pp-pcase`)
+      ...(out.valuePipes ?? []).map((l) => ({ points: l.points, half: 7 })),
+      ...[...(out.links ?? []), ...(out.writes ?? [])].filter((l) => l.step === c.step).map((l) => ({ points: l.points, half: 1 })),
+    ];
+    const linesOff = ([x, y]: Point): Rect[] =>
+      lines.flatMap((l) =>
+        segsOf(l.points)
+          .filter(([a, b]) => !(x >= Math.min(a[0], b[0]) - 1 && x <= Math.max(a[0], b[0]) + 1 && y >= Math.min(a[1], b[1]) - 1 && y <= Math.max(a[1], b[1]) + 1))
+          .map(([a, b]): Rect => ({ x: Math.min(a[0], b[0]) - l.half, y: Math.min(a[1], b[1]) - l.half, w: Math.abs(b[0] - a[0]) + l.half * 2, h: Math.abs(b[1] - a[1]) + l.half * 2 })),
+      );
+    const rest = c.path[c.path.length - 1] as Point;
+    if ([...valveBlocks, ...linesOff(rest)].every((v) => apart(rectAt(rest), v, 0))) continue;
     const call = (out.calls ?? []).find((x) => x.index === c.call);
     if (!call || call.points.length < 2) continue;
     const back = [...call.points].reverse().map((p): Point => [p[0], p[1]]);
@@ -3896,10 +4037,17 @@ function finishPipe(out: PipeLayout): PipeLayout {
     if (off > 1) continue;
     const gauges = (out.gauges ?? []).filter((g) => g.step === c.step).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h }));
     const blocks = [...valveBlocks, ...gauges, ...keepOff];
-    for (let e = 0; e < total - from - 4; e += 2) {
-      if (!blocks.every((o) => apart(rectAt(along(back, total - e)), o, PART_GAP / 2))) continue;
-      c.path = fromAlong([...fromAlong(back, from)].reverse(), e).reverse();
-      break;
+    // ほかの線から離れた所が無い時は、弁と計器と人と箱と槽から離れた所で止める。弁の上に札を残すより、線を隠す方が読める
+    for (const offLines of [true, false]) {
+      let moved = false;
+      for (let e = 0; e < total - from - 4; e += 2) {
+        const at = along(back, total - e);
+        if (!blocks.every((o) => apart(rectAt(at), o, PART_GAP / 2)) || (offLines && !linesOff(at).every((o) => apart(rectAt(at), o, 0)))) continue;
+        c.path = fromAlong([...fromAlong(back, from)].reverse(), e).reverse();
+        moved = true;
+        break;
+      }
+      if (moved) break;
     }
   }
   const solid = [
@@ -4058,7 +4206,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     return owner;
   };
   const linkHolds = holds.flatMap((h) =>
-    "name" in h && h.link?.from !== undefined && visible.has(h.link.from) && visible.has(h.link.to as string)
+    "name" in h && h.link?.from !== undefined && visible.has(h.link.from) && visible.has(h.link.to)
       ? [{ hold: h, ...linkStates(h as LinkHold, sim, stepList, snapOf, nameOf, words.tags.rolled, words) }]
       : [],
   );
@@ -4222,7 +4370,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
     const m = /^([^[\]]+)((?:\[[^[\]]+\])+)$/u.exec(name);
     if (!m) return undefined;
     const keys = [...(m[2] as string).matchAll(/\[([^[\]]+)\]/gu)].map((k) => idByName.get(k[1] as string));
-    return keys.length <= 2 && keys.every((k) => k !== undefined) ? { head: m[1] as string, keys: keys as string[] } : undefined;
+    return keys.length <= 2 && keys.every((k) => k !== undefined) ? { head: m[1] as string, keys: keys } : undefined;
   };
   // 箱の上の辺から行の真ん中までの高さ。残高の行の後に、区切りの線を挟んで値の行を続ける
   const rowMid = (i: number): number => ROWS.head + ROWS.pitch * i + ROWS.mid;
@@ -4520,6 +4668,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   const crampedRise = new Map<string, number>();
   let result: PipeLayout | undefined;
   for (const plan of PLANS.slice(from)) {
+    if (plan.shift !== undefined && band1.length === 0) continue;
     docksGrew = false;
     cramped.clear();
     crampedRise.clear();
@@ -4607,6 +4756,10 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       if (shift < 0) for (const h of lower) {
         const c = cols.get(h) as Col;
         cols.set(h, { ...c, x: c.x + shift, hx: c.hx + shift });
+      }
+      if (plan.shift !== undefined) for (const h of lower) {
+        const c = cols.get(h) as Col;
+        cols.set(h, { ...c, x: c.x + plan.shift, hx: c.hx + plan.shift });
       }
     }
 
@@ -4716,7 +4869,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       const rest = new Set(info);
       const laneOf = new Map<Info, number>();
       while (rest.size > 0) {
-        const x = [...rest].find((y) => above.get(y).every((m) => !rest.has(m))) ?? ([...rest][0] as Info);
+        const x = [...rest].find((y) => above.get(y).every((m) => !rest.has(m))) ?? [...rest][0];
+        if (!x) break;
         rest.delete(x);
         const floor = Math.max(-1, ...above.get(x).filter((m) => laneOf.has(m)).map((m) => laneOf.get(m) as number));
         let k = used.findIndex((lane, i) => i > floor && lane.every(([u, v]) => x.span[1] < u || x.span[0] > v));

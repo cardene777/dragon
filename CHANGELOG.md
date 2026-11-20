@@ -6,6 +6,20 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- **The player takes `canvas` and `fitNarrow` for pipe diagrams** (#3761)
+
+  With `canvas: true`, a frame 600px wide or wider puts a pipe diagram in a canvas window: the frame does not scroll, a drag moves the figure in any direction, the wheel zooms around the pointer, and choosing a step moves the figure so the current step comes into the window. The page sets the height of the window. A narrower frame scrolls as before. With `fitNarrow: true` next to `fitWide`, a figure narrower than a frame 600px wide or wider starts widened to the frame, up to its natural size.
+
+- **`PipeCallTag`, `PipeEnclosure`, `PipeScore` and `PipeTicket` are exported as types** (#3761)
+
+### Changed
+
+- **Pipe diagrams are placed and drawn the way the patch Tracelyth applied to 0.68.1 placed and drew them** (#3761)
+
+  Tracelyth used dragon with a patch that held the fixes of 38 of its issues. The fixes are now in dragon, so Tracelyth can use dragon without the patch. With `layout top` and `layout bottom`, a value pipe leaves and enters a tank through a port on the left or right edge of the tank, drops into the gap next to the nearest tank before it runs under the row, and the bends of nearby lines take separate heights so that no two lines share a run. Value pipes no longer carry chevrons. A written value counts from the old value to the new value, and a move counts the amounts of both tanks. A return chip that does not fit on its call pipe widens the gap between the two parties, or between their rows for a vertical pipe, and the diagram is placed once more. The zoom buttons draw line icons instead of characters.
+
 ## [0.78.0] - 2026-11-19
 
 ### Added

@@ -140,7 +140,7 @@
 | 同じ図で、横幅いっぱいに何も描かない高さ200px以上の帯が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-no-empty-band`が通る | #3721 |
 | 同じ図で、2本の線が同じ所を重なって走る所が0件で、線どうしは直角にだけ交わる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-lines-cross-only-at-right-angles`が通る | #3721 |
 | 名前が40字を超える図と、1つの段で5枚以上のログを発する図でも、重なりと文字の上を通る線が0件 | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-grid-long-names-and-many-logs`が通る | #3721 |
-| 値のパイプは槽の下の縁から入らず、表から槽へ向かうパイプは槽の上の縁から入る | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-pipes-enter-tanks-from-top`が通る | #3721 |
+| 上と下の形で、値のパイプは槽の左か右の縁の口から横へ出て、槽の下の残高の字の上を通らない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-pipes-leave-tanks-from-side`が通る | #3721、#3761 |
 | 記法の`route`の行を読み、書いても人と箱と槽の置き場所を行を書かない図と同じにする | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-route-lines-keep-places`が通る | #3721、#3761 |
 | ログの札を発した箱の札入れに入れ、上の形は箱の上の左半分に、下の形は箱の下の左半分に積み、右半分を呼び出しの札に空ける (Tracelyth #165、#166) | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-logs-stack-by-emitter`が通る | #3721、#3761 |
 | 値の箱の前の値を線で消して箱の下の行に置き、確定の語を右に添え、行を槽の下の額と同じ高さに並べる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-prev-value-under-box`が通る | #3721、#3761 |

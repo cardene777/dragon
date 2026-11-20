@@ -585,7 +585,9 @@ const DRAWN = await atLoad("配管の図を描き、動画の絵の段取りを�
 // ---- 線の通り道
 
 describe("線の通り道", () => {
-  it("pipe-pipes-enter-tanks-from-top", () => {
+  it("pipe-pipes-leave-tanks-from-side", () => {
+    // #3721 は槽へ上の縁から入れたが、パッチの並べ方 (#3761) は槽の横の縁の口から出す。下の縁から出すと槽の下の残高の字の上を通ったので、
+    // 槽の隣に槽か札が並ぶ時も横の口から出て隣との間を下りる。口からは横へ真っすぐ出る
     for (const shape of SHAPES) {
       const L = drawOnce(gridText(3, 3, { layout: shape })).layout;
       const tankAt = (party: string, token: string): Tank | undefined => L.tanks.find((t) => t.party === party && t.token === token);
@@ -594,12 +596,14 @@ describe("線の通り道", () => {
         for (const [k, port] of v.ports.entries()) {
           const tank = tankAt(port.party, port.token);
           if (!tank) continue;
-          expect(port.side, `${shape} の ${v.token} ${v.from}>${v.to} が槽の${port.side}の縁から入る`).toBe("top");
-          // 槽の上の縁の口へは、上から真っすぐ下りて着く
+          expect(["left", "right"], `${shape} の ${v.token} ${v.from}>${v.to} が槽の${port.side}の縁から出る`).toContain(port.side);
           const end = k === 0 ? v.points.slice(0, 2) : v.points.slice(-2).reverse();
-          const [at, before] = end as [Point, Point];
-          expect(Math.abs(at[1] - tank.y), `${shape} の ${v.token} ${v.from}>${v.to} の口が槽の上の縁に無い`).toBeLessThan(1);
-          expect(Math.abs(before[0] - at[0]) < D && before[1] < at[1], `${shape} の ${v.token} ${v.from}>${v.to} が上から下りて槽に入らない`).toBe(true);
+          const [at, next] = end as [Point, Point];
+          const edge = port.side === "left" ? tank.x : tank.x + tank.w;
+          expect(Math.abs(at[0] - edge), `${shape} の ${v.token} ${v.from}>${v.to} の口が槽の${port.side}の縁に無い`).toBeLessThan(1);
+          expect(at[1] > tank.y && at[1] < tank.y + tank.h, `${shape} の ${v.token} ${v.from}>${v.to} の口が槽の横の縁の中に無い`).toBe(true);
+          const outward = port.side === "left" ? next[0] < at[0] : next[0] > at[0];
+          expect(Math.abs(next[1] - at[1]) < D && outward, `${shape} の ${v.token} ${v.from}>${v.to} が口から横へ出ない`).toBe(true);
         }
       }
     }
@@ -608,17 +612,17 @@ describe("線の通り道", () => {
   it("pipe-route-lines-keep-places", () => {
     // #3721 の置き方は `route` の行で渡した組の通り道を空けたが、パッチの並べ方 (#3761) は通り道を空けない。
     // Tracelythの図をパッチを当てた時のまま描くため、`route` の行は読むが、書いても人と箱と槽の置き場所は行を書かない図と同じ
+    // 段を最初の1つに減らした図に、減らす前の3本の呼び出しの組を渡す。#3721 の置き方は減らした段の通り道も空けて置き場所を変えなかった
     const passed: [string, string][] = [
       ["alice", "router1"],
       ["bob", "router2"],
       ["carol", "router3"],
-      ["alice", "router3"],
     ];
     const places = (L: PipeLayout): string =>
       JSON.stringify([...L.parties.map((p) => [p.id, Math.round(p.x), Math.round(p.y)]), ...L.tanks.map((t) => [`${t.party}/${t.token}`, Math.round(t.x), Math.round(t.y)])].sort());
     for (const shape of SHAPES) {
-      const routed = drawOnce(gridText(3, 3, { layout: shape, routes: passed })).layout;
-      const plain = drawOnce(gridText(3, 3, { layout: shape })).layout;
+      const routed = drawOnce(gridText(3, 3, { layout: shape, routes: passed, only: [0] })).layout;
+      const plain = drawOnce(gridText(3, 3, { layout: shape, only: [0] })).layout;
       expect(places(routed), `${shape} で route の行を書くと置き場所が動いた`).toBe(places(plain));
     }
     // 組に知らない名前を書いた行は読まずに断る

@@ -792,7 +792,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
               : { x: alignedX ?? colX(anchor), y: below ? belowBox(anchor) : (anchor.shape === "token" ? ceilingOf(anchor) : anchor.y) - 18 - it.tag.h, w: it.tag.w, h: it.tag.h };
             // 処理を借りる呼び出しの線の札と、コントラクトを囲む枠と、止まった戻りの札 (Tracelyth #207) にも寄せず、重なる時は外へ積む
             const restOf = (x: PipeChip): Rect => {
-              const e = x.path?.[(x.path as Point[]).length - 1];
+              const e = x.path?.[x.path.length - 1];
               return e ? { x: e[0] - x.w / 2, y: e[1] - x.h / 2, w: x.w, h: x.h } : x;
             };
             // 同じ段に出す札入れとログの札にも重ねない (Tracelyth #215)
@@ -831,7 +831,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
           // 札の帯を持つ形 (#3721) のログの札は、置き直しが決めた札の帯の所から動かさない
           if (layout.fixed?.shape === "mesh" || layout.fixed?.band) return [];
           const restAt = (x: PipeChip): Rect => {
-            const e = x.path?.[(x.path as Point[]).length - 1];
+            const e = x.path?.[x.path.length - 1];
             return e ? { x: e[0] - x.w / 2, y: e[1] - x.h / 2, w: x.w, h: x.h } : x;
           };
           const solids: Rect[] = [
@@ -1141,7 +1141,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         spots.sort((a, b) => a.d - b.d);
         const block = [...solid, ...done];
         const clear = (r: Rect): boolean => r.x >= M1 && r.y >= M1 && r.x + r.w <= layout.width - M1 && !block.some((o) => meet2(r, o)) && !crosses(r);
-        const at = spots.find((s) => clear({ x: s.x, y: s.y, w, h })) ?? (spots[0] as { x: number; y: number; d: number });
+        const at = spots.find((s) => clear({ x: s.x, y: s.y, w, h })) ?? spots[0];
+        if (!at) continue;
         const below = at.y > p.y;
         const left = Math.max(at.x, p.x);
         const right = Math.min(at.x + w, p.x + p.w);
@@ -1457,98 +1458,22 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       // 帳簿型の枝は縦に走るので、弁は縦の管の弁で描く
       parts.push(dimmed(moved(k), `<g${on({ holder })}>${valve(v.valve.x, v.valve.y, true, on({ valve: holder }), t === undefined ? "" : m.vis(t, b))}</g>`));
     }
-    // 移す額の札は、槽の下の差の文字と状態の文字に重ねない (Tracelyth #171)。札が文字の高さを通る間は札を消し、抜けてから出し直す。
-    // 流れの先は消さないので、値がパイプを進むことは見えたままになる
-    const COIN_CLEAR = 3;
-    const COIN_STEP = 5e-3;
-    const coinShown = (fl: PipeFlow, t0: number, t1: number, w: number, step: number): string => {
-      const f = MOTION.fade;
-      const tEnd = t1 + FLOW_MOVE.linger + f;
-      const words2 = layout.levels.filter((l) => l.step === step).flatMap((l) => [l.delta, l.tag].filter((r) => r !== undefined));
-      if (words2.length === 0) return m.vis(t0, t1 + FLOW_MOVE.linger);
-      const pts = fl.points;
-      const track: [number, Point][] = [[0, pts[0] as Point], ...planOf(fl, t0).map(([t], i): [number, Point] => [t, pts[i] as Point]), [m.total, pts[pts.length - 1] as Point]];
-      const at = (t: number): Point => {
-        const i = track.findIndex(([tb2]) => tb2 >= t);
-        if (i <= 0) return (track[Math.max(0, i)] as [number, Point])[1];
-        const [ta, pa] = track[i - 1] as [number, Point];
-        const [tb2, pb] = track[i] as [number, Point];
-        const k = tb2 > ta ? (t - ta) / (tb2 - ta) : 1;
-        return [pa[0] + (pb[0] - pa[0]) * k, pa[1] + (pb[1] - pa[1]) * k];
-      };
-      const halfW = w * FLOW_MOVE.scale / 2 + COIN_CLEAR;
-      const halfH = FLOW_MOVE.coinH * FLOW_MOVE.scale / 2 + COIN_CLEAR;
-      const hits = (t: number): boolean => {
-        const [cx, cy] = at(t);
-        return words2.some((r) => cx + halfW > r.x && cx - halfW < r.x + r.w && cy + halfH > r.y && cy - halfH < r.y + r.h);
-      };
-      // 札が見えてよい間。文字に重なる間を抜き、短すぎて瞬くだけの間は捨てる
-      const open2: [number, number][] = [];
-      let from2: number | undefined;
-      for (let t = t0; t <= tEnd + COIN_STEP / 2; t += COIN_STEP) {
-        const tt = Math.min(t, tEnd);
-        const clear = !hits(tt);
-        if (clear && from2 === undefined) from2 = tt;
-        if (!clear && from2 !== undefined) {
-          open2.push([from2, tt - COIN_STEP]);
-          from2 = undefined;
-        }
-      }
-      if (from2 !== undefined) open2.push([from2, tEnd]);
-      const spans = open2.filter(([x, y]) => y - x >= f);
-      const only = spans.length === 1 ? spans[0] : undefined;
-      if (only && only[0] === t0 && only[1] === tEnd) return m.vis(t0, t1 + FLOW_MOVE.linger);
-      const points2: Frame[] = [
-        [0, { opacity: 0 }],
-        [m.total, { opacity: 0 }],
-      ];
-      for (const [x, y] of spans) {
-        const mid = (x + y) / 2;
-        points2.push([x, { opacity: 0 }], [Math.min(x + f, mid), { opacity: 1 }], [Math.max(y - f, mid), { opacity: 1 }], [y, { opacity: 0 }]);
-      }
-      return m.kf(points2);
-    };
+    // 額の札は管を進ませず描かない (Tracelyth #221)。額は槽と箱の行の数え上げと、槽の下の差の文字が見せる。
+    // 箱を通り抜ける流れだけは、箱が額を呑んでから吐くまでの間に箱を囲む輪を描き、その間を受け手に渡す
     for (const fl of here.filter((x) => x.fresh && x.points.length > 1)) {
+      const gulpBox = gulpOf(fl.points);
+      if (!gulpBox) continue;
       const t0 = timeOf(s, fl.event) ?? a;
-      const t1 = Math.min(t0 + FLOW_MOVE.travel + FLOW_MOVE.pause, b - 0.1);
       const chip = layout.chips.find((c) => c.step === s && c.kind === "amount" && c.token === fl.token);
       const label = fl.label ?? chip?.text ?? `${fl.amount} ${fl.token}`;
-      const path2 = fl.points;
-      const [sx, sy] = path2[0] as Point;
-      // 札は流れの先と同じ時刻に角を通る (Tracelyth #168)
-      const frames: Frame[] = [
-        [0, { transform: "translate(0,0)" }],
-        ...planOf(fl, t0).map(([t], i): Frame => [t, { transform: `translate(${r1((path2[i] as Point)[0] - sx)}px,${r1((path2[i] as Point)[1] - sy)}px)` }]),
-      ];
-      const [ex, ey] = path2[path2.length - 1] as Point;
-      frames.push([m.total, { transform: `translate(${r1(ex - sx)}px,${r1(ey - sy)}px)` }]);
+      const [sx, sy] = fl.points[0] as Point;
+      const [ex, ey] = fl.points[fl.points.length - 1] as Point;
       const w = textWidth(label, T.chip) + FLOW_MOVE.coinPad * 2;
-      const gulpBox = gulpOf(path2);
-      let squeeze = "";
-      if (gulpBox) {
-        const dir = ex > sx ? 1 : -1;
-        const half = w * FLOW_MOVE.scale / 2;
-        const inX = dir > 0 ? gulpBox.x - half + 6 : gulpBox.x + gulpBox.w + half - 6;
-        const outX = dir > 0 ? gulpBox.x + gulpBox.w + half - 6 : gulpBox.x - half + 6;
-        const move = FLOW_MOVE.travel;
-        const tIn = t0 + move / 2;
-        const tOut = tIn + FLOW_MOVE.pause;
-        const from0 = -dir * 12;
-        const stop = ex - sx + dir * 14;
-        frames.length = 0;
-        frames.push([0, { transform: `translate(${r1(from0)}px,0)` }], [t0, { transform: `translate(${r1(from0)}px,0)` }, EASE.inOut], [tIn, { transform: `translate(${r1(inX - sx)}px,0)` }], [tOut, { transform: `translate(${r1(outX - sx)}px,0)` }, EASE.inOut], [Math.min(tOut + move / 2, m.total), { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }], [m.total, { transform: `translate(${r1(stop)}px,${r1(ey - sy)}px)` }]);
-        const tEnd = Math.min(tOut + move / 2, m.total);
-        squeeze = m.kf([[0, { transform: "scale(0.25)", opacity: 0 }], [t0, { transform: "scale(0.25)", opacity: 0 }], [t0 + 0.16, { transform: "scale(1)", opacity: 1 }], [tIn - 0.14, { transform: "scale(1)", opacity: 1 }], [tIn, { transform: "scale(0.25)", opacity: 0 }], [tOut, { transform: "scale(0.25)", opacity: 0 }], [tOut + 0.14, { transform: "scale(1)", opacity: 1 }], [tEnd - 0.16, { transform: "scale(1)", opacity: 1 }], [tEnd, { transform: "scale(0.25)", opacity: 0 }], [m.total, { transform: "scale(0.25)", opacity: 0 }]]);
-        const ring = `<rect class="dg-pp-gulp" x="${r1(gulpBox.x - 8)}" y="${r1(gulpBox.y - 8)}" width="${r1(gulpBox.w + 16)}" height="${r1(gulpBox.h + 16)}" rx="${partRadius(ctx.corner, 16)}"/>`;
-        HANDED.push({ step: s, token: fl.token, box: gulpBox.id, w: w * FLOW_MOVE.scale, from: [sx, sy], to: [ex, ey], hidden: [tIn, tOut] });
-        GULPS.push(`<g class="dg-a" style="${m.kf([[0, { opacity: 0 }], [tIn - 0.1, { opacity: 0 }], [tIn + 0.05, { opacity: 1 }], [tOut, { opacity: 1 }], [tOut + 0.25, { opacity: 0 }], [m.total, { opacity: 0 }]])}">${ring}</g>`);
-      }
-      const h = FLOW_MOVE.coinH;
-      const coin = `<g class="dg-pp-coin" style="--pp-t:var(--pp-tone${fl.tone})"><rect x="${r1(sx - w / 2)}" y="${r1(sy - h / 2)}" width="${r1(w)}" height="${h}" rx="${partRadius(ctx.corner, h / 2)}"/><text x="${r1(sx)}" y="${r1(sy + T.chip.size * 0.36)}" text-anchor="middle">${esc(label)}</text></g>`;
-      const inner = `<g transform="translate(${r1(sx)} ${r1(sy)}) scale(${FLOW_MOVE.scale}) translate(${r1(-sx)} ${r1(-sy)})">${coin}</g>`;
-      const shown3 = gulpBox ? m.vis(t0, t1 + FLOW_MOVE.linger) : coinShown(fl, t0, t1, w, s);
-      // 額の札は管を進ませず描かない (Tracelyth #221)。額は槽と箱の行の数え上げと、槽の下の差の文字が見せる
-      void shown3, inner, frames, squeeze;
+      const tIn = t0 + FLOW_MOVE.travel / 2;
+      const tOut = tIn + FLOW_MOVE.pause;
+      const ring = `<rect class="dg-pp-gulp" x="${r1(gulpBox.x - 8)}" y="${r1(gulpBox.y - 8)}" width="${r1(gulpBox.w + 16)}" height="${r1(gulpBox.h + 16)}" rx="${partRadius(ctx.corner, 16)}"/>`;
+      HANDED.push({ step: s, token: fl.token, box: gulpBox.id, w: w * FLOW_MOVE.scale, from: [sx, sy], to: [ex, ey], hidden: [tIn, tOut] });
+      GULPS.push(`<g class="dg-a" style="${m.kf([[0, { opacity: 0 }], [tIn - 0.1, { opacity: 0 }], [tIn + 0.05, { opacity: 1 }], [tOut, { opacity: 1 }], [tOut + 0.25, { opacity: 0 }], [m.total, { opacity: 0 }]])}">${ring}</g>`);
     }
     // トークンの箱。値の管の弁は描かない (Tracelyth #168)
     for (const p of layout.parties.filter((x) => x.shape === "token")) {

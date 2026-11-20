@@ -30,7 +30,7 @@ export const FLOW_WIDTH = 4;
 export const BAND_LEAST = 4;
 
 export type Point = [number, number];
-export type Writing = Rect & { text: string };
+export type Writing = Rect & { text: string; base?: number };
 export type State = "none" | "provisional" | "final" | "rolled";
 
 export interface Party extends Rect {
