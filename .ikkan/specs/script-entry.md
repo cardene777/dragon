@@ -52,3 +52,12 @@
 | `dragon embed`が埋めた頁の入口 (`script-offline.ts`) は、塊を描いた後の空いた時間に箱を開いた形を組まない | `pnpm exec vitest run packages/dragon/test/pipe-ahead.test.ts`の検査`embed-page-does-not-compose-ahead`が通る | #3753 |
 | 収めた並べ方で描いた管の道と札の場所が、`layout`の行を替えた528形の全てで、組んで描いた物と同じである | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout.test.ts`の検査`stored-layout-matches-composed`が通る | #3753 |
 | `dragon embed`が埋めた頁で、配管の図の塊を道を探さずに描ける | `pnpm exec vitest run packages/dragon/test/pipe-stored-layout-page.test.ts`の検査`embedded-page-draws-pipe-without-route`が通る | #3753 |
+| 時系列図だけの頁で、1行の入口が最初に読むfileは構成図の並べ方 (`src/kinds/architecture/layout.ts`) を持たない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-leaves-architecture-layout-out`が通る | #3782 |
+| 構成図の塊を置いた頁では、1行の入口が構成図の並べ方を持つ塊を後から読み、構成図を描ける | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-architecture-after-loading-layout`が通る | #3782 |
+| 1行の入口が最初に読むfileは、`api.ts`だけが読むエディタのURLの部品 (`src/editor-url.ts`) を持たない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-leaves-api-only-parts-out`が通る | #3782 |
+| 時系列図だけの頁で、1行の入口が最初に読むscriptのgzip後の合計は上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3782 |
+| 時系列図と構成図の塊を置いた頁で、2つの塊が両方とも図に置き換わる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-replaces-every-block`が通る | #3782 |
+| 時系列図だけの頁は後から読む種類の塊を読まず、枝分かれの図の頁はその種類の塊を読む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-only-used-kinds`が通る | #3782 |
+| 属性`data-header`を持つ時系列図の塊は帯つきの図で、持たない構成図の塊は帯の無い図で描く | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-adds-bar-with-data-header`が通る | #3782 |
+| buildした1行の入口で、ブロックの定義を持つ最初に読むfileは1つだけで、中身の帯を描く処理と色を読む処理は本体に入る | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-block-definitions-share-one-file`と`script-entry-shared-parts-stay-in-main`が通る | #3782 |
+| npmの軽い入口は、時系列図と構成図を`loadFor`を待たずに描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-draws-sequence-and-architecture-without-load`が通る | #3782 |

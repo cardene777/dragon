@@ -375,15 +375,61 @@ describe("script の1行の入口 (#3343)", () => {
       expect(scripts, "最初に読んだ script に入口が在る").toContain(ENTRY);
       const sizes = Object.fromEntries(scripts.map((file) => [file, gzipSync(readFileSync(join(CDN, file))).length]));
       const total = Object.values(sizes).reduce((sum, size) => sum + size, 0);
+      // 次に入口へ足す課題が、上限までの空きを測り直さずに知れるよう、合計と空きを出す (#3782)
+      console.info(`最初に読む script の gzip 後の合計 ${total} byte (file ${scripts.length} 個、上限 ${FIRST_LOAD_BUDGET} byte、空き ${FIRST_LOAD_BUDGET - total} byte)`);
       expect(total, `最初に読む script の gzip 後の合計 (${JSON.stringify(sizes)})`).toBeLessThanOrEqual(FIRST_LOAD_BUDGET);
+    });
+  });
+
+  it("script-entry-leaves-architecture-layout-out", async () => {
+    // 構成図の並べ方は、構成図の塊を置いた頁だけが後から読む。時系列図だけの頁は読まない (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/kinds/architecture/layout.ts");
+    expect(holding.length, "構成図の並べ方を持つ file の数").toBeGreaterThan(0);
+    await withPage(`<pre class="dragon">${escape(SEQUENCE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect((await counts(page)).drawn, "時系列図を描く").toBe(1);
+      expect(requests.scripts.filter((file) => holding.includes(file)), "時系列図だけの頁で読んだ、構成図の並べ方を持つ file").toEqual([]);
+    });
+  });
+
+  it("script-entry-draws-architecture-after-loading-layout", async () => {
+    // 構成図の塊を置いた頁は、本体が最初に読む file の外に在る構成図の並べ方の塊を読んでから描く (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/kinds/architecture/layout.ts");
+    const first = entryFiles();
+    expect(holding.filter((file) => first.has(file)), "構成図の並べ方を持つ、最初に読む file").toEqual([]);
+    await withPage(`<pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect(await counts(page), "構成図の塊が1つの図に置き換わる").toEqual({ players: 1, drawn: 1, blocks: 0 });
+      expect(requests.scripts.filter((file) => holding.includes(file)).length, "構成図の頁で読んだ、構成図の並べ方を持つ file の数").toBe(1);
+    });
+  });
+
+  it("script-entry-leaves-api-only-parts-out", async () => {
+    // 軽い入口が並べ直して出す部品 (`api.ts`) だけが読む物は、1行の入口が最初に読む file に入れない。エディタの URL は帯の塊が読む (#3782)
+    if (!entryBuilt()) return;
+    const holding = filesHolding("src/editor-url.ts");
+    expect(holding.length, "エディタの URL の部品を持つ file の数").toBeGreaterThan(0);
+    await withPage(`<pre class="dragon">${escape(SEQUENCE)}</pre>`, async (page, requests) => {
+      await settle(page, 1);
+      expect((await counts(page)).drawn, "時系列図を描く").toBe(1);
+      expect(requests.scripts.filter((file) => holding.includes(file)), "帯の無い頁で読んだ、エディタの URL の部品を持つ file").toEqual([]);
     });
   });
 
   it("script-entry-adds-bar-with-data-header", async () => {
     if (!entryBuilt()) return;
     await withPage(`<pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon">${escape(ARCHITECTURE)}</pre>`, async (page) => {
-      await settle(page, 2);
-      await page.waitForFunction(() => document.querySelector(".dragon-figure .dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
+      // 構成図は並べ方の塊を読んでから描くので、帯の図が帯の内側 (shadow root) へ移った後に描くことがある (#3782)。
+      // 頁の表に在る図だけを数えると 2 つ揃う時が来ないので、図ごとに帯の内側か外側で描けたかを待つ
+      await page
+        .waitForFunction(() => {
+          const figures = [...document.querySelectorAll(".dragon-figure")];
+          const drawn = figures.filter((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
+          return document.querySelectorAll("pre.dragon").length === 0 && drawn.length === 2 && document.querySelector(".dragon-figure .dragon-frame") !== null;
+        }, null, { timeout: QUICK_SETTLE })
+        .catch(() => undefined);
       const figures = await page.evaluate(() =>
         [...document.querySelectorAll(".dragon-figure")].map((figure) => {
           const root = figure.querySelector(".dragon-frame")?.shadowRoot;
