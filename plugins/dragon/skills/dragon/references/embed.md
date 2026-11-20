@@ -17,7 +17,7 @@ All four draw the same diagram from the same notation. Check the notation with `
 Add `data-header` to the `<pre class="dragon">` block. Blocks without it stay plain diagrams. Pin the version to `<major>.<minor>` of the installed package.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.78/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order

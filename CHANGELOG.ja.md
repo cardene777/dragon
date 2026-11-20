@@ -6,6 +6,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.79.0] - 2026-11-20
+
 ### Added
 
 - **再生の部品が、配管の図に`canvas`と`fitNarrow`を受ける** (#3761)
