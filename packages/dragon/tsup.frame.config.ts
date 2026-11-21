@@ -10,7 +10,8 @@ export default defineConfig({
   sourcemap: true,
   clean: false,
   platform: 'browser',
-  external: ['@cardenelabs/dragon','./capture.js'],
+  // 型の file を束ねる処理は名前が一致する物だけを外の物とみなすので、軽い入口は名前で並べる。並べないと軽い入口の型を写して持つ
+  external: ['@cardenelabs/dragon','@cardenelabs/dragon/light','./capture.js'],
   outDir: 'dist',
   target: 'es2022',
 });
