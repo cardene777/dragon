@@ -3,9 +3,10 @@
  * 帯の入口とSDKの入口の両方が同じ名前で出す。
  */
 import type { HeaderColors } from './header';
+import type { BUILTIN_BUTTONS } from './names';
 
 /** 帯に初めから在るボタン。設定`buttons`に書いた順に並び、書かなかったボタンは帯から外れる */
-export type BuiltinButton = 'code' | 'editor' | 'copy' | 'export' | 'expand';
+export type BuiltinButton = (typeof BUILTIN_BUTTONS)[number];
 
 /** 帯と図を囲む枠を置き先に合わせる値。書かなかった欄は今の見た目のまま */
 export interface EmbedLook {

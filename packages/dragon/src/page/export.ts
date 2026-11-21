@@ -163,7 +163,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   if (errors.length > 0) return { ok: false, errors };
 
   const title = outline.title ?? basename(path, extname(path));
-  const html = pageHtml({ title: renderInline(title, main), titleText: titleText(title), layout: outline.layout, lang, entry, groups });
+  const html = pageHtml({ title: renderInline(title, main), titleText: titleText(title), layout: outline.layout, ...(outline.header ? { header: outline.header } : {}), lang, entry, groups });
   const out = join(outDir, `${basename(path, extname(path))}.html`);
   await mkdir(outDir, { recursive: true });
   await writeFile(out, html);

@@ -4,10 +4,13 @@
  * 見出しの深さは固定し、`#` は頁の題、最初の `##` より前は入口、`##` は段、`###` は項目、
  * `####` は入口と項目の頁の中のタブ、`#####` はタブの中のタブにする。`######` は中身の見出しのまま残す。
  * 囲み (```` ``` ````) の中の `#` は見出しに数えない。
- * 頭の `---` の間には `title` (頁の題) と `layout` (頁の組み立て) を書ける。ほかの行は読まない。
+ * 頭の `---` の間には `title` (頁の題) と `layout` (頁の組み立て) を書ける。
+ * 帯のボタンの並び (`header-buttons`、名前を `,` で区切る) と帯の色 (`header-<色の欄>`) も 1 行ずつ書け、頁の帯の設定の塊になる (#3789)。
+ * 知らないボタンの名前と、2 度書いたボタンと、`;` `<` `>` `{` `}` `"` `\` を含む色の値と、知らない `header-` の行は、行の番号つきで断る。ほかの行は読まない。
  *
  * 場所の名前は見出しの字から作る。項目は頁の中で、タブは同じ所に並ぶタブの中で重ならないよう分ける。
  */
+import { BUILTIN_BUTTONS, HEADER_COLOR_KEYS } from "../frame/names";
 import { fenceCloses, fenceOpen, headingOf, type Line } from "./markdown";
 import { slugger } from "./slug";
 import type { PageMessages } from "./text";
@@ -49,10 +52,18 @@ export interface Group {
   items: Item[];
 }
 
+/** 頭の `header-` の行から作る、頁の帯の設定 (#3789)。jsDelivr の頁の帯の設定の塊 (`#dragon-header`) と同じ形 */
+export interface PageHeader {
+  buttons?: string[];
+  look?: { colors: Record<string, string> };
+}
+
 export interface Outline {
   /** 頁の題。`#` の見出しか、頭の `title` */
   title: string | undefined;
   layout: Layout;
+  /** 頭に `header-` の行を書いた時だけ持つ */
+  header?: PageHeader;
   entry: Part;
   groups: Group[];
 }
@@ -63,6 +74,34 @@ export interface OutlineError {
 }
 
 const isLayout = (value: string): value is Layout => LAYOUTS.some((layout) => layout === value);
+
+/** 帯の色の値に書けない字。頁の帯の設定の塊と CSS の値の外へ出させない */
+const UNSAFE_COLOR = /[;<>{}"\\]/u;
+
+/** 頭の `header-` の行を頁の帯の設定にする。行が無ければ undefined (#3789) */
+function readHeader(values: ReadonlyMap<string, Line>, m: PageMessages, errors: OutlineError[]): PageHeader | undefined {
+  const header: PageHeader = {};
+  const colors: Record<string, string> = {};
+  for (const [key, line] of values) {
+    if (!key.startsWith("header-")) continue;
+    const field = key.slice("header-".length);
+    if (field === "buttons") {
+      const names = line.text.split(",").map((name) => name.trim()).filter((name) => name !== "");
+      const unknown = names.find((name) => !(BUILTIN_BUTTONS as readonly string[]).includes(name));
+      const twice = names.find((name, i) => names.indexOf(name) !== i);
+      if (unknown !== undefined) errors.push({ line: line.line, message: m.badHeaderButton(unknown, BUILTIN_BUTTONS.join(", ")) });
+      else if (twice !== undefined) errors.push({ line: line.line, message: m.repeatedHeaderButton(twice) });
+      else header.buttons = names;
+    } else if ((HEADER_COLOR_KEYS as readonly string[]).includes(field)) {
+      if (line.text === "" || UNSAFE_COLOR.test(line.text)) errors.push({ line: line.line, message: m.badHeaderColor(key, line.text) });
+      else colors[field] = line.text;
+    } else {
+      errors.push({ line: line.line, message: m.unknownHeaderLine(key, ["header-buttons", ...HEADER_COLOR_KEYS.map((color) => `header-${color}`)].join(", ")) });
+    }
+  }
+  if (Object.keys(colors).length > 0) header.look = { colors };
+  return header.buttons === undefined && header.look === undefined ? undefined : header;
+}
 
 /** 頭の `---` の間の行。閉じない `---` は頭の行と読まない */
 function frontMatter(lines: readonly Line[]): { values: Map<string, Line>; next: number } {
@@ -89,6 +128,7 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
     if (isLayout(layoutLine.text)) layout = layoutLine.text;
     else errors.push({ line: layoutLine.line, message: m.badLayout(layoutLine.text, LAYOUTS.join(" / ")) });
   }
+  const header = readHeader(head.values, m, errors);
   let title = head.values.get("title")?.text || undefined;
   let titled = false;
   const entry: Part = { lead: [], tabs: [] };
@@ -163,7 +203,7 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
     }
   }
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, outline: { title, layout, entry, groups } };
+  return { ok: true, outline: { title, layout, ...(header ? { header } : {}), entry, groups } };
 }
 
 /** 頁の中の場所の名前の並び (`項目/タブ/中のタブ`) が、頁に在る場所か */
