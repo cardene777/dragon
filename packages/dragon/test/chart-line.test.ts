@@ -639,6 +639,20 @@ describe("折れ線の値の字を線から離す (#3812)", () => {
     }
   });
 
+  it("chart-line-still-figure-shows-every-value", () => {
+    for (const { name, text, lang } of valueCases()) {
+      const read = api("parseNotation")(text, { lang });
+      expect(read.ok, `${name} の記法が読めない`).toBe(true);
+      if (!read.ok) continue;
+      const rendered = renderDiagram(read.diagram, { lang, still: true, figure: true });
+      const motion = motionFrom(rendered);
+      const last = rendered.timeline.stills[rendered.timeline.steps.length - 1] ?? 0;
+      const points = partsOf(motion, "[data-chart-point]");
+      const shown = partsOf(motion, "[data-chart-value]").filter((el) => motion.opacity(el, last) > 0.9);
+      expect(shown.length, `${name} の止めて置く図で見える値の字の数`).toBe(points.length);
+    }
+  });
+
   it("chart-line-peak-value-sits-above", () => {
     for (const { name, text, lang } of valueCases()) {
       for (const { label, doc } of valueDocs(text, lang)) {
