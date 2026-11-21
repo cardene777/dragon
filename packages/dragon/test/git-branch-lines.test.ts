@@ -14,6 +14,9 @@ import { describe, expect, it, vi } from "vitest";
 import "../src/kinds/basics";
 import "../src/kind-use/git";
 import "../src/kind-use/try";
+import "../src/kind-use/sankey";
+import "../src/kind-use/matrix";
+import { extractDiagrams } from "../src/markdown";
 // 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
 import "./built-globals";
 
@@ -214,11 +217,20 @@ describe("同じ commit から分かれる枝の線は別々の道を通る (#35
   });
 
   it("layout-breaks-record-is-empty", () => {
-    // 崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかった2件だけを記録に残し、直すのは#3791に任せた。
-    // #3791が直した後は、記録はまた空になる
+    // 崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかった2件は、#3791が量の札の段違いと軸の点数の札を外へ出す形で直し、記録はまた空になる
     const recorded = JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, { kind: string }[]>;
     const left = Object.entries(recorded).flatMap(([file, breaks]) => breaks.map((b) => `${file}: ${b.kind}`));
-    expect(left.sort(), "見本の崩れの記録に残る行").toEqual(["packages/dragon/examples/day-hours.dragon: texts-overlap", "packages/dragon/examples/quick-start.md:779: texts-overlap"]);
+    expect(left.sort(), "見本の崩れの記録に残る行").toEqual([]);
+    // 記録から外した2件の図は、既定の幅と幅390で描いても字どうしの重なりを出さない
+    const scatter = extractDiagrams(read("quick-start.md")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]"));
+    expect(scatter.length, "quick-start.md の点数で点を打つ見た目の図の数").toBe(1);
+    for (const [where, text] of [
+      ["day-hours.dragon", read("day-hours.dragon")],
+      ["quick-start.md の点の図", scatter[0]?.source ?? ""],
+    ] as const) {
+      const overlaps = checkLayoutText(text, { lang: "ja" }).filter((b) => b.kind === "texts-overlap");
+      expect(overlaps.map((b) => JSON.stringify(b)), `記録から外した ${where} の字どうしの重なり`).toEqual([]);
+    }
   });
 });
 

@@ -42,7 +42,7 @@ dragon check --layout --json order.dragon
 | `line-near-border` | A straight run of a line goes along the border of a box or a group closer than the 14px margin, so it reads as part of the border and its step number sits on the border. The line's own end boxes are not counted |
 | `line-behind-box` | A line passes through a box that is not one of its ends without crossing its name, so the box hides that part of the line and the line seems to stop at the box. A line that crosses the name of the box is reported as `line-crosses-text` instead. The line's own end boxes are not counted |
 | `text-touches-border` | A text touches or crosses the border of the plain box or the value plate it sits in |
-| `texts-overlap` | Two texts seen at the same step are drawn on top of each other, such as two amount tags of a sankey diagram, or a score tag on an axis and the name of a point. `dragon export` warns about the same overlap in the same words. A step number is named by its number, and a box icon, a coin or an envelope by what it is. A line that runs across a text is reported as `line-crosses-text` instead |
+| `texts-overlap` | Two texts seen at the same step are drawn on top of each other. `dragon export` warns about the same overlap in the same words. A step number is named by its number, and a box icon, a coin or an envelope by what it is. A line that runs across a text is reported as `line-crosses-text` instead |
 
 ## Fix what the notation can fix
 

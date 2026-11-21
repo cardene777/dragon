@@ -503,6 +503,10 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
   const drop = phone ? R.phone.drop : R.drop;
   const last = snapshots.length - 1;
   const chipHalf = (text: string): Point => carrierHalf({ kind: "tag", text });
+  // 量の札の 1 段。札の高さと、札どうしの隙間
+  const chipStep = LOOK.carrier.tagH + R.chip;
+  // 線ごとの、量の札を止める段。0 は下の行の帯の上の縁の手前で、1 段ごとに札 1 枚分上で止まる
+  const chipLevel = new Map<Flow, number>();
 
   const rows: SankeyRow[] = [];
   let y = pad;
@@ -515,6 +519,25 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
       const kind: SankeyRowSection["kind"] = cell.id.startsWith("rest:") ? "rest" : cell.born === k ? "new" : "carried";
       return { id: cell.id, box: cell.box, kind, color: kind === "rest" ? "slate" : (colors.get(cell.box) ?? "slate"), amount: cell.amount, x: left + R.gap / 2, y, w: Math.max(1, right - left - R.gap), h: R.bar.h };
     });
+    // 同じ段の量の札は、新しく分かれた区画の真ん中に同じ高さで止まる。狭い枠で札の四角が先の札と隙間無く並ぶ時は、後の札を先の札の 1 段上で止め、
+    // その行の上の下りる帯の間を上げた段の分だけ伸ばす (#3791)。札の大きさは変えず、札は自分の区画の真上に残る
+    const stacked: { left: number; right: number; level: number }[] = [];
+    for (const f of flows.filter((x) => x.step === k)) {
+      const s = sections.find((x) => x.id === f.to && x.kind === "new");
+      if (!s) continue;
+      const [hx] = chipHalf(f.label);
+      const left = s.x + s.w / 2 - hx;
+      const right = s.x + s.w / 2 + hx;
+      let level = 0;
+      while (stacked.some((p) => p.level === level && left < p.right + R.chip && p.left < right + R.chip)) level += 1;
+      stacked.push({ left, right, level });
+      chipLevel.set(f, level);
+    }
+    const lift = Math.max(0, ...stacked.map((p) => p.level)) * chipStep;
+    if (lift > 0) {
+      y += lift;
+      for (const s of sections) s.y = y;
+    }
     const listed: { section: SankeyRowSection; text: string }[] = [];
     for (const s of sections) {
       const cell = snapshot.find((c) => c.id === s.id) as Cell;
@@ -580,10 +603,10 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
     const y1 = above ? above.y + above.h : row.y - drop;
     const listedBelow = above && above.names.length > 0 ? Math.max(...above.names.map((n) => n.name.rect.y + n.name.rect.h)) : y1;
     drops.push({ step: f.step, event: f.event, from: f.from, to: f.to, x: s.x, w: s.w, y1, y2: row.y, color: s.color });
-    // 量の札は帯の下の名前より下から、下の行の帯の上の縁の手前まで落ちる
+    // 量の札は帯の下の名前より下から、下の行の帯の上の縁の手前まで落ちる。同じ段の札と並ぶ札は、上げた段の分だけ手前で止まる
     const [, hy] = chipHalf(f.label);
     const top = Math.max(y1, listedBelow) + R.chip + hy;
-    const bottom = Math.max(top, row.y - R.chip - hy);
+    const bottom = Math.max(top, row.y - R.chip - hy - (chipLevel.get(f) ?? 0) * chipStep);
     const cx = s.x + s.w / 2;
     edges.push({
       step: f.step,

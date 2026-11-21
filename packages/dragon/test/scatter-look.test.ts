@@ -17,10 +17,13 @@
  * 見本と見た目の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import { extractDiagrams } from "../src/markdown";
 import "../src/kinds/basics";
 import "../src/kind-use/chart";
 import "../src/kind-use/matrix";
@@ -596,5 +599,189 @@ describe("点数で点を打つ見た目の描き方 (#3637)", () => {
       expect(rect.x >= 0 && rect.x + rect.w <= 390, `幅 390 の図で${where}が幅に収まらない`).toBe(true);
     }
     expect(plot.w, "幅 390 の図で点の図が幅いっぱいでない").toBeGreaterThanOrEqual(260);
+  });
+});
+
+/** 見本の置き場 */
+const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
+
+/** 携帯の幅。幅 326 は頁の幅 360px で左右に 16px の余白を置いた時の図の幅 */
+const NARROW = [390, 326] as const;
+
+/** 描いた結果の重なり。`texts` は同じ段に見える字どうしの重なり */
+interface DrawnOverlap {
+  kind: string;
+  step: number;
+  spots: { text: string }[];
+}
+
+/** 使い方の頁 `quick-start.md` (英語は `quick-start.en.md`) の、点数で点を打つ見た目の図の記法 */
+function quickStart(lang: Lang): string {
+  const file = lang === "ja" ? "quick-start.md" : "quick-start.en.md";
+  const found = extractDiagrams(readFileSync(join(EXAMPLES, file), "utf8")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]"));
+  expect(found.length, `${file} の点数で点を打つ見た目の図の数`).toBe(1);
+  return found[0]?.source ?? "";
+}
+
+/** 見本帳の点数で点を打つ見た目の見本 `feature-scores` の記法 */
+const featureScores = (lang: Lang): string => readFileSync(join(EXAMPLES, `feature-scores${lang === "ja" ? "" : ".en"}.dragon`), "utf8");
+
+/** 名前の低い課題が、後の段で打つ高い課題の横の軸の点数の札に触れる小さな図。携帯の幅で、低い課題の名前の下の縁が横の軸の札の上の縁より下に来る */
+const LOW_NAME = [
+  "matrix 札の試し [shape: scatter]",
+  "",
+  "axis 手間 [from: 小さい, to: 大きい]",
+  "axis 効き目 [from: 小さい, to: 大きい]",
+  "",
+  "box now as 今やる",
+  "box plan as 計画する",
+  "box spare as 手が空いたら",
+  "box drop as やらない",
+  "",
+  "item low as 低い課題 [x: 1, y: 0.5]",
+  "item tall as 高い課題 [x: 2, y: 9]",
+  "",
+  "step 並べる",
+  "  say 課題を表に並べる。",
+  "",
+  "step 低い",
+  "  say 低い課題を打つ。",
+  "  line: low",
+  "",
+  "step 高い",
+  "  say 高い課題を打つ。",
+  "  line: tall",
+  "",
+].join("\n");
+
+/** 描いた札の四角。`x` は横の軸の札、`y` は縦の軸の札 */
+interface ChipBoxes {
+  x: Rect;
+  y: Rect;
+}
+
+/** 課題 `id` の軸からの線の部品の、横の軸と縦の軸の点数の札の四角。札は横の軸、縦の軸の順に描く */
+function chipsOf(motion: Motion, id: string, where: string): ChipBoxes | undefined {
+  const rects = [...(motion.doc.querySelector(`[data-matrix-guide="${id}"]`)?.querySelectorAll("rect.dg-mx-chip") ?? [])].map((el) => {
+    const n = (name: string): number => Number(el.getAttribute(name));
+    return { x: n("x"), y: n("y"), w: n("width"), h: n("height") };
+  });
+  expect(rects.length, `${where} の ${id} の点数の札が 2 枚でない`).toBe(2);
+  const [x, y] = rects;
+  return x && y ? { x, y } : undefined;
+}
+
+/** 札の真ん中 */
+const centre = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
+
+/** 課題 `id` の点 */
+const dotWith = (dots: Dot[], id: string): Dot | undefined => dots.find((d) => d.ids.includes(id));
+
+/** 札が軸の線の上に真ん中を置くことを確かめる。横の軸の札は点の真下の枠の下の縁に、縦の軸の札は点の真横の枠の左の縁に置く */
+function expectOnAxis(chips: ChipBoxes, dot: Dot, plot: Rect, where: string): void {
+  const bottom = plot.y + plot.h;
+  const [xx, xy] = centre(chips.x);
+  const [yx, yy] = centre(chips.y);
+  expect(xx, `${where} の横の軸の札が点の真下に無い`).toBeCloseTo(dot.x, 1);
+  expect(xy, `${where} の横の軸の札が軸の線の上に無い`).toBeCloseTo(bottom, 1);
+  expect(yx, `${where} の縦の軸の札が軸の線の上に無い`).toBeCloseTo(plot.x, 1);
+  expect(yy, `${where} の縦の軸の札が点の真横に無い`).toBeCloseTo(dot.y, 1);
+}
+
+describe("携帯の幅の軸の点数の札 (#3791)", () => {
+  it("scatter-axis-chips-clear-names-narrow", () => {
+    for (const lang of LANGS) {
+      const text = quickStart(lang);
+      for (const width of NARROW) {
+        const { rendered } = renderScatter(text, lang, width);
+        const texts = (rendered as unknown as { overlaps: DrawnOverlap[] }).overlaps.filter((o) => o.kind === "texts");
+        expect(
+          texts.map((o) => `段 ${o.step + 1}: ${o.spots.map((spot) => spot.text).join(" と ")}`),
+          `quick-start の点の図 (${lang}、幅 ${width}) で重なる字`,
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it("scatter-axis-chips-step-outside-names", () => {
+    // 札の四角が、同じ時に見える点の名前に触れる課題。縦の軸の札は軸の左へ、横の軸の札は軸の下へ出る
+    const cases: { where: string; text: string; lang: Lang; width: number; out: { id: string; axis: "x" | "y" }[]; stay: string[] }[] = [
+      ...LANGS.flatMap((lang) =>
+        NARROW.map((width) => ({ where: `quick-start の点の図 (${lang}、幅 ${width})`, text: quickStart(lang), lang, width, out: [{ id: "pay", axis: "y" as const }], stay: ["login", "word"] })),
+      ),
+      { where: "feature-scores (ja、幅 390)", text: featureScores("ja"), lang: "ja", width: 390, out: [{ id: "legacy", axis: "y" }], stay: ["search", "pay", "copy", "export"] },
+      ...NARROW.map((width) => ({ where: `低い課題の名前の図 (幅 ${width})`, text: LOW_NAME, lang: "ja" as const, width, out: [{ id: "tall", axis: "x" as const }], stay: ["low"] })),
+    ];
+    for (const c of cases) {
+      const { motion, plot, dots } = renderScatter(c.text, c.lang, c.width);
+      const bottom = plot.y + plot.h;
+      for (const { id, axis } of c.out) {
+        const where = `${c.where} の ${id}`;
+        const dot = dotWith(dots, id);
+        const chips = chipsOf(motion, id, c.where);
+        expect(dot, `${where} の点が無い`).toBeDefined();
+        if (!dot || !chips) continue;
+        if (axis === "y") {
+          // 縦の軸の札は右の端を軸の線に付けて軸の左へ出て、点の真横に残る。横の軸の札は軸の線の上のまま
+          expect(chips.y.x + chips.y.w, `${where} の縦の軸の札の右の端が軸の線に付かない`).toBeCloseTo(plot.x, 1);
+          expect(centre(chips.y)[1], `${where} の縦の軸の札が点の真横に無い`).toBeCloseTo(dot.y, 1);
+          expect(centre(chips.x)[1], `${where} の横の軸の札が軸の線の上に無い`).toBeCloseTo(bottom, 1);
+        } else {
+          // 横の軸の札は上の端を軸の線に付けて軸の下へ出て、点の真下に残る。縦の軸の札は軸の線の上のまま
+          expect(chips.x.y, `${where} の横の軸の札の上の端が軸の線に付かない`).toBeCloseTo(bottom, 1);
+          expect(centre(chips.x)[0], `${where} の横の軸の札が点の真下に無い`).toBeCloseTo(dot.x, 1);
+          expect(centre(chips.y)[0], `${where} の縦の軸の札が軸の線の上に無い`).toBeCloseTo(plot.x, 1);
+        }
+      }
+      // 名前に触れない札は、今どおり軸の線の上に真ん中を置く
+      for (const id of c.stay) {
+        const dot = dotWith(dots, id);
+        const chips = chipsOf(motion, id, c.where);
+        expect(dot, `${c.where} の ${id} の点が無い`).toBeDefined();
+        if (dot && chips) expectOnAxis(chips, dot, plot, `${c.where} の ${id}`);
+      }
+    }
+  });
+
+  it("scatter-axis-chips-stay-on-axis-at-default-width", () => {
+    const examples = LANGS.flatMap((lang) => [
+      { where: `quick-start の点の図 (${lang})`, text: quickStart(lang), lang },
+      { where: `feature-scores (${lang})`, text: featureScores(lang), lang },
+    ]);
+    for (const { where, text, lang } of examples) {
+      const { motion, plot, dots } = renderScatter(text, lang);
+      expect(dots.length, `${where} の点の数`).toBeGreaterThan(0);
+      for (const dot of dots)
+        for (const id of dot.ids) {
+          const chips = chipsOf(motion, id, where);
+          if (chips) expectOnAxis(chips, dot, plot, `${where} の ${id}`);
+        }
+    }
+  });
+
+  it("scatter-chips-keep-size-narrow", () => {
+    /** 描いた点数の札の大きさ。課題ごとに横の軸と縦の軸の札の幅と高さ */
+    const sizes = (motion: Motion, dots: Dot[], where: string): string[] =>
+      dots.flatMap((dot) =>
+        dot.ids.flatMap((id) => {
+          const chips = chipsOf(motion, id, where);
+          return chips ? [`${id} x ${chips.x.w}x${chips.x.h}`, `${id} y ${chips.y.w}x${chips.y.h}`] : [];
+        }),
+      );
+    /** 描いた SVG の点数の札の字の見た目の規則 */
+    const rules = (svg: string): string[] => [...svg.matchAll(/\.dg-mx-(?:chip|ct)\{[^}]*\}/g)].map((m) => m[0]);
+    for (const lang of LANGS) {
+      const text = quickStart(lang);
+      const wide = renderScatter(text, lang);
+      const wideSizes = sizes(wide.motion, wide.dots, `quick-start の点の図 (${lang}、既定の幅)`);
+      expect(wideSizes.length, `quick-start の点の図 (${lang}) の点数の札の数`).toBeGreaterThan(0);
+      for (const width of NARROW) {
+        const where = `quick-start の点の図 (${lang}、幅 ${width})`;
+        const narrow = renderScatter(text, lang, width);
+        // 点数の札の四角と字の大きさは、既定の幅で描いた札と同じ。札を小さくして名前を避けない
+        expect(sizes(narrow.motion, narrow.dots, where), `${where} の点数の札の大きさ`).toEqual(wideSizes);
+        expect(rules(narrow.rendered.svg), `${where} の点数の札の見た目`).toEqual(rules(wide.rendered.svg));
+      }
+    }
   });
 });
