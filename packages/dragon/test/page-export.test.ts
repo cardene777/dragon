@@ -132,6 +132,55 @@ describe("mdから頁を書き出す (#3755)", () => {
     }
   });
 
+  it("page-header-lines-set-header-block", async () => {
+    // mdの頭の`header-`の行は、頁の帯の設定の塊 (`#dragon-header`) になる (#3789)
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const dir = tempDir("header");
+    const head = '---\nlayout: tabs\nheader-buttons: code, export\nheader-accent: "#c0392b"\nheader-surface: #fafafa\n---\n\n';
+    writeFileSync(join(dir, "notes.md"), small("```dragon\nsequence 注文\nbox a\nbox b\nstep 一\n  a -> b\n```", undefined, head));
+    const doc = documentOf(expectWritten(await exportPage(join(dir, "notes.md"))));
+    const blocks = doc.querySelectorAll("#dragon-header");
+    expect(blocks.length, "頁の帯の設定の塊の数").toBe(1);
+    expect(blocks[0]?.getAttribute("type"), "帯の設定の塊の type").toBe("application/json");
+    expect(JSON.parse(blocks[0]?.textContent ?? "null"), "帯の設定の塊の中身").toEqual({
+      buttons: ["code", "export"],
+      look: { colors: { accent: "#c0392b", surface: "#fafafa" } },
+    });
+  });
+
+  it("page-rejects-bad-header-lines", async () => {
+    // 知らないボタンの名前と、`;`か`<`を含む色の値と、知らない`header-`の行は、行の番号つきで断って頁を書かない (#3789)
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const cases: [string, string, string][] = [
+      ["知らないボタンの名前", "header-buttons: code, share", "share"],
+      ["2度書いたボタン", "header-buttons: code, code", "code"],
+      ["; を含む色", "header-accent: red; background: url(x)", "header-accent"],
+      ["< を含む色", 'header-accent: "</script><script>alert(1)</script>"', "header-accent"],
+      ["知らない header- の行", "header-acent: red", "header-acent"],
+    ];
+    for (const [name, line, word] of cases) {
+      const dir = tempDir("bad-header");
+      writeFileSync(join(dir, "notes.md"), small("入口の字。", undefined, `---\nlayout: entry\n${line}\n---\n\n`));
+      const result = await exportPage(join(dir, "notes.md"));
+      expect(result.ok, `${name} を持つ md を書き出した`).toBe(false);
+      const errors = result.ok ? [] : result.errors;
+      expect(errors.map((e) => e.line), `${name} の行`).toEqual([3]);
+      expect(errors[0]?.message ?? "", `${name} の断りの文`).toContain(word);
+      expect(existsSync(join(dir, "notes.html")), `${name} を拒んだのに頁を書いた`).toBe(false);
+    }
+  });
+
+  it("page-without-header-lines-has-no-header-block", async () => {
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const dir = tempDir("no-header");
+    writeFileSync(join(dir, "notes.md"), small("```dragon\nsequence 注文\nbox a\nbox b\nstep 一\n  a -> b\n```"));
+    const doc = documentOf(expectWritten(await exportPage(join(dir, "notes.md"))));
+    expect(doc.querySelectorAll("#dragon-header").length, "header- の行の無い md の頁の帯の設定の塊").toBe(0);
+  });
+
   it("page-escapes-raw-html", async () => {
     const exportPage = await exportPageTool();
     if (!exportPage) return;

@@ -349,6 +349,57 @@ describe("置いた頁への知らせ", () => {
     }));
 });
 
+/** 誤りのある記法を`mountDragon`と`mountFramedDiagram`に渡した時の誤りの文と、既定の入口で言葉を渡して読んだ時の誤りの文 */
+interface ErrorTexts {
+  sdk: string;
+  frame: string;
+  ja: string;
+  en: string;
+}
+
+/**
+ * `#host2`に誤りのある記法を置いて誤りの文を読む。`lang`属性を外す時は`dropLang`を渡す。
+ * 頁で`import()`を呼ぶ文は、検査の道具が書き換えないよう字で渡す
+ */
+const errorTexts = (page: Page, dropLang: boolean): Promise<ErrorTexts> =>
+  page.evaluate(`(async () => {
+    const broken = ${JSON.stringify(BROKEN)};
+    if (${JSON.stringify(dropLang)}) document.documentElement.removeAttribute("lang");
+    const core = await import("/index.js");
+    const frame = await import("/frame.js");
+    const caught = (run) => { try { run(); return "置けた"; } catch (error) { return error instanceof Error ? error.message : String(error); } };
+    const read = (lang) => core.parseNotation(broken, { lang }).errors.map((e) => e.line + ": " + e.message).join("\\n");
+    const host = document.getElementById("host2");
+    return { sdk: caught(() => window.dragonEmbed.mountDragon(host, broken)), frame: caught(() => frame.mountFramedDiagram(host, broken)), ja: read("ja"), en: read("en") };
+  })()`);
+
+describe("記法の誤りの文の言葉 (#3789)", () => {
+  it("embed-sdk-errors-follow-page-lang", () =>
+    withEmbed(async (page) => {
+      const texts = await errorTexts(page, false);
+      // 陰性でない対照。日本語と英語で誤りの文が違う
+      expect(texts.ja, "日本語で読んだ誤りの文と英語で読んだ誤りの文").not.toBe(texts.en);
+      expect({ sdk: texts.sdk, frame: texts.frame }, "<html lang=\"ja\"> の頁で置いた誤りのある記法の誤りの文").toEqual({ sdk: texts.ja, frame: texts.ja });
+    }));
+
+  it("embed-sdk-errors-stay-english-without-lang", () =>
+    withEmbed(async (page) => {
+      const texts = await errorTexts(page, true);
+      expect(texts.ja, "日本語で読んだ誤りの文と英語で読んだ誤りの文").not.toBe(texts.en);
+      expect({ sdk: texts.sdk, frame: texts.frame }, "lang 属性の無い頁で置いた誤りのある記法の誤りの文").toEqual({ sdk: texts.en, frame: texts.en });
+    }));
+});
+
+describe("帯の設定の書き方の説明 (#3789)", () => {
+  it("readme-documents-header-settings", () => {
+    for (const file of ["README.md", "README.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const missing = ["@cardenelabs/dragon/light/frame", 'id="dragon-header"', "header-buttons"].filter((word) => !text.includes(word));
+      expect(missing, `${file} が載せない帯の設定の書き方`).toEqual([]);
+    }
+  });
+});
+
 /** 要素`id`の影の根に置いた図の、帯のボタンと、帯のコードのボタンの字と、図を描いたかと、再生の部品の見た目が影の根に届いたか */
 interface ElementShape {
   buttons: (string | undefined)[];
