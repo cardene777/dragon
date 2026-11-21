@@ -312,9 +312,11 @@ function line(plan: ChartPlan, ctx: Ctx): string {
       const at = movesAt(ctx, s) + (s === series.first ? 0 : MOTION.chart.move);
       points.push(`<circle class="dg-ch-lp dg-a" cx="${p.x}" cy="${p.y}" r="${CHART_LOOK.line.pointR}"${itemAttr("point", item.id)} data-chart-step="${s}" style="${cs(item.color)};${m.vis(at)}"/>`);
     });
+    // 止めて置く図 (#3812) は、全ての段の値の字を最後の段まで出したままにする
     const shown = series.values.flatMap((value, s) => {
       if (!value) return [];
-      const [a, b] = spanOf(s, s, MOTION.edgeAt + MOTION.chart.move, ctx);
+      const [a, span] = spanOf(s, s, MOTION.edgeAt + MOTION.chart.move, ctx);
+      const b = ctx.figure ? m.last : span;
       return [chartText(ctx, "dg-ch-lv", value.x, value.y, value.text, CHART_TYPE.value, itemAttr("value", item.id), { shown: [[a, b + MOTION.fade]], motion: m.vis(a, b) })];
     });
     texts.push(`<g style="${cs(item.color)}">${shown.join("")}</g>`);

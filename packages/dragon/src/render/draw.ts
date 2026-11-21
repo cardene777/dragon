@@ -9,6 +9,7 @@
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
+ * 頁に止めて置く図 (`figure`) は keyframes を組まず、最後の段の止め絵の時刻の値を部品の style に書き込む (#3812)。
  */
 import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockReader, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
@@ -418,7 +419,8 @@ export function drawSvg(
   const id = nameOf(
     `${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`,
   );
-  const m = new Motion(`dg${id}`, timeline.total, timeline.last);
+  // 止めて置く図 (#3801) は keyframes を組まず、最後の段の止め絵の時刻の値を書き込む (#3812)
+  const m = new Motion(`dg${id}`, timeline.total, timeline.last, figure?.at);
   // 後から読む種類の部品の組。最初から読む種類 (時系列図と構成図) は持たない (#3656)
   const parts = partsOf(layout.kind);
   // 種類の行に `[shape: pipe]` を書いた時系列図は、後から読んだ見た目の部品の組が列の頭と線と札と段の番号と処理の札を描く (#3720)
