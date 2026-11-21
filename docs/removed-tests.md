@@ -79,6 +79,7 @@
 | `checks-intro-names-typecheck-in-reached-checks` | `packages/dragon/test/test-policy.test.ts` | 同じく、`.ikkan/checks.md`の冒頭が届く検査の型の検査を書く必要が無くなった | `checks-intro-names-reached-checks` |
 | `maintainer-notes-say-reached-checks-typecheck` | `packages/dragon/test/test-policy.test.ts` | 同じく、`docs/maintaining.md`が届く検査の型の検査を書く必要が無くなった | `maintainer-notes-say-gate-skips-reached-checks` |
 | `maintainer-notes-say-gate-runs-related-tests` | `packages/dragon/test/test-policy.test.ts` | 同じく、実装の関門は`pnpm test:related`を回さなくなった | `maintainer-notes-say-gate-skips-reached-checks` |
+| `pipe-mesh-box-no-turn-band` | `packages/dragon/test/pipe-mesh-call-port.test.ts` | 守っていた形をやめた。本人が2026-11-21に、網型の箱と人の間を0.79.2の決め方 (全ての人から箱への道を下の縁へ入れた時の折る段の数) に戻すと決めた。詰めると、呼び方で券や横へ入る管の有る無しが変わり、カタログで呼び方を切り替えた時に箱と人が動く (#3826) | `pipe-mesh-box-gap-from-all-paths` |
 
 ## 速くした検査
 

@@ -215,14 +215,32 @@ describe("網型で人から箱へ入る呼び出しの管", () => {
     expect(crossing(a, b), "2本の管が交わる").toBe(false);
   });
 
-  it("pipe-mesh-box-no-turn-band", () => {
-    // 箱の下で折る管が無い図は、箱の下の縁と人の丸の上の縁の間に折る段 (34px) を空けない
+  it("pipe-mesh-box-gap-from-all-paths", () => {
+    // 箱と人の間は、全ての人から箱への道を下の縁へ入れた時の折る段の数で決め、横の縁へ入る管でも詰めない (#3826)
     for (const name of HOME) {
       const l = layoutOfText(read(name));
       const box = partyOf(l, "usdc");
       const top = Math.min(...["alice", "bob", "carol"].map((id) => partyOf(l, id).y));
       expect(top - (box.y + box.h), `${name} の箱の下の縁から人の丸の上の縁まで`).toBe(GAP);
     }
+  });
+
+  it("pipe-mesh-gap-steady-across-calls", () => {
+    // 同じ箱と人の図は、誰が呼ぶかと券の有る無しが変わっても、箱と人を同じ所に置く (Tracelyth #221、#3826)。
+    // カタログは呼び方を切り替えて同じ図を描き直すので、置き場所が動くと図が跳ねる
+    const base = read("side-port-erc20-transferfrom-0");
+    const variants: Array<[string, string]> = [
+      ["Bobが呼び券が在る図", base],
+      // 券を箱に結ぶ図は、人に結ぶ券を描かない
+      ["券を箱に結ぶ図", base.replaceAll("allowance[Alice][Bob]", "allowance[Alice][USDC]").replace("[from: alice, to: bob, unit: USDC]", "[from: alice, to: usdc, unit: USDC]")],
+      ["Carolが呼ぶ図", base.replace(/BobがUSDC/u, "CarolがUSDC").replace(/bob -> usdc: transferFrom/u, "carol -> usdc: transferFrom")],
+    ];
+    const places = variants.map(([name, text]) => {
+      const l = layoutOfText(text);
+      return [name, ["alice", "bob", "carol", "usdc"].map((id) => [id, partyOf(l, id).x, partyOf(l, id).y])] as const;
+    });
+    const [first, ...rest] = places;
+    for (const [name, at] of rest) expect(at, `${name} の箱と人の置き場所が${first?.[0]}と違う`).toEqual(first?.[1]);
   });
 
 });
@@ -249,5 +267,5 @@ for (const [name, text] of BREAK_TEXTS)
     });
   });
 
-/** 箱の下の縁から人の丸の上の縁までの長さ。直す前の72pxから、折る段の34pxを引いた値 */
-const GAP = 38;
+/** 箱の下の縁から人の丸の上の縁までの長さ。箱の左に居るAliceの道が下の縁へ入る時に折る段 (34px) を含む、0.79.2と同じ値 */
+const GAP = 72;

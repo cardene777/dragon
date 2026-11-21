@@ -3140,23 +3140,33 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
       if (boxes.some((b) => b !== c.to && boxX.get(b) < z && boxX.get(b) + widths.get(b) > a)) return undefined;
       return x < x0 ? 0 : 2;
     };
-    let levels = 0;
-    for (const id of boxes) {
+    /** 箱の下の縁に並べる口の位置。人の真上を先に取り、口どうしの間を `L.port` 空けて縁の中へ収める */
+    const bottomPorts = (id: string, list: readonly ReservedCall[]): number[] => {
       const lo = boxX.get(id) + L.portPad;
       const hi = boxX.get(id) + widths.get(id) - L.portPad;
-      // 箱の横の縁へ入る呼び出しは下の縁の口を使わず、箱の下で折る段も要らない (#3813)
-      const list = reserved.filter((c) => c.to === id && sideOf(c) === undefined).sort((a, b) => upX(a) - upX(b));
       const ps = list.map((c) => Math.min(hi, Math.max(lo, upX(c))));
       for (let j = 1; j < ps.length; j++) ps[j] = Math.max(ps[j] as number, (ps[j - 1] as number) + L.port);
       for (let j = ps.length - 2; j >= 0; j--)
         if ((ps[j + 1] as number) > hi || (ps[j] as number) > (ps[j + 1] as number) - L.port) ps[j] = Math.min(ps[j] as number, Math.min(ps[j + 1] as number, hi) - L.port);
       if (ps.length > 0 && (ps[ps.length - 1] as number) > hi) ps[ps.length - 1] = hi;
+      return ps;
+    };
+    // 箱と人の間は、全ての人から箱への道を下の縁へ入れた時の折る段の数で決める (0.79.2と同じ)。
+    // 横の縁へ入る道 (#3813) と券 (#3819) の有る無しは呼び方で変わるので、間を決めるのに使わない。
+    // 使うと、カタログで呼び方を切り替えた時に箱と人が動く (Tracelyth #221、#3826)
+    let levels = 0;
+    for (const id of boxes) {
+      const all = reserved.filter((c) => c.to === id).sort((a, b) => upX(a) - upX(b));
+      const aps = bottomPorts(id, all);
+      levels = Math.max(levels, all.filter((c, j) => upX(c) < (aps[j] as number) - 0.5).length, all.filter((c, j) => upX(c) > (aps[j] as number) + 0.5).length);
+      // 箱の横の縁へ入る呼び出しは下の縁の口を使わず、箱の下で折る段も要らない (#3813)
+      const list = reserved.filter((c) => c.to === id && sideOf(c) === undefined).sort((a, b) => upX(a) - upX(b));
+      const ps = bottomPorts(id, list);
       list.forEach((c, j) => portX.set(c, round3(ps[j] as number)));
       const lefts = list.filter((c) => upX(c) < portX.get(c) - 0.5);
       const rights = list.filter((c) => upX(c) > portX.get(c) + 0.5).reverse();
       lefts.forEach((c, j) => turnOf.set(c, j));
       rights.forEach((c, j) => turnOf.set(c, j));
-      levels = Math.max(levels, lefts.length, rights.length);
       // 箱の高さは全ての人から箱への道で決めて呼び方で変えないが、口の位置は描く呼び出しだけで決め直す。
       // 描かない道の口が間を取ると、描く線の口が人の出口から少しずれて、線が途中で小さく折れる (Tracelyth #221)
       const drawn = list.filter((c) => calls.includes(c));
@@ -3174,11 +3184,8 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
       dl.forEach((c, j) => turnOf.set(c, j));
       dr.forEach((c, j) => turnOf.set(c, j));
     }
-    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)。
-    // ただし券を人に結ぶ図は、券を人の上の箱との間に置いて短い線で結ぶので、券の高さと上下の間を残す。
-    // 箱の下で折る管が無い図 (#3813) で空きを詰め切ると、券が人の上に収まらず、離れた所へ逃げて結ぶ線が消える
-    const ticketRoom = (out.links ?? []).some((l) => l.label?.ticket && people.includes(l.to)) ? TICKET.h + TICKET.gap + MESH_CLEAR : 0;
-    boxBottom = top0 - Math.max(MESH_CLEAR + levels * L.turn + L.band, ticketRoom);
+    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)
+    boxBottom = top0 - MESH_CLEAR - levels * L.turn - L.band;
     for (const b of boxes) boxY.set(b, boxBottom - heights.get(b));
   } else {
     for (const b of rowBoxes) {
