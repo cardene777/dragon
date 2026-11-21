@@ -32,7 +32,7 @@
 | 見本`rebase`と`rebase.en`を描いた時、`dragon check --layout`が`warning`の行を1つも出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`rebase-examples-warn-nothing`が通る | #3547 |
 | 見本`merge`の段7を描いた時、コミットBから分かれる`fix`の線と`feature`の線は、出口の間が`APART.line`に線の太さを足した値で、どこでも`APART.line`以上離れる | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`merge-branch-lines-leave-apart`が通る | #3547 |
 | 同じコミットから3本の枝を切り、それぞれにcommitを積む図を描いた時、どの2本の線も、`APART.line`より近い所を番号の丸2つ分 (`LOOK.badge.r`の2倍) より長く走らず、`dragon check --layout`が`warning`の行を出さない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`three-branch-lines-leave-apart`が通る | #3547 |
-| 見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`が空になる | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-breaks-record-is-empty`が通る | #3547 |
+| 見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`は、#3791が直す字どうしの重なり2件 (`day-hours.dragon`と`quick-start.md`の779行目の図) のほかに行を持たない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-breaks-record-is-empty`が通る | #3547 #3790 |
 | 同じコミットから分かれる2本の枝の線が重なる時、`dragon check --layout`がその段と2本の線を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-names-overlapping-branch-lines`が通る | #3547 |
 | 構成図で同じ箱の同じ所から出る2本の線が重なって走り、その先で分かれる時、`dragon check --layout`がその段と2本の線を名指す`warning`の行を出す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-lines-leaving-one-spot`が通る | #3547 |
 | 常に、枝を切る線と、その枝に最初に積んだcommitの線は同じ道を通り、`dragon check --layout`は重なる線に数えない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-skips-redrawn-branch-line`が通る | #3547 |

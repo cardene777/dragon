@@ -380,6 +380,16 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(missing, "崩れの参照が書かない事").toEqual([]);
   });
 
+  it("skill-layout-names-text-overlaps", () => {
+    // `dragon check --layout`は字どうしの重なりも崩れとして知らせる (#3790)。崩れの種類の表に行を持ち、記法で直す手を書く
+    const text = read(join(REFERENCES, "layout.md"));
+    expect(text, "references/layout.md が無い").not.toBe("");
+    const row = text.split("\n").find((line) => line.startsWith("| `texts-overlap` |"));
+    expect(row, "崩れの種類の表に字どうしの重なり (texts-overlap) の行が無い").toBeDefined();
+    const fix = text.split("\n").find((line) => line.startsWith("- `texts-overlap`"));
+    expect(fix, "記法で直す手の一覧に字どうしの重なり (texts-overlap) の直し方が無い").toBeDefined();
+  });
+
   it("skill-layout-no-reply-workaround", () => {
     // 行きと帰りの線は dragon が崩れの下限より広く離して描くので (#3521)、記法で避ける手と、描き方の側の崩れとして伝える案内を書かない
     const layout = read(join(REFERENCES, "layout.md"));

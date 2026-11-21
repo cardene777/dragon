@@ -1,6 +1,6 @@
 # Layout breaks
 
-`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, a line hidden behind a box, a line squeezed along the border of a box or group, a text touching its frame, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, or a line name drawn away from its line.
+`dragon check` reads the notation without drawing it, so a diagram can pass it and still look broken once drawn: step numbers piled up, two lines running on top of each other, a line running across a name, a line hidden behind a box, a line squeezed along the border of a box or group, a text touching its frame, a coin slot or label sticking out of a shaped box, a tag cut off at the edge of the diagram, a line name drawn away from its line, or two texts drawn on top of each other.
 `dragon check --layout` draws the diagram and reports these breaks.
 It looks at every step, at the default width and at a phone width of 390px.
 
@@ -42,6 +42,7 @@ dragon check --layout --json order.dragon
 | `line-near-border` | A straight run of a line goes along the border of a box or a group closer than the 14px margin, so it reads as part of the border and its step number sits on the border. The line's own end boxes are not counted |
 | `line-behind-box` | A line passes through a box that is not one of its ends without crossing its name, so the box hides that part of the line and the line seems to stop at the box. A line that crosses the name of the box is reported as `line-crosses-text` instead. The line's own end boxes are not counted |
 | `text-touches-border` | A text touches or crosses the border of the plain box or the value plate it sits in |
+| `texts-overlap` | Two texts seen at the same step are drawn on top of each other, such as two amount tags of a sankey diagram, or a score tag on an axis and the name of a point. `dragon export` warns about the same overlap in the same words. A step number is named by its number, and a box icon, a coin or an envelope by what it is. A line that runs across a text is reported as `line-crosses-text` instead |
 
 ## Fix what the notation can fix
 
@@ -59,6 +60,7 @@ Fix one break, run `dragon check --layout` again, and repeat. A fix often clears
 - `line-near-border`: Reorder the boxes so the line does not have to pass along other boxes, for example put the two boxes it joins next to each other. Otherwise keep it and report it.
 - `line-behind-box`: In an architecture diagram, dragon already runs a line that has no clear way between the boxes around the outside of the diagram, so this is rare. Reorder the boxes so the two boxes the line joins are next to each other, or in the same row or column with no box between them. Otherwise keep it and report it.
 - `text-touches-border`: Shorten the text. Otherwise keep it and report it.
+- `texts-overlap`: Shorten one of the two texts, or reorder the boxes, the flows or the points so the two texts no longer sit side by side. A break that only shows at width 390 needs the text to fit on a phone. Otherwise keep it and report it.
 - `panel-edge` on a point label: A point near the right end writes its name and `note` text to the right of its flag. Shorten the text, or place the point at an earlier unit. A `panel-edge` on the needle, the ticks or a tick label comes from how dragon draws, so report it.
 - `badge-on-frame`: dragon moves a step number along its line off the borders, so this only shows when no spot on the line is clear. Keep it and report it.
 - `label-on-frame`: In an architecture diagram, dragon already puts the name of a line that leaves a group clear of the group's border, widens the gap between two groups when the name has no room there, and makes room above the top row for a name over a detour. If it still shows, shorten the name or reorder the boxes so the line does not leave the group next to another line. Otherwise keep it and report it.
