@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.4] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams keep room for an allowance ticket above the person it belongs to, and tie the ticket to that person again** (#3819)
+
+  0.79.3 pulled the boxes closer to the people row when no pipe turns under them, which left less room than a ticket's height, so in figures such as an ERC-20 `approve` or `transferFrom` the ticket slid away and lost its line to the person. A mesh figure with a ticket tied to a person now keeps the 0.79.2 gap of 72px under the boxes, while figures without such a ticket stay as close as in 0.79.3. A ticket is also placed where it overlaps the person sideways and can be tied with a short line before any spot that cannot, so the ticket in the multicall figure is now tied to Bob as well.
+
 ## [0.79.3] - 2026-11-21
 
 ### Fixed
