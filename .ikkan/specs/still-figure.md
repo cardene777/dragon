@@ -24,3 +24,12 @@
 | `figure: true`で描いた手順の帯は、手順の名前を、その手順の山形の上の縁と下の縁の間で、山形の左右の縁の内側に描く | `pnpm exec vitest run`の検査`still-figure-band-writes-names-inside`が通る | #3809 |
 | `dragon embed`で埋めた止めて置く図も、`--dragon-figure-background`を読み、長いドーナツの名前を2行に折り返し、手順の帯の名前を山形の中に描く | `pnpm exec vitest run`の検査`embed-still-figure-follows-page-look`が通る | #3809 |
 | `packages/dragon/README.ja.md`と`packages/dragon/README.md`とdragonのスキルの`references/embed.md`が、`--dragon-figure-background`で図の地の色を頁に合わせる書き方を持つ | `pnpm exec vitest run`の検査`still-figure-docs-name-figure-background`が通る | #3809 |
+| `figure: true`で描いた流れ図と横棒とドーナツと折れ線は、keyframesも`animation-name`も持たない | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-has-no-keyframes`が通る | #3812 |
+| 止めて置くドーナツの弧は、値の割合どおりの長さと始まりの位置を`stroke-dasharray`と`stroke-dashoffset`の値として持つ | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-donut-arcs-keep-shares`が通る | #3812 |
+| 止めて置く横棒は、一番大きい値の棒に対する長さの割合を`scaleX`の値として持つ | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-bars-keep-lengths`が通る | #3812 |
+| 動きの道具に止める時刻を渡すと、keyframesを足さずにその時刻の性質ごとの値を返し、動いている途中の時刻では前後の点の数を補間する | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`motion-freeze-writes-values-at-time`が通る | #3812 |
+| `dragon embed`が止めて置く塊を描いた頁は、keyframesを持たない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`embed-still-block-has-no-keyframes`が通る | #3812 |
+| `figure`を渡さずに描いた図は、今と同じkeyframesと`animation-name`で動く | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`moving-figure-keeps-keyframes`が通る | #3812 |
+| 折れ線の値の字の四角は、どの線の区間とも点の丸とも他の値の字とも重ならず、凡例の行の下から横の軸の名前の上までに収まる | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-values-clear-of-lines`が通る | #3812 |
+| 前後の点より高い点の値の字は、点の上に置く | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-peak-value-sits-above`が通る | #3812 |
+| 止めて置く折れ線は、最後の段の値だけでなく全ての段の値の字を出す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-still-figure-shows-every-value`が通る | #3812 |
