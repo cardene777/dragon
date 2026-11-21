@@ -215,3 +215,8 @@
 | `side-port-erc20-transferfrom-0`の図で、Bobに結ぶ券が箱の下の縁とBobの上の縁の間に在り、Bobに横で8より多く掛かり、Bobと結ぶ線を持つ | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-sits-above-spender`が通る | #3819 |
 | 見本の全ての網型の図で、人に結ぶ券はどれも人と結ぶ線を持つ (Tracelythのカタログの`erc20-approve`と`patterns-flashloan`を見本に足す) | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-tied-in-all-fixtures`が通る | #3819 |
 | トップページの図2枚 (券を持たない) で、呼び出しの管は箱の横の縁の上下の真ん中へ1回だけ曲がって入る | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-side-middle`が通る | #3819 |
+| 同じ箱と人の`transferFrom`の図で、Bobが呼ぶ時とCarolが呼ぶ時と券を箱に結ぶ時の、箱と人の置き場所が同じ | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-gap-steady-across-calls`が通る | #3826 |
+| トップページの図2枚で、箱の下の縁から人の丸の上の縁までが0.79.2と同じ72px | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-box-gap-from-all-paths`が通る | #3826 |
+| トップページの図2枚で、呼び出しの管は箱の横の縁の上下の真ん中へ1回だけ曲がって入る | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-side-middle`が通る | #3826 |
+| `transferFrom`の図で、Bobに結ぶ券が箱とBobの間に在り、Bobと線で結ばれる | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-sits-above-spender`が通る | #3826 |
+| 見本の全ての網型の図で、人に結ぶ券はどれも人と結ぶ線を持つ | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-tied-in-all-fixtures`が通る | #3826 |
