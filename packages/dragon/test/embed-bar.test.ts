@@ -1286,3 +1286,182 @@ describe("帯つきの図の線と再生の帯の余白 (#3744)", () => {
     });
   });
 });
+
+/** 携帯の幅で帯を測る図。`oauth.dragon`は題が2行に折り返し、`day-hours.dragon`は題が1行に収まる (#3788) */
+const NARROW_SOURCES: Record<string, string> = {
+  oauth: readFileSync(join(ROOT, "examples/oauth.dragon"), "utf8"),
+  "day-hours": readFileSync(join(ROOT, "examples/day-hours.dragon"), "utf8"),
+};
+
+/** 頁の上の四角 (px) */
+interface Edges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** 帯の 1 つのボタンを測った値 */
+interface HeaderControl extends Edges {
+  action: string;
+  /** 見えている字。字を隠したボタンは空 */
+  shown: string;
+  /** 読み上げの名前 (`aria-label`) */
+  label: string;
+  /** 見えているアイコンの数 */
+  icons: number;
+}
+
+/** 帯を測った値 */
+interface HeaderSeen {
+  height: number;
+  header: Edges;
+  frame: Edges;
+  titleBottom: number;
+  controls: HeaderControl[];
+}
+
+/** 頁の幅を`width`にし、左右に 16px の余白を置いて`source`を帯つきで置き、帯とボタンを測る。`added`の時は置く側のボタン`メモ`を最後に足す */
+async function measureHeader(page: Page, width: number, source: string, added = false): Promise<HeaderSeen> {
+  await page.setViewportSize({ width, height: 900 });
+  return page.evaluate(
+    ([src, withAdded]) => {
+      document.body.style.padding = "0 16px";
+      const host = document.getElementById("host")!;
+      host.style.width = "auto";
+      host.replaceChildren();
+      const frame = (window as unknown as { dragonFrame: { mountFramedDiagram(host: HTMLElement, source: string, options: object): unknown } }).dragonFrame;
+      const buttons = ["code", "editor", "copy", "export", "expand", { id: "note", label: "メモ", onClick: () => undefined }];
+      frame.mountFramedDiagram(host, src, withAdded ? { pausedAt: 0, buttons } : { pausedAt: 0 });
+      const element = host.querySelector<HTMLElement>(".dragon-frame")!;
+      const root = element.shadowRoot!;
+      const edges = (el: Element): Edges => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+      };
+      // 字の置き場が見えず、置き場の四角と字の四角が 1px を超えて重なる字だけを見えている字に数える
+      const shown = (el: Element): string => {
+        const parts: string[] = [];
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const text = node.textContent?.trim();
+          const parent = node.parentElement;
+          if (!text || !parent?.checkVisibility()) continue;
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const word = range.getBoundingClientRect();
+          const place = parent.getBoundingClientRect();
+          const wide = Math.min(word.right, place.right) - Math.max(word.left, place.left);
+          const tall = Math.min(word.bottom, place.bottom) - Math.max(word.top, place.top);
+          if (wide > 1 && tall > 1) parts.push(text);
+        }
+        return parts.join("");
+      };
+      const controls = [...root.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]")]
+        .filter((el) => el.checkVisibility())
+        .map((el) => {
+          const control = el.matches("button,a") ? el : el.querySelector<HTMLElement>(":scope > button")!;
+          return {
+            action: el.dataset.action!,
+            ...edges(control),
+            shown: shown(control),
+            label: control.getAttribute("aria-label") ?? "",
+            icons: [...control.querySelectorAll("svg")].filter((svg) => svg.checkVisibility()).length,
+          };
+        });
+      const header = root.querySelector("[data-dragon-header]")!;
+      return {
+        height: header.getBoundingClientRect().height,
+        header: edges(header),
+        frame: edges(element),
+        titleBottom: root.querySelector(".dg-header-title")!.getBoundingClientRect().bottom,
+        controls,
+      };
+    },
+    [source, added] as const,
+  );
+}
+
+const NARROW_HEADER = await atLoad("頁の幅360pxと1000pxに、題の長い図と短い図を帯つきで置き、帯とボタンを測る", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    const seen: Record<string, HeaderSeen> = {};
+    for (const width of [360, 1000]) {
+      for (const [name, source] of Object.entries(NARROW_SOURCES)) seen[`${width}-${name}`] = await measureHeader(page, width, source);
+    }
+    seen.added = await measureHeader(page, 360, NARROW_SOURCES.oauth!, true);
+    return seen;
+  }),
+);
+
+/** 帯の 5 つのボタン */
+const FIVE = ["code", "editor", "copy", "export", "expand"];
+
+describe("携帯の幅の帯 (#3788)", () => {
+  describe.for(Object.keys(NARROW_SOURCES))("%s", (name) => {
+    it("frame-header-fits-narrow-page", () => {
+      // 頁の幅360pxでは、5つのボタンが字を見せない36px角のアイコンになり、題の下に1段で並ぶ
+      const seen = frameResult(NARROW_HEADER.get())[`360-${name}`]!;
+      expect(seen.controls.map((c) => c.action)).toEqual(FIVE);
+      expect(seen.height, `頁の幅360pxの${name}の帯の高さ`).toBeLessThanOrEqual(100);
+      for (const c of seen.controls) {
+        expect([Math.round(c.right - c.left), Math.round(c.bottom - c.top)], `頁の幅360pxの${c.action}のボタンの大きさ`).toEqual([36, 36]);
+        expect(c.shown, `頁の幅360pxで${c.action}のボタンが字を見せる`).toBe("");
+        expect(c.icons, `頁の幅360pxで${c.action}のボタンにアイコンが無い`).toBe(1);
+      }
+      const tops = seen.controls.map((c) => c.top);
+      expect(Math.max(...tops) - Math.min(...tops), "頁の幅360pxでボタンが1段に並ばない").toBeLessThan(0.5);
+      expect(Math.min(...tops), "頁の幅360pxでボタンが題の下に並ばない").toBeGreaterThanOrEqual(seen.titleBottom - 0.5);
+    });
+
+    it("frame-header-buttons-stay-inside", () => {
+      // 頁の幅360pxの帯で、ボタンどうしは重ならず、帯と帯の枠の外へ出ない
+      const seen = frameResult(NARROW_HEADER.get())[`360-${name}`]!;
+      expect(seen.controls.length, "帯のボタンを測れない").toBeGreaterThan(0);
+      for (const c of seen.controls) {
+        for (const edge of [seen.header, seen.frame]) {
+          expect(c.left >= edge.left - 0.5 && c.right <= edge.right + 0.5 && c.top >= edge.top - 0.5 && c.bottom <= edge.bottom + 0.5, `${c.action}のボタンが帯の外へ出た`).toBe(true);
+        }
+      }
+      const overlaps = seen.controls.flatMap((a, i) =>
+        seen.controls.slice(i + 1).filter((b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5).map((b) => `${a.action}と${b.action}`),
+      );
+      expect(overlaps, "帯のボタンどうしが重なった").toEqual([]);
+    });
+
+    it("frame-header-keeps-wide-page", () => {
+      // 頁の幅1000pxの帯は今と同じく高さ49pxで、5つのボタンが字とアイコンを見せて1段に並ぶ
+      const seen = frameResult(NARROW_HEADER.get())[`1000-${name}`]!;
+      expect(seen.height, `頁の幅1000pxの${name}の帯の高さ`).toBeCloseTo(49, 0);
+      expect(seen.controls.map((c) => [c.action, c.shown])).toEqual([
+        ["code", "コード"],
+        ["editor", "エディタ"],
+        ["copy", "コピー"],
+        ["export", "エクスポート"],
+        ["expand", ""],
+      ]);
+      for (const c of seen.controls) expect(c.icons, `頁の幅1000pxで${c.action}のボタンにアイコンが無い`).toBeGreaterThanOrEqual(1);
+      const tops = seen.controls.map((c) => c.top);
+      expect(Math.max(...tops) - Math.min(...tops), "頁の幅1000pxでボタンが1段に並ばない").toBeLessThan(0.5);
+    });
+  });
+
+  it("frame-header-names-icon-buttons", () => {
+    // 字を隠したボタンも、読み上げの名前を`aria-label`に持つ
+    const seen = frameResult(NARROW_HEADER.get())["360-oauth"]!;
+    expect(seen.controls.map((c) => [c.action, c.label])).toEqual([
+      ["code", "コード"],
+      ["editor", "dragonエディタで開く"],
+      ["copy", "コピー"],
+      ["export", "エクスポート"],
+      ["expand", "図を拡大"],
+    ]);
+  });
+
+  it("frame-header-keeps-added-button-text", () => {
+    // 置く側が設定`buttons`で足したボタンは、頁の幅360pxでも字を見せたまま描く
+    const seen = frameResult(NARROW_HEADER.get()).added!;
+    const note = seen.controls.find((c) => c.action === "note");
+    expect(note, "置く側が足したボタンが帯に無い").toBeDefined();
+    expect(note!.shown, "頁の幅360pxで置く側が足したボタンの字が見えない").toBe("メモ");
+  });
+});
