@@ -35,12 +35,14 @@ const MENU_ROOM=10;
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする。
  * 帯の内側の影の根には図のSVGも描くので、帯の釦の絵柄の線の決まりは帯の段 (`[data-dragon-header]`) の中のSVGだけに当て、図の字と地に縁取りを付けない (#3744)。
  * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)。
- * 置いた頁の字の間と大文字の指定は影の根の中へ受け継がれるので、帯の枠の根で戻す (`look/plain-text.ts`、#3787)
+ * 置いた頁の字の間と大文字の指定は影の根の中へ受け継がれるので、帯の枠の根で戻す (`look/plain-text.ts`、#3787)。
+ * 帯の幅が600px以下の時は、初めからの5つのボタンの字を隠して36px角のアイコンにし、題の下の1段に収める。置く側が足したボタンは字のまま描く (#3788)
  */
 const FRAME_CSS = `
 :host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;${PLAIN_TEXT};border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
 *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}[data-dragon-header] svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pop{position:relative}[data-dragon-header] .dg-header-actions svg.chevron{width:12px;height:12px}
+@container(max-width:600px){[data-dragon-header] .dg-header-actions{gap:6px}[data-dragon-header] .dg-header-actions>:is(.code-toggle,.editor,.expand),[data-dragon-header] .dg-header-actions>.pop>:is(.copy-toggle,.export-toggle){width:36px;height:36px;min-height:36px;padding:0}[data-dragon-header] .dg-header-actions .dg-label,[data-dragon-header] .dg-header-actions svg.chevron{display:none}}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:220px;margin:0;padding:6px;border:1px solid var(--h-line);border-radius:10px;background:var(--h-bg);color:var(--h-fg);box-shadow:0 12px 35px #0002}
 .menu[data-menu=export]{width:300px}
 .menu>button{display:block;width:100%;text-align:left;border:0;border-radius:6px;padding:8px 11px;background:transparent;color:var(--h-fg);font-size:12px}.menu>button:hover{background:var(--h-hover)}.menu>button+button{margin-top:2px}
@@ -59,13 +61,16 @@ ${EDGE_PLAYER_ROOM_CSS}
 /** 拡大の窓の後ろを暗くする見た目。窓は帯を置いた所の根に置く */
 const EXPANDED_CSS='.dragon-expanded-dialog::backdrop{background:#1b2c25b3;backdrop-filter:blur(3px)}';
 
-/** 帯の中身。字は帯の言葉の表 `t` から入れ、置く人の値は入れない */
+/**
+ * 帯の中身。字は帯の言葉の表 `t` から入れ、置く人の値は入れない。
+ * ボタンの字は`dg-label`に包み、帯の幅が600px以下の時に字を隠すので、字と同じ読み上げの名前を`aria-label`に持たせる (#3788)
+ */
 const barHtml = t => `<div class="bar"><div class="actions">`
-  + `<button class="code-toggle" data-action="code" type="button" aria-pressed="false">${t.code}</button>`
-  + `<a class="editor" data-action="editor" target="_blank" rel="noopener" aria-label="${t.editorLabel}" title="${t.editorLabel}">${t.editor}</a>`
-  + `<div class="pop" data-action="copy"><button class="copy-toggle" type="button" aria-expanded="false" aria-haspopup="true">${t.copy}</button>`
+  + `<button class="code-toggle" data-action="code" type="button" aria-pressed="false" aria-label="${t.code}"><span class="dg-label">${t.code}</span></button>`
+  + `<a class="editor" data-action="editor" target="_blank" rel="noopener" aria-label="${t.editorLabel}" title="${t.editorLabel}"><span class="dg-label">${t.editor}</span></a>`
+  + `<div class="pop" data-action="copy"><button class="copy-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-label="${t.copy}"><span class="dg-label">${t.copy}</span></button>`
   + `<div class="menu" data-menu="copy" hidden><button type="button" data-copy="source">${t.copySource}</button><button type="button" data-copy="image">${t.copyImage}</button><button type="button" data-copy="url">${t.copyUrl}</button></div></div>`
-  + `<div class="pop" data-action="export"><button class="export-toggle" type="button" aria-expanded="false" aria-haspopup="true">${t.export}</button>`
+  + `<div class="pop" data-action="export"><button class="export-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-label="${t.export}"><span class="dg-label">${t.export}</span></button>`
   + `<div class="menu" data-menu="export" hidden>`
   + `<p class="group" data-group="images">${t.images}</p><button type="button" data-format="png">PNG</button><button type="button" data-format="svg">SVG</button>`
   + `<p class="group" data-group="motion">${t.motion}</p><button type="button" data-format="html">HTML</button><button type="button" data-format="gif">GIF</button><button type="button" data-format="mp4">MP4</button>`

@@ -52,7 +52,7 @@
 | 帯つきの図の再生の帯は、段の番号の左の端と次の段の釦の右の端を`.stage`の左右の縁から16px離し、段ごとの進み具合の下の端を`.stage`の下の縁から12px離す | `pnpm exec vitest run`の検査`frame-bar-keeps-room-from-edges`が通る | #3744 |
 | 帯の無い図の再生の帯は自分では余白を付けず、段の番号の左の端を図の枠の左の端に揃えて、余白を置いた頁に任せる | `pnpm exec vitest run`の検査`plain-bar-leaves-room-to-page`が通る | #3744 |
 | 1 fileのHTMLは、今と同じく再生の部品の下に12px、再生の帯と呼び出しの欄の左右に16pxの余白を付ける | `pnpm exec vitest run`の検査`html-page-keeps-bar-room`が通る | #3744 |
-| scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 |
+| scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 #3788 |
 | `dragon embed`で埋めた頁を通信を止めて開いた時、`data-header`を持つ塊ごとに帯 (`[data-dragon-header]`) が1つ付き、帯のボタンがjsDelivrの1行の入口の頁と同じコード、エディタ、コピー、エクスポート、拡大の順に並ぶ | `pnpm exec vitest run`の検査`offline-page-frames-header-blocks`が通る | #3786 |
 | 埋めた頁で`data-header`を持たない塊は、帯の無い図のまま描ける | `pnpm exec vitest run`の検査`offline-page-leaves-plain-blocks-bare`が通る | #3786 |
 | 通信を止めて開いた埋めた頁で、帯のボタンとエクスポートの窓とコピーの窓の項目を1つずつ押した時、書き出せなかった知らせか頁の例外を出す項目が0個になる | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
@@ -78,3 +78,10 @@
 | 見本帳の帯は今と同じく、帯の頭の`actions`と`settings`へ見本帳のボタンと色味の選ぶ欄と拡大縮小を差し込む | `pnpm exec vitest run`の検査`catalog-bar-holds-theme-and-zoom`と`catalog-bar-code-toggles-source`が通る | #3787 |
 | 帯つきの図のSVGの全ての要素の縁取りの有無と線の太さは、同じ記法の帯の無い図と同じ | `pnpm exec vitest run`の検査`frame-diagram-keeps-plain-strokes`が通る | #3787 |
 | jsDelivrの1行の入口が時系列図の頁で最初に読むscriptのgzip後の合計は90,000 byte以下 | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3787 |
+| 頁の幅360px (左右に16pxの余白) に`oauth.dragon`と`day-hours.dragon`を帯つきで置いた時、帯のコード、エディタ、コピー、エクスポート、拡大の5つのボタンが字を見せない36px角のアイコンになって題の下に1段で並び、帯の高さが100px以下になる | `pnpm exec vitest run`の検査`frame-header-fits-narrow-page`が通る | #3788 |
+| 頁の幅360pxの帯の5つのボタンは、字を隠しても`aria-label`に読み上げの名前 (コード、dragonエディタで開く、コピー、エクスポート、図を拡大) を持つ | `pnpm exec vitest run`の検査`frame-header-names-icon-buttons`が通る | #3788 |
+| 頁の幅360pxの帯で、ボタンどうしが重なることと、ボタンが帯の枠の外へ出ることができない | `pnpm exec vitest run`の検査`frame-header-buttons-stay-inside`が通る | #3788 |
+| 頁の幅1000pxの帯は高さ49pxのまま、5つのボタンが字とアイコンを見せて1段に並ぶ | `pnpm exec vitest run`の検査`frame-header-keeps-wide-page`が通る | #3788 |
+| 置く側が設定`buttons`で足したボタンは、頁の幅360pxの帯でも字を見せたまま描ける | `pnpm exec vitest run`の検査`frame-header-keeps-added-button-text`が通る | #3788 |
+| 頁の幅360pxと312pxで、エクスポートとコピーの窓は今と同じく帯の枠の中に開く | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3788 |
+| 帯のボタンの字は、今と同じく設定`lang`、置いた所から上の`lang`属性、英語の順で決まる | `pnpm exec vitest run`の検査`bar-text-follows-lang-setting-then-page`が通る | #3788 |
