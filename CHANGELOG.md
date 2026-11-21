@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.5] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams keep the boxes and the people in the same place when only the caller, the arguments or the ticket's holder changes** (#3826)
+
+  0.79.4 decided the gap under the boxes by whether a ticket was tied to a person, which depends on the call being drawn, so switching the call of a catalog figure moved the boxes and the people by 34px. The gap under the boxes is now decided by the turns of every path from a person to a box, as in 0.79.2, so every mesh figure keeps the 72px gap and the same figure stays still across calls.
+
 ## [0.79.4] - 2026-11-21
 
 ### Fixed
