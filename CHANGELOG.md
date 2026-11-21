@@ -19,6 +19,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - On pages with the one-line jsDelivr entry and pages made by `dragon embed`, a `data-header` block loads the bar together with the parts its notation uses and draws the diagram once inside the bar, instead of drawing a plain diagram, removing it, and drawing it again, so the text below no longer moves when the bar appears. The SDK's `mountDragon` and `mountFramedDiagram` write notation errors in the bar's language, so they are in Japanese on a `<html lang="ja">` page (#3789)
 - A still figure writes the shape of its last step as plain values instead of keyframes stopped at that moment, so a donut keeps one arc per item and bars keep their lengths on a page that turns animations off, such as one with `* { animation: none !important; }` for reduced motion. Moving diagrams keep their keyframes. A line chart puts each value above, below, right of, or left of its point, in that order, where it crosses no line, point, or other value and stays between the legend and the zero line, and a still line chart shows the value of every step (#3812)
 
+## [0.79.5] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams keep the boxes and the people in the same place when only the caller, the arguments or the ticket's holder changes** (#3826)
+
+  0.79.4 decided the gap under the boxes by whether a ticket was tied to a person, which depends on the call being drawn, so switching the call of a catalog figure moved the boxes and the people by 34px. The gap under the boxes is now decided by the turns of every path from a person to a box, as in 0.79.2, so every mesh figure keeps the 72px gap and the same figure stays still across calls.
+
 ## [0.79.4] - 2026-11-21
 
 ### Fixed
