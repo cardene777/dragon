@@ -1,4 +1,5 @@
 import { createFigureHeader, HEADER_CSS } from './header.mjs';
+import { BUILTIN_BUTTONS } from './names';
 import { EDITOR_BASE, editorPasteUrl, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
 import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
@@ -23,7 +24,7 @@ const icons = {
 /** 画像の大きさの選び。既定は2倍 */
 const SCALES=[1,2,3];
 /** 帯に初めから在るボタン (#3698) */
-const BUILTIN=['code','editor','copy','export','expand'];
+const BUILTIN=BUILTIN_BUTTONS;
 /** 設定`look`の欄と、帯の内側へ渡す変数 (#3698) */
 const LOOK_VARS={font:'--dragon-header-font',fontSize:'--dragon-header-font-size',radius:'--dragon-header-radius',height:'--dragon-header-height'};
 const FRAME_VARS={border:'--dragon-frame-border',background:'--dragon-frame-background'};

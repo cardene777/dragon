@@ -11,6 +11,10 @@ const view = mountFramedDiagram(host, source);
 view.destroy();
 ```
 
+軽い入口`@cardenelabs/dragon/light`だけを読む頁は、同じ名前を`@cardenelabs/dragon/light/frame`から読む (#3789)。
+記法を読む処理と`mountDiagram`は軽い入口から読むので、既定の入口を頁に入れず、`loadFor`を待った後に置く。
+記法の誤りの文は帯と同じ言葉で出す。
+
 上段には、題の左にdragonの印を置き、コード、エディタ、コピー、エクスポート、拡大のボタンをこの順に並べる。
 ボタンは全部枠を持ち、拡大は字を持たずにアイコンと読み上げの名前だけを持つ。
 帯の幅が600px以下の時は、5つのボタンの字を隠して36px角のアイコンにし、題の下に1段で並べる。

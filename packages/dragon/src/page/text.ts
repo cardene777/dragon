@@ -23,6 +23,14 @@ export interface PageWords {
 export interface PageMessages {
   /** 頭の `---` の間の `layout` の値が知らない値 */
   badLayout: (value: string, allowed: string) => string;
+  /** 頭の `header-buttons` に帯に無いボタンの名前を書いた (#3789) */
+  badHeaderButton: (name: string, allowed: string) => string;
+  /** 頭の `header-buttons` に同じボタンを 2 度書いた */
+  repeatedHeaderButton: (name: string) => string;
+  /** 頭の `header-<色の欄>` の値が空か、色の値の外へ出る字を持つ */
+  badHeaderColor: (key: string, value: string) => string;
+  /** 頭に知らない `header-` の行を書いた */
+  unknownHeaderLine: (key: string, allowed: string) => string;
   /** 頁の題の `#` を 2 つ書いた */
   extraTitle: string;
   /** `##` の段より前に `###` の項目を書いた */
@@ -65,6 +73,10 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
 export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
   ja: {
     badLayout: (value, allowed) => `layout の値 ${value} は使えない (${allowed} から選ぶ)`,
+    badHeaderButton: (name, allowed) => `header-buttonsの${name}は帯に無いボタン。${allowed}から選ぶ`,
+    repeatedHeaderButton: (name) => `header-buttonsに${name}を2度書いた`,
+    badHeaderColor: (key, value) => `${key}の値「${value}」は色として使えない。空にせず、「;」「<」「>」「{」「}」「"」「\\」を書かない`,
+    unknownHeaderLine: (key, allowed) => `${key}は書けない頭の行。帯の設定は${allowed}で書く`,
     extraTitle: "頁の題の # は 1 つだけ書く。段は ##、項目は ### で書く",
     itemBeforeGroup: "### の項目は ## の段の下に書く",
     tabBeforeItem: "段の中の #### のタブは ### の項目の下に書く",
@@ -78,6 +90,10 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
   },
   en: {
     badLayout: (value, allowed) => `layout ${value} is not available (choose from ${allowed})`,
+    badHeaderButton: (name, allowed) => `header-buttons: ${name} is not a bar button (choose from ${allowed})`,
+    repeatedHeaderButton: (name) => `header-buttons lists ${name} twice`,
+    badHeaderColor: (key, value) => `${key}: "${value}" is not usable as a color. Do not leave it empty or write ; < > { } " \\`,
+    unknownHeaderLine: (key, allowed) => `${key} is not a head line. Write the bar settings with ${allowed}`,
     extraTitle: "Write only one # for the page title. Write groups with ## and items with ###",
     itemBeforeGroup: "Write a ### item under a ## group",
     tabBeforeItem: "Write a #### tab in a group under a ### item",

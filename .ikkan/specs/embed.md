@@ -85,3 +85,21 @@
 | 置く側が設定`buttons`で足したボタンは、頁の幅360pxの帯でも字を見せたまま描ける | `pnpm exec vitest run`の検査`frame-header-keeps-added-button-text`が通る | #3788 |
 | 頁の幅360pxと312pxで、エクスポートとコピーの窓は今と同じく帯の枠の中に開く | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3788 |
 | 帯のボタンの字は、今と同じく設定`lang`、置いた所から上の`lang`属性、英語の順で決まる | `pnpm exec vitest run`の検査`bar-text-follows-lang-setting-then-page`が通る | #3788 |
+| 軽い入口だけを読む頁で、`loadFor`を待った後に`@cardenelabs/dragon/light/frame`の`mountFramedDiagram`で帯つきの図を置け、その頁が読み込むfileに既定の入口`dist/index.js`が入らない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-mounts-framed-diagram`が通る | #3789 |
+| packageの`exports`は`./light/frame`をimportとrequireの両方で型つきで出す | `pnpm exec vitest run packages/dragon/test/pack-check.test.ts`の検査`entries-derived-from-exports`と`typed-entries`が通る | #3789 |
+| `@cardenelabs/dragon/light/frame`の帯のエクスポートは、書き出す部品を入口の隣の`capture.js`から後で読み、書き出す部品の中身を入口に束ねない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`entries-load-capture-beside`と`entries-skip-capture-body`が通る | #3789 |
+| `@cardenelabs/dragon/light/frame`の`mountFramedDiagram`は、`loadFor`を待っていない種類の図を種類の名前を含む誤りで拒み、置き先に帯を残さない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-frame-refuses-unloaded-kind`が通る | #3789 |
+| jsDelivrの1行の頁で、`data-header`の塊の図を描く回数が1回になり、帯の塊が届く前に帯の無い図を描かない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-framed-block-once`が通る | #3789 |
+| jsDelivrの1行の頁で、`data-header`の塊を描いた後の頁の揺れ (layout shiftの合計) が0になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-framed-block-once`が通る | #3789 |
+| `dragon embed`が埋めるscriptの頁でも、`data-header`の塊の図を描く回数が1回になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-page-draws-framed-block-once`が通る | #3789 |
+| `data-header`の無い頁は帯の塊を読まず、1行の入口が最初に読むscriptのgzip後の合計は上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-bar-only-when-asked`と`script-entry-within-budget`が通る | #3789 |
+| `<html lang="ja">`の頁で`mountDragon`と`mountFramedDiagram`に誤りのある記法を渡すと、誤りの文が日本語で出る | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`embed-sdk-errors-follow-page-lang`が通る | #3789 |
+| `lang`属性の無い頁で`mountDragon`と`mountFramedDiagram`に誤りのある記法を渡すと、誤りの文は今と同じく英語で出る | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`embed-sdk-errors-stay-english-without-lang`が通る | #3789 |
+| jsDelivrの1行の頁で、`<script type="application/json" id="dragon-header">`の塊に書いた`buttons`と`look.colors`で、全ての`data-header`の塊の帯のボタンの並びと色を変えられる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-reads-header-options`が通る | #3789 |
+| `#dragon-header`の塊に知らないボタンの名前か読めないJSONを書いた頁では、`data-header`の塊をその誤りの文に置き換え、既定の帯で黙って描くことを拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-rejects-bad-header-options`が通る | #3789 |
+| `#dragon-header`の塊の無い頁の帯は、今と同じくコード、エディタ、コピー、エクスポート、拡大の5つのボタンを並べる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-adds-bar-with-data-header`が通る | #3789 |
+| mdの頭の`---`の間に書いた`header-buttons`と`header-<色>`の行から、`dragon export`が書いた頁に`#dragon-header`の塊が入り、帯のボタンの並びと色がその行のとおりになる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-header-lines-set-header-block`が通る | #3789 |
+| `dragon export`は、mdの頭の`header-buttons`の知らないボタンの名前と、`;`か`<`を含む色の値を行の番号つきの誤りで拒み、頁を書かない | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-rejects-bad-header-lines`が通る | #3789 |
+| `header-`で始まる行の無いmdから書き出した頁は、今と同じく`#dragon-header`の塊を持たない | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-without-header-lines-has-no-header-block`が通る | #3789 |
+| 今と同じ`mountFramedDiagram(host, source)`の呼び方で、既定の入口の頁に帯つきの図が置け、`destroy()`で取り除ける | `pnpm exec vitest run packages/dragon/test/article-frame.test.ts`の検査`"shared frame mounts the native checkout player and destroys its input view"`が通る | #3789 |
+| packageのREADMEの英語と日本語が、`@cardenelabs/dragon/light/frame`の使い方と、`#dragon-header`の塊の書き方と、mdの頭の`header-`の行の書き方を載せる | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`readme-documents-header-settings`が通る | #3789 |

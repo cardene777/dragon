@@ -18,3 +18,5 @@
 | 種類の登録のfile | 1つの図の種類を描く部品を登録簿へ登録するfile。検査はこれをimportし、使う種類だけを読む (#3763) |
 | 全ての種類を読む助けのfile | `packages/dragon/test/all-kinds.ts`。全ての図の種類を登録し、全ての種類を描く検査だけがimportする (#3763) |
 | 折れ線の見た目 | 量の図の見た目`[shape: line]`。`item`の行ごとに1本の線を引き、図の段 (`step`) の1つを時間の軸の点の1つにして、段の題を横の軸の名前にする (#3802) |
+| 帯 | 図の上に置き、題とコードとエディタとコピーとエクスポートと拡大のボタンを並べる行。jsDelivrの頁では属性`data-header`を持つ塊に付き、npmでは`@cardenelabs/dragon/frame`と`@cardenelabs/dragon/light/frame`と`@cardenelabs/dragon/embed`が付ける (#3699、#3789) |
+| 帯の設定の塊 | jsDelivrの頁に置く`<script type="application/json" id="dragon-header">`。SDKの`mountDragon`と同じ鍵 (`buttons`と`look`) で帯のボタンの並びと見た目を書き、頁の全ての`data-header`の塊に効く。`dragon export`はmdの頭の`header-`で始まる行からこれを作る (#3789) |

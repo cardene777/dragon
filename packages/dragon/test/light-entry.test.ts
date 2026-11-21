@@ -6,7 +6,7 @@
  * 読んでいない種類を描くと、その種類の名前を含む誤りで止まる。
  */
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -741,6 +741,109 @@ describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (
     const dark = { theme: "dark", still: true, lang: "en" };
     expect(light.renderDiagram(diagram, plain).svg, `${file} (${JSON.stringify(plain)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, plain).svg);
     expect(light.renderDiagram(diagram, dark).svg, `${file} (${JSON.stringify(dark)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, dark).svg);
+  });
+});
+
+/** build した package の置き場 */
+const DIST = join(ROOT, "dist");
+/** 軽い入口の帯の入口 (#3789) */
+const LIGHT_FRAME = join(DIST, "light-frame.js");
+/** 軽い入口の頁で帯つきで置く時系列図。後から読む種類を持たない */
+const LIGHT_SEQUENCE = "sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n  a -> b: 注文\n";
+/** 後から読む種類 (`state`) の記法。`loadFor` を待たずに置くと断られる */
+const LIGHT_STATE = "state 注文\n\nstate a as 受けた\nstate b as 送った\n\nstep 流す\n  a -> b\n";
+
+/** 軽い入口だけを読む頁で帯つきの図を置いて見たこと */
+interface LightFrameSeen {
+  /** 帯の入口を読めなかった時の誤り */
+  loadError?: string;
+  /** 帯の数と、帯の内側に描いた図の数と、帯のボタンの並び */
+  frames: number;
+  drawn: number;
+  buttons: string[];
+  /** `loadFor` を待たずに後から読む種類を置いた時の誤りの文と、置き先に残った要素の数 */
+  refused: string;
+  leftover: number;
+  /** 頁が読み込んだ file の path (`/` から) */
+  loaded: string[];
+}
+
+// 頁を開く仕事は、混んだ機械で 1 件 10 秒の上限を超えないよう、file を読み込む段で済ませる (#3815)
+const LIGHT_FRAME_PAGE = await atLoad("軽い入口だけを読む頁で、帯の入口から帯つきの図を置く", async (): Promise<LightFrameSeen> => {
+  const { fileChromium } = await import("./page-needs");
+  const html =
+    '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
+    // 既定の入口も import map に載せ、帯の入口が誤って読んだ時に読み込んだ file として数える
+    '<script type="importmap">{"imports":{"@cardenelabs/dragon/light":"/light/index.js","@cardenelabs/dragon":"/index.js"}}</script>' +
+    '</head><body><div id="host" style="width:760px"></div><div id="refused" style="width:760px"></div>' +
+    `<script type="module">
+      const sequence = ${JSON.stringify(LIGHT_SEQUENCE)};
+      const state = ${JSON.stringify(LIGHT_STATE)};
+      try {
+        const light = await import("@cardenelabs/dragon/light");
+        let frame;
+        try { frame = await import("/light-frame.js"); } catch (error) { window.seen = { loadError: String(error) }; throw error; }
+        await light.loadFor(sequence);
+        frame.mountFramedDiagram(document.getElementById("host"), sequence);
+        let refused = "置けた";
+        try { frame.mountFramedDiagram(document.getElementById("refused"), state); } catch (error) { refused = error.message; }
+        const root = document.querySelector("#host .dragon-frame")?.shadowRoot;
+        window.seen = {
+          frames: document.querySelectorAll(".dragon-frame").length,
+          drawn: root?.querySelectorAll('[data-dragon="player"] svg').length ?? 0,
+          buttons: [...(root?.querySelectorAll(".dg-header-actions > [data-action]") ?? [])].map((el) => el.dataset.action),
+          refused,
+          leftover: document.getElementById("refused").children.length,
+        };
+      } catch (error) {
+        window.seen ??= { loadError: String(error) };
+      }
+    </script></body></html>`;
+  const context = await (await fileChromium()).newContext({ viewport: { width: 900, height: 900 } });
+  context.setDefaultTimeout(10_000);
+  const loaded: string[] = [];
+  try {
+    await context.route("**/*", (route) => {
+      const url = new URL(route.request().url());
+      if (url.origin !== "http://localhost") return route.abort();
+      if (url.pathname === "/") return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
+      const file = join(DIST, url.pathname);
+      if (!file.startsWith(`${DIST}/`) || !file.endsWith(".js") || !existsSync(file)) return route.fulfill({ status: 404, body: "" });
+      loaded.push(url.pathname);
+      return route.fulfill({ contentType: "text/javascript", body: readFileSync(file) });
+    });
+    const page = await context.newPage();
+    await page.goto("http://localhost/");
+    await page.waitForFunction(() => "seen" in window, null, { timeout: 10_000 }).catch(() => undefined);
+    const seen = await page.evaluate(() => (window as unknown as { seen?: Omit<LightFrameSeen, "loaded"> }).seen);
+    return { frames: 0, drawn: 0, buttons: [], refused: "", leftover: 0, ...seen, loaded: [...loaded] };
+  } finally {
+    await context.close();
+  }
+});
+
+describe("軽い入口の頁の帯つきの図 (#3789)", () => {
+  it("light-entry-mounts-framed-diagram", () => {
+    expect(existsSync(LIGHT_FRAME), `軽い入口の帯の入口の build した file が無い: ${LIGHT_FRAME}`).toBe(true);
+    const seen = LIGHT_FRAME_PAGE.get();
+    expect(seen.loadError, "軽い入口の帯の入口を頁で読めない").toBeUndefined();
+    expect({ frames: seen.frames, drawn: seen.drawn, buttons: seen.buttons }, "loadFor を待った後に置いた帯つきの図").toEqual({
+      frames: 1,
+      drawn: 1,
+      buttons: ["code", "editor", "copy", "export", "expand"],
+    });
+    expect(seen.loaded, "頁が読み込んだ file に軽い入口と帯の入口が在る").toEqual(expect.arrayContaining(["/light/index.js", "/light-frame.js"]));
+    expect(seen.loaded, "頁が読み込んだ既定の入口").not.toContain("/index.js");
+  });
+
+  it("light-frame-refuses-unloaded-kind", () => {
+    expect(existsSync(LIGHT_FRAME), `軽い入口の帯の入口の build した file が無い: ${LIGHT_FRAME}`).toBe(true);
+    const seen = LIGHT_FRAME_PAGE.get();
+    expect(seen.loadError, "軽い入口の帯の入口を頁で読めない").toBeUndefined();
+    // 後から読む種類は、loadFor を待つまで種類の名前を含む誤りで断り、置き先に帯を残さない
+    expect(seen.refused, "loadFor を待たずに置いた状態遷移図の誤りの文").toContain("state");
+    expect(seen.refused, "誤りの文が loadFor を待つよう言わない").toContain("loadFor");
+    expect(seen.leftover, "断った置き先に残った要素").toBe(0);
   });
 });
 

@@ -15,6 +15,7 @@ import { parseNotation, mountDiagram, type Diagram, type Player, type PlayerOpti
 import { stylesFor } from '../adopt-css';
 import { loadCapture } from '../frame/capture-load.mjs';
 import { createDiagramActions, type DiagramActions } from '../frame/diagram-actions.mjs';
+import { frameLang } from '../frame/frame-text.mjs';
 import { mountFramedDiagram } from '../frame/index';
 import type { HeaderColors } from '../frame/header';
 import type { BuiltinButton, CopyKind, EmbedLook, ExportDetail, ExportFormat, ExportOptions, ShareDetail } from '../frame/types';
@@ -100,13 +101,16 @@ export interface DragonEmbed {
   destroy(): void;
 }
 
-/** 記法`source`の図を要素`host`に置く。描けない記法は`dragon-render`で知らせてから投げる */
+/**
+ * 記法`source`の図を要素`host`に置く。描けない記法は`dragon-render`で知らせてから投げる。
+ * 記法の誤りの文は帯と同じ言葉 (設定`lang`、置いた所から上の`lang`属性、英語の順) で出す (#3789)
+ */
 export function mountDragon(host: HTMLElement, source: string, options: EmbedOptions = {}): DragonEmbed {
   const emit = <K extends keyof DragonEmbedEventMap>(type: K, detail: DragonEmbedEventMap[K]['detail']): void => {
     const view = host.ownerDocument.defaultView as Window & typeof globalThis;
     host.dispatchEvent(new view.CustomEvent(type, { detail, bubbles: true, composed: true }));
   };
-  const parsed = parseNotation(source);
+  const parsed = parseNotation(source, { lang: frameLang(options.lang, host) });
   if (!parsed.ok) {
     const errors = parsed.errors.map((e) => `${e.line}: ${e.message}`);
     emit('dragon-render', { ok: false, errors });

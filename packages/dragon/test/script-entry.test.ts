@@ -136,12 +136,43 @@ interface Requests {
 
 
 /**
+ * 頁を開く前に入れる script。再生の部品 (`[data-dragon="player"]`) を頁に置いた回数を、帯の内側 (shadow root) に置いた物も含めて `window.__players` に数える。
+ * 最初に置いた図が画面に出た後 (2 つ目の描画の枠) から後に起きた頁の揺れ (layout shift) の合計を `window.__shiftAfterFigure` に足す (#3789)
+ */
+const COUNT_DRAWS = `
+window.__players = 0; window.__shiftAfterFigure = 0;
+const seen = new WeakSet();
+const count = (node) => {
+  if (!(node instanceof Element)) return;
+  for (const player of [...(node.matches('[data-dragon="player"]') ? [node] : []), ...node.querySelectorAll('[data-dragon="player"]')]) {
+    if (seen.has(player)) continue;
+    seen.add(player);
+    if (window.__players++ === 0) requestAnimationFrame(() => requestAnimationFrame((time) => { window.__figureShown = time; }));
+  }
+};
+const watch = (root) => new MutationObserver((records) => { for (const record of records) for (const node of record.addedNodes) count(node); }).observe(root, { childList: true, subtree: true });
+const attachShadow = Element.prototype.attachShadow;
+Element.prototype.attachShadow = function (init) { const shadow = attachShadow.call(this, init); watch(shadow); return shadow; };
+watch(document);
+new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) if (!entry.hadRecentInput && window.__figureShown !== undefined && entry.startTime > window.__figureShown) window.__shiftAfterFigure += entry.value;
+}).observe({ type: "layout-shift", buffered: true });
+`;
+
+/** 頁を開く設定。`init` は頁を開く前に入れる script、`height` は画面の高さ */
+interface PageSetup {
+  init?: string;
+  height?: number;
+}
+
+/**
  * 入口の1行と `body` を置いた頁を開いて `run` を回す。入口と塊は `place` から渡す。
  * `hold` を渡すと、置き場の file を渡す前にその file の名前で呼び、返った約束が済むまで渡さない
  */
-async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL, hold?: (file: string) => Promise<void>): Promise<T> {
+async function withPage<T>(body: string, run: (page: Page, requests: Requests) => Promise<T>, lang = "ja", place: Place = LOCAL, hold?: (file: string) => Promise<void>, setup: PageSetup = {}): Promise<T> {
   // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
-  const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
+  const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: setup.height ?? 720 } });
+  if (setup.init !== undefined) await context.addInitScript(setup.init);
   // 長さを書かない待ち (頁を開く、押す、字を読む) も区切る
   context.setDefaultTimeout(PAGE_WAIT);
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
@@ -457,23 +488,43 @@ const BAR_PAGE = await atLoad("data-header の塊と帯の無い塊の頁を開�
   });
 });
 
-const HELD_BAR_PAGE = await atLoad("帯の塊が届くのを止めて、data-header の塊の頁を開く", () => {
+/** 頁で描いた図の数。帯の内側 (shadow root) に描いた図も数える */
+const drawnFigures = (page: Page): Promise<{ frames: number; drawn: number }> =>
+  page.evaluate(() => ({
+    frames: document.querySelectorAll(".dragon-frame").length,
+    drawn: [...document.querySelectorAll(".dragon-figure")].filter((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null).length,
+  }));
+
+/** 描画の枠を 2 つ進める。図を描く処理が残っていれば、その間に描く */
+const twoFrames = (page: Page): Promise<void> => page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+
+const HELD_BAR_PAGE = await atLoad("帯の塊が届くのを止めて、data-header の塊の下に段落を置いた頁を開く", () => {
   needEntry();
   const barFiles = filesHolding("src/frame/dragon-frame.mjs");
-  // data-header を持つ塊は、帯の塊が届く前に帯の無い図を描き、届いた後に帯を付ける
+  // data-header を持つ塊は、帯の塊が届くまで図を描かず、届いた後に帯の内側へ 1 度だけ描く (#3789)。
+  // 図の下の段落が画面に入る高さにし、図が出た後に帯が付いて段落が下がると頁の揺れに数える
   let release: () => void = () => undefined;
   const held = new Promise<void>((resolve) => (release = resolve));
   return withPage(
-    `<pre class="dragon" data-header>${escape(SEQUENCE)}</pre>`,
+    `<p>上の段落</p><pre class="dragon" data-header>${escape(SEQUENCE)}</pre><p style="height:200px">下の段落</p>`,
     async (page, requests) => {
       try {
-        await settle(page, 1);
         const asked = await pollFor(() => requests.scripts.filter((file) => barFiles.includes(file)).length, (count) => count > 0, QUICK_SETTLE);
-        const before = await page.evaluate(() => ({ frames: document.querySelectorAll(".dragon-frame").length, drawn: document.querySelectorAll('.dragon-figure [data-dragon="player"] svg').length }));
+        await twoFrames(page);
+        const before = await drawnFigures(page);
         release();
-        await page.waitForFunction(() => document.querySelector(".dragon-frame") !== null, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
-        const frames = await page.evaluate(() => document.querySelectorAll(".dragon-frame").length);
-        return { asked, before, frames };
+        await page
+          .waitForFunction(() => document.querySelector(".dragon-frame")?.shadowRoot?.querySelector('[data-dragon="player"] svg') != null, null, { timeout: QUICK_SETTLE })
+          .catch(() => undefined);
+        // 図が出た後の描画の枠で起きた揺れまで数える
+        await twoFrames(page);
+        await twoFrames(page);
+        const after = await drawnFigures(page);
+        const { players, shift } = await page.evaluate(() => {
+          const seen = window as unknown as { __players: number; __shiftAfterFigure: number };
+          return { players: seen.__players, shift: seen.__shiftAfterFigure };
+        });
+        return { asked, before, after, players, shift };
       } finally {
         // 途中で落ちた時も、止めた帯の塊を渡して頁を閉じる
         release();
@@ -482,7 +533,69 @@ const HELD_BAR_PAGE = await atLoad("帯の塊が届くのを止めて、data-hea
     "ja",
     LOCAL,
     (file) => (barFiles.includes(file) ? held : Promise.resolve()),
+    { init: COUNT_DRAWS, height: 1400 },
   );
+});
+
+/** 帯のボタンの並びと色を変える帯の設定の塊 (#3789) */
+const HEADER_SETTINGS = { buttons: ["export", "code"], look: { colors: { accent: "#c0392b", surface: "#123456" } } };
+
+/** 帯の設定の塊を置いた頁の、図ごとの帯のボタンの並びと帯の色の変数 */
+const headerShapes = (page: Page): Promise<{ buttons: string[]; accent: string; surface: string; drawn: boolean }[]> =>
+  page.evaluate(() =>
+    [...document.querySelectorAll(".dragon-figure")].map((figure) => {
+      const root = figure.querySelector(".dragon-frame")?.shadowRoot;
+      const header = root?.querySelector<HTMLElement>("[data-dragon-header]");
+      const style = header ? getComputedStyle(header) : undefined;
+      return {
+        buttons: root ? [...root.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]")].map((el) => el.dataset.action ?? "") : [],
+        accent: style?.getPropertyValue("--dragon-header-accent").trim() ?? "",
+        surface: style?.getPropertyValue("--dragon-header-surface").trim() ?? "",
+        drawn: (root ?? figure).querySelector('[data-dragon="player"] svg') !== null,
+      };
+    }),
+  );
+
+const HEADER_SETTINGS_PAGE = await atLoad("帯の設定の塊と2つの data-header の塊の頁を開く", () => {
+  needEntry();
+  const settings = `<script type="application/json" id="dragon-header">${JSON.stringify(HEADER_SETTINGS)}</script>`;
+  return withPage(`${settings}<pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon" data-header>${escape(SHORT)}</pre>`, async (page) => {
+    await page
+      .waitForFunction(() => document.querySelectorAll(".dragon-frame").length === 2 && [...document.querySelectorAll(".dragon-frame")].every((frame) => frame.shadowRoot?.querySelector('[data-dragon="player"] svg') != null), null, { timeout: QUICK_SETTLE })
+      .catch(() => undefined);
+    return headerShapes(page);
+  });
+});
+
+/** 読めない帯の設定の塊。知らないボタンの名前 (`share`) を書いた塊と、JSON として読めない塊 */
+const BAD_HEADER_SETTINGS = {
+  unknownButton: JSON.stringify({ buttons: ["code", "share"] }),
+  unreadable: '{ "buttons": [ }',
+} as const;
+
+const BAD_HEADER_PAGES = await atLoad("読めない帯の設定の塊を置いた頁を開く", async () => {
+  needEntry();
+  const opened: Record<string, { errors: string[]; frames: number; shapes: { buttons: string[]; drawn: boolean }[] }> = {};
+  for (const [name, text] of Object.entries(BAD_HEADER_SETTINGS)) {
+    opened[name] = await withPage(
+      `<script type="application/json" id="dragon-header">${text}</script><pre class="dragon" data-header>${escape(SEQUENCE)}</pre><pre class="dragon">${escape(SHORT)}</pre>`,
+      async (page) => {
+        await page
+          .waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0 && document.querySelectorAll(".dragon-figure").length >= 1, null, { timeout: QUICK_SETTLE })
+          .catch(() => undefined);
+        await twoFrames(page);
+        return page.evaluate(() => ({
+          errors: [...document.querySelectorAll("pre.dragon-error")].map((box) => box.textContent ?? ""),
+          frames: document.querySelectorAll(".dragon-frame").length,
+          shapes: [...document.querySelectorAll(".dragon-figure")].map((figure) => ({
+            buttons: [...(figure.querySelector(".dragon-frame")?.shadowRoot?.querySelectorAll<HTMLElement>(".dg-header-actions > [data-action]") ?? [])].map((el) => el.dataset.action ?? ""),
+            drawn: (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null,
+          })),
+        }));
+      },
+    );
+  }
+  return opened;
 });
 
 const FONT_PAGE = await atLoad("時系列図と構成図の塊を並べた頁を開く", () => {
@@ -753,11 +866,37 @@ describe("script の1行の入口 (#3343)", () => {
     const plain = SEQUENCE_PAGE.get();
     expect(plain.counted.drawn, "時系列図を描く").toBe(1);
     expect(plain.scripts.filter((file) => barFiles.includes(file)), "data-header の無い頁で読んだ帯の塊").toEqual([]);
-    // data-header を持つ塊は、帯の塊が届く前に帯の無い図を描き、届いた後に帯を付ける
-    const { asked, before, frames } = HELD_BAR_PAGE.get();
-    expect(asked, "図を描いた後に読みに行った帯の塊").toBeGreaterThan(0);
-    expect(before, "帯の塊が届く前の data-header の塊").toEqual({ frames: 0, drawn: 1 });
-    expect(frames, "帯の塊が届いた後の帯の数").toBe(1);
+  });
+
+  it("script-entry-draws-framed-block-once", () => {
+    if (!entryBuilt()) return;
+    // data-header を持つ塊は、帯の塊が届くまで図を描かず、届いた後に帯の内側へ 1 度だけ描く (#3789)
+    const { asked, before, after, players, shift } = HELD_BAR_PAGE.get();
+    expect(asked, "読みに行った帯の塊").toBeGreaterThan(0);
+    expect(before, "帯の塊が届く前の data-header の塊").toEqual({ frames: 0, drawn: 0 });
+    expect(after, "帯の塊が届いた後の data-header の塊").toEqual({ frames: 1, drawn: 1 });
+    expect(players, "再生の部品を頁に置いた回数").toBe(1);
+    expect(shift, "図が出た後に起きた頁の揺れ (layout shift) の合計").toBe(0);
+  });
+
+  it("script-entry-reads-header-options", () => {
+    if (!entryBuilt()) return;
+    // 頁に置いた帯の設定の塊 (`#dragon-header`) が、全ての data-header の塊の帯のボタンの並びと色を変える (#3789)
+    const shapes = HEADER_SETTINGS_PAGE.get();
+    const shaped = { buttons: HEADER_SETTINGS.buttons, accent: HEADER_SETTINGS.look.colors.accent, surface: HEADER_SETTINGS.look.colors.surface, drawn: true };
+    expect(shapes, "帯の設定の塊を置いた頁の帯").toEqual([shaped, shaped]);
+  });
+
+  it("script-entry-rejects-bad-header-options", () => {
+    if (!entryBuilt()) return;
+    // 読めない帯の設定の塊は、data-header の塊を誤りの文に置き換え、既定の帯で黙って描かない。帯の無い塊は今どおり描く (#3789)
+    const { unknownButton, unreadable } = BAD_HEADER_PAGES.get();
+    expect(unknownButton?.frames, "知らないボタンの名前を書いた頁の帯").toBe(0);
+    expect(unknownButton?.errors.join("\n") ?? "", "知らないボタンの名前を書いた頁の誤りの文").toContain("share");
+    expect(unknownButton?.shapes, "知らないボタンの名前を書いた頁の帯の無い塊").toEqual([{ buttons: [], drawn: true }]);
+    expect(unreadable?.frames, "JSON として読めない帯の設定の塊を置いた頁の帯").toBe(0);
+    expect(unreadable?.errors.join("\n") ?? "", "JSON として読めない帯の設定の塊を置いた頁の誤りの文").toContain("dragon-header");
+    expect(unreadable?.shapes, "JSON として読めない帯の設定の塊を置いた頁の帯の無い塊").toEqual([{ buttons: [], drawn: true }]);
   });
 
   it("script-entry-kind-blocks-share-one-file", () => {
@@ -873,9 +1012,10 @@ interface OfflineSeen {
   errors: string[];
 }
 
-/** 埋めた頁 `offline` を外への通信を全て止めて開き、塊が全て図になるまで待って `run` を回す */
-async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSeen) => Promise<T>): Promise<T> {
+/** 埋めた頁 `offline` を外への通信を全て止めて開き、塊が全て図になるまで待って `run` を回す。`init` は頁を開く前に入れる script */
+async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSeen) => Promise<T>, init?: string): Promise<T> {
   const context = await (await fileChromium()).newContext({ viewport: { width: 760, height: 900 } });
+  if (init !== undefined) await context.addInitScript(init);
   // 長さを書かない待ち (頁を開く、押す、字を読む) も区切る
   context.setDefaultTimeout(PAGE_WAIT);
   const seen: OfflineSeen = { outside: [], errors: [] };
@@ -938,9 +1078,17 @@ const EMBED_HEADER = await atLoad("帯つきの塊と帯の無い塊の頁を dr
   return { offline, ran: await runCli(["embed", source, "--out", offline]) };
 });
 
-/** 埋めた頁を開いて、図と頁で起きた例外を読む。2 つの件が同じ頁を読み、どちらも頁を触らない */
+/** 埋めた頁を開いて、図と頁で起きた例外と、再生の部品を頁に置いた回数を読む。3 つの件が同じ頁を読み、どれも頁を触らない */
 const OFFLINE_FIGURES = await atLoad("埋めた頁を開いて図を読む", () =>
-  withOffline(EMBED_HEADER.get().offline, async (page, seen) => ({ figures: await figuresOf(page), errors: [...seen.errors] })),
+  withOffline(
+    EMBED_HEADER.get().offline,
+    async (page, seen) => ({
+      figures: await figuresOf(page),
+      errors: [...seen.errors],
+      players: await page.evaluate(() => (window as unknown as { __players: number }).__players),
+    }),
+    COUNT_DRAWS,
+  ),
 );
 
 const OFFLINE_MENU = await atLoad("埋めた頁の帯のエクスポートの窓を開く", () =>
@@ -1028,6 +1176,13 @@ describe("dragon embed の頁の帯 (#3786)", () => {
     const [framed] = figures;
     expect(framed, "data-header を持つ塊の図").toEqual({ headers: 1, buttons: BAR_BUTTONS, drawn: true });
     expect(errors, "頁で起きた例外").toEqual([]);
+  });
+
+  it("offline-page-draws-framed-block-once", () => {
+    // 埋めた頁でも、data-header を持つ塊は帯の内側へ 1 度だけ描く。帯の無い塊と合わせて、図を置いた回数は塊の数と同じ (#3789)
+    const { figures, players } = OFFLINE_FIGURES.get();
+    expect(figures.map((figure) => figure.drawn), "埋めた頁の図を描けたか").toEqual([true, true]);
+    expect(players, "再生の部品を頁に置いた回数").toBe(2);
   });
 
   it("offline-page-leaves-plain-blocks-bare", () => {

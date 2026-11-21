@@ -1,6 +1,7 @@
 import { PLAIN_TEXT } from '../look/plain-text';
+import { HEADER_COLOR_KEYS } from './names';
 
-const COLORS=['surface','background','foreground','muted','border','accent','hover'];
+const COLORS=HEADER_COLOR_KEYS;
 /** dragonの印の段の鱗 (#3713)。竜の鱗の面を階段状の隙間で2つに分けた形で、見本帳の見出しの印とファビコンも同じ形を描く */
 const MARK_VIEW_BOX='0 0 48 48';
 const MARK_PATHS=[
