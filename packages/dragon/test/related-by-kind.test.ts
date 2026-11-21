@@ -117,9 +117,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
     expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(110);
   });
 
-  it("related-sequence-layout-picks-at-most-155", () => {
+  // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
+  it("related-sequence-layout-picks-at-most-156", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(155);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(156);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
@@ -147,7 +148,8 @@ describe("種類の登録と検査の読み方の書き忘れを拒む (#3763)",
   it("kind-registrations-match-kind-folders", () => {
     expect(KIND_DIRS.length, "種類の置き場を数えられない").toBeGreaterThan(2);
     const all = stripComments(text(`${PACKAGE_DIR}/src/kinds/all.ts`));
-    const light = stripComments(text(`${PACKAGE_DIR}/src/light.ts`));
+    // 軽い入口は初めから持つ種類を `light.ts` で読み、後から読む種類の読み込みを読む処理の file (`light-load.ts`) に置く (#3782)
+    const light = [`${PACKAGE_DIR}/src/light.ts`, `${PACKAGE_DIR}/src/light-load.ts`].map((path) => stripComments(text(path))).join("\n");
     const missing: string[] = [];
     for (const kind of KIND_DIRS) {
       if (!existsSync(join(ROOT, PACKAGE_DIR, "src/kind-use", `${kind}.ts`))) missing.push(`${kind} の登録の file (src/kind-use/${kind}.ts)`);
@@ -155,7 +157,7 @@ describe("種類の登録と検査の読み方の書き忘れを拒む (#3763)",
       const lightReads = LATER.includes(kind)
         ? new RegExp(`\\b${kind}:\\s*\\(\\)\\s*=>\\s*import\\(["']\\./(?:kinds|kind-use)/${kind}["']\\)`, "u")
         : new RegExp(`\\bimport\\s*["']\\./kind-use/${kind}["']`, "u");
-      if (!lightReads.test(light)) missing.push(`${kind} を light.ts が読む行`);
+      if (!lightReads.test(light)) missing.push(`${kind} を light.ts か light-load.ts が読む行`);
     }
     expect(missing, "種類の置き場の一覧に在るのに欠けた登録").toEqual([]);
   });

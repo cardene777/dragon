@@ -1,3 +1,5 @@
+import { PLAIN_TEXT } from '../look/plain-text';
+
 const COLORS=['surface','background','foreground','muted','border','accent','hover'];
 /** dragonの印の段の鱗 (#3713)。竜の鱗の面を階段状の隙間で2つに分けた形で、見本帳の見出しの印とファビコンも同じ形を描く */
 const MARK_VIEW_BOX='0 0 48 48';
@@ -5,16 +7,21 @@ const MARK_PATHS=[
   'M6 6.75A0.75 0.75 0 0 1 6.75 6L41.25 6A0.75 0.75 0 0 1 42 6.75L42 11.25A0.75 0.75 0 0 1 41.25 12L28.75 12A0.75 0.75 0 0 0 28 12.75L28 21.25A0.75 0.75 0 0 1 27.25 22L16.75 22A0.75 0.75 0 0 0 16 22.75L16 29.25A0.75 0.75 0 0 1 15.25 30L10.3107 30A0.75 0.75 0 0 1 9.7803 29.7803L6.2197 26.2197A0.75 0.75 0 0 1 6 25.6893Z',
   'M41.25 18A0.75 0.75 0 0 1 42 18.75L42 25.6893A0.75 0.75 0 0 1 41.7803 26.2197L24.5303 43.4697A0.75 0.75 0 0 1 23.4697 43.4697L17.2803 37.2803A0.75 0.75 0 0 1 17.8107 36L21.25 36A0.75 0.75 0 0 0 22 35.25L22 28.75A0.75 0.75 0 0 1 22.75 28L33.25 28A0.75 0.75 0 0 0 34 27.25L34 18.75A0.75 0.75 0 0 1 34.75 18Z',
 ];
+/**
+ * 帯の頭の見た目。`createFigureHeader`は帯の頭を影の根に入れず置いた頁の中に置くので、頁のCSSが帯の頭へ入る (#3787)。
+ * 帯の頭の根は頁の字の間と大文字を戻し、行と並びと2行目は頁の`div`の行の高さを受けずに根の1.5を受け継ぐ。
+ * 帯のボタンは頁の`button`の指定が足す影と最小の幅と大文字と字の間を戻す。帯の頭の名前を足した指定なので、型の名前だけの頁の指定より強い
+ */
 export const HEADER_CSS=`
-[data-dragon-header]{--h-surface:var(--dragon-header-surface,#f7f7f3);--h-bg:var(--dragon-header-background,#fffefa);--h-fg:var(--dragon-header-foreground,#29382e);--h-muted:var(--dragon-header-muted,#748074);--h-line:var(--dragon-header-border,#d6dcd2);--h-accent:var(--dragon-header-accent,#416f48);--h-hover:var(--dragon-header-hover,#eaf0e5);container-type:inline-size;display:block;background:var(--h-surface);color:var(--h-fg);border-bottom:1px solid var(--h-line);font:var(--dragon-header-font-size,12px)/1.5 var(--dragon-header-font,system-ui,sans-serif);min-width:0}
+[data-dragon-header]{--h-surface:var(--dragon-header-surface,#f7f7f3);--h-bg:var(--dragon-header-background,#fffefa);--h-fg:var(--dragon-header-foreground,#29382e);--h-muted:var(--dragon-header-muted,#748074);--h-line:var(--dragon-header-border,#d6dcd2);--h-accent:var(--dragon-header-accent,#416f48);--h-hover:var(--dragon-header-hover,#eaf0e5);container-type:inline-size;display:block;background:var(--h-surface);color:var(--h-fg);border-bottom:1px solid var(--h-line);font:var(--dragon-header-font-size,12px)/1.5 var(--dragon-header-font,system-ui,sans-serif);min-width:0;${PLAIN_TEXT}}
 [data-dragon-header] *{box-sizing:border-box}
-[data-dragon-header] .dg-header-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:var(--dragon-header-height,47px);padding:9px 14px}
+[data-dragon-header] .dg-header-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:var(--dragon-header-height,47px);padding:9px 14px;line-height:inherit}
 [data-dragon-header] .dg-header-title{margin:0;min-width:min(8.5em,100%);flex:1;font-size:var(--dragon-header-font-size,12px);font-weight:650;overflow-wrap:anywhere;line-height:1.6}
-[data-dragon-header] .dg-header-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
-[data-dragon-header] .dg-header-settings{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:8px 14px;border-top:1px solid var(--h-line);color:var(--h-muted)}
+[data-dragon-header] .dg-header-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;line-height:inherit}
+[data-dragon-header] .dg-header-settings{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:8px 14px;border-top:1px solid var(--h-line);color:var(--h-muted);line-height:inherit}
 [data-dragon-header] .dg-header-settings:empty{display:none}
 [data-dragon-header] :is(button,a){font:inherit;color:inherit}
-[data-dragon-header] .dg-header-actions>:is(button,a),[data-dragon-header] .dg-header-actions>:not(button,a)>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:5px 10px;border:1px solid var(--h-line);border-radius:var(--dragon-header-radius,6px);background:var(--h-bg);text-decoration:none;white-space:nowrap;cursor:pointer}
+[data-dragon-header] .dg-header-actions>:is(button,a),[data-dragon-header] .dg-header-actions>:not(button,a)>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:5px 10px;border:1px solid var(--h-line);border-radius:var(--dragon-header-radius,6px);background:var(--h-bg);text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:none;min-width:0;${PLAIN_TEXT}}
 [data-dragon-header] .dg-header-actions>:is(button,a):hover,[data-dragon-header] .dg-header-actions>:not(button,a)>button:hover{color:var(--h-accent);border-color:var(--h-accent)}
 [data-dragon-header] :is(button,a):focus-visible{outline:2px solid var(--h-accent);outline-offset:2px}
 [data-dragon-header] .dg-header-actions :is([aria-pressed=true],[aria-expanded=true]){color:var(--h-accent);border-color:var(--h-accent);background:var(--h-hover)}

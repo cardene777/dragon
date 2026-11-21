@@ -113,7 +113,7 @@ step Press sign in
 ```
 
 The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
-It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
+It loads the renderer for `sequence` first, and the renderer of any other kind, `architecture` included, only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
 A block that has no width then, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
@@ -128,6 +128,37 @@ The file fetches nothing from outside, and draws in the device's fonts because t
 ```sh
 dragon embed page.html
 ```
+
+### A still figure
+
+When a page such as a report or an explainer should show the last step in one picture instead of stepping through the diagram, add `data-still` to the block.
+
+```html
+<pre class="dragon" data-still>
+chart Sales by product in thousands of yen [shape: bar]
+
+item croissant as Croissant
+item melon as Melon bun
+
+step This week
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+A block with `data-still` gets no player (the buttons, the step number, the step title and text, and the progress bar), and is replaced by an SVG that draws the last step (`<div class="dragon-figure dragon-still">`).
+A chart draws its values and shows the diagram title where the step title would be.
+A flow draws every line its steps passed as a solid line.
+Its fonts fall back to the device's sans-serif after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
+It uses the `clear` palette by default, which sits well on a white page, and turns dark when the page's `<html>` has `data-theme="dark"`, or when the device prefers a dark scheme and the page does not have `data-theme="light"`.
+To paint the figure with the page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.
+The background, the outlines of lines, and the plates behind labels then take that color on light and dark pages alike.
+A donut writes a middle name that does not fit inside the ring on two lines, and a step band (`cycle` with `[shape: band]`) writes each step name inside its chevron.
+The figure never grows wider than its own width, and shrinks with its aspect ratio kept when its frame is narrower.
+
+Pass a page whose blocks are all still to `dragon embed`, and it draws the blocks as SVGs in place and adds no bundled script.
+On a page that also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the moving ones.
+From the package, pass `figure: true` to `renderDiagram` to get the same SVG.
 
 ## Write a page from Markdown
 
@@ -1006,7 +1037,7 @@ The box of the whole holds empty dots from before the first step, and in the ste
 The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
 Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
 Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
-With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel refuses `set none`.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel and a line chart refuse `set none`.
 
 ```dragon
 chart Devices of 1,000 people [shape: dots]
@@ -1035,6 +1066,34 @@ step Mac
 step None of them
   say The 50 people who use none of them stay grey in the box of the whole.
   set none: 50
+```
+
+`chart <title> [shape: line]` draws how amounts change over time as a line chart.
+Each `item` is one line in its own color with its name in the legend at the top, and each `step` is one point on the time axis, labeled with the step title.
+`set <id>: <value>` gives the item's value at that step, and a step without `set` keeps the previous value.
+The value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10.
+Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point.
+A line chart needs at least two steps, and an item that never gets a value and `set none` are errors when the notation is read.
+
+```dragon
+chart A bakery's sales over one week (yen) [shape: line]
+
+item shop as Counter [color: amber]
+item online as Online [color: blue]
+
+step Mon
+  say The week starts with 42,000 yen at the counter and 12,000 yen online.
+  set shop: 42000
+  set online: 12000
+
+step Tue
+  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
+  set shop: 38000
+  set online: 15000
+
+step Wed
+  say The counter comes back to 45,000 yen.
+  set shop: 45000
 ```
 
 ```dragon

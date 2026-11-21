@@ -51,7 +51,7 @@ step ログインを押す
 
 | 行 | 書き方 | 例 |
 |---|---|---|
-| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>` (段ごとに帯を積む見た目は `[shape: rows]`、全量の四角を面積で割る見た目は `[shape: treemap]`)、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
+| 図の種類と題 | `sequence <題>`、`architecture <題>`、`state <題>`、`git <題>`、`time <題>`、`tree <題>`、`pipe <題>`、`flow <題>`、`cycle <題>` (時計の文字盤に置く見た目は `[shape: clock]`、左から右への帯に並べる見た目は `[shape: band]`)、`mind <題>`、`er <題>`、`matrix <題>` (点数で点を打つ見た目は `[shape: scatter]`)、`venn <題>`、`sankey <題>` (段ごとに帯を積む見た目は `[shape: rows]`、全量の四角を面積で割る見た目は `[shape: treemap]`)、`chart <題> [shape: donut]` (か `[shape: bar]` か `[shape: funnel]` か `[shape: dots]` か `[shape: line]`) のどれか。見せ方は行の終わりに `[view: fixed]` か `[view: follow]` を足して選ぶ | `architecture CCIP でトークンを送る [view: follow]` |
 | 区画 | `group <名札> as <名前> [note: <添え書き>]` の行で開き、`end` の行で閉じる。間に書いた `box` の行の箱が区画の中に置かれる | `group 送信元 as 送信元チェーン [note: 例 Ethereum, color: blue]` |
 | 箱 | `box <名札> as <名前> [note: <下の小さな字>]`。`as <名前>` を省くと名札が名前になる | `box OnRamp [note: 確かめて送り出す]` |
 | 判断 | `choice <名札> as <問い>`。問いを中に書いたひし形になり、出る線の名前が答えになる。手順の図だけで書ける | `choice ok as 書けている？` |
@@ -384,7 +384,7 @@ step 買う
 1点が何件かは、点が100個ほどになる数 (1か2か5に10の累乗を掛けた数) を図が選び、箱の上に全体の件数と並べて出す。
 最初の行を `chart <題> [shape: dots, unit: <数>]` と書くと1点の件数を決められ、1つの段で点が200個を超える値は記法を読む時に誤りになる。
 ドーナツと横棒と点で数える見た目は、段の中の `set none: <数>` でどの項目にも入らない数を書ける。
-点で数える見た目ではその点が灰色のまま箱に残り、ドーナツと横棒では項目の後ろに灰色の弧か棒で描く。漏斗は `set none` を断る。
+点で数える見た目ではその点が灰色のまま箱に残り、ドーナツと横棒では項目の後ろに灰色の弧か棒で描く。漏斗と折れ線は `set none` を断る。
 
 ```dragon
 chart 1,000人に聞いた端末 [shape: dots]
@@ -413,6 +413,32 @@ step Mac
 step どれも使わない
   say どれも使わない50人は、点が灰色のまま全体の箱に残る。
   set none: 50
+```
+
+`chart <題> [shape: line]` は時間につれて量がどう変わったかを折れ線で描く。
+`item` の行が1本の線になり、`step` の行が時間の軸の点の1つになって、段の題が横の軸の名前になる。
+段を送ると線が前の段の点から新しい段の点へ伸び、その段の値が点の右に出る。`set` を書かない段は前の段の値を保つ。
+段が1つだけの図と、どの段にも値を書かない項目と、`set none` は記法を読む時に誤りになる。
+
+```dragon
+chart ベーカリーの1週間の売り上げ (円) [shape: line]
+
+item shop as 店頭 [color: amber]
+item online as 通販 [color: blue]
+
+step 月
+  say 週の初めは、店頭が42,000円、通販が12,000円だった。
+  set shop: 42000
+  set online: 12000
+
+step 火
+  say 雨の火曜は、店頭が38,000円に減り、通販が15,000円に増えた。
+  set shop: 38000
+  set online: 15000
+
+step 水
+  say 水曜は、店頭が45,000円に戻った。
+  set shop: 45000
 ```
 
 列の図 (`lineup <題>`) は既定でボードの見た目になり、箱を書いた順に左から淡い色の縦の帯として並べ、帯の中にチップを札として上から積む。

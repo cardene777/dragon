@@ -1,0 +1,41 @@
+// A small bakery's sales over one week, compared day by day between the shop counter and online orders.
+// The values are sample numbers for showing the shape, not measured figures.
+chart A bakery's sales over one week (yen) [shape: line]
+
+item shop as Counter [color: amber]
+item online as Online [color: blue]
+
+step Mon
+  say The week starts with 42,000 yen at the counter and 12,000 yen online.
+  set shop: 42000
+  set online: 12000
+
+step Tue
+  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
+  set shop: 38000
+  set online: 15000
+
+step Wed
+  say The counter comes back to 45,000 yen, and online is 14,000 yen.
+  set shop: 45000
+  set online: 14000
+
+step Thu
+  say The counter takes 40,000 yen, and online grows to 18,000 yen.
+  set shop: 40000
+  set online: 18000
+
+step Fri
+  say People on their way home from work lift the counter to 56,000 yen.
+  set shop: 56000
+  set online: 22000
+
+step Sat
+  say The counter has its best day of the week at 78,000 yen.
+  set shop: 78000
+  set online: 20000
+
+step Sun
+  say The counter takes 71,000 yen, and online has its best day at 26,000 yen.
+  set shop: 71000
+  set online: 26000

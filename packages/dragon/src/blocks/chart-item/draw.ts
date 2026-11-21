@@ -18,13 +18,15 @@ import { cs } from "../color/draw";
 
 /**
  * 字の描き方の選択。`shown` は見えている間 (既定は初めから最後まで)、`anchor` は字の横の揃え方、
- * `motion` は見えている間の動きの style で、渡すと動く部品の印 (`dg-a`) を付ける。`ring` は字を収める輪の内側の円
+ * `motion` は見えている間の動きの style で、渡すと動く部品の印 (`dg-a`) を付ける。`ring` は字を収める輪の内側の円。
+ * `size` は字の大きさを見た目の規則の大きさから替える時の大きさで、字の style に書く
  */
 export interface ChartTextOptions {
   shown?: Shown[];
   anchor?: "start" | "middle";
   motion?: string;
   ring?: Ink["ring"];
+  size?: number;
 }
 
 /** 字を 1 つ描き、字の四角と見えている間を字の記録に残す。`attrs` は字に足す属性 (名札の `data-chart-*`) */
@@ -34,6 +36,25 @@ export function chartText(ctx: Ctx, cls: string, x: number, y: number, text: str
   const anchored = anchor ? ` text-anchor="${anchor}"` : "";
   const moving = motion === undefined ? "" : ` style="${motion}"`;
   return `<text class="${cls}${motion === undefined ? "" : " dg-a"}" x="${r1(x)}" y="${r1(y)}"${anchored}${attrs}${moving}>${esc(text)}</text>`;
+}
+
+/**
+ * 折った行を 1 つの字に描き、全ての行を囲む四角を折る前の字 `text` の記録として残す (#3809)。行は `<tspan>` で、`y` は行の基準線。
+ * 記録も名札の属性も折る前の字で 1 つだけ持つので、崩れの検査は名前を 1 度だけ名指し、検査と読み上げの道具は折る前の字で引ける
+ */
+export function chartLines(ctx: Ctx, cls: string, x: number, text: string, lines: readonly { text: string; y: number }[], style: TextStyle, attrs: string, options: ChartTextOptions = {}): string {
+  const { shown = ALWAYS, anchor, motion, ring, size } = options;
+  const drawn = size === undefined ? style : { ...style, size };
+  const rects = lines.map((line) => textBox(line.text, x, line.y, drawn, anchor));
+  const left = Math.min(...rects.map((r) => r.x));
+  const top = Math.min(...rects.map((r) => r.y));
+  const rect = { x: left, y: top, w: Math.max(...rects.map((r) => r.x + r.w)) - left, h: Math.max(...rects.map((r) => r.y + r.h)) - top };
+  ctx.ink.push({ text, rect, shown, ...(ring ? { ring } : {}) });
+  const anchored = anchor ? ` text-anchor="${anchor}"` : "";
+  const styles = [size === undefined ? "" : `font-size:${r1(size)}px`, motion ?? ""].filter((s) => s !== "");
+  const styled = styles.length === 0 ? "" : ` style="${styles.join(";")}"`;
+  const spans = lines.map((line) => `<tspan x="${r1(x)}" y="${r1(line.y)}">${esc(line.text)}</tspan>`).join("");
+  return `<text class="${cls}${motion === undefined ? "" : " dg-a"}"${anchored}${attrs}${styled}>${spans}</text>`;
 }
 
 /** 項目の名札を持つ属性 */

@@ -525,16 +525,18 @@ describe("量の図の崩れ (#3560)", () => {
       [`chart 題 [shape: ${shape}]`, "", "item a as 一つ目 [color: blue]", "item b as 二つ目 [color: green]", "", "step 短い", "  say 最初の段。", "  set a: 7", "  set b: 3", "", `step ${title}`, "  say 次の段。", "  set a: 5", "", `step ${title}`, "  say 同じ名前の段。", "  set a: 3", ""].join("\n");
     const check = (title: string, shape: string, lang: "ja" | "en") => checkText("long.dragon", withTitle(title, shape), "notation", lang, { layout: (step, said) => `段 ${step}: ${said}` });
     const ringBreak = (title: string) => ({ kind: "title-outside-ring", step: 2, parts: [{ kind: "text", text: title }, { kind: "ring" }] });
-    const longJa = "2024年の市場の割合";
-    const longEn = "Market share by region";
+    // 1 行で収まらない名前は 2 行に折って字を小さくするので (#3809)、2 行の一番小さい字でも収まらない長さの名前で確かめる
+    const longJa = "二千二十四年の地域ごとの市場の割合の推移";
+    const longEn = "Market share by region over the last five years";
     expect(check(longJa, "donut", "ja").map((p) => p.layout), "輪の内側に収まらない日本語の名前の崩れ").toEqual([ringBreak(longJa)]);
     expect(check(longJa, "donut", "ja").map((p) => p.message), "日本語の文が段と名前を名指す").toEqual([`段 2: 「${longJa}」がドーナツの輪の内側からはみ出す`]);
     expect(check(longEn, "donut", "en").map((p) => p.layout), "輪の内側に収まらない英語の名前の崩れ").toEqual([ringBreak(longEn)]);
     expect(check(longEn, "donut", "en").map((p) => p.message), "英語の文が段と名前を名指す").toEqual([`段 2: "${longEn}" sticks out of the inside of the donut ring`]);
-    // skill の参照 (`references/kinds/chart.md`) に書いた目安の長さは収まる。それより長ければ知らせる
+    // skill の参照 (`references/kinds/chart.md`) に書いた目安の長さは 2 行に折って収まる。それより長ければ知らせる
     expect(check("七文字の段の名", "donut", "ja").map(problemLine), "日本語 7 字の名前").toEqual([]);
-    expect(check("八文字の段の名前", "donut", "ja").map((p) => p.layout), "日本語 8 字の名前").toEqual([ringBreak("八文字の段の名前")]);
+    expect(check("十二文字の段の名前と題名", "donut", "ja").map(problemLine), "日本語 12 字の名前").toEqual([]);
     expect(check("Market share A", "donut", "en").map(problemLine), "英語 14 字の名前").toEqual([]);
+    expect(check("Market share by region", "donut", "en").map(problemLine), "英語 22 字の名前").toEqual([]);
     // 横棒の図は輪を持たず、段の名前を段の番号の隣の行に書く
     expect(check(longJa, "bar", "ja").map(problemLine), "横棒の図の長い名前").toEqual([]);
   });

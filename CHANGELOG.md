@@ -6,6 +6,17 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A chart draws a line chart with `[shape: line]`, showing how amounts change over time with the same `item` and `set` lines. Each item is one line in its own color with its name in the legend at the top, each step is one point on the time axis labeled with the step title, and the value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10. Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point, and a still figure draws every line in full with the chart title at the top. `dragon check` names a line chart with a single step, an item that never gets a value, and `set none` with their line and column, and the JSON check names the same fields. The examples `bakery-sales` compare a bakery's daily sales at the counter and online over a week (#3802)
+- A still figure paints its background, line outlines, and label plates with `--dragon-figure-background` when the page sets it, so the figure matches the page's card on light and dark pages. A donut writes a middle name that does not fit inside the ring on two lines and makes it smaller only when two lines still do not fit, and a still step band (`cycle` with `[shape: band]`) leaves out the room for step numbers and writes each step name inside its chevron. The dragon skill's `chart` and `layout` references give the lengths that fit, and the skill raises the versions of its `embed`, `chart`, and `layout` contents (#3809)
+- The dragon skill declares its references in `musubi.json`, so other skills can follow the notation, the ways to place a diagram, the layout fixes, the block guide, the setup, and each kind's guide through musubi, by content names that its `SKILL.md` lists. The skill's table of destinations also names `data-still` for a report or explainer page (#3807)
+- A block with `data-still` is replaced by a still figure: an SVG of the last step with no player, no step numbers, chart titles in place of step titles, a sans-serif fallback, the `clear` palette by default, and colors that follow the page's `data-theme` and the device's dark scheme. `renderDiagram` returns the same SVG with `figure: true`, and `dragon embed` draws still blocks as SVGs and adds no bundled script when no moving block is left (#3801)
+
+### Fixed
+
+- A still figure writes the shape of its last step as plain values instead of keyframes stopped at that moment, so a donut keeps one arc per item and bars keep their lengths on a page that turns animations off, such as one with `* { animation: none !important; }` for reduced motion. Moving diagrams keep their keyframes. A line chart puts each value above, below, right of, or left of its point, in that order, where it crosses no line, point, or other value and stays between the legend and the zero line, and a still line chart shows the value of every step (#3812)
+
 ## [0.79.5] - 2026-11-21
 
 ### Fixed

@@ -9,6 +9,7 @@
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
+ * 頁に止めて置く図 (`figure`) は keyframes を組まず、最後の段の止め絵の時刻の値を部品の style に書き込む (#3812)。
  */
 import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockReader, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
@@ -44,6 +45,7 @@ import {
   type Colors,
   type Corner,
   EASE,
+  FONT_STACK_VARS,
   FONT_VARS,
   isColorName,
   isColorValue,
@@ -51,6 +53,7 @@ import {
   LOOK,
   type Palette,
   paletteVars,
+  PLAIN_TEXT,
   resolvePalette,
   type Theme,
   TYPE,
@@ -96,6 +99,14 @@ export interface RenderOptions {
    * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
    */
   still?: boolean;
+  /**
+   * 頁に止めて置く図 (#3801)。最後の段の止め絵の時刻を図の中に書き込み、再生の部品が無くても最後の段の形を描く。
+   * 段の番号の丸を出さず、量の図は段の名前の所に図の題を出す。字の並びは一般の sans-serif と monospace に落ちる。
+   * 色味を渡さない時は、頁の白い地に馴染む `clear` で描く (配管の図は今どおり `sea`)。
+   * 色は頁の `data-theme="dark"` の時と、`data-theme="light"` でない頁で暗い `prefers-color-scheme` の時に暗い色に変わる。
+   * 頁が `--dragon-figure-background` を渡すと、図の地をその色で塗る。手順の帯 (`cycle` の `[shape: band]`) は番号の丸の空きを取らず、手順の名前を山形の中に書く (#3809)
+   */
+  figure?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
   /**
@@ -160,7 +171,8 @@ const PAST = `color-mix(in srgb,var(--mute) ${X.past}%,var(--bg))`;
 
 /** 部品の見た目。どの値も値の表から読む。 */
 const PART_CSS = [
-  ".dg{display:block;width:100%;height:auto;overflow:visible}",
+  // 字の大きさは字の幅の表で測るので、置いた頁の字の間と大文字を受け継がない (#3787)
+  `.dg{display:block;width:100%;height:auto;overflow:visible;${PLAIN_TEXT}}`,
   ".dg .dg-a{animation-duration:var(--T);animation-timing-function:linear;animation-iteration-count:infinite;animation-fill-mode:both;animation-delay:calc(var(--at,0) * -1s);animation-play-state:var(--play,running)}",
   ".dg .dg-popc{transform-box:fill-box;transform-origin:center}",
   ".dg-bg{fill:var(--bg)}",
@@ -399,6 +411,7 @@ export function drawSvg(
   framed: Framed[] = [],
   pieces?: PipePiece[],
   strokes: Stroke[] = [],
+  figure?: StillFigure,
 ): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
@@ -406,7 +419,8 @@ export function drawSvg(
   const id = nameOf(
     `${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`,
   );
-  const m = new Motion(`dg${id}`, timeline.total, timeline.last);
+  // 止めて置く図 (#3801) は keyframes を組まず、最後の段の止め絵の時刻の値を書き込む (#3812)
+  const m = new Motion(`dg${id}`, timeline.total, timeline.last, figure?.at);
   // 後から読む種類の部品の組。最初から読む種類 (時系列図と構成図) は持たない (#3656)
   const parts = partsOf(layout.kind);
   // 種類の行に `[shape: pipe]` を書いた時系列図は、後から読んだ見た目の部品の組が列の頭と線と札と段の番号と処理の札を描く (#3720)
@@ -427,6 +441,7 @@ export function drawSvg(
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
     ...(theme === "dark" ? { dark: true } : {}),
+    ...(figure ? { figure: true } : {}),
     seats: seatsOf(layout.edges, carried),
     ...parts?.hooks?.(m, timeline),
   };
@@ -574,10 +589,36 @@ export function drawSvg(
   const view = follow
     ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${monoDots(view.body, css)}</svg>`
+  );
+}
+
+/** 頁に止めて置く図 (#3801) の止め絵の時刻と、暗い頁で使う色味 */
+export interface StillFigure {
+  /** 最後の段の止め絵の時刻 (秒) */
+  at: number;
+  /** 頁が暗い時に描く色味 */
+  dark: Palette;
+}
+
+/**
+ * 止めて置く図の見た目の規則 (#3801)。図の根に止め絵の時刻を書き込み、動きを止めたまま最後の段の形を描く。
+ * 字の並びは同梱した字の後に一般の字を持ち、同梱した字を読まない頁でも明朝に落ちない。
+ * 頁の `data-theme="dark"` と、`data-theme="light"` でない頁の暗い `prefers-color-scheme` で、暗い色味の色に替える。
+ * 地の色 (`--bg`) は頁が `--dragon-figure-background` を渡した時にその色を読み、図の地も `--bg` で塗る縁取りや札の地も頁の枠の色に揃える (#3809)。
+ * 渡さない頁では色味の地の色のまま描く
+ */
+function figureCss(id: string, figure: StillFigure, lookDark: string, lightBg: string): string {
+  const pageBg = (bg: string): string => `--bg:var(--dragon-figure-background,${bg})`;
+  const dark = `${paletteVars(figure.dark, "dark")}${lookDark ? `;${lookDark}` : ""};${pageBg(figure.dark.dark.bg ?? "")}`;
+  return (
+    `.dg-${id}{${FONT_STACK_VARS};--at:${figure.at};--play:paused;${pageBg(lightBg)}}` +
+    `:root[data-theme="dark"] .dg-${id}{${dark}}` +
+    `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dg-${id}{${dark}}}`
   );
 }
 
@@ -962,8 +1003,10 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 後から読む種類は、種類の名前で引いた部品の組が並べる前の直しと並べ方を持つ (#3656)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
-  const model = toModel(read.diagram);
-  const parts = partsOf(model.kind, lang);
+  // 止めて置く図 (#3801) は、種類の部品の組が持つ止めて置く時の直し (量の図は段の名前の所に図の題を出す) を、並べる前に当てる
+  const given = toModel(read.diagram);
+  const parts = partsOf(given.kind, lang);
+  const model = options.figure === true ? (parts?.figure?.(given) ?? given) : given;
   const diagram = parts?.fold?.(model, options, lang) ?? model;
   // 後から読む図の種類 (#3347) は部品の組の並べ方で並べ、時系列図は登録簿に登録した並べ方で並べ (#3345、#3763)、
   // 構成図と知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
@@ -974,7 +1017,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
       ? parts.layout(diagram, lang, options)
       : eagerLayout(diagram.kind === "sequence" ? "sequence" : "architecture", lang)(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
-  const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
+  // 頁に止めて置く図 (#3801) は、頁の白い地に馴染む澄んだ色味 (`clear`) を既定にする
+  const kindPalette = options.palette === undefined ? (KIND_PALETTE[diagram.kind] ?? (options.figure === true ? "clear" : undefined)) : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
   const timeline = buildTimeline(diagram, options.still === true);
   // 札の時刻は部品の組が直す。手順の図は段の印の点と運ぶ物と光る間を直し (#3561)、
@@ -1001,7 +1045,10 @@ export function renderLayout(
   const framed: Framed[] = [];
   const pieces: PipePiece[] = [];
   const strokes: Stroke[] = [];
-  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
+  // 止めて置く図 (#3801) は、最後の段の止め絵の時刻と、頁が暗い時の色味を渡す
+  const figure: StillFigure | undefined =
+    options.figure === true ? { at: timeline.stills[timeline.steps.length - 1] ?? 0, dark: paletteOf(options, "dark") } : undefined;
+  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes, figure);
   // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない
   const svg = drawLines(drawn, options.line, options.lang ?? DEFAULT_LANG);
   // 箱の札を種類の部品の組が描く図の種類 (時間軸の図と列の図) は、崩れの確かめも共通の描き方が箱の札を描いた図の種類の箱だけを見る

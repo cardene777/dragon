@@ -846,7 +846,8 @@ export function layoutClock(
  * 段の中の線の札は帯の真ん中の高さを、送る手順の山形の真ん中から受ける手順の山形の真ん中へ走る。
  * 最後の手順から最初の手順への線の札は、帯の右の端から外を回って帯の下を横切り、下の回の帯の左の端へ入る戻る矢印を辿って、次の回の最初の山形の真ん中で着く。
  * 段の番号は、その段の手順のその回の山形の真ん中の上に置く。
- * 枠の幅が狭い (携帯の幅) 時は、山形を枠の幅に収まるまで縮めて手順の番号を山形の中に書き、名前の代わりに番号と名前と長さの一覧を帯の下に積む
+ * 枠の幅が狭い (携帯の幅) 時は、山形を枠の幅に収まるまで縮めて手順の番号を山形の中に書き、名前の代わりに番号と名前と長さの一覧を帯の下に積む。
+ * 頁に止めて置く図 (`figure`、#3809) は段の番号の丸を描かないので、丸の空きを取らず、手順の名前を山形の中に書いて、名前が収まるまで山形の間を広げる
  */
 
 /** 山形。`round` はその山形が在る回、`first` は帯の最初の山形 (左の縁を平らにする) */
@@ -948,6 +949,9 @@ export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: K
   const colors = boxColors(diagram);
   const colorOf = (id: string): ColorKey => colors.get(id) ?? "slate";
   const phone = options.width !== undefined && options.width < B.wide;
+  // 止めて置く図は段の番号の丸を描かない。携帯の幅でなければ名前を山形の中に書く (#3809)
+  const still = options.figure === true;
+  const inside = still && !phone;
 
   // 段ごとの手順と回。札が着いた手順、線の無い段は前の段の手順。最後の手順から最初の手順への線で回が 1 つ進む
   const current: string[] = [];
@@ -999,12 +1003,14 @@ export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: K
   const nameWidth = phone
     ? 0
     : Math.max(0, ...diagram.boxes.map((b) => Math.max(textWidth(b.name, BAND_TYPE.name), b.sub === undefined ? 0 : textWidth(b.sub, BAND_TYPE.sub))));
-  const h = phone ? B.phoneH : B.h;
+  const h = phone ? B.phoneH : inside ? B.stillH : B.h;
   const br = LOOK.badge.r;
   // 戻る矢印は、帯の左の端の目盛りの字に掛からない所まで外を回る
   const out = Math.max(B.out, (tickWidths[0] ?? 0) / 2 + B.apart, (tickWidths[tickWidths.length - 1] ?? 0) / 2 + B.apart);
 
-  const widest = Math.max(B.pitch, nameWidth + B.nameGap, tickWidest + B.apart);
+  // 山形の中に書く名前は、切り込みの先から山形の先の付け根までの間に、両側に `namePad` を空けて収める
+  const room = inside ? nameWidth + B.gap + B.point + B.namePad * 2 : nameWidth + B.nameGap;
+  const widest = Math.max(B.pitch, room, tickWidest + B.apart);
   if (!phone) return place(widest);
   const width = options.width as number;
   let pitch = Math.min(widest, (width - B.pad * 2 - out * 2 + B.gap - B.point) / Math.max(n, 1));
@@ -1025,13 +1031,14 @@ export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: K
     const tickUp = unit === undefined ? 0 : shared ? 0 : B.tickRow;
     // 山形の上の縁から、番号と目盛りの行の上の端と、帯の頭の基準線までの高さ
     const tickBase = B.badgeAt + tickUp - tickStyleSize * 0.35;
-    const rowTop = Math.max(B.badgeAt + br, unit === undefined ? 0 : tickBase + tickStyleSize * 0.8);
+    const rowTop = Math.max(still ? 0 : B.badgeAt + br, unit === undefined ? 0 : tickBase + tickStyleSize * 0.8);
     const headBase = rowTop + B.headGap;
     const headSize = Math.max(BAND_TYPE.title.size, BAND_TYPE.lead.size, BAND_TYPE.leadJa.size, BAND_TYPE.rest.size);
     const above = strip ? headBase + headSize * 0.8 : rowTop;
     // 山形の下の縁から、名前の下の端までの高さ
     const hasSub = !phone && diagram.boxes.some((b) => b.sub !== undefined);
-    const below = phone ? 0 : B.nameAt + (hasSub ? B.subAt + BAND_TYPE.sub.size * 0.2 : BAND_TYPE.name.size * 0.2);
+    // 山形の中に名前を書く時は、箱の下の字だけを山形の下に置く
+    const below = phone ? 0 : inside ? (hasSub ? B.nameAt + BAND_TYPE.sub.size * 0.2 : 0) : B.nameAt + (hasSub ? B.subAt + BAND_TYPE.sub.size * 0.2 : BAND_TYPE.name.size * 0.2);
     const stride = above + h + below + B.cross * 2;
     const topOf = (r: number): number => above + r * stride;
     const midOf = (r: number): number => topOf(r) + h / 2;
@@ -1060,9 +1067,10 @@ export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: K
             { text: box?.name ?? seg.id, style: "name" as const },
             ...(box?.sub !== undefined ? [{ text: box.sub, style: "sub" as const }] : []),
           ];
-          let y = seg.y + seg.h + B.nameAt;
+          // 山形の中の名前は、字の四角の真ん中を山形の真ん中の高さに置く。箱の下の字は山形の下の、名前を置いていた高さに置く
+          let y = inside ? seg.y + seg.h / 2 + BAND_TYPE.name.size * 0.3 : seg.y + seg.h + B.nameAt;
           const texts = lines.map((line, k) => {
-            if (k > 0) y += B.subAt;
+            if (k > 0) y = inside ? seg.y + seg.h + B.nameAt : y + B.subAt;
             return { text: line.text, x: cx, y, style: line.style };
           });
           const rects = texts.map((t) => textBox(t.text, t.x, t.y, BAND_TYPE[t.style], "middle"));
@@ -1150,7 +1158,8 @@ export function layoutBand(diagram: DiagramModel, lang: NotationLang, options: K
       ...ticks.map((t) => t.rect),
       ...names,
       ...heads,
-      ...badges.map((b) => around([b.x, b.y], [br, br])),
+      // 止めて置く図は段の番号の丸を描かないので、枠に数えない
+      ...(still ? [] : badges.map((b) => around([b.x, b.y], [br, br]))),
       ...returns.flatMap((x) => x.points.map((p) => around(p, [B.headHalf, B.headHalf]))),
       ...edges.flatMap((e) => (e.carry.kind === "none" ? [] : e.points.map((p) => around(p, carrierHalf(e.carry))))),
       ...(list ? [list] : []),
