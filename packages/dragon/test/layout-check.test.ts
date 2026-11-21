@@ -119,6 +119,24 @@ const LABEL_OFF_CHECKED = await atLoad("線から離れる名前の図を命令�
   en: await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "en"]),
 }));
 
+// 命令を件の中で起こすほかの件も、#3800 の関門で混んだ機械の 1 件の上限 (10 秒) を超えた (#3815)。同じく命令を file を読み込む段で打つ
+
+const CROWDED_CHECKED = await atLoad("並んで近すぎる道の状態遷移図を命令で調べる", async () => ({
+  json: await layoutOf(CROWDED),
+  ja: await runCli(["check", CROWDED, "--layout", "--lang", "ja"]),
+  en: await runCli(["check", CROWDED, "--layout", "--lang", "en"]),
+}));
+
+const SEND_ONLY_CHECKED = await atLoad("運ぶ物が置き場に座らない金庫の図を命令で調べる", () => layoutOf(SEND_ONLY));
+
+/** 決済の図の崩れを、言葉を渡さずに JSON で調べた結果 */
+const PAYMENT_WIDTHS = await atLoad("決済の図を言葉を渡さずに命令で調べる", () => runCli(["check", PAYMENT, "--layout", "--json"]));
+
+const TRY_SKIP_CHECKED = await atLoad("網の線が節の名前を横切る試す図を命令で調べる", async () => ({
+  json: await layoutOf(TRY_SKIP),
+  ja: await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]),
+}));
+
 /** 決済の図と、描いた段の止め絵の時刻 */
 const PAYMENT_DRAWN = await atLoad("決済の図を読んで段の時刻を測る", () => {
   const parsed = parseNotation(readFileSync(PAYMENT, "utf8"), { lang: "ja" });
@@ -547,23 +565,22 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(frameShape(128).filter((b) => b.kind === "label-on-frame"), "囲みの外に在る名前を枠線に乗る名前に数える").toEqual([]);
   });
 
-  it("layout-check-finds-crowded-lines", async () => {
-    const { found } = await layoutOf(CROWDED);
+  it("layout-check-finds-crowded-lines", () => {
+    const { found } = CROWDED_CHECKED.get().json;
     const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "受付", "取消", 1) && hasLine(b, "確認", "取消", 1));
     expect(hits, "受付と確認から取消へ入る道が並んで近すぎることを1件で出さない").toHaveLength(1);
   });
 
-  it("layout-check-line-names-step-and-parts", async () => {
+  it("layout-check-line-names-step-and-parts", () => {
     // 段の番号を名指す文は、近すぎる番号を持つ姿を組んで確かめる (`layout-check-finds-close-badges` と `badge-spots.test.ts`)。
     // 見本の図に近すぎる番号が無くなったので (#3547)、命令の行の形は並んで近すぎる道を持つ状態遷移図で確かめる
-    const ja = await runCli(["check", CROWDED, "--layout", "--lang", "ja"]);
+    const { ja, en } = CROWDED_CHECKED.get();
     expect(ja.code, ja.stderr).toBe(0);
     const lines = ja.stdout.trimEnd().split("\n");
     const crowded = lines.find((line) => line.includes("線 受付 → 取消 (段 1)") && line.includes("線 確認 → 取消 (段 1)"));
     expect(crowded, `受付と確認から取消への道を名指す行が無い\n${ja.stdout}`).toBeDefined();
     // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
     expect(crowded, "線の崩れの行の頭").toMatch(new RegExp(`^${CROWDED.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(CROWDED, 1)}:1 warning 段 1: `, "u"));
-    const en = await runCli(["check", CROWDED, "--layout", "--lang", "en"]);
     const crowdedEn = en.stdout.trimEnd().split("\n").find((line) => line.includes("受付 → 取消"));
     expect(crowdedEn, `英語の行が段と線を名指さない\n${en.stdout}`).toMatch(/warning Step 1: The line 受付 → 取消 \(step 1\) and the line 確認 → 取消 \(step 1\) /u);
     // はみ出した字の文は、字と箱の名前を名指す。形を持つ箱は中身が収まるまで大きくなるので (#3520)、崩れを持つ前のアーチの姿で確かめる
@@ -571,10 +588,10 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(text && describeBreak(text as never, "en"), "英語の文がはみ出した字と箱を名指さない").toBe('"100 USDC を預かり中" sticks out of the shape of "ブリッジ"');
   });
 
-  it("layout-check-prints-json", async () => {
+  it("layout-check-prints-json", () => {
     // 決済の図は行きと帰りの線を離し (#3521)、六角形の箱が中身に合わせて大きくなって (#3520) 崩れを持たず、
     // 近すぎる丸を持っていたgit図も線を離して崩れが消えたので (#3547)、並んで近すぎる道を持つ図で確かめる
-    const { code, problems } = await layoutOf(CROWDED);
+    const { code, problems } = CROWDED_CHECKED.get().json;
     expect(code).toBe(0);
     const layout = problems.filter((p) => p.layout !== undefined);
     expect(layout.length, "JSON に崩れが無い").toBeGreaterThan(0);
@@ -594,9 +611,9 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(slots.map((b) => b.step), "続く段の同じ崩れを、硬貨が座り始める段 2 の 1 件にまとめない").toEqual([2]);
   });
 
-  it("layout-check-skips-slot-never-held", async () => {
+  it("layout-check-skips-slot-never-held", () => {
     // アーチの形の金庫は硬貨を送り出すだけで、硬貨は金庫の置き場で待たない。見えない枠のはみ出しは知らせない (#3518)
-    const { found } = await layoutOf(SEND_ONLY);
+    const { found } = SEND_ONLY_CHECKED.get();
     expect(found.filter((b) => b.kind === "slot-outside-shape"), "運ぶ物が一度も座らない枠のはみ出しを知らせる").toEqual([]);
     // 形を持つ箱は中身が収まるまで大きくなり、描いた図には形の崩れが無い (#3520)。崩れを持つ #3520 の前のアーチの姿で、座らない枠を数えないことも確かめる
     const empty = findBreaks(brokenArch(false)) as LayoutBreak[];
@@ -604,7 +621,7 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(empty.filter((b) => b.kind === "text-outside-shape" && hasBox(b, "ブリッジ")).length, "アーチの形の崩れを測っていない").toBeGreaterThan(0);
   });
 
-  it("layout-check-names-narrow-width", async () => {
+  it("layout-check-names-narrow-width", () => {
     const seen: (number | undefined)[] = [];
     const both = { kind: "badges-close", step: 2, parts: [{ kind: "badge", step: 1 }, { kind: "badge", step: 2 }] };
     const narrowOnly = { kind: "lines-close", step: 3, parts: [{ kind: "line", from: "a", to: "b", step: 2 }, { kind: "line", from: "b", to: "a", step: 3 }] };
@@ -616,14 +633,15 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     const merged = checkLayout(render as never);
     expect(seen, "既定の幅と幅 390 の両方で描かない").toEqual([undefined, 390]);
     expect(merged, "両方の幅で出る崩れは幅を持たず、幅 390 でだけ出る崩れは幅を持つ").toEqual([both, { ...narrowOnly, width: 390 }]);
-    const lines = await runCli(["check", PAYMENT, "--layout", "--json"]);
+    const lines = PAYMENT_WIDTHS.get();
     const widths = (JSON.parse(lines.stdout || "[]") as Problem[]).flatMap((p) => (p.layout?.width === undefined ? [] : [p.layout.width]));
     expect(widths, "幅で変わらない図で幅を名指す").toEqual([]);
   });
 
-  it("layout-check-finds-line-across-node-name", async () => {
+  it("layout-check-finds-line-across-node-name", () => {
     // 試す図の網の線も、ほかの線と同じく札を持たない字を横切れば崩れとして出す
-    const { code, found, problems, stderr } = await layoutOf(TRY_SKIP);
+    const { json, ja } = TRY_SKIP_CHECKED.get();
+    const { code, found, problems, stderr } = json;
     expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
     const across = (name: string): LayoutBreak[] =>
       found.filter((b) => b.kind === "line-crosses-text" && hasLine(b, "送る人", "作る人", 1) && b.parts.some((p) => p.kind === "text" && p.text === name));
@@ -639,7 +657,6 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
       expect(p.line, "線が字を横切る崩れの段の step の行").toBe(stepLine(TRY_SKIP, 1));
     }
     // 文の行は段を頭に書き、線の両端の節と横切られる名前を名指す
-    const ja = await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]);
     const said = ja.stdout.trimEnd().split("\n").find((line) => line.includes("中継1"));
     expect(said, `名前「中継1」を名指す行が無い\n${ja.stdout}`).toMatch(new RegExp(`^${TRY_SKIP.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(TRY_SKIP, 1)}:1 warning 段 1: `, "u"));
     expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);

@@ -45,6 +45,10 @@ export const HEAVY = new Set([
   "openedAggregator",
   // 図を JSON Schema で検査する。全ての部品の図の記法を 1 件で検査すると、混んだ機械で 1 件の上限に近づいた
   "validateDiagram",
+  // 頁を開く呼び出し。混んだ機械で、件の中で Chromium の頁を開く件が 1 件の上限を超えた (#3815)
+  "fileChromium",
+  "newContext",
+  "newPage",
 ]);
 
 /** 子の process を起こす名前。同じ file の中の関数は、これを呼べば子の process を起こす名前に加わる */
