@@ -3174,8 +3174,11 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
       dl.forEach((c, j) => turnOf.set(c, j));
       dr.forEach((c, j) => turnOf.set(c, j));
     }
-    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)
-    boxBottom = top0 - MESH_CLEAR - levels * L.turn - L.band;
+    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)。
+    // ただし券を人に結ぶ図は、券を人の上の箱との間に置いて短い線で結ぶので、券の高さと上下の間を残す。
+    // 箱の下で折る管が無い図 (#3813) で空きを詰め切ると、券が人の上に収まらず、離れた所へ逃げて結ぶ線が消える
+    const ticketRoom = (out.links ?? []).some((l) => l.label?.ticket && people.includes(l.to)) ? TICKET.h + TICKET.gap + MESH_CLEAR : 0;
+    boxBottom = top0 - Math.max(MESH_CLEAR + levels * L.turn + L.band, ticketRoom);
     for (const b of boxes) boxY.set(b, boxBottom - heights.get(b));
   } else {
     for (const b of rowBoxes) {

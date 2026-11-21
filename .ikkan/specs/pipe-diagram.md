@@ -213,3 +213,7 @@
 | 箱の下で折る管が無い網型の図は、箱の下の縁と人の丸の上の縁の間に折る段 (34px) を空けない | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-box-no-turn-band`が通る | #3813 |
 | Tracelythのトップページの図2枚とカタログの網型の図14枚に、部品の重なりと字の上を通る線と空き帯が出ない | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-no-breaks`が通る | #3813 |
 | 槽と槽を繋ぐ値の管の口は、槽の側面の平らな所に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts --reporter=verbose`の検査`pipe-side-port-on-flat-side`が通る | #3813 |
+| `side-port-erc20-transferfrom-0`の図で、Bobに結ぶ券が箱の下の縁とBobの上の縁の間に在り、Bobに横で8より多く掛かり、Bobと結ぶ線を持つ | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-sits-above-spender`が通る | #3819 |
+| 見本の全ての網型の図で、人に結ぶ券はどれも人と結ぶ線を持つ (Tracelythのカタログの`erc20-approve`と`patterns-flashloan`を見本に足す) | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-tied-in-all-fixtures`が通る | #3819 |
+| トップページの図2枚 (券を持たない) で、呼び出しの管は箱の横の縁の上下の真ん中へ1回だけ曲がって入る | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-side-middle`が通る | #3819 |
+| 券を持たない網型の図は、箱の下で折る管が無い時に箱と人の間を詰めたまま | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-box-no-turn-band`が通る | #3819 |
