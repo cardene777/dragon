@@ -1,0 +1,46 @@
+pipe FlashBorrower.flashBorrowを実行
+layout mesh
+
+box alice as Alice
+box borrower as FlashBorrower
+box lender as FlashLender
+box usdc as USDC
+box bob as Bob
+box carol as Carol
+
+hold lender: 10001 USDC
+hold borrower: 9 USDC
+hold alice: 0 USDC
+hold bob: 0 USDC
+hold carol: 0 USDC
+hold usdc: "_allowances[FlashBorrower][FlashLender]" 0 [from: borrower, to: lender, unit: USDC]
+
+step AliceがFlashBorrowerのflashBorrowを呼ぶ
+  say AliceがFlashBorrower.flashBorrowを呼び出します。フラッシュローンは、担保を置かずにお金を借り、同じトランザクションの中で返す仕組みです。FlashLenderは貸した量の0.1%を手数料に取ります。返さないと全部戻るので、貸した側はお金を失いません。
+  alice -> borrower: flashBorrow(token: usdc, amount: 1000 USDC, repay: false)
+
+step FlashBorrowerがFlashLenderのflashLoanを呼ぶ
+  say FlashBorrowerがFlashLender.flashLoanを呼び出します。
+  borrower -> lender: flashLoan(receiver: borrower, token: usdc, amount: 1000 USDC, data: 0x0000…0000)
+
+step 1,000 USDCがFlashLenderからFlashBorrowerへ移る
+  say FlashLenderがUSDC.transferを呼び出します。1,000 USDCがFlashLenderからFlashBorrowerへ移動します。
+  lender -> usdc: transfer(to: borrower, value: 1000 USDC)
+  move usdc: 1000 lender -> borrower
+  emit usdc: Transfer(from: lender, to: borrower, value: 1000 USDC)
+  return usdc
+
+step FlashLenderがFlashBorrowerのonFlashLoanを呼ぶ
+  say FlashLenderがFlashBorrower.onFlashLoanを呼び出します。FlashBorrowerは1,000 USDCを借りています。FlashLenderは戻った後に、手数料1 USDCを足した1,001 USDCを返してもらいます。
+  lender -> borrower: onFlashLoan(initiator: borrower, token: usdc, amount: 1000 USDC, fee: 1 USDC, data: 0x0000…0000)
+  return borrower: 0x4391…8dd9
+
+step FlashLenderがUSDCのtransferFromを呼ぶ
+  say FlashLenderがUSDC.transferFromを呼び出します。
+  lender -> usdc: transferFrom(from: borrower, to: lender, value: 1001 USDC)
+
+step USDCがリバートし、全ての変更が戻る
+  say USDC.transferFromが「ERC20InsufficientAllowance(FlashLender, 0, 1001000000)」で失敗し、一番外側の呼び出しまでリバートしました。全ての変更がトランザクションの前に戻りました。
+  revert usdc: ERC20InsufficientAllowance(FlashLender, 0, 1001000000)
+  revert lender: ERC20InsufficientAllowance(FlashLender, 0, 1001000000)
+  revert borrower: ERC20InsufficientAllowance(FlashLender, 0, 1001000000)
