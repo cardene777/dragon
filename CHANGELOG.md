@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.3] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams bring a call pipe into the middle of a token box's side with as few bends as possible** (#3813)
+
+  When the caller's circle sits outside the width of the box, the call pipe rises to the box's vertical middle and turns once into the middle of the nearer side, instead of entering near the bottom corner. A caller right under the box still goes straight up into its bottom edge. Pipes entering the same side are spaced evenly around the middle, and the farther caller enters higher so the pipes do not cross. A box with no pipe turning under it sits 34px closer to the people row. When a pipe through the middle would leave no room for the card holder left of the boxes and the top right is also taken, the pipe drops just below the card holder. The holder on the left also tries the top of the box row when its own box is lower, so it no longer slides down onto a tank's balance text.
+
 ## [0.79.2] - 2026-11-20
 
 ### Changed
