@@ -99,23 +99,6 @@ const commandSteps = (cell: string): string[] =>
     .split("&&")
     .map((step) => step.trim());
 
-/**
- * 欄 `届く検査` の命令が型の検査をどこに置くかの誤り。誤りが無い時は空の配列 (#3730)。
- * 型の検査は検査の file が読む `dist` の型の定義を読むので package の build の後に、
- * 関係する検査より短いので `pnpm test:related` の前に回す。
- */
-function reachedTypecheckProblems(cell: string): string[] {
-  const steps = commandSteps(cell);
-  const build = steps.indexOf("pnpm build:packages");
-  const typecheck = steps.indexOf("pnpm typecheck");
-  const related = steps.indexOf("pnpm test:related");
-  if (typecheck === -1) return ["型の検査 `pnpm typecheck` を回さない"];
-  const problems: string[] = [];
-  if (build === -1 || typecheck < build) problems.push("型の検査を package の build より前に回す");
-  if (related === -1 || typecheck > related) problems.push("型の検査を関係する検査より後に回す");
-  return problems;
-}
-
 /** `.ikkan/checks.md` の欄の中身。backtick の囲みは残す。欄が無い時は空 */
 const checksCell = (field: string): string =>
   tableRows(readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8")).find((cells) => cells[0] === field)?.[1] ?? "";
@@ -243,16 +226,12 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(command, "配る前のテストが e2e を回す").not.toMatch(/e2e|playwright\s+test|test:e2e/iu);
   });
 
-  it("checks-run-related-tests-after-building", () => {
-    // 照合の step の無い線の実装の関門は、欄 `届く検査` の命令を回す (ikkan の #380)。
-    // 検査は build した dist を読み、`pnpm test:related` は build しないので、package を build してから回す (#3679)
+  it("checks-reached-row-is-none", () => {
+    // 課題ごとの実装の関門は記録したテスト命令だけを回し、欄 `届く検査` は `無し` にする (本人が2026-11-21に決めた、#3813)。
+    // 管の図の中心の file を変えると届く検査が全ての検査に近い数になり、1 回 5 分の上限の中で回り切らずに関門が止まった
     const rows = reachedRows();
     expect(rows, "`.ikkan/checks.md` の欄 `届く検査` が 1 行でない").toHaveLength(1);
-    const steps = commandSteps(rows[0]?.[1] ?? "");
-    const build = steps.indexOf("pnpm build:packages");
-    const related = steps.indexOf("pnpm test:related");
-    expect(build, "届く検査が package を build しない").toBeGreaterThanOrEqual(0);
-    expect(related, "届く検査が package を build してから関係する検査を回す形でない").toBeGreaterThan(build);
+    expect(rows[0]?.[1] ?? "", "欄 `届く検査` が `無し` でない").toMatch(/^無し/u);
   });
 
   it("suite-commands-pass-near-limit-reporter", () => {
@@ -264,23 +243,6 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
       return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
     });
     expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
-  });
-
-  it("reached-checks-typecheck-after-build", () => {
-    // 届く検査は検査の file の型も見る。`pnpm test:related` が起こす vitest は型を見ないため、
-    // #3717 の型の誤りが実装の関門を通り、#3728 の配る前の関門で初めて見つかった (#3730)
-    const rows = reachedRows();
-    expect(rows, "`.ikkan/checks.md` の欄 `届く検査` が 1 行でない").toHaveLength(1);
-    expect(reachedTypecheckProblems(rows[0]?.[1] ?? ""), "届く検査の型の検査の置き方の誤り").toEqual([]);
-  });
-
-  it("reached-checks-reject-missing-or-early-typecheck", () => {
-    // 型の検査を持たない命令と、build より前か関係する検査より後に置いた命令を、誤りとして拒む
-    expect(reachedTypecheckProblems("`bash -c 'pnpm build:packages && pnpm test:related'`"), "型の検査を持たない命令").toEqual(["型の検査 `pnpm typecheck` を回さない"]);
-    expect(reachedTypecheckProblems("`bash -c 'pnpm typecheck && pnpm build:packages && pnpm test:related'`"), "型の検査を build より前に置いた命令").toEqual(["型の検査を package の build より前に回す"]);
-    expect(reachedTypecheckProblems("`bash -c 'pnpm typecheck && pnpm test:related'`"), "build を持たない命令").toEqual(["型の検査を package の build より前に回す"]);
-    expect(reachedTypecheckProblems("`bash -c 'pnpm build:packages && pnpm test:related && pnpm typecheck'`"), "型の検査を関係する検査より後に置いた命令").toEqual(["型の検査を関係する検査より後に回す"]);
-    expect(reachedTypecheckProblems("`bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'`"), "build の後、関係する検査の前に置いた命令").toEqual([]);
   });
 
   it("checks-suite-and-release-tests-typecheck-after-build", () => {
@@ -344,7 +306,7 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
     const intro = text.slice(0, text.search(/^\|/mu));
     expect(sentenceWith(intro, ["照合の段", "一式"]), "`.ikkan/checks.md` の冒頭が、通らない照合の段が一式を回すと書いている").toBeUndefined();
-    expect(sentenceWith(intro, ["実装の", "関門", "届く検査", "回す"]), "`.ikkan/checks.md` の冒頭が、実装の関門が届く検査を回すと書いていない").toBeDefined();
+    expect(sentenceWith(intro, ["実装の", "関門", "記録した命令", "`届く検査`", "`無し`"]), "`.ikkan/checks.md` の冒頭が、実装の関門は記録した命令だけを回し欄 `届く検査` を `無し` にすると書いていない").toBeDefined();
   });
 
   it("checks-intro-says-scripts-only-change-picks-script-readers", () => {
@@ -360,30 +322,14 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(sentenceWith(intro, ["1件の検査", "仕事", "減らす"]), "`.ikkan/checks.md` の冒頭が、負荷で延びる時間切れを1件の検査の仕事を減らして防ぐと書いていない (#3733)").toBeDefined();
   });
 
-  it("checks-intro-names-typecheck-in-reached-checks", () => {
-    const text = readFileSync(join(ROOT, ".ikkan/checks.md"), "utf8");
-    const intro = text.slice(0, text.search(/^\|/mu));
-    expect(sentenceWith(intro, ["届く検査", "型の検査", "回す"]), "`.ikkan/checks.md` の冒頭が、届く検査は型の検査も回すと書いていない").toBeDefined();
-  });
-
-  it("maintainer-notes-say-reached-checks-typecheck", () => {
+  it("maintainer-notes-say-gate-skips-reached-checks", () => {
     const notes = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
     const start = notes.indexOf("## 関係する検査だけを回す");
     expect(start, "管理者向けの決まりに、関係する検査だけを回す節が無い").toBeGreaterThanOrEqual(0);
     const rest = notes.slice(start + 1);
     const end = rest.search(/^## /mu);
     const section = end === -1 ? rest : rest.slice(0, end);
-    expect(sentenceWith(section, ["`届く検査`", "`pnpm typecheck`"]), "関係する検査だけを回す節が、欄 `届く検査` が `pnpm typecheck` も回すと書いていない").toBeDefined();
-  });
-
-  it("maintainer-notes-say-gate-runs-related-tests", () => {
-    const notes = readFileSync(join(ROOT, "docs/maintaining.md"), "utf8");
-    const start = notes.indexOf("## 関係する検査だけを回す");
-    expect(start, "管理者向けの決まりに、関係する検査だけを回す節が無い").toBeGreaterThanOrEqual(0);
-    const rest = notes.slice(start + 1);
-    const end = rest.search(/^## /mu);
-    const section = end === -1 ? rest : rest.slice(0, end);
-    expect(sentenceWith(section, ["実装の", "関門", "`届く検査`", "`pnpm test:related`"]), "関係する検査だけを回す節が、実装の関門が欄 `届く検査` で `pnpm test:related` を回すと書いていない").toBeDefined();
+    expect(sentenceWith(section, ["実装の", "関門", "記録した命令", "`届く検査`", "`無し`"]), "関係する検査だけを回す節が、実装の関門は記録した命令だけを回し欄 `届く検査` を `無し` にすると書いていない").toBeDefined();
   });
 
   it("maintainer-notes-name-related-runner", () => {

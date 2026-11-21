@@ -10,12 +10,13 @@ dragon を管理する人 (と、管理を手伝う AI) が使う決まりを置
 選び方は `scripts/test-related.mjs` の冒頭にあり、import でたどれない材料は `test-support/related-table.json` が検査の file へ結ぶ。
 回す前に、選んだ検査の file の名前と数を出す。
 
-実装のstepの関門は、`.ikkan/checks.md`の欄`届く検査`の命令で、packageをbuildしてから`pnpm typecheck`と`pnpm test:related`をこの順に回し、落ちた時は`reached-command-failed`で断る (#3679、#3730)。
-テストを書くstepで記録した命令だけでは、変えた所を読むほかの検査を誰も回さないまま取り込めるため。
-検査はbuildした`dist`を読み、`pnpm test:related`はbuildしないので、buildを先に回す。
+実装のstepの関門は、テストを書くstepで記録した命令だけを回し、`.ikkan/checks.md`の欄`届く検査`は`無し`にする (本人が2026-11-21に決めた、#3813)。
+管の図の中心のfileを変えると関係する検査が全ての検査に近い数になり、1回5分の上限の中で回り切らずに関門が止まるため。
+変えた所を読むほかの検査は、版を出す前に配る前の関門が回す一式が確かめる。
 
-欄`届く検査`が`pnpm typecheck`も回すのは、`pnpm test:related`が起こすvitestが検査のfileの型を見ないため (#3730)。
-回さないと、#3717が`packages/dragon/test/release-checks.test.ts`に入れた型の誤りのように、版を出す前の関門まで見つからない。
+広く確かめたい時は、手でpackageをbuildしてから`pnpm typecheck`と`pnpm test:related`をこの順に回す。
+検査はbuildした`dist`を読み、`pnpm test:related`はbuildしないので、buildを先に回す。
+`pnpm test:related`が起こすvitestは検査のfileの型を見ないため、`pnpm typecheck`も回す (#3730)。
 型の検査も検査のfileが読む`dist`の型の定義を読み、`dist`が無いと`TS2307`で落ちるので、buildの後に回す。
 
 どの規則にも当たらない file を変えた時は、命令は検査を回さずにその file の名前を出して止まる。

@@ -43,7 +43,7 @@
 | `chart <題> [shape: line]`と`item`と段の中の`set`で書いた記法を`parseNotation`が読み、見た目`line`の原本を返し、書き戻すと同じ記法を返す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-roundtrip-keeps-notation`が通る | #3802 |
 | 折れ線の見た目の図を描いた時、縦の軸が0から、一番大きい値を1か2か2.5か5に10の累乗を掛けた刻みで切り上げた上端までの刻みの線と値を描き、横の軸が段の題を段の順に点の下へ並べる | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-draws-both-axes`が通る | #3802 |
 | 項目を2つ以上書いた時、項目ごとに色の違う線を1本ずつ引き、図の上の凡例に宣言した順で項目の名前を出す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-draws-one-colored-line-per-item`が通る | #3802 |
-| 段を送った時、各段の止め絵の時刻で、線が前の段の点から新しい段の点まで伸びて先へは伸びておらず、着いた点に丸が出て、その段の値の字が点の右に出る | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-grows-from-the-previous-point`が通る | #3802 |
+| 段を送った時、各段の止め絵の時刻で、線が前の段の点から新しい段の点まで伸びて先へは伸びておらず、着いた点に丸が出て、その段の値の字が点の近くに出る | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-grows-from-the-previous-point`が通る | #3802 |
 | 値を書かない段で項目が前の段の値の高さに点を置き、最初に値を書いた段より前は点も線も出さない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-keeps-values-and-starts-late`が通る | #3802 |
 | 止めて置く図 (`figure: true`) で描いた時、全ての線を最後の点まで描き、図の上の行に図の題を出し、横の軸の名前は段の題のまま残す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-still-figure-draws-every-line`が通る | #3802 |
 | 折れ線の見た目の規則 (CSS) は折れ線の図のSVGにだけ書き、ドーナツと横棒と漏斗と点の図のSVGには書かない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-css-stays-in-line-charts`が通る | #3802 |
