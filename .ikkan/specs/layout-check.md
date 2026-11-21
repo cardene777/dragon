@@ -145,3 +145,16 @@
 | 命令`dragon check --layout`は、足した崩れを日本語と英語の文で印、囲み、針と名指して出す | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`layout-check-names-stamp-span-needle`が通る | #3631 |
 | 今の見本 (`packages/dragon/examples/`) の崩れは記録した崩れから増えない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3631 |
 | 見本帳の部品の図は崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3631 |
+| 字どうしが重なる図に`dragon check --layout`を打つと、重なる2つの字を名指す知らせが、重なりが見え始める段の`step`の行に`warning`で出て、終わり方は0のまま | `pnpm exec vitest run packages/dragon/test/check-text-overlaps.test.ts`の検査`check-layout-reports-text-overlaps`が通る | #3790 |
+| `checkLayoutText`は、字どうしの重なりを種類`texts-overlap`の崩れとして返し、その崩れを`describeBreak`で書いた文は`dragon export`が同じ重なりに出す文 (`describeOverlap`) と同じになる | `pnpm exec vitest run packages/dragon/test/check-text-overlaps.test.ts`の検査`layout-check-reports-text-overlaps`が通る | #3790 |
+| `dragon check`の使い方の`--layout`の説明が、知らせる崩れに字どうしの重なりを挙げる | `pnpm exec vitest run packages/dragon/test/check-text-overlaps.test.ts`の検査`check-layout-usage-names-text-overlaps`が通る | #3790 |
+| 線が札を持たない字を横切る所は、`line-crosses-text`の1件だけで知らせ、字どうしの重なりとして重ねて知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-line-over-text-reported-once`が通る | #3790 |
+| 見本の崩れの検査が、今の2つの置き場に加えて、使い方の頁の`.dragon`52と`packages/dragon/examples`の下のフォルダの`.dragon`3と`packages/dragon/examples`のmdの中の図58を、見本ごとの件として持つ | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-cover-all-places`が通る | #3790 |
+| 記録を書き直す`scripts/layout-breaks-record.mjs`は、見本の崩れの検査と同じ1つのfileから見本の一覧を読む | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-record-reads-same-examples`が通る | #3790 |
+| 全ての見本の件で、崩れの記録に無い崩れが出ない。見つかった重なり2件 (`day-hours.dragon`の段4の「3時間」と「3時間」、`quick-start.md`の779行目の図の段3の「7.5」と「ログインを速く」、どちらも幅390) は記録に載る | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`と`layout-check-cases-follow-examples`が通る | #3790 |
+| 使い方の頁のJSONの2つ (`json.json`と`json.en.json`) は、原本から描いて崩れを1件も出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-json-examples-have-no-breaks`が通る | #3790 |
+| 見本帳の354の図は、字どうしの重なりを含めて崩れを1件も出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`と`gallery-warn-cases-follow-gallery`が通る | #3790 |
+| 量の行き先の図の見本は、`day-hours`の日本語版の段4の「3時間」と「3時間」の重なり1件のほかに崩れを出さない | `pnpm exec vitest run apps/playground-spa/src/lib/sankey-examples.test.ts`の検査`sankey-examples-have-no-breaks`が通る | #3790 |
+| 確かめる幅は既定の幅と幅390のままで、幅390でだけ出る崩れは知らせの行に幅を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-names-narrow-width`が通る | #3790 |
+| skillの崩れの参照`plugins/dragon/skills/dragon/references/layout.md`が、種類`texts-overlap`の意味と記法での直し方を書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-layout-names-text-overlaps`が通る | #3790 |
+| 書き出しの命令が出す字の重なりの知らせは、今と同じ文で出る | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`と`export-warns-overlaps-without-lang`が通る | #3790 |
