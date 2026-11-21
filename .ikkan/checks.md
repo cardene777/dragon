@@ -1,7 +1,8 @@
 # 検査の方針
 
-課題ごとには、実装のstepの関門が欄`届く検査`の命令で、packageをbuildしてから型の検査を`pnpm typecheck`で回し、変えた所に関係する検査だけを`pnpm test:related`で回す (#3679、#3730)。
-課題は照合のstepを持たない線 (`個人開発`) で進むため、実装の関門は一式の代わりにこの命令を回す (ikkanの#380)。
+課題ごとの実装のstepの関門は、テストを書くstepが記録した命令 (受入条件が名指した検査) だけを回し、欄`届く検査`は`無し`にする (本人が2026-11-21に外すと決めた、#3813)。
+管の図の中心のfileを変えると届く検査が全ての検査に近い数になり、1回5分の上限の中で回り切らずに関門が止まるため。
+変えた所に関係する検査を広く回したい時は、手で`pnpm build:packages && pnpm typecheck && pnpm test:related`を打つ。
 検査はbuildした`dist`を読み、`pnpm test:related`はbuildしないので、buildを先に回す。
 
 `package.json`の`scripts`だけを変えた時は、`pnpm test:related`は全ての検査を選ばず、その`package.json`を字で書き同じfileで`scripts`の欄を読む検査だけを選ぶ (#3733)。
@@ -9,8 +10,7 @@
 別の会話の負荷が高い時は検査1件の秒数が5倍から11倍に延び、workerの数を変えても1件の秒数は縮まない (#3733)。
 負荷で延びる時間切れは、上限を上げずに、1件の検査がする仕事を減らす形で防ぐ (全ての見本を描く検査を見本ごとの件に分ける、描く前に種類で絞る、1度読んだ物を使い回す)。
 
-届く検査は型の検査も回す。
-`pnpm test:related`が起こすvitestは検査のfileの型を見ないため、型の検査を回さないと、#3717が検査のfileに入れた型の誤りのように版を出す前の関門まで見つからない (#3730)。
+`pnpm test:related`が起こすvitestは検査のfileの型を見ないため、手で関係する検査を回す時は型の検査も回す (#3730)。
 型の検査も検査のfileが読む`dist`の型の定義を読むので、buildの後に回し、関係する検査より短いのでその前に回す。
 
 一式はbuild、型検査、lint、全ての検査を順に回し、検査は名前を 1 行ずつ出す。
@@ -35,7 +35,7 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 | 通った行の形 | `^\s*✓\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
-| 届く検査 | `bash -c 'pnpm build:packages && pnpm typecheck && pnpm test:related'` |
+| 届く検査 | 無し (本人が2026-11-21に外すと決めた。課題ごとの関門は記録したテスト命令だけを回す) |
 | 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |

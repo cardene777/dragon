@@ -73,6 +73,12 @@
 | `mind-light-entry-draws-after-load-for` | `packages/dragon/test/mind-diagram.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
 | `icon-paint-light-entry-draws-after-load-for` | `packages/dragon/test/icon-paint.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
 | `dots-light-entry-draws-after-load-for` | `packages/dragon/test/dots-look.test.ts` | 同じく、軽い入口の確かめを軽い入口の検査の見本ごとの件へ移した | `light-entry-draws-each-later-kind-after-load-for` |
+| `checks-run-related-tests-after-building` | `packages/dragon/test/test-policy.test.ts` | 守っていた仕組みがもう無い。本人が2026-11-21に、実装の関門の欄`届く検査`を外すと決めた (#3813) | `checks-reached-row-is-none` |
+| `reached-checks-typecheck-after-build` | `packages/dragon/test/test-policy.test.ts` | 同じく、欄`届く検査`を外したので、その命令が型の検査を置く所も無くなった。検査のfileの型の誤りは、版を出す前の一式と配る前のテストが型の検査で見つける | `checks-suite-and-release-tests-typecheck-after-build` |
+| `reached-checks-reject-missing-or-early-typecheck` | `packages/dragon/test/test-policy.test.ts` | 同じく、欄`届く検査`の命令を読む確かめが要らなくなった | `checks-suite-and-release-tests-typecheck-after-build` |
+| `checks-intro-names-typecheck-in-reached-checks` | `packages/dragon/test/test-policy.test.ts` | 同じく、`.ikkan/checks.md`の冒頭が届く検査の型の検査を書く必要が無くなった | `checks-intro-names-reached-checks` |
+| `maintainer-notes-say-reached-checks-typecheck` | `packages/dragon/test/test-policy.test.ts` | 同じく、`docs/maintaining.md`が届く検査の型の検査を書く必要が無くなった | `maintainer-notes-say-gate-skips-reached-checks` |
+| `maintainer-notes-say-gate-runs-related-tests` | `packages/dragon/test/test-policy.test.ts` | 同じく、実装の関門は`pnpm test:related`を回さなくなった | `maintainer-notes-say-gate-skips-reached-checks` |
 
 ## 速くした検査
 
