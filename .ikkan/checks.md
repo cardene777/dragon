@@ -21,8 +21,7 @@
 一式の最後に、依存の脆弱性を本物の `osv-scanner` で 1 回だけ見る (`bash scripts/check-dependency-vulnerabilities.sh`、#3498)。外の脆弱性の一覧に問い合わせ、応答が遅いと 1 回 15 秒を超えるので、1 件 10 秒の上限がある検査の外で走らせる。検査の中では代わりの道具で命令の判定だけを見る。外の一覧が止まっている時は終了 2 で止まる。
 
 版を出す前は、ikkan の配る前の関門 (`deployable.sh --since v<前の版>`) が下の表の配る前の 7 つの欄を回し、落ちた欄を全て名指す (#3589)。
-`配る前のテスト` は一式から依存の脆弱性の確かめを外した命令で、e2e は回さない。
-0.79.3に限り、本人が2026-11-21に`配る前のテスト`を変えた所の検査に絞ると決めた。取り込む前に元の命令へ戻す (#3814)。依存の脆弱性は `配る前のセキュリティ` が見る。
+`配る前のテスト` は一式から依存の脆弱性の確かめを外した命令で、e2e は回さない。依存の脆弱性は `配る前のセキュリティ` が見る。
 `配る前の動作` は包んだ物を空のフォルダへ入れ、`dragon --version` と見本の書き出しをブラウザ無しで確かめる (`check:pack`)。
 配る先との整合、セキュリティ、戻す確かめ、配った後の確かめの命令は `scripts/release-checks.mjs` が持つ。
 npm へ出して見本帳を配った後は、配った後の関門 (`deployed.sh`) が `配った後の確かめ` を回す。
@@ -37,7 +36,7 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
 | 届く検査 | 無し (本人が2026-11-21に外すと決めた。課題ごとの関門は記録したテスト命令だけを回す) |
-| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts packages/dragon/test/pipe-side-port.test.ts packages/dragon/test/pipe-port.test.ts packages/dragon/test/pipe-top-look.test.ts packages/dragon/test/examples-svg.test.ts packages/dragon/test/release-records.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/notation-skill.test.ts --reporter=verbose'` |
+| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
 | 配る先との整合 | `node scripts/release-checks.mjs target` |
