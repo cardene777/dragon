@@ -13,6 +13,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - The dragon skill declares its references in `musubi.json`, so other skills can follow the notation, the ways to place a diagram, the layout fixes, the block guide, the setup, and each kind's guide through musubi, by content names that its `SKILL.md` lists. The skill's table of destinations also names `data-still` for a report or explainer page (#3807)
 - A block with `data-still` is replaced by a still figure: an SVG of the last step with no player, no step numbers, chart titles in place of step titles, a sans-serif fallback, the `clear` palette by default, and colors that follow the page's `data-theme` and the device's dark scheme. `renderDiagram` returns the same SVG with `figure: true`, and `dragon embed` draws still blocks as SVGs and adds no bundled script when no moving block is left (#3801)
 
+### Fixed
+
+- A still figure writes the shape of its last step as plain values instead of keyframes stopped at that moment, so a donut keeps one arc per item and bars keep their lengths on a page that turns animations off, such as one with `* { animation: none !important; }` for reduced motion. Moving diagrams keep their keyframes. A line chart puts each value above, below, right of, or left of its point, in that order, where it crosses no line, point, or other value and stays between the legend and the zero line, and a still line chart shows the value of every step (#3812)
+
 ## [0.79.3] - 2026-11-21
 
 ### Fixed

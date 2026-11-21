@@ -6,7 +6,7 @@
  * `item` の行は 1 本の線で、段 (`step`) の 1 つが時間の軸の点の 1 つになり、段の題が横の軸の名前になる。
  * `set <項目>: <値>` はその段の点の値で、値を書かない段は前の段の値を保ち、最初に値を書いた段より前は点も線も無い。
  * 縦の軸は 0 から、一番大きい値を 1 か 2 か 2.5 か 5 に 10 の累乗を掛けた刻みで切り上げた上端まで。
- * 段を送ると、線が前の段の点から新しい段の点へ伸び、着いた点に丸が出て、その段の値が点の右に出る。
+ * 段を送ると、線が前の段の点から新しい段の点へ伸び、着いた点に丸が出て、その段の値が点の近くの線に掛からない所に出る (#3812)。
  * 止めて置く図 (`figure: true`) は全ての線を最後の点まで描き、図の上の行に図の題を出し、横の軸の名前は段の題のまま残す。
  *
  * 線と点と字の見え方は、描いた SVG の keyframes を jsdom で読んで、各段の止め絵の時刻で確かめる。
@@ -25,6 +25,8 @@ import { checkText, problemLine } from "../src/check";
 import { api, type Json, pointers } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
 import { draw, type Rendered } from "./render-support";
+import { textBox } from "../src/layout/measure";
+import { CHART_LOOK, CHART_TYPE } from "../src/look/chart";
 import "../src/kinds/basics";
 import "../src/kind-use/chart";
 
@@ -185,6 +187,85 @@ const codeLines = (text: string): string[] =>
     .split("\n")
     .map((line) => line.trimEnd())
     .filter((line) => line !== "" && !line.trimStart().startsWith("//"));
+
+/** 値の字の四角。字の基準線と寄せ方から求める */
+function valueBox(el: Element): { x: number; y: number; w: number; h: number } {
+  const anchor = el.getAttribute("text-anchor") === "middle" ? "middle" : "start";
+  return textBox(el.textContent ?? "", num(el, "x"), num(el, "y"), CHART_TYPE.value, anchor);
+}
+
+type Box = { x: number; y: number; w: number; h: number };
+const overlaps = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** 線の区間 (`x1`,`y1`)-(`x2`,`y2`) が四角を通るか。区間を四角で切り詰め、残る長さが在るかで見る */
+function crosses(box: Box, x1: number, y1: number, x2: number, y2: number): boolean {
+  let lo = 0;
+  let hi = 1;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  for (const [p, q] of [
+    [-dx, x1 - box.x],
+    [dx, box.x + box.w - x1],
+    [-dy, y1 - box.y],
+    [dy, box.y + box.h - y1],
+  ] as const) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) lo = Math.max(lo, r);
+    else hi = Math.min(hi, r);
+    if (lo > hi) return false;
+  }
+  return true;
+}
+
+/** 線の `d` (`M x y L x y ...`) の点 */
+const pathPoints = (d: string): [number, number][] => [...d.matchAll(/[ML]([-\d.]+) ([-\d.]+)/gu)].map((m) => [Number(m[1]), Number(m[2])]);
+
+/** 急に上り下りし、2 本が交わる折れ線 */
+const STEEP_LINES = [
+  "chart 急に変わる売り上げ [shape: line]",
+  "item a as 店頭 [color: blue]",
+  "item b as 通販 [color: amber]",
+  "step 月",
+  "  say 店頭が10で通販が90。",
+  "  set a: 10",
+  "  set b: 90",
+  "step 火",
+  "  say 店頭が95に跳ね、通販が20に落ちる。",
+  "  set a: 95",
+  "  set b: 20",
+  "step 水",
+  "  say 店頭が5に落ち、通販が85に戻る。",
+  "  set a: 5",
+  "  set b: 85",
+  "step 木",
+  "  say 店頭が90に戻り、通販が15に落ちる。",
+  "  set a: 90",
+  "  set b: 15",
+].join("\n");
+
+/** 値の字を確かめる折れ線。見本の 2 つの言葉と、急に上り下りする 2 本の線 */
+function valueCases(): { name: string; text: string; lang: Lang }[] {
+  return [
+    { name: "bakery-sales (ja)", text: fileText("bakery-sales.dragon") ?? "", lang: "ja" },
+    { name: "bakery-sales (en)", text: fileText("bakery-sales.en.dragon") ?? "", lang: "en" },
+    { name: "急に変わる線", text: STEEP_LINES, lang: "ja" },
+  ];
+}
+
+/** 動く図と止めて置く図の 2 つを描いて、DOM で読む */
+function valueDocs(text: string, lang: Lang): { label: string; doc: Document }[] {
+  const read = api("parseNotation")(text, { lang });
+  expect(read.ok, `折れ線の記法が読めない: ${read.ok ? "" : JSON.stringify(read.errors)}`).toBe(true);
+  if (!read.ok) return [];
+  return [
+    { label: "動く図", options: { lang } },
+    { label: "止めて置く図", options: { lang, still: true, figure: true } },
+  ].map(({ label, options }) => ({ label, doc: new DOMParser().parseFromString(renderDiagram(read.diagram, options).svg, "image/svg+xml") }));
+}
 
 describe("折れ線の見た目の原本の JSON (#3802)", () => {
   it("schema-accepts-chart-line", () => {
@@ -363,10 +444,16 @@ describe("折れ線の見た目の描き方 (#3802)", () => {
           expect(motion.opacity(pointAt(motion, id, s), t), `${lang} の段 ${s + 1} の止め絵で ${id} の点が見えない`).toBeGreaterThan(0.9);
           const next = pointOf(motion, id, s + 1);
           if (next) expect(motion.opacity(next, t), `${lang} の段 ${s + 1} の止め絵で ${id} の次の段の点が見える`).toBeLessThan(0.1);
-          // その段の値の字が点の右に出る
+          // その段の値の字が点の近くに出る (#3812)
           expect(textsAt(motion, `[data-chart-value="${id}"]`, t), `${lang} の段 ${s + 1} の止め絵の ${id} の値の字`).toEqual([grouped(value)]);
           const shown = partsOf(motion, `[data-chart-value="${id}"]`).find((el) => motion.opacity(el, t) > 0.9);
-          if (shown) expect(num(shown, "x"), `${lang} の段 ${s + 1} の ${id} の値の字が点の右に無い`).toBeGreaterThan(num(pointAt(motion, id, s), "cx"));
+          if (shown) {
+            const box = valueBox(shown);
+            const point = pointAt(motion, id, s);
+            const [cx, cy] = [num(point, "cx"), num(point, "cy")];
+            const away = Math.hypot(Math.max(0, box.x - cx, cx - box.x - box.w), Math.max(0, box.y - cy, cy - box.y - box.h));
+            expect(away, `${lang} の段 ${s + 1} の ${id} の値の字が点から離れすぎる`).toBeLessThan(CHART_LOOK.line.pointR + CHART_LOOK.line.valueGap + CHART_TYPE.value.size);
+          }
         });
       }
     }
@@ -510,6 +597,82 @@ describe("折れ線にならない書き方 (#3802)", () => {
           refused = String(error);
         }
         expect(refused, `${name} の原本を描いてしまう (${lang})`).not.toBe("");
+      }
+    }
+  });
+});
+
+describe("折れ線の値の字を線から離す (#3812)", () => {
+  it("chart-line-values-clear-of-lines", () => {
+    const L = CHART_LOOK.line;
+    for (const { name, text, lang } of valueCases()) {
+      expect(text, `${name} の記法`).not.toBe("");
+      for (const { label, doc } of valueDocs(text, lang)) {
+        const where = `${name} の${label}`;
+        const segments = [...doc.querySelectorAll("[data-chart-line]")].flatMap((line) => {
+          const points = pathPoints(line.getAttribute("d") ?? "");
+          return points.slice(1).map((p, k) => [...(points[k] as [number, number]), ...p] as [number, number, number, number]);
+        });
+        const dots = [...doc.querySelectorAll("[data-chart-point]")].map((p) => ({ x: num(p, "cx"), y: num(p, "cy") }));
+        const boxes = [...doc.querySelectorAll("[data-chart-value]")].map((el) => ({ text: el.textContent ?? "", box: valueBox(el) }));
+        expect(segments.length, `${where} の線の区間`).toBeGreaterThan(0);
+        expect(boxes.length, `${where} の値の字`).toBe(dots.length);
+        const legendBottom = Math.max(...[...doc.querySelectorAll("[data-chart-key]")].map((k) => Number(/H[-\d.]+$/u.test(k.getAttribute("d") ?? "") ? /^M[-\d.]+ ([-\d.]+)/u.exec(k.getAttribute("d") ?? "")?.[1] : Number.NaN))) + L.row / 2;
+        const base = doc.querySelector('[data-chart-grid="0"]')?.getAttribute("d") ?? "";
+        const [axisX, baseY] = (/^M([-\d.]+) ([-\d.]+)/u.exec(base) ?? []).slice(1).map(Number) as [number, number];
+        const width = Number((doc.documentElement.getAttribute("viewBox") ?? "").split(/\s+/u)[2]);
+        for (const [k, { text: value, box }] of boxes.entries()) {
+          const pad = { x: box.x - L.stroke / 2, y: box.y - L.stroke / 2, w: box.w + L.stroke, h: box.h + L.stroke };
+          for (const [x1, y1, x2, y2] of segments) expect(crosses(pad, x1, y1, x2, y2), `${where} の値 ${value} の字を線 (${x1},${y1})-(${x2},${y2}) が横切る`).toBe(false);
+          for (const dot of dots) {
+            const r = L.pointR + L.pointEdge / 2;
+            const near = Math.hypot(Math.max(0, box.x - dot.x, dot.x - box.x - box.w), Math.max(0, box.y - dot.y, dot.y - box.y - box.h));
+            expect(near, `${where} の値 ${value} の字が点 (${dot.x},${dot.y}) に掛かる`).toBeGreaterThanOrEqual(r);
+          }
+          for (const other of boxes.slice(k + 1)) expect(overlaps(box, other.box), `${where} の値 ${value} と ${other.text} の字が重なる`).toBe(false);
+          expect(box.y, `${where} の値 ${value} の字が凡例の行に掛かる`).toBeGreaterThanOrEqual(legendBottom);
+          expect(box.y + box.h, `${where} の値 ${value} の字が 0 の線より下に出る`).toBeLessThanOrEqual(baseY);
+          expect(box.x, `${where} の値 ${value} の字が縦の軸より左に出る`).toBeGreaterThanOrEqual(axisX);
+          expect(box.x + box.w, `${where} の値 ${value} の字が図の右の端から出る`).toBeLessThanOrEqual(width);
+        }
+      }
+    }
+  });
+
+  it("chart-line-still-figure-shows-every-value", () => {
+    for (const { name, text, lang } of valueCases()) {
+      const read = api("parseNotation")(text, { lang });
+      expect(read.ok, `${name} の記法が読めない`).toBe(true);
+      if (!read.ok) continue;
+      const rendered = renderDiagram(read.diagram, { lang, still: true, figure: true });
+      const motion = motionFrom(rendered);
+      const last = rendered.timeline.stills[rendered.timeline.steps.length - 1] ?? 0;
+      const points = partsOf(motion, "[data-chart-point]");
+      const shown = partsOf(motion, "[data-chart-value]").filter((el) => motion.opacity(el, last) > 0.9);
+      expect(shown.length, `${name} の止めて置く図で見える値の字の数`).toBe(points.length);
+    }
+  });
+
+  it("chart-line-peak-value-sits-above", () => {
+    for (const { name, text, lang } of valueCases()) {
+      for (const { label, doc } of valueDocs(text, lang)) {
+        for (const line of doc.querySelectorAll("[data-chart-line]")) {
+          const id = line.getAttribute("data-chart-line") ?? "";
+          const points = [...doc.querySelectorAll(`[data-chart-point="${id}"]`)].sort((a, b) => num(a, "data-chart-step") - num(b, "data-chart-step"));
+          const values = [...doc.querySelectorAll(`[data-chart-value="${id}"]`)];
+          points.forEach((point, s) => {
+            const [before, after] = [points[s - 1], points[s + 1]];
+            const cy = num(point, "cy");
+            if (!before || !after || !(cy < num(before, "cy") && cy < num(after, "cy"))) return;
+            const cx = num(point, "cx");
+            const value = values.find((el) => {
+              const box = valueBox(el);
+              return box.x <= cx && cx <= box.x + box.w;
+            });
+            expect(value, `${name} の${label}の ${id} の段 ${s + 1} の山の点の上に値の字が無い`).toBeDefined();
+            if (value) expect(valueBox(value).y + valueBox(value).h, `${name} の${label}の ${id} の段 ${s + 1} の山の値の字が点の上に無い`).toBeLessThanOrEqual(cy - CHART_LOOK.line.pointR);
+          });
+        }
       }
     }
   });

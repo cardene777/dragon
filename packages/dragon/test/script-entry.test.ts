@@ -906,6 +906,13 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
     expect(mixed, "入口の1行").not.toMatch(/dist\/cdn\/dragon\.js/u);
   });
 
+  it("embed-still-block-has-no-keyframes", () => {
+    for (const [name, page] of [["stillOnly", stillOnly], ["look", look]] as const) {
+      expect(page, `${name} の頁の keyframes`).not.toContain("@keyframes");
+      expect(page, `${name} の頁の animation-name`).not.toMatch(/animation-name:/u);
+    }
+  });
+
   it("embed-still-figure-follows-page-look", () => {
     const body = withoutScripts(look);
     expect(body.match(/--bg:var\(--dragon-figure-background,/gu)?.length ?? 0, "頁の色を読む地の数").toBeGreaterThanOrEqual(2);
