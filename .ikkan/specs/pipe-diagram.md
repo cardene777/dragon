@@ -207,3 +207,9 @@
 | 槽の下を回る管は、槽と残高の字を横切らない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts --reporter=verbose`の検査`pipe-side-port-under-clears-tanks-and-text`が通る | #3783 |
 | 角を落とす色味 (arcade) では、管を含む全ての線の45度以上の折れ目を直角で描く | `pnpm exec vitest run packages/dragon/test/arcade-bends.test.ts --reporter=verbose`の検査`arcade-draws-square-line-bends`が通る | #3783 |
 | 外の上に置いた槽の名前の字の箱とガラスの間は、部品どうしの間の下限8px以上空く | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts --reporter=verbose`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3783 |
+| 網型で箱の幅の外に居る人の呼び出しの管は、箱の近い方の横の縁の上下の真ん中に入り、1回だけ折れる | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-side-middle`が通る | #3813 |
+| 網型で箱の真下に居る人の呼び出しの管は、箱の下の縁へまっすぐ入り、折れない | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-straight-below`が通る | #3813 |
+| 同じ横へ入る2本の管は交わらず、上下の真ん中を挟んで同じ離れで並び、遠い人の管が上に入る | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-side-pair`が通る | #3813 |
+| 箱の下で折る管が無い網型の図は、箱の下の縁と人の丸の上の縁の間に折る段 (34px) を空けない | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-box-no-turn-band`が通る | #3813 |
+| Tracelythのトップページの図2枚とカタログの網型の図14枚に、部品の重なりと字の上を通る線と空き帯が出ない | `pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts --reporter=verbose`の検査`pipe-mesh-call-no-breaks`が通る | #3813 |
+| 槽と槽を繋ぐ値の管の口は、槽の側面の平らな所に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts --reporter=verbose`の検査`pipe-side-port-on-flat-side`が通る | #3813 |
