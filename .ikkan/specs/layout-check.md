@@ -158,3 +158,16 @@
 | 確かめる幅は既定の幅と幅390のままで、幅390でだけ出る崩れは知らせの行に幅を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-names-narrow-width`が通る | #3790 |
 | skillの崩れの参照`plugins/dragon/skills/dragon/references/layout.md`が、種類`texts-overlap`の意味と記法での直し方を書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-layout-names-text-overlaps`が通る | #3790 |
 | 書き出しの命令が出す字の重なりの知らせは、今と同じ文で出る | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`と`export-warns-overlaps-without-lang`が通る | #3790 |
+| 量の行き先の図`day-hours.dragon`と`day-hours.en.dragon`を幅390と幅326で描いた時、同じ段の量の札の四角どうしが重ならず、どの段でも字どうしの重なりが0件になる | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-keep-apart-narrow`が通る | #3791 |
+| 段ごとの帯の見た目で、同じ段の量の札の四角が重なる時、後の札は先の札の1段上 (札の高さと札の隙間の分) で止まり、その段の上の下りる帯の間が同じ分だけ伸び、札は自分の区画の真ん中の真上に残る | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-step-up-when-crowded`が通る | #3791 |
+| 段ごとの帯の見た目で、1段上で止まる量の札は、上の行の帯の下の縁と帯の下の名前より上へ出られない | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-step-up-when-crowded`が通る | #3791 |
+| 2つの軸の図`quick-start.md`と`quick-start.en.md`の779行目の点の図を幅390と幅326で描いた時、字どうしの重なりが0件になる | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-clear-names-narrow`が通る | #3791 |
+| 点数で点を打つ見た目で、軸の点数の札の四角が同じ時に見える点の名前に触れる段だけ、縦の軸の札は右の端を軸の線に付けて軸の左へ出て、横の軸の札は上の端を軸の線に付けて軸の下へ出る | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-step-outside-names`が通る | #3791 |
+| 点数で点を打つ見た目で、点の名前に触れない軸の点数の札は、今どおり軸の線の上に札の真ん中を置く。点の図の見本4件 (`feature-scores`の日本語と英語、`quick-start`の779行目の図の日本語と英語) を既定の幅で描いた時、全ての札が軸の線の上に在る | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-stay-on-axis-at-default-width`が通る | #3791 |
+| 幅390と幅326で描いた量の札と軸の点数の札は、既定の幅と同じ字の大きさと札の高さで描かれ、小さくして重なりを避けることはできない (量の行き先の図) | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-keep-size-narrow`が通る | #3791 |
+| 幅390と幅326で描いた量の札と軸の点数の札は、既定の幅と同じ字の大きさと札の高さで描かれ、小さくして重なりを避けることはできない (2つの軸の図) | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-chips-keep-size-narrow`が通る | #3791 |
+| 既定の幅で描いた見本の、描いたSVGと置き場所と時刻が今と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3791 |
+| 見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`が空になり、記録に字どうしの重なりの行が残らない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-breaks-record-is-empty`が通る | #3791 |
+| 全ての見本 (`day-hours.dragon`と`quick-start.md`の779行目の図を含む) に`dragon check --layout`と同じ検査を回した時、空の記録と合い、字どうしの重なりを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3791 |
+| 量の行き先の図の見本の日本語と英語で、既定の幅と幅390の崩れが0件で、許す重なりを1件も持たない | `pnpm exec vitest run apps/playground-spa/src/lib/sankey-examples.test.ts`の検査`sankey-examples-have-no-breaks`が通る | #3791 |
+| 届く検査が選んだ検査が全て通る | `pnpm build:packages && pnpm typecheck && pnpm test:related`が終了0 | #3791 |
