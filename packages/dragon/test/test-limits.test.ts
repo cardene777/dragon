@@ -106,7 +106,9 @@ const HOOK_FAIL = `${FIXTURES}/hook-fail.fixture.ts`;
 const WAIT = `${FIXTURES}/wait-then-pass.fixture.ts`;
 
 const LOAD_FAILED = await atLoad("読む所で落ちる見本を続きの実行へ渡す", async () => {
-  // 1 回目は、読む所で落ちる見本と前処理で落ちる見本を 7 秒待つ見本と並べて回し、上限 3 秒で止める。落ちる 2 つは上限より前に終わる。
+  // 1 回目は、読む所で落ちる見本と前処理で落ちる見本を 9 秒待つ見本と並べて回し、上限 8 秒で止める。落ちる 2 つは上限より前に終わる。
+  // 上限をほかの見本の 3 秒より長くするのは、混んだ機械では 3 つの worker を起こして見本を読むだけで 3 秒を超え、落ちる 2 つが上限より前に終わらないため。
+  // 待つ見本の 9 秒は 1 件の上限 (10 秒) より短いので、1 回目を止めるのは 1 回の実行の上限だけになる。
   // 続きの実行では待つ見本を待たずに通し、続きが全て通った後も、1 回目に落ちた file の名前で終わり方 1 になるかを見る (#3800)。
   // `slow-test.fixture.ts` は自分で長い上限を書く件が必ず落ちるので、続きの実行で通す見本には使わない
   const { runUntilFinished } = (await import(join(ROOT, "scripts/test-related.mjs"))) as { runUntilFinished: Until };
@@ -115,9 +117,11 @@ const LOAD_FAILED = await atLoad("読む所で落ちる見本を続きの実行�
   const status = runUntilFinished(
     [LOAD_FAIL, HOOK_FAIL, WAIT],
     (left, out) => {
+      // 上限を下げるのは 1 回目だけにする。続きの実行も上限を下げると、混んだ機械では見本が通った後の片付けの間に上限で止まる
+      const first = runs.length === 0;
       const ran = runFixture(
         left.map((path) => path.slice(FIXTURES.length + 1)),
-        { DRAGON_RUN_LIMIT_MS: "3000", FIXTURE_SLEEP_MS: runs.length === 0 ? "7000" : "0", DRAGON_UNFINISHED_OUT: out },
+        first ? { DRAGON_RUN_LIMIT_MS: "8000", FIXTURE_SLEEP_MS: "9000", DRAGON_UNFINISHED_OUT: out } : { FIXTURE_SLEEP_MS: "0", DRAGON_UNFINISHED_OUT: out },
       );
       runs.push({ files: left, code: ran.code, written: existsSync(out) ? (JSON.parse(readFileSync(out, "utf8")) as Leftover) : undefined, brief: ran.brief });
       return ran.code;
