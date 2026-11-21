@@ -18,8 +18,11 @@ import type { DiagramModel } from "../schema";
 import type { Timeline } from "../timeline";
 import type { NotationLang } from "../words";
 
-/** 並べ方と並べる前の直しが読む、描く時に渡した設定。枠の幅と、開く呼び出しの番号と、呼ぶ側が渡す語と、収めた配管の図の並べ方 (#3748) */
-export type KindOptions = Pick<RenderOptions, "width" | "open" | "words" | "anchors" | "overlay" | "layouts">;
+/**
+ * 並べ方と並べる前の直しが読む、描く時に渡した設定。枠の幅と、開く呼び出しの番号と、呼ぶ側が渡す語と、収めた配管の図の並べ方 (#3748)。
+ * 止めて置く図か (`figure`) も渡し、段の番号の丸を描かない図の並べ方は丸の空きを取らない (#3809)
+ */
+export type KindOptions = Pick<RenderOptions, "width" | "open" | "words" | "anchors" | "overlay" | "layouts" | "figure">;
 
 /** 種類の描き方が描いた物。図の層ごとの字と、描く本体に渡す物 */
 export interface KindDrawn {
@@ -64,6 +67,8 @@ export interface KindParts<L extends Layout = Layout> {
   };
   mountInput?(this: void, host: HTMLElement, diagram: import("../schema").Diagram, options: import("../player").PlayerOptions): import("../player").Player;
 
+  /** 止めて置く図 (`figure: true`、#3801) を並べる前に原本を直す。量の図は、段を送らない図で何の図かを伝えるため、段の名前の所に図の題を出す */
+  figure?(this: void, model: DiagramModel): DiagramModel;
   /** 並べる前に原本を直す。配管の図は、開くと頼まれていない呼び出しの内側の段を 1 つの段にまとめる (#3389) */
   fold?(this: void, model: DiagramModel, options: KindOptions, lang: NotationLang): DiagramModel;
   /** 並べ方 */

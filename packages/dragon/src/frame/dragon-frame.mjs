@@ -2,10 +2,10 @@ import { createFigureHeader, HEADER_CSS } from './header.mjs';
 import { EDITOR_BASE, editorPasteUrl, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
 import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
-import { createDiagramActions, PAPER } from './diagram-actions.mjs';
+import { CAPTURE_FORMATS, createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { EDGE_PLAYER_ROOM_CSS } from '../look/player-room';
-import { FONT_STACK_VARS } from '../look/values';
+import { FONT_STACK_VARS, PLAIN_TEXT } from '../look/values';
 
 export function diagramEditorUrl(source) {
   return editorUrl(source);
@@ -27,15 +27,18 @@ const BUILTIN=['code','editor','copy','export','expand'];
 /** 設定`look`の欄と、帯の内側へ渡す変数 (#3698) */
 const LOOK_VARS={font:'--dragon-header-font',fontSize:'--dragon-header-font-size',radius:'--dragon-header-radius',height:'--dragon-header-height'};
 const FRAME_VARS={border:'--dragon-frame-border',background:'--dragon-frame-background'};
+/** 帯の窓と帯の枠の左右の縁の間を空ける幅。窓は枠の幅からこの2倍を引いた幅まで縮む (#3786) */
+const MENU_ROOM=10;
 
 /**
  * 帯と、帯の内側の見た目。図の字の変数は代わりの字の並びで上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695)。
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする。
  * 帯の内側の影の根には図のSVGも描くので、帯の釦の絵柄の線の決まりは帯の段 (`[data-dragon-header]`) の中のSVGだけに当て、図の字と地に縁取りを付けない (#3744)。
- * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)
+ * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)。
+ * 置いた頁の字の間と大文字の指定は影の根の中へ受け継がれるので、帯の枠の根で戻す (`look/plain-text.ts`、#3787)
  */
 const FRAME_CSS = `
-:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
+:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;${PLAIN_TEXT};border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
 *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}[data-dragon-header] svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pop{position:relative}[data-dragon-header] .dg-header-actions svg.chevron{width:12px;height:12px}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:220px;margin:0;padding:6px;border:1px solid var(--h-line);border-radius:10px;background:var(--h-bg);color:var(--h-fg);box-shadow:0 12px 35px #0002}
@@ -81,6 +84,7 @@ const barHtml = t => `<div class="bar"><div class="actions">`
  * browsers without `adoptedStyleSheets` get `<style>` elements carrying `options.nonce`.
  * `options.look` fits the bar and the frame to the embedder, `options.buttons` drops, reorders and adds bar buttons, and
  * `options.notify` hears exports, editor openings and copies (#3698).
+ * `options.capture` loads the capture part for HTML, GIF and MP4; without it the export menu drops those formats (#3786).
  */
 export function createDragonFrame(document, source, diagram, options = {}) {
   const environment = document.defaultView;
@@ -105,7 +109,9 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   icon('download',$('.export-toggle'));icon('chevron',$('.export-toggle'),'chevron');icon('expand',$('.expand'));
   const host = document.createElement('div');host.className='dragon-host';$('.stage').append(host);
   const notify=options.notify;
-  const actions=createDiagramActions(document,host,source,diagram,notify);
+  const actions=createDiagramActions(document,host,source,diagram,notify,options.capture);
+  // 書き出す部品を読めない入口 (`dragon embed`の頁) では、作れないHTMLとGIFとMP4と動きの見出しを窓から外す (#3786)
+  if(!options.capture)for(const el of root.querySelectorAll(`[data-group="motion"],${CAPTURE_FORMATS.map(f=>`[data-format="${f}"]`).join(',')}`))el.remove();
   const sourceText=actions.sourceText;
   const words=snippetWords(options.words);
   // 帯のボタンは設定`buttons`で帯から外れることがあるので、根から引き直さずに持っておく (#3698)
@@ -121,10 +127,24 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   /** 帯の窓。窓は1つだけ開く */
   const menus=['copy','export'].map(name=>({name,wrap:$(`[data-action="${name}"]`),toggle:$(`.${name}-toggle`),menu:$(`[data-menu="${name}"]`)}));
   const closeMenus=()=>{for(const {toggle,menu} of menus){menu.hidden=true;toggle.setAttribute('aria-expanded','false');}};
+  /**
+   * 開いた窓を帯の枠の中に収める (#3786)。窓は右端をボタンの右端に揃えて開き、幅は枠の幅から左右の空きを引いた幅まで縮める。
+   * 帯が狭くてボタンが2段目の左に来た時は、右端を揃えると枠の左から出るので、左端をボタンの左端に揃え、それでも右から出る時は枠の右の縁に寄せる
+   */
+  const placeMenu=({wrap,menu})=>{
+    menu.style.removeProperty('left');menu.style.removeProperty('right');menu.style.removeProperty('width');
+    const edge=frame.getBoundingClientRect(),anchor=wrap.getBoundingClientRect();
+    const natural=menu.getBoundingClientRect().width,width=Math.min(natural,edge.width-MENU_ROOM*2);
+    const lowest=edge.left+MENU_ROOM,highest=edge.right-MENU_ROOM-width;
+    let left=anchor.right-width;
+    if(left<lowest)left=Math.max(lowest,Math.min(anchor.left,highest));
+    if(width===natural&&left===anchor.right-width)return;
+    menu.style.width=`${width}px`;menu.style.right='auto';menu.style.left=`${left-anchor.left}px`;
+  };
   for(const entry of menus)entry.toggle.addEventListener('click',()=>{
     const show=entry.menu.hidden;closeMenus();
     entry.menu.hidden=!show;entry.toggle.setAttribute('aria-expanded',String(show));
-    if(show)entry.menu.querySelector('button')?.focus();
+    if(show){placeMenu(entry);entry.menu.querySelector('button')?.focus();}
   });
   const activateView=view=>{
     const open=view==='code';frame.toggleAttribute('data-code-open',open);

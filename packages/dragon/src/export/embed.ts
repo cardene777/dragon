@@ -6,13 +6,16 @@
  * 頁の記法が絵柄集の絵柄 (`tabler:<名前>`) を書いていれば、その絵柄の形だけを script の前に収める (#3493)。
  * 頁の配管の図の塊は、最初に見える形と畳んだ箱を 1 つだけ開いた形の並べ方を組んで script の前に収める (#3748)。
  * 頁は収めた並べ方で、道を探さずに図を描く。
+ * 止めて置く塊 (`data-still`) は、最後の段の形を描いた SVG に置き換えてから埋める (#3801)。動く塊が残らない頁には script を入れない。
  */
 import { readFileSync } from "node:fs";
 import { iconsElement } from "../blocks/icon/page-icons";
 import { dedent } from "../embed/dedent";
 import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { parseNotation } from "../parser";
+import { STILL_ATTR, stillFigureHtml } from "../still-figure";
 import type { NotationLang } from "../words";
+// 並べ方を組む処理 (`./layouts`) は全ての種類の部品を登録する (`render/svg.ts`)。止めて置く塊もこの登録で描く (#3801)
 import { pipeLayouts } from "./layouts";
 
 /** 埋める script。build で `script-offline.ts` を 1 file に束ねた物 */
@@ -30,15 +33,36 @@ export function embedPage(html: string): string | undefined {
 /** `embedPage` の中身。埋める script の中身 `script` を受け取り、file を読まない */
 export function embedPageWith(html: string, script: string): string | undefined {
   if (html.search(ENTRY_LINE) < 0) return undefined;
+  // 止めて置く塊は SVG に描いてから埋める。動く塊が残らない頁は図を描く script が要らないので、入口の1行を消す (#3801)
+  const page = stillBlocksDrawn(html);
+  if (page.search(BLOCK) < 0 && page.search(CODE_BLOCK) < 0) return page.replace(ENTRY_LINE, "");
   // `</script>` で script が途切れないよう、書き出しの頁と同じく逃がす
   const body = script.replace(/<\/script/giu, "<\\/script");
-  const layouts = pageBlockLayouts(html);
+  const layouts = pageBlockLayouts(page);
   const stored = layouts.length > 0 ? `<script type="application/json" id="dragon-layouts">${JSON.stringify(layouts).replace(/</gu, "\\u003c")}</script>` : "";
   let first = true;
-  return html.replace(ENTRY_LINE, () => {
+  return page.replace(ENTRY_LINE, () => {
     if (!first) return "";
     first = false;
-    return `${stored}${iconsElement(pageIcons(html))}<script>${body}</script>`;
+    return `${stored}${iconsElement(pageIcons(page))}<script>${body}</script>`;
+  });
+}
+
+/**
+ * 止めて置く塊 (`<pre class="dragon" data-still>`) を、最後の段の形を描いた SVG に置き換えた HTML (#3801)。
+ * 頁の script と同じ言葉で読み、誤りのある塊は頁の script と同じく誤りの文を行ごとに並べた `<pre class="dragon-error">` に置き換える
+ */
+export function stillBlocksDrawn(html: string): string {
+  const lang = pageLang(html);
+  return html.replace(BLOCK, (whole: string, _quote: string, inner: string) => {
+    const open = whole.slice(0, whole.indexOf(">") + 1);
+    if (!new RegExp(`\\s${STILL_ATTR}(?:[\\s=>]|$)`, "u").test(open)) return whole;
+    const parsed = parseNotation(dedent(textOf(inner)), { lang });
+    if (!parsed.ok) {
+      const lines = parsed.errors.map((error) => `${error.line}: ${error.message}`).join("\n");
+      return `<pre class="dragon-error" role="alert" style="white-space:pre-wrap;overflow-wrap:anywhere">${lines.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</pre>`;
+    }
+    return stillFigureHtml(parsed.diagram, { lang });
   });
 }
 

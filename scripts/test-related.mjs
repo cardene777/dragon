@@ -338,6 +338,18 @@ export function runUntilFinished(files, run, say) {
   }
 }
 
+/** 1 件の上限に近い件を、実行の終わりに名前と秒数で出す報告の部品 (`scripts/near-limit-reporter.mjs`、#3740) */
+const NEAR_LIMIT_REPORTER = "--reporter=./scripts/near-limit-reporter.mjs";
+
+/**
+ * `vitest` に続けて渡す引数。報告の部品を渡し、命令の続き (`pass`) に報告が無い時は既定の報告も渡す (#3740)。
+ * vitest は命令で報告を 1 つでも渡すと既定の報告を使わないので、既定の報告を渡さないと検査の結果の行が消える
+ */
+export function vitestArgs(pass, files) {
+  const reporters = pass.some((arg) => arg.startsWith("--reporter")) ? [NEAR_LIMIT_REPORTER] : ["--reporter=default", NEAR_LIMIT_REPORTER];
+  return ["run", ...reporters, ...pass, ...files];
+}
+
 /**
  * 変えた `package.json` のうち、分かれた元から `scripts` だけを変えた物 (#3733)。
  * 分かれた元に無い file と、どちらかが JSON として読めない file は入れず、全ての検査を選ぶ側に倒す
@@ -389,7 +401,7 @@ function main() {
   if (o.list || chosen.length === 0) process.exit(0);
   const status = runUntilFinished(
     chosen,
-    (files, out) => spawnSync("pnpm", ["exec", "vitest", "run", ...o.pass, ...files], { cwd: root, stdio: "inherit", env: { ...process.env, DRAGON_UNFINISHED_OUT: out } }).status,
+    (files, out) => spawnSync("pnpm", ["exec", "vitest", ...vitestArgs(o.pass, files)], { cwd: root, stdio: "inherit", env: { ...process.env, DRAGON_UNFINISHED_OUT: out } }).status,
     (text) => process.stderr.write(text),
   );
   process.exit(status);

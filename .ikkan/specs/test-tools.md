@@ -169,7 +169,7 @@
 | 1件の検査の上限は10秒、1回の実行の上限は5分のまま変わらず、上限を変える環境変数の名前も変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`と`limit-env-names-unchanged`が通る | #3759 |
 | `packages/dragon/src/render/pipe.ts`を変えた時、関係する検査を選ぶ命令は130以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3763 |
 | `packages/dragon/src/render/venn.ts`を変えた時、関係する検査を選ぶ命令は110以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-venn-draw-picks-at-most-110`が通る | #3763 |
-| `packages/dragon/src/kinds/sequence/layout.ts`を変えた時、関係する検査を選ぶ命令は155以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-sequence-layout-picks-at-most-155`が通る | #3763 |
+| `packages/dragon/src/kinds/sequence/layout.ts`を変えた時、関係する検査を選ぶ命令は156以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-sequence-layout-picks-at-most-156`が通る | #3763 #3753 |
 | `render/pipe.ts`を変えた時、関係する検査を選ぶ命令は配管の図を描かない種類の検査 (`venn-diagram.test.ts`、`clock-look.test.ts`、`er-diagram.test.ts`) を選ばない | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-skips-other-kind-tests`が通る | #3763 |
 | どの種類の描く所を変えた時も、関係する検査を選ぶ命令は全ての種類を描く検査 (`packages/dragon/test/all-kinds.ts`をimportする検査、`examples.test.ts`、`export.test.ts`、`light-entry.test.ts`、見本帳の`playground.test.ts`) を選ぶ | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-all-kind-tests-picked-for-every-kind`が通る | #3763 |
 | 種類の置き場の一覧 (`kinds/index.ts`) に在る種類に、種類の登録のfileか、`kinds/all.ts`の登録か、`light.ts`の読み込みが欠けた時、検査は欠けた種類を名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`kind-registrations-match-kind-folders`が通る | #3763 |
@@ -198,3 +198,14 @@
 | 読む段の仕事が落ちた時は、その結果を読む件だけが仕事の名前と理由を挙げて落ち、同じfileのほかの件は回る | `pnpm exec vitest run packages/dragon/test/case-work.test.ts`の検査`at-load-failure-fails-only-its-readers`が通る | #3739 |
 | 1件の検査の上限は10秒、1回の実行の上限は5分のままである | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`が通る | #3739 |
 | 上限を変える環境変数を`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`の2つより増やすと、検査が名前を挙げて拒む | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`limit-env-names-unchanged`が通る | #3739 |
+| 1件の上限の4割以上かかった件が在る時、報告の部品を渡した実行の終わりに、その件の`file > 組 > 件`の名前と秒数を並べた一覧を出す | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-case-is-named-with-seconds`が通る | #3740 |
+| 一覧は秒数の長い順に並び、その時の負荷平均を1回添える | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-list-is-longest-first-with-load`が通る | #3740 |
+| 目安は設定の`testTimeout`から読み、`DRAGON_TEST_LIMIT_MS`で上限を3秒へ下げた実行では、目安も4割の1.2秒へ下がる | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-threshold-is-four-tenths-of-limit`が通る | #3740 |
+| 件を目安より軽くした実行では、一覧も件の名前も出さない | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`light-case-is-not-named`が通る | #3740 |
+| 目安を超えた件が在っても、通った実行は終わり方0で終わり、知らせを理由に落とせない | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-does-not-fail-the-run`が通る | #3740 |
+| 一覧の行を、関門が読む通った行と落ちた行の形 (`.ikkan/checks.md`) に当てることを拒む | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-lines-are-not-result-lines`が通る | #3740 |
+| 届く検査の命令 (`pnpm test:related`) は、vitestへ報告の部品と既定の報告の両方を渡す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-run-passes-near-limit-reporter`が通る | #3740 |
+| 一式と配る前のテストの命令は、`packages/`と`apps/`の2つのvitestの実行の両方で報告の部品を渡す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`suite-commands-pass-near-limit-reporter`が通る | #3740 |
+| 1件の検査の上限は10秒のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3740 |
+| 1回の実行の上限は5分のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`が通る | #3740 |
+| 上限を変える環境変数は`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`の2つのままで、`scripts/`の部品を含めて増やせない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`limit-env-names-unchanged`が通る | #3740 |

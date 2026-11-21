@@ -139,7 +139,8 @@ export const BAND_TYPE = {
  * 戻る矢印は帯の右の端と左の端から `out` 外を回り、帯の下の字から `cross` 下を横切る。矢じりは長さ `head` で開きの半分 `headHalf`。
  * まだ来ていない回の帯は濃さ `faint` で出す。枠の幅が `wide` より狭い時は携帯の幅の並べ方にし、山形の中の番号の基準線を山形の上の縁から `keyAt` 下に置き、
  * 帯の下に `listGap` 空けて、高さ `row` の行の一覧を置く。行の頭の色の印の大きさは `swatch`。
- * `stroke` は線の太さで、山形の縁 `segment`、目盛りの印 `tick`、戻る矢印 `ret`。`tint` は光った山形の色の濃さ (%)
+ * `stroke` は線の太さで、山形の縁 `segment`、目盛りの印 `tick`、戻る矢印 `ret`。`tint` は光った山形の色の濃さ (%)。
+ * 止めて置く図 (#3809) は手順の名前を山形の中に書き、山形の高さを `stillH` にして、名前と山形の先と切り込みの間を `namePad` 空ける
  */
 export const BAND_LOOK = {
   pad: 24,
@@ -148,6 +149,8 @@ export const BAND_LOOK = {
   gap: 6,
   h: 32,
   phoneH: 56,
+  stillH: 40,
+  namePad: 8,
   nameGap: 18,
   badgeAt: 20,
   tickRow: 22,

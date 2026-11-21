@@ -6,15 +6,17 @@
  * 弧と棒の動きと段ごとの字は、値のブロックの描き方 (`blocks/chart-set/draw.ts`) が段の時刻から組む。
  * 見た目の規則も量の図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない。
  * 弧と棒と段ごとの字は、検査と読み上げの道具が引けるよう `data-chart-*` に項目の名札か段の名前を持つ。
+ * 折れ線の見た目 (#3802) は、刻みの線と縦の軸の値と横の軸の名前と凡例と、項目ごとの線と点と段ごとの値の字を描く。
  * この file は後から読む量の図の塊 (`kinds/chart.ts`) だけが読み、見本帳を開いた時に読む塊に入れない (#3248)。
  */
-import { barName, chartText, itemAttr, legendRow } from "../blocks/chart-item/draw";
-import { arcMotion, barMotion, runSpan, textRuns } from "../blocks/chart-set/draw";
+import { barName, chartLines, chartText, itemAttr, legendRow } from "../blocks/chart-item/draw";
+import { arcMotion, barMotion, lineMotion, movesAt, runSpan, textRuns } from "../blocks/chart-set/draw";
 import { barTrack, ringTrack } from "../blocks/chart-shape/draw";
 import { cs } from "../blocks/color/draw";
 import type { ChartLayout, ChartPlan } from "../kinds/chart/layout";
 import type { Rect } from "../layout/scene";
 import { textWidth } from "../layout/measure";
+import { anyTwoRows, twoRows } from "../layout/rows";
 import { CHART_LOOK, CHART_TYPE } from "../look/chart";
 import { DOTS_CSS, drawDots } from "./dots";
 import { MOTION, type TextStyle } from "../look/values";
@@ -52,20 +54,77 @@ const FUNNEL_CSS = [
 ].join("");
 
 /**
+ * 折れ線の見た目 (#3802) の見た目の規則。折れ線の見た目の SVG にだけ書き、ほかの量の図の SVG を今のまま保つ。
+ * 刻みの線は薄い線で、0 の刻みの線だけ濃く描く。点は線の色で塗り、地の色の縁で線から浮かせる。点の値の字は線の字の色で書く
+ */
+const LINE_CSS = [
+  `.dg-ch-lg{fill:none;stroke:var(--line);stroke-opacity:${CHART_LOOK.line.gridOpacity};stroke-width:${CHART_LOOK.line.grid}}`,
+  `.dg-ch-lb{fill:none;stroke:var(--line);stroke-width:${CHART_LOOK.line.base}}`,
+  `.dg-ch-ln{fill:none;stroke:var(--c);stroke-width:${CHART_LOOK.line.stroke};stroke-linejoin:round;stroke-linecap:round}`,
+  `.dg-ch-lp{fill:var(--c);stroke:var(--bg);stroke-width:${CHART_LOOK.line.pointEdge}}`,
+  `.dg-ch-lk{fill:none;stroke:var(--c);stroke-width:${CHART_LOOK.line.key};stroke-linecap:round}`,
+  `.dg-ch-ly{${font(CHART_TYPE.value)};fill:var(--mute)}`,
+  `.dg-ch-lx{${font(CHART_TYPE.name)};fill:var(--ink2)}`,
+  `.dg-ch-lv{${font(CHART_TYPE.value)};fill:var(--ct)}`,
+].join("");
+
+/**
  * 段ごとの段の名前。同じ名前が続く段は 1 つの字にまとめる。
- * ドーナツの名前は輪の真ん中に折り返さず描くので、輪の線の内側の縁の円を記録に残し、崩れの検査が収まるかを見る
+ * ドーナツの名前は輪の真ん中に描き、輪の線の内側の縁の円を記録に残して、崩れの検査が収まるかを見る。
+ * 内側の縁から余白を空けた円に 1 行で収まらない名前は 2 行に折り、2 行でも収まらない時は字を小さくする (#3809)
  */
 function stepTitles(plan: ChartPlan, diagram: DiagramModel, ctx: Ctx): string {
   const { m } = ctx;
   const { ring } = plan;
-  const inside = ring ? { ring: { cx: ring.cx, cy: ring.cy, r: ring.r - ring.width / 2 } } : {};
+  const inner = ring ? { cx: ring.cx, cy: ring.cy, r: ring.r - ring.width / 2 } : undefined;
   return textRuns(diagram.steps.map((step) => step.title))
     .map((run) => {
       const [a, b] = runSpan(run, 0, ctx);
       const attr = ` data-chart-title="${esc(run.text)}"`;
-      return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, { shown: [[a, b + MOTION.fade]], anchor: plan.title.anchor, motion: m.vis(a, b), ...inside });
+      const options = { shown: [[a, b + MOTION.fade]] as [number, number][], anchor: plan.title.anchor, motion: m.vis(a, b), ...(inner ? { ring: inner } : {}) };
+      const fitted = inner ? { ...ringTitle(run.text, inner), cy: inner.cy } : undefined;
+      if (!fitted || (fitted.lines.length === 1 && fitted.size === CHART_TYPE.title.size)) {
+        return chartText(ctx, "dg-ch-t", plan.title.x, plan.title.y, run.text, CHART_TYPE.title, attr, options);
+      }
+      // 行の並びの真ん中を輪の真ん中に置き、1 行の時と同じく基準線を字の大きさの `titleDrop` の割合だけ下げる
+      const { lines, size, cy } = fitted;
+      const lead = size * CHART_LOOK.donut.titleLead;
+      const first = cy - (lead * (lines.length - 1)) / 2 + size * CHART_LOOK.donut.titleDrop;
+      const placed = lines.map((text, k) => ({ text, y: first + k * lead }));
+      return chartLines(ctx, "dg-ch-t", plan.title.x, run.text, placed, CHART_TYPE.title, attr, { ...options, ...(size === CHART_TYPE.title.size ? {} : { size }) });
     })
     .join("");
+}
+
+/**
+ * 輪の真ん中の名前の行と字の大きさ (#3809)。字の四角の角が、輪の線の内側の縁から `titlePad` だけ内の円に収まるかで決める。
+ * 1 行で収まればそのまま、収まらなければ折れる所 (`layout/rows.ts`) のうち 2 行の幅の広い方が一番狭くなる所で折り、それでも収まらなければ収まるまで字を小さくする。
+ * 字を `titleMin` まで小さくしても収まらない時は、`titleMin` の大きさで描き、崩れの検査に収まらないことを数えさせる
+ */
+function ringTitle(text: string, inner: { r: number }): { lines: string[]; size: number } {
+  const D = CHART_LOOK.donut;
+  const room = inner.r - D.titlePad;
+  const fits = (lines: string[], size: number): boolean => {
+    const style: TextStyle = { ...CHART_TYPE.title, size };
+    const lead = size * D.titleLead;
+    return lines.every((line, k) => {
+      const base = -(lead * (lines.length - 1)) / 2 + k * lead + size * D.titleDrop;
+      const half = textWidth(line, style) / 2;
+      const far = Math.max(Math.abs(base - size * 0.8), Math.abs(base + size * 0.2));
+      return Math.hypot(half, far) <= room;
+    });
+  };
+  const top = CHART_TYPE.title.size;
+  if (fits([text], top)) return { lines: [text], size: top };
+  // 空白と読点と助詞の後で折れる所を先に見て、無い時 (漢字だけの名前など) は字の間の全ての所から選ぶ
+  const wide = (rows: string[]): number => Math.max(...rows.map((row) => textWidth(row, CHART_TYPE.title)));
+  const words = twoRows(text);
+  const splits = words.length > 0 ? words : anyTwoRows(text);
+  const lines = [...splits].sort((p, q) => wide(p) - wide(q))[0] ?? [text];
+  for (let size = top; size >= D.titleMin; size -= 0.5) {
+    if (fits(lines, size)) return { lines, size };
+  }
+  return { lines, size: D.titleMin };
 }
 
 /** ドーナツの輪と弧と凡例。凡例の割合は段ごとに、値を段の合計で割って整数に丸めた百分率 */
@@ -201,13 +260,76 @@ function funnel(plan: ChartPlan, ctx: Ctx): string {
   return out.join("");
 }
 
+/** 2 点の間の長さ */
+const apart = (a: { x: number; y: number }, b: { x: number; y: number }): number => Math.hypot(b.x - a.x, b.y - a.y);
+
+/**
+ * 折れ線の見た目 (#3802)。刻みの線と縦の軸の値と横の軸の名前と凡例は初めから出し、線は段ごとに前の段の点から新しい段の点へ伸ばす。
+ * 点は線が着いた時に出し、最初の点は値を書いた段の始まりに出す。段ごとの値の字は線が着いてからその段の終わりまで出す。
+ * 線の長さは描く点の座標を丸めた後に測り、`stroke-dasharray` の長さと伸ばす長さを、描いた線の長さに合わせる。
+ * 止めて置く図は図の上の行に図の題を出す
+ */
+function line(plan: ChartPlan, ctx: Ctx): string {
+  const l = plan.line;
+  if (!l) return "";
+  const { m } = ctx;
+  const out: string[] = [];
+  if (l.title) out.push(chartText(ctx, "dg-ch-t", l.title.x, l.title.y, l.title.text, CHART_TYPE.title, ` data-chart-title="${esc(l.title.text)}"`));
+  for (const tick of l.ticks) {
+    out.push(`<path class="${tick.value === 0 ? "dg-ch-lb" : "dg-ch-lg"}" d="M${r1(l.grid.x1)} ${r1(tick.y)}H${r1(l.grid.x2)}" data-chart-grid="${tick.value}"/>`);
+    out.push(chartText(ctx, "dg-ch-ly", tick.label.x, tick.label.y, tick.text, CHART_TYPE.value, ` data-chart-tick="${tick.value}"`));
+  }
+  l.labels.forEach((label, s) => out.push(chartText(ctx, "dg-ch-lx", label.x, label.y, label.text, CHART_TYPE.name, ` data-chart-x="${s}"`, { anchor: "middle" })));
+  plan.items.forEach((item, i) => {
+    const entry = l.legend[i];
+    if (!entry) return;
+    out.push(
+      `<path class="dg-ch-lk" d="M${r1(entry.key.x1)} ${r1(entry.key.y)}H${r1(entry.key.x2)}"${itemAttr("key", item.id)} style="${cs(item.color)}"/>`,
+      chartText(ctx, "dg-ch-n", entry.name.x, entry.name.y, item.name, CHART_TYPE.name, itemAttr("name", item.id)),
+    );
+  });
+  const points: string[] = [];
+  const texts: string[] = [];
+  plan.items.forEach((item, i) => {
+    const series = l.series[i];
+    if (!series) return;
+    // 描く座標に丸めた点で線の長さを測る
+    const placed = series.points.map((p) => (p ? { x: Number(r1(p.x)), y: Number(r1(p.y)) } : undefined));
+    let sum = 0;
+    const drawn = placed.map((p, s) => {
+      const before = placed[s - 1];
+      if (p && before) sum += apart(before, p);
+      return sum;
+    });
+    const length = Math.round(sum * 100) / 100;
+    const d = placed
+      .flatMap((p) => (p ? [p] : []))
+      .map((p, k) => `${k === 0 ? "M" : "L"}${p.x} ${p.y}`)
+      .join("");
+    out.push(`<path class="dg-ch-ln dg-a" d="${d}" stroke-dasharray="${length} ${length}"${itemAttr("line", item.id)} style="${cs(item.color)};${lineMotion(drawn, length, ctx)}"/>`);
+    placed.forEach((p, s) => {
+      if (!p) return;
+      const at = movesAt(ctx, s) + (s === series.first ? 0 : MOTION.chart.move);
+      points.push(`<circle class="dg-ch-lp dg-a" cx="${p.x}" cy="${p.y}" r="${CHART_LOOK.line.pointR}"${itemAttr("point", item.id)} data-chart-step="${s}" style="${cs(item.color)};${m.vis(at)}"/>`);
+    });
+    const shown = series.values.flatMap((value, s) => {
+      if (!value) return [];
+      const [a, b] = spanOf(s, s, MOTION.edgeAt + MOTION.chart.move, ctx);
+      return [chartText(ctx, "dg-ch-lv", value.x, value.y, value.text, CHART_TYPE.value, itemAttr("value", item.id), { shown: [[a, b + MOTION.fade]], motion: m.vis(a, b) })];
+    });
+    texts.push(`<g style="${cs(item.color)}">${shown.join("")}</g>`);
+  });
+  return out.join("") + points.join("") + texts.join("");
+}
+
 /**
  * 量の図を描く。段の番号の丸は描く所が描く。漏斗の見た目と点で数える見た目 (#3635) は段の名前を図に書かず、再生の部品の段の題が出す。
- * 点で数える見た目は点で数える見た目の部品 (`render/dots.ts`) が描く
+ * 折れ線の見た目 (#3802) は段の名前を横の軸の名前に書く。点で数える見た目は点で数える見た目の部品 (`render/dots.ts`) が描く
  */
 export function drawChart(layout: ChartLayout, diagram: DiagramModel, ctx: Ctx): { base: string; css: string } {
   const plan = layout.chart;
   if (plan.dots) return { base: `<g class="dg-ch">${drawDots(plan.dots, ctx)}</g>`, css: DOTS_CSS };
+  if (plan.line) return { base: `<g class="dg-ch">${line(plan, ctx)}</g>`, css: CHART_CSS + LINE_CSS };
   const body = plan.shape === "funnel" ? funnel(plan, ctx) : plan.shape === "bar" ? bars(plan, ctx) : donut(plan, ctx);
   const titles = plan.shape === "funnel" ? "" : stepTitles(plan, diagram, ctx);
   return { base: `<g class="dg-ch">${body}${titles}</g>`, css: plan.shape === "funnel" ? CHART_CSS + FUNNEL_CSS : CHART_CSS };

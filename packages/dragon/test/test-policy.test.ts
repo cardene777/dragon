@@ -234,6 +234,17 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     expect(rows[0]?.[1] ?? "", "欄 `届く検査` が `無し` でない").toMatch(/^無し/u);
   });
 
+  it("suite-commands-pass-near-limit-reporter", () => {
+    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package と見本帳の 2 つの実行の両方で渡す (#3740)
+    expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
+    const missing = ["一式", "配る前のテスト"].flatMap((field) => {
+      const runs = commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step));
+      if (runs.length !== 2) return [`${field} の vitest の実行が 2 つでない (${runs.length} 個)`];
+      return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
+    });
+    expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
+  });
+
   it("checks-suite-and-release-tests-typecheck-after-build", () => {
     // 型の検査は `dist` の型の定義を読む。`dist` の無い作業場所で build より前に回すと `TS2307` で落ちる (#3732)
     const problems = Object.fromEntries(["一式", "配る前のテスト"].map((field) => [field, typecheckBeforeBuildProblems(checksCell(field))]));
