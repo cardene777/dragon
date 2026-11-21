@@ -112,6 +112,8 @@ import shopFunnelJa from "../../../packages/dragon/examples/shop-funnel.dragon?r
 import shopFunnelEn from "../../../packages/dragon/examples/shop-funnel.en.dragon?raw";
 import walletOnboardingJa from "../../../packages/dragon/examples/wallet-onboarding.dragon?raw";
 import walletOnboardingEn from "../../../packages/dragon/examples/wallet-onboarding.en.dragon?raw";
+import bakerySalesJa from "../../../packages/dragon/examples/bakery-sales.dragon?raw";
+import bakerySalesEn from "../../../packages/dragon/examples/bakery-sales.en.dragon?raw";
 import approveDepositJa from "../../../packages/dragon/examples/approve-deposit.dragon?raw";
 import approveDepositEn from "../../../packages/dragon/examples/approve-deposit.en.dragon?raw";
 import returnCheckJa from "../../../packages/dragon/examples/return-check.dragon?raw";
@@ -239,6 +241,7 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "staking-rewards": { ja: stakingRewardsJa, en: stakingRewardsEn },
   "shop-funnel": { ja: shopFunnelJa, en: shopFunnelEn },
   "wallet-onboarding": { ja: walletOnboardingJa, en: walletOnboardingEn },
+  "bakery-sales": { ja: bakerySalesJa, en: bakerySalesEn },
   "approve-deposit": { ja: approveDepositJa, en: approveDepositEn },
   "return-check": { ja: returnCheckJa, en: returnCheckEn },
   "eth-slot": { ja: ethSlotJa, en: ethSlotEn },

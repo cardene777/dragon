@@ -69,9 +69,12 @@ mountFramedDiagram(host, source, {
 `adoptedStyleSheets`を持たないブラウザでは、`nonce`を付けたstyle要素を帯の内側に置く。
 図のSVGは書き出しが読む`<style>`を持つので残し、`nonce`を渡した時はその`<style>`にも付ける。
 図の字は同梱した字の後に代わりの字の並びを持ち、字を読まない頁に置いても明朝に落ちない。
+帯と図と再生の部品は、置いた頁の字の間と大文字の指定 (`letter-spacing`、`word-spacing`、`text-transform`、`text-indent`) を受け継がず、頁のCSSの無い時と同じ字の幅で描く。
 
 独自の軽い再生部品を持つサイトは`@cardenelabs/dragon/header`の`createFigureHeader`を使い、`actions`と`settings`へ既存の操作を置く。
 `mark`を渡すと題の左にdragonの印を置き、`styles: false`を渡すとstyle要素を作らずに`HEADER_CSS`を呼ぶ側が入れる。
+帯の頭は置いた頁の中に置くので、`HEADER_CSS`は`actions`に置いたボタンへ頁の`button`の指定が足す影と最小の幅と大文字と字の間を戻し、帯の行は頁の`div`の行の高さを受けない。
+頁が帯の頭より強い指定 (`#app button`など) で帯のボタンを変える時と、帯の頭が決めない性質 (`margin`など) を足す時は、その指定が帯に入る。
 style要素を作る時は`nonce`を付ける。
 この入口は描画本体や動画エンコーダーを読み込まない。
 PNGとSVGは入力欄を含む表示全体を写す。

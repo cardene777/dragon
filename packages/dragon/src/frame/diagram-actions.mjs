@@ -4,6 +4,8 @@ import { snapshotDiagram, snapshotText, snapshotCanvas } from './dragon-snapshot
 /** 地を塗る時の色。図の地と同じ */
 export const PAPER = '#fffefa';
 const FORMATS = ['png', 'svg', 'html', 'gif', 'mp4', 'dragon', 'json'];
+/** 作る時に書き出す部品 (`capture.js`) を読む形式 (#3786) */
+export const CAPTURE_FORMATS = ['html', 'gif', 'mp4'];
 const KINDS = ['source', 'json', 'image', 'url'];
 
 /**
@@ -11,8 +13,9 @@ const KINDS = ['source', 'json', 'image', 'url'];
  * `host`は再生の部品を持つ要素。`connect()`の後は図の動きを記録し、GIF と MP4 はその記録を流す。
  * `notify`はエクスポートした時 (`export`) とエディタで開いた・コピーした時 (`share`) に呼ぶ。
  * エディタの URL は記法を縮めて詰め、縮めても`EDITOR_URL_LIMIT`を超える記法は写してから貼るよう頼むエディタを開く (#3697)。
+ * `loadCapture`は書き出す部品を読む処理で、入口が渡す (`capture-load.mjs`、#3786)。渡さない時は`CAPTURE_FORMATS`の形式を断る。
  */
-export function createDiagramActions(document, host, source, diagram, notify) {
+export function createDiagramActions(document, host, source, diagram, notify, loadCapture) {
   const environment = document.defaultView;
   const sourceText = { dragon: source, json: JSON.stringify(diagram, null, 2) };
   /** 縮めたエディタの URL と、上限を超えるか */
@@ -31,7 +34,7 @@ export function createDiagramActions(document, host, source, diagram, notify) {
   /** 記録した図の動きを GIF か MP4 にする */
   const motion = async (format, onProgress) => {
     const current = snapshotDiagram(host);
-    const capture = await import('./capture.js');
+    const capture = await loadCapture();
     const frames = history.length ? [...history] : [{ shot: current, time: 0 }];
     frames.push({ shot: current, time: (frames.at(-1)?.time ?? 0) + 900 });
     let total = 0;
@@ -54,7 +57,7 @@ export function createDiagramActions(document, host, source, diagram, notify) {
       return new environment.Blob([sourceText[format]], { type: format === 'json' ? 'application/json' : 'text/plain;charset=utf-8' });
     }
     if (format === 'html') {
-      const capture = await import('./capture.js');
+      const capture = await loadCapture();
       return new environment.Blob([await capture.captureHtml(source)], { type: 'text/html;charset=utf-8' });
     }
     const transparent = background === 'transparent';
@@ -66,6 +69,7 @@ export function createDiagramActions(document, host, source, diagram, notify) {
   /** 図を形式`format`のファイルの中身にする。作っている間に呼ぶと断る */
   async function exportDiagram(format, options = {}) {
     if (!FORMATS.includes(format)) throw new RangeError(`format must be one of ${FORMATS.join(', ')}, got ${String(format)}`);
+    if (!loadCapture && CAPTURE_FORMATS.includes(format)) throw new Error(`この頁は${format}を作る書き出す部品を読めません`);
     if (disposed) throw new Error('取り除いた図はエクスポートできません');
     if (busy) throw new Error('エクスポートの途中です');
     busy = true;

@@ -3,6 +3,7 @@
  *
  * 動きは全て 1 周 `timeline.total` 秒の CSS keyframes で、点の時刻は 1 周の中の割合 (%) で書かれている。
  * 部品の `style` の `animation-name` から keyframes を引き、性質ごとに前後の点の間を緩急どおりに補う。
+ * 止めて置く図 (#3812) は keyframes を持たず、止めた時刻の値を部品の `style` に書くので、その値を読む。
  * jsdom は CSS の動きを進めないので、画面で見える値を keyframes から求める。
  */
 import { expect } from "vitest";
@@ -106,9 +107,16 @@ export function tagOpacity(motion: Motion, cls: "dg-cap" | "dg-act", tag: Tag, t
  */
 export function sampler(svg: string, total: number): (el: Element, prop: string, t: number) => number[] | undefined {
   const frames = keyframesOf(svg);
-  expect(frames.size, "SVG に keyframes が無い").toBeGreaterThan(0);
+  // 止めて置く図 (#3812) は keyframes を持たないので、動く部品を持つ SVG だけ keyframes を読めたかを見る
+  if (/animation-name:/.test(svg)) expect(frames.size, "SVG に keyframes が無い").toBeGreaterThan(0);
   return (el: Element, prop: string, t: number): number[] | undefined => {
-    const name = /animation-name:([\w-]+)/.exec(el.getAttribute("style") ?? "")?.[1];
+    const style = el.getAttribute("style") ?? "";
+    const name = /animation-name:([\w-]+)/.exec(style)?.[1];
+    // 動かない部品は、止めた時刻の値を style に書いてあればそれを読む
+    if (!name) {
+      const fixed = new RegExp(`(?:^|;)${prop}:([^;]+)`).exec(style)?.[1];
+      return fixed === undefined ? undefined : numbers(fixed);
+    }
     const points = (name ? (frames.get(name) ?? []) : []).filter((f) => prop in f.props);
     if (points.length === 0) return undefined;
     const pct = (Math.min(Math.max(t, 0), total) / total) * 100;

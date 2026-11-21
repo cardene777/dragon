@@ -132,6 +132,12 @@ export const FONT_VARS = `--sans:"${FONTS.sans}";--mono:"${FONTS.mono}"`;
  */
 export const FONT_STACK_VARS = `--sans:"${FONTS.sans}","Noto Sans JP","Hiragino Sans",sans-serif;--mono:"${FONTS.mono}","JetBrains Mono",ui-monospace,monospace`;
 
+/**
+ * 置いた頁の字の間と大文字の指定を戻す性質 (#3787)。定義は`plain-text.ts`に置き、描く本体と再生の部品と帯の枠はここから読む。
+ * 1行の入口のbuildで、値だけの小さな塊に分かれて最初に読むfileが1つ増えないよう、この表と同じ塊に入れる
+ */
+export { PLAIN_TEXT } from "./plain-text";
+
 /** 区画や箱を分ける色の役。灰 (slate) と硬貨 (coin) は分類の色として順に配らない。 */
 export const COLOR_ORDER = ["blue", "amber", "green", "violet", "rose"] as const;
 export type ColorKey = (typeof COLOR_ORDER)[number] | "slate" | "coin";

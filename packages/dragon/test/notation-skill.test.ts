@@ -395,3 +395,46 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(said, "行きと帰りの線の崩れを記法で避ける手か、描き方の側の崩れとして書く").toEqual([]);
   });
 });
+
+/** ほかのスキルが musubi で従う中身の宣言 (#3807) */
+const MUSUBI = join(SKILL, "musubi.json");
+/** skill の dir から見た参照の file。`/` で区切る */
+const referenceFiles = (): string[] => markdownUnder(REFERENCES).map((path) => relative(SKILL, path).split("\\").join("/")).sort();
+/** 参照の file の中身の名前。図の種類の file は種類の名前、ほかは file の名前 */
+const contentName = (file: string): string => file.replace(/^references\/(?:kinds\/)?/u, "").replace(/\.md$/u, "");
+/** 宣言が出す中身 */
+/** musubi.json が出す中身。名前ごとのバージョンと file */
+const provided = (): Record<string, { version?: string; file?: string }> => (json(MUSUBI).provides ?? {}) as Record<string, { version?: string; file?: string }>;
+
+describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
+  it("skill-musubi-provides-every-reference", () => {
+    const files = referenceFiles();
+    // 走査の空振りを避ける。参照の file は記法と図の種類の分だけある
+    expect(files.length, "参照の file を数えられない").toBeGreaterThan(kindNames().length);
+    expect(json(MUSUBI).musubi, "musubi の定義の版").toBe("2026-11-20");
+    const provides = provided();
+    // 中身のバージョンは中身を変えるたびに musubi の決まりで上がるので、MAJOR.MINOR.PATCH の形だけを見る (#3809)
+    const missing = files.filter((file) => provides[contentName(file)]?.file !== file || !/^\d+\.\d+\.\d+$/u.test(provides[contentName(file)]?.version ?? ""));
+    expect(missing, "MAJOR.MINOR.PATCH のバージョンの中身として出していない参照の file").toEqual([]);
+    const absent = Object.values(provides).map((content) => content.file ?? "").filter((file) => !existsSync(join(SKILL, file)));
+    expect(absent, "中身が名指すのに無い file").toEqual([]);
+  });
+
+  it("skill-musubi-names-only-references", () => {
+    expect(Object.keys(json(MUSUBI)).sort(), "musubi.json の欄").toEqual(["musubi", "provides"]);
+    const provides = provided();
+    const files = new Set(referenceFiles());
+    expect(Object.keys(provides).length, "中身を数えられない").toBeGreaterThan(0);
+    const outside = Object.entries(provides).filter(([, content]) => !files.has(content.file ?? "")).map(([name]) => name);
+    const extra = Object.entries(provides).filter(([, content]) => Object.keys(content).some((key) => key !== "version" && key !== "file")).map(([name]) => name);
+    expect(outside, "references の下に無い file を名指す中身").toEqual([]);
+    expect(extra, "version と file の他の欄を持つ中身").toEqual([]);
+  });
+
+  it("skill-names-musubi-contents", () => {
+    const section = sectionOf(read(MAIN), "## Contents other skills follow");
+    expect(section, "SKILL.md に musubi で従う中身の節が無い").not.toBe("");
+    const unnamed = referenceFiles().map(contentName).filter((name) => !section.includes(`\`${name}\``));
+    expect(unnamed, "節が名を挙げない中身").toEqual([]);
+  });
+});
