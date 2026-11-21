@@ -1,0 +1,22 @@
+pipe USDC.approveを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+box carol as Carol
+
+hold alice: 1000 USDC
+hold bob: 200 USDC
+hold carol: 0 USDC
+hold usdc: "allowance[Alice][Bob]" 0 [from: alice, to: bob, unit: USDC]
+
+step USDCのallowance[Alice][Bob]が0から100 USDCになる
+  say AliceがUSDC.approveを呼び出します。USDCのallowance[Alice][Bob]を0から100 USDCに書き換えます。
+  alice -> usdc: approve(spender: bob, amount: 100 USDC)
+  write usdc: "allowance[Alice][Bob]" 100
+  emit usdc: Approval(owner: alice, spender: bob, amount: 100 USDC)
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。allowance[Alice][Bob]は0から100 USDCになりました。USDC.approveはtrueを返しました。
+  return usdc

@@ -486,7 +486,7 @@ function tickStep(most: number, ticks: number): number {
  * 折れ線の見た目 (#3802)。上から、止めて置く図の図の題の行、凡例の行、縦の軸と線と点、横の軸の名前の順に置く。
  * 縦の軸は 0 から、一番大きい値を刻み (`tickStep`) で切り上げた上端までで、全ての段で同じ上端を使い、段を送っても線の高さを変えない。
  * 横の軸は段の題を段の順に等しい間で並べ、点の間は一番長い段の題が収まる幅にする。枠の幅を渡した時は、収まるまで点の間を `pitchMin` まで縮める。
- * 項目の点は値を書いた段から置き、値を書かない段は前の段の値の高さに置く。段ごとの値の字は点の右に書き、同じ段の字どうしは `valueLead` だけ縦に離す。
+ * 項目の点は値を書いた段から置き、値を書かない段は前の段の値の高さに置く。段ごとの値の字は、点の上、下、右、左の順に、線と点と先に置いた字に掛からない所に書く (#3812)。
  * 凡例は段の番号の丸の右から項目を宣言した順に横に並べ、枠に収まらない項目は次の行へ送る。止めて置く図は丸を描かないので、凡例を左端から並べる
  */
 function linePlan(items: ChartRow[], values: number[][], diagram: DiagramModel, options: ChartLayoutOptions): { plan: ChartPlan; width: number; height: number } {
@@ -529,7 +529,8 @@ function linePlan(items: ChartRow[], values: number[][], diagram: DiagramModel, 
     legendRight = Math.max(legendRight, x + w);
     x += w + L.itemGap;
   }
-  y = firstRow + rows * L.row + L.row / 2 + L.legendGap;
+  const legendBottom = firstRow + rows * L.row + L.row / 2;
+  y = legendBottom + L.legendGap;
   // 縦の軸と横の軸。上端の刻みの値の字が凡例の行に掛からないよう、字の半分の高さを空ける
   const plotTop = y + CHART_TYPE.value.size / 2;
   const plotBottom = plotTop + L.plotH;
@@ -537,7 +538,8 @@ function linePlan(items: ChartRow[], values: number[][], diagram: DiagramModel, 
   const axisX = P + tickW + L.tickGap;
   const widest = Math.max(0, ...steps.map((s) => textWidth(s.title, CHART_TYPE.name)));
   const valueW = Math.max(0, ...values.flat().map((value) => textWidth(grouped(value), CHART_TYPE.value)));
-  const x0 = axisX + Math.max(L.inset, widest / 2);
+  // 最初の点と最後の点の値の字も、点の真上に置けるだけ空ける
+  const x0 = axisX + Math.max(L.inset, widest / 2, valueW / 2 + L.valueSpace);
   const rightRoom = Math.max(L.pointR + L.valueGap + valueW, widest / 2, L.inset);
   let pitch = Math.max(L.pitch, widest + L.labelGap);
   if (options.width !== undefined && steps.length > 1) {
@@ -559,21 +561,9 @@ function linePlan(items: ChartRow[], values: number[][], diagram: DiagramModel, 
     const points = values.map((row, s) => (first >= 0 && s >= first ? { x: xs[s] ?? x0, y: yOf(row[i] ?? 0) } : undefined));
     return { item: item.id, first, points, values: points.map(() => undefined) };
   });
-  // 段ごとの値の字。点の高さから並べ、前の字に近すぎる字を下へ送り、0 の刻みの線より下へ出た分は全てを上へ戻す
-  const lowest = plotBottom + drop(CHART_TYPE.value.size);
-  steps.forEach((_, s) => {
-    const here = series.flatMap((line, i) => {
-      const point = line.points[s];
-      return point ? [{ line, i, y: point.y + drop(CHART_TYPE.value.size) }] : [];
-    });
-    here.sort((a, b) => a.y - b.y);
-    here.forEach((h, k) => {
-      const above = here[k - 1];
-      if (above) h.y = Math.max(h.y, above.y + L.valueLead);
-    });
-    const over = (here.at(-1)?.y ?? lowest) - lowest;
-    for (const h of here) h.line.values[s] = { x: (xs[s] ?? x0) + L.pointR + L.valueGap, y: over > 0 ? h.y - over : h.y, text: grouped(values[s]?.[h.i] ?? 0) };
-  });
+  // 段ごとの値の字 (#3812)。点の上、下、右、左の順に字の四角を置いてみて、線の区間と点の丸と先に置いた字に掛からず、
+  // 凡例の行の下から 0 の線の上まで、縦の軸から図の右の端までに収まる最初の所に置く。どこも掛かる時は、掛かる物が一番少ない所に置く
+  placeLineValues(series, values, { top: legendBottom, bottom: plotBottom, left: axisX, right: lastX + rightRoom });
   const width = Math.max(lastX + L.inset, lastX + rightRoom, legendRight, title ? P + textWidth(title.text, CHART_TYPE.title) : 0) + P;
   return {
     plan: {
@@ -586,6 +576,103 @@ function linePlan(items: ChartRow[], values: number[][], diagram: DiagramModel, 
     width,
     height: labelY + CHART_TYPE.name.size * 0.2 + P,
   };
+}
+
+/** 折れ線の値の字を置く所の外の枠。上は凡例の行の下、下は 0 の線、左は縦の軸、右は図の右の端 */
+interface ValueArea {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+/** 線の区間 (`a`-`b`) が四角を通るか。区間を四角で切り詰め、残る長さが在るかで見る */
+function segmentCrosses(box: Rect, a: ChartSpot, b: ChartSpot): boolean {
+  let lo = 0;
+  let hi = 1;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  for (const [p, q] of [
+    [-dx, a.x - box.x],
+    [dx, box.x + box.w - a.x],
+    [-dy, a.y - box.y],
+    [dy, box.y + box.h - a.y],
+  ] as const) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) lo = Math.max(lo, r);
+    else hi = Math.min(hi, r);
+    if (lo > hi) return false;
+  }
+  return true;
+}
+
+/**
+ * 折れ線の値の字を置く (#3812)。段の順に、同じ段では点の高い順に、点の上 (真ん中揃え)、下、右、左の順に字の四角を置いてみる。
+ * 線の区間 (線の太さの半分を空ける) と点の丸 (縁を含む) と先に置いた字 (`valueSpace` を空ける) に掛からず、枠 `area` に収まる最初の所に置く。
+ * どこも掛かる時は、掛かる物と枠から出る辺の数が一番少ない所に置く。字の `x` は左端、`y` は基準線
+ */
+function placeLineValues(series: LineSeries[], values: number[][], area: ValueArea): void {
+  const L = CHART_LOOK.line;
+  const style = CHART_TYPE.value;
+  const segments = series.flatMap((line) => {
+    const points = line.points.filter((p): p is ChartSpot => p !== undefined);
+    return points.slice(1).map((b, k) => [points[k] as ChartSpot, b] as const);
+  });
+  const dots = series.flatMap((line) => line.points.filter((p): p is ChartSpot => p !== undefined));
+  const placed: Rect[] = [];
+  const dotR = L.pointR + L.pointEdge / 2;
+  const steps = Math.max(0, ...series.map((line) => line.points.length));
+  for (let s = 0; s < steps; s++) {
+    const here = series.flatMap((line, i) => {
+      const point = line.points[s];
+      return point ? [{ line, i, point }] : [];
+    });
+    here.sort((a, b) => a.point.y - b.point.y);
+    for (const { line, i, point } of here) {
+      const text = grouped(values[s]?.[i] ?? 0);
+      const w = textWidth(text, style);
+      const side = point.y + style.size * L.textDrop;
+      const candidates: ChartSpot[] = [
+        { x: point.x - w / 2, y: point.y - L.pointR - L.valueRise - style.size * 0.2 },
+        { x: point.x - w / 2, y: point.y + L.pointR + L.valueRise + style.size * 0.8 },
+        { x: point.x + L.pointR + L.valueGap, y: side },
+        { x: point.x - L.pointR - L.valueGap - w, y: side },
+      ];
+      const cost = (spot: ChartSpot): number => {
+        const box = textBox(text, spot.x, spot.y, style);
+        const pad = { x: box.x - L.stroke / 2, y: box.y - L.stroke / 2, w: box.w + L.stroke, h: box.h + L.stroke };
+        const room = { x: box.x - L.valueSpace, y: box.y - L.valueSpace, w: box.w + L.valueSpace * 2, h: box.h + L.valueSpace * 2 };
+        let n = 0;
+        for (const [a, b] of segments) if (segmentCrosses(pad, a, b)) n++;
+        for (const dot of dots) {
+          const away = Math.hypot(Math.max(0, box.x - dot.x, dot.x - box.x - box.w), Math.max(0, box.y - dot.y, dot.y - box.y - box.h));
+          if (away < dotR) n++;
+        }
+        for (const other of placed) if (room.x < other.x + other.w && other.x < room.x + room.w && room.y < other.y + other.h && other.y < room.y + room.h) n++;
+        if (box.y < area.top) n++;
+        if (box.y + box.h > area.bottom) n++;
+        if (box.x < area.left) n++;
+        if (box.x + box.w > area.right) n++;
+        return n;
+      };
+      let best = candidates[0] as ChartSpot;
+      let least = Number.POSITIVE_INFINITY;
+      for (const spot of candidates) {
+        const n = cost(spot);
+        if (n < least) {
+          best = spot;
+          least = n;
+        }
+        if (n === 0) break;
+      }
+      placed.push(textBox(text, best.x, best.y, style));
+      line.values[s] = { x: best.x, y: best.y, text };
+    }
+  }
 }
 
 /** ドーナツ。輪を左に、凡例を右に置き、狭い枠では凡例を輪の下に置く */

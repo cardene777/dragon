@@ -461,6 +461,92 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     (layout.gauges ?? []).filter((g) => g.side).map((g) => ({ x: g.cx - g.r, y: g.cy - g.r, w: g.r * 2 + P.gauge.lampGap + P.gauge.lamp * 2, h: g.r * 2 }));
   const boxesLeft = (): number => Math.min(...layout.parties.filter((p) => p.shape === "token").map((p) => p.x));
   const boxesRight = (): number => Math.max(...layout.parties.filter((p) => p.shape === "token").map((p) => p.x + p.w));
+  // 網型で箱の並びの左に出す札入れの上端の候補。自分の箱の上端を先にし、低い箱は箱の並びの上端でも探す (#3813)
+  const leftTops = (box: PipeParty): number[] => {
+    const rowTop = Math.min(...boxes0.map((b) => b.y));
+    return box.y > rowTop + 0.5 ? [box.y, rowTop] : [box.y];
+  };
+  // 網型で箱の横の縁の真ん中へ1回だけ折って入る呼び出しの管が、箱の並びの左に出す札入れの所を横切り、右の上端も先の札入れが取る時は、
+  // 管を札入れの下まで下げる。管は真ん中に近いほど良いが、札入れが左にも右の上端にも収まらないと、右の列を下りて槽の字に重なる。
+  // 札入れを置く順と置き場所は下の`stackOf`と同じに見積もり、下げた管が箱の平らな縁から外れる時は下げない (#3813)
+  if (layout.fixed?.shape === "mesh" && boxes0.length > 0) {
+    const pad = 12;
+    const gap = 8;
+    const segsOf = (pts: readonly Point[]): Rect[] =>
+      pts.slice(1).map((q, i) => {
+        const a = pts[i] as Point;
+        return { x: Math.min(a[0], q[0]) - 3, y: Math.min(a[1], q[1]) - 3, w: Math.abs(q[0] - a[0]) + 6, h: Math.abs(q[1] - a[1]) + 6 };
+      });
+    const overlap = (a: Rect, b: Rect): boolean => a.x + a.w > b.x && a.x < b.x + b.w && a.y + a.h > b.y && a.y < b.y + b.h;
+    const boxIds = new Set(boxes0.map((b) => b.id));
+    const taken: Rect[] = [];
+    for (const [box, p] of plan2) {
+      const tall = pad * 2 + RANK.reduce((sum, k) => sum + p.count[k] * (p.hk[k] + gap), 0) - gap;
+      const w = p.widest + pad * 2;
+      // 左の札入れは自分の箱の上端から出し、収まらない時は箱の並びの上端からも出す (下の`stackOf`と同じ順)
+      const lefts = leftTops(box).map((y): Rect => ({ x: boxesLeft() - MESH_CARD_GAP - w, y, w, h: tall }));
+      const chipsRight = Math.max(
+        boxesRight(),
+        ...(layout.chips ?? []).filter((c) => c.w > 0 && c.kind !== "return" && (boxIds.has(c.party as string) || boxIds.has(c.token as string)) && c.y < box.y + box.h + 60).map((c) => c.x + c.w),
+      );
+      const R2: Rect = { x: chipsRight + MESH_CARD_GAP, y: box.y, w, h: tall };
+      const others: Rect[] = [
+        ...(layout.housings ?? []),
+        ...(layout.tanks ?? []),
+        ...layout.parties.filter((q) => q !== box),
+        ...layout.parties.flatMap((q) => (q.label ? [q.label] : [])),
+        ...[...(layout.links ?? []).filter((l) => !l.label?.ticket), ...(layout.valuePipes ?? [])].flatMap((l) => (Array.isArray(l.points) && l.points.length > 1 ? segsOf(l.points) : [])),
+        ...(layout.chips ?? []).filter((c) => c.w > 0 && c.kind !== "return"),
+        ...meshGaugeRects(),
+        ...taken,
+      ];
+      const calls = (layout.calls ?? []).flatMap((c) => (Array.isArray(c.points) && c.points.length > 1 ? segsOf(c.points) : []));
+      const usable = lefts.filter((L) => L.x >= P.margin && !others.some((o) => overlap(L, o)));
+      const free = usable.find((L) => !calls.some((o) => overlap(L, o)));
+      if (free) {
+        taken.push(free);
+        continue;
+      }
+      if (![...others, ...calls].some((o) => overlap(R2, o))) {
+        taken.push(R2);
+        continue;
+      }
+      /** 札入れ `L` を横切る呼び出しの管を、`L` の下まで下げる高さ。下げられない管が在る時は `undefined` */
+      const lowerFor = (L: Rect): Map<string, { y: number; box: boolean }> | undefined => {
+        const out = new Map<string, { y: number; box: boolean }>();
+        for (const c of layout.calls ?? []) {
+          if (!Array.isArray(c.points) || c.points.length < 2 || !segsOf(c.points).some((o) => overlap(L, o))) continue;
+          const fromBox = boxes0.some((b) => b.id === c.from);
+          const T = boxes0.find((b) => b.id === (fromBox ? c.from : c.to));
+          const q = fromBox ? [...c.points].reverse() : c.points;
+          const [s0, t0, e0] = q as [Point, Point, Point];
+          const side = T && q.length === 3 && (Math.abs(e0[0] - T.x) < 0.5 || Math.abs(e0[0] - (T.x + T.w)) < 0.5) && Math.abs(s0[0] - t0[0]) < 0.5 && Math.abs(t0[1] - e0[1]) < 0.5;
+          const y = Math.round((L.y + L.h + 4) * 1000) / 1000;
+          if (!side || !T || y > T.y + T.h - 10 || y > s0[1] - P.call.valveAt - P.valve.r * 2) return undefined;
+          out.set(`${c.from}>${c.to}`, { y, box: fromBox });
+        }
+        return out.size > 0 ? out : undefined;
+      };
+      // 管を真ん中に近く残すため、上に置く札入れから試す
+      const R = [...usable].sort((a, b) => a.y - b.y).find((L) => lowerFor(L) !== undefined);
+      const lower = R ? lowerFor(R) : undefined;
+      if (!R || !lower) continue;
+      const moved = (o: { points: Point[] }, key: string): void => {
+        const l = lower.get(key);
+        if (!l || o.points.length !== 3) return;
+        const q = l.box ? [...o.points].reverse() : o.points;
+        const pts: Point[] = [q[0] as Point, [(q[1] as Point)[0], l.y], [(q[2] as Point)[0], l.y]];
+        o.points = l.box ? pts.reverse() : pts;
+      };
+      for (const c of layout.calls ?? []) {
+        moved(c, `${c.from}>${c.to}`);
+        if (lower.has(`${c.from}>${c.to}`)) c.lit = c.points.map((pt): Point => [...pt]);
+      }
+      for (const l of layout.lanes ?? []) moved(l, `${l.from}>${l.to}`);
+      for (const m of layout.mains ?? []) for (const b of m.branches ?? []) moved(b, `${m.from}>${b.to}`);
+      taken.push(R);
+    }
+  }
   const stackOf = (s: number): Stack => {
     const known = stacks.get(s);
     if (known) return known;
@@ -521,13 +607,14 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       // 図の全体を右へずらすと、ずらす量が札入れの幅で変わり、呼び方で箱と槽の置き場所が変わる。下へずらすと札入れが槽の下まで下がり、図の縦が伸びる (Tracelyth #225)
       if (meshBox) {
         let found = false;
-        for (let d = 0; left0 - d - pad >= P.margin; d += 6) {
-          if (clearAt(left0 - d, top0)) {
-            left = left0 - d;
-            found = true;
-            break;
+        for (const t of leftTops(box))
+          for (let d = 0; !found && left0 - d - pad >= P.margin; d += 6) {
+            if (clearAt(left0 - d, t)) {
+              left = left0 - d;
+              top = t;
+              found = true;
+            }
           }
-        }
         // 箱の並びの右は、箱の下に出す箱の札の右端からも離す。札が箱より右へはみ出すと、高い札入れが箱の右に入らず槽の下まで下がる (Tracelyth #230)
         const boxIds = new Set(layout.parties.filter((q) => q.shape === "token").map((q) => q.id));
         const chipsRight = Math.max(
@@ -1121,7 +1208,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         const spots: { x: number; y: number; d: number }[] = [];
         for (let dy = 0; dy <= 160; dy += 8) for (let dx = 0; dx <= 320; dx += 8) for (const sx of dx ? [-1, 1] : [1]) spots.push({ x: cx - w / 2 + sx * dx, y: foot + TICKET.gap + dy, d: dx + dy * 1.5 });
         for (let dy = 0; dy <= 120; dy += 8) for (let dx = 0; dx <= 320; dx += 8) for (const sx of dx ? [-1, 1] : [1]) spots.push({ x: cx - w / 2 + sx * dx, y: p.y - TICKET.gap - h - dy, d: dx + dy * 1.5 + 60 });
-        spots.sort((a, b) => a.d - b.d);
+        // 人に横で8より多く掛かる所だけが、券と人を短い線で結べる。掛からない所は、掛かる所が全て塞がる時だけ使う (#3819)
+        const ties = (s: { x: number }): boolean => Math.min(s.x + w, p.x + p.w) - Math.max(s.x, p.x) > 8;
+        spots.sort((a, b) => Number(!ties(a)) - Number(!ties(b)) || a.d - b.d);
         const block = [...solid, ...done];
         const clear = (r: Rect): boolean => r.x >= M1 && r.y >= M1 && r.x + r.w <= layout.width - M1 && !block.some((o) => meet2(r, o)) && !crosses(r);
         const at = spots.find((s) => clear({ x: s.x, y: s.y, w, h })) ?? spots[0];

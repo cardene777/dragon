@@ -9,7 +9,7 @@
  * 上限を下げると目安も一緒に下がる。上限と目安を変える環境変数は足さない。
  * 知らせるだけで、実行の終わり方は変えない。負荷で延びただけの回に関門を落とさないため。
  *
- * 関門の 2 つの命令 (届く検査の `scripts/test-related.mjs` と、`.ikkan/checks.md` の一式と配る前のテスト) が `--reporter` で渡す。
+ * 関係する検査を回す命令 (`scripts/test-related.mjs`) と、`.ikkan/checks.md` の一式と配る前のテストが `--reporter` で渡す。
  * 設定 (`vitest.config.ts`) に書くと、関係する検査を選ぶ命令が全ての検査を選ぶので、設定には書かない。
  */
 import { loadavg } from "node:os";
@@ -33,12 +33,15 @@ export default class NearLimitReporter {
     for (const module of testModules) {
       for (const test of module.children.allTests()) {
         const duration = test.diagnostic()?.duration;
-        if (duration !== undefined && duration >= threshold) near.push({ name: `${relative(root, module.moduleId)} > ${test.fullName}`, duration });
+        if (duration !== undefined && duration >= threshold)
+          near.push({ name: `${relative(root, module.moduleId)} > ${test.fullName}`, duration });
       }
     }
     if (near.length === 0) return;
     near.sort((a, b) => b.duration - a.duration);
     const heading = `1件の上限${seconds(testTimeout)}秒の${NEAR_LIMIT_RATIO * 10}割 (${seconds(threshold)}秒) 以上かかった件が${near.length}件ある。負荷平均は${loadavg()[0].toFixed(2)}`;
-    this.vitest.logger.log(`\n${heading}\n${near.map(({ name, duration }) => `  ${seconds(duration)}秒 ${name}`).join("\n")}\n`);
+    this.vitest.logger.log(
+      `\n${heading}\n${near.map(({ name, duration }) => `  ${seconds(duration)}秒 ${name}`).join("\n")}\n`,
+    );
   }
 }

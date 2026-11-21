@@ -3090,6 +3090,11 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
   const top0 = rowTop - rowCalls.length * L.under;
   // 人の丸の上から箱へ上げる呼び出しの横の位置。同じ人から別の箱へ上げる呼び出しは横へずらす
   const upX = (c: ReservedCall): number => round3((colX[c.i] as number) + (c.k - (B - 1) / 2) * R.up);
+  /**
+   * 網型で人から箱へ上げる呼び出しが、箱のどちらの横の縁へ入るか。0 は左、2 は右、`undefined` は下の縁の口へ入る。
+   * 丸が箱の幅の外に居る時は、箱の上下の真ん中まで上げて近い方の横の縁へ1回だけ折って入る (#3813)。箱を置いた後に決める
+   */
+  let sideOf = (_c: ReservedCall): 0 | 2 | undefined => undefined;
 
   // 箱を置く
   const boxX = new Map<string, number>() as Held<string, number>;
@@ -3125,11 +3130,22 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
       const nx = round3(x0 + need);
       if (nx >= left && nx + w <= right) boxX.set(id, nx);
     });
+    sideOf = (c) => {
+      const x = upX(c);
+      const x0 = boxX.get(c.to);
+      const x1 = x0 + widths.get(c.to);
+      if (x >= x0 - 0.5 && x <= x1 + 0.5) return undefined;
+      const [a, z] = x < x0 ? [x, x0] : [x1, x];
+      // 人と箱の間に別の箱が在る時は、横へ入る線がその箱を横切るので、下の縁の口へ入る
+      if (boxes.some((b) => b !== c.to && boxX.get(b) < z && boxX.get(b) + widths.get(b) > a)) return undefined;
+      return x < x0 ? 0 : 2;
+    };
     let levels = 0;
     for (const id of boxes) {
       const lo = boxX.get(id) + L.portPad;
       const hi = boxX.get(id) + widths.get(id) - L.portPad;
-      const list = reserved.filter((c) => c.to === id).sort((a, b) => upX(a) - upX(b));
+      // 箱の横の縁へ入る呼び出しは下の縁の口を使わず、箱の下で折る段も要らない (#3813)
+      const list = reserved.filter((c) => c.to === id && sideOf(c) === undefined).sort((a, b) => upX(a) - upX(b));
       const ps = list.map((c) => Math.min(hi, Math.max(lo, upX(c))));
       for (let j = 1; j < ps.length; j++) ps[j] = Math.max(ps[j] as number, (ps[j - 1] as number) + L.port);
       for (let j = ps.length - 2; j >= 0; j--)
@@ -3158,8 +3174,11 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
       dl.forEach((c, j) => turnOf.set(c, j));
       dr.forEach((c, j) => turnOf.set(c, j));
     }
-    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)
-    boxBottom = top0 - MESH_CLEAR - levels * L.turn - L.band;
+    // 網型は2人を結ぶ線を券で描き、箱と人の間に線の段を通さないので、箱の下の空きを詰める (Tracelyth #225)。
+    // ただし券を人に結ぶ図は、券を人の上の箱との間に置いて短い線で結ぶので、券の高さと上下の間を残す。
+    // 箱の下で折る管が無い図 (#3813) で空きを詰め切ると、券が人の上に収まらず、離れた所へ逃げて結ぶ線が消える
+    const ticketRoom = (out.links ?? []).some((l) => l.label?.ticket && people.includes(l.to)) ? TICKET.h + TICKET.gap + MESH_CLEAR : 0;
+    boxBottom = top0 - Math.max(MESH_CLEAR + levels * L.turn + L.band, ticketRoom);
     for (const b of boxes) boxY.set(b, boxBottom - heights.get(b));
   } else {
     for (const b of rowBoxes) {
@@ -3303,6 +3322,15 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     if (c.way !== "row") {
       const x = upX(c);
       if (mesh) {
+        const side = sideOf(c);
+        if (side !== undefined) {
+          const my = round3(to.y + to.h / 2);
+          return simplifyPath([
+            [x, from.y],
+            [x, my],
+            [side === 0 ? to.x : round3(to.x + to.w), my],
+          ]);
+        }
         const px = portX.get(c);
         const ty = round3(boxBottom + L.band + (turnOf.get(c) ?? 0) * L.turn);
         return simplifyPath(
@@ -3468,10 +3496,12 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
               ],
         );
       else {
+        // 横の縁の口は上下の真ん中から上と下へ交互に、角の丸みに掛からない所まで置く (#3813)
         const sideX = x < B.x ? B.x : B.x + B.w;
-        for (let j = 0; j < 4; j++) {
-          const y = round3(bottom - 16 - j * 16);
-          if (y < B.y + 10) break;
+        const mid = B.y + B.h / 2;
+        for (const j of [0, -1, 1, -2, 2, -3, 3]) {
+          if (Math.abs(j) * 16 > B.h / 2 - 10) continue;
+          const y = round3(mid + j * 16);
           cands.push(
             above
               ? [
@@ -3487,8 +3517,45 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
           );
         }
       }
-      const pick = cands.map((p) => (fromBox && p !== now ? [...p].reverse() : p)).reduce((best, p) => (routeCost(p, own, used) < routeCost(best, own, used) ? p : best));
+      // 口が辺の真ん中から離れるほど値を足す。1px で 0.5 なので、60px 離れると折れ 1 回 (30) と同じ値になる (#3813)
+      const offMiddle = (p: readonly Point[]): number => {
+        const e = (fromBox ? p[0] : p[p.length - 1]) as Point;
+        const onSide = Math.abs(e[0] - B.x) < 0.5 || Math.abs(e[0] - (B.x + B.w)) < 0.5;
+        return (onSide ? Math.abs(e[1] - (B.y + B.h / 2)) : Math.abs(e[0] - (B.x + B.w / 2))) * 0.5;
+      };
+      const costOf = (p: readonly Point[]): number => routeCost(p, own, used) + offMiddle(p);
+      const pick = cands.map((p) => (fromBox && p !== now ? [...p].reverse() : p)).reduce((best, p) => (costOf(p) < costOf(best) ? p : best));
       callPts.set(key, pick);
+    }
+    // 同じ箱の同じ横の縁へ1回だけ折って入る管は、上下の真ん中を挟んで同じ間で並べる。
+    // 人の丸から上げる管は遠い人ほど上に入れ、先に折れた管が近い人の上げる管を越えない (#3813)
+    const sideIn = new Map<string, { key: string; box: PipeParty; fromBox: boolean; x: number; sideX: number; start: Point }[]>();
+    for (const c of calls) {
+      const key = `${c.from}>${c.to}`;
+      const p = callPts.get(key);
+      const fromBox = boxes.includes(c.from);
+      const B = parties.get(fromBox ? c.from : c.to);
+      if (!p || p.length !== 3 || !B || fromBox === boxes.includes(c.to) || sideBySide.has(c)) continue;
+      const q = fromBox ? [...p].reverse() : p;
+      const [s, t, e] = q as [Point, Point, Point];
+      const onSide = Math.abs(e[0] - B.x) < 0.5 || Math.abs(e[0] - (B.x + B.w)) < 0.5;
+      if (!onSide || Math.abs(s[0] - t[0]) > 0.5 || Math.abs(t[1] - e[1]) > 0.5) continue;
+      const k = `${B.id}|${e[0]}|${s[1] > B.y + B.h ? "below" : "above"}`;
+      sideIn.set(k, [...(sideIn.get(k) ?? []), { key, box: B, fromBox, x: s[0], sideX: e[0], start: s }]);
+    }
+    for (const list of sideIn.values()) {
+      const B = (list[0] as (typeof list)[number]).box;
+      const below = (list[0] as (typeof list)[number]).start[1] > B.y + B.h;
+      const room = Math.max(0, B.h / 2 - 10);
+      const step = list.length > 1 ? Math.min(LANE_STEP, (room * 2) / (list.length - 1)) : 0;
+      // 遠い人から順に、下から上げる管は上の口、上から下ろす管は下の口を取る
+      const sorted = [...list].sort((a, b) => Math.abs(b.x - b.sideX) - Math.abs(a.x - a.sideX));
+      sorted.forEach((it, j) => {
+        const off = (j - (list.length - 1) / 2) * step;
+        const y = round3(B.y + B.h / 2 + (below ? off : -off));
+        const pts: Point[] = [it.start, [it.x, y], [it.sideX, y]];
+        callPts.set(it.key, it.fromBox ? pts.reverse() : pts);
+      });
     }
   }
   // 網型は自分を呼ぶ呼び出しの線を引かない。並べ直す前の線が箱から離れた所に残り、線の上の札が図の外へはみ出す (Tracelyth #225)

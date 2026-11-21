@@ -45,7 +45,7 @@ export const CHART_TYPE = {
  * `line` は折れ線の見た目 (#3802) で、縦の軸の高さ `plotH`、縦の軸の刻みの線の数の目安 `ticks`、点の間の既定 `pitch` と狭い枠で縮める下限 `pitchMin`、
  * 横の軸の名前どうしの間の最小 `labelGap`、縦の軸から最初の点までと最後の点から刻みの線の右端までの間 `inset`、縦の軸の値と刻みの線の間 `tickGap`、
  * 0 の刻みの線と横の軸の名前の基準線の間 `xDrop`、点の半径 `pointR` と縁の太さ `pointEdge`、線の太さ `stroke`、刻みの線の太さ `grid` と濃さ `gridOpacity`、
- * 0 の刻みの線の太さ `base`、点と点の値の字の間 `valueGap`、同じ段の値の字どうしの縦の間の最小 `valueLead`。
+ * 0 の刻みの線の太さ `base`、点の左右に置く値の字と点の間 `valueGap`、点の上下に置く値の字と点の間 `valueRise`、値の字と他の字の間の最小 `valueSpace` (#3812)。
  * 凡例は色の線の長さ `keyW` と太さ `key`、線と名前の間 `keyGap`、項目どうしの間 `itemGap`、行の高さ `row`、段の番号と凡例の間 `badgeGap`、凡例と縦の軸の上端の間 `legendGap` を持つ。
  * 止めて置く図の図の題の行と凡例の間は `titleGap`。字の基準線は、行の真ん中から字の大きさの `textDrop` の割合だけ下げる
  */
@@ -119,7 +119,8 @@ export const CHART_LOOK = {
     gridOpacity: 0.55,
     base: 1.4,
     valueGap: 8,
-    valueLead: 14,
+    valueRise: 4,
+    valueSpace: 2,
     keyW: 18,
     key: 3,
     keyGap: 6,
