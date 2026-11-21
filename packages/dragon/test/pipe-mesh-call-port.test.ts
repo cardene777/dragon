@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
+import { PIPE_LOOK } from "../src/look/pipe";
 import "../src/kind-use/pipe";
 // 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
 import "./built-globals";
@@ -29,9 +30,22 @@ interface Call {
   to: string;
   points: Point[];
 }
+interface Tank extends Rect {
+  party: string;
+  token: string;
+}
+interface Level {
+  party: string;
+  token: string;
+  text?: Rect;
+}
 interface Layout {
   parties: Party[];
   calls: Call[];
+  tanks: Tank[];
+  levels: Level[];
+  /** 描いた全てのステップの札入れの矩形 */
+  wallets?: Rect[];
 }
 interface Api {
   parseNotation(text: string, options: { lang: string }): { ok: true; diagram: unknown } | { ok: false; errors: { line: number; message: string }[] };
@@ -122,6 +136,19 @@ function bendsOf(pts: readonly Point[]): number {
   }
   return n;
 }
+const T = PIPE_LOOK.tank;
+/** 槽と、槽の下の残高の数字と増減と状態の字を包む矩形 (`pipe-side-port.test.ts`と同じ測り方) */
+function tankAreas(l: Layout): Array<Rect & { name: string }> {
+  return l.tanks.map((t) => {
+    const text = l.levels.find((v) => v.party === t.party && v.token === t.token && v.text)?.text;
+    const x = Math.min(t.x, text?.x ?? t.x);
+    const right = Math.max(t.x + t.w, text ? text.x + text.w : t.x + t.w);
+    const bottom = text ? text.y + text.h + T.deltaY + T.tagY : t.y + t.h;
+    return { name: `${t.party} ${t.token}`, x, y: t.y, w: right - x, h: bottom - t.y };
+  });
+}
+/** 2つの矩形の内側 (縁から0.5より内) が重なるか */
+const overlaps = (a: Rect, b: Rect): boolean => a.x + a.w > b.x + 0.5 && b.x + b.w > a.x + 0.5 && a.y + a.h > b.y + 0.5 && b.y + b.h > a.y + 0.5;
 const cx = (r: Rect): number => r.x + r.w / 2;
 const cy = (r: Rect): number => r.y + r.h / 2;
 /** 縦の線分と横の線分が、どちらの端でもない所で交わるか */
@@ -198,22 +225,29 @@ describe("網型で人から箱へ入る呼び出しの管", () => {
     }
   });
 
-  it("pipe-mesh-call-no-breaks", () => {
-    const kinds = ["parts-overlap", "line-over-text", "empty-band"];
-    const texts: Array<[string, string]> = [
-      ...HOME.map((n): [string, string] => [n, read(n)]),
-      ...CATALOG.map((n): [string, string] => [n, read(`side-port-${n}`)]),
-      ["箱の真下の人が呼ぶ図", BELOW],
-      ["2人が同じ箱を呼ぶ図", PAIR],
-    ];
-    const found = texts.flatMap(([name, text]) =>
-      checkLayoutText(text, { lang: "ja" })
-        .filter((b) => kinds.includes(b.kind))
-        .map((b) => `${name}: ${b.kind} ${JSON.stringify(b.parts ?? [])}`),
-    );
-    expect(found, "網型の図の崩れ").toEqual([]);
-  });
 });
+
+// 崩れを数える検査は図ごとの件に分け、混んだ機械でも1件が10秒の上限の中で終わる形にする
+const BREAK_KINDS = ["parts-overlap", "line-over-text", "empty-band"];
+const BREAK_TEXTS: Array<[string, string]> = [
+  ...HOME.map((n): [string, string] => [n, read(n)]),
+  ...CATALOG.map((n): [string, string] => [n, read(`side-port-${n}`)]),
+  ["箱の真下の人が呼ぶ図", BELOW],
+  ["2人が同じ箱を呼ぶ図", PAIR],
+];
+for (const [name, text] of BREAK_TEXTS)
+  describe(`網型の図の崩れ ${name}`, () => {
+    it("pipe-mesh-call-no-breaks", () => {
+      const found = checkLayoutText(text, { lang: "ja" })
+        .filter((b) => BREAK_KINDS.includes(b.kind))
+        .map((b) => `${b.kind} ${JSON.stringify(b.parts ?? [])}`);
+      // 札入れは、槽と槽の下の残高の数字と増減と状態の字に重ならない
+      const l = layoutOfText(text);
+      for (const w of l.wallets ?? [])
+        for (const t of tankAreas(l)) if (overlaps(w, t)) found.push(`札入れ (${w.x},${w.y}) が ${t.name} の槽か残高の字に重なる`);
+      expect(found, `${name} の崩れ`).toEqual([]);
+    });
+  });
 
 /** 箱の下の縁から人の丸の上の縁までの長さ。直す前の72pxから、折る段の34pxを引いた値 */
 const GAP = 38;
