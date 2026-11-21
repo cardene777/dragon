@@ -36,7 +36,7 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
 | 届く検査 | 無し (本人が2026-11-21に外すと決めた。課題ごとの関門は記録したテスト命令だけを回す) |
-| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --reporter=verbose && pnpm exec vitest run apps/ --reporter=verbose'` |
+| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/dragon/test/pipe-mesh-call-port.test.ts packages/dragon/test/pipe-side-port.test.ts packages/dragon/test/pipe-port.test.ts packages/dragon/test/pipe-top-look.test.ts packages/dragon/test/examples-svg.test.ts packages/dragon/test/release-records.test.ts packages/dragon/test/script-entry.test.ts packages/dragon/test/notation-skill.test.ts --reporter=verbose'` (0.79.3に限り、本人が2026-11-21に変えた所の検査に絞ると決めた。取り込む前に元の命令へ戻す、#3814) |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
 | 配る先との整合 | `node scripts/release-checks.mjs target` |
