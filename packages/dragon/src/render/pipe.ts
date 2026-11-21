@@ -1208,7 +1208,9 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         const spots: { x: number; y: number; d: number }[] = [];
         for (let dy = 0; dy <= 160; dy += 8) for (let dx = 0; dx <= 320; dx += 8) for (const sx of dx ? [-1, 1] : [1]) spots.push({ x: cx - w / 2 + sx * dx, y: foot + TICKET.gap + dy, d: dx + dy * 1.5 });
         for (let dy = 0; dy <= 120; dy += 8) for (let dx = 0; dx <= 320; dx += 8) for (const sx of dx ? [-1, 1] : [1]) spots.push({ x: cx - w / 2 + sx * dx, y: p.y - TICKET.gap - h - dy, d: dx + dy * 1.5 + 60 });
-        spots.sort((a, b) => a.d - b.d);
+        // 人に横で8より多く掛かる所だけが、券と人を短い線で結べる。掛からない所は、掛かる所が全て塞がる時だけ使う (#3819)
+        const ties = (s: { x: number }): boolean => Math.min(s.x + w, p.x + p.w) - Math.max(s.x, p.x) > 8;
+        spots.sort((a, b) => Number(!ties(a)) - Number(!ties(b)) || a.d - b.d);
         const block = [...solid, ...done];
         const clear = (r: Rect): boolean => r.x >= M1 && r.y >= M1 && r.x + r.w <= layout.width - M1 && !block.some((o) => meet2(r, o)) && !crosses(r);
         const at = spots.find((s) => clear({ x: s.x, y: s.y, w, h })) ?? spots[0];
