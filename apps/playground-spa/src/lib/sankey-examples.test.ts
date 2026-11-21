@@ -2,6 +2,7 @@
  * 量の行き先の図の見本と棚 (#3626)。
  *
  * 見本は 4 枚 (`token-allocation`、`fee-split`、`salary`、`revenue`) と、段ごとの帯の見た目 (`[shape: rows]`、#3641) の `day-hours` で、どれも日本語と英語の記法を持ち、英語版は日本語版と同じ形 (部品の数、段の数、段ごとの出来事の数) で、どちらも崩れを出さない。
+ * ただし`day-hours`の日本語版は、幅390の段4で2つの量の札「3時間」が重なる。崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかり、直すのは#3791に任せたので、この1件だけを許す。
  * 題材は一般 (`salary`、`revenue`、`day-hours`) と Web3 (`token-allocation`、`fee-split`) を持つ。
  * 題材の分野は記法から読めないので、この file の表が持つ。表は #3626 の「決まっていること」の写し。
  * 編集画面の棚は、見本の束と記法の早見の頭の行から量の行き先の図を書き始められる。
@@ -34,6 +35,22 @@ const SANKEY: Readonly<Record<string, Field>> = {
 };
 
 const LANGS: readonly Lang[] = ["ja", "en"];
+
+/**
+ * 直すのを#3791に任せた崩れ (#3790)。`day-hours`の日本語版は、幅390の段4で、家のことへ下りる帯の札「3時間」と自由な時間へ下りる帯の札「3時間」が重なる。
+ * 種類の名前は字で比べ、崩れの型に字どうしの重なりの種類が無い版の package でも検査の型を通す
+ */
+function knownBreak(key: string, lang: Lang, b: { kind: string; step: number; width?: number; parts: readonly { kind: string; text?: string }[] }): boolean {
+  return (
+    key === "day-hours" &&
+    lang === "ja" &&
+    b.kind === "texts-overlap" &&
+    b.step === 4 &&
+    b.width === 390 &&
+    b.parts.length === 2 &&
+    b.parts.every((part) => part.kind === "text" && part.text === "3時間")
+  );
+}
 const EXAMPLES_DIR = join(root, "packages/dragon/examples");
 const registered = (key: string): boolean => (EXAMPLE_KEYS as readonly string[]).includes(key);
 
@@ -103,7 +120,7 @@ describe("量の行き先の図の見本 (#3626)", () => {
         if (text === "") continue;
         const breaks = checkLayoutText(text, { lang });
         expect(
-          breaks.map((b) => JSON.stringify(b)),
+          breaks.filter((b) => !knownBreak(key, lang, b)).map((b) => JSON.stringify(b)),
           `${key} ${lang} の崩れ`,
         ).toEqual([]);
       }

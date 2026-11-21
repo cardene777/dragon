@@ -10,7 +10,8 @@
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import * as dragon from "./all-kinds";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
@@ -32,7 +33,7 @@ vi.mock("../src/export/capture", async (importOriginal) => {
  * 描く部品と書き出す部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 元の code は 500 を超える file を読み、検査の中で初めて読むと混んだ機械で変換だけで 9 秒かかる (#3410)
  */
-const [{ checkLayout, describeBreak }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }, { flattenPath }] = await Promise.all([
+const [{ checkLayout, describeBreak, diagramBreaks }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }, { flattenPath }] = await Promise.all([
   import("../src/render/layout-check"),
   import("../src/export/index"),
   import("../src/render/draw"),
@@ -68,6 +69,12 @@ const TRY_SKIP = join(FIXTURES, "try-skip.dragon");
 const RECORDED = join(ROOT, "packages/dragon/test/fixtures/layout-breaks.json");
 /** 崩れを数える見本の置き場 */
 const EXAMPLE_DIRS = ["packages/dragon/examples", "packages/dragon/blocks/examples"].map((dir) => join(ROOT, dir));
+/** 使い方の頁の見本の置き場。記法の`.dragon`と、図の原本の`.json`を持つ (#3790) */
+const DOCS_EXAMPLES = join(ROOT, "apps/playground-spa/src/docs/examples");
+/** 見本の一覧を1か所で持つ file。見本の崩れの検査と、記録を書き直す script の両方が読む (#3790) */
+const SHARED_EXAMPLES = join(ROOT, "scripts/layout-examples.mjs");
+/** 見本の崩れの記録を書き直す script */
+const RECORD_SCRIPT = join(ROOT, "scripts/layout-breaks-record.mjs");
 
 type Part =
   | { kind: "badge"; step: number }
@@ -662,6 +669,18 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);
   });
 
+  it("layout-check-line-over-text-reported-once", () => {
+    // 線が札を持たない字を横切る所は、描いた結果の重なり (`overlaps`) にも入る。崩れは線が字を横切る種類の1件だけで知らせ、字どうしの重なりと重ねない (#3790)
+    const text = readFileSync(TRY_SKIP, "utf8");
+    const parsed = parseNotation(text, { lang: "ja" });
+    expect(parsed.ok, "網の線が節の名前を横切る試す図を読めない").toBe(true);
+    if (!parsed.ok) return;
+    const crossed = renderDiagram(parsed.diagram, { lang: "ja" }).overlaps.filter((o) => o.kind === "line" && o.text === "中継1");
+    expect(crossed.length, "描いた結果の重なりに、線が名前「中継1」を横切る所が無い").toBeGreaterThan(0);
+    const named = dragon.checkLayoutText(text, { lang: "ja" }).filter((b) => b.parts.some((p) => p.kind === "text" && p.text === "中継1"));
+    expect(named.map((b) => b.kind), `名前「中継1」に関わる崩れ ${JSON.stringify(named)}`).toEqual(["line-crosses-text"]);
+  });
+
   it("layout-check-skips-intended-overlaps", () => {
     const { intended, payment } = INTENDED_CHECKED.get();
     expect(intended.code, intended.stderr).toBe(0);
@@ -834,6 +853,63 @@ describe("見本に今ある崩れ (#3484)", () => {
     expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本ごとの件").toEqual(names);
   });
 });
+
+describe("見本の崩れの検査が全ての置き場の見本を読む (#3790)", () => {
+  it("layout-check-examples-cover-all-places", ({ task }) => {
+    const cases = new Set(casesNamed(task.file, "layout-check-examples-match-recorded"));
+    const examples = join(ROOT, "packages/dragon/examples");
+    const below = filesUnder(examples);
+    // 一覧を持つ file を使わずに、3つの置き場の見本の名前を置き場から数える。mdの中の図は、図の中身の1行目の行の番号で呼ぶ
+    const places: [string, string[]][] = [
+      ["使い方の頁の .dragon", readdirSync(DOCS_EXAMPLES).filter((name) => name.endsWith(".dragon")).map((name) => relative(ROOT, join(DOCS_EXAMPLES, name)))],
+      ["packages/dragon/examples の下のフォルダの .dragon", below.filter((file) => file.endsWith(".dragon") && dirname(file) !== examples).map((file) => relative(ROOT, file))],
+      [
+        "packages/dragon/examples の md の中の図",
+        below
+          .filter((file) => file.endsWith(".md"))
+          .flatMap((file) => dragon.extractDiagrams(readFileSync(file, "utf8")).map((fence) => `${relative(ROOT, file)}:${fence.line}`)),
+      ],
+    ];
+    for (const [place, names] of places) {
+      expect(names.length, `${place}を数えられない`).toBeGreaterThan(0);
+      expect(names.filter((name) => !cases.has(name)), `見本の崩れの検査が${place}を件として持たない`).toEqual([]);
+    }
+  });
+
+  it("layout-check-record-reads-same-examples", async ({ task }) => {
+    expect(existsSync(SHARED_EXAMPLES), `見本の一覧を持つ ${relative(ROOT, SHARED_EXAMPLES)} が無い`).toBe(true);
+    if (!existsSync(SHARED_EXAMPLES)) return;
+    // 記録を書き直す script は、見本の一覧を検査と同じ file から読み、自分で置き場を読まない
+    const script = readFileSync(RECORD_SCRIPT, "utf8");
+    expect(script, "記録の script が見本の一覧を scripts/layout-examples.mjs から読まない").toMatch(/from "\.\/layout-examples\.mjs"/u);
+    expect(script, "記録の script が自分で置き場の file を並べる").not.toMatch(/readdirSync/u);
+    const { layoutExamples } = (await import(/* @vite-ignore */ pathToFileURL(SHARED_EXAMPLES).href)) as { layoutExamples: (root: string) => { name: string }[] };
+    expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本の崩れの検査の件と、一覧を持つ file の見本").toEqual(layoutExamples(ROOT).map((e) => e.name).sort());
+  });
+});
+
+describe("使い方の頁の図の原本は崩れを出さない (#3790)", () => {
+  // 図の原本 (`.json`) は記法の崩れの検査 (`checkLayoutText`、`dragon check`) に渡せないので、原本から描いて崩れを数える
+  describe.for(
+    readdirSync(DOCS_EXAMPLES)
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .map((name) => [relative(ROOT, join(DOCS_EXAMPLES, name)), join(DOCS_EXAMPLES, name)] as const),
+  )("%s", ([name, file]) => {
+    it("layout-check-json-examples-have-no-breaks", () => {
+      const lang = file.includes(".en.") ? "en" : "ja";
+      const read = dragon.readDiagram(JSON.parse(readFileSync(file, "utf8")) as unknown, { lang });
+      expect(read.ok, `${name} を図の原本として読めない`).toBe(true);
+      if (!read.ok) return;
+      expect(diagramBreaks(read.diagram, lang).map((b) => `${name}: ${JSON.stringify(b)}`), "使い方の頁の図の原本に崩れが残る").toEqual([]);
+    });
+  });
+});
+
+/** dir の下の file を、下のフォルダも含めて全て */
+function filesUnder(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? filesUnder(join(dir, entry.name)) : [join(dir, entry.name)]));
+}
 
 describe("見本帳の図は崩れを出さない (#3607)", () => {
   // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
