@@ -214,11 +214,10 @@ describe("同じ commit から分かれる枝の線は別々の道を通る (#35
   });
 
   it("layout-breaks-record-is-empty", () => {
-    // 崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかった2件だけを記録に残し、直すのは#3791に任せた。
-    // #3791が直した後は、記録はまた空になる
+    // 崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかった2件は、#3791が量の札の段違いと軸の点数の札を外へ出す形で直し、記録はまた空になる
     const recorded = JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, { kind: string }[]>;
     const left = Object.entries(recorded).flatMap(([file, breaks]) => breaks.map((b) => `${file}: ${b.kind}`));
-    expect(left.sort(), "見本の崩れの記録に残る行").toEqual(["packages/dragon/examples/day-hours.dragon: texts-overlap", "packages/dragon/examples/quick-start.md:779: texts-overlap"]);
+    expect(left.sort(), "見本の崩れの記録に残る行").toEqual([]);
   });
 });
 

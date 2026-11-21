@@ -23,6 +23,8 @@ import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, pointers } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Rect, type Rendered } from "./render-support";
+import { carrierHalf } from "../src/layout/scene";
+import { SANKEY_ROWS } from "../src/look/sankey";
 import "../src/kinds/basics";
 import "../src/kind-use/sankey";
 
@@ -723,5 +725,118 @@ describe("段ごとの帯の見た目の描き方 (#3641)", () => {
       bare.ok && (bare.diagram as unknown as Source).sankey,
       "見た目を書かない量の行き先の図が見た目の欄を持つ",
     ).toBeFalsy();
+  });
+});
+
+/** 量の札の道。`carry` は札の字 */
+interface ChipEdge {
+  step: number;
+  to: string;
+  points: [number, number][];
+  carry: { kind: "tag"; text: string };
+}
+
+/** 描いた結果の重なり。`texts` は同じ段に見える字どうしの重なり */
+interface DrawnOverlap {
+  kind: string;
+  step: number;
+  spots: { text: string }[];
+}
+
+/** 携帯の幅。幅 326 は頁の幅 360px で左右に 16px の余白を置いた時の図の幅 */
+const NARROW = [PHONE, 326] as const;
+
+/** 量の札が止まる所。札は道の最後の点に止まり、`rect` は止まった札の四角 */
+const chipsAt = (rendered: RowsRendered): { step: number; to: string; x: number; y: number; rect: Rect; edge: ChipEdge }[] =>
+  (rendered.layout.edges as unknown as ChipEdge[]).map((edge) => {
+    const [x, y] = edge.points.at(-1) ?? [0, 0];
+    const [hx, hy] = carrierHalf(edge.carry);
+    return { step: edge.step, to: edge.to, x, y, rect: { x: x - hx, y: y - hy, w: hx * 2, h: hy * 2 }, edge };
+  });
+
+/** 行の下の縁。帯の下に名前を並べた行は名前の下の縁 */
+const bottomOf = (row: Row): number => Math.max(row.y + row.h, ...row.names.map((n) => n.name.rect.y + n.name.rect.h));
+
+/** 描いた SVG の量の札の四角の大きさと字。`<字> <幅>x<高さ>` を並べ替えた並び */
+const chipBoxes = (svg: string): string[] =>
+  [...svg.matchAll(/<rect class="dg-car"[^>]*?width="([\d.]+)" height="([\d.]+)"[^>]*\/><text class="dg-car-t[^"]*"[^>]*>([^<]*)<\/text>/g)].map((m) => `${m[3]} ${m[1]}x${m[2]}`).sort();
+
+/** 描いた SVG の量の札の字の見た目の規則 */
+const chipRules = (svg: string): string[] => [...svg.matchAll(/\.dg-car-tj?\{[^}]*\}/g)].map((m) => m[0]);
+
+describe("携帯の幅の量の札 (#3791)", () => {
+  it("sankey-rows-chips-keep-apart-narrow", () => {
+    for (const { where, source, lang } of samples()) {
+      for (const width of NARROW) {
+        const at = `${where} (幅 ${width})`;
+        const rendered = render(source as unknown as Json, lang, width);
+        // 同じ段に見える字どうしが重ならない
+        const texts = (rendered as unknown as { overlaps: DrawnOverlap[] }).overlaps.filter((o) => o.kind === "texts");
+        expect(
+          texts.map((o) => `段 ${o.step + 1}: ${o.spots.map((spot) => spot.text).join(" と ")}`),
+          `${at} で重なる字`,
+        ).toEqual([]);
+        // 同じ段の量の札は、止まった所で重ならない
+        const chips = chipsAt(rendered);
+        chips.forEach((a, i) =>
+          chips
+            .slice(i + 1)
+            .filter((b) => b.step === a.step)
+            .forEach((b) => expect(overlaps(a.rect, b.rect), `${at} の段 ${a.step + 1} で ${a.to} と ${b.to} の量の札が重なる`).toBe(false)),
+        );
+      }
+    }
+  });
+
+  it("sankey-rows-chips-step-up-when-crowded", () => {
+    const sample = samples().find((s) => s.lang === "ja");
+    expect(sample, "日本語の見本 day-hours が無い").toBeDefined();
+    if (!sample) return;
+    // 段 4 は起きている時間を仕事と家のことと自由な時間に分け、携帯の幅では家のことと自由な時間の区画が札より狭い
+    const step = 3;
+    for (const width of NARROW) {
+      const at = `${sample.where} (幅 ${width})`;
+      const rendered = render(sample.source as unknown as Json, "ja", width);
+      const rows = rowsOf(rendered, at);
+      const chips = chipsAt(rendered).filter((c) => c.step === step);
+      const [work, home, free] = ["work", "home", "free"].map((id) => chips.find((c) => c.to === id));
+      expect(work && home && free, `${at} の段 4 に仕事と家のことと自由な時間の量の札が無い`).toBeTruthy();
+      if (!work || !home || !free) continue;
+      const lift = home.rect.h + SANKEY_ROWS.chip;
+      // 重ならない先の 2 枚は同じ高さに止まり、家のことの札に重なる自由な時間の札は 1 段上 (札の高さと札の隙間の分) で止まる
+      expect(home.y, `${at} の段 4 の家のことの札の高さ`).toBeCloseTo(work.y, 1);
+      expect(free.y, `${at} の段 4 の自由な時間の札が家のことの札の 1 段上で止まらない`).toBeCloseTo(home.y - lift, 1);
+      // 札は自分の区画の真ん中の真上に残る
+      const row = rows[step] as Row;
+      for (const chip of [work, home, free]) {
+        const section = row.sections.find((s) => s.id === chip.to);
+        expect(section, `${at} の段 4 に ${chip.to} の区画が無い`).toBeDefined();
+        if (section) expect(chip.x, `${at} の段 4 の ${chip.to} の札が区画の真ん中に無い`).toBeCloseTo(section.x + section.w / 2, 1);
+      }
+      // 段 4 の上の下りる帯の間は、札の重ならない段 3 の上の間より 1 段分広い
+      const gap = (k: number): number => (rows[k] as Row).y - bottomOf(rows[k - 1] as Row);
+      expect(gap(step), `${at} の段 4 の上の下りる帯の間が 1 段分伸びない`).toBeCloseTo(gap(step - 1) + lift, 1);
+      // 1 段上で止まる札も、道のどこでも上の行の帯の下の縁と帯の下の名前より上へ出ない
+      const floor = bottomOf(rows[step - 1] as Row);
+      for (const chip of chips)
+        for (const [, y] of chip.edge.points)
+          expect(y - chip.rect.h / 2, `${at} の段 4 の ${chip.to} の札が上の行に掛かる`).toBeGreaterThanOrEqual(floor - 0.5);
+    }
+  });
+
+  it("sankey-rows-chips-keep-size-narrow", () => {
+    for (const { where, source, lang } of samples()) {
+      const wide = render(source as unknown as Json, lang);
+      for (const width of NARROW) {
+        const at = `${where} (幅 ${width})`;
+        const narrow = render(source as unknown as Json, lang, width);
+        // 図は携帯の幅に収まる大きさで描き、描いた後に縮めない
+        expect(narrow.layout.width, `${at} の図の幅が携帯の幅を超える`).toBeLessThanOrEqual(width);
+        // 量の札の四角と字の大きさは、既定の幅で描いた札と同じ
+        expect(chipBoxes(narrow.svg), `${at} の量の札の大きさ`).toEqual(chipBoxes(wide.svg));
+        expect(chipRules(narrow.svg), `${at} の量の札の字の見た目`).toEqual(chipRules(wide.svg));
+      }
+      expect(chipBoxes(wide.svg).length, `${where} の量の札の数`).toBeGreaterThan(0);
+    }
   });
 });
