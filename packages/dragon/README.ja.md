@@ -185,6 +185,20 @@ package から描く時は、`renderDiagram` に `figure: true` を渡すと同�
 `layout: sidebar` は左に目次を置き、`layout: tabs` は上に段のタブを、その下に段の項目のタブを置く。
 既定は `layout: entry` になる。
 
+頭の行には、図の帯のボタンの並び`header-buttons`と帯の色`header-<色の欄>`も1行ずつ書ける。
+`header-buttons`は、ボタンの名前 (`code`、`editor`、`copy`、`export`、`expand`) を書いた順に`,`で区切って並べ、書かなかったボタンを帯から外す。
+色の欄は`surface`、`background`、`foreground`、`muted`、`border`、`accent`、`hover`の7つで、色の値の`#`は`"`で囲む。
+書き出しはこれらの行を頁の帯の設定の塊 (`<script type="application/json" id="dragon-header">`、[scriptの1行で帯を付ける](#scriptの1行で帯を付ける)) にして頁に入れ、頁の全ての図の帯に効かせる。
+知らないボタンの名前と、2度書いたボタンと、`;`か`<`を含む色の値と、知らない`header-`の行は、行を名指して書き出しを止める。
+
+```md
+---
+layout: tabs
+header-buttons: code, export
+header-accent: "#c0392b"
+---
+```
+
 図の箱は、飛び先に項目の場所の名前を `[link: #<場所の名前>]` と書くと、押した時にその項目へ移る。
 場所の名前は GitHub が見出しに付ける名前と同じ作り方で見出しの字から作り、英字を小文字にして約物を外し、空白を `-` にする。
 `### 注文を受ける` の場所の名前は `#注文を受ける` になる。
@@ -329,7 +343,15 @@ mountDiagram(host, parsed.diagram, {
 
 `<pre class="dragon">` の塊に属性 `data-header` を付けると、scriptの1行の入口はその塊に帯を付ける。
 属性を持たない塊は帯の無い図のまま。
-入口は図を先に描いてから帯を後から読むので、`data-header` の無い頁が最初に読む量は増えない。
+入口は`data-header`の塊が在る頁でだけ、記法が使う部品と同時に帯の部品を読み、帯の内側に図を1度だけ描く。
+帯の部品が届くまで塊は記法のまま残り、帯の無い図を描いてから描き直すことはしない。
+`data-header`の無い頁は帯の部品を読まないので、最初に読む量は増えない。
+
+帯のボタンの並びと見た目は、頁に置く帯の設定の塊`<script type="application/json" id="dragon-header">`に書く。
+鍵はSDKの`mountDragon`と同じ`buttons`と`look`で、頁の全ての`data-header`の塊の帯に効く。
+例えば塊の中身を`{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }`にすると、帯はコードとエクスポートの2つのボタンを並べ、差し色を赤にする。
+`buttons`に書けるのは初めから在る5つのボタンの名前だけで、押した時の関数が要る置く側のボタンは書けない。
+JSONとして読めない塊と、知らないボタンの名前を書いた塊は、`data-header`の塊をその誤りの文に置き換える。
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -365,6 +387,7 @@ host.addEventListener("dragon-export", (event) => console.log(event.detail.forma
 `buttons` は帯のボタンを並べる順に書き、書かなかった初めからのボタンは外れ、物を書くと置く側のボタンを足す。足したボタンの `onClick` は置いた図を受け取る。
 `header`を`false`にすると帯を出さずに図だけを置き、返した物でエクスポート (`export`)、エディタで開く (`openEditor`)、コピー (`copy`) を呼べる。
 `lang` は帯の言葉 (`ja` か `en`) を決め、書かない時は要素から上で最も近い `lang` 属性に従い、それも無い時は英語にする。
+記法の誤りの文も帯と同じ言葉で出し、`<html lang="ja">`の頁では日本語になる。
 `nonce` は、`adoptedStyleSheets` を持たないブラウザで作る style要素に付ける。
 置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを `bubbles` と `composed` で知らせる。
 
@@ -439,6 +462,19 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 `sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、記法の図は何も待たずに読んで描ける。
 ただし時系列図の配管の見た目 (`[shape: pipe]`) は `loadFor` が読む。先に読む時は `loadLook("pipe")` を待つ。読む前に描くと、`loadLook` を待つよう告げる誤りで止まる。
 1 つの頁で既定の入口と混ぜると、全ての種類の部品が頁に入る。
+
+軽い入口の頁で帯つきの図を置く時は、`@cardenelabs/dragon/frame`の代わりに`@cardenelabs/dragon/light/frame`から読む。
+`@cardenelabs/dragon/frame`と同じ名前 (`mountFramedDiagram`、`createDragonFrame`、`createFigureHeader`、`diagramEditorUrl`) を出し、記法を読む処理と図の再生の部品は軽い入口から読むので、既定の入口を頁に入れない。
+`loadFor`を待った後に、待たずに帯つきの図を置く。
+読んでいない種類の記法を置くと、種類の名前を挙げて`loadFor`を待つよう告げる誤りで止まり、置き先に帯を残さない。
+
+```ts
+import { loadFor } from "@cardenelabs/dragon/light";
+import { mountFramedDiagram } from "@cardenelabs/dragon/light/frame";
+
+await loadFor(text);
+mountFramedDiagram(host, text);
+```
 
 ## ブロックを足す
 

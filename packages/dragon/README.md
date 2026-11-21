@@ -180,6 +180,20 @@ An item page leads back to the entry and to the items before and after it.
 Choose another layout with a `layout` line between `---` lines at the top: `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them.
 `layout: entry` is the default.
 
+The top lines can also set the order of the bar buttons with `header-buttons` and the bar colors with `header-<color field>`, one line each.
+`header-buttons` lists button names (`code`, `editor`, `copy`, `export`, `expand`) separated by `,` in the order to show them, and drops the buttons you leave out.
+The color fields are `surface`, `background`, `foreground`, `muted`, `border`, `accent` and `hover`; put a color value that starts with `#` in `"`.
+The export writes these lines into the page's bar settings block (`<script type="application/json" id="dragon-header">`, see [One script line with the bar](#one-script-line-with-the-bar)), which applies to the bars of every diagram on the page.
+An unknown button name, a button written twice, a color value with `;` or `<`, and an unknown `header-` line stop the export with the line named.
+
+```md
+---
+layout: tabs
+header-buttons: code, export
+header-accent: "#c0392b"
+---
+```
+
 A box in a diagram moves to an item when its link names that item's place, written `[link: #<place>]`.
 A place is made from the heading text the way GitHub makes heading anchors: letters become lowercase, punctuation is dropped, and spaces become `-`, so `### Take the order` is `#take-the-order`.
 `#<item>/<tab>` opens a tab of an item, and the address of the page keeps the item and the tab that are open.
@@ -321,7 +335,15 @@ The gallery's embedding page shows the four ways side by side with the same diag
 
 Add `data-header` to a `<pre class="dragon">` block, and the one-line script entry puts the bar on that block.
 Blocks without the attribute stay plain diagrams.
-The entry draws the diagram first and loads the bar afterwards, so pages without `data-header` load no more than before.
+Only on a page with `data-header` blocks does the entry load the bar, at the same time as the parts the notation uses, and it draws the diagram once inside the bar.
+A block stays as notation until the bar arrives, and the entry never draws a plain diagram first and draws it again.
+Pages without `data-header` never load the bar, so they load no more than before.
+
+Write the order of the bar buttons and the bar look in a bar settings block on the page, `<script type="application/json" id="dragon-header">`.
+Its keys are `buttons` and `look`, the same as in the SDK's `mountDragon`, and it applies to the bars of every `data-header` block on the page.
+For example, with `{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }` in the block, the bar shows only the code and export buttons and uses red as its accent.
+`buttons` takes only the names of the five built-in buttons; your own buttons need a click handler, so they cannot be written there.
+A block that is not valid JSON or names an unknown button turns every `data-header` block into that error text.
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -357,6 +379,7 @@ host.addEventListener("dragon-export", (event) => console.log(event.detail.forma
 `buttons` lists the bar buttons in order; built-in buttons you leave out are dropped, and an object adds your own button whose `onClick` receives the placed diagram.
 Setting `header` to `false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`).
 `lang` picks the bar language (`ja` or `en`); without it the bar follows the nearest `lang` attribute above the element, and English otherwise.
+Notation errors use the same language as the bar, so they are in Japanese on a `<html lang="ja">` page.
 `nonce` is put on the style element made for browsers without `adoptedStyleSheets`.
 The element sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied).
 
@@ -431,6 +454,19 @@ If loading fails, `loadFor` and `loadKind` reject, and the next call loads it ag
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.
 The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await `loadLook`.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
+
+To put a diagram with the bar on a page that uses the light entry, import from `@cardenelabs/dragon/light/frame` instead of `@cardenelabs/dragon/frame`.
+It exports the same names as `@cardenelabs/dragon/frame` (`mountFramedDiagram`, `createDragonFrame`, `createFigureHeader`, `diagramEditorUrl`), and reads the notation and draws the diagram with the light entry, so the default entry stays off the page.
+After `loadFor`, it puts the diagram with the bar without waiting.
+Notation of a kind that has not been loaded stops with an error that names the kind and tells you to await `loadFor`, and leaves no bar in the element.
+
+```ts
+import { loadFor } from "@cardenelabs/dragon/light";
+import { mountFramedDiagram } from "@cardenelabs/dragon/light/frame";
+
+await loadFor(text);
+mountFramedDiagram(host, text);
+```
 
 ## Add your own blocks
 
