@@ -222,6 +222,20 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-79-4-lists-mesh-ticket-room", () => {
+    // 網型で券を人の上に置いて線で結ぶ直し (#3819) を 0.79.4 で出す (#3821)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 4), `package の版 ${version()} が 0.79.4 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.4\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.4"), "0.79.4");
+      expect(released, `${file} に日付付きの ## [0.79.4] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.4 の節に (#3819) の項が無い`).toContain("(#3819)");
+      // 次の版の項は Unreleased に積まれるので、0.79.4 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3819) が残る`).not.toContain("(#3819)");
+    }
+  });
+
   it("changelog-0-79-3-lists-mesh-call-middle", () => {
     // 網型の呼び出しの管を箱の辺の真ん中へ少ない曲がりで入れる直し (#3813) を 0.79.3 で出す (#3814)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
