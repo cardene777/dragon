@@ -1,1 +1,36 @@
-{}
+{
+  "packages/dragon/examples/day-hours.dragon": [
+    {
+      "kind": "texts-overlap",
+      "step": 4,
+      "parts": [
+        {
+          "kind": "text",
+          "text": "3時間"
+        },
+        {
+          "kind": "text",
+          "text": "3時間"
+        }
+      ],
+      "width": 390
+    }
+  ],
+  "packages/dragon/examples/quick-start.md:779": [
+    {
+      "kind": "texts-overlap",
+      "step": 3,
+      "parts": [
+        {
+          "kind": "text",
+          "text": "7.5"
+        },
+        {
+          "kind": "text",
+          "text": "ログインを速く"
+        }
+      ],
+      "width": 390
+    }
+  ]
+}
