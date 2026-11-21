@@ -1414,6 +1414,7 @@ The horizontal axis runs below the areas from left to right and the vertical axi
 - `item <id> as <name> [x: <across>, y: <up>]` gives an item scores from 0 to 10, with at most one decimal place. `line: <item>` inside a step then places it without naming an area, into the area its scores fall in, and a score of 5 or more counts as the large side. A `line <area>: <item>` for a scored item is read only when the area matches its scores. Scores outside 0 to 10, or only one of the two, are refused
 - Add `reverse: yes` to an axis line, as `axis <name> [from: <low end>, to: <high end>, reverse: yes]`, and that axis puts large values on the left or at the bottom, with its arrow pointing that way
 - Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores instead of moving a card. The ruled axes show 0 to 10, a table of the items and their scores sits left of the plot, and the step that plots an item draws lines from both axes to the dot with its scores and lights the area it lands in. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out, and a narrow frame stacks the table above the plot
+- When a score chip on an axis would touch the name of a point shown at that step, the chip moves off the axis for that step, to the left of the vertical axis or below the horizontal one, with its edge on the axis line. The names of the points stay where they are, and the chips keep their size
 
 ```dragon
 matrix Sort the work by effort and impact
@@ -1547,6 +1548,7 @@ Write `sankey <title> [shape: rows]` to stack one full-width bar per step from t
 - Each line cuts its target section out of the source section, from the left and in the order written. What a box with no source has not handed out yet is a gray bar that reads like `16h left`
 - Sections that split off in that step and the sections of the last row show their name and amount, and sections carried over from the step before are faint bars with no text
 - The band coming down from the row above and the amount chip are drawn only for the sections that split off in that step
+- When two amount chips of one step would overlap, as in a narrow frame such as a phone, the later chip stops one chip higher and the gap above that row grows by one chip. Chips keep their size and stay above their own section
 - When a name does not fit in its section, the section shows only the amount and the name is listed under that row's bar with a color mark. At phone width the bars still span the full width
 
 ```dragon
