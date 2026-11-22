@@ -167,6 +167,17 @@ describe("package の入口 (#3021)", () => {
     expect(["dist/capture.js", "dist/cdn/capture.js"].filter(holds), "書き出す部品の中身を持つ書き出す部品の file").toEqual(["dist/capture.js", "dist/cdn/capture.js"]);
   });
 
+  it("offline-script-skips-icon-table", () => {
+    // 埋めた頁は図が使う絵柄だけを頁に収めて登録するので、埋める script は絵柄集の表 (約 1.1MB) を束ねない (#3493)。
+    // 帯の HTML の書き出しを束ねても、頁を組む処理が読む表は外す (#3792)。表だけが持つ絵柄 `a-b` の形で探す
+    const mark = "M-7.5 3.33V-1.25A2.085 2.085 0 0 1-3.33-1.25V3.33M-3.33 0H-7.5";
+    const holds = (file: string): boolean => readFileSync(join(ROOT, file), "utf8").includes(mark);
+    expect(existsSync(join(ROOT, "dist/offline.global.js")), "build した埋める script").toBe(true);
+    expect(holds("dist/offline.global.js"), "埋める script が絵柄集の表を持つ").toBe(false);
+    // 陰性でない対照。表を束ねる既定の入口では、同じ字を見つける (探す字が古くなっていない)
+    expect(holds("dist/index.js"), "既定の入口が絵柄集の表を持つ").toBe(true);
+  });
+
   it("entry-types-match-module-system", () => {
     const { exports } = manifest();
     for (const entry of [".", "./export", "./node"]) {

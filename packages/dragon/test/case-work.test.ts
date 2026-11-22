@@ -231,8 +231,11 @@ const RULES: Rule[] = [
   { file: `${T}script-entry.test.ts`, name: "offline-page-frames-header-blocks", load: 0 },
   { file: `${T}script-entry.test.ts`, name: "offline-page-leaves-plain-blocks-bare", load: 0 },
   { file: `${T}script-entry.test.ts`, name: "offline-page-draws-framed-block-once", load: 0 },
-  { file: `${T}script-entry.test.ts`, name: "offline-export-menu-lists-four-formats", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-export-menu-lists-seven-formats", load: 0 },
   { file: `${T}script-entry.test.ts`, name: "offline-header-buttons-work-without-network", load: 0 },
+  // 埋めた頁の帯で保存した GIF と MP4 と HTML を確かめる件 (#3792)
+  { file: `${T}script-entry.test.ts`, name: "offline-exported-motion-files-have-format", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-exported-html-plays-without-network", load: 0 },
   { file: `${T}script-entry.test.ts`, name: "page-still-block-places-svg-without-player", load: 0 },
   { file: `${T}script-entry.test.ts`, name: "page-still-block-shows-notation-errors", load: 0 },
   { file: `${T}test-related.test.ts`, name: "related-picks-importers", load: 0, child: true },
