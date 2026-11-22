@@ -32,6 +32,7 @@ import type { PipeWordsInput, StoredPipeLayout } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
+  type Point,
   type Rect,
   rewrapStrip,
   type SceneField,
@@ -70,6 +71,7 @@ import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
 import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
+import { r1 } from "./round";
 
 export interface RenderOptions {
   /** Native input diagrams align their SVG ports to the controls' measured rectangles. */
@@ -315,6 +317,10 @@ const PART_CSS = [
   ".dg-mm-world{fill:var(--sunk);stroke:var(--hair)}",
   `.dg-mm-band{fill:${mix(X.miniBand)};stroke:${mix(X.miniBandEdge, "transparent")};stroke-width:.6}`,
   `.dg-mm-card{fill:${mix(X.mini)}}`,
+  `.dg-mm-dot{fill:${mix(X.mini)}}`,
+  `.dg-mm-disc{fill:var(--c);fill-opacity:${LOOK.mini.disc};stroke:var(--c);stroke-opacity:${LOOK.mini.discEdge};stroke-width:.6}`,
+  `.dg-mm-area{fill:var(--c);fill-opacity:${LOOK.mini.area}}`,
+  `.dg-mm-line{fill:none;stroke:${mix(X.mini)};stroke-width:${LOOK.mini.line};stroke-linecap:round;stroke-linejoin:round}`,
   `.dg-mm-vp{fill:color-mix(in srgb,var(--ink) ${X.view}%,transparent);stroke:var(--ink);stroke-width:${S.badgeRing};vector-effect:non-scaling-stroke}`,
 ].join("");
 
@@ -874,6 +880,8 @@ function followView(
    * 時系列図の枠は頭の列の下の線を見せる所だけを囲む。頭の箱は頭の列に常に出ているため (#3122)
    */
   const overview = (): { clip: string; body: string } => {
+    // 図の上の点の並びを、全体図の上の点の並び (`x,y` を空白で区切る) にする
+    const miniPoints = (points: readonly Point[]): string => points.map(([x, y]) => `${r1(mx + x * k)},${r1(my + y * k)}`).join(" ");
     const shapes = [
       ...layout.regions.map(
         (r) =>
@@ -883,11 +891,16 @@ function followView(
         (b) =>
           `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
-      // 後から読む種類は、全体図に描く部品を種類の部品の組が挙げる (試す図は待ち行列の枠を地に、網の節と出ているブロックを札に描く、#3337)
-      ...(parts?.overview?.(layout) ?? []).map(
-        ({ rect: t, band, color }) =>
-          `<rect class="${band ? "dg-mm-band" : "dg-mm-card"}" style="${cs(color)}" x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, band ? M.band : M.card)}"/>`,
-      ),
+      // 後から読む種類は、全体図に描く部品を種類の部品の組が挙げる (試す図は待ち行列の枠を地に、網の節と出ているブロックを札に描く、#3337)。
+      // 円と塗った形と線は、量の帯の曲線と集まりの円と結びの線を縮めても元の図と同じ形に見せるために描く (#3849)
+      ...(parts?.overview?.(layout) ?? []).map((s) => {
+        const style = `style="${cs(s.color)}"`;
+        if ("disc" in s) return `<circle class="${s.band ? "dg-mm-disc" : "dg-mm-dot"}" ${style} cx="${r1(mx + s.disc.cx * k)}" cy="${r1(my + s.disc.cy * k)}" r="${r1(s.disc.r * k)}"/>`;
+        if ("area" in s) return `<path class="dg-mm-area" ${style} d="M${miniPoints(s.area)}Z"/>`;
+        if ("line" in s) return `<polyline class="dg-mm-line" ${style} points="${miniPoints(s.line)}"/>`;
+        const t = s.rect;
+        return `<rect class="${s.band ? "dg-mm-band" : "dg-mm-card"}" ${style} x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, s.band ? M.band : M.card)}"/>`;
+      }),
     ].join("");
     const vp = m.move(
       cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]),

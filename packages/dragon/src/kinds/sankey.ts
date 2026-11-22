@@ -11,6 +11,7 @@ import { followEnds } from "../render/follow-ends";
 import { drawSankey } from "../render/sankey";
 import type { KindParts } from "./parts";
 import { layoutRows, layoutSankey, layoutTreemap, type SankeyLayout, type SankeyNode } from "./sankey/layout";
+import { sankeyOverview } from "./sankey/overview";
 
 /** 棒と、その上か横の名前と量を囲む所。`low` は囲む所の下の端 */
 function around(n: SankeyNode, low: number): Rect {
@@ -54,6 +55,8 @@ export const parts: KindParts<SankeyLayout> = {
         })),
     };
   }),
+  // 全体図に帯を元の図と同じ曲線のまま塗り、棒を札で描く (#3849)
+  overview: sankeyOverview,
 };
 
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
