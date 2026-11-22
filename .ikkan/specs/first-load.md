@@ -12,3 +12,8 @@
 | 最初に読む script と CSS は gzip で184KB以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3646 |
 | 最初に読む script は崩れの検査を持たない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`が通る | #3646 |
 | 部品のブロックが棚に置く雛形の名前は、どれも棚に載る | `pnpm exec vitest run apps/playground-spa/src/lib/block-gallery.test.ts`の検査`block-shelf-ids-on-shelf`が通る | #3646 |
+| 見本帳を組み立てた時、最初に読むscriptとCSSのgzip後の合計が上限の186KB (190464byte) 以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3832 |
+| 見本帳を組み立てた時、最初に読むscriptとCSSは更新履歴の頁の目印と見た目の決まりを持たず、それらは後から読む塊に在る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`first-load-carries-no-release-notes-page`が通る | #3832 |
+| 見本帳を組み立てた時、最初に読むscriptとCSSは見つからない頁の目印と見た目の決まりを持たず、それらは後から読む塊に在る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`first-load-carries-no-not-found-page`が通る | #3832 |
+| 使い方の頁とカタログの頁は、今どおり最初に読むscriptに入らず後から読む塊に在る | `pnpm exec vitest run apps/playground-spa/src/lib/page-chunks.test.ts`の検査`first-load-carries-no-docs-page`と`first-load-carries-no-catalog-pages`が通る | #3832 |
+| 見本帳の頁の今ある検査が通る。最初に読むscriptは崩れの検査と部品の説明を持たず、頁は配る部品で描け、経路ごとのHTMLの写しが在り、scriptは自分の置き場からしか読まない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`first-load-carries-no-part-desc`と`page-draws-with-package-parts`と`page-routes-have-html-copies`と`csp-script-self-only`が通る | #3832 |

@@ -5,13 +5,11 @@ import { createRoot } from "react-dom/client";
 import { isKind } from "./catalog/catalog";
 import { LATER_SNIPPETS, partOf } from "./catalog/parts";
 import { Home } from "./home/Home";
-import { NotFound } from "./not-found/NotFound";
 import { Playground } from "./Playground";
-import { ReleaseNotes } from "./release-notes/ReleaseNotes";
 import { fontsSeen, loadFonts } from "./site/fonts";
 import { KIND_CHUNKS } from "./site/kinds";
 import { laterChunk, startWhenIdle } from "./site/later";
-import { LATER_CATALOG, LATER_DOCS, LaterPage } from "./site/pages";
+import { LATER_CATALOG, LATER_DOCS, LATER_NOT_FOUND, LATER_RELEASE_NOTES, LaterPage } from "./site/pages";
 import { redirectSharedLink, type Route, routeOf, usePath } from "./site/routes";
 import { paintSite, storedPalette, storePalette } from "./site/site-colors";
 import { SiteHeader } from "./site/SiteHeader";
@@ -26,6 +24,7 @@ import "./catalog/catalog.css";
  * 0.35.0 より前のサイトと同じ 7 画面を経路で出し分け、どの画面にも同じ上の帯を載せる。
  * 概要は `home/Home.tsx` (#3032)、カタログは `catalog/` (#3033)、使い方は `docs/Docs.tsx` (#3034)、
  * 更新履歴は `release-notes/ReleaseNotes.tsx`、見つからない頁は `not-found/NotFound.tsx` (#3035) が持つ。
+ * 使い方とカタログと更新履歴と見つからない頁は、最初の表示に要らないので後から読む塊で描く (`site/pages.tsx`、#3280、#3832)。
  * カタログの部品の頁は `catalog/PartPage.tsx` (#3166) が持つ。知らない分類と部品の経路は見つからない頁にする。
  * 外の頁がiframeで開く埋め込みの頁 (`embed/embed-page.ts`、#3700) は、上の帯とサイトを描かずに図だけを置く。
  * 4つの置き方で同じ図を置いた組み込みの見本の頁 (`embed/EmbedSample.tsx`、#3701) は、使い方の頁と同じく後から読む塊で描く。
@@ -168,9 +167,13 @@ function Site({ firstLang }: { firstLang: Lang }): ReactElement {
             {({ EmbedSample }) => <EmbedSample lang={lang} />}
           </LaterPage>
         ) : route.screen === "release-notes" ? (
-          <ReleaseNotes lang={lang} />
+          <LaterPage chunk={LATER_RELEASE_NOTES} lang={lang}>
+            {({ ReleaseNotes }) => <ReleaseNotes lang={lang} />}
+          </LaterPage>
         ) : (
-          <NotFound lang={lang} path={path} />
+          <LaterPage chunk={LATER_NOT_FOUND} lang={lang}>
+            {({ NotFound }) => <NotFound lang={lang} path={path} />}
+          </LaterPage>
         )}
       </main>
     </div>
@@ -204,7 +207,16 @@ async function openSite(): Promise<void> {
   // 後から読む見本は記法だけを裏で読む。見本が使う個別ブロックの読み方は種類の塊も読み、残る足したブロックの定義の読み方と
   // 絵柄集の表 (gzip で約 225KB) は、見本を並べる所 (棚と見本の一覧) を開いた時に読む (#3505)。
   // 使い方の頁とカタログの頁も同じで、初めて頁を開く時に待たせない (#3280)
-  startWhenIdle([{ start: () => void import("./examples-later") }, LATER_SNIPPETS, ...KIND_CHUNKS, LATER_DOCS, LATER_CATALOG]);
+  // 更新履歴の頁と見つからない頁も同じで、使い方の頁とカタログの頁の後に読む (#3832)
+  startWhenIdle([
+    { start: () => void import("./examples-later") },
+    LATER_SNIPPETS,
+    ...KIND_CHUNKS,
+    LATER_DOCS,
+    LATER_CATALOG,
+    LATER_RELEASE_NOTES,
+    LATER_NOT_FOUND,
+  ]);
 }
 
 redirectSharedLink();
