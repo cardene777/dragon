@@ -356,3 +356,19 @@
 | 値の表を持つ見本のpaymentを幅360で寄って追う形に置いた時の窓の大きさは、今どおり幅360と高さ320のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-strip.test.ts`の検査`follow-strip-narrow-keeps-window`が通る | #3834 |
 | pipeの見た目の短い時系列図 (箱4つ、段4つ) を幅390に置いた時は、今どおり列の頭と器を帯に留め、帯の下に元の列の頭を映さない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-pipe-look-keeps-band`が通る | #3834 |
 | 既定の見た目の時系列図を寄って追う形に置いても、パイプ図の部品の列の頭と生存線の管を描かず、箱の名前は窓に1度だけ描く | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-sequence-default-look-kept`が通る | #3834 |
+| mindの見本wallet-uxを幅390に置いた時、親の箱が窓の端で切れる段2から段5で、段で足した枝と葉と番号の丸は全部窓に入る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-added-in-window`が通る | #3836 |
+| 同じ図の段2から段5で、足した物の親と反対の側の端から窓の端までが16以下になるまで、窓を親の側へ寄せる | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-slides-to-parent`が通る | #3836 |
+| 同じ図の段2から段5の止め絵で、親「使いやすいウォレット」の名前を全部書いた札が、親が切れた側の窓の端に見える | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-tag-names-parent`が通る | #3836 |
+| 札はその段の止め絵でだけ見え、最初の段と、線の端の箱が切れない段の止め絵では見えない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-tag-only-in-its-step`が通る | #3836 |
+| sankeyの見本salaryを幅390に置いた段3で、足した帯の行き先の食費と遊びの棒と名前と量は全部窓に入り、窓の上で切れる出どころ「手取り30万円」の札が窓の上の端に見える | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-sankey-tag-on-top`が通る | #3836 |
+| sankeyの見本fee-splitを幅390に置いた段3で、番号の丸と、行き先「交換所の取り分」の棒と名前と量が窓に入り、足した帯の幅の半分以上が窓に映る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-sankey-band-in-window`が通る | #3836 |
+| stateの見本subscriptionを幅390に置いた段5で、線の元「停止」は窓に全部入り、窓の外の「有料」の札は線が窓の左の端を横切る高さに見え、段の線の札「カードを直す」とどの状態の箱にも重ならない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-state-tag-on-line`が通る | #3836 |
+| stateの見本support-ticketを幅390に置いた段6で、線の両端「再開」と「完了」が窓に全部入る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-state-both-ends`が通る | #3836 |
+| repoのmindとsankeyとstateの記法のfileのうち幅390で寄って追う形になる物 (数えた時点で46件) を置いた時、線の端の箱が窓の端で切れる段のうち、その箱の名前の札が見えない段は0件 | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-every-cut-end-has-tag`が通る | #3836 |
+| 同じ46件を幅390に置いた時、線の端の箱が窓から切れる幅の合計が、線の端の箱を寄せる範囲に入れない時の窓より増えた段は0件 | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-never-cut-more`が通る | #3836 |
+| 線の端の箱が今の窓に全部入る段 (support-ticketの段1から段5、subscriptionの段1から段4、salaryの段1) を幅390に置いた時、窓の位置は今のままで、札を出さない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-fitting-steps-kept`が通る | #3836 |
+| 幅760で寄って追う形になるmindとstateの見本5件 (budget-app.en、dao-proposal.en、wallet-ux.en、order.en、support-ticket.en) を置いた時、全ての段の窓の位置は今のままで、札を出さない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-wide-windows-kept`が通る | #3836 |
+| 止めて置く図と、全体を止める見せ方のmindとsankeyとstateの図には札を描かない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-no-tag-without-follow`が通る | #3836 |
+| 線の端の箱を挙げない種類 (木の図の見本hd-walletと構成図の見本) を幅390に置いた時、窓の位置は今のままで、札を描かない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-other-kinds-kept`が通る | #3836 |
+| 軽い入口が最初に読むscriptのgzip後の合計が上限90,000byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3836 |
+| 見本帳の最初に読むscriptとCSSのgzip後の合計が上限186KB以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3836 |
