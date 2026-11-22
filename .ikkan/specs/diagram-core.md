@@ -346,3 +346,13 @@
 | 常に、止めて置く設定の図は置いた時に流さず、1度だけ流す設定の図は最後の段の止め絵で止まる | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-start-paused-at-step`と`player-plays-once-then-still`が通る | #3568 |
 | 常に、見本の図の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3568 |
 | 常に、AIに記法を書かせるプラグインの版が`packages/dragon/package.json`の版と同じ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`plugin-version-matches-package`が通る | #3568 |
+| 図の高さが窓に収まる既定の見た目の時系列図 (箱4つ、段4つ) を幅390の寄って追う形に置いた時、窓は上の端に留める帯を描かず、元の箱をアイコン付きで窓に見せて横にだけ追う | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-short-sequence-shows-figure-heads`が通る | #3834 |
+| 同じ図のどの段の止め絵でも、窓に映る箱の名前の行は1つだけで、留める帯の箱と元の箱を同時に窓へ映さない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-short-sequence-single-head-row`が通る | #3834 |
+| 見本と見本帳の既定の見た目の時系列図のうち幅390で寄って追う形になる図 (見本のapi.enとwalletとoauth、見本帳のcolor.sequenceとicon.sequence) と、線の範囲が帯の下に収まる高い図 (見本のretryを寄って追う形にした物) を幅390に置いた時、帯の下に元の箱が見える段は0件 | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-heads-never-doubled`が通る | #3834 |
+| 線の範囲が帯の下に収まる高い図 (見本のretryを幅390で寄って追う形にした物) は、帯を留めたまま窓を元の箱の下の端から図の下の端までに詰め、窓の高さが316pxになり、窓の下を空けない | `pnpm exec vitest run packages/dragon/test/follow-strip.test.ts`の検査`follow-no-strip-window-kept`が通る | #3834 |
+| 同じ箱4つの図を幅760に置いた時は今どおり止めて見せる形で、留める帯を持たない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-short-sequence-wide-stays-fixed`が通る | #3834 |
+| 高い図 (見本のoauthを幅390と560) は今どおり帯を留め、どの段でも帯が元の箱を隠す | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-heads-cover-figure-heads`が通る | #3834 |
+| 高い図 (見本のoauthを幅390と560) の窓が止まる位置は今のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-sequence-window-under-heads`が通る | #3834 |
+| 値の表を持つ見本のpaymentを幅360で寄って追う形に置いた時の窓の大きさは、今どおり幅360と高さ320のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-strip.test.ts`の検査`follow-strip-narrow-keeps-window`が通る | #3834 |
+| pipeの見た目の短い時系列図 (箱4つ、段4つ) を幅390に置いた時は、今どおり列の頭と器を帯に留め、帯の下に元の列の頭を映さない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-pipe-look-keeps-band`が通る | #3834 |
+| 既定の見た目の時系列図を寄って追う形に置いても、パイプ図の部品の列の頭と生存線の管を描かず、箱の名前は窓に1度だけ描く | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-sequence-default-look-kept`が通る | #3834 |

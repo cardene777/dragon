@@ -656,6 +656,8 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
  * 窓は頭の列の下の残りの高さで動く物を真ん中に見せる (#3118)。
  * 頭の列の箱はアイコンを外した 2 段にして低く貼り、線は図の頭の箱の下から見せ始める (#3120)。
  * 見た目を選んだ時系列図は頭の列に列の頭と頭の下の器と札を留め、線は器と札の下から見せ始め、全体図を出さず窓を縦に長く取る (Tracelyth #91、#93)。
+ * 見た目を選ばない時系列図は、窓が図の高さを全部見せる時は頭の列を貼らず、図の頭の箱をアイコンごと窓に見せて横にだけ追う。
+ * 頭の列を貼る時は、図の頭の箱の下から図の下端までを頭の列の下に見せ、窓がそれより高い時は窓を詰める。どちらも箱の行を 2 重に映さないため (#3834)。
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
  */
@@ -724,7 +726,7 @@ function followView(
     follow.height === undefined && follow.visible !== undefined && !fitted.beside && !bare
       ? follow.visible - fitted.vh - M.inset - M.pad * 2 - M.title
       : Number.POSITIVE_INFINITY;
-  const { vh, mw, k, mh, bw, bgW, bgH, beside } =
+  const { vh: fullVh, mw, k, mh, bw, bgW, bgH, beside } =
     fitted.mh > spare ? sized(fitted.vh, (Math.max(spare, fitted.mh / 2) / worldH) * layout.width) : fitted;
   // 右の全体図の列は枠の余りに置き、窓は図の原寸の幅まで広げる。枠が図より狭い時は今までどおり枠の幅から列を引く
   const vw = beside && !bare ? Math.min(layout.width, frameWidth - bgW - M.inset) : full;
@@ -735,8 +737,14 @@ function followView(
   const parts = partsOf(layout.kind);
   // 見た目を選んだ時系列図の留める帯は、列の頭の下の器と札まで入れる (Tracelyth #93)
   const headLow = look ? look.shelf(layout) : Math.max(...layout.boxes.map((b) => b.y + b.h));
-  const top = heads !== "" ? headLow + F.headRoom : (parts?.top?.(layout) ?? 0);
-  const strip = heads === "" ? 0 : look ? look.bandHeight(layout, F.head.pad) : F.head.pad * 2 + F.head.h;
+  // 見た目を選ばない時系列図は、窓が図の高さを全部見せる時に頭の列を貼らない。窓が縦に動かず図の頭の箱が常に窓に入るので、
+  // 貼ると頭の列の下に図の頭の箱が映り、箱の行が 2 重になる (#3834)
+  const pinned = look !== undefined || worldH > fullVh ? heads : "";
+  const top = pinned !== "" ? headLow + F.headRoom : (parts?.top?.(layout) ?? 0);
+  const strip = pinned === "" ? 0 : look ? look.bandHeight(layout, F.head.pad) : F.head.pad * 2 + F.head.h;
+  // 頭の列を貼る時、図の頭の箱の下から図の下端までが頭の列の下の残りより低ければ、窓をその高さまで詰める。
+  // 詰めないと窓が図の下端で止まって上に寄り、頭の列の下に図の頭の箱の下の端が映る (#3834)
+  const vh = pinned !== "" && !look && worldH - headLow < fullVh - strip ? strip + worldH - headLow : fullVh;
   const below = vh - strip;
   /**
    * 頭の列の下の残りの窓の真ん中の高さを、図の頭の箱の下と図の下端で止める。
@@ -840,7 +848,7 @@ function followView(
     strip === 0
       ? ""
       : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
-        `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${heads}</g></g>`;
+        `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${pinned}</g></g>`;
   const body =
     `<defs><clipPath id="dg-vp-${id}">${frameShape(corner, "", { x: 0, y: 0, w: vw, h: vh }, `<rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/>`)}</clipPath>${mini.clip}</defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +

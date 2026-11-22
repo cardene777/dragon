@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.6] - 2026-11-23
+
+### Fixed
+
+- **A following sequence diagram whose height fits the window no longer shows the row of head boxes twice** (#3834)
+
+  When the window shows the whole height of the diagram, it pins no head row, shows the head boxes of the diagram with their icons, and follows only sideways. When a diagram pins the head row and the part from the bottom of the head boxes to the bottom of the diagram is lower than the room under the head row, the window shrinks to that height so the edges of the head boxes do not show under the head row. A sequence diagram with a chosen look (`[shape: pipe]`) and a diagram well taller than the window look the same as before.
+
 ## [0.79.5] - 2026-11-21
 
 ### Fixed
