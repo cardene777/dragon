@@ -153,30 +153,25 @@ const REFUSED = await atLoad("色付きにできない SVG を命令に渡す", 
   NON_SOLID.map(([what, tag, body]) => ({ what, tag, ran: iconCommand([svgFile("bad.svg", body), "--name", "+bad"]) })),
 );
 
-// 見本の SVG を名前を渡す時と渡さない時の 2 度、子の Node で命令に渡す仕事も、file を読み込む段で済ませる (#3816)
-const CONVERTED = await atLoad("見本の SVG を命令で色付きの絵柄に変える", () => {
-  const file = svgFile(
-    "lambda-icon.svg",
-    [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">',
-      "  <title>見本の絵柄</title>",
-      '  <rect x="0" y="0" width="48" height="48" fill="#ED7100"/>',
-      '  <g fill="#FFFFFF">',
-      '    <path d="M10 10h28v28H10z M16 16h16v16H16z" fill-rule="evenodd"/>',
-      '    <circle cx="24" cy="24" r="4"/>',
-      "  </g>",
-      '  <ellipse cx="24" cy="42" rx="8" ry="3" style="fill:#1f2937"/>',
-      '  <polygon points="24,2 30,8 18,8" fill="#ffcc00"/>',
-      "</svg>",
-    ].join("\n"),
-  );
-  return { named: iconCommand([file, "--name", "+lambda"]), plain: iconCommand([file]) };
-});
-
 describe("色付きの絵柄に変える命令 (#3633)", () => {
   it("icon-command-converts-svg", () => {
-    const { named, plain } = CONVERTED.get();
+    const file = svgFile(
+      "lambda-icon.svg",
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">',
+        "  <title>見本の絵柄</title>",
+        '  <rect x="0" y="0" width="48" height="48" fill="#ED7100"/>',
+        '  <g fill="#FFFFFF">',
+        '    <path d="M10 10h28v28H10z M16 16h16v16H16z" fill-rule="evenodd"/>',
+        '    <circle cx="24" cy="24" r="4"/>',
+        "  </g>",
+        '  <ellipse cx="24" cy="42" rx="8" ry="3" style="fill:#1f2937"/>',
+        '  <polygon points="24,2 30,8 18,8" fill="#ffcc00"/>',
+        "</svg>",
+      ].join("\n"),
+    );
+    const named = iconCommand([file, "--name", "+lambda"]);
     expect(named.status, `dragon icon が落ちる: ${named.stderr}`).toBe(0);
     const read = readBlocks(named.stdout);
     expect(
@@ -215,6 +210,7 @@ describe("色付きの絵柄に変える命令 (#3633)", () => {
         `変えた絵柄の形 ${p.color} が描かれない`,
       ).toBeGreaterThan(0);
     // 名前を渡さない時は file の名前から付ける
+    const plain = iconCommand([file]);
     expect(plain.status, `名前を渡さない dragon icon が落ちる: ${plain.stderr}`).toBe(0);
     expect(
       plain.stdout,

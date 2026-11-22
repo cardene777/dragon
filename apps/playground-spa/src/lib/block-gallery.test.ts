@@ -11,7 +11,6 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "../../../../packages/dragon/test/at-load";
 import { BLOCK_DOCS } from "../catalog/blocks-docs.gen";
 import { BLOCK_RULE, BLOCK_SHELF, BLOCK_TEXT } from "../catalog/blocks.gen";
 import { isCommon, PARTS } from "../catalog/parts";
@@ -67,9 +66,6 @@ export function shelfProblems(shelves: Record<string, Shelf>, ids: readonly stri
   return [...owners].flatMap(([id, names]) => [...(ids.includes(id) ? [] : [`${id}: 棚に無い`]), ...(names.length > 1 ? [`${id}: ${names.join(", ")}`] : [])]);
 }
 
-// 件の中で `git ls-files` を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で 1 度だけ起こし、件はその結果を読む
-const SPA_FILES = await atLoad("見本帳の頁の file を git で挙げる", () => execFileSync("git", ["ls-files", "apps/playground-spa/src"], { cwd: ROOT, encoding: "utf8" }));
-
 describe("ブロックの見本帳の分 (#3345)", () => {
   it("block-rule-rows-match-grammar", () => {
     const rows = tableRows();
@@ -122,7 +118,7 @@ describe("見本帳と決まりをブロックの置き場から作る (#3350)",
       }
     }
     // 見本帳の頁の code は、見本帳の分をブロックの名前で 1 つずつ手で引かない
-    const pages = SPA_FILES.get()
+    const pages = execFileSync("git", ["ls-files", "apps/playground-spa/src"], { cwd: ROOT, encoding: "utf8" })
       .split("\n")
       .filter((file) => /\.(?:ts|tsx)$/u.test(file) && !file.endsWith(".test.ts") && !file.endsWith(".gen.ts"));
     expect(pages.length, "見本帳の頁の code が無い (走査の空振り)").toBeGreaterThan(0);

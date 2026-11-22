@@ -10,7 +10,6 @@ import { dirname, join, relative } from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const SELF = relative(ROOT, fileURLToPath(import.meta.url));
@@ -24,9 +23,6 @@ function presentFiles(): string[] {
   });
   return out.split("\n").filter((path) => path !== "" && existsSync(join(ROOT, path)));
 }
-
-// 件ごとに `git ls-files` を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で 1 度だけ起こし、件はその結果を読む
-const PRESENT = await atLoad("作業木に実在する file を git で挙げる", presentFiles);
 
 // 7 つの意匠の文書と、図の種類と意匠の組の見本の置き場
 const DESIGN_DIRS = ["blueprint", "letterpress", "catalog", "terminal", "sketch", "neon", "relief", "proposal"].map(
@@ -68,7 +64,7 @@ const HISTORY = new Set([
 
 describe("作り直しの片付け", () => {
   it("designs-folded-into-one-look", () => {
-    const files = PRESENT.get();
+    const files = presentFiles();
     const docs = files.filter((path) => DESIGN_DIRS.some((dir) => path.startsWith(dir)));
     const code = files.filter(
       (path) => (path.startsWith("packages/") || path.startsWith("apps/")) && CODE.test(path) && path !== SELF,
@@ -82,14 +78,14 @@ describe("作り直しの片付け", () => {
   });
 
   it("old-catalog-removed", () => {
-    const files = PRESENT.get();
+    const files = presentFiles();
     const topics = files.filter((path) => path.startsWith("apps/playground-spa/src/topics/"));
     const cdl = files.filter((path) => path.endsWith(".cdl.ts"));
     expect({ topics, cdl }).toEqual({ topics: [], cdl: [] });
   });
 
   it("stale-skills-and-docs-removed", () => {
-    const files = PRESENT.get();
+    const files = presentFiles();
     const stale = files.filter((path) => STALE_PATHS.some((dir) => path.startsWith(dir)));
     const mentions = files.filter(
       (path) =>

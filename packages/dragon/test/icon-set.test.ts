@@ -181,29 +181,31 @@ describe("Tabler の名前を確かめる (#3493)", () => {
   });
 });
 
-// 件ごとに新しい Node を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
-// 件ごとの Node を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む
-
-const LIGHT_TABLER = await atLoad("Tabler の図を新しい Node の軽い入口で描く", () => {
-  const text = boxText("tabler:building-bridge-2");
-  return inFreshNode<{ svg?: string; loaded: unknown }>(`
+describe("軽い入口は Tabler を使う図の時だけ読む (#3493)", () => {
+  it("light-loads-tabler-for-tabler-diagram", () => {
+    const text = boxText("tabler:building-bridge-2");
+    const whole = svgOf(text);
+    const out = inFreshNode<{ svg?: string; loaded: unknown }>(`
       const text = ${JSON.stringify(text)};
       await light.loadFor(text);
       const parsed = light.parseNotation(text);
       out.svg = parsed.ok ? light.renderDiagram(parsed.diagram).svg : "読めない: " + JSON.stringify(parsed.errors);
       out.loaded = ${TABLER_LOADED};
     `);
-});
+    expect(out.loaded, "loadFor を待っても絵柄集を読まない").toBe(true);
+    expect(out.svg, "軽い入口の SVG が既定の入口と違う").toBe(whole);
+  });
 
-const LIGHT_PLAIN = await atLoad("tabler: を書かない図を新しい Node の軽い入口で読む", () =>
-  inFreshNode<{ loaded: unknown }>(`
+  it("light-skips-tabler-for-plain-diagram", () => {
+    const out = inFreshNode<{ loaded: unknown }>(`
       await light.loadFor(${JSON.stringify(boxText("key"))});
       out.loaded = ${TABLER_LOADED};
-    `),
-);
+    `);
+    expect(out.loaded, "tabler: を書かない図で絵柄集を読んだ").toBe(false);
+  });
 
-const LIGHT_BEFORE_LOAD = await atLoad("絵柄集を読む前に Tabler の図を新しい Node の軽い入口で描く", () =>
-  inFreshNode<{ result: string }>(`
+  it("light-refuses-tabler-before-load", () => {
+    const out = inFreshNode<{ result: string }>(`
       // 構成図を読む読み方だけを先に読み、絵柄集は読まない
       await light.loadFor(${JSON.stringify(boxText("key"))});
       const parsed = light.parseNotation(${JSON.stringify(boxText("tabler:building-bridge-2"))});
@@ -211,25 +213,7 @@ const LIGHT_BEFORE_LOAD = await atLoad("絵柄集を読む前に Tabler の図�
       else {
         try { out.result = light.renderDiagram(parsed.diagram).svg ? "描けた" : "空"; } catch (e) { out.result = "描けない: " + e.message; }
       }
-    `),
-);
-
-describe("軽い入口は Tabler を使う図の時だけ読む (#3493)", () => {
-  it("light-loads-tabler-for-tabler-diagram", () => {
-    const text = boxText("tabler:building-bridge-2");
-    const whole = svgOf(text);
-    const out = LIGHT_TABLER.get();
-    expect(out.loaded, "loadFor を待っても絵柄集を読まない").toBe(true);
-    expect(out.svg, "軽い入口の SVG が既定の入口と違う").toBe(whole);
-  });
-
-  it("light-skips-tabler-for-plain-diagram", () => {
-    const out = LIGHT_PLAIN.get();
-    expect(out.loaded, "tabler: を書かない図で絵柄集を読んだ").toBe(false);
-  });
-
-  it("light-refuses-tabler-before-load", () => {
-    const out = LIGHT_BEFORE_LOAD.get();
+    `);
     expect(out.result, "loadFor の前に Tabler の図を描けた").not.toBe("描けた");
     expect(out.result, "誤りの文が絵柄集の名前を言わない").toMatch(/tabler/iu);
     expect(out.result, "誤りの文が loadFor を待つよう言わない").toContain("loadFor");

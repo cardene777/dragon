@@ -14,7 +14,6 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const VITEST = join(dirname(createRequire(import.meta.url).resolve("vitest/package.json")), "vitest.mjs");
@@ -37,46 +36,6 @@ const inTmpdir = (base: string, run: () => void): void => {
 
 /** 走っている実行の一時フォルダの下に、試す場所を作る。この場所もその実行の終わりに消える */
 const sandbox = (): string => mkdtempSync(join(tmpdir(), "dragon-sandbox-"));
-
-// 件の中で子の process を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
-// 件ごとの子の process を file を読み込む段で 1 つずつ順に起こし、子の process が終わった直後のフォルダの様子を読んで残す。件はその様子を確かめる
-
-const FAILING_RUN = await atLoad("落ちる見本の検査を子の process の vitest で回す", () => {
-  const base = sandbox();
-  const madeOut = join(sandbox(), "made.txt");
-  const ran = spawnSync(process.execPath, [VITEST, "run", "--config", `${FIXTURES}/vitest.config.ts`, "--reporter=dot", `${FIXTURES}/quick-fail.fixture.ts`], {
-    cwd: ROOT,
-    encoding: "utf8",
-    env: { ...process.env, TMPDIR: base, FIXTURE_TMP_OUT: madeOut },
-  });
-  const wrote = existsSync(madeOut);
-  return {
-    status: ran.status,
-    wrote,
-    // 見本の検査が書いた、自分の一時フォルダの path。そのフォルダがまだ在るか
-    madeLeft: wrote ? existsSync(readFileSync(madeOut, "utf8")) : undefined,
-    left: readdirSync(base),
-  };
-});
-
-const DEAD_RUNS = await atLoad("持ち主の process が終わった実行の一時フォルダを置いて片付ける", async () => {
-  const { default: setup } = await runTmp();
-  if (!setup) throw new Error("準備の段の道具 (test-support/run-tmp.ts) が無い");
-  const base = sandbox();
-  // 起こして終わるのを待った process の番号は、もう動いていない
-  const ended = spawnSync(process.execPath, ["-p", "process.pid"], { encoding: "utf8" }).stdout.trim();
-  mkdirSync(join(base, `dragon-run-${ended}-abc123`, "left"), { recursive: true });
-  inTmpdir(base, () => setup()());
-  return readdirSync(base);
-});
-
-const EXIT_RUN = await atLoad("準備の段を起こして process.exit で終わる子の process を起こす", () => {
-  const base = sandbox();
-  const entry = pathToFileURL(join(ROOT, "test-support/run-tmp.ts")).href;
-  const script = `import setup from ${JSON.stringify(entry)}; setup(); process.exit(0);`;
-  const ran = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8", env: { ...process.env, TMPDIR: base } });
-  return { status: ran.status, stderr: ran.stderr, left: readdirSync(base) };
-});
 
 describe("実行ごとの一時フォルダ (#3587)", () => {
   it("run-tmp-points-tests-at-run-dir", () => {
@@ -101,19 +60,29 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
   });
 
   it("run-tmp-cleans-after-failing-run", () => {
-    const { status, wrote, madeLeft, left } = FAILING_RUN.get();
-    expect(status, "見本の検査が落ちなかった").toBe(1);
-    expect(wrote, "見本の検査が一時フォルダを作らなかった").toBe(true);
-    expect(madeLeft, "落ちた検査が作った一時フォルダが残っている").toBe(false);
-    expect(left, "落ちた実行の一時フォルダが残っている").toEqual([]);
+    const base = sandbox();
+    const madeOut = join(sandbox(), "made.txt");
+    const ran = spawnSync(process.execPath, [VITEST, "run", "--config", `${FIXTURES}/vitest.config.ts`, "--reporter=dot", `${FIXTURES}/quick-fail.fixture.ts`], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: { ...process.env, TMPDIR: base, FIXTURE_TMP_OUT: madeOut },
+    });
+    expect(ran.status, "見本の検査が落ちなかった").toBe(1);
+    expect(existsSync(madeOut), "見本の検査が一時フォルダを作らなかった").toBe(true);
+    expect(existsSync(readFileSync(madeOut, "utf8")), "落ちた検査が作った一時フォルダが残っている").toBe(false);
+    expect(readdirSync(base), "落ちた実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-tmp-sweeps-dead-runs", async () => {
     const { default: setup } = await runTmp();
     expect(setup, "準備の段の道具 (test-support/run-tmp.ts) が無い").toBeTypeOf("function");
     if (!setup) return;
-    // 終わった process の番号を持つ実行の一時フォルダを置いて片付けるのは、読み込む段で済ませた
-    expect(DEAD_RUNS.get(), "持ち主の process が終わった実行の一時フォルダが残っている").toEqual([]);
+    const base = sandbox();
+    // 起こして終わるのを待った process の番号は、もう動いていない
+    const ended = spawnSync(process.execPath, ["-p", "process.pid"], { encoding: "utf8" }).stdout.trim();
+    mkdirSync(join(base, `dragon-run-${ended}-abc123`, "left"), { recursive: true });
+    inTmpdir(base, () => setup()());
+    expect(readdirSync(base), "持ち主の process が終わった実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-tmp-keeps-live-runs", async () => {
@@ -138,9 +107,12 @@ describe("実行ごとの一時フォルダ (#3587)", () => {
 
   it("run-tmp-cleans-on-process-exit", () => {
     // 1 回の実行の上限は process.exit で終わるので、準備の段の片付けまで届かない回がある (`run-limit.ts`)。子の process で本当に process.exit する
-    const ran = EXIT_RUN.get();
+    const base = sandbox();
+    const entry = pathToFileURL(join(ROOT, "test-support/run-tmp.ts")).href;
+    const script = `import setup from ${JSON.stringify(entry)}; setup(); process.exit(0);`;
+    const ran = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8", env: { ...process.env, TMPDIR: base } });
     expect(ran.status, `準備の段を起こした子の process が終わり方 0 で終わらなかった: ${ran.stderr}`).toBe(0);
-    expect(ran.left, "process.exit で終わった実行の一時フォルダが残っている").toEqual([]);
+    expect(readdirSync(base), "process.exit で終わった実行の一時フォルダが残っている").toEqual([]);
   });
 
   it("run-tmp-runs-before-page-build", () => {

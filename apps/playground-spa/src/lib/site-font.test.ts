@@ -12,7 +12,6 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { atLoad } from "../../../../packages/dragon/test/at-load";
 import { codesOf } from "../../scripts/unicode-ranges.mjs";
 import { builtDir, app, root } from "./playground-support";
 
@@ -49,16 +48,6 @@ const rangeCodes = (face: string): number[] => codesOf(/unicode-range:\s*([^;}]+
 
 /** 切り出した字が持つ字の番号。切り出した字の面が無い時は空 */
 const coveredCodes = (): Set<number> => new Set(siteFaces().flatMap(rangeCodes));
-
-// 件の中で字を作る命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
-// file を読み込む段で起こし、命令の後に字の file が書き換わっていないかを読んで残す。件はその結果を読む
-const OTHER_SOURCE = await atLoad("別の字を渡して字を作る命令を起こす", () => {
-  const before = readFileSync(FONT);
-  const other = join(mkdtempSync(join(tmpdir(), "dragon-font-")), "other.ttf");
-  writeFileSync(other, "別の字");
-  const result = spawnSync(process.execPath, [SCRIPT, other], { encoding: "utf8" });
-  return { stderr: result.stderr, status: result.status, kept: readFileSync(FONT).equals(before) };
-});
 
 describe("見本帳で使う字だけを 1 つの file から読む (#3296)", () => {
 
@@ -99,10 +88,13 @@ describe("見本帳で使う字だけを 1 つの file から読む (#3296)", ()
 
   it("site-font-refuses-other-source", () => {
     expect(existsSync(FONT), "切り出した字の file が無い").toBe(true);
-    const result = OTHER_SOURCE.get();
+    const before = readFileSync(FONT);
+    const other = join(mkdtempSync(join(tmpdir(), "dragon-font-")), "other.ttf");
+    writeFileSync(other, "別の字");
+    const result = spawnSync(process.execPath, [SCRIPT, other], { encoding: "utf8" });
     expect(result.stderr, "別の字を渡した時に sha256 の違いを名指さない").toContain("sha256");
     expect(result.status, "別の字を渡しても字を作る命令が止まらない").toBe(1);
-    expect(result.kept, "別の字を渡した時に字の file が書き換わった").toBe(true);
+    expect(readFileSync(FONT).equals(before), "別の字を渡した時に字の file が書き換わった").toBe(true);
   });
 
   it("site-font-carries-license", () => {

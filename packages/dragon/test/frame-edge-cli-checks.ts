@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Layout } from "../src/layout/scene";
-import { atLoad } from "./at-load";
 import { runCli } from "./export-support";
 import "../src/kinds/basics";
 import "../src/kind-use/sequence";
@@ -63,16 +62,13 @@ function inkAt(inks: Ink[], text: string, seat: [number, number] | undefined): I
 /** 浮動小数の足し引きで余白が 1/1000 px 欠けても、余白を取ったと数える */
 const EPS = 0.001;
 
-// 件の中で dragon check の命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で起こし、件はその結果を読む
-const LOGIN_CHECKED = await atLoad("ログインの図を dragon check --layout で確かめる", () => runCli(["check", LOGIN, "--layout", "--json", "--lang", "ja"]));
-
 describe("端の箱へ向かう線と出る線の札は図の枠の内側に余白を取る (#3515)", () => {
-  it("sequence-tag-to-leftmost-box-inside-frame", () => {
+  it("sequence-tag-to-leftmost-box-inside-frame", async () => {
     const { layout, inks } = draw(LOGIN_TEXT);
     const edge = layout.edges.find((e) => e.step === 4);
     const tag = inkAt(inks, "session id", edge?.settle);
     expect(tag.rect.x, "段 5 で一番左の箱へ着いた札「session id」の左端と図の枠の左端の間").toBeGreaterThanOrEqual(LOOK.margin - EPS);
-    const ran = LOGIN_CHECKED.get();
+    const ran = await runCli(["check", LOGIN, "--layout", "--json", "--lang", "ja"]);
     expect(ran.code, ran.stderr).toBe(0);
     const problems = JSON.parse(ran.stdout || "[]") as { layout?: unknown }[];
     expect(problems.filter((p) => p.layout !== undefined), "ログインの図に崩れを出す").toEqual([]);

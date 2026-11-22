@@ -6,7 +6,6 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
 import { api, type LineError, type NotationLang, type Parsed } from "./diagram-support";
 import { runCli } from "./export-support";
 import "../src/kind-use/architecture";
@@ -26,22 +25,16 @@ const noticesOf = (parsed: Parsed): LineError[] => (parsed.ok ? (parsed.notices 
 /** 1 字違いの「アプリ」と「アプル」を持つ図。「アプル」は 4 行目の頭に初めて出る */
 const SIMILAR = lines("sequence", "", "ブラウザ -> アプリ: GET /login", "アプル -> ブラウザ: 戻す");
 
-// 件の中で書き出しの命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で起こし、件はその結果を読む
-const SIMILAR_EXPORTED = await atLoad("似た名前を持つ図を HTML に書き出す命令を起こす", async () => {
-  const out = mkdtempSync(join(tmpdir(), "dragon-short-cli-"));
-  const file = join(out, "similar.dragon");
-  writeFileSync(file, SIMILAR);
-  const ran = await runCli(["export", file, "--format", "html", "--out", out, "--lang", "ja"]);
-  return { out, file, ran };
-});
-
 describe("宣言と段を省いた短い記法 (#3438)", () => {
 
-  it("short-cli-prints-similar-names", () => {
+  it("short-cli-prints-similar-names", async () => {
     // 書き出しの命令は、似た名前の知らせを `<file>:<行> <文>` の形で標準エラーに出し、書き出したうえで終わり方 0 で終わる
     const notice = noticesOf(parse(SIMILAR, "ja"))[0];
     expect(notice, "読む処理が似た名前を知らせない").toBeDefined();
-    const { out, file, ran } = SIMILAR_EXPORTED.get();
+    const out = mkdtempSync(join(tmpdir(), "dragon-short-cli-"));
+    const file = join(out, "similar.dragon");
+    writeFileSync(file, SIMILAR);
+    const ran = await runCli(["export", file, "--format", "html", "--out", out, "--lang", "ja"]);
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stdout.trim(), "書き出した file の path を標準出力に出さない").toBe(join(out, "similar.html"));
     expect(ran.stderr.trimEnd().split("\n"), "標準エラーに似た名前の知らせが 1 件 1 行で出ない").toEqual([`${file}:${notice?.line} ${notice?.message}`]);

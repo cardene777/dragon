@@ -11,7 +11,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
 import { api, exampleJson, exampleText, type Json, type LineError, type Parsed, reversedKeys } from "./diagram-support";
 import { draw } from "./render-support";
 // 全ての種類の見本を描くので、全ての種類を読む (#3763)
@@ -22,9 +21,6 @@ const EXAMPLES = ["intro", "oauth", "ccip"] as const;
 const firstError = (parsed: Parsed): LineError | undefined => (parsed.ok ? undefined : parsed.errors[0]);
 
 const edge = (from: string, to: string, extra: Record<string, Json> = {}): Json => ({ type: "edge", from, to, carry: { kind: "envelope" }, ...extra });
-
-// 件の中で `git ls-files` を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で 1 度だけ起こし、件はその結果を読む
-const DRAGON_FILES = await atLoad("repo の .dragon の file を git で挙げる", () => execFileSync("git", ["ls-files", "*.dragon"], { encoding: "utf8" }));
 
 describe("記法から JSON へ", () => {
   it("notation-compiles-oauth-to-json", () => {
@@ -281,7 +277,7 @@ describe("記法から JSON へ", () => {
     const parse = api("parseNotation");
     // 共有のブロック集の定義の file (`packages/dragon/blocks/<名前>.dragon`) は図でなく定義なので、
     // shared-blocks.test.ts の shared-blocks-read-and-have-examples が readBlocks で読む (#3455)
-    const files = DRAGON_FILES.get()
+    const files = execFileSync("git", ["ls-files", "*.dragon"], { encoding: "utf8" })
       .split("\n")
       .filter((file) => file !== "" && !/^packages\/dragon\/blocks\/[^/]+\.dragon$/u.test(file));
     // 0 件で通らないように、repo の .dragon の file を数える

@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
 import { runCli } from "./export-support";
 
 /*
@@ -161,25 +160,18 @@ function strayLabels(layout: Laid, apart = 1): string[] {
   });
 }
 
-// 件の中で dragon check の命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
-// 件ごとの命令を file を読み込む段で 1 つずつ順に起こし、件はその知らせを読む
-
-const STRADDLE_WARNINGS = await atLoad("囲みの枠線をまたいでいた図を dragon check --layout で確かめる", () => warnings(STRADDLE));
-
-const ABOVE_WARNINGS = await atLoad("図の枠の上へはみ出していた図を dragon check --layout で確かめる", () => warnings(ABOVE));
-
 describe("構成図の線の名前は囲みの枠線をまたがず、図の枠の内に収まる (#3554)", () => {
-  it("label-frame-group-line-clear", () => {
+  it("label-frame-group-line-clear", async () => {
     const layout = laid(STRADDLE);
     // 図が囲みと名前を持つことを先に確かめる。持たなければ、枠線をまたぐ名前0件は当たり前になる
     expect(layout.regions.map((g) => g.lines.join("")), "見本の囲み").toEqual(["自社サービス"]);
     expect(layout.labels.map((l) => l.text), "見本の線の名前").toEqual(["為替レートを聞く"]);
     expect(nearFrames(layout), "囲みの枠線に近いかまたぐ名前").toEqual([]);
     expect(strayLabels(layout), "自分の線の脇に無い名前").toEqual([]);
-    expect(STRADDLE_WARNINGS.get(), "囲みの枠線をまたいでいた図の知らせ").toEqual([]);
+    expect(await warnings(STRADDLE), "囲みの枠線をまたいでいた図の知らせ").toEqual([]);
   });
 
-  it("label-frame-row-detour-inside", () => {
+  it("label-frame-row-detour-inside", async () => {
     const layout = laid(ABOVE);
     const sent = layout.labels.find((l) => l.text === "送る");
     const own = layout.edges.find((e) => e.from === "a" && e.to === "c");
@@ -190,6 +182,6 @@ describe("構成図の線の名前は囲みの枠線をまたがず、図の枠�
     expect(sent.y, "名前「送る」の札の上の端と図の枠の上端の間").toBeGreaterThanOrEqual(LOOK.margin - 0.01);
     // 名前と別の線の間は、名前と自分の線の間の 2 倍空ける。C の下の輪と、A → B と B → C の線は、名前から遠い
     expect(strayLabels(layout, 2), "自分の線の脇に無いか、別の線が自分の線の 2 倍より近い名前").toEqual([]);
-    expect(ABOVE_WARNINGS.get(), "図の枠の上へはみ出していた図の知らせ").toEqual([]);
+    expect(await warnings(ABOVE), "図の枠の上へはみ出していた図の知らせ").toEqual([]);
   });
 });
