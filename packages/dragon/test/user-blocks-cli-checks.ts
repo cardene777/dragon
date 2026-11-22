@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { fileChromium } from "./page-needs";
 import "../src/kind-use/architecture";
 
@@ -65,15 +66,37 @@ const FONT_CSS = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@fontsource-variable\/[^/]
 
 const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
 
-describe("頁の link で読む定義 (#3399)", () => {
-  it("user-block-page-link", async () => {
-    expect(existsSync(join(CDN, "dragon.js")), "入口の file が build されていない").toBe(true);
-    const second = BARE_TEXT.replace("architecture 橋を渡る", "architecture もう 1 つの橋");
-    const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><link rel="dragon-blocks" href="${DEFS_URL}"><script type="module" src="${LOCAL}dragon.js"></script></head><body><pre class="dragon">${escape(BARE_TEXT)}</pre><pre class="dragon">${escape(second)}</pre></body></html>`;
-    // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
-    const context = await (await fileChromium()).newContext();
-    const defsRead: string[] = [];
-    const outside: string[] = [];
+/** 頁の link の定義を読む頁を開いて読んだ物。入口の file が build されていない時は頁を開かない */
+interface LinkSeen {
+  /** 入口の file (`dist/cdn/dragon.js`) が在る */
+  built: boolean;
+  /** 記法の塊ごとに、link の定義の形で描いたか */
+  drawn?: boolean[];
+  /** 誤りになった記法の塊の字 */
+  errors?: string[];
+  /** 頁が読んだ定義の file の URL */
+  defsRead?: string[];
+  /** 止めた外への通信の URL */
+  outside?: string[];
+}
+
+/** 頁の 1 つの操作 (開く、待つ) の上限 (ms)。元の件が 1 件 10 秒で切られていた幅に揃える */
+const ACTION_LIMIT_MS = 10_000;
+
+// 件の中で頁を開いて描くのを待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3816)。
+// 頁を開いて読む仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は読んだ物を元の件と同じ順で確かめる
+const LINK_PAGE = await atLoad("頁の link の定義を読む 2 つの記法の塊の頁を開く", async (): Promise<LinkSeen> => {
+  const built = existsSync(join(CDN, "dragon.js"));
+  if (!built) return { built };
+  const second = BARE_TEXT.replace("architecture 橋を渡る", "architecture もう 1 つの橋");
+  const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><link rel="dragon-blocks" href="${DEFS_URL}"><script type="module" src="${LOCAL}dragon.js"></script></head><body><pre class="dragon">${escape(BARE_TEXT)}</pre><pre class="dragon">${escape(second)}</pre></body></html>`;
+  // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
+  const context = await (await fileChromium()).newContext();
+  // 上限を書かない開く操作も、Playwright の既定の 30 秒ではなく 1 つの操作の上限で切る
+  context.setDefaultTimeout(ACTION_LIMIT_MS);
+  const defsRead: string[] = [];
+  const outside: string[] = [];
+  try {
     await context.route("**/*", async (route) => {
       const url = route.request().url();
       if (url === PAGE) return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
@@ -89,23 +112,29 @@ describe("頁の link で読む定義 (#3399)", () => {
       outside.push(url);
       return route.abort();
     });
-    try {
-      const page: Page = await context.newPage();
-      await page.goto(PAGE);
-      await page
-        .waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0 && document.querySelectorAll('[data-dragon="player"] svg').length >= 2, undefined, { timeout: 8_000 })
-        .catch(() => undefined);
-      const drawn = await page.evaluate(
-        (d) => [...document.querySelectorAll('[data-dragon="player"] svg')].map((svg) => [...svg.querySelectorAll("path")].some((p) => p.getAttribute("d") === d)),
-        BRIDGE,
-      );
-      const errors = await page.evaluate(() => [...document.querySelectorAll("pre.dragon-error")].map((e) => e.textContent ?? ""));
-      expect(errors, "頁の link の定義を使えず、記法の塊が誤りになる").toEqual([]);
-      expect(drawn, "頁の 2 つの記法の塊が、link の定義の形で描かれない").toEqual([true, true]);
-      expect(defsRead, "定義の file を 1 度だけ読まない").toEqual([DEFS_URL]);
-      expect(outside, "入口と塊と字と定義の file のほかに取りに行った物").toEqual([]);
-    } finally {
-      await context.close();
-    }
+    const page: Page = await context.newPage();
+    await page.goto(PAGE);
+    await page
+      .waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0 && document.querySelectorAll('[data-dragon="player"] svg').length >= 2, undefined, { timeout: 8_000 })
+      .catch(() => undefined);
+    const drawn = await page.evaluate(
+      (d) => [...document.querySelectorAll('[data-dragon="player"] svg')].map((svg) => [...svg.querySelectorAll("path")].some((p) => p.getAttribute("d") === d)),
+      BRIDGE,
+    );
+    const errors = await page.evaluate(() => [...document.querySelectorAll("pre.dragon-error")].map((e) => e.textContent ?? ""));
+    return { built, drawn, errors, defsRead, outside };
+  } finally {
+    await context.close();
+  }
+});
+
+describe("頁の link で読む定義 (#3399)", () => {
+  it("user-block-page-link", () => {
+    const { built, drawn, errors, defsRead, outside } = LINK_PAGE.get();
+    expect(built, "入口の file が build されていない").toBe(true);
+    expect(errors, "頁の link の定義を使えず、記法の塊が誤りになる").toEqual([]);
+    expect(drawn, "頁の 2 つの記法の塊が、link の定義の形で描かれない").toEqual([true, true]);
+    expect(defsRead, "定義の file を 1 度だけ読まない").toEqual([DEFS_URL]);
+    expect(outside, "入口と塊と字と定義の file のほかに取りに行った物").toEqual([]);
   });
 });
