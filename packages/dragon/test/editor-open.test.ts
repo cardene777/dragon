@@ -10,7 +10,6 @@ import { join, resolve } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
-import { readUntil } from "./page-wait";
 import { fileChromium } from "./page-needs";
 
 const ROOT = join(process.cwd(), "packages/dragon");
@@ -30,6 +29,22 @@ function longSource(): string {
   const lines = ["sequence 長い図", "box a as あなた", "box b as 店"];
   for (let i = 0; i < 300; i += 1) lines.push(`step ${word()}`, `  a -> b: ${word()} ${word()} ${word()}`);
   return lines.join("\n");
+}
+
+/** `expect.poll` と同じく、`read` が `done` を満たすまで 50ms ごとに `timeout` ms まで読み直し、最後に読めた値を返す。読めない回は次の回に読み直す */
+async function polled<T>(read: () => Promise<T>, done: (value: T) => boolean, timeout: number): Promise<T | undefined> {
+  const end = Date.now() + timeout;
+  let last: T | undefined;
+  for (;;) {
+    try {
+      last = await read();
+      if (done(last)) return last;
+    } catch {
+      // 読めない回は、expect.poll と同じく次の回に読み直す
+    }
+    if (Date.now() >= end) return last;
+    await new Promise((wake) => setTimeout(wake, 50));
+  }
 }
 
 /** 頁が出した 1 つの通信 */
@@ -105,7 +120,7 @@ const OPENED = await atLoad("エディタのボタンとコピーの窓を頁で
     const links = page.locator(".dg-header-actions > a.editor");
     // ボタンに縮めた記法が詰まるまで、件で待っていた expect.poll と同じく 3 秒まで待つ。ボタンが無い間も 3 秒で読むのをやめる
     const zipped = (value: string | null | undefined): boolean => typeof value === "string" && /#z=/u.test(value);
-    const href = await readUntil(() => links.first().getAttribute("href", { timeout: 3000 }), zipped, 3000);
+    const href = await polled(() => links.first().getAttribute("href", { timeout: 3000 }), zipped, 3000);
     if (!zipped(href)) return { built: true, href, sent: [...sent] };
 
     const popupOf = async (click: () => Promise<void>): Promise<string> => {
@@ -121,7 +136,7 @@ const OPENED = await atLoad("エディタのボタンとコピーの窓を頁で
       await page.locator(`[data-menu="copy"] [data-copy="${kind}"]`).first().click();
     }
     // 最後に押したエディタのURLが届くまで、件で待っていた expect.poll と同じく 3 秒まで待つ。コピーの窓のエディタのURLも縮めた形
-    const clipboard = await readUntil(() => page.evaluate(() => navigator.clipboard.readText()), (text) => text === short, 3000);
+    const clipboard = await polled(() => page.evaluate(() => navigator.clipboard.readText()), (text) => text === short, 3000);
     // 頁を閉じる間に出た通信を混ぜないよう、ここまでに出た通信を写して返す
     return { built: true, href, short, long, clipboard, sent: [...sent] };
   } finally {

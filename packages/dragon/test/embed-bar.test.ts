@@ -18,7 +18,6 @@ import { PNG } from "pngjs";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
-import { ACTION_LIMIT_MS, PAGE_LIMIT_MS, readUntil, within } from "./page-wait";
 import { fileChromium } from "./page-needs";
 
 const ROOT = join(process.cwd(), "packages/dragon");
@@ -64,6 +63,28 @@ interface Framed<T> {
   frameError?: string;
   /** `run`の結果 */
   result?: T;
+}
+
+/** 頁の 1 つの操作 (開く、押す、待つ) の上限 (ms)。上限を書かない操作もこれで切る。元の件が 1 件 10 秒で切られていた幅に揃える */
+const ACTION_LIMIT_MS = 10_000;
+/**
+ * 1 つの頁で済ませる仕事の上限 (ms) (#3815)。
+ * 読み込む段には 1 件の上限が掛からず、`page.evaluate`と文脈を閉じる仕事は Playwright の上限も持たない。
+ * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
+ */
+const PAGE_LIMIT_MS = 60_000;
+
+/** `work`を`ms`ミリ秒で切る。切った時は`what`を挙げて落ちる */
+async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
+  });
+  try {
+    return await Promise.race([work, limit]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** 帯の入口を読んだ頁を開いて`run`を回す。頁は file で 1 つの Chromium の文脈ごとに開いて閉じる (#3424) */
@@ -167,6 +188,25 @@ const clipboardText = (page: Page): Promise<string> => page.evaluate(() => navig
 /** 帯の知らせの欄の字 */
 const statusText = (page: Page): Promise<string> =>
   page.evaluate(() => document.querySelector(".dragon-frame")!.shadowRoot!.querySelector(".status")?.textContent ?? "");
+
+/**
+ * `read`を、`done`が通るか`timeout`ミリ秒が過ぎるまで 50ms ごとに読み直し、最後に読んだ値を返す。
+ * `expect.poll`は件の外で使えないので、読み込む段では`expect.poll`と同じ間と上限で待つだけにし、判定は件が持つ (#3815)。
+ * 上限を過ぎた後の読みが落ちた時は、`expect.poll`と同じくその理由で落ちる
+ */
+async function readUntil<T>(read: () => Promise<T>, done: (value: T) => boolean, timeout: number): Promise<T> {
+  const end = Date.now() + timeout;
+  for (;;) {
+    const last = Date.now() >= end;
+    try {
+      const value = await read();
+      if (last || done(value)) return value;
+    } catch (error) {
+      if (last) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
 
 // 押さずに読むだけの 5 件は、帯つきの図を置いた 1 つの頁を分け合う。押す件と頁を変える件は頁を 1 つずつ持ち、落ちた仕事はそれを読む件だけを落とす
 const BAR = await atLoad("帯つきの図を置き、帯の印とボタンと、図の再生の部品と書体を読む", () =>

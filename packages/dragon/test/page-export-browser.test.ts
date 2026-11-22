@@ -17,7 +17,6 @@ import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 
 import { atLoad, type Loaded } from "./at-load";
-import { ACTION_LIMIT_MS, PAGE_LIMIT_MS, inOrder, readUntil, within } from "./page-wait";
 import { withSite } from "./cdn-page-support";
 import {
   expectWritten,
@@ -31,6 +30,65 @@ import {
 const WAIT = 4_000;
 /** 携帯の幅 */
 const PHONE = { width: 390, height: 844 };
+/** 頁を読み直す操作と、上限を書かずに属性を読む操作の上限 (ms)。元の件が 1 件 10 秒で切られていた幅に揃える */
+const ACTION_LIMIT_MS = 10_000;
+/**
+ * 1 つの頁で済ませる仕事の上限 (ms) (#3816)。
+ * 読み込む段には 1 件の上限が掛からず、`page.evaluate` は Playwright の上限を持たない。
+ * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
+ */
+const PAGE_LIMIT_MS = 60_000;
+
+/** `work`を`ms`ミリ秒で切る。切った時は`what`を挙げて落ちる */
+async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
+  });
+  try {
+    return await Promise.race([work, limit]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * `read`を、`done`が通るか`timeout`ミリ秒が過ぎるまで 50ms ごとに読み直し、最後に読んだ値を返す。
+ * `expect.poll`は件の外で使えないので、読み込む段では`expect.poll`と同じ間と上限で待つだけにし、判定は件が持つ (#3816)。
+ * 上限を過ぎた後の読みが落ちた時は、`expect.poll`と同じくその理由で落ちる
+ */
+async function readUntil<T>(read: () => Promise<T>, done: (value: T) => boolean, timeout: number): Promise<T> {
+  const end = Date.now() + timeout;
+  for (;;) {
+    const last = Date.now() >= end;
+    try {
+      const value = await read();
+      if (last || done(value)) return value;
+    } catch (error) {
+      if (last) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/**
+ * 頁で順に回す仕事を、1 つずつ読み込む段の仕事 (`atLoad`) にする道具を作る。
+ * 落ちた仕事より後の仕事は回さず、読んだ件は落ちた仕事の名前と理由で落ちる。
+ * 件は前の仕事の結果を確かめてから次の仕事の結果を読むので、途中で落ちる件も落ちる前の様子を元の件と同じ順に確かめる
+ */
+function inOrder(): <T>(name: string, work: () => Promise<T>) => Promise<Loaded<T>> {
+  let failed: Loaded<never> | undefined;
+  return async <T>(name: string, work: () => Promise<T>): Promise<Loaded<T>> => {
+    if (failed) return failed;
+    const loaded = await atLoad(name, work);
+    try {
+      loaded.get();
+    } catch {
+      failed = loaded as Loaded<never>;
+    }
+    return loaded;
+  };
+}
 
 /**
  * 見本のmdを組み立て`layout`で書き出し、`hash`の場所を開いて`run`を回す。

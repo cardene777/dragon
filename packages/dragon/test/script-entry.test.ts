@@ -25,7 +25,6 @@ import * as dragon from "@cardenelabs/dragon";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { atLoad } from "./at-load";
-import { ACTION_LIMIT_MS, readUntil, within } from "./page-wait";
 import { formatOf, readGif, runCli } from "./export-support";
 import { fileChromium } from "./page-needs";
 // 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
@@ -59,6 +58,12 @@ const FIRST_LOAD_BUDGET = 90_000;
 const SETTLE = 15_000;
 /** 1 つの件の時間の上限より短く待つ長さ。書き換わらない時も判定の文で落とす (#3455) */
 const QUICK_SETTLE = 6_000;
+/**
+ * 頁を開く、押す、字を読む、書き出した file を受け取る仕事が待つ長さの上限。
+ * 件の中では 1 件の上限 (10 秒) が止めていたが、file を読み込む段では誰も止めない。
+ * Playwright の既定 (30 秒) や終わりの無い待ちが 1 回の実行の上限 (5 分) まで続かないよう、同じ 10 秒で区切る (#3815)
+ */
+const PAGE_WAIT = 10_000;
 
 const version = (): string => (JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string }).version;
 
@@ -169,7 +174,7 @@ async function withPage<T>(body: string, run: (page: Page, requests: Requests) =
   const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: setup.height ?? 720 } });
   if (setup.init !== undefined) await context.addInitScript(setup.init);
   // 長さを書かない待ち (頁を開く、押す、字を読む) も区切る
-  context.setDefaultTimeout(ACTION_LIMIT_MS);
+  context.setDefaultTimeout(PAGE_WAIT);
   const requests: Requests = { scripts: [], urls: [], fonts: [], outside: [] };
   const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><script type="module" src="${place.entry}"></script></head><body>${body}</body></html>`;
   await context.route("**/*", async (route) => {
@@ -280,6 +285,38 @@ function entryFiles(name = 'dragon-main.js', seen = new Set<string>()): Set<stri
  */
 function needEntry(): void {
   if (!existsSync(join(CDN, ENTRY))) throw new Error(`入口の file が無い: ${join(CDN, ENTRY)}`);
+}
+
+/**
+ * `read` の値が `done` を満たすまで、`timeout` ミリ秒まで 50 ミリ秒おきに読み直す (件の `expect.poll` と同じ間隔)。
+ * 満たした値か、待ちきれなかった時の最後の値を返し、判定は件に任せる。読むのに落ちた時は読み直し、待ちきれなかった後に落ちた時だけ投げる
+ */
+async function pollFor<T>(read: () => T | Promise<T>, done: (value: T) => boolean, timeout: number): Promise<T> {
+  const end = Date.now() + timeout;
+  for (;;) {
+    try {
+      const value = await read();
+      if (done(value) || Date.now() >= end) return value;
+    } catch (error) {
+      if (Date.now() >= end) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/** `work` を `timeout` ミリ秒まで待つ。済まない時は `what` を挙げて落とす。Playwright の待ちの長さを渡せない仕事を区切る */
+async function bounded<T>(work: Promise<T>, timeout: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what}が ${timeout}ms で済まない`)), timeout);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** 帯の知らせの欄が、エクスポートしている間の知らせから書き換わったか。件が `toMatch` で確かめる形と同じ */
@@ -431,18 +468,18 @@ const BAR_PAGE = await atLoad("data-header の塊と帯の無い塊の頁を開�
     );
     // 帯の HTML のエクスポートは、入口の置き場から書き出す部品を読み、再生の script を埋めた頁を書き出す
     const exported = await atLoad("帯の HTML のエクスポートを押す", async () => {
-      await page.locator('.dg-header-actions > [data-action="export"] > button').click({ timeout: ACTION_LIMIT_MS });
+      await page.locator('.dg-header-actions > [data-action="export"] > button').click({ timeout: PAGE_WAIT });
       const downloaded = page.waitForEvent("download", { timeout: QUICK_SETTLE });
       // 押せずに終えた時も、download を待つ約束を受け手の無いまま落とさない
       downloaded.catch(() => undefined);
-      await page.locator('[data-menu="export"] [data-format="html"]').click({ timeout: ACTION_LIMIT_MS });
+      await page.locator('[data-menu="export"] [data-format="html"]').click({ timeout: PAGE_WAIT });
       // 書き出す部品を読めない時は、帯の知らせの欄にエクスポートできなかったと出る
       const status = page.locator(".dragon-frame .status");
-      const settled = await readUntil(() => status.textContent({ timeout: ACTION_LIMIT_MS }), statusSettled, QUICK_SETTLE);
-      const said = await status.textContent({ timeout: ACTION_LIMIT_MS });
+      const settled = await pollFor(() => status.textContent({ timeout: PAGE_WAIT }), statusSettled, QUICK_SETTLE);
+      const said = await status.textContent({ timeout: PAGE_WAIT });
       const saved = await atLoad("帯の HTML のエクスポートの file を受け取る", async () => {
         const download = await downloaded;
-        const path = await within(download.path(), ACTION_LIMIT_MS, "帯の HTML のエクスポートの file を書き終える");
+        const path = await bounded(download.path(), PAGE_WAIT, "帯の HTML のエクスポートの file を書き終える");
         return { filename: download.suggestedFilename(), html: readFileSync(path, "utf8") };
       });
       return { settled, said, saved };
@@ -472,7 +509,7 @@ const HELD_BAR_PAGE = await atLoad("帯の塊が届くのを止めて、data-hea
     `<p>上の段落</p><pre class="dragon" data-header>${escape(SEQUENCE)}</pre><p style="height:200px">下の段落</p>`,
     async (page, requests) => {
       try {
-        const asked = await readUntil(() => requests.scripts.filter((file) => barFiles.includes(file)).length, (count) => count > 0, QUICK_SETTLE);
+        const asked = await pollFor(() => requests.scripts.filter((file) => barFiles.includes(file)).length, (count) => count > 0, QUICK_SETTLE);
         await twoFrames(page);
         const before = await drawnFigures(page);
         release();
@@ -593,7 +630,7 @@ const EMBED_OFFLINE = await atLoad("入口の1行を置いた頁を dragon embed
     const written = exists ? readFileSync(out, "utf8") : "";
     const opened = await atLoad("埋めた1 file を外への通信を止めて開く", async () => {
       const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
-      context.setDefaultTimeout(ACTION_LIMIT_MS);
+      context.setDefaultTimeout(PAGE_WAIT);
       const outside: string[] = [];
       try {
         await context.route(/^https?:/u, async (route) => {
@@ -644,7 +681,7 @@ const EMBED_ICONS = await atLoad("Tabler の絵柄を使う頁を dragon embed �
     const written = await atLoad("埋めた1 file を読む", () => readFileSync(out, "utf8"));
     const opened = await atLoad("埋めた1 file を外への通信を止めて開く", async () => {
       const context = await (await fileChromium()).newContext({ viewport: { width: 960, height: 720 } });
-      context.setDefaultTimeout(ACTION_LIMIT_MS);
+      context.setDefaultTimeout(PAGE_WAIT);
       try {
         await context.route(/^https?:/u, (route) => route.abort());
         const page = await context.newPage();
@@ -1006,7 +1043,7 @@ async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSe
   const context = await (await fileChromium()).newContext({ viewport: { width: 760, height: 900 } });
   if (init !== undefined) await context.addInitScript(init);
   // 長さを書かない待ち (頁を開く、押す、字を読む) も区切る
-  context.setDefaultTimeout(ACTION_LIMIT_MS);
+  context.setDefaultTimeout(PAGE_WAIT);
   const seen: OfflineSeen = { outside: [], errors: [] };
   try {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -1079,7 +1116,7 @@ const OFFLINE_MENU = await atLoad("埋めた頁の帯のエクスポートの窓
     const toggle = page.locator('.dg-header-actions > [data-action="export"] > button');
     const toggles = await toggle.count();
     const menu = await atLoad("エクスポートの窓を開いて見出しと形式を読む", async () => {
-      await toggle.click({ timeout: ACTION_LIMIT_MS });
+      await toggle.click({ timeout: PAGE_WAIT });
       return page.evaluate(() => {
         const el = document.querySelector(".dragon-frame")!.shadowRoot!.querySelector<HTMLElement>('[data-menu="export"]')!;
         const groups: { group: string; formats: string[] }[] = [];
@@ -1102,10 +1139,10 @@ const OFFLINE_BUTTONS = await atLoad("埋めた頁の帯のボタンを全て押
     /** 窓 `menu` を開いて項目 `item` を押し、知らせの欄が `wait` ミリ秒までに書き換わるまで待った字と、その後に読んだ知らせの欄の字を返す */
     const pick = async (menu: string, item: string, wait = QUICK_SETTLE): Promise<{ polled: string | null; said: string }> => {
       await clearStatus();
-      await page.locator(`.dg-header-actions > [data-action="${menu}"] > button`).click({ timeout: ACTION_LIMIT_MS });
-      await page.locator(`[data-menu="${menu}"] ${item}`).click({ timeout: ACTION_LIMIT_MS });
-      const polled = await readUntil(() => status.textContent({ timeout: ACTION_LIMIT_MS }), statusSettled, wait);
-      return { polled, said: (await status.textContent({ timeout: ACTION_LIMIT_MS })) ?? "" };
+      await page.locator(`.dg-header-actions > [data-action="${menu}"] > button`).click({ timeout: PAGE_WAIT });
+      await page.locator(`[data-menu="${menu}"] ${item}`).click({ timeout: PAGE_WAIT });
+      const polled = await pollFor(() => status.textContent({ timeout: PAGE_WAIT }), statusSettled, wait);
+      return { polled, said: (await status.textContent({ timeout: PAGE_WAIT })) ?? "" };
     };
     // 知らせの欄が書き換わらなかった項目で止める。件はその項目の待ちの判定で落ちる
     const picked = await atLoad("帯のコピーとエクスポートの項目を押す", async () => {
@@ -1133,7 +1170,7 @@ const OFFLINE_BUTTONS = await atLoad("埋めた頁の帯のボタンを全て押
         if (!statusSettled(got.polled)) return { polls, said, files };
         said[`export:${format}`] = got.said;
         const download = await saved;
-        if (format === "html" || format === "gif" || format === "mp4") files[format] = readFileSync(await within(download.path(), ACTION_LIMIT_MS, `帯の ${format} のエクスポートの file を書き終える`));
+        if (format === "html" || format === "gif" || format === "mp4") files[format] = readFileSync(await bounded(download.path(), PAGE_WAIT, `帯の ${format} のエクスポートの file を書き終える`));
       }
       return { polls, said, files };
     });
@@ -1142,11 +1179,11 @@ const OFFLINE_BUTTONS = await atLoad("埋めた頁の帯のボタンを全て押
       // コピーとエクスポートの項目を押せなかった時は、件がそこで落ちるので押さない
       picked.get();
       await clearStatus();
-      await page.locator('.dg-header-actions > [data-action="editor"]').click({ timeout: ACTION_LIMIT_MS });
-      await page.locator('.dg-header-actions > [data-action="expand"]').click({ timeout: ACTION_LIMIT_MS });
-      await page.locator('.dg-header-actions > [data-action="expand"]').click({ timeout: ACTION_LIMIT_MS });
-      await page.locator('.dg-header-actions > [data-action="code"]').click({ timeout: ACTION_LIMIT_MS });
-      return { status: await status.textContent({ timeout: ACTION_LIMIT_MS }), errors: [...seen.errors], outside: [...seen.outside] };
+      await page.locator('.dg-header-actions > [data-action="editor"]').click({ timeout: PAGE_WAIT });
+      await page.locator('.dg-header-actions > [data-action="expand"]').click({ timeout: PAGE_WAIT });
+      await page.locator('.dg-header-actions > [data-action="expand"]').click({ timeout: PAGE_WAIT });
+      await page.locator('.dg-header-actions > [data-action="code"]').click({ timeout: PAGE_WAIT });
+      return { status: await status.textContent({ timeout: PAGE_WAIT }), errors: [...seen.errors], outside: [...seen.outside] };
     });
     return { buttons, picked, pressed };
   }),

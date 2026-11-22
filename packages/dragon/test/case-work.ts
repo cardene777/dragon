@@ -11,8 +11,6 @@
  *
  * 子の process を起こす仕事と頁を開く仕事は、repo の全ての件で件の中に置かない (#3816)。
  * 件を持つ file を集める (`caseFiles`) と、件の中のその呼び出しを件の名前と共に挙げる (`childOrPageIn`) もここが持つ。
- *
- * 頁を読む待ちに上限を付ける部品は`page-wait.ts`だけが持つ (#3843)。部品の写しを名前に依らず形で挙げる (`waitCopiesIn`) もここが持つ。
  */
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -341,77 +339,4 @@ export function childOrPageIn(source: string, fileName: string): string[] {
     ];
     return why.length > 0 ? [`${fileName} > ${c.name}: ${why.join("。")}`] : [];
   });
-}
-
-/** 待ちを上限で切る写しの形 (#3843) */
-const RACE_COPY = "Promise.raceとsetTimeoutで切る";
-/** 期限まで読み直す写しの形 (#3843) */
-const POLL_COPY = "期限まで50msごとに読み直す";
-/** 読み直す写しが待つ間 (ms) */
-const POLL_MS = 50;
-
-type FunctionNode = ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration;
-
-const isFunctionNode = (node: ts.Node): node is FunctionNode =>
-  ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node) || ts.isMethodDeclaration(node);
-
-/** 関数の名前。宣言の名前か、関数を入れた変数と欄の名前。名前の無い関数は「(名前の無い関数)」 */
-function functionName(node: FunctionNode): string {
-  if (node.name !== undefined && ts.isIdentifier(node.name)) return node.name.text;
-  const { parent } = node;
-  if ((ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent)) && ts.isIdentifier(parent.name)) return parent.name.text;
-  return "(名前の無い関数)";
-}
-
-/** `a.b` の形の `a` と `b` が `owner` と `name` か */
-const isMember = (node: ts.Node, owner: string, name: string): boolean =>
-  ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === owner && node.name.text === name;
-
-/** 呼び出しの名前の最後の語 (`setTimeout(...)` と `globalThis.setTimeout(...)` は `setTimeout`) */
-const calleeTail = (callee: ts.Expression): string | undefined =>
-  ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined;
-
-/** 関数の中身 (中の関数を含む) が持つ写しの形 */
-function copyShapes(fn: FunctionNode): string[] {
-  let race = false;
-  let timer = false;
-  let now = false;
-  let pollWait = false;
-  const visit = (node: ts.Node, inLoop: boolean): void => {
-    if (ts.isCallExpression(node)) {
-      if (isMember(node.expression, "Promise", "race")) race = true;
-      if (calleeTail(node.expression) === "setTimeout") {
-        timer = true;
-        const ms = node.arguments[1];
-        if (inLoop && ms !== undefined && ts.isNumericLiteral(ms) && Number(ms.text) === POLL_MS) pollWait = true;
-      }
-    }
-    if (isMember(node, "Date", "now")) now = true;
-    const loop = inLoop || ts.isIterationStatement(node, false);
-    ts.forEachChild(node, (child) => visit(child, loop));
-  };
-  if (fn.body !== undefined) visit(fn.body, false);
-  return [...(race && timer ? [RACE_COPY] : []), ...(pollWait && now ? [POLL_COPY] : [])];
-}
-
-/**
- * fileの字から、待ちに上限を付ける部品 (`page-wait.ts`) の写しを`file > 関数の名前: 形`の形で全て返す (#3843)。
- * 名前に依らず形で探す。`Promise.race`と`setTimeout`の両方を呼ぶ関数と、繰り返しの中で50msの`setTimeout`を待ち`Date.now()`で期限を見る関数を写しと数える。
- * 写しを中に持つ外側の関数は挙げず、形を持つ一番内側の関数だけを挙げる。説明の文と字の列の中の字は数えない
- */
-export function waitCopiesIn(source: string, fileName: string): string[] {
-  const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-  const matched: { fn: FunctionNode; shapes: string[] }[] = [];
-  const visit = (node: ts.Node): void => {
-    if (isFunctionNode(node)) {
-      const shapes = copyShapes(node);
-      if (shapes.length > 0) matched.push({ fn: node, shapes });
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-  const inside = (inner: ts.Node, outer: ts.Node): boolean => inner !== outer && inner.pos >= outer.pos && inner.end <= outer.end;
-  return matched
-    .filter((m) => !matched.some((other) => inside(other.fn, m.fn)))
-    .map((m) => `${fileName} > ${functionName(m.fn)}: ${m.shapes.join("、")}`);
 }

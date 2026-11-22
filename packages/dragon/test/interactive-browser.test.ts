@@ -15,7 +15,6 @@ import { join } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { atLoad, type Loaded } from "./at-load";
-import { ACTION_LIMIT_MS, PAGE_LIMIT_MS, within } from "./page-wait";
 import { exporter } from "./export-support";
 import { LOOK } from "../src/look/values";
 import { fileChromium } from "./page-needs";
@@ -23,6 +22,28 @@ import { labeledAskTry, parsedTry, SMALL_PARTS, smallTry, WIDE_ASK_LONGEST, wide
 
 
 const PAGE = "http://localhost/";
+
+/** 頁の 1 つの操作 (開く、押す、待つ) の上限 (ms)。上限を書かない操作もこれで切る。元の件が 1 件 10 秒で切られていた幅に揃える */
+const ACTION_LIMIT_MS = 10_000;
+/**
+ * 1 つの頁で済ませる仕事の上限 (ms) (#3816)。
+ * 読み込む段には 1 件の上限が掛からず、`page.evaluate` と文脈を閉じる仕事は Playwright の上限も持たない。
+ * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
+ */
+const PAGE_LIMIT_MS = 60_000;
+
+/** `work` を `ms` ミリ秒で切る。切った時は `what` を挙げて落ちる */
+async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
+  });
+  try {
+    return await Promise.race([work, limit]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** 作る釦を機械の列の上に置いた小さな図 */
 const onLine = (): unknown =>
