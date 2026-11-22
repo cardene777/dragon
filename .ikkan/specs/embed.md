@@ -57,8 +57,6 @@
 | 埋めた頁で`data-header`を持たない塊は、帯の無い図のまま描ける | `pnpm exec vitest run`の検査`offline-page-leaves-plain-blocks-bare`が通る | #3786 |
 | 通信を止めて開いた埋めた頁で、帯のボタンとエクスポートの窓とコピーの窓の項目を1つずつ押した時、書き出せなかった知らせか頁の例外を出す項目が0個になる | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
 | 埋めた頁の帯は、どのボタンを押しても頁の外のfileを読みに行くことができない | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
-| 埋めた頁の帯のエクスポートの窓は、画像の見出しの下にPNGとSVGを、記法の見出しの下にdragon記法とJSONを並べる | `pnpm exec vitest run`の検査`offline-export-menu-lists-four-formats`が通る | #3786 |
-| 埋めた頁の帯のエクスポートの窓からは、HTML、GIF、MP4と動きの見出しを選べない | `pnpm exec vitest run`の検査`offline-export-menu-lists-four-formats`が通る | #3786 |
 | npmの帯 (`mountFramedDiagram`) のエクスポートの窓は、今と同じく画像、動き、記法の見出しの下に7つの形式を並べる | `pnpm exec vitest run`の検査`export-menu-groups-seven-formats`が通る | #3786 |
 | jsDelivrの1行の入口の頁で帯のエクスポートのHTMLを押すと、今と同じく入口の置き場から書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run`の検査`script-entry-adds-bar-with-data-header`が通る | #3786 |
 | npmの帯 (`mountFramedDiagram`) でエクスポートのHTMLを押すと、今と同じく隣の書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run`の検査`frame-export-html-loads-capture`が通る | #3786 |
