@@ -9,7 +9,7 @@
 import type { SubChange } from "../blocks/box/draw";
 import type { CarrierTime } from "../blocks/carry/timing";
 import type { FieldChange } from "../blocks/strip/draw";
-import type { Layout, Rect, SceneEdge, SceneField } from "../layout/scene";
+import type { Layout, Point, Rect, SceneEdge, SceneField } from "../layout/scene";
 import type { ColorKey } from "../look/values";
 import type { RenderOptions } from "../render/draw";
 import type { Motion } from "../render/motion";
@@ -46,12 +46,17 @@ export interface KindDrawn {
   edge?(this: void, edge: SceneEdge): number | undefined;
 }
 
-/** 全体図に描く部品。`band` は地の枠、そうでなければ札 */
-export interface OverviewShape {
-  rect: Rect;
-  band: boolean;
-  color: ColorKey;
-}
+/**
+ * 全体図に描く部品 (#3849)。座標は図の上の値で、描く本体が全体図の大きさへ縮める。
+ * `rect` は四角で、`band` なら薄い塗りと縁の地、そうでなければ濃い札。
+ * `disc` は円で、`band` なら半透明の地 (重なった所は色が混ざる)、そうでなければ濃い点。
+ * `area` は点を順に結んで閉じた形を半透明に塗り、`line` は点を順に結んだ線を引く
+ */
+export type OverviewShape =
+  | { rect: Rect; band: boolean; color: ColorKey }
+  | { disc: { cx: number; cy: number; r: number }; band: boolean; color: ColorKey }
+  | { area: Point[]; color: ColorKey }
+  | { line: Point[]; color: ColorKey };
 
 /** 寄って追う窓が線の端の箱 (#3836) を見る時に、描く本体から受け取る窓の寸法と道具 */
 export interface EndView {

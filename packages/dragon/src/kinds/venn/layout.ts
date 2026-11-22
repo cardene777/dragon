@@ -12,7 +12,7 @@
  */
 import { exclusiveOf, provisionalOf, regionKey, regionsOf, vennNumber } from "../../blocks/circle/regions";
 import { unitOf } from "../../dot-count";
-import { above, arrangeDots, below, clusterSpots, type DotArea, type DotGroup, type DotPlan, type DotSize, type DotText, dotCounts, dotTextRect, NONE_KEY, widest } from "../../layout/dots";
+import { above, arrangeDots, below, clusterSpots, type DotArea, type DotGroup, type DotPlan, type DotSize, type DotText, dotCounts, dotsOverview, dotTextRect, NONE_KEY, widest } from "../../layout/dots";
 import { textWidth } from "../../layout/measure";
 import { besideSameSpot, type Layout, type Point, type Rect, type SceneBadge } from "../../layout/scene";
 import { DOTS_LOOK, DOTS_TYPE } from "../../look/dots";
@@ -20,6 +20,7 @@ import { COLOR_ORDER, type ColorKey, LOOK } from "../../look/values";
 import { VENN_LOOK, VENN_TYPE } from "../../look/venn";
 import type { DiagramModel } from "../../schema";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
+import type { OverviewShape } from "../parts";
 
 /** 札の頭に付ける字。2 つの集まりの重なり、3 つ全ての重なり、どれにも入らない数 */
 const CHIP_WORDS: Record<NotationLang, { both: string; all: string; none: string }> = {
@@ -502,4 +503,18 @@ function layoutVennDots(diagram: DiagramModel, lang: NotationLang, width: number
     badges: besideSameSpot(placed.badges, () => false, () => true),
     venn: { circles: [], regions: [], totals, counts: [], lits: [], dots: placed.plan },
   };
+}
+
+/**
+ * 集合の重なりの図の全体図に描く部品 (#3849)。
+ * 円を半透明の地で描き、重なった所を元の図と同じく混ざった色に見せ、名前の字の所を札で描く。
+ * 点で数える見た目 (`[shape: dots]`) は点の図の共通の部品が描く
+ */
+export function vennOverview(layout: VennLayout): OverviewShape[] {
+  const { circles, dots } = layout.venn;
+  if (dots) return dotsOverview(dots);
+  return [
+    ...circles.map((c): OverviewShape => ({ disc: { cx: c.cx, cy: c.cy, r: c.r }, band: true, color: c.color })),
+    ...circles.map((c): OverviewShape => ({ rect: c.label.rect, band: false, color: c.color })),
+  ];
 }

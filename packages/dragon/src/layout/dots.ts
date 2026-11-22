@@ -20,6 +20,7 @@ import { dotsOf } from "../dot-count";
 import { DOTS_LOOK, DOTS_TYPE } from "../look/dots";
 import { type ColorKey, LOOK } from "../look/values";
 import { DEFAULT_LANG, type NotationLang } from "../words";
+import type { OverviewShape } from "../kinds/parts";
 import { textWidth } from "./measure";
 import type { Point, Rect, SceneBadge } from "./scene";
 
@@ -369,3 +370,21 @@ export function dotTextRect(t: DotText, text: string): Rect {
 
 /** 段ごとの字のうち一番広い字の幅 */
 export const widest = (texts: readonly (string | undefined)[], role: DotTextRole): number => Math.max(0, ...texts.map((t) => (t === undefined ? 0 : textWidth(t, DOTS_TYPE[role]))));
+
+/**
+ * 点で数える見た目の全体図に描く部品 (#3849)。全体の箱を地、最後の段に残る点を、その段で入る群れの最初の色の点で描く。
+ * まだどこにも入らない点は、どれにも入らない群れの色で描く
+ */
+export function dotsOverview(plan: DotPlan): OverviewShape[] {
+  const colorOf = (key: string): ColorKey => plan.groups.find((g) => g.key === (key === "" ? NONE_KEY : key))?.colors[0] ?? "slate";
+  return [
+    { rect: plan.box.rect, band: true, color: "slate" },
+    ...plan.dots
+      .filter((dot) => dot.gone === undefined)
+      .map((dot): OverviewShape => {
+        const last = dot.at.length - 1;
+        const [cx, cy] = dot.at[last] ?? [0, 0];
+        return { disc: { cx, cy, r: plan.size.r }, band: false, color: colorOf(dot.paint[last] ?? dot.first) };
+      }),
+  ];
+}

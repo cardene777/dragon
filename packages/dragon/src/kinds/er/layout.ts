@@ -15,6 +15,7 @@ import { along, carrierHalf, type Layout, pathLength, type Point, type Rect, typ
 import { ER_COLORS, ER_LOOK, ER_TYPE } from "../../look/er";
 import { type ColorKey, LOOK, type TextStyle } from "../../look/values";
 import type { DiagramModel } from "../../schema";
+import type { OverviewShape } from "../parts";
 import type { ErField } from "../../blocks/table/block";
 
 /** 表の中の項目の行。`field` は項目の名前、`cy` は行の真ん中の高さ */
@@ -343,4 +344,16 @@ export function erFocusParts(layout: ErLayout, diagram: DiagramModel, step: numb
     ),
   );
   return [...layout.tables.filter((t) => ids.has(t.id)), ...layout.notes.filter((n) => n.step === step)];
+}
+
+/**
+ * 表どうしの関係の図の全体図に描く部品 (#3849)。
+ * 結びの線を線で描き、その上に表を地、表の頭の行 (表の名前の行) を表の色の札で描く
+ */
+export function erOverview(layout: ErLayout): OverviewShape[] {
+  return [
+    ...layout.links.map((link): OverviewShape => ({ line: link.points, color: "slate" })),
+    ...layout.tables.map((t): OverviewShape => ({ rect: t, band: true, color: t.color })),
+    ...layout.tables.map((t): OverviewShape => ({ rect: { x: t.x, y: t.y, w: t.w, h: (t.rows[0]?.y ?? t.y + t.h) - t.y }, band: false, color: t.color })),
+  ];
 }
