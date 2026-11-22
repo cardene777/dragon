@@ -7,12 +7,17 @@
  *
  * build した見本帳を`http://localhost/dragon/`に置き、別の置き場 (`http://parent.test/`) の頁にiframeで開いて確かめる。
  * 見本帳の置き場はGitHub Pagesと同じく、拡張子の無い経路に同じ名前の`.html`を返し、無い経路に`404.html`を404で返す。
+ *
+ * 件の中で頁を開いて押して待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3816)。
+ * 頁を開いて押し、知らせを待つ仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は記した値を元の件と同じ順で確かめる。
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { editorUrl, packedEditorUrl } from "@cardenelabs/dragon/light";
 import { describe, expect, it } from "vitest";
 
+import { atLoad, type Loaded } from "../../../../packages/dragon/test/at-load";
 import { fileChromium } from "../../../../packages/dragon/test/page-needs";
 import { BASE, builtDir } from "./playground-support";
 
@@ -49,10 +54,82 @@ interface Received {
   detail: unknown;
 }
 
+/** iframeを並べた頁で`run`を回した結果。build した見本帳の index.html が無い時は頁を開かない */
+interface Parented<T> {
+  /** build した見本帳の index.html が在る */
+  built: boolean;
+  /** `run`の結果 */
+  result?: T;
+}
+
+/** 頁の 1 つの操作 (開く、押す、待つ) の上限 (ms)。上限を書かない操作もこれで切る。元の件が 1 件 10 秒で切られていた幅に揃える */
+const ACTION_LIMIT_MS = 10_000;
+/**
+ * 1 つの頁で済ませる仕事の上限 (ms) (#3816)。
+ * 読み込む段には 1 件の上限が掛からず、`page.evaluate`と文脈を閉じる仕事は Playwright の上限も持たない。
+ * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
+ */
+const PAGE_LIMIT_MS = 60_000;
+
+/** `work`を`ms`ミリ秒で切る。切った時は`what`を挙げて落ちる */
+async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
+  });
+  try {
+    return await Promise.race([work, limit]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * `read`を、`done`が通るか`timeout`ミリ秒が過ぎるまで 50ms ごとに読み直し、最後に読んだ値を返す。
+ * `expect.poll`は件の外で使えないので、読み込む段では`expect.poll`と同じ間と上限で待つだけにし、判定は件が持つ (#3816)。
+ * 上限を過ぎた後の読みが落ちた時は、`expect.poll`と同じくその理由で落ちる
+ */
+async function readUntil<T>(read: () => Promise<T>, done: (value: T) => boolean, timeout: number): Promise<T> {
+  const end = Date.now() + timeout;
+  for (;;) {
+    const last = Date.now() >= end;
+    try {
+      const value = await read();
+      if (last || done(value)) return value;
+    } catch (error) {
+      if (last) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/** `read`を、`want`と同じ値になるか`timeout`ミリ秒が過ぎるまで読み直す。件は同じ値を`toEqual`で確かめる */
+const readUntilEqual = <T>(read: () => Promise<T>, want: unknown, timeout: number): Promise<T> => readUntil(read, (value) => isDeepStrictEqual(value, want), timeout);
+
+/**
+ * 頁で順に回す仕事を、1 つずつ読み込む段の仕事 (`atLoad`) にする道具を作る。
+ * 落ちた仕事より後の仕事は回さず、読んだ件は落ちた仕事の名前と理由で落ちる。
+ * 件は前の仕事の結果を確かめてから次の仕事の結果を読むので、途中で落ちる件も落ちる前の様子を元の件と同じ順に確かめる
+ */
+function inOrder(): <T>(name: string, work: () => Promise<T>) => Promise<Loaded<T>> {
+  let failed: Loaded<never> | undefined;
+  return async <T>(name: string, work: () => Promise<T>): Promise<Loaded<T>> => {
+    if (failed) return failed;
+    const loaded = await atLoad(name, work);
+    try {
+      loaded.get();
+    } catch {
+      failed = loaded as Loaded<never>;
+    }
+    return loaded;
+  };
+}
+
 /** iframeを並べた頁を開いて`run`を回す。頁は file で 1 つの Chromium の文脈ごとに開いて閉じる */
-async function withParent<T>(frames: { id: string; src: string }[], run: (page: Page) => Promise<T>): Promise<T> {
+async function withParent<T>(frames: { id: string; src: string }[], run: (page: Page) => Promise<T>): Promise<Parented<T>> {
   const dir = builtDir();
-  expect(existsSync(join(dir, "index.html")), "build した見本帳の index.html が無い").toBe(true);
+  const built = existsSync(join(dir, "index.html"));
+  if (!built) return { built };
   // 知らせを受ける処理はiframeより先に置き、iframeが描いた直後の知らせも受ける
   const html =
     '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
@@ -61,8 +138,10 @@ async function withParent<T>(frames: { id: string; src: string }[], run: (page: 
     `window.received.push({frame:frame?frame.id:"",origin:e.origin,type:e.data.type,detail:e.data.detail});});</script>` +
     frames.map(({ id, src }) => `<iframe id="${id}" src="${src}" style="width:800px;height:640px;border:0" allow="clipboard-read; clipboard-write"></iframe>`).join("") +
     "</body></html>";
-  const context = await (await fileChromium()).newContext({ viewport: { width: 1000, height: 1400 }, acceptDownloads: true });
-  try {
+  const context = await within((await fileChromium()).newContext({ viewport: { width: 1000, height: 1400 }, acceptDownloads: true }), ACTION_LIMIT_MS, "頁の文脈を作る");
+  // 上限を書かない押す、待つ、開く操作も、Playwright の既定の 30 秒ではなく 1 つの操作の上限で切る
+  context.setDefaultTimeout(ACTION_LIMIT_MS);
+  const openAndRun = async (): Promise<Parented<T>> => {
     await context.route(`${GALLERY}**`, (route) => route.fulfill({ contentType: "text/html; charset=utf-8", body: "<!doctype html><title>gallery</title>" }));
     await context.route(`${PARENT}**`, (route) => route.fulfill({ contentType: "text/html; charset=utf-8", body: html }));
     await context.route("http://localhost/**", (route) => {
@@ -77,10 +156,20 @@ async function withParent<T>(frames: { id: string; src: string }[], run: (page: 
     });
     const page = await context.newPage();
     await page.goto(PARENT);
-    return await run(page);
+    return { built, result: await run(page) };
+  };
+  try {
+    return await within(openAndRun(), PAGE_LIMIT_MS, "埋め込みの頁を並べた頁の仕事");
   } finally {
-    await context.close();
+    // 記した値は手元に在るので、閉じるのが上限で終わらなくても落とさない。閉じ損ねた頁は file の process の終わりに Playwright が Chromium ごと止める
+    await within(context.close(), ACTION_LIMIT_MS, "頁の文脈を閉じる").catch(() => undefined);
   }
+}
+
+/** 頁で回した結果を返す。build した見本帳の index.html が無い時は判定で落とす */
+function parented<T>(opened: Parented<T>): T {
+  expect(opened.built, "build した見本帳の index.html が無い").toBe(true);
+  return opened.result as T;
 }
 
 /** iframe`id`の中の頁 */
@@ -113,62 +202,115 @@ const shapeOf = (frame: Frame): Promise<EmbedShape> =>
 /** 置いた頁が受けた知らせ */
 const received = (page: Page): Promise<Received[]> => page.evaluate(() => (window as unknown as { received: Received[] }).received);
 
-describe("見本帳の埋め込みの頁 (#3700)", () => {
-  it("embed-page-renders-hash-notation", async () => {
-    const packed = new URL(await packedEditorUrl(SOURCE)).hash;
-    expect(packed.startsWith("#z="), "縮めた記法のURLの形").toBe(true);
-    await withParent(
-      [
-        { id: "packed", src: `${SITE}embed?lang=ja${packed}` },
-        { id: "empty", src: `${SITE}embed` },
-      ],
-      async (page) => {
-        // 縮めた記法を帯つきの図にし、帯の言葉は ?lang=ja に従い、見本帳の上の帯を出さない
-        await expect
-          .poll(async () => shapeOf(await frameOf(page, "packed")), { timeout: 6000 })
-          .toEqual({ buttons: ["code", "editor", "copy", "export", "expand"], code: "コード", drawn: true, siteHeader: false, error: "" });
-        // 記法の無いURLは図を置かず、誤りの文を出す
-        const empty = await shapeOf(await frameOf(page, "empty"));
-        expect({ buttons: empty.buttons, drawn: empty.drawn, siteHeader: empty.siteHeader }, "記法の無い埋め込みの頁").toEqual({ buttons: [], drawn: false, siteHeader: false });
-        expect(empty.error, "記法の無い埋め込みの頁の誤りの文").not.toBe("");
-      },
-    );
-  });
+/** 縮めた記法の埋め込みの頁。帯つきの図にし、帯の言葉は ?lang=ja に従い、見本帳の上の帯を出さない */
+const PACKED_SHAPE: EmbedShape = { buttons: ["code", "editor", "copy", "export", "expand"], code: "コード", drawn: true, siteHeader: false, error: "" };
+/** 縮めていない記法の埋め込みの頁が描けた知らせ */
+const PLAIN_RENDERED = [{ ok: true }];
+/** 帯のエクスポートの窓から記法を保存した後のエクスポートした知らせ */
+const PLAIN_EXPORTED = [{ format: "dragon" }];
+/** 帯のエディタのボタンを押した後のエディタで開いた知らせ */
+const PLAIN_SHARED = [{ via: "editor" }];
 
-  it("embed-page-posts-events", async () => {
-    const plain = new URL(editorUrl(SOURCE)).hash;
-    expect(plain.startsWith("#n="), "縮めていない記法のURLの形").toBe(true);
-    await withParent(
-      [
-        { id: "plain", src: `${SITE}embed${plain}` },
-        { id: "empty", src: `${SITE}embed` },
-      ],
-      async (page) => {
-        const from = async (frame: string, type: string): Promise<unknown[]> =>
-          (await received(page)).filter((m) => m.frame === frame && m.type === type).map((m) => m.detail);
-        // 描けた知らせと描けなかった知らせ
-        await expect.poll(() => from("plain", "dragon-render"), { timeout: 6000 }).toEqual([{ ok: true }]);
-        await expect.poll(async () => (await from("empty", "dragon-render")).length, { timeout: 3000 }).toBe(1);
-        const failed = (await from("empty", "dragon-render"))[0] as { ok: boolean; errors?: string[] };
-        expect(failed.ok, "記法の無い頁の描けなかった知らせ").toBe(false);
-        expect(failed.errors?.length ?? 0, "描けなかった知らせの誤りの文").toBeGreaterThan(0);
+// 頁は件ごとに 1 つずつ開き、落ちた仕事はそれを読む件だけを落とす。押す件は押す前に読んだ値も残し、件は元の件と同じ順に確かめる
+const HASH_PAGES = await atLoad("縮めた記法のURLと記法の無いURLの埋め込みの頁をiframeで開く", async () => {
+  const packed = new URL(await packedEditorUrl(SOURCE)).hash;
+  // URLの形が違う時は件が先に判定で落ちるので開かない
+  if (!packed.startsWith("#z=")) return { packed, opened: undefined };
+  const opened = await withParent(
+    [
+      { id: "packed", src: `${SITE}embed?lang=ja${packed}` },
+      { id: "empty", src: `${SITE}embed` },
+    ],
+    async (page) => {
+      const step = inOrder();
+      const shape = await step("縮めた記法の埋め込みの頁が図を描くのを待つ", () => readUntilEqual(async () => shapeOf(await frameOf(page, "packed")), PACKED_SHAPE, 6000));
+      const empty = await step("記法の無い埋め込みの頁を読む", async () => shapeOf(await frameOf(page, "empty")));
+      return { shape, empty };
+    },
+  );
+  return { packed, opened };
+});
 
+const POSTED = await atLoad("縮めていない記法のURLと記法の無いURLの埋め込みの頁を開き、帯を押して知らせを読む", async () => {
+  const plain = new URL(editorUrl(SOURCE)).hash;
+  // URLの形が違う時は件が先に判定で落ちるので開かない
+  if (!plain.startsWith("#n=")) return { plain, opened: undefined };
+  const opened = await withParent(
+    [
+      { id: "plain", src: `${SITE}embed${plain}` },
+      { id: "empty", src: `${SITE}embed` },
+    ],
+    async (page) => {
+      const from = async (frame: string, type: string): Promise<unknown[]> =>
+        (await received(page)).filter((m) => m.frame === frame && m.type === type).map((m) => m.detail);
+      const step = inOrder();
+      // 描けた知らせと描けなかった知らせ
+      const rendered = await step("縮めていない記法の頁の描けた知らせを待つ", () => readUntilEqual(() => from("plain", "dragon-render"), PLAIN_RENDERED, 6000));
+      const emptyRenders = await step("記法の無い頁の描けなかった知らせを待つ", () => readUntil(async () => (await from("empty", "dragon-render")).length, (count) => count === 1, 3000));
+      const failed = await step("記法の無い頁の描けなかった知らせを読む", async () => (await from("empty", "dragon-render"))[0] as { ok: boolean; errors?: string[] });
+      // ?lang の無い頁の帯は英語
+      const code = await step("?lang の無い埋め込みの頁の帯の言葉を読む", async () => (await shapeOf(await frameOf(page, "plain"))).code);
+      // 段が変わった知らせ
+      const stepped = await step("次の段の釦を押して段が変わった知らせを待つ", async () => {
+        await (await frameOf(page, "plain")).locator('button[data-dragon="next"]').click();
+        return readUntil(async () => (await from("plain", "dragon-step")).some((d) => (d as { step: number }).step === 1), (seen) => seen, 3000);
+      });
+      // エクスポートした知らせ
+      const exported = await step("帯のエクスポートの窓から記法を保存し、エクスポートした知らせを待つ", async () => {
         const frame = await frameOf(page, "plain");
-        // ?lang の無い頁の帯は英語
-        expect((await shapeOf(frame)).code, "?lang の無い埋め込みの頁の帯の言葉").toBe("Code");
-        // 段が変わった知らせ
-        await frame.locator('button[data-dragon="next"]').click();
-        await expect.poll(async () => (await from("plain", "dragon-step")).some((d) => (d as { step: number }).step === 1), { timeout: 3000 }).toBe(true);
-        // エクスポートした知らせ
         await frame.locator(".export-toggle").click();
         await Promise.all([page.waitForEvent("download", { timeout: 4000 }), frame.locator('[data-menu="export"] [data-format="dragon"]').click()]);
-        await expect.poll(() => from("plain", "dragon-export"), { timeout: 3000 }).toEqual([{ format: "dragon" }]);
-        // エディタで開いた知らせ
+        return readUntilEqual(() => from("plain", "dragon-export"), PLAIN_EXPORTED, 3000);
+      });
+      // エディタで開いた知らせ
+      const shared = await step("帯のエディタのボタンを押し、エディタで開いた知らせを待つ", async () => {
+        const frame = await frameOf(page, "plain");
         await Promise.all([page.context().waitForEvent("page", { timeout: 4000 }), frame.locator(".dg-header-actions > a.editor").click()]);
-        await expect.poll(() => from("plain", "dragon-share"), { timeout: 3000 }).toEqual([{ via: "editor" }]);
-        // 知らせは見本帳の置き場から届く
-        expect([...new Set((await received(page)).map((m) => m.origin))], "知らせを送った置き場").toEqual(["http://localhost"]);
-      },
-    );
+        return readUntilEqual(() => from("plain", "dragon-share"), PLAIN_SHARED, 3000);
+      });
+      // 知らせは見本帳の置き場から届く
+      const origins = await step("知らせを送った置き場を読む", async () => [...new Set((await received(page)).map((m) => m.origin))]);
+      return { rendered, emptyRenders, failed, code, stepped, exported, shared, origins };
+    },
+  );
+  return { plain, opened };
+});
+
+describe("見本帳の埋め込みの頁 (#3700)", () => {
+  it("embed-page-renders-hash-notation", () => {
+    const { packed, opened } = HASH_PAGES.get();
+    expect(packed.startsWith("#z="), "縮めた記法のURLの形").toBe(true);
+    if (!opened) return;
+    const seen = parented(opened);
+    // 縮めた記法を帯つきの図にし、帯の言葉は ?lang=ja に従い、見本帳の上の帯を出さない
+    expect(seen.shape.get()).toEqual(PACKED_SHAPE);
+    // 記法の無いURLは図を置かず、誤りの文を出す
+    const empty = seen.empty.get();
+    expect({ buttons: empty.buttons, drawn: empty.drawn, siteHeader: empty.siteHeader }, "記法の無い埋め込みの頁").toEqual({ buttons: [], drawn: false, siteHeader: false });
+    expect(empty.error, "記法の無い埋め込みの頁の誤りの文").not.toBe("");
+  });
+
+  it("embed-page-posts-events", () => {
+    const { plain, opened } = POSTED.get();
+    expect(plain.startsWith("#n="), "縮めていない記法のURLの形").toBe(true);
+    if (!opened) return;
+    const seen = parented(opened);
+    // 描けた知らせと描けなかった知らせ
+    expect(seen.rendered.get()).toEqual(PLAIN_RENDERED);
+    expect(seen.emptyRenders.get()).toBe(1);
+    const failed = seen.failed.get();
+    expect(failed.ok, "記法の無い頁の描けなかった知らせ").toBe(false);
+    expect(failed.errors?.length ?? 0, "描けなかった知らせの誤りの文").toBeGreaterThan(0);
+
+    // ?lang の無い頁の帯は英語
+    expect(seen.code.get(), "?lang の無い埋め込みの頁の帯の言葉").toBe("Code");
+    // 段が変わった知らせ
+    expect(seen.stepped.get()).toBe(true);
+    // エクスポートした知らせ
+    expect(seen.exported.get()).toEqual(PLAIN_EXPORTED);
+    // エディタで開いた知らせ
+    expect(seen.shared.get()).toEqual(PLAIN_SHARED);
+    // 知らせは見本帳の置き場から届く
+    expect(seen.origins.get(), "知らせを送った置き場").toEqual(["http://localhost"]);
   });
 });
