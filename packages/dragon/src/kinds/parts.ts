@@ -53,6 +53,32 @@ export interface OverviewShape {
   color: ColorKey;
 }
 
+/** 寄って追う窓が線の端の箱 (#3836) を見る時に、描く本体から受け取る窓の寸法と道具 */
+export interface EndView {
+  /** 窓の幅 */
+  vw: number;
+  /** 頭の列の下の残りの窓の高さ */
+  vh: number;
+  /** 窓の上端に貼る頭の列の高さ */
+  strip: number;
+  /** 窓が見せ始める高さ */
+  top: number;
+  /** 箱と同じ影を付ける属性 */
+  sh: string;
+  /** 窓の真ん中を図の中に留める */
+  clamp(this: void, at: [number, number]): [number, number];
+  /** 段で動く物 */
+  moving(this: void, step: number): Rect[];
+}
+
+/** 線の端の箱を挙げる種類の、寄って追う窓の寄せ直しと札 (#3836) */
+export interface FollowEnds {
+  /** 段 `step` の窓の真ん中 `at` を、線の端の箱を窓に入れる所へ寄せ直す。寄せ直さない段は `at` のまま返す */
+  aim(this: void, at: [number, number], step: number): [number, number];
+  /** 段ごとの頭の列の下の窓の真ん中 `middles` で、窓の端で切れる線の端の箱に出す札。図の上に描き、札の中の位置は窓の上の位置で書く */
+  tags(this: void, middles: [number, number][], m: Motion, timeline: Timeline): string;
+}
+
 /** 後から読む種類の部品の組。`L` はその種類の並べ方が返す置き場所 */
 export interface KindParts<L extends Layout = Layout> {
   model?: {
@@ -93,6 +119,11 @@ export interface KindParts<L extends Layout = Layout> {
   meter?(this: void, field: SceneField & { meter: NonNullable<SceneField["meter"]> }, keys: [number, number][], ctx: Ctx): string;
   /** 段で動く物。寄って追う窓が寄せる所を決める時に見る */
   focus?(this: void, layout: L, diagram: DiagramModel, step: number): Rect[];
+  /**
+   * 段で引いた線の端に在り、その段で足した物に入らない箱 (線の端の箱、#3836) を寄って追う窓に入れ、窓の端で切れる箱に名前の札を出す。
+   * 書かない種類は、線の端の箱を窓に入れず札も出さない
+   */
+  ends?(this: void, layout: L, diagram: DiagramModel, view: EndView): FollowEnds;
   /** 寄って追う窓が段の終わりに見せる所の真ん中。書いた種類は番号の丸へ寄せ直さない。`undefined` なら前の段の所に留まる */
   aim?(this: void, layout: L, timeline: Timeline, step: number, parts: Rect[], vw: number, vh: number): [number, number] | undefined;
   /** 寄って追う窓が見せ始める高さ */

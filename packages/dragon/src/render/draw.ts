@@ -551,9 +551,10 @@ export function drawSvg(
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
     if (e) L.top.push(carrier(e, time, ctx));
   }
-  const content = Object.values(L)
-    .map((parts) => parts.join(""))
-    .join("");
+  const layers = Object.values(L).map((parts) => parts.join(""));
+  const content = layers.join("");
+  // 寄って追う窓の線の端の箱の札 (#3836) は番号の丸の下に描くので、番号の丸より下の層の字の長さを渡す
+  const under = layers.slice(0, Object.keys(L).indexOf("badge")).join("").length;
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
@@ -587,7 +588,7 @@ export function drawSvg(
     `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>`,
   );
   const view = follow
-    ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner, look)
+    ? followView(layout, timeline, diagram, m, id, content, under, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height };
   const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
@@ -701,6 +702,9 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
  * 頭の列を貼る時は、図の頭の箱の下から図の下端までを頭の列の下に見せ、窓がそれより高い時は窓を詰める。どちらも箱の行を 2 重に映さないため (#3834)。
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
+ * 線の端の箱を挙げる種類 (考えを広げる地図、量の行き先の図、状態遷移図) は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、
+ * 窓の端で切れる箱に名前の札を窓の枠の内に出す (#3836)。寄せ直しと札は種類の部品の組の `ends` が持ち、後から読む塊に置く。
+ * 札は番号の丸と処理の札の下に描き、窓と一緒に動く中身の層 (番号の丸より下の層の字の長さ `under` の所) に入れる。
  */
 function followView(
   layout: Layout,
@@ -709,6 +713,7 @@ function followView(
   m: Motion,
   id: string,
   content: string,
+  under: number,
   follow: FollowFrame,
   heads: string,
   drawTable: (s: SceneStrip, from: SceneStrip) => string,
@@ -795,8 +800,8 @@ function followView(
     look ? Math.max(top + below / 2, Math.min(worldH - below / 2, y)) : Math.min(worldH - below / 2, Math.max(top + below / 2, y));
   const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, worldH / 2];
-  // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
-  const middles = timeline.steps.map((_, s) => {
+  /** 段 `s` の頭の列の下の残りの窓の真ん中 */
+  const aimAt = (s: number): [number, number] => {
     // 寄せる所を種類の部品の組が決める種類 (時間軸の図の針と印の列 #3165、試す図の出来事が着く所 #3337) は、番号の丸へ寄せ直さない
     if (parts?.aim) {
       prev = parts.aim(layout, timeline, s, focusParts(layout, diagram, s), vw, below) ?? prev;
@@ -824,6 +829,23 @@ function followView(
     // 動く物の無い次の段は、寄せ直した窓のまま止める
     prev = [near.x + near.w / 2, near.y + near.h / 2];
     return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+  };
+  // 線の端の箱を挙げる種類は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、窓の端で切れる箱に名前の札を出す (#3836)
+  const ends = parts?.ends?.(layout, diagram, {
+    vw,
+    vh: below,
+    strip,
+    top,
+    sh: `filter="url(#dg-sh-${id})"`,
+    clamp: ([x, y]) => [clampX(x), clampY(y)],
+    moving: (s) => focusParts(layout, diagram, s),
+  });
+  // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
+  const middles = timeline.steps.map((_, s): [number, number] => {
+    if (!ends) return aimAt(s);
+    // 寄せ直した所を次の段が留まる所にする
+    prev = ends.aim(aimAt(s), s);
+    return prev;
   });
   const centers = middles.map(([x, y]): [number, number] => [x, y - strip / 2]);
   const c0 = centers[0] as [number, number];
@@ -890,9 +912,10 @@ function followView(
       ? ""
       : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
         `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${pinned}</g></g>`;
+  const tags = ends ? ends.tags(middles, m, timeline) : "";
   const body =
     `<defs><clipPath id="dg-vp-${id}">${frameShape(corner, "", { x: 0, y: 0, w: vw, h: vh }, `<rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/>`)}</clipPath>${mini.clip}</defs>` +
-    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
+    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content.slice(0, under)}${tags}${content.slice(under)}</g>${head}</g>` +
     `${frameShape(corner, ' class="dg-vp-frame"', { x: 0.5, y: 0.5, w: vw - 1, h: vh - 1 }, `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>`)}${mini.body}`;
   const w = beside && !bare ? vw + M.inset + bgW : full;
   // 全体図を出さない時は、窓のすぐ下に表を置く

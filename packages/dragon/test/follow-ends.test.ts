@@ -155,6 +155,14 @@ const inWindow = (r: Rect, win: Rect): Rect => ({ x: r.x - win.x, y: r.y - win.y
 
 const meets = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+/** 点 (`x`、`y`) が、角の丸みの径 `r` の四角 `q` を `out` だけ外へ広げた形の中に在るか */
+function inRound(q: Rect, r: number, x: number, y: number, out: number): boolean {
+  if (x < q.x - out || x > q.x + q.w + out || y < q.y - out || y > q.y + q.h + out) return false;
+  const cx = Math.min(Math.max(x, q.x + r), q.x + q.w - r);
+  const cy = Math.min(Math.max(y, q.y + r), q.y + q.h - r);
+  return Math.hypot(x - cx, y - cy) <= r + out + 0.01;
+}
+
 const contains = (outer: Rect, inner: Rect): boolean =>
   inner.x >= outer.x - 0.5 && inner.y >= outer.y - 0.5 && inner.x + inner.w <= outer.x + outer.w + 0.5 && inner.y + inner.h <= outer.y + outer.h + 0.5;
 
@@ -226,11 +234,18 @@ describe("寄って追う窓の線の端の箱 (#3836)", () => {
       const [parent] = endsAt(p, s);
       const tag = shownTags(p, s).find((t) => t.name === parent?.name);
       expect(tag?.mask, `wallet-ux の段 ${s + 1} の札に箱を覆う地が無い`).toBeDefined();
-      const r = inWindow((parent as End).rect, win);
-      const seen = { x: Math.max(0, r.x - 1), y: Math.max(0, r.y - 1), w: 0, h: 0 };
-      seen.w = Math.min(win.w, r.x + r.w + 1) - seen.x;
-      seen.h = Math.min(win.h, r.y + r.h + 1) - seen.y;
-      expect(contains((tag as Tag).mask as Rect, seen), `wallet-ux の段 ${s + 1} で親の箱の映る所 ${JSON.stringify(seen)} を地 ${JSON.stringify(tag?.mask)} が覆わない`).toBe(true);
+      // 考えの箱は高さの半分の丸みを持つ丸い札で、縁の線の太さの半分 (1) だけ外へ出る。札も縁の線の分だけ外を覆う
+      const box = inWindow((parent as End).rect, win);
+      const pill = (tag as Tag).pill;
+      const mask = (tag as Tag).mask as Rect;
+      const left: string[] = [];
+      for (let x = Math.max(0, box.x - 1); x <= Math.min(win.w, box.x + box.w + 1); x += 1)
+        for (let y = Math.max(0, box.y - 1); y <= Math.min(win.h, box.y + box.h + 1); y += 1) {
+          if (!inRound(box, box.h / 2, x, y, 1)) continue;
+          if (contains(mask, { x, y, w: 0, h: 0 }) || inRound(pill, Math.min(pill.h, pill.w, 48) / 2, x, y, 1)) continue;
+          left.push(`${x},${y}`);
+        }
+      expect(left.slice(0, 5), `wallet-ux の段 ${s + 1} で、地と札の外に覗く親の箱の点 (${left.length} 点)`).toEqual([]);
     }
   });
 
@@ -358,7 +373,7 @@ describe("寄って追う窓の線の端の箱 (#3836)", () => {
     for (const name of ["wallet-ux", "salary", "subscription"]) {
       const diagram = notation(example(name));
       for (const options of [{ lang: "ja" as const }, { lang: "ja" as const, still: true, figure: true }]) {
-        const { svg } = renderDiagram(diagram as never, options);
+        const { svg } = renderDiagram(diagram, options);
         expect(svg.includes('data-view="follow"'), `${name} ${JSON.stringify(options)} が寄って追う形になる`).toBe(false);
         expect(svg.includes("dg-tag"), `${name} ${JSON.stringify(options)} に札が在る`).toBe(false);
       }
