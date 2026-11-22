@@ -12,10 +12,10 @@
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
-import { isDeepStrictEqual } from "node:util";
 import { describe, expect, it } from "vitest";
 
-import { atLoad, type Loaded } from "../../../../packages/dragon/test/at-load";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
+import { PAGE_LIMIT_MS, inOrder, readUntilEqual, within } from "../../../../packages/dragon/test/page-wait";
 import { fileChromium } from "../../../../packages/dragon/test/page-needs";
 import { codeBlocks, sectionOf } from "../../../../packages/dragon/test/markdown-sections";
 import { app, BASE, builtDir, root } from "./playground-support";
@@ -58,64 +58,6 @@ const sampleTitleText = (): string =>
 function sampleTitle(): string {
   expect(existsSync(SAMPLE), "見本の頁の記法 (src/embed/sample.dragon) が無い").toBe(true);
   return sampleTitleText();
-}
-
-/**
- * 1 つの頁で済ませる仕事の上限 (ms) (#3816)。
- * 読み込む段には 1 件の上限が掛からず、`page.evaluate`と文脈を閉じる仕事は Playwright の上限も持たない。
- * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
- */
-const PAGE_LIMIT_MS = 60_000;
-
-/** `work`を`ms`ミリ秒で切る。切った時は`what`を挙げて落ちる */
-async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const limit = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
-  });
-  try {
-    return await Promise.race([work, limit]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/**
- * `read`を、`want`と同じ値になるか`timeout`ミリ秒が過ぎるまで 50ms ごとに読み直し、最後に読んだ値を返す。
- * `expect.poll`は件の外で使えないので、読み込む段では`expect.poll`と同じ間と上限で待つだけにし、判定は件が同じ値を`toEqual`で確かめる (#3816)。
- * 上限を過ぎた後の読みが落ちた時は、`expect.poll`と同じくその理由で落ちる
- */
-async function readUntilEqual<T>(read: () => Promise<T>, want: unknown, timeout: number): Promise<T> {
-  const end = Date.now() + timeout;
-  for (;;) {
-    const last = Date.now() >= end;
-    try {
-      const value = await read();
-      if (last || isDeepStrictEqual(value, want)) return value;
-    } catch (error) {
-      if (last) throw error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
-
-/**
- * 頁で順に回す仕事を、1 つずつ読み込む段の仕事 (`atLoad`) にする道具を作る。
- * 落ちた仕事より後の仕事は回さず、読んだ件は落ちた仕事の名前と理由で落ちる。
- * 件は前の仕事の結果を確かめてから次の仕事の結果を読むので、途中で落ちる件も落ちる前の様子を元の件と同じ順に確かめる
- */
-function inOrder(): <T>(name: string, work: () => Promise<T>) => Promise<Loaded<T>> {
-  let failed: Loaded<never> | undefined;
-  return async <T>(name: string, work: () => Promise<T>): Promise<Loaded<T>> => {
-    if (failed) return failed;
-    const loaded = await atLoad(name, work);
-    try {
-      loaded.get();
-    } catch {
-      failed = loaded as Loaded<never>;
-    }
-    return loaded;
-  };
 }
 
 /** build した見本帳の`path`を日本語の端末で開いて`run`を回す。頁は file で 1 つの Chromium の文脈ごとに開いて閉じる */
