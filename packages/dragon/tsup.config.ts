@@ -59,6 +59,22 @@ const CAPTURE_BESIDE = {
   },
 };
 /**
+ * `dragon embed` が頁に埋める script に、絵柄集の表 (`src/blocks/icon/sets-all.ts`、約 1.1MB) を束ねない (#3493、#3792)。
+ * 埋めた頁は、図が使う絵柄だけを頁に収めて登録する (`page-icons.ts`)。帯の HTML の書き出しが頁を組む処理 (`export/page.ts`) は、
+ * 描く部品の入口 (`render/svg.ts`) を通って表を読む行を持つので、埋める script を束ねる時だけ、その行が読む file を空の module に替える
+ */
+const PAGE_ICONS_ONLY = {
+  name: "dragon-page-icons-only",
+  setup(build: {
+    onResolve(options: { filter: RegExp }, resolve: () => { path: string; namespace: string }): void;
+    onLoad(options: { filter: RegExp; namespace: string }, load: () => { contents: string; loader: "js" }): void;
+  }) {
+    // esbuild は filter を Go の正規表現で読み、u の印を受けない
+    build.onResolve({ filter: /(^|\/)sets-all$/ }, () => ({ path: "sets-all", namespace: "dragon-no-icon-table" }));
+    build.onLoad({ filter: /.*/, namespace: "dragon-no-icon-table" }, () => ({ contents: "", loader: "js" }));
+  },
+};
+/**
  * HTML に書き出す時に頁へ埋める再生の script の置き場。書き出す部品の file から見た場所 (#3699)。
  * npm の入口の書き出す部品 (`dist/capture.js`) は隣に、script の1行の入口が束ねた書き出す部品 (`dist/cdn/`) は1つ上に在る
  */
@@ -169,9 +185,11 @@ export default defineConfig([
     target: "es2022",
   },
   {
-    // `dragon embed` が頁に埋める script (#3343)。外を読めない頁で動くよう、全ての種類の部品を 1 file に束ねる
+    // `dragon embed` が頁に埋める script (#3343)。外を読めない頁で動くよう、全ての種類の部品を 1 file に束ねる。
+    // 帯で書き出した HTML の頁はこの script を再生の script として埋め、`DragonPlayer.mountDiagram` で図を置く (#3792)
     entry: { offline: "src/script-offline.ts" },
     format: ["iife"],
+    globalName: "DragonPlayer",
     platform: "browser",
     noExternal: [/.*/],
     minify: true,
@@ -179,6 +197,7 @@ export default defineConfig([
     clean: false,
     dts: false,
     define: SHARED_BLOCKS,
+    esbuildPlugins: [PAGE_ICONS_ONLY],
     outDir: "dist",
     target: "es2022",
   },
