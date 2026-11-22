@@ -118,6 +118,7 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   });
 
   // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
+  // 命令 (`src/cli.ts`) も書き出しから軽い入口を通って時系列図の登録を読むので、命令を包んで走らせる検査は`overlap-cli.test.ts`の1つのfileに集める (#3837)
   it("related-sequence-layout-picks-at-most-156", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
     expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(156);

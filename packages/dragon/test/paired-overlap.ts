@@ -6,7 +6,7 @@
  * 組にする字は、札に入っていない、段の番号でも図の部品でもない字 (箱の名前など) から、描いた順に 2 つ選ぶ。
  * 重なりの四角は描いた字の四角そのままなので、編集画面の点線の四角が描いた字を覆うかを確かめられる。
  *
- * 書き出しの命令の検査 (`overlap-cli.test.ts`) は `vi.mock` で、編集画面の検査は検査用の build の設定
+ * 書き出しの命令と崩れを確かめる命令の検査 (`overlap-cli.test.ts`) は `vi.mock` で、編集画面の検査は検査用の build の設定
  * (`apps/playground-spa/src/lib/overlap-build-support.ts`) で、この包みを `findOverlaps` の代わりに読ませる。
  * 製品の code はこの file を読まない。
  */

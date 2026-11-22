@@ -169,7 +169,7 @@
 | 1件の検査の上限は10秒、1回の実行の上限は5分のまま変わらず、上限を変える環境変数の名前も変わらない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`と`run-limit-is-five-minutes`と`limit-env-names-unchanged`が通る | #3759 |
 | `packages/dragon/src/render/pipe.ts`を変えた時、関係する検査を選ぶ命令は130以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3763 |
 | `packages/dragon/src/render/venn.ts`を変えた時、関係する検査を選ぶ命令は110以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-venn-draw-picks-at-most-110`が通る | #3763 |
-| `packages/dragon/src/kinds/sequence/layout.ts`を変えた時、関係する検査を選ぶ命令は156以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-sequence-layout-picks-at-most-156`が通る | #3763 #3753 |
+| `packages/dragon/src/kinds/sequence/layout.ts`を変えた時、関係する検査を選ぶ命令は156以下の検査のfileを返す | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-sequence-layout-picks-at-most-156`が通る | #3763 #3753 #3837 |
 | `render/pipe.ts`を変えた時、関係する検査を選ぶ命令は配管の図を描かない種類の検査 (`venn-diagram.test.ts`、`clock-look.test.ts`、`er-diagram.test.ts`) を選ばない | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-skips-other-kind-tests`が通る | #3763 |
 | どの種類の描く所を変えた時も、関係する検査を選ぶ命令は全ての種類を描く検査 (`packages/dragon/test/all-kinds.ts`をimportする検査、`examples.test.ts`、`export.test.ts`、`light-entry.test.ts`、見本帳の`playground.test.ts`) を選ぶ | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-all-kind-tests-picked-for-every-kind`が通る | #3763 |
 | 種類の置き場の一覧 (`kinds/index.ts`) に在る種類に、種類の登録のfileか、`kinds/all.ts`の登録か、`light.ts`の読み込みが欠けた時、検査は欠けた種類を名指して拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`kind-registrations-match-kind-folders`が通る | #3763 |
@@ -225,3 +225,10 @@
 | 止める段は、件が落ちたfileのpathを、件の名前に重ねて`failed`に書かない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-names-failed-test-not-its-file`が通る | #3800 |
 | 上限で止まらずに終わった回は、続きを回さずにvitestの終わり方をそのまま返す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-continues-unfinished-files`が通る | #3800 |
 | 上限で止まった実行の中で終わったfileに落ちた件が在った時は、今どおり続きが全部通っても終わり方1で終わり、落ちた件の名前を出す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-keeps-failures-across-runs`が通る | #3800 |
+| 字どうしが重なる図に`dragon check --layout`を打つと、重なる2つの字を名指す知らせが、重なりが見え始める段の`step`の行に`warning`で出て、終わり方は0のまま。日本語と英語の両方で出る | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`check-layout-reports-text-overlaps`が通る | #3837 |
+| `checkLayoutText`は、包みが足した字どうしの重なりを種類`texts-overlap`の崩れとして1件返し、その崩れを`describeBreak`で書いた文は`dragon export`が同じ重なりに出す文と同じになる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`layout-check-reports-text-overlaps`が通る | #3837 |
+| `dragon check`の使い方の`--layout`の説明が、知らせる崩れに字どうしの重なりを挙げる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`check-layout-usage-names-text-overlaps`が通る | #3837 |
+| 書き出しの命令が出す字の重なりの知らせは、`--lang`を渡した時も渡さない時も今と同じ文で出る | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`と`export-warns-overlaps-without-lang`が通る | #3837 |
+| 配管の図とベン図の描く所を変えた時に選ぶ検査は、今の上限の130と110を超えない | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`と`related-venn-draw-picks-at-most-110`が通る | #3837 |
+| 全ての種類を読む助けの file (`all-kinds.ts`) を読む検査は、4つの描く所のどれを変えても選ばれる | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-all-kind-tests-picked-for-every-kind`が通る | #3837 |
+| 全ての種類を読む助けの file を通らずに既定の入口を読む検査の file を拒む | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`tests-read-default-entry-only-through-all-kinds`が通る | #3837 |
