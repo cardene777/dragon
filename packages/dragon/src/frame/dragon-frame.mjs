@@ -116,7 +116,7 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   const host = document.createElement('div');host.className='dragon-host';$('.stage').append(host);
   const notify=options.notify;
   const actions=createDiagramActions(document,host,source,diagram,notify,options.capture);
-  // 書き出す部品を読めない入口 (`dragon embed`の頁) では、作れないHTMLとGIFとMP4と動きの見出しを窓から外す (#3786)
+  // 書き出す部品を読む処理を渡さない置き方では、作れないHTMLとGIFとMP4と動きの見出しを窓から外す (#3786)。`dragon embed`の頁は束ねた部品を渡す (#3792)
   if(!options.capture)for(const el of root.querySelectorAll(`[data-group="motion"],${CAPTURE_FORMATS.map(f=>`[data-format="${f}"]`).join(',')}`))el.remove();
   const sourceText=actions.sourceText;
   const words=snippetWords(options.words);

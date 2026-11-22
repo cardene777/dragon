@@ -124,6 +124,8 @@ The text in the diagram and the error lines are in Japanese when the page's `lan
 To make a file that opens without the network, pass the page to `dragon embed`.
 It replaces the script line with the bundled script, which holds every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` picks the file).
 The file fetches nothing from outside, and draws in the device's fonts because the bundled fonts are not embedded.
+The Export menu on a `data-header` block's bar saves the same seven formats as the jsDelivr page (PNG, SVG, HTML, GIF, MP4, notation, and JSON) without fetching anything.
+The saved HTML also draws in the device's fonts, like the embedded page.
 
 ```sh
 dragon embed page.html

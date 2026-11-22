@@ -128,6 +128,8 @@ script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.57
 通信の無い所で開ける 1 file にするには、頁を `dragon embed` に渡す。
 script の 1 行を、全ての図の種類を持つ束ねた script に置き換え、頁の隣に `page.offline.html` を書く (`--out <file>` で書く file を選ぶ)。
 この file は外から何も読まず、同梱の字を埋めないので端末の字で描く。
+`data-header`の塊の帯のエクスポートは、jsDelivrの頁と同じPNG、SVG、HTML、GIF、MP4、dragon記法、JSONの7つを外から読まずに保存する。
+保存したHTMLも、埋めた頁と同じく端末の字で描く。
 
 ```sh
 dragon embed page.html

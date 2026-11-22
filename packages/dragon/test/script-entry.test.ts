@@ -5,7 +5,7 @@
  * 入口は軽い入口 (`@cardenelabs/dragon/light`) と同じく、書いた図の種類の塊だけを後から読む。
  * 図の字の CSS は jsDelivr から読む `<link>` を頁に1度だけ足す。
  * `dragon embed <HTML>` は入口の1行を束ねた script の中身に置き換え、外へ通信しない1 file を書く。
- * 埋めた頁でも `data-header` を持つ塊には同じ帯が付き、帯のエクスポートは外を読まずに書き出せる4つの形式だけを出す (#3786)。
+ * 埋めた頁でも `data-header` を持つ塊には同じ帯が付き (#3786)、帯のエクスポートは jsDelivr の入口の帯と同じ7つの形式を外を読まずに書き出す (#3792)。
  * `data-still` を持つ塊は SVG に描いてから埋め、動く塊が残らない頁には束ねた script を入れない (#3801)。
  *
  * 入口の file は build した `dist/cdn` から読む。頁は `http://localhost/` に置き、入口と塊も同じ置き場から渡す。
@@ -25,7 +25,7 @@ import * as dragon from "@cardenelabs/dragon";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { atLoad } from "./at-load";
-import { runCli } from "./export-support";
+import { formatOf, readGif, runCli } from "./export-support";
 import { fileChromium } from "./page-needs";
 // 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
 // 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
@@ -1003,6 +1003,23 @@ describe("script の1行の入口 (#3343)", () => {
 
 /** 帯のボタンの並び。jsDelivr の入口の頁の帯と同じ (`script-entry-adds-bar-with-data-header`) */
 const BAR_BUTTONS = ["code", "editor", "copy", "export", "expand"];
+/** 帯のエクスポートの窓の形式。jsDelivr の入口の頁の帯と同じ順 (#3792) */
+const EXPORT_FORMATS = ["png", "svg", "html", "gif", "mp4", "dragon", "json"] as const;
+/** 押した後に中身を確かめる形式 */
+type SavedFormat = "html" | "gif" | "mp4";
+/** 窓に無かった形式の知らせの代わりに残す字 */
+const NO_FORMAT = "(エクスポートの窓に無い)";
+/**
+ * GIF と MP4 を書き終えて知らせの欄が書き換わるまで待つ長さ。帯は図の動きをコマに描いて詰めるので、ほかの形式より長くかかる。
+ * file を読み込む段の待ちなので 1 件 10 秒の上限には掛からず、1 回の実行の上限 (5 分) より十分に短くする
+ */
+const MOTION_SETTLE = 30_000;
+
+/** mp4 の映像のコマの数。`stsz` の箱が持つ sample の数 (箱の型の 4 byte の後に版と印、sample の大きさ、数が 4 byte ずつ並ぶ) */
+const mp4Frames = (bytes: Buffer): number => {
+  const at = bytes.indexOf("stsz", 0, "latin1");
+  return at < 0 || at + 16 > bytes.length ? 0 : bytes.readUInt32BE(at + 12);
+};
 
 /** 埋めた頁を開いて見たこと */
 interface OfflineSeen {
@@ -1012,8 +1029,17 @@ interface OfflineSeen {
   errors: string[];
 }
 
-/** 埋めた頁 `offline` を外への通信を全て止めて開き、塊が全て図になるまで待って `run` を回す。`init` は頁を開く前に入れる script */
-async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSeen) => Promise<T>, init?: string): Promise<T> {
+/** 埋めた頁の塊が全て図になったか。帯つきの図は帯の内側 (shadow root) に描き直すので、図ごとに帯の内側か外側で描けたかを見る */
+const EMBED_READY = (): boolean => {
+  const figures = [...document.querySelectorAll(".dragon-figure")];
+  return document.querySelectorAll("pre.dragon").length === 0 && figures.length === 2 && figures.every((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
+};
+
+/**
+ * 埋めた頁 `offline` を外への通信を全て止めて開き、頁が `ready` を満たすまで待って `run` を回す。
+ * `init` は頁を開く前に入れる script。`ready` を書かなければ、塊が全て図になるまで待つ
+ */
+async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSeen) => Promise<T>, init?: string, ready: () => boolean = EMBED_READY): Promise<T> {
   const context = await (await fileChromium()).newContext({ viewport: { width: 760, height: 900 } });
   if (init !== undefined) await context.addInitScript(init);
   // 長さを書かない待ち (頁を開く、押す、字を読む) も区切る
@@ -1029,13 +1055,7 @@ async function withOffline<T>(offline: string, run: (page: Page, seen: OfflineSe
     });
     page.on("pageerror", (error) => seen.errors.push(error.message));
     await page.goto(pathToFileURL(offline).href);
-    // 帯つきの図は帯の内側 (shadow root) に描き直すので、図ごとに帯の内側か外側で描けたかを待つ
-    await page
-      .waitForFunction(() => {
-        const figures = [...document.querySelectorAll(".dragon-figure")];
-        return document.querySelectorAll("pre.dragon").length === 0 && figures.length === 2 && figures.every((figure) => (figure.querySelector(".dragon-frame")?.shadowRoot ?? figure).querySelector('[data-dragon="player"] svg') !== null);
-      }, null, { timeout: QUICK_SETTLE })
-      .catch(() => undefined);
+    await page.waitForFunction(ready, null, { timeout: QUICK_SETTLE }).catch(() => undefined);
     return await run(page, seen);
   } finally {
     await context.close();
@@ -1116,35 +1136,43 @@ const OFFLINE_BUTTONS = await atLoad("埋めた頁の帯のボタンを全て押
     const buttons = (await figuresOf(page))[0]?.buttons;
     const status = page.locator(".dragon-frame .status");
     const clearStatus = () => page.evaluate(() => (document.querySelector(".dragon-frame")!.shadowRoot!.querySelector(".status")!.textContent = ""));
-    /** 窓 `menu` を開いて項目 `item` を押し、知らせの欄が書き換わるまで待った字と、その後に読んだ知らせの欄の字を返す */
-    const pick = async (menu: string, item: string): Promise<{ polled: string | null; said: string }> => {
+    /** 窓 `menu` を開いて項目 `item` を押し、知らせの欄が `wait` ミリ秒までに書き換わるまで待った字と、その後に読んだ知らせの欄の字を返す */
+    const pick = async (menu: string, item: string, wait = QUICK_SETTLE): Promise<{ polled: string | null; said: string }> => {
       await clearStatus();
       await page.locator(`.dg-header-actions > [data-action="${menu}"] > button`).click({ timeout: PAGE_WAIT });
       await page.locator(`[data-menu="${menu}"] ${item}`).click({ timeout: PAGE_WAIT });
-      const polled = await pollFor(() => status.textContent({ timeout: PAGE_WAIT }), statusSettled, QUICK_SETTLE);
+      const polled = await pollFor(() => status.textContent({ timeout: PAGE_WAIT }), statusSettled, wait);
       return { polled, said: (await status.textContent({ timeout: PAGE_WAIT })) ?? "" };
     };
     // 知らせの欄が書き換わらなかった項目で止める。件はその項目の待ちの判定で落ちる
     const picked = await atLoad("帯のコピーとエクスポートの項目を押す", async () => {
       const polls: (string | null)[] = [];
       const said: Record<string, string> = {};
+      const files: Partial<Record<SavedFormat, Buffer>> = {};
       for (const kind of ["source", "image", "url"]) {
         const got = await pick("copy", `[data-copy="${kind}"]`);
         polls.push(got.polled);
-        if (!statusSettled(got.polled)) return { polls, said };
+        if (!statusSettled(got.polled)) return { polls, said, files };
         said[`copy:${kind}`] = got.said;
       }
-      for (const format of ["png", "svg", "dragon", "json"]) {
-        const saved = page.waitForEvent("download", { timeout: QUICK_SETTLE });
+      for (const format of EXPORT_FORMATS) {
+        // 窓に無い形式は押さずに無いと残し、件が知らせの字の判定で落とす。押して待つと、無い項目ごとに待ちの長さを払う
+        if ((await page.locator(`[data-menu="export"] [data-format="${format}"]`).count()) === 0) {
+          said[`export:${format}`] = NO_FORMAT;
+          continue;
+        }
+        const wait = format === "gif" || format === "mp4" ? MOTION_SETTLE : QUICK_SETTLE;
+        const saved = page.waitForEvent("download", { timeout: wait });
         // 途中で止めた時も、download を待つ約束を受け手の無いまま落とさない
         saved.catch(() => undefined);
-        const got = await pick("export", `[data-format="${format}"]`);
+        const got = await pick("export", `[data-format="${format}"]`, wait);
         polls.push(got.polled);
-        if (!statusSettled(got.polled)) return { polls, said };
+        if (!statusSettled(got.polled)) return { polls, said, files };
         said[`export:${format}`] = got.said;
-        await saved;
+        const download = await saved;
+        if (format === "html" || format === "gif" || format === "mp4") files[format] = readFileSync(await bounded(download.path(), PAGE_WAIT, `帯の ${format} のエクスポートの file を書き終える`));
       }
-      return { polls, said };
+      return { polls, said, files };
     });
     // エディタと拡大とコードは知らせを出さずに動く。拡大は開いて閉じ、コードは開いたまま終える
     const pressed = await atLoad("帯のエディタと拡大とコードを押す", async () => {
@@ -1160,6 +1188,29 @@ const OFFLINE_BUTTONS = await atLoad("埋めた頁の帯のボタンを全て押
     return { buttons, picked, pressed };
   }),
 );
+
+/**
+ * 埋めた頁の帯で保存した HTML を、外への通信を止めて開いて見たこと (#3792)。図を描き終えるまで待ち、頁に置いた再生の部品の数を数える。
+ * 帯で HTML を保存できなかった時は開かず、件が保存できなかったと判定する
+ */
+const OFFLINE_SAVED_HTML = await atLoad("埋めた頁の帯で保存した HTML を通信を止めて開く", async () => {
+  const html = OFFLINE_BUTTONS.get().picked.get().files.html;
+  if (html === undefined) return { saved: false, players: 0, drawn: false, errors: [], outside: [] };
+  const file = join(HEADER_DIR, "saved.html");
+  writeFileSync(file, html);
+  return withOffline(
+    file,
+    async (page, seen) => ({
+      saved: true,
+      players: await page.evaluate(() => (window as unknown as { __players: number }).__players),
+      drawn: await page.evaluate(() => document.querySelector('[data-dragon="player"] svg') !== null),
+      errors: [...seen.errors],
+      outside: [...seen.outside],
+    }),
+    COUNT_DRAWS,
+    () => document.querySelector('[data-dragon="player"] svg') !== null,
+  );
+});
 
 describe("dragon embed の頁の帯 (#3786)", () => {
   // 埋める命令は file を読み込む段で 1 度だけ起こす (`EMBED_HEADER`)。埋められなかった時は、前処理で全ての件を落とす
@@ -1191,15 +1242,18 @@ describe("dragon embed の頁の帯 (#3786)", () => {
     expect(figures[1], "data-header を持たない塊は、帯の無い図のまま描く").toEqual({ headers: 0, buttons: [], drawn: true });
   });
 
-  it("offline-export-menu-lists-four-formats", () => {
+  it("offline-export-menu-lists-seven-formats", () => {
+    // 埋めた頁の帯も、jsDelivr の入口の頁の帯と同じ見出しの下に同じ7つの形式を同じ順に並べる (#3792)
     const { toggles, menu: opened } = OFFLINE_MENU.get();
     expect(toggles, "埋めた頁の帯にエクスポートの窓を開くボタンが無い").toBe(1);
     const menu = opened.get();
     expect(menu.groups, "埋めた頁のエクスポートの窓の見出しと形式").toEqual([
       { group: "images", formats: ["png", "svg"] },
+      { group: "motion", formats: ["html", "gif", "mp4"] },
       { group: "notation", formats: ["dragon", "json"] },
     ]);
-    expect(menu.motion, "埋めた頁のエクスポートの窓に残った動きの見出しと HTML、GIF、MP4").toBe(0);
+    expect(menu.groups.flatMap((group) => group.formats), "jsDelivr の入口の頁の帯と同じ形式の並び").toEqual([...EXPORT_FORMATS]);
+    expect(menu.motion, "埋めた頁のエクスポートの窓の動きの見出しと HTML、GIF、MP4").toBe(4);
   });
 
   it("offline-header-buttons-work-without-network", () => {
@@ -1214,6 +1268,9 @@ describe("dragon embed の頁の帯 (#3786)", () => {
       "copy:url": "エディタのURLをコピーしました。",
       "export:png": "ファイルを保存しました。",
       "export:svg": "ファイルを保存しました。",
+      "export:html": "操作できるHTMLを保存しました。開くと初期条件から始まります。",
+      "export:gif": "ファイルを保存しました。",
+      "export:mp4": "ファイルを保存しました。",
       "export:dragon": "ファイルを保存しました。",
       "export:json": "ファイルを保存しました。",
     });
@@ -1222,6 +1279,25 @@ describe("dragon embed の頁の帯 (#3786)", () => {
     expect(status, "エディタと拡大とコードを押した時の知らせ").toBe("");
     expect(errors, "帯のボタンを押した時に頁で起きた例外").toEqual([]);
     expect(outside, "帯のボタンを押した時に埋めた頁が外へ取りに行った物").toEqual([]);
+  });
+
+  it("offline-exported-motion-files-have-format", () => {
+    // 帯の GIF と MP4 は、埋めた頁が束ねた詰める道具で図の動きを詰めた file になる (#3792)
+    const { files } = OFFLINE_BUTTONS.get().picked.get();
+    const gif = files.gif ?? Buffer.alloc(0);
+    const mp4 = files.mp4 ?? Buffer.alloc(0);
+    expect({ gif: formatOf(gif), mp4: formatOf(mp4) }, "埋めた頁の帯で保存した GIF と MP4 の file の形").toEqual({ gif: "gif", mp4: "mp4" });
+    expect(readGif(gif).frames.length, "埋めた頁の帯で保存した GIF のコマの数").toBeGreaterThanOrEqual(2);
+    expect(mp4Frames(mp4), "埋めた頁の帯で保存した MP4 のコマの数").toBeGreaterThanOrEqual(2);
+  });
+
+  it("offline-exported-html-plays-without-network", () => {
+    // 帯の HTML は、埋めた頁の自分の script を再生の script として頁に埋めるので、保存した頁も外を読まずに図を描く (#3792)
+    const { saved, players, drawn, errors, outside } = OFFLINE_SAVED_HTML.get();
+    expect(saved, "埋めた頁の帯で HTML を保存できた").toBe(true);
+    expect({ players, drawn }, "保存した HTML の頁に置いた再生の部品の数と、図を描けたか").toEqual({ players: 1, drawn: true });
+    expect(errors, "保存した HTML の頁で起きた例外").toEqual([]);
+    expect(outside, "保存した HTML の頁が外へ取りに行った物").toEqual([]);
   });
 });
 

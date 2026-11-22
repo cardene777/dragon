@@ -4,7 +4,7 @@
  * 図の再生の部品 (`mount`) と記法の語の一覧 (`words`) は呼ぶ側から受け取り、package の入口を読まない。
  * script の1行の入口は本体の物を渡すので、帯の塊は再生の部品の写しを持たず、本体が登録した図の種類をそのまま描ける。
  * 既定の入口の帯 (`@cardenelabs/dragon/frame`) と軽い入口の帯 (`@cardenelabs/dragon/light/frame`) は、それぞれの入口の記法を読む処理を渡す (#3789)。
- * 書き出す部品を読む処理 (`capture`) も呼ぶ側から受け取る (#3786)。`dragon embed`が埋める script は渡さず、帯はHTMLとGIFとMP4を出さない。
+ * 書き出す部品を読む処理 (`capture`) も呼ぶ側から受け取る (#3786)。`dragon embed`が埋める script は、頁に束ねた書き出す部品を渡す (#3792)。
  */
 import type { Diagram, Parsed, ParseOptions, Player, PlayerOptions } from "@cardenelabs/dragon";
 import { stylesFor } from "../adopt-css";
