@@ -13,6 +13,7 @@ import { join } from "node:path";
 import * as dragon from "../src/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import { type Diagramish, place, releasePlaced } from "./follow-support";
 import "../src/kind-use/architecture";
 import "../src/kind-use/pipe";
 import "../src/kind-use/sequence";
@@ -638,16 +639,29 @@ describe("シーケンス図", () => {
     expect(countOf(svg, "dg-sqtube"), "生存線の管").toBe(0);
     expect(countOf(svg, "dg-row"), "今の段の帯").toBe(0);
     expect(layout.rows, "今の段の帯の置き場").toBeUndefined();
-    // 寄って追う形も、窓の上端の頭の列 (#3118) に頭の箱だけを描き、パイプ図の部品の列の頭と器を描かない
+    // 寄って追う形も、窓の上端の頭の列 (#3118) に頭の箱だけを描き、パイプ図の部品の列の頭と器を描かない。
+    // 窓が図の高さを全部見せる短い図は頭の列を貼らない (#3834) ので、頭の列を貼る高さになるまで段を足した図で見る
+    const steps = Array.from({ length: 6 }, (_, i) => `step 確かめる${i + 1}\n  say BobがAliceに受け取ったと返す\n  bob -> alice: 受け取った${i + 1}\n`);
+    const tall = parse([plain.replace("sequence USDCを送る", "sequence USDCを送る [view: follow]"), ...steps].join("\n"));
     const host = document.createElement("div");
     Object.defineProperty(host, "clientWidth", { configurable: true, get: () => 360 });
     document.body.appendChild(host);
-    const player = api.mountDiagram(host, parse(plain.replace("sequence USDCを送る", "sequence USDCを送る [view: follow]")), { lang: "ja" });
+    const player = api.mountDiagram(host, tall, { lang: "ja" });
     const shown = host.querySelector("svg")?.outerHTML ?? "";
     player.destroy();
     expect(shown, "寄って追う形で描いていない").toContain('data-view="follow"');
     expect(countOf(groupOf(shown, "dg-hd"), "dg-sn"), "頭の列の頭の箱").toBe(3);
     expect(countOf(shown, "dg-sqc-head") + countOf(shown, "dg-sqtube"), "パイプ図の部品の列の頭と生存線の管").toBe(0);
+    // 箱の名前は窓に 1 度だけ映す。図の頭の箱は、どの段でも頭の列の下に隠れる
+    const placed = place("既定の見た目の時系列図", tall as Diagramish, 360);
+    try {
+      const strip = Number(placed.figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-hd > rect.dg-hd-bg')?.getAttribute("height") ?? 0);
+      const low = Math.max(...placed.layout.boxes.map((b) => b.y + b.h));
+      const seen = Array.from({ length: placed.steps }, (_, s) => placed.windowAt(s)).flatMap((w, s) => (low > w.y + strip + 0.01 ? [s + 1] : []));
+      expect(seen, "図の頭の箱が頭の列の下に映る段").toEqual([]);
+    } finally {
+      releasePlaced();
+    }
   });
 
   it("port-op-refused-outside-sequence", () => {
