@@ -16,6 +16,7 @@ import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 
 import { atLoad } from "./at-load";
+import { PAGE_LIMIT_MS, within } from "./page-wait";
 import { cdnPage, escapeHtml, withSite } from "./cdn-page-support";
 
 /** 3 つの段を持つ時系列図。段 1 は 1.4 秒から、段 2 は 3.6 秒から、段 3 は 5.8 秒から始まる */
@@ -27,12 +28,6 @@ const ARCHITECTURE =
 
 /** 図を待つ長さ。元の件の 1 件の上限 (10 秒) より短く待ち、描かれない時も判定の文で落とす */
 const WAIT = 6_000;
-/**
- * 1 つの頁で済ませる仕事の上限 (ms) (#3816)。
- * 読み込む段には 1 件の上限が掛からず、`page.evaluate` は Playwright の上限を持たない。
- * 止まった頁が 5 分の実行の上限までほかの仕事を待たせないよう、頁ごとにここで切る
- */
-const PAGE_LIMIT_MS = 60_000;
 
 const block = (source: string): string => `<pre class="dragon">${escapeHtml(source)}</pre>`;
 
@@ -45,19 +40,6 @@ const drawn = (page: Page, selector: string): Promise<unknown> =>
       { timeout: WAIT },
     )
     .catch(() => undefined);
-
-/** `work` を `ms` ミリ秒で切る。切った時は `what` を挙げて落ちる */
-async function within<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const limit = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what}が ${ms}ms で終わらない`)), ms);
-  });
-  try {
-    return await Promise.race([work, limit]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 /** `html` の頁を開いて `run` を回す。頁は回し終えたら閉じる (`withSite`) */
 const openPage = <T>(html: string, run: (page: Page) => Promise<T>): Promise<T> =>
