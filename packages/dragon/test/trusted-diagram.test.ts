@@ -95,7 +95,7 @@ const REWRITTEN_LINK = await atLoad("箱の飛び先を書き換えた図を新�
 );
 
 describe("記法から読んだ図の守り (#3400)", () => {
-  it("parsed-diagram-rewritten-path-refused", async () => {
+  it("parsed-diagram-rewritten-path-refused", () => {
     const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
@@ -112,7 +112,7 @@ describe("記法から読んだ図の守り (#3400)", () => {
     expect(() => whole.renderDiagram(parsed.diagram), "既定の入口が書き換えた path の図を描いた").toThrow(/path/u);
   });
 
-  it("parsed-diagram-rewritten-link-refused", async () => {
+  it("parsed-diagram-rewritten-link-refused", () => {
     const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
@@ -127,7 +127,7 @@ describe("記法から読んだ図の守り (#3400)", () => {
     expect(() => whole.renderDiagram(parsed.diagram), "既定の入口が書き換えた飛び先の図を描いた").toThrow(/link/u);
   });
 
-  it("every-parsed-example-passes-validator", async () => {
+  it("every-parsed-example-passes-validator", () => {
     const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
