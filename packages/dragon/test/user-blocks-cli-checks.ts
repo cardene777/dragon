@@ -7,6 +7,7 @@ import { join } from "node:path";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import { ACTION_LIMIT_MS } from "./page-wait";
 import { fileChromium } from "./page-needs";
 import "../src/kind-use/architecture";
 
@@ -79,9 +80,6 @@ interface LinkSeen {
   /** 止めた外への通信の URL */
   outside?: string[];
 }
-
-/** 頁の 1 つの操作 (開く、待つ) の上限 (ms)。元の件が 1 件 10 秒で切られていた幅に揃える */
-const ACTION_LIMIT_MS = 10_000;
 
 // 件の中で頁を開いて描くのを待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3816)。
 // 頁を開いて読む仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は読んだ物を元の件と同じ順で確かめる
