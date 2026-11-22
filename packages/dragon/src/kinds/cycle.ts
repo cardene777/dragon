@@ -8,8 +8,7 @@ import { stepCarriers } from "../blocks/carry/step-times";
 import { drawBand } from "../render/band";
 import { drawClock } from "../render/clock";
 import { drawCycle } from "../render/cycle";
-import { type BandLayout, type ClockLayout, type CycleLayout, layoutBand, layoutClock, layoutCycle } from "./cycle/layout";
-import { bandOverview, clockOverview } from "./cycle/overview";
+import { type BandLayout, type ClockLayout, type CycleLayout, layoutBand, layoutClock, layoutCycle, bandOverview, clockOverview } from "./cycle/layout";
 import type { KindParts } from "./parts";
 
 export const parts: KindParts<CycleLayout | ClockLayout | BandLayout> = {

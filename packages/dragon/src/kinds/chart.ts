@@ -4,8 +4,7 @@
  * 折れ線の見た目 (#3802) は、止めて置く図で図の上の行に図の題を出すので、並べ方に止めて置く図かを渡す
  */
 import { drawChart } from "../render/chart";
-import { type ChartLayout, layoutChart } from "./chart/layout";
-import { chartOverview } from "./chart/overview";
+import { type ChartLayout, layoutChart, chartOverview } from "./chart/layout";
 import type { KindParts } from "./parts";
 
 export const parts: KindParts<ChartLayout> = {

@@ -4,8 +4,7 @@
  */
 import { stepCarriers } from "../blocks/carry/step-times";
 import { drawEr } from "../render/er";
-import { erFocusParts, type ErLayout, layoutEr } from "./er/layout";
-import { erOverview } from "./er/overview";
+import { erFocusParts, type ErLayout, layoutEr, erOverview } from "./er/layout";
 import type { KindParts } from "./parts";
 
 export const parts: KindParts<ErLayout> = {
