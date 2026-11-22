@@ -9,8 +9,11 @@
  * - 子の process で命令を起こしていた件は、同じ process の呼び出しに替えた (`child`)
  *
  * 件の字を構文で読み、直した形から外れた件を名前と呼び出しと共に挙げる。数え方は `case-work.ts` が持つ。
+ *
+ * 子の process を起こす仕事と頁を開く仕事は、表に挙げた件に限らず、repo の全ての件で件の中に置かない (#3816)。
+ * 件を持つ全ての file を読み、件の中にその呼び出しが在る件を file と件の名前と呼び出しの名前で挙げる。
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -35,6 +38,10 @@ interface Work {
   casesIn: (source: string, fileName?: string) => FoundCase[];
   countOf: (calls: readonly Call[]) => number;
   describeCalls: (calls: readonly Call[]) => string;
+  /** repo の根から見た、件を持つ全ての file の path (#3816) */
+  caseFiles?: (root: string) => string[];
+  /** file の字から、件の中で子の process を起こすか頁を開く件を `file > 件の名前: 理由` の形で全て (#3816) */
+  childOrPageIn?: (source: string, fileName: string) => string[];
 }
 interface Loaded<T> {
   get: () => T;
@@ -271,6 +278,51 @@ const COUNTED = await (async () => {
   return { w, cases };
 })();
 
+/** 件を探す置き場。vitest が回す検査の file と、`kind-cli.test.ts` と `kind-playground.test.ts` が読む `*-checks.ts` はこの下に在る */
+const CASE_PLACES = (): string[] =>
+  ["packages", "apps"].flatMap((top) =>
+    existsSync(join(ROOT, top)) ? readdirSync(join(ROOT, top)).map((name) => join(top, name, top === "packages" ? "test" : "src")) : [],
+  );
+
+/** 件の呼び出し (`it(`、`test(`、`it.each(` など) で始まる行 */
+const CASE_LINE = /^\s*(?:it|test)(?:\.[a-z]+)*\(/m;
+
+/**
+ * 置き場の下の字を名前で選ばずに全て見て、件を持つ file を集める。数える道具の集め方 (`caseFiles`) と別の方法で数え、読み漏らしに気付く。
+ * 字は軽いので読む段で 1 度だけ読む
+ */
+const HOLDERS = ((): string[] => {
+  const w = COUNTED.w;
+  if (w === undefined) return [];
+  const out: string[] = [];
+  for (const place of CASE_PLACES()) {
+    if (!existsSync(join(ROOT, place))) continue;
+    for (const rel of readdirSync(join(ROOT, place), { recursive: true, encoding: "utf8" })) {
+      if (rel.split("/").includes("node_modules") || !/\.(?:ts|tsx|mts|mjs|js)$/.test(rel)) continue;
+      const file = join(place, rel);
+      const source = readFileSync(join(ROOT, file), "utf8");
+      if (CASE_LINE.test(source) && w.casesIn(source, file).length > 0) out.push(file);
+    }
+  }
+  return out.sort();
+})();
+
+/**
+ * repo の全ての件のうち、件の中で子の process を起こすか頁を開く件 (#3816)。file の字を構文で読むのは重いので、読む段で 1 度だけ読む。
+ * 道具が無い時は undefined。読む途中で落ちた時は、落ちた理由を件に渡して file ごと落とさない
+ */
+const ANY_CASE = (() => {
+  const { w } = COUNTED;
+  if (w?.caseFiles === undefined || w.childOrPageIn === undefined) return undefined;
+  const { caseFiles, childOrPageIn } = w;
+  try {
+    const files = caseFiles(ROOT);
+    return { files, found: files.flatMap((file) => childOrPageIn(readFileSync(join(ROOT, file), "utf8"), file)), error: undefined };
+  } catch (error) {
+    return { files: [], found: [], error: error instanceof Error ? error.message : String(error) };
+  }
+})();
+
 /** 規則に当たる件を全て集め、`judge` が返した外れを `file > 件の名前: 理由` の形で返す */
 function broken(pick: (rule: Rule) => boolean, judge: (rule: Rule, found: FoundCase, w: Work) => string | undefined): string[] {
   const { w, cases } = COUNTED;
@@ -388,6 +440,81 @@ describe("検査の件の中の重い仕事 (#3738)", () => {
     expect(count("planted-page-direct"), "件の中で頁を開く呼び出し (fileChromium、newContext、newPage) を重い仕事に数えない").toBe(3);
     expect(w.describeCalls(cases.get("planted-page-helper")?.heavy ?? []), "同じ file の関数を通して頁を開く呼び出しを名指さない").toBe("painted");
     expect(count("planted-page-loaded"), "atLoad で作った物を読むだけの件に頁を開く呼び出しを数えた").toBe(0);
+  });
+
+  it("case-work-no-child-or-page-in-any-case", () => {
+    // 表に挙げた件に限らず、件を持つ全ての file の全ての件で、子の process を起こす仕事と頁を開く仕事は読み込む段で済ませる (#3816)
+    expect(COUNTED.w?.caseFiles, "件を持つ file を集める道具 (packages/dragon/test/case-work.ts の caseFiles) が無い").toBeTypeOf("function");
+    expect(COUNTED.w?.childOrPageIn, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (ANY_CASE === undefined) return;
+    expect(ANY_CASE.error, "件を持つ file を読む途中で落ちた").toBeUndefined();
+    expect(ANY_CASE.files.length, "件を持つ file を 1 つも読んでいない").toBeGreaterThan(0);
+    expect(ANY_CASE.found, "件の中で子の process を起こすか頁を開く件").toEqual([]);
+  });
+
+  it("case-work-any-case-names-child-and-page-calls", () => {
+    // 子の process を起こす呼び出しと頁を開く呼び出しは、同じ file の関数を通した呼び出しも挙げる。図を描く仕事は挙げない
+    const find = COUNTED.w?.childOrPageIn;
+    expect(find, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (find === undefined) return;
+    const planted = [
+      'import { it } from "vitest";',
+      'import { spawnSync } from "node:child_process";',
+      'function layoutOf(file) { return runCli(["check", file]); }',
+      "async function painted(html) { const browser = await fileChromium(); const page = await browser.newPage(); await page.setContent(html); return page; }",
+      'it("planted-spawn", () => { spawnSync("node", ["-v"]); });',
+      'it("planted-child-helper", async () => { await layoutOf("a.dragon"); });',
+      'it("planted-page-direct", async () => { const browser = await fileChromium(); const context = await browser.newContext(); await context.newPage(); });',
+      'it("planted-page-helper", async () => { await painted("<p>見本</p>"); });',
+      'it("planted-site", async () => { await withSite(async (page) => page.title()); });',
+      'it("planted-capture", async () => { await withCapturePage((page) => page.title()); });',
+      'it("planted-said", () => { const said = "runCli(y) fileChromium()"; return said; });',
+      'it("planted-draws", () => { renderDiagram(one); });',
+    ].join("\n");
+    expect(find(planted, "planted.test.ts"), "件の中の子の process と頁を開く呼び出しの挙げ方").toEqual([
+      "planted.test.ts > planted-spawn: 子の process を起こす spawnSync",
+      "planted.test.ts > planted-child-helper: 子の process を起こす layoutOf",
+      "planted.test.ts > planted-page-direct: 頁を開く fileChromium、newContext、newPage",
+      "planted.test.ts > planted-page-helper: 頁を開く painted",
+      "planted.test.ts > planted-site: 頁を開く withSite",
+      "planted.test.ts > planted-capture: 頁を開く withCapturePage",
+    ]);
+  });
+
+  it("case-work-any-case-allows-load-work", () => {
+    // file を読み込む段 (`atLoad`) と前処理の中で子の process を起こし頁を開く仕事は、件の中の仕事に数えない
+    const find = COUNTED.w?.childOrPageIn;
+    expect(find, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (find === undefined) return;
+    const planted = [
+      'import { beforeAll, it } from "vitest";',
+      'import { spawnSync } from "node:child_process";',
+      "async function painted(html) { const browser = await fileChromium(); const page = await browser.newPage(); await page.setContent(html); return page.content(); }",
+      'const RAN = await atLoad("命令", () => spawnSync("node", ["-v"]));',
+      'const SHOWN = await atLoad("頁", () => painted("<p>見本</p>"));',
+      'const [CHECKED, TITLED] = await Promise.all([atLoad("検査", () => runCli(["check"])), atLoad("見本帳", () => withSite(async (page) => page.title()))]);',
+      'beforeAll(() => { spawnSync("git", ["status"]); });',
+      'it("planted-reads-ran", () => { expect(RAN.get().status).toBe(0); });',
+      'it("planted-reads-shown", () => { expect(SHOWN.get()).toContain("見本"); });',
+      'it("planted-reads-both", () => { expect([CHECKED.get(), TITLED.get()]).toHaveLength(2); });',
+    ].join("\n");
+    expect(find(planted, "planted.test.ts"), "読み込む段と前処理の仕事を件の中の仕事と数えた").toEqual([]);
+  });
+
+  it("case-work-any-case-reads-every-case-file", () => {
+    // 数える道具が読む file に、件を持つ file が全て入る。`kind-cli.test.ts` が読む `*-cli-checks.ts` と、見本帳の検査が読む `*-playground-checks.ts` も入る
+    expect(COUNTED.w?.caseFiles, "件を持つ file を集める道具 (packages/dragon/test/case-work.ts の caseFiles) が無い").toBeTypeOf("function");
+    if (ANY_CASE === undefined) return;
+    const read = new Set(ANY_CASE.files);
+    expect(HOLDERS.length, "置き場の下に件を持つ file を 1 つも見つけていない").toBeGreaterThan(0);
+    expect(
+      HOLDERS.filter((file) => !read.has(file)),
+      "件を持つのに数える道具が読まない file",
+    ).toEqual([]);
+    expect(
+      ["cli", "playground"].filter((kind) => !ANY_CASE.files.some((file) => file.endsWith(`-${kind}-checks.ts`))),
+      "種類の検査の助けの file (*-cli-checks.ts と *-playground-checks.ts) を読まない",
+    ).toEqual([]);
   });
 
   it("at-load-failure-fails-only-its-readers", async () => {

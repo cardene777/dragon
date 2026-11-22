@@ -12,6 +12,7 @@ import * as dragon from "./all-kinds";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { api, type Json, type LineError, type NotationLang } from "./diagram-support";
 import { runCli } from "./export-support";
 import { draw } from "./render-support";
@@ -182,6 +183,28 @@ describe("共有のブロック集 (#3455)", () => {
   });
 });
 
+/** 足した共有のブロックと、それぞれの元。Web3 の 4 つ、一般のシステムの箱 3 つと線 1 つ (#3522) */
+const ADDED: Record<string, "box" | "edge"> = {
+  "+wallet": "box",
+  "+contract": "box",
+  "+oracle": "box",
+  "+validator": "box",
+  "+queue": "box",
+  "+cache": "box",
+  "+gateway": "box",
+  "+async": "edge",
+};
+const exampleFile = (name: string): string => join(EXAMPLES, `${name.slice(1)}.dragon`);
+
+// 件の中で dragon check の命令を子の process で 2 度起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 2 つの命令を file を読み込む段で順に起こし、件はその結果を読む
+const EXAMPLES_CHECKED = await atLoad("足した共有のブロックの見本を dragon check と dragon check --layout で確かめる", async () => {
+  const files = Object.keys(ADDED).map(exampleFile);
+  const plain = await runCli(["check", ...files]);
+  const layout = await runCli(["check", "--layout", "--json", ...files]);
+  return { plain, layout };
+});
+
 /**
  * Web3 と一般のシステムの共有のブロック (#3522)。
  *
@@ -190,21 +213,9 @@ describe("共有のブロック集 (#3455)", () => {
  * 線のブロック `+async` は待たずに送る線で、共有の `+relay` と線の形か色の役で見分ける。
  */
 describe("Web3 と一般のシステムの共有のブロック (#3522)", () => {
-  /** 足した共有のブロックと、それぞれの元。Web3 の 4 つ、一般のシステムの箱 3 つと線 1 つ */
-  const ADDED: Record<string, "box" | "edge"> = {
-    "+wallet": "box",
-    "+contract": "box",
-    "+oracle": "box",
-    "+validator": "box",
-    "+queue": "box",
-    "+cache": "box",
-    "+gateway": "box",
-    "+async": "edge",
-  };
   const ROLES = ["blue", "amber", "green", "violet", "rose", "slate", "coin"];
   const BOXES = Object.keys(ADDED).filter((name) => ADDED[name] === "box");
   const definitionFile = (name: string): string => join(SHARED, `${name.slice(1)}.dragon`);
-  const exampleFile = (name: string): string => join(EXAMPLES, `${name.slice(1)}.dragon`);
 
   /** 共有のブロック集の file から読んだ定義。file が無い時と読めない時は undefined */
   function sharedDefinition(name: string): SharedBlock | undefined {
@@ -294,16 +305,15 @@ describe("Web3 と一般のシステムの共有のブロック (#3522)", () => 
     expect(draw("renderDiagram")(parsed.diagram, {}).layout.edges, "+async の線が描かれない").toHaveLength(1);
   });
 
-  it("shared-block-examples-check-clean", async () => {
+  it("shared-block-examples-check-clean", () => {
     const files = Object.keys(ADDED).map(exampleFile);
     expect(
       files.filter((file) => !existsSync(file)).map((file) => relative(ROOT, file)),
       "足した共有のブロックの見本が無い",
     ).toEqual([]);
-    const plain = await runCli(["check", ...files]);
+    const { plain, layout } = EXAMPLES_CHECKED.get();
     expect(plain.code, `dragon check が見本で終わり方 0 にならない\n${plain.stdout}${plain.stderr}`).toBe(0);
     expect(plain.stdout.trim(), "dragon check が見本に誤りか警告を出した").toBe("");
-    const layout = await runCli(["check", "--layout", "--json", ...files]);
     expect(layout.code, `dragon check --layout が見本で終わり方 0 にならない\n${layout.stdout}${layout.stderr}`).toBe(0);
     expect(JSON.parse(layout.stdout.trim() === "" ? "null" : layout.stdout) as unknown, "dragon check --layout が見本に誤りか崩れを出した").toEqual([]);
   });

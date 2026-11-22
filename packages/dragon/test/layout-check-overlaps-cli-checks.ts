@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { runCli } from "./export-support";
 import "../src/kind-use/lineup";
 import "../src/kind-use/time";
@@ -69,20 +70,25 @@ step 仕入れを終える
   now -> 22
 `;
 
+// 件の中で子の process を 6 つ起こすと、並べて起こしても混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 6 つの命令を file を読み込む段で並べて起こし、件はその結果を読む
+const OVERLAPS_CHECKED = await atLoad("印と範囲の囲みと針が字に重なる図を 2 つの言葉で dragon check --layout で確かめる", () => {
+  const dir = mkdtempSync(join(tmpdir(), "dragon-overlaps-"));
+  const files = { stamp: join(dir, "stamp.dragon"), span: join(dir, "span.dragon"), needle: join(dir, "needle.dragon") };
+  writeFileSync(files.stamp, STAMP_ON_NOTE);
+  writeFileSync(files.span, SPAN_CROSSING);
+  writeFileSync(files.needle, NEEDLE_CROSSING);
+  return Promise.all(
+    (["ja", "en"] as const).flatMap((lang) =>
+      [files.stamp, files.span, files.needle].map((file) => runCli(["check", file, "--layout", "--lang", lang])),
+    ),
+  );
+});
+
 describe("字に重なる印と囲みと針 (#3631)", () => {
 
-  it("layout-check-names-stamp-span-needle", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "dragon-overlaps-"));
-    const files = { stamp: join(dir, "stamp.dragon"), span: join(dir, "span.dragon"), needle: join(dir, "needle.dragon") };
-    writeFileSync(files.stamp, STAMP_ON_NOTE);
-    writeFileSync(files.span, SPAN_CROSSING);
-    writeFileSync(files.needle, NEEDLE_CROSSING);
-    // 子の process を 6 つ並べて起こし、1 件の上限 (10 秒) の中で終える
-    const runs = await Promise.all(
-      (["ja", "en"] as const).flatMap((lang) =>
-        [files.stamp, files.span, files.needle].map((file) => runCli(["check", file, "--layout", "--lang", lang])),
-      ),
-    );
+  it("layout-check-names-stamp-span-needle", () => {
+    const runs = OVERLAPS_CHECKED.get();
     for (const ran of runs) expect(ran.code, ran.stderr).toBe(0);
     const [stampJa, spanJa, needleJa, stampEn, spanEn, needleEn] = runs.map((ran) => ran.stdout);
     expect(stampJa, "日本語の行が印と一言を名指さない").toContain("warning 段 2: 印「支払い済み」が「付き添いの家族は3番目」に重なる");
