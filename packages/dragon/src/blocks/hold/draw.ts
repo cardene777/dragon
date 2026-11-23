@@ -218,7 +218,7 @@ export function valve(x: number, y: number, vertical: boolean, attrs = "", open 
 }
 
 /**
- * トークンの箱。名前と、名前の下の小さな字 (`balanceOf`、Tracelyth #175) と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。
+ * トークンの箱。名前と、名前の下の小さな字 (書き手の `note` か `balanceOf`、Tracelyth #175、#3803) と、弁から箱へ上る軸。箱の中の値は値の札の描き方 (`write/draw.ts`) が描く。
  * 名前は関係者の名前と同じく `dg-sn` も持つ。`bare` を立てると箱の枠を描かず名前だけを描く (帳簿型の箱、Tracelyth #168)
  */
 export function tokenBox(p: PipeParty, on: boolean, valveAt: Point | undefined, ctx: Ctx, shown: Shown[], attrs: string, bare = false): string {

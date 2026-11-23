@@ -54,6 +54,8 @@ export interface HoldMessages {
   routeLineUnknown: (id: string) => string;
   /** 同じ通り道の組を 2 度書いたか、呼ぶ人と呼ばれる箱に同じ名札を書いた (#3721) */
   routeLineTwice: (from: string, to: string) => string;
+  /** トークンの箱でない箱 (人の箱か契約の箱) に名前の下の字 `note` を書いた (#3803) */
+  noteOnlyToken: string;
 }
 
 /** 読んだ量。番号を持つ時は NFT と ERC-1155 のトークンの番号 */
@@ -188,6 +190,16 @@ function verifyRoutes(state: ParseState): void {
       [route.to, toAt],
     ] as const)
       if (!state.figure.boxes.some((b) => b.id === id)) throw fail(source, at, m.routeLineUnknown(id));
+}
+
+/**
+ * 名前の下の字 (`note`) を書いた箱が、トークンの箱かを確かめる (#3803)。トークンの箱は、`hold` の行で ETH でない残高の単位に名前を書いた箱で、
+ * 手順 (`PipeRun`) の `tokens` と同じ箱になる。`hold` の行は箱の行の後にも書けるので、全ての宣言を読み終えた時 (`finish`) に確かめる
+ */
+function verifyNotes(state: ParseState): void {
+  const { boxes, pipe } = state.figure;
+  const tokens = new Set(pipe.holds.flatMap((h) => ("token" in h && h.token !== ETH ? [h.token] : [])));
+  for (const { source, id, at } of pipe.notes ?? []) if (!tokens.has(boxes.find((b) => b.id === id)?.name ?? id)) throw fail(source, at, state.m.noteOnlyToken);
 }
 
 /** 値の持ち分の線の属性の鍵 (Tracelyth #107) */
@@ -327,7 +339,10 @@ export const reading: BlockReading<HoldMessages> = {
     burn: moveReader(FORMS.burn),
   },
   take: takeRoute,
-  finish: (state) => verifyRoutes(state),
+  finish: (state) => {
+    verifyRoutes(state);
+    verifyNotes(state);
+  },
   print: {
     figure: holdLines,
     events: {
@@ -351,6 +366,7 @@ export const reading: BlockReading<HoldMessages> = {
       routeLineShape: "route は route <呼ぶ人> -> <呼ばれる箱> の形で 1 組 1 行に書く",
       routeLineUnknown: (id) => `route の ${id} という名札の箱が無い。box ${id} で宣言した名札を書く`,
       routeLineTwice: (from, to) => (from === to ? `route の呼ぶ人と呼ばれる箱に同じ ${from} を書いている` : `route ${from} -> ${to} を 2 度書いている`),
+      noteOnlyToken: "noteは配管の図ではトークンの箱にだけ書ける。トークンの箱は、holdの行で量の単位に名前を書いた箱",
     },
     en: {
       holdShape: "Write hold as hold <owner>: <amount> <token>, <amount> <token> or hold <contract>: <name> <value>",
@@ -367,6 +383,7 @@ export const reading: BlockReading<HoldMessages> = {
       routeLineShape: "Write route as route <caller> -> <called box>, one pair per line",
       routeLineUnknown: (id) => `route names ${id}, but no box has that id. Write an id declared with box ${id}`,
       routeLineTwice: (from, to) => (from === to ? `route names ${from} as both the caller and the called box` : `route ${from} -> ${to} is written twice`),
+      noteOnlyToken: "In a pipe diagram, note can be written only on a token box, a box whose name is a unit on a hold line",
     },
   },
 };

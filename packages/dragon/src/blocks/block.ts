@@ -117,9 +117,10 @@ export interface FigureDraft {
   try: { parts: TryPart[]; items: TryItem[]; sides: string[][]; checks: TryCheck[]; pending: (() => void)[]; run?: TryRun };
   /**
    * 配管の図の始めの値と、段の中の出来事を当てる手順と、開いている呼び出しを書いた行 (#3389)。槽のブロックが `hold` の行で始めの値を足し、
-   * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す
+   * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す。
+   * `notes` は名前の下の字 (`note`) を書いた箱の行と `note` の位置で、槽のブロックが全ての宣言を読んだ後にトークンの箱かを確かめる (#3803)
    */
-  pipe: { holds: PipeHold[]; run?: PipeRun; opened: SourceLine[] };
+  pipe: { holds: PipeHold[]; run?: PipeRun; opened: SourceLine[]; notes?: { source: SourceLine; id: string; at: number }[] };
   /**
    * 量の図の項目と、図の種類の行に書いた見た目 (#3560)。項目のブロックが `item` の行で項目を足し、
    * 見た目は読む処理 (`parser.ts`) が図の種類の行の `[shape: ]` を置き、見た目のブロックが最初の段を始める時に確かめる。
