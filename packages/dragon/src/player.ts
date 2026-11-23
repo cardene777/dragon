@@ -559,9 +559,9 @@ export function mountDiagram(
   const overviewHeight = (): number | undefined => (options.fitOverview && !options.fitHeight ? innerHeight() : undefined);
   /**
    * 見せ方を選ぶ。配管の図は寄って追わず、図を縮めずに置き、枠より広い時は枠の中を横に送る (#3398)。
-   * 書き出した絵だけは全体を 1 枚に縮めて写す
+   * 書き出した絵だけは全体を 1 枚に縮めて写す。寄って追わない種類は、書き出しと同じく `chooseView` の決まりから読む (#3852)
    */
-  const viewOf = (w: number, h: number | undefined): ViewMode => (rendered.diagram.kind === "pipe" ? "fixed" : chooseView(rendered, w, h).mode);
+  const viewOf = (w: number, h: number | undefined): ViewMode => chooseView(rendered, w, h).mode;
   let mode = viewOf(frameWidth(), frameHeight());
   let width = frameWidth();
   let height = frameHeight();

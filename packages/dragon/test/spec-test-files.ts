@@ -43,8 +43,30 @@ function normalize(path: string): string {
 
 const dirOf = (path: string): string => path.slice(0, Math.max(path.lastIndexOf("/"), 0));
 
-/** 検査の名前が字の中に引用符で囲んで書かれているか */
-const quotedIn = (text: string, name: string): boolean => [`"${name}"`, `'${name}'`, `\`${name}\``].some((quoted) => text.includes(quoted));
+/**
+ * 検査の名前を組む字の型。`` `overview-parts-${kind}` `` のように、頭に 3 字以上の決まった字を持つ物だけを読む。
+ * 頭に決まった字の無い型 (`` `${name}` ``) はどの名前にも当たるので読まない
+ */
+const NAME_TEMPLATE = /`([\w-]{3,}(?:\$\{[^}`]+\}[\w-]*)+)`/gu;
+
+/** 正規表現の中で字のまま読ませる */
+const literal = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+
+/**
+ * 検査の名前が字の中に引用符で囲んで書かれているか。
+ * 登録表や見本の一覧から名前を組んで件を作る検査 (#3849、#3852) は、名前を組む字の型のどれかが名前の全体に当たる時も書かれていると読む
+ */
+const quotedIn = (text: string, name: string): boolean =>
+  [`"${name}"`, `'${name}'`, `\`${name}\``].some((quoted) => text.includes(quoted)) ||
+  [...text.matchAll(NAME_TEMPLATE)].some((m) =>
+    new RegExp(
+      `^${(m[1] ?? "")
+        .split(/\$\{[^}`]+\}/u)
+        .map(literal)
+        .join("[\\w.-]+")}$`,
+      "u",
+    ).test(name),
+  );
 
 /**
  * 欄の字から、名前と命令を書いた順に読む。

@@ -1668,7 +1668,7 @@ dragon export ccip.json --out out
 | Option | Meaning |
 |---|---|
 | `--out <dir>` | Where to write. Created if missing (default: the current dir) |
-| `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
+| `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`. A pipe diagram is always `fixed` |
 | `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade` / `sea`, default `paper`, and `sea` for the pipe diagram). `arcade` also cuts the top-right and bottom-left corners of boxes |
 | `--line <name>` | How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws box edges, lines, arrows and rings as gently wobbling hand-drawn pen lines and keeps icons, text and the diagram frame as they are |
 | `--theme <mode>` | `light` or `dark` |

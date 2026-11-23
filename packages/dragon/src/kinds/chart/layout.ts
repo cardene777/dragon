@@ -767,18 +767,54 @@ function barPlan(items: ChartRow[], values: number[][], options: ChartLayoutOpti
 /** 折れ線の点の半径 */
 const POINT_R = 5;
 
+/** 全体図の輪の区切りを結ぶ点の間の角度 (度)。全体図の大きさに縮めても縁が角張って見えない細かさにする */
+const RING_STEP = 3;
+
+/**
+ * ドーナツの輪の 1 つの区切りを、外の縁と内の縁の点で囲んだ形 (#3852)。
+ * 本体の図と同じく 12 時の向きから時計回りに測り、隣の区切りと続いて見えないよう両端を `gap` の半分ずつ削る (輪を描くブロックの `arcState` と同じ削り方)
+ */
+function ringSegment(ring: NonNullable<ChartPlan["ring"]>, arc: ChartArc): Point[] {
+  const gap = Math.min((CHART_LOOK.donut.gap / (2 * Math.PI * ring.r)) * 360, arc.sweep);
+  const from = arc.start + gap / 2;
+  const to = arc.start + arc.sweep - gap / 2;
+  const n = Math.max(2, Math.ceil((to - from) / RING_STEP));
+  const at = (radius: number, degree: number): Point => {
+    const t = ((degree - 90) * Math.PI) / 180;
+    return [ring.cx + radius * Math.cos(t), ring.cy + radius * Math.sin(t)];
+  };
+  const edge = (radius: number, a: number, b: number): Point[] => Array.from({ length: n + 1 }, (_, i) => at(radius, a + ((b - a) * i) / n));
+  return [...edge(ring.r + ring.width / 2, from, to), ...edge(ring.r - ring.width / 2, to, from)];
+}
+
 /**
  * 量の図の全体図に描く部品 (#3849)。
  * 折れ線の見た目 (`[shape: line]`) は目盛りの範囲を地、項目ごとの折れ線を線、値の在る点を点で描く。
  * 漏斗の見た目 (`[shape: funnel]`) は最後の段の長さの棒を札、減った分の四角を地で描く。
  * 棒の見た目 (`[shape: bar]`) は棒の通り道を地、最後の段の長さの棒を札で描く。
- * 点で数える見た目 (`[shape: dots]`) は点の図の共通の部品が描く。輪の見た目は寄って追う形にならない幅に収まるので描かない
+ * 点で数える見た目 (`[shape: dots]`) は点の図の共通の部品が描く。
+ * 輪の見た目 (`[shape: donut]`) は、最後の段で値を持つ項目の輪の区切りを項目の色の塗った形で、
+ * 凡例の行を色の見本の左端から割合の字の右端までの項目の色の札で描く。狭い枠では寄って追う形になるため (見本の os-share は幅 300 以下、staking-rewards は幅 332 以下、#3852)
  */
 export function chartOverview(layout: ChartLayout): OverviewShape[] {
   const plan = layout.chart;
   const colorOf = (id: string): ColorKey => plan.items.find((item) => item.id === id)?.color ?? "slate";
   const last = plan.lengths?.[plan.lengths.length - 1] ?? [];
   if (plan.dots) return dotsOverview(plan.dots);
+  if (plan.ring && plan.arcs && plan.legend) {
+    const { ring } = plan;
+    const arcs = plan.arcs[plan.arcs.length - 1] ?? [];
+    const shareW = textWidth("100%", CHART_TYPE.share);
+    return [
+      ...plan.items.flatMap((item, i): OverviewShape[] => {
+        const arc = arcs[i];
+        return arc && arc.sweep > 0 ? [{ area: ringSegment(ring, arc), color: item.color }] : [];
+      }),
+      ...plan.legend.map(
+        (row): OverviewShape => ({ rect: { x: row.swatch.x, y: row.swatch.y, w: row.share.x + shareW - row.swatch.x, h: row.swatch.h }, band: false, color: colorOf(row.item) }),
+      ),
+    ];
+  }
   if (plan.line) {
     const { ticks, grid, series } = plan.line;
     const ys = ticks.map((t) => t.y);

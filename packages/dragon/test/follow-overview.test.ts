@@ -13,10 +13,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
 import { type Diagramish, place, type Placed, releasePlaced } from "./follow-support";
+import { draw } from "./render-support";
 import "../src/kind-use/chart";
 import "../src/kind-use/cycle";
 import "../src/kind-use/er";
 import "../src/kind-use/mind";
+import "../src/kind-use/pipe";
 import "../src/kind-use/sankey";
 import "../src/kind-use/venn";
 import "../src/render/look-all";
@@ -188,3 +190,74 @@ const MIND_CARDS: number[][] = [
   [221.39, 293.92, 20.89, 4.72],
   [223.5, 301, 18.78, 4.72],
 ];
+
+/** 量の図の輪の見た目 (`[shape: donut]`) の置き場所のうち、全体図の検査が読む物 */
+interface DonutPlan {
+  ring: { cx: number; cy: number; r: number; width: number };
+  arcs: { start: number; sweep: number }[][];
+  legend: unknown[];
+}
+
+/** 塗った形の最初の点 */
+function firstPoint(el: Element): [number, number] {
+  const [x = Number.NaN, y = Number.NaN] = [...(el.getAttribute("d") ?? "").matchAll(/-?\d+(?:\.\d+)?/gu)].slice(0, 2).map((m) => Number(m[0]));
+  return [x, y];
+}
+
+/** 輪の見た目の 2 つの見本と、寄って追う形に決めて置く枠の幅。見本は os-share が幅 300 以下、staking-rewards が幅 332 以下で寄って追う形になる。#3849 は幅 390 と 760 だけを数え、狭い枠で空になる全体図を見逃した */
+const DONUTS: [string, number][] = [
+  ["os-share", 320],
+  ["staking-rewards", 280],
+];
+
+describe("量の図の輪の見た目の全体図 (#3852)", () => {
+  for (const [name, width] of DONUTS) {
+    it(`overview-has-parts-${name}-w${width}`, () => {
+      const o = overviewOf(place(name, notation(name), width));
+      expect(o.parts.length, `${name} / 枠の幅 ${width}px の全体図に部品が無い`).toBeGreaterThan(0);
+      const out = o.parts.filter((el) => !inside(el, o.world)).map((el) => el.outerHTML.slice(0, 120));
+      expect(out, `${name} / 枠の幅 ${width}px の全体図の描く所から出る部品`).toEqual([]);
+    });
+  }
+
+  it("overview-chart-donut-ring-and-legend", () => {
+    for (const [name, width] of DONUTS) {
+      const p = place(name, notation(name), width);
+      const o = overviewOf(p);
+      const plan = (p.layout as unknown as { chart: DonutPlan }).chart;
+      const last = plan.arcs[plan.arcs.length - 1] ?? [];
+      const areas = pick(o, "path", "dg-mm-area");
+      expect(areas.length, `${name} の塗った輪の区切りの数 (最後の段で値を持つ項目の数)`).toBe(last.filter((arc) => arc.sweep > 0).length);
+      expect(pick(o, "rect", "dg-mm-card").length, `${name} の凡例の行の札の数`).toBe(plan.legend.length);
+      // 輪の区切りは 12 時の向きから時計回りに並ぶ。全体図の上の輪の真ん中から見た、区切りの最初の点の角度で確かめる
+      const k = o.world.w / p.layout.width;
+      const [cx, cy] = [o.world.x + plan.ring.cx * k, o.world.y + plan.ring.cy * k];
+      const angles = areas.map((el) => {
+        const [x, y] = firstPoint(el);
+        return ((Math.atan2(x - cx, cy - y) * 180) / Math.PI + 360) % 360;
+      });
+      expect(angles[0], `${name} の最初の輪の区切りが始まる角度 (12 時の向きから時計回りの度)`).toBeLessThan(5);
+      expect(
+        angles.every((a, i) => i === 0 || a > (angles[i - 1] as number)),
+        `${name} の輪の区切りが時計回りに並ぶ (${angles.map((a) => a.toFixed(1)).join(", ")})`,
+      ).toBe(true);
+    }
+  });
+});
+
+describe("寄って追う形にしない配管の図 (#3852)", () => {
+  it("overview-pipe-player-stays-fixed", () => {
+    // 再生の部品は見せ方を選ぶ決まり (chooseView) を読み、配管の図を狭い枠でも止めた形で見せる
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: 390 });
+    document.body.appendChild(host);
+    const player = draw("mountDiagram")(host, notation("swap"));
+    try {
+      const svg = host.querySelector('svg[data-dragon="figure"]');
+      expect(svg?.getAttribute("data-view"), "枠の幅 390px の swap の見せ方").toBe("fixed");
+      expect(host.querySelector(".dg-mm-world"), "枠の幅 390px の swap の全体図").toBeNull();
+    } finally {
+      player.destroy();
+    }
+  });
+});

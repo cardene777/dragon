@@ -83,4 +83,18 @@ describe("字の大きさで選ぶ", () => {
       expect(api("printNotation")(parsed.diagram), line).toContain(line);
     }
   });
+
+  it("view-mode-pipe-always-fixed", () => {
+    // 配管の図は寄って追う形にしない (#3852)。再生の部品と書き出しはこの決まりを読み、書き手が原本で寄ると決めても止める
+    const choose = draw("chooseView");
+    const placed = (kind: string, view?: "fixed" | "follow"): Rendered =>
+      ({ layout: { kind, width: 2000, height: 700 }, ...(view === undefined ? {} : { view }) }) as unknown as Rendered;
+    for (const width of [1, 390, 760, 20_000]) {
+      expect(choose(placed("pipe"), width).mode, `配管の図の枠の幅 ${width} の見せ方`).toBe("fixed");
+      expect(choose(placed("pipe", "follow"), width).mode, `寄ると決めた配管の図の枠の幅 ${width} の見せ方`).toBe("fixed");
+    }
+    // 同じ大きさのほかの種類の図は、今どおり字の大きさで選ぶ
+    expect(choose(placed("architecture"), 390).mode, "同じ大きさの構成図の枠の幅 390 の見せ方").toBe("follow");
+    expect(choose(placed("architecture"), 20_000).mode, "同じ大きさの構成図の枠の幅 20000 の見せ方").toBe("fixed");
+  });
 });
