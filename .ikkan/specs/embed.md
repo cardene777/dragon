@@ -110,3 +110,12 @@
 | 埋めるscript (`dist/offline.global.js`) は、絵柄集の表 (`src/blocks/icon/tabler.js`) を束ねない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`offline-script-skips-icon-table`が通る | #3792 |
 | 配る入口の file (`dist/offline.global.js`を含む) は、書き出す部品のPNGを作る処理を持たない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`entries-skip-capture-body`が通る | #3792 |
 | jsDelivrの1行の入口が最初に読むscriptの量 (gzipした後) は、上限の90,000byteを超えられない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3792 |
+| `box api as API server`を持つ流れの図を描いた時、その箱を描いた要素が`data-node="api"`を持つ | `pnpm exec vitest run`の検査`box-carries-notation-id`が通る | #3795 |
+| 同じ名前の箱が2つ在る図を描いた時、2つの箱を描いた要素がそれぞれ自分の記法のidを`data-node`に持つ | `pnpm exec vitest run`の検査`same-name-boxes-carry-distinct-ids`が通る | #3795 |
+| 記法の`group <id> as <name>`を持つ図を描いた時、囲みを描いた要素が`data-node="<id>"`を持つ | `pnpm exec vitest run`の検査`group-carries-notation-id`が通る | #3795 |
+| 見本帳の見本のうち記法に`box`を持つ全ての図を描いた時、各`box <id>`のidを`data-node`に持つ要素が描いた図に在る | `pnpm exec vitest run`の検査`every-gallery-box-carries-its-id`が通る | #3795 |
+| 図を置いたページで箱を押した時、ページのscriptが押された要素から`closest('[data-node]')`で箱のidを読め、囲みの中の箱を押すと囲みでなく箱のidを返す | `pnpm exec vitest run`の検査`click-reads-innermost-node-id`が通る | #3795 |
+| `dragon embed`で書き出した1枚のHTMLでも、箱と囲みを描いた要素が`data-node`に記法のidを持つ | `pnpm exec vitest run`の検査`embed-html-keeps-node-ids`が通る | #3795 |
+| 組み込みの文書 (`plugins/dragon/skills/dragon/references/embed.md`と`packages/dragon/README.md`と`packages/dragon/README.ja.md`) が、箱と囲みのidを持つ属性`data-node`と、押した箱のidを`closest('[data-node]')`で読む書き方を持つ | `pnpm exec vitest run`の検査`embed-docs-name-node-attribute`が通る | #3795 |
+| 線と札を描いた要素は`data-node`を持たない | `pnpm exec vitest run`の検査`lines-and-labels-carry-no-node-id`が通る | #3795 |
+| 量の帯の図の棒は、今と同じく`data-node`に記法のidを持つ | `pnpm exec vitest run`の検査`sankey-band-grows-at-its-step`が通る | #3795 |

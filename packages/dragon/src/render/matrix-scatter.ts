@@ -19,7 +19,7 @@ import type { TextStyle } from "../look/values";
 import { MOTION } from "../look/values";
 import { partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
-import { type Ctx, cssFont as font, esc, r1 } from "./parts";
+import { type Ctx, cssFont as font, esc, nodeAttr, r1 } from "./parts";
 
 const S = MATRIX_LOOK.scatter;
 const T = MATRIX_TYPE;
@@ -69,7 +69,7 @@ export type AreaGlow = (area: MatrixArea, cls: string, rect: string) => string;
 function quarterOf(area: MatrixArea, glow: AreaGlow, ctx: Ctx): string {
   const at = area.label ?? areaLabel(area);
   const rect = rectOf(area);
-  return `<g data-matrix-area="${esc(area.id)}" style="${cs(area.color)}"><rect class="dg-mx-q" ${rect}/>${glow(area, "dg-mx-qg", rect)}${text(ctx, "dg-mx-name", at.x, at.y, area.name, T.area, at.anchor)}</g>`;
+  return `<g data-matrix-area="${esc(area.id)}"${nodeAttr(area.id)} style="${cs(area.color)}"><rect class="dg-mx-q" ${rect}/>${glow(area, "dg-mx-qg", rect)}${text(ctx, "dg-mx-name", at.x, at.y, area.name, T.area, at.anchor)}</g>`;
 }
 
 /** 軸の上の点数の札。`at` は軸の線の上の札の真ん中で、軸の外へ出す札 (`out`) は縦の軸なら右の端を、横の軸なら上の端を `at` に付ける (#3791) */

@@ -31,7 +31,7 @@ import { pickMark, pickRing } from "../blocks/pick/draw";
 import { roleCard } from "../blocks/role/draw";
 import { sealCover, sealPattern } from "../blocks/seal/draw";
 import { stamp as stampOf } from "../blocks/stamp/draw";
-import { type Ctx, cssFont as font, cssMix as mix, esc, r1, sansOf } from "./parts";
+import { type Ctx, cssFont as font, cssMix as mix, esc, nodeAttr, r1, sansOf } from "./parts";
 
 const S = LOOK.stroke;
 
@@ -633,7 +633,7 @@ export function drawLineup(
     const ticks = limitTicks(lane, layout.ticks.filter((t) => t.lane === lane.id), (k) => whenCount(lane.id, (count) => count > k), ctx);
     const fade = faded.get(lane.id);
     return (
-      `<g${fade ? ' class="dg-a"' : ""} data-lineup-lane="${esc(lane.id)}"${lane.pool ? ' data-lineup-pool=""' : ""} style="${cs(lane.color)}${fade ? `;${fade}` : ""}">` +
+      `<g${fade ? ' class="dg-a"' : ""} data-lineup-lane="${esc(lane.id)}"${nodeAttr(lane.id)}${lane.pool ? ' data-lineup-pool=""' : ""} style="${cs(lane.color)}${fade ? `;${fade}` : ""}">` +
       `${frame}${edge}${rings}${nameOf(lane)}${countsOf(lane)}${ticks}${noOrderPill(lane, T.noOrder, ctx)}${valuesOf(lane)}</g>`
     );
   };
@@ -646,7 +646,7 @@ export function drawLineup(
     const circle = (cls: string, extra = ""): string => `<circle class="${cls}" cx="${r1(stop.cx)}" cy="${r1(stop.cy)}" r="${r1(stop.r)}"${extra}/>`;
     const station = `<g data-lineup-station="${esc(lane.id)}" style="${cs(lane.color)}">${circle("dg-ls-stop")}${lit.length === 0 ? "" : circle("dg-a dg-ls-stopon", ` style="${during(rangesOf(lit))}"`)}</g>`;
     const slots = limitSlots(lane, (k) => whenCount(lane.id, (count) => count <= k));
-    return `<g data-lineup-lane="${esc(lane.id)}" style="${cs(lane.color)}">${slots}${station}${nameOf(lane)}${countsOf(lane)}${noOrderPill(lane, T.noOrder, ctx)}${valuesOf(lane)}</g>`;
+    return `<g data-lineup-lane="${esc(lane.id)}"${nodeAttr(lane.id)} style="${cs(lane.color)}">${slots}${station}${nameOf(lane)}${countsOf(lane)}${noOrderPill(lane, T.noOrder, ctx)}${valuesOf(lane)}</g>`;
   };
 
   /** 流れの線と、終わりで向きを示す三角を 1 つの面として塗る。線の色は半透明なので、線と三角を重ねると重なりが濃く出るため */

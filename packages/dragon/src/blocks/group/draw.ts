@@ -7,7 +7,7 @@ import type { SceneRegion } from "../../layout/scene";
 import { type Corner, LOOK, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import type { Ink } from "../../render/ink";
-import { r1, write } from "../../render/parts";
+import { nodeAttr, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
 import { drawsIcon, glyph } from "../icon/draw";
 
@@ -37,5 +37,5 @@ export function band(region: SceneRegion, ink: Ink[], corner: Corner): string {
     { x: region.x + 0.5, y: region.y + 0.5, w: region.w - 1, h: region.h - 1 },
     `<rect class="dg-band" x="${r1(region.x + 0.5)}" y="${r1(region.y + 0.5)}" width="${r1(region.w - 1)}" height="${r1(region.h - 1)}" rx="${radius}"/>`,
   );
-  return `<g style="${cs(region.color)}">${frame}${mark}${lines}${note}</g>`;
+  return `<g${nodeAttr(region.id)} style="${cs(region.color)}">${frame}${mark}${lines}${note}</g>`;
 }
