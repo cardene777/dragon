@@ -30,7 +30,7 @@
 | 色味を指定せずに描いた時、紙と墨で描く | `pnpm test`の検査`palette-defaults-to-paper`が通る | #2985 |
 | 色味 4 案 (澄んだ色 / 紙と墨 / 夜の計器 / アーケードの画面) の明暗それぞれで、1 型 / 2 型 / 3 型を模した全ての 2 色の差が 6 以上、通常の見え方の差が 15 以上ある | `pnpm test`の検査`palettes-keep-cvd-separation`が通る | #2985 |
 | 図の種類ごとの描画が、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #2985 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 #3847 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段ごとの止め絵を釦で送れる | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #2985 |
 | 図を開いた時、各段の題と本文を段の順に読み上げの道具から読める | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #2985 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2985 |
@@ -247,7 +247,7 @@
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに同じ file の形のある字を 1 つだけ足して含み、`unicode-range` には描く空白の類の字だけを載せる | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`と`font-subset-range-lists-drawn-chars`が通る | #3213 |
 | 英語の見本 10 個と、全角空白だけを `[117]` の file で描く図で、書き出した HTML が埋める字の file を Chromium が全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3213 |
 | HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 #3847 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3213 |
 | 表を持つ9種の見本を枠の幅 321px と 565px と 778px に寄って追う図で置いた時、表 (`.dg-strip`) の左端と右端が図の幅の中に在り、全ての欄の名前と値が表の内側に在る | `pnpm test`の検査`follow-strip-whole-in-figure`が通る | #3270 |
 | oauth と ccip を枠の幅 390px と 560px に寄って追う図で置いた時、表は窓の中身の動く組の外に描かれ、窓の枠と全体図の地の下に重ならずに在る | `pnpm test`の検査`follow-strip-below-window`が通る | #3270 |
