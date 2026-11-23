@@ -112,14 +112,18 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
     expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(130);
   });
 
-  it("related-venn-draw-picks-at-most-110", () => {
+  // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。
+  // その検査は並べ方だけを数えて絵もブラウザも読まないので、選ばれても 1 回の実行を数秒しか延ばさない
+  it("related-venn-draw-picks-at-most-111", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/venn.ts`);
-    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(110);
+    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(111);
   });
 
-  it("related-sequence-layout-picks-at-most-155", () => {
+  // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
+  // 命令 (`src/cli.ts`) も書き出しから軽い入口を通って時系列図の登録を読むので、命令を包んで走らせる検査は`overlap-cli.test.ts`の1つのfileに集める (#3837)
+  it("related-sequence-layout-picks-at-most-157", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(155);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(157);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
@@ -147,7 +151,8 @@ describe("種類の登録と検査の読み方の書き忘れを拒む (#3763)",
   it("kind-registrations-match-kind-folders", () => {
     expect(KIND_DIRS.length, "種類の置き場を数えられない").toBeGreaterThan(2);
     const all = stripComments(text(`${PACKAGE_DIR}/src/kinds/all.ts`));
-    const light = stripComments(text(`${PACKAGE_DIR}/src/light.ts`));
+    // 軽い入口は初めから持つ種類を `light.ts` で読み、後から読む種類の読み込みを読む処理の file (`light-load.ts`) に置く (#3782)
+    const light = [`${PACKAGE_DIR}/src/light.ts`, `${PACKAGE_DIR}/src/light-load.ts`].map((path) => stripComments(text(path))).join("\n");
     const missing: string[] = [];
     for (const kind of KIND_DIRS) {
       if (!existsSync(join(ROOT, PACKAGE_DIR, "src/kind-use", `${kind}.ts`))) missing.push(`${kind} の登録の file (src/kind-use/${kind}.ts)`);
@@ -155,7 +160,7 @@ describe("種類の登録と検査の読み方の書き忘れを拒む (#3763)",
       const lightReads = LATER.includes(kind)
         ? new RegExp(`\\b${kind}:\\s*\\(\\)\\s*=>\\s*import\\(["']\\./(?:kinds|kind-use)/${kind}["']\\)`, "u")
         : new RegExp(`\\bimport\\s*["']\\./kind-use/${kind}["']`, "u");
-      if (!lightReads.test(light)) missing.push(`${kind} を light.ts が読む行`);
+      if (!lightReads.test(light)) missing.push(`${kind} を light.ts か light-load.ts が読む行`);
     }
     expect(missing, "種類の置き場の一覧に在るのに欠けた登録").toEqual([]);
   });

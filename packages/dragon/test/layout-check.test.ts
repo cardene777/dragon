@@ -10,7 +10,8 @@
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import * as dragon from "./all-kinds";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
@@ -32,7 +33,7 @@ vi.mock("../src/export/capture", async (importOriginal) => {
  * 描く部品と書き出す部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 元の code は 500 を超える file を読み、検査の中で初めて読むと混んだ機械で変換だけで 9 秒かかる (#3410)
  */
-const [{ checkLayout, describeBreak }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }, { flattenPath }] = await Promise.all([
+const [{ checkLayout, describeBreak, diagramBreaks }, { exportDiagram, NoSuchStep }, { renderDiagram }, { parseNotation }, { findBreaks }, { flattenPath }] = await Promise.all([
   import("../src/render/layout-check"),
   import("../src/export/index"),
   import("../src/render/draw"),
@@ -66,8 +67,24 @@ const SWAP_RETRY = join(ROOT, "packages/dragon/examples/swap-retry.dragon");
 const TRY_SKIP = join(FIXTURES, "try-skip.dragon");
 /** 見本に今ある崩れの一覧。見本の file ごとに崩れを並べる */
 const RECORDED = join(ROOT, "packages/dragon/test/fixtures/layout-breaks.json");
-/** 崩れを数える見本の置き場 */
-const EXAMPLE_DIRS = ["packages/dragon/examples", "packages/dragon/blocks/examples"].map((dir) => join(ROOT, dir));
+/** 使い方の頁の見本の置き場。記法の`.dragon`と、図の原本の`.json`を持つ (#3790) */
+const DOCS_EXAMPLES = join(ROOT, "apps/playground-spa/src/docs/examples");
+/** 見本の一覧を1か所で持つ file。見本の崩れの検査と、記録を書き直す script の両方が読む (#3790) */
+const SHARED_EXAMPLES = join(ROOT, "scripts/layout-examples.mjs");
+/** 見本の崩れの記録を書き直す script */
+const RECORD_SCRIPT = join(ROOT, "scripts/layout-breaks-record.mjs");
+
+/** 崩れを記録と突き合わせる見本。名前と記法と読む言葉 */
+interface Example {
+  name: string;
+  source: string;
+  lang: "ja" | "en";
+}
+const { layoutExamples } = (await import(/* @vite-ignore */ pathToFileURL(SHARED_EXAMPLES).href)) as {
+  layoutExamples: (root: string, extractDiagrams: (markdown: string) => { source: string; line: number }[]) => Example[];
+};
+/** 崩れを数える見本。置き場は一覧を持つ file が決め、md の中の図は元の code の取り出す関数で取り出す */
+const EXAMPLES = layoutExamples(ROOT, dragon.extractDiagrams);
 
 type Part =
   | { kind: "badge"; step: number }
@@ -117,6 +134,24 @@ const LABEL_OFF_CHECKED = await atLoad("線から離れる名前の図を命令�
   json: await layoutOf(LABEL_OFF_LINE),
   ja: await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "ja"]),
   en: await runCli(["check", LABEL_OFF_LINE, "--layout", "--lang", "en"]),
+}));
+
+// 命令を件の中で起こすほかの件も、#3800 の関門で混んだ機械の 1 件の上限 (10 秒) を超えた (#3815)。同じく命令を file を読み込む段で打つ
+
+const CROWDED_CHECKED = await atLoad("並んで近すぎる道の状態遷移図を命令で調べる", async () => ({
+  json: await layoutOf(CROWDED),
+  ja: await runCli(["check", CROWDED, "--layout", "--lang", "ja"]),
+  en: await runCli(["check", CROWDED, "--layout", "--lang", "en"]),
+}));
+
+const SEND_ONLY_CHECKED = await atLoad("運ぶ物が置き場に座らない金庫の図を命令で調べる", () => layoutOf(SEND_ONLY));
+
+/** 決済の図の崩れを、言葉を渡さずに JSON で調べた結果 */
+const PAYMENT_WIDTHS = await atLoad("決済の図を言葉を渡さずに命令で調べる", () => runCli(["check", PAYMENT, "--layout", "--json"]));
+
+const TRY_SKIP_CHECKED = await atLoad("網の線が節の名前を横切る試す図を命令で調べる", async () => ({
+  json: await layoutOf(TRY_SKIP),
+  ja: await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]),
 }));
 
 /** 決済の図と、描いた段の止め絵の時刻 */
@@ -547,23 +582,22 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(frameShape(128).filter((b) => b.kind === "label-on-frame"), "囲みの外に在る名前を枠線に乗る名前に数える").toEqual([]);
   });
 
-  it("layout-check-finds-crowded-lines", async () => {
-    const { found } = await layoutOf(CROWDED);
+  it("layout-check-finds-crowded-lines", () => {
+    const { found } = CROWDED_CHECKED.get().json;
     const hits = found.filter((b) => b.kind === "lines-close" && hasLine(b, "受付", "取消", 1) && hasLine(b, "確認", "取消", 1));
     expect(hits, "受付と確認から取消へ入る道が並んで近すぎることを1件で出さない").toHaveLength(1);
   });
 
-  it("layout-check-line-names-step-and-parts", async () => {
+  it("layout-check-line-names-step-and-parts", () => {
     // 段の番号を名指す文は、近すぎる番号を持つ姿を組んで確かめる (`layout-check-finds-close-badges` と `badge-spots.test.ts`)。
     // 見本の図に近すぎる番号が無くなったので (#3547)、命令の行の形は並んで近すぎる道を持つ状態遷移図で確かめる
-    const ja = await runCli(["check", CROWDED, "--layout", "--lang", "ja"]);
+    const { ja, en } = CROWDED_CHECKED.get();
     expect(ja.code, ja.stderr).toBe(0);
     const lines = ja.stdout.trimEnd().split("\n");
     const crowded = lines.find((line) => line.includes("線 受付 → 取消 (段 1)") && line.includes("線 確認 → 取消 (段 1)"));
     expect(crowded, `受付と確認から取消への道を名指す行が無い\n${ja.stdout}`).toBeDefined();
     // 行は `<file>:<段の step の行>:1 warning 段 <N>: <文>` の形で、崩れが見え始める段の行を名指す
     expect(crowded, "線の崩れの行の頭").toMatch(new RegExp(`^${CROWDED.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(CROWDED, 1)}:1 warning 段 1: `, "u"));
-    const en = await runCli(["check", CROWDED, "--layout", "--lang", "en"]);
     const crowdedEn = en.stdout.trimEnd().split("\n").find((line) => line.includes("受付 → 取消"));
     expect(crowdedEn, `英語の行が段と線を名指さない\n${en.stdout}`).toMatch(/warning Step 1: The line 受付 → 取消 \(step 1\) and the line 確認 → 取消 \(step 1\) /u);
     // はみ出した字の文は、字と箱の名前を名指す。形を持つ箱は中身が収まるまで大きくなるので (#3520)、崩れを持つ前のアーチの姿で確かめる
@@ -571,10 +605,10 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(text && describeBreak(text as never, "en"), "英語の文がはみ出した字と箱を名指さない").toBe('"100 USDC を預かり中" sticks out of the shape of "ブリッジ"');
   });
 
-  it("layout-check-prints-json", async () => {
+  it("layout-check-prints-json", () => {
     // 決済の図は行きと帰りの線を離し (#3521)、六角形の箱が中身に合わせて大きくなって (#3520) 崩れを持たず、
     // 近すぎる丸を持っていたgit図も線を離して崩れが消えたので (#3547)、並んで近すぎる道を持つ図で確かめる
-    const { code, problems } = await layoutOf(CROWDED);
+    const { code, problems } = CROWDED_CHECKED.get().json;
     expect(code).toBe(0);
     const layout = problems.filter((p) => p.layout !== undefined);
     expect(layout.length, "JSON に崩れが無い").toBeGreaterThan(0);
@@ -594,9 +628,9 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(slots.map((b) => b.step), "続く段の同じ崩れを、硬貨が座り始める段 2 の 1 件にまとめない").toEqual([2]);
   });
 
-  it("layout-check-skips-slot-never-held", async () => {
+  it("layout-check-skips-slot-never-held", () => {
     // アーチの形の金庫は硬貨を送り出すだけで、硬貨は金庫の置き場で待たない。見えない枠のはみ出しは知らせない (#3518)
-    const { found } = await layoutOf(SEND_ONLY);
+    const { found } = SEND_ONLY_CHECKED.get();
     expect(found.filter((b) => b.kind === "slot-outside-shape"), "運ぶ物が一度も座らない枠のはみ出しを知らせる").toEqual([]);
     // 形を持つ箱は中身が収まるまで大きくなり、描いた図には形の崩れが無い (#3520)。崩れを持つ #3520 の前のアーチの姿で、座らない枠を数えないことも確かめる
     const empty = findBreaks(brokenArch(false)) as LayoutBreak[];
@@ -604,7 +638,7 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(empty.filter((b) => b.kind === "text-outside-shape" && hasBox(b, "ブリッジ")).length, "アーチの形の崩れを測っていない").toBeGreaterThan(0);
   });
 
-  it("layout-check-names-narrow-width", async () => {
+  it("layout-check-names-narrow-width", () => {
     const seen: (number | undefined)[] = [];
     const both = { kind: "badges-close", step: 2, parts: [{ kind: "badge", step: 1 }, { kind: "badge", step: 2 }] };
     const narrowOnly = { kind: "lines-close", step: 3, parts: [{ kind: "line", from: "a", to: "b", step: 2 }, { kind: "line", from: "b", to: "a", step: 3 }] };
@@ -616,14 +650,15 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     const merged = checkLayout(render as never);
     expect(seen, "既定の幅と幅 390 の両方で描かない").toEqual([undefined, 390]);
     expect(merged, "両方の幅で出る崩れは幅を持たず、幅 390 でだけ出る崩れは幅を持つ").toEqual([both, { ...narrowOnly, width: 390 }]);
-    const lines = await runCli(["check", PAYMENT, "--layout", "--json"]);
+    const lines = PAYMENT_WIDTHS.get();
     const widths = (JSON.parse(lines.stdout || "[]") as Problem[]).flatMap((p) => (p.layout?.width === undefined ? [] : [p.layout.width]));
     expect(widths, "幅で変わらない図で幅を名指す").toEqual([]);
   });
 
-  it("layout-check-finds-line-across-node-name", async () => {
+  it("layout-check-finds-line-across-node-name", () => {
     // 試す図の網の線も、ほかの線と同じく札を持たない字を横切れば崩れとして出す
-    const { code, found, problems, stderr } = await layoutOf(TRY_SKIP);
+    const { json, ja } = TRY_SKIP_CHECKED.get();
+    const { code, found, problems, stderr } = json;
     expect(code, `崩れだけの図で終わり方 0 にならない ${stderr}`).toBe(0);
     const across = (name: string): LayoutBreak[] =>
       found.filter((b) => b.kind === "line-crosses-text" && hasLine(b, "送る人", "作る人", 1) && b.parts.some((p) => p.kind === "text" && p.text === name));
@@ -639,10 +674,21 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
       expect(p.line, "線が字を横切る崩れの段の step の行").toBe(stepLine(TRY_SKIP, 1));
     }
     // 文の行は段を頭に書き、線の両端の節と横切られる名前を名指す
-    const ja = await runCli(["check", TRY_SKIP, "--layout", "--lang", "ja"]);
     const said = ja.stdout.trimEnd().split("\n").find((line) => line.includes("中継1"));
     expect(said, `名前「中継1」を名指す行が無い\n${ja.stdout}`).toMatch(new RegExp(`^${TRY_SKIP.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}:${stepLine(TRY_SKIP, 1)}:1 warning 段 1: `, "u"));
     expect(said, "行が線の両端の節を名指さない").toMatch(/送る人.*作る人/u);
+  });
+
+  it("layout-check-line-over-text-reported-once", () => {
+    // 線が札を持たない字を横切る所は、描いた結果の重なり (`overlaps`) にも入る。崩れは線が字を横切る種類の1件だけで知らせ、字どうしの重なりと重ねない (#3790)
+    const text = readFileSync(TRY_SKIP, "utf8");
+    const parsed = parseNotation(text, { lang: "ja" });
+    expect(parsed.ok, "網の線が節の名前を横切る試す図を読めない").toBe(true);
+    if (!parsed.ok) return;
+    const crossed = renderDiagram(parsed.diagram, { lang: "ja" }).overlaps.filter((o) => o.kind === "line" && o.text === "中継1");
+    expect(crossed.length, "描いた結果の重なりに、線が名前「中継1」を横切る所が無い").toBeGreaterThan(0);
+    const named = dragon.checkLayoutText(text, { lang: "ja" }).filter((b) => b.parts.some((p) => p.kind === "text" && p.text === "中継1"));
+    expect(named.map((b) => b.kind), `名前「中継1」に関わる崩れ ${JSON.stringify(named)}`).toEqual(["line-crosses-text"]);
   });
 
   it("layout-check-skips-intended-overlaps", () => {
@@ -657,17 +703,6 @@ describe("dragon check --layout が崩れを見つける (#3484)", () => {
     expect(found, "決済の図に崩れを出す").toEqual([]);
   });
 });
-
-/** 見本の置き場の `.dragon` を全て。見本の file の名前は repo の根からの path にする */
-function exampleFiles(): string[] {
-  return EXAMPLE_DIRS.flatMap((dir) =>
-    existsSync(dir)
-      ? readdirSync(dir)
-          .filter((name) => name.endsWith(".dragon") && statSync(join(dir, name)).isFile())
-          .map((name) => join(dir, name))
-      : [],
-  ).sort();
-}
 
 describe("共有の橋のブロックは形の崩れを出さない (#3489)", () => {
   it("layout-check-shared-bridge-has-no-shape-breaks", () => {
@@ -795,7 +830,7 @@ describe("見本に今ある崩れ (#3484)", () => {
   const recordedBreaks = (): Record<string, LayoutBreak[]> => (recorded ??= existsSync(RECORDED) ? (JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, LayoutBreak[]>) : {});
 
   // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める
-  describe.for(exampleFiles().map((file) => [relative(ROOT, file), file] as const))("%s", ([name, file]) => {
+  describe.for(EXAMPLES.map((example) => [example.name, example] as const))("%s", ([name, example]) => {
     it("layout-check-examples-match-recorded", () => {
       const checkLayoutText = (dragon as unknown as { checkLayoutText?: (text: string, options: { lang: "ja" | "en" }) => LayoutBreak[] }).checkLayoutText;
       expect(checkLayoutText, "checkLayoutText が @cardenelabs/dragon から出ていない").toBeDefined();
@@ -803,7 +838,7 @@ describe("見本に今ある崩れ (#3484)", () => {
       expect(existsSync(RECORDED), `${relative(ROOT, RECORDED)} が無い`).toBe(true);
       const key = (b: LayoutBreak): string => JSON.stringify(b);
       const known = new Set((recordedBreaks()[name] ?? []).map(key));
-      const grown = checkLayoutText(readFileSync(file, "utf8"), { lang: file.includes(".en.") ? "en" : "ja" })
+      const grown = checkLayoutText(example.source, { lang: example.lang })
         .filter((b) => !known.has(key(b)))
         .map((b) => `${name}: ${key(b)}`);
       expect(grown, "一覧に無い崩れが見本に出た").toEqual([]);
@@ -812,11 +847,66 @@ describe("見本に今ある崩れ (#3484)", () => {
 
   // 全ての見本の崩れを 1 件で数えると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
   it("layout-check-cases-follow-examples", ({ task }) => {
-    const names = exampleFiles().map((file) => relative(ROOT, file));
-    expect(names.length, "見本を数えられない").toBeGreaterThan(EXAMPLE_DIRS.length);
+    const names = EXAMPLES.map((example) => example.name);
+    expect(names.length, "見本を数えられない").toBeGreaterThan(1);
     expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本ごとの件").toEqual(names);
   });
 });
+
+describe("見本の崩れの検査が全ての置き場の見本を読む (#3790)", () => {
+  it("layout-check-examples-cover-all-places", ({ task }) => {
+    const cases = new Set(casesNamed(task.file, "layout-check-examples-match-recorded"));
+    const examples = join(ROOT, "packages/dragon/examples");
+    const below = filesUnder(examples);
+    // 一覧を持つ file を使わずに、3つの置き場の見本の名前を置き場から数える。mdの中の図は、図の中身の1行目の行の番号で呼ぶ
+    const places: [string, string[]][] = [
+      ["使い方の頁の .dragon", readdirSync(DOCS_EXAMPLES).filter((name) => name.endsWith(".dragon")).map((name) => relative(ROOT, join(DOCS_EXAMPLES, name)))],
+      ["packages/dragon/examples の下のフォルダの .dragon", below.filter((file) => file.endsWith(".dragon") && dirname(file) !== examples).map((file) => relative(ROOT, file))],
+      [
+        "packages/dragon/examples の md の中の図",
+        below
+          .filter((file) => file.endsWith(".md"))
+          .flatMap((file) => dragon.extractDiagrams(readFileSync(file, "utf8")).map((fence) => `${relative(ROOT, file)}:${fence.line}`)),
+      ],
+    ];
+    for (const [place, names] of places) {
+      expect(names.length, `${place}を数えられない`).toBeGreaterThan(0);
+      expect(names.filter((name) => !cases.has(name)), `見本の崩れの検査が${place}を件として持たない`).toEqual([]);
+    }
+  });
+
+  it("layout-check-record-reads-same-examples", ({ task }) => {
+    // 記録を書き直す script は、見本の一覧を検査と同じ file から読み、自分で置き場を読まない
+    const script = readFileSync(RECORD_SCRIPT, "utf8");
+    expect(script, "記録の script が見本の一覧を scripts/layout-examples.mjs から読まない").toMatch(/from "\.\/layout-examples\.mjs"/u);
+    expect(script, "記録の script が自分で置き場の file を並べる").not.toMatch(/readdirSync/u);
+    // 見本の崩れの検査の件は、同じ file が返す見本と1件ずつ揃う
+    expect(casesNamed(task.file, "layout-check-examples-match-recorded").sort(), "見本の崩れの検査の件と、一覧を持つ file の見本").toEqual(EXAMPLES.map((e) => e.name).sort());
+  });
+});
+
+describe("使い方の頁の図の原本は崩れを出さない (#3790)", () => {
+  // 図の原本 (`.json`) は記法の崩れの検査 (`checkLayoutText`、`dragon check`) に渡せないので、原本から描いて崩れを数える
+  describe.for(
+    readdirSync(DOCS_EXAMPLES)
+      .filter((name) => name.endsWith(".json"))
+      .sort()
+      .map((name) => [relative(ROOT, join(DOCS_EXAMPLES, name)), join(DOCS_EXAMPLES, name)] as const),
+  )("%s", ([name, file]) => {
+    it("layout-check-json-examples-have-no-breaks", () => {
+      const lang = file.includes(".en.") ? "en" : "ja";
+      const read = dragon.readDiagram(JSON.parse(readFileSync(file, "utf8")) as unknown, { lang });
+      expect(read.ok, `${name} を図の原本として読めない`).toBe(true);
+      if (!read.ok) return;
+      expect(diagramBreaks(read.diagram, lang).map((b) => `${name}: ${JSON.stringify(b)}`), "使い方の頁の図の原本に崩れが残る").toEqual([]);
+    });
+  });
+});
+
+/** dir の下の file を、下のフォルダも含めて全て */
+function filesUnder(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? filesUnder(join(dir, entry.name)) : [join(dir, entry.name)]));
+}
 
 describe("見本帳の図は崩れを出さない (#3607)", () => {
   // 件の名前は `%s` で付ける。`$name` は 40 字を超える名前を切り詰める

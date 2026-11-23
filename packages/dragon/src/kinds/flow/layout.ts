@@ -15,6 +15,7 @@ import { type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { Box, DiagramModel } from "../../schema";
 import { type NotationLang, STATE_ENDS } from "../../words";
 import { textBox, textWidth } from "../../layout/measure";
+import { twoRows } from "../../layout/rows";
 import {
   badgeBlocked,
   badgeOnPath,
@@ -53,36 +54,6 @@ import {
 } from "../../layout/scene";
 
 const isEnd = (id: string): boolean => (STATE_ENDS as readonly string[]).includes(id);
-
-/** 後ろで折ってよい助詞。和文の問いは助詞の後で折り、助詞を行の頭に送らない */
-const PARTICLES = new Set([..."はがをにでとへもの"]);
-/** 後ろで折ってよい読点 */
-const COMMAS = new Set([..."、，"]);
-/** 前で折らない字。閉じ括弧と句読点と、問いの終わりの印を行の頭に送らない */
-const CLOSING = new Set([..."、。，．）」』！？!?,.)"]);
-/** 平仮名か。助詞と同じ字の平仮名は語の中にも出るので、前と後ろがどちらも平仮名の所では折らない */
-const isKana = (ch: string | undefined): boolean => ch !== undefined && /\p{Script=Hiragana}/u.test(ch);
-
-/**
- * 問いを 2 行に折れる所ごとの 2 行。欧文は空白で、和文は読点の後と、漢字か片仮名か英字の後に続く助詞か、漢字か片仮名か英字の前に来る助詞の後で折る。
- * 折った後の行が空になる所と、次の行が閉じる字で始まる所では折らない
- */
-function twoRows(question: string): string[][] {
-  const chars = [...question];
-  const out: string[][] = [];
-  for (let k = 1; k < chars.length; k++) {
-    const prev = chars[k - 1] as string;
-    const next = chars[k] as string;
-    const space = /\s/u.test(next);
-    const particle = PARTICLES.has(prev) && k >= 2 && !(isKana(chars[k - 2]) && isKana(next));
-    if (!space && !particle && !COMMAS.has(prev)) continue;
-    const first = chars.slice(0, k).join("").trimEnd();
-    const second = chars.slice(k).join("").trimStart();
-    if (first === "" || second === "" || CLOSING.has([...second][0] as string)) continue;
-    out.push([first, second]);
-  }
-  return out;
-}
 
 /** 線の両端が同じ 2 つの線か */
 const same = (a: { from: string; to: string }, b: { from: string; to: string }): boolean => a.from === b.from && a.to === b.to;

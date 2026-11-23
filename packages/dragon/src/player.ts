@@ -36,7 +36,7 @@ import { FIGURE_TEXT } from "./figure-text";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
-import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE, ZOOM } from "./look/values";
+import { FONT_VARS, LOOK, PLAIN_TEXT, paletteVars, type TextStyle, TYPE, ZOOM } from "./look/values";
 import { partRadius } from "./render/corner";
 import { lookOf } from "./render/look-store";
 import { drawLines } from "./render/pen-store";
@@ -180,7 +180,8 @@ function playerCss(): string {
   const C = LOOK.corner.cut;
   const hidden = px(P.hidden);
   return [
-    `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink)}`,
+    // 再生の帯の題と本文も、置いた頁の字の間と大文字を受け継がない (#3787)
+    `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink);${PLAIN_TEXT}}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
     // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように枠の外を動かせる (#3398)。
     // 置いた頁が枠の高さを決めていて図の方が高い時も、縦に送って図の下まで見せる
@@ -558,9 +559,9 @@ export function mountDiagram(
   const overviewHeight = (): number | undefined => (options.fitOverview && !options.fitHeight ? innerHeight() : undefined);
   /**
    * 見せ方を選ぶ。配管の図は寄って追わず、図を縮めずに置き、枠より広い時は枠の中を横に送る (#3398)。
-   * 書き出した絵だけは全体を 1 枚に縮めて写す
+   * 書き出した絵だけは全体を 1 枚に縮めて写す。寄って追わない種類は、書き出しと同じく `chooseView` の決まりから読む (#3852)
    */
-  const viewOf = (w: number, h: number | undefined): ViewMode => (rendered.diagram.kind === "pipe" ? "fixed" : chooseView(rendered, w, h).mode);
+  const viewOf = (w: number, h: number | undefined): ViewMode => chooseView(rendered, w, h).mode;
   let mode = viewOf(frameWidth(), frameHeight());
   let width = frameWidth();
   let height = frameHeight();

@@ -16,6 +16,7 @@ import { SANKEY_LOOK, SANKEY_ROWS, SANKEY_ROWS_TYPE, SANKEY_TREEMAP, SANKEY_TREE
 import { type ColorKey, LOOK, READABLE_PX } from "../../look/values";
 import type { DiagramModel } from "../../schema";
 import type { NotationLang } from "../../words";
+import type { OverviewShape } from "../parts";
 
 /** 量の字。`lead` を立てた字は棒の上に名前と同じ行で書く */
 export interface SankeyText {
@@ -503,6 +504,10 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
   const drop = phone ? R.phone.drop : R.drop;
   const last = snapshots.length - 1;
   const chipHalf = (text: string): Point => carrierHalf({ kind: "tag", text });
+  // 量の札の 1 段。札の高さと、札どうしの隙間
+  const chipStep = LOOK.carrier.tagH + R.chip;
+  // 線ごとの、量の札を止める段。0 は下の行の帯の上の縁の手前で、1 段ごとに札 1 枚分上で止まる
+  const chipLevel = new Map<Flow, number>();
 
   const rows: SankeyRow[] = [];
   let y = pad;
@@ -515,6 +520,25 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
       const kind: SankeyRowSection["kind"] = cell.id.startsWith("rest:") ? "rest" : cell.born === k ? "new" : "carried";
       return { id: cell.id, box: cell.box, kind, color: kind === "rest" ? "slate" : (colors.get(cell.box) ?? "slate"), amount: cell.amount, x: left + R.gap / 2, y, w: Math.max(1, right - left - R.gap), h: R.bar.h };
     });
+    // 同じ段の量の札は、新しく分かれた区画の真ん中に同じ高さで止まる。狭い枠で札の四角が先の札と隙間無く並ぶ時は、後の札を先の札の 1 段上で止め、
+    // その行の上の下りる帯の間を上げた段の分だけ伸ばす (#3791)。札の大きさは変えず、札は自分の区画の真上に残る
+    const stacked: { left: number; right: number; level: number }[] = [];
+    for (const f of flows.filter((x) => x.step === k)) {
+      const s = sections.find((x) => x.id === f.to && x.kind === "new");
+      if (!s) continue;
+      const [hx] = chipHalf(f.label);
+      const left = s.x + s.w / 2 - hx;
+      const right = s.x + s.w / 2 + hx;
+      let level = 0;
+      while (stacked.some((p) => p.level === level && left < p.right + R.chip && p.left < right + R.chip)) level += 1;
+      stacked.push({ left, right, level });
+      chipLevel.set(f, level);
+    }
+    const lift = Math.max(0, ...stacked.map((p) => p.level)) * chipStep;
+    if (lift > 0) {
+      y += lift;
+      for (const s of sections) s.y = y;
+    }
     const listed: { section: SankeyRowSection; text: string }[] = [];
     for (const s of sections) {
       const cell = snapshot.find((c) => c.id === s.id) as Cell;
@@ -580,10 +604,10 @@ function arrangeRows(diagram: DiagramModel, lang: NotationLang, frame: number | 
     const y1 = above ? above.y + above.h : row.y - drop;
     const listedBelow = above && above.names.length > 0 ? Math.max(...above.names.map((n) => n.name.rect.y + n.name.rect.h)) : y1;
     drops.push({ step: f.step, event: f.event, from: f.from, to: f.to, x: s.x, w: s.w, y1, y2: row.y, color: s.color });
-    // 量の札は帯の下の名前より下から、下の行の帯の上の縁の手前まで落ちる
+    // 量の札は帯の下の名前より下から、下の行の帯の上の縁の手前まで落ちる。同じ段の札と並ぶ札は、上げた段の分だけ手前で止まる
     const [, hy] = chipHalf(f.label);
     const top = Math.max(y1, listedBelow) + R.chip + hy;
-    const bottom = Math.max(top, row.y - R.chip - hy);
+    const bottom = Math.max(top, row.y - R.chip - hy - (chipLevel.get(f) ?? 0) * chipStep);
     const cx = s.x + s.w / 2;
     edges.push({
       step: f.step,
@@ -899,4 +923,44 @@ export function layoutTreemap(diagram: DiagramModel, lang: NotationLang, width: 
   const wide = arrangeTreemap(diagram, lang, undefined);
   if (width === undefined || (width / wide.width) * TT.name.size >= READABLE_PX) return wide;
   return arrangeTreemap(diagram, lang, width);
+}
+
+/** 帯を曲線に沿って分ける数。全体図の大きさでは曲線の折れ目が見えない数 */
+const RIBBON_STEPS = 24;
+
+/** 帯の形。上の縁を出どころから行き先へ、下の縁を行き先から出どころへ、帯の真ん中と同じ曲線でたどる */
+function ribbon(band: SankeyBand): Point[] {
+  const edge = (side: 0 | 1, t: number): Point => bandPoint({ x1: band.x1, x2: band.x2, a: [band.a[side], band.a[side]], b: [band.b[side], band.b[side]] }, t);
+  const ts = Array.from({ length: RIBBON_STEPS + 1 }, (_, i) => i / RIBBON_STEPS);
+  return [...ts.map((t) => edge(0, t)), ...[...ts].reverse().map((t) => edge(1, t))];
+}
+
+/** 四角 `x` `w` `y1` `y2` の四隅 */
+const corners = (x: number, w: number, y1: number, y2: number): Point[] => [
+  [x, y1],
+  [x + w, y1],
+  [x + w, y2],
+  [x, y2],
+];
+
+/**
+ * 量の行き先の図の全体図に描く部品 (#3849)。
+ * 棒と帯の見た目は、帯を元の図と同じ曲線のまま半透明に塗り、その上に棒を札で描く。
+ * 段ごとの帯の見た目 (`[shape: rows]`) は下りる帯を半透明に塗り、行の区画を札 (まだ分けていない残りは地) で描く。
+ * 面積で割る四角の見た目 (`[shape: treemap]`) は子の区画に分けた区画を地、分けていない区画を札で描く
+ */
+export function sankeyOverview(layout: SankeyLayout): OverviewShape[] {
+  if (layout.arrangement === "rows") {
+    return [
+      ...(layout.drops ?? []).map((drop): OverviewShape => ({ area: corners(drop.x, drop.w, drop.y1, drop.y2), color: drop.color })),
+      ...(layout.rows ?? []).flatMap((row) => row.sections.map((s): OverviewShape => ({ rect: s, band: s.kind === "rest", color: s.color }))),
+    ];
+  }
+  if (layout.arrangement === "treemap") {
+    return (layout.tiles ?? []).filter((tile) => tile.kind === "box").map((tile): OverviewShape => ({ rect: tile, band: tile.split !== undefined, color: tile.color }));
+  }
+  return [
+    ...layout.bands.map((band): OverviewShape => ({ area: ribbon(band), color: band.color })),
+    ...layout.nodes.map((n): OverviewShape => ({ rect: n, band: false, color: n.color })),
+  ];
 }

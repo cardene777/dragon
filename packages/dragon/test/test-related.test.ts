@@ -9,6 +9,7 @@
  *
  * 規則は、この repo そのものと、検査の中で作る小さな repo の 2 つで確かめる。
  * 小さな repo では命令を子の process で起こし、`--list` で選んだ検査の file を出させて確かめる。
+ * 小さな repo を作る git と命令は、file を読み込む時に入力ごとに 1 度ずつ起こし、件はその結果を読む (#3815)。
  * この repo では、file を読み込む時に 1 度だけ作った索引から選ぶ。命令は起こすたびに repo の全ての file を読み直し、
  * 件ごとに起こすと混んだ機械で 1 件の上限 (10 秒) を超えた (#3733)。
  */
@@ -18,6 +19,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { casesNamed } from "./case-support";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -31,7 +33,10 @@ interface Listed {
   files: string[];
 }
 
-/** 命令を子のプロセスで起こした回数。入力ごとに分けた件が 1 回だけ起こすかを数える (#3602) */
+/**
+ * 命令を子のプロセスで起こした回数。入力ごとに分けた件が 1 回だけ起こすかを数える (#3602)。
+ * 小さな repo で起こす命令は file を読み込む時に起こすので、件の前後の差には入らない (#3815)
+ */
 let commands = 0;
 
 /** 命令に `--list` を付けて起こし、選んだ検査の file を読む */
@@ -68,19 +73,15 @@ function listRepo(changed: string[]): Listed {
   return { code: 0, stdout: `関係する検査 ${chosen.length} file\n${chosen.map((path) => `  ${path}\n`).join("")}`, stderr: "", files: chosen };
 }
 
-/** repo の検査の file と中身。材料の名前を書く検査を数える時に、file で 1 度だけ読む */
-let sources: Map<string, string> | undefined;
-function testSources(): Map<string, string> {
-  sources ??= new Map(
+/** repo の検査の file と中身。材料の名前を書く検査を数える件で使うので、件の上限の外で、file を読み込む時に 1 度だけ読む (#3733) */
+const SOURCES = await atLoad("repo の検査の file と中身", () =>
+  new Map(
     execFileSync("git", ["-C", ROOT, "ls-files", "*.test.ts", "*.test.tsx"], { encoding: "utf8" })
       .split("\n")
       .filter(Boolean)
-      .map((path) => [path, readFileSync(join(ROOT, path), "utf8")]),
-  );
-  return sources;
-}
-// 件の上限の外で、file を読み込む時に読んでおく (#3733)
-testSources();
+      .map((path): [string, string] => [path, readFileSync(join(ROOT, path), "utf8")]),
+  ),
+);
 
 /** 検査の中で使う小さな repo を作る。`files` は repo の根からの path と中身 */
 function fixture(files: Record<string, string>): string {
@@ -108,6 +109,29 @@ function smallRepo(extra: Record<string, string> = {}): string {
 
 const git = (root: string, ...args: string[]): string => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
 
+// 小さな repo で命令を子の process で起こす仕事と、小さな repo を作る git は、混んだ機械で 1 件 10 秒の上限を超えた (#3815)。
+// file を読み込む時に入力ごとに 1 つずつ順に済ませ、件はその結果を読む。同じ入力を確かめる件は 1 つの結果を読む
+
+const FROM_C = await atLoad("小さな repo で c.ts を変えた時に選ぶ検査", () => list(["packages/x/src/c.ts"], smallRepo()));
+
+const FROM_B = await atLoad("小さな repo で b.ts を変えた時に選ぶ検査", () => list(["packages/x/src/b.ts"], smallRepo()));
+
+const UNMAPPED = await atLoad("小さな repo で表にも import にも当たらない file を変えた時に選ぶ検査", () => list(["notes/todo.txt"], smallRepo()));
+
+const BRANCH = await atLoad("小さな repo で既定の枝から分かれた後の変更から選ぶ検査", () => {
+  const root = smallRepo();
+  git(root, "init", "-q", "-b", "main");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", "-A");
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-m", "first");
+  git(root, "switch", "-q", "-c", "work");
+  writeFileSync(join(root, "packages/x/test/a.test.ts"), 'import { a } from "../src/a";\nvoid a;\nvoid 1;\n');
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "commit a");
+  // commit していない変更と、まだ追っていない file
+  writeFileSync(join(root, "packages/x/src/b.ts"), "export const b = 3;\n");
+  writeFileSync(join(root, "packages/x/test/new.test.ts"), "void 0;\n");
+  return list([], root);
+});
+
 describe("関係する検査を選ぶ命令 (#3381)", () => {
   it("related-runs-changed-test-file", () => {
     const changed = "packages/dragon/test/release-records.test.ts";
@@ -120,18 +144,17 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
   });
 
   it("related-picks-importers", () => {
-    const root = smallRepo();
-    const listed = list(["packages/x/src/c.ts"], root);
+    const listed = FROM_C.get();
     expect(listed.code, listed.stderr).toBe(0);
-    // a.test.ts は a.ts (`./c.js` と書いて c.ts を読む) を、s.test.ts は検査の助け support.ts を通って c.ts をたどる
-    expect(listed.files.sort(), "c.ts をたどれる検査の file を選んでいない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/s.test.ts"]);
+    // a.test.ts は a.ts (`./c.js` と書いて c.ts を読む) を、s.test.ts は検査の助け support.ts を通って c.ts をたどる。
+    // 結果はほかの件も読むので、並べ替えは写しで行う
+    expect([...listed.files].sort(), "c.ts をたどれる検査の file を選んでいない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/s.test.ts"]);
   });
 
   it("related-skips-non-importers", () => {
-    const root = smallRepo();
-    const fromC = list(["packages/x/src/c.ts"], root);
+    const fromC = FROM_C.get();
     expect(fromC.files, "c.ts をたどれない b.test.ts を選んだ").not.toContain("packages/x/test/b.test.ts");
-    const fromB = list(["packages/x/src/b.ts"], root);
+    const fromB = FROM_B.get();
     expect(fromB.code, fromB.stderr).toBe(0);
     expect(fromB.files, "b.ts をたどれる検査の file だけを選んでいない").toEqual(["packages/x/test/b.test.ts"]);
   });
@@ -177,7 +200,7 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
       const table = JSON.parse(readFileSync(tablePath, "utf8")) as { materials?: { files: string[] }[] };
       expect(table.materials?.length ?? 0, "表に材料が 1 つも無い").toBeGreaterThan(0);
       const base = material.split("/").pop() ?? material;
-      const readers = [...testSources()].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
+      const readers = [...SOURCES.get()].filter(([, body]) => body.includes(`"${material}"`) || body.includes(`"${base}"`)).map(([path]) => path);
       // 名前を書く検査の file を 1 件も数えられない時は、確かめていないので落とす
       expect(readers.length, `${material} の名前を書く検査の file を 1 件も数えていない`).toBeGreaterThan(0);
       const chosen = listRepo([material]);
@@ -187,32 +210,20 @@ describe("関係する検査を選ぶ命令 (#3381)", () => {
   });
 
   it("related-names-unmapped-material", () => {
-    const root = smallRepo();
-    const listed = list(["notes/todo.txt"], root);
+    const listed = UNMAPPED.get();
     expect(listed.code, "表にも import にも当たらない file を受けて止まらなかった").toBe(1);
     expect(listed.stderr, "当たらない file の名前を出していない").toContain("notes/todo.txt");
     expect(listed.files, "止まる時に検査の file を選んだ").toEqual([]);
   });
 
   it("related-defaults-to-branch-changes", () => {
-    const root = smallRepo();
-    git(root, "init", "-q", "-b", "main");
-    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", "-A");
-    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-m", "first");
-    git(root, "switch", "-q", "-c", "work");
-    writeFileSync(join(root, "packages/x/test/a.test.ts"), 'import { a } from "../src/a";\nvoid a;\nvoid 1;\n');
-    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "commit a");
-    // commit していない変更と、まだ追っていない file
-    writeFileSync(join(root, "packages/x/src/b.ts"), "export const b = 3;\n");
-    writeFileSync(join(root, "packages/x/test/new.test.ts"), "void 0;\n");
-    const listed = list([], root);
+    const listed = BRANCH.get();
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files.sort(), "既定の枝から分かれた後の変更を対象にしていない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/b.test.ts", "packages/x/test/new.test.ts"]);
   });
 
   it("related-prints-chosen-files", () => {
-    const root = smallRepo();
-    const listed = list(["packages/x/src/c.ts"], root);
+    const listed = FROM_C.get();
     expect(listed.code, listed.stderr).toBe(0);
     const first = listed.stdout.split("\n")[0] ?? "";
     expect(first, "1 行目に選んだ検査の file の数を出していない").toBe("関係する検査 2 file");
@@ -246,37 +257,51 @@ function editPackage(root: string, edit: (pkg: Record<string, unknown>) => void)
   writeFileSync(join(root, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
+// package.json を持つ repo を作る git と、その repo で命令を起こす子の process も、件ごとに file を読み込む時に 1 つずつ順に済ませる (#3815)
+
+const SCRIPTS_ONLY = await atLoad("package.json の scripts だけを変えた時に選ぶ検査", () => {
+  const root = packageRepo();
+  editPackage(root, (pkg) => {
+    pkg.scripts = { test: "vitest run --reporter=verbose" };
+  });
+  return list(["package.json"], root);
+});
+
+const OUTSIDE_SCRIPTS = await atLoad("package.json の scripts の外も変えた時に選ぶ検査", () => {
+  const root = packageRepo();
+  editPackage(root, (pkg) => {
+    pkg.scripts = { test: "vitest run --reporter=verbose" };
+    pkg.devDependencies = { vitest: "2.0.0" };
+  });
+  return list(["package.json"], root);
+});
+
+const NEW_PACKAGE = await atLoad("分かれた元に無い package.json を足した時に選ぶ検査", () => {
+  const root = packageRepo();
+  mkdirSync(join(root, "packages/y"), { recursive: true });
+  writeFileSync(join(root, "packages/y/package.json"), `${JSON.stringify({ name: "y", scripts: { test: "vitest run" } }, null, 2)}\n`);
+  writeFileSync(join(root, "test-support/related-table.json"), JSON.stringify({ materials: [{ files: ["package.json", "packages/*/package.json"], tests: "all", why: "依存と検査の設定" }] }));
+  git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "table");
+  return list(["packages/y/package.json"], root);
+});
+
 // package.json の `scripts` だけを変えた時は、依存も検査の設定も変わらないので全ての検査を選ばない (#3733)。
 // `pnpm test:related` が全ての検査を選ぶと、混んだ機械で 1 件 10 秒の上限を超える検査が出る
 describe("package.json の scripts だけを変えた時に選ぶ検査 (#3733)", () => {
   it("related-scripts-only-change-picks-script-readers", () => {
-    const root = packageRepo();
-    editPackage(root, (pkg) => {
-      pkg.scripts = { test: "vitest run --reporter=verbose" };
-    });
-    const listed = list(["package.json"], root);
+    const listed = SCRIPTS_ONLY.get();
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files, "scripts だけの変更で、scripts の欄を読む検査だけを選んでいない").toEqual(["packages/x/test/scripts.test.ts"]);
   });
 
   it("related-package-change-outside-scripts-picks-all", () => {
-    const root = packageRepo();
-    editPackage(root, (pkg) => {
-      pkg.scripts = { test: "vitest run --reporter=verbose" };
-      pkg.devDependencies = { vitest: "2.0.0" };
-    });
-    const listed = list(["package.json"], root);
+    const listed = OUTSIDE_SCRIPTS.get();
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files, "scripts の外を変えた時に全ての検査を選んでいない").toEqual(["packages/x/test/a.test.ts", "packages/x/test/b.test.ts", "packages/x/test/name.test.ts", "packages/x/test/s.test.ts", "packages/x/test/scripts.test.ts"]);
   });
 
   it("related-new-package-json-picks-all", () => {
-    const root = packageRepo();
-    mkdirSync(join(root, "packages/y"), { recursive: true });
-    writeFileSync(join(root, "packages/y/package.json"), `${JSON.stringify({ name: "y", scripts: { test: "vitest run" } }, null, 2)}\n`);
-    writeFileSync(join(root, "test-support/related-table.json"), JSON.stringify({ materials: [{ files: ["package.json", "packages/*/package.json"], tests: "all", why: "依存と検査の設定" }] }));
-    git(root, "-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q", "-am", "table");
-    const listed = list(["packages/y/package.json"], root);
+    const listed = NEW_PACKAGE.get();
     expect(listed.code, listed.stderr).toBe(0);
     expect(listed.files, "分かれた元に無い package.json を足した時に全ての検査を選んでいない").toHaveLength(5);
   });
@@ -339,6 +364,29 @@ describe("上限で止まった実行の続き (#3386)", () => {
     expect(calls, "止まった実行の後に続きを回していない").toHaveLength(2);
     expect(status, "前の実行で落ちた検査が在るのに終わり方 1 でない").toBe(1);
     expect(said.join(""), "前の実行で落ちた検査の名前を出していない").toContain("a.test.ts > 組 > 落ちた検査");
+  });
+});
+
+/** vitest へ渡す引数を組む関数。まだ無い時もこの file の他の検査を走らせるため、読めない時は undefined を返す */
+type VitestArgs = (pass: string[], files: string[]) => string[];
+
+describe("上限に近い件の一覧 (#3740)", () => {
+  it("related-run-passes-near-limit-reporter", () => {
+    // 関門の命令は、1 件の上限に近い件を名前と秒数で出す報告の部品を vitest へ渡す。
+    // vitest は命令で渡した報告の部品だけを使うので、既定の報告も一緒に渡す。命令の続きに報告を渡した時は、そちらを既定の代わりに使う
+    const args = (runner as { vitestArgs?: VitestArgs }).vitestArgs;
+    expect(args, "vitest へ渡す引数を組む関数 (scripts/test-related.mjs の vitestArgs) が無い").toBeTypeOf("function");
+    if (args === undefined) return;
+    const reporter = "--reporter=./scripts/near-limit-reporter.mjs";
+    expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
+    const plain = args([], ["a.test.ts"]);
+    expect(plain, "報告の部品を渡していない").toContain(reporter);
+    expect(plain, "既定の報告を残していない").toContain("--reporter=default");
+    expect(plain.at(-1), "検査の file を最後に渡していない").toBe("a.test.ts");
+    const verbose = args(["--reporter=verbose"], ["a.test.ts"]);
+    expect(verbose, "命令の続きに報告を渡した時に、報告の部品を渡していない").toContain(reporter);
+    expect(verbose, "命令の続きに渡した報告を使っていない").toContain("--reporter=verbose");
+    expect(verbose, "命令の続きに報告を渡したのに、既定の報告も足した").not.toContain("--reporter=default");
   });
 });
 

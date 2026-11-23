@@ -2,14 +2,18 @@
  * 書き出しの命令が字の重なりを知らせる流れ (#3197)。
  *
  * 書き出しの命令は、重なりのある図でも file を書き出したうえで、標準エラーに重なりを 1 件 1 行で段と文で出し、終わり方 0 で終える (#3178)。
+ * 崩れを確かめる命令 (`dragon check --layout`) と`checkLayoutText`も、字どうしの重なりを崩れとして知らせる (#3790)。
  * 線の無い段の番号を箱の角に置いてから (#3187) 字の重なる図を作れないので、命令の元の code (`src/cli.ts`) をこの処理の中で読み込み、
  * 重なりを探す所 (`findOverlaps`) だけを包んで (`paired-overlap.ts`)、2 段目に図に描いた 2 つの字を組にした重なりを 1 件足す。
- * 図を読む所、file を書き出す所、標準エラーと終わり方は本物の流れを通す。
+ * 図を読む所、描く所、崩れを数える所、file を書き出す所、標準出力と標準エラーと終わり方は本物の流れを通す。
  * 重なりは図を描いた時に決まり、書き出す形に依らないので、Chromium を起こさない HTML で書き出して確かめる (#3599)。
+ *
+ * 命令を包んで走らせる検査は、この file に集める (#3837)。
+ * 命令は書き出しから時系列図の登録まで読むので、命令を読む検査の file を別に足すと、時系列図の描く所を変えた時に選ぶ検査の上限 (`related-by-kind.test.ts`) を超える。
  *
  * 組み上がった命令 (`dist/cli.js`) は包まずに走らせ、重ならない図で標準エラーに何も出さないことを `overlap-notice.test.ts` が確かめる。
  */
-import { mkdtempSync, readdirSync, statSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -39,15 +43,22 @@ vi.mock("node:fs", async (importOriginal) => {
  * 変換は 1 回の実行の中で使い回すので、検査の中で命令を読み直す (`vi.resetModules`) 時は変換し直さない。命令そのもの (`src/cli.ts`) は読むと走るので、ここでは読まない。
  * Chromium を起こす部品 (`playwright-core`) は、書き出しが Chromium を起こさないかを見張るために読むので、これも先に読む
  */
-await Promise.all([
+// 包んだ部品 (`src/render/ink`) を描く部品と並べて同時に読み込むと、描く部品が包む前の部品を読む回があった (#3790)。
+// 全ての種類を先に読み、包んだ部品は描く部品を通して読ませる。重なりを知らせる文は既定の入口から引く
+const { describeOverlap } = await import("./all-kinds");
+const [{ checkLayoutText, describeBreak, stepLines }, { renderDiagram }, { parseNotation }] = await Promise.all([
+  import("../src/render/layout-check"),
+  import("../src/render/draw"),
+  import("../src/parser"),
   import("../src/export/embed"),
   import("../src/export/index"),
   import("../src/look/values"),
-  import("../src/parser"),
-  import("../src/render/ink"),
   import("../src/words"),
   import("playwright-core"),
 ]);
+
+/** 字どうしの重なりの崩れの種類。種類の名前は文字で比べ、種類を足す前の型でも検査の型を通す */
+const TEXTS_OVERLAP: string = "texts-overlap";
 
 /**
  * 2 段目に書き込みだけを持つ状態遷移図。通らない箱「支払い済み」を脇道の囲みに入れ、囲みの名前「脇道」と添え書き「今回は通らない」を描く。
@@ -145,4 +156,60 @@ describe("言葉を渡さない書き出しの重なりの行 (#3516)", () => {
       }
     },
   );
+});
+
+/** 記法の`step`の行の番号。`at`は段の番号 (1から数える) */
+const stepLine = (file: string, at: number): number | undefined => stepLines(readFileSync(file, "utf8"))[at - 1];
+
+// 言葉ごとに1件1回の命令に分ける (#3410)。2回の命令を1件で起こすと、混んだ機械で1件の上限 (10秒) を超えた
+describe.for([
+  { lang: "ja", said: "段 2: 「今回は通らない」と「脇道」が重なる" },
+  { lang: "en", said: 'Step 2: "Not taken this time" and "Side path" overlap' },
+] as const)("崩れを確かめる命令が字どうしの重なりを知らせる (#3790) $lang", ({ lang, said }) => {
+  it("check-layout-reports-text-overlaps", async () => {
+    const ran = await runInProcess(["check", OVERLAPPING, "--layout", "--lang", lang]);
+    expect(ran.code, `崩れだけの図で終わり方0にならない ${ran.stderr.join("\n")}`).toBe(0);
+    // 行は崩れの知らせと同じく、重なりが見え始める段のstepの行を頭に書き、重なる2つの字を名指す
+    const line = stepLine(OVERLAPPING, 2);
+    expect(line, "重なる図の2段目のstepの行を数えられない").toBeDefined();
+    expect(ran.stdout, `字どうしの重なりを段の行で知らせない\n${ran.stdout.join("\n")}`).toContain(`${OVERLAPPING}:${line}:1 warning ${said}`);
+  });
+});
+
+describe("崩れを確かめる処理が字どうしの重なりを返す (#3790)", () => {
+  it("layout-check-reports-text-overlaps", () => {
+    const text = readFileSync(OVERLAPPING, "utf8");
+    const parsed = parseNotation(text, { lang: "ja" });
+    expect(parsed.ok, `重なる図を読めない ${parsed.ok ? "" : JSON.stringify(parsed.errors)}`).toBe(true);
+    if (!parsed.ok) return;
+    // 書き出しの命令が知らせる重なりは、描いた結果の`overlaps`のうち字どうしの重なり
+    const overlaps = renderDiagram(parsed.diagram, { lang: "ja" }).overlaps.filter((o) => o.kind === "texts");
+    const told = overlaps.map((o) => ({ step: o.step + 1, said: describeOverlap(o, "ja") }));
+    expect(told, "包みが字どうしの重なりを足していない").toEqual([{ step: 2, said: "「今回は通らない」と「脇道」が重なる" }]);
+    const found = checkLayoutText(text, { lang: "ja" }).filter((b) => b.kind === TEXTS_OVERLAP);
+    expect(found, `字どうしの重なりを崩れとして返さない ${JSON.stringify(checkLayoutText(text, { lang: "ja" }))}`).toHaveLength(1);
+    expect(found[0]?.step, "字どうしの重なりの崩れの段").toBe(2);
+    expect(found[0]?.width, "既定の幅で出る重なりに幅を付けた").toBeUndefined();
+    expect(found[0]?.parts, "崩れに関わる2つの物").toEqual([
+      { kind: "text", text: "今回は通らない" },
+      { kind: "text", text: "脇道" },
+    ]);
+    // 知らせる文は、書き出しの命令が同じ重なりに出す文と同じ
+    expect(found.map((b) => ({ step: b.step, said: describeBreak(b, "ja") })), "書き出しの命令と違う文で知らせる").toEqual(told);
+    expect(found.map((b) => describeBreak(b, "en")), "英語の文").toEqual(overlaps.map((o) => describeOverlap(o, "en")));
+  });
+});
+
+// 言葉ごとに1件1回の命令に分ける (#3410)
+describe.for([
+  { lang: "ja", words: "字どうしの重なり" },
+  { lang: "en", words: "overlapping texts" },
+] as const)("崩れを確かめる命令の使い方 (#3790) $lang", ({ lang, words }) => {
+  it("check-layout-usage-names-text-overlaps", async () => {
+    // 知らない設定を渡すと、命令は使い方を出して終わる
+    const ran = await runInProcess(["check", "--help", "--lang", lang]);
+    const layout = [...ran.stderr, ...ran.stdout].join("\n").split("\n").find((line) => line.trimStart().startsWith("--layout"));
+    expect(layout, `使い方に --layout の行が無い\n${ran.stderr.join("\n")}`).toBeDefined();
+    expect(layout, "--layout の説明が知らせる崩れに字どうしの重なりを挙げない").toContain(words);
+  });
 });

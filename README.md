@@ -121,6 +121,7 @@ Changes stay provisional until the outermost call returns, and then they all bec
 
 | Line | What it writes |
 |---|---|
+| `box <token> as <name> [note: <text>]` | The text under a token box's name. A token box without it shows `balanceOf`. Only a box whose name is a unit on a `hold` line takes it, and a `note` on a person or contract box stops with an error |
 | `hold <owner>: <amount> <token>, ...` | Balances, before the first step. `hold <contract>: <name> <value>` declares a stored value |
 | `<caller> -> <callee>: <text>` | A call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` and `[call: static]` set its kind, and `[fold]` folds its inner steps into one box |
 | `move <token>: <amount> <from> -> <to>` | Moves a balance through the token's pipe |
@@ -144,6 +145,7 @@ Going to the next step moves the arcs and bars from the previous values to the n
 | `chart <title> [shape: bar]` | Horizontal bars. The largest value gets the longest bar, and each value shows at the end of its bar |
 | `chart <title> [shape: funnel]` | A funnel. Each stage's bar appears in the step that sets it, the gap to the stage above stays as a pale bar with the number who left, and the last step shows the share that made it to the last stage |
 | `chart <title> [shape: dots]` | Dots. Empty dots wait in the box of the whole, and in the step that sets an item that many dots move into its cluster. The diagram picks how many each dot stands for so that the dots come to about 100, and `[shape: dots, unit: <count>]` chooses it |
+| `chart <title> [shape: line]` | A line chart. Each item is one line, each step is one point on the time axis with the step title below it, and going to the next step draws each line from the previous point to the new one with the step's value beside it |
 | `item <id> as <name> [color: <color>]` | An item, before the first step. A chart takes from 1 to 8 items |
 | `set <id>: <value>` | The value of an item inside a step, a number of 0 or more without a unit. An item without `set` keeps its previous value |
 | `set none: <value>` | The count in none of the items. A donut or a bar draws it as a grey arc or bar after the items, dots leave it grey in the box, and a funnel refuses it |

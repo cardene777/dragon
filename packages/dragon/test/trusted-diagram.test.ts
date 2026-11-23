@@ -10,6 +10,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 // 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
 // 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
 import type {} from "./all-kinds";
@@ -79,13 +80,26 @@ step 開く
   app -> docs: 開く
 `;
 
+// 件の中で新しい Node を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの Node を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む。
+// 既定の入口も、件の中で初めて読むと読み替えの手間で 1 件の上限に近づいたので、読み込む段で読む
+
+const WHOLE = await atLoad("既定の入口を読む", importWhole);
+
+const REWRITTEN_PATH = await atLoad("足したブロックの path を書き換えた図を新しい Node の軽い入口で描く", () =>
+  drawRewritten(WITH_BLOCK, `diagram.define.blocks[0].path = 'M 0 0" onload="alert(1)';`),
+);
+
+const REWRITTEN_LINK = await atLoad("箱の飛び先を書き換えた図を新しい Node の軽い入口で描く", () =>
+  drawRewritten(WITH_LINK, `diagram.blocks.box[0].link = "javascript:alert(1)";`),
+);
+
 describe("記法から読んだ図の守り (#3400)", () => {
-  it("parsed-diagram-rewritten-path-refused", async () => {
-    const whole = await importWhole();
+  it("parsed-diagram-rewritten-path-refused", () => {
+    const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const rewrite = `diagram.define.blocks[0].path = 'M 0 0" onload="alert(1)';`;
-    const out = drawRewritten(WITH_BLOCK, rewrite);
+    const out = REWRITTEN_PATH.get();
     // 原本の形の検査を読んでいない軽い入口でも、書き換えた path は SVG に入らない
     expect(out.validator, "書き換えた path を止めるために、原本の形の検査を読んだ").toBe(false);
     expect(out.svg, "書き換えた path の図を描いた").toBeUndefined();
@@ -98,12 +112,11 @@ describe("記法から読んだ図の守り (#3400)", () => {
     expect(() => whole.renderDiagram(parsed.diagram), "既定の入口が書き換えた path の図を描いた").toThrow(/path/u);
   });
 
-  it("parsed-diagram-rewritten-link-refused", async () => {
-    const whole = await importWhole();
+  it("parsed-diagram-rewritten-link-refused", () => {
+    const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const rewrite = `diagram.blocks.box[0].link = "javascript:alert(1)";`;
-    const out = drawRewritten(WITH_LINK, rewrite);
+    const out = REWRITTEN_LINK.get();
     expect(out.validator, "書き換えた飛び先を止めるために、原本の形の検査を読んだ").toBe(false);
     expect(out.svg, "書き換えた飛び先の図を描いた").toBeUndefined();
     expect(out.error ?? "", "書き換えた飛び先を止めた誤りが link を名指さない").toMatch(/link/u);
@@ -114,8 +127,8 @@ describe("記法から読んだ図の守り (#3400)", () => {
     expect(() => whole.renderDiagram(parsed.diagram), "既定の入口が書き換えた飛び先の図を描いた").toThrow(/link/u);
   });
 
-  it("every-parsed-example-passes-validator", async () => {
-    const whole = await importWhole();
+  it("every-parsed-example-passes-validator", () => {
+    const whole = WHOLE.get();
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
     const files = readdirSync(EXAMPLES).filter((file) => file.endsWith(".dragon")).sort();

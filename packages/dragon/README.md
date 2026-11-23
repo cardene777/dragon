@@ -113,7 +113,7 @@ step Press sign in
 ```
 
 The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
-It loads the renderers for `sequence` and `architecture` first, and the renderer of any other kind only when a block on the page uses it.
+It loads the renderer for `sequence` first, and the renderer of any other kind, `architecture` included, only when a block on the page uses it.
 It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
 It draws every block on the page when the page has loaded, and does not watch for blocks added later.
 A block that has no width then, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
@@ -123,11 +123,44 @@ The text in the diagram and the error lines are in Japanese when the page's `lan
 
 To make a file that opens without the network, pass the page to `dragon embed`.
 It replaces the script line with the bundled script, which holds every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` picks the file).
-The file fetches nothing from outside, and draws in the device's fonts because the bundled fonts are not embedded.
+The file fetches nothing from outside. The bundled fonts are not embedded, so it draws in the device's sans-serif fonts listed after the bundled fonts.
+The Export menu on a `data-header` block's bar saves the same seven formats as the jsDelivr page (PNG, SVG, HTML, GIF, MP4, notation, and JSON) without fetching anything.
+The saved HTML also draws in the device's sans-serif fonts, like the embedded page.
 
 ```sh
 dragon embed page.html
 ```
+
+### A still figure
+
+When a page such as a report or an explainer should show the last step in one picture instead of stepping through the diagram, add `data-still` to the block.
+
+```html
+<pre class="dragon" data-still>
+chart Sales by product in thousands of yen [shape: bar]
+
+item croissant as Croissant
+item melon as Melon bun
+
+step This week
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+A block with `data-still` gets no player (the buttons, the step number, the step title and text, and the progress bar), and is replaced by an SVG that draws the last step (`<div class="dragon-figure dragon-still">`).
+A chart draws its values and shows the diagram title where the step title would be.
+A flow draws every line its steps passed as a solid line.
+Its fonts fall back to the device's sans-serif after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
+It uses the `clear` palette by default, which sits well on a white page, and turns dark when the page's `<html>` has `data-theme="dark"`, or when the device prefers a dark scheme and the page does not have `data-theme="light"`.
+To paint the figure with the page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.
+The background, the outlines of lines, and the plates behind labels then take that color on light and dark pages alike.
+A donut writes a middle name that does not fit inside the ring on two lines, and a step band (`cycle` with `[shape: band]`) writes each step name inside its chevron.
+The figure never grows wider than its own width, and shrinks with its aspect ratio kept when its frame is narrower.
+
+Pass a page whose blocks are all still to `dragon embed`, and it draws the blocks as SVGs in place and adds no bundled script.
+On a page that also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the moving ones.
+From the package, pass `figure: true` to `renderDiagram` to get the same SVG.
 
 ## Write a page from Markdown
 
@@ -148,6 +181,20 @@ The default layout shows the entry with one card per item, grouped by `##`, and 
 An item page leads back to the entry and to the items before and after it.
 Choose another layout with a `layout` line between `---` lines at the top: `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them.
 `layout: entry` is the default.
+
+The top lines can also set the order of the bar buttons with `header-buttons` and the bar colors with `header-<color field>`, one line each.
+`header-buttons` lists button names (`code`, `editor`, `copy`, `export`, `expand`) separated by `,` in the order to show them, and drops the buttons you leave out.
+The color fields are `surface`, `background`, `foreground`, `muted`, `border`, `accent` and `hover`; put a color value that starts with `#` in `"`.
+The export writes these lines into the page's bar settings block (`<script type="application/json" id="dragon-header">`, see [One script line with the bar](#one-script-line-with-the-bar)), which applies to the bars of every diagram on the page.
+An unknown button name, a button written twice, a color value with `;` or `<`, and an unknown `header-` line stop the export with the line named.
+
+```md
+---
+layout: tabs
+header-buttons: code, export
+header-accent: "#c0392b"
+---
+```
 
 A box in a diagram moves to an item when its link names that item's place, written `[link: #<place>]`.
 A place is made from the heading text the way GitHub makes heading anchors: letters become lowercase, punctuation is dropped, and spaces become `-`, so `### Take the order` is `#take-the-order`.
@@ -229,7 +276,8 @@ const player = mountDiagram(host, parsed.diagram);
 ```
 
 The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing.
-Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels.
+Diagrams are laid out with character widths measured from the bundled fonts.
+Without it, they are drawn in the device's sans-serif fonts listed after the bundled fonts, and text can be a few pixels wider than measured.
 A bundler (such as Vite) carries the CSS and font files to the page.
 The entry does not read Node's built-in modules, so it also works with bundlers such as Next.js Turbopack.
 The text the player shows, such as the names read aloud for its buttons and the overview label, is in English.
@@ -290,7 +338,15 @@ The gallery's embedding page shows the four ways side by side with the same diag
 
 Add `data-header` to a `<pre class="dragon">` block, and the one-line script entry puts the bar on that block.
 Blocks without the attribute stay plain diagrams.
-The entry draws the diagram first and loads the bar afterwards, so pages without `data-header` load no more than before.
+Only on a page with `data-header` blocks does the entry load the bar, at the same time as the parts the notation uses, and it draws the diagram once inside the bar.
+A block stays as notation until the bar arrives, and the entry never draws a plain diagram first and draws it again.
+Pages without `data-header` never load the bar, so they load no more than before.
+
+Write the order of the bar buttons and the bar look in a bar settings block on the page, `<script type="application/json" id="dragon-header">`.
+Its keys are `buttons` and `look`, the same as in the SDK's `mountDragon`, and it applies to the bars of every `data-header` block on the page.
+For example, with `{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }` in the block, the bar shows only the code and export buttons and uses red as its accent.
+`buttons` takes only the names of the five built-in buttons; your own buttons need a click handler, so they cannot be written there.
+A block that is not valid JSON or names an unknown button turns every `data-header` block into that error text.
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -326,6 +382,7 @@ host.addEventListener("dragon-export", (event) => console.log(event.detail.forma
 `buttons` lists the bar buttons in order; built-in buttons you leave out are dropped, and an object adds your own button whose `onClick` receives the placed diagram.
 Setting `header` to `false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`).
 `lang` picks the bar language (`ja` or `en`); without it the bar follows the nearest `lang` attribute above the element, and English otherwise.
+Notation errors use the same language as the bar, so they are in Japanese on a `<html lang="ja">` page.
 `nonce` is put on the style element made for browsers without `adoptedStyleSheets`.
 The element sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied).
 
@@ -400,6 +457,19 @@ If loading fails, `loadFor` and `loadKind` reject, and the next call loads it ag
 `sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.
 The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await `loadLook`.
 Mixing it with the default entry on one page puts every kind's renderer on the page.
+
+To put a diagram with the bar on a page that uses the light entry, import from `@cardenelabs/dragon/light/frame` instead of `@cardenelabs/dragon/frame`.
+It exports the same names as `@cardenelabs/dragon/frame` (`mountFramedDiagram`, `createDragonFrame`, `createFigureHeader`, `diagramEditorUrl`), and reads the notation and draws the diagram with the light entry, so the default entry stays off the page.
+After `loadFor`, it puts the diagram with the bar without waiting.
+Notation of a kind that has not been loaded stops with an error that names the kind and tells you to await `loadFor`, and leaves no bar in the element.
+
+```ts
+import { loadFor } from "@cardenelabs/dragon/light";
+import { mountFramedDiagram } from "@cardenelabs/dragon/light/frame";
+
+await loadFor(text);
+mountFramedDiagram(host, text);
+```
 
 ## Add your own blocks
 
@@ -1006,7 +1076,7 @@ The box of the whole holds empty dots from before the first step, and in the ste
 The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
 Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
 Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
-With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel refuses `set none`.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel and a line chart refuse `set none`.
 
 ```dragon
 chart Devices of 1,000 people [shape: dots]
@@ -1035,6 +1105,34 @@ step Mac
 step None of them
   say The 50 people who use none of them stay grey in the box of the whole.
   set none: 50
+```
+
+`chart <title> [shape: line]` draws how amounts change over time as a line chart.
+Each `item` is one line in its own color with its name in the legend at the top, and each `step` is one point on the time axis, labeled with the step title.
+`set <id>: <value>` gives the item's value at that step, and a step without `set` keeps the previous value.
+The value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10.
+Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point.
+A line chart needs at least two steps, and an item that never gets a value and `set none` are errors when the notation is read.
+
+```dragon
+chart A bakery's sales over one week (yen) [shape: line]
+
+item shop as Counter [color: amber]
+item online as Online [color: blue]
+
+step Mon
+  say The week starts with 42,000 yen at the counter and 12,000 yen online.
+  set shop: 42000
+  set online: 12000
+
+step Tue
+  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
+  set shop: 38000
+  set online: 15000
+
+step Wed
+  say The counter comes back to 45,000 yen.
+  set shop: 45000
 ```
 
 ```dragon
@@ -1319,6 +1417,7 @@ The horizontal axis runs below the areas from left to right and the vertical axi
 - `item <id> as <name> [x: <across>, y: <up>]` gives an item scores from 0 to 10, with at most one decimal place. `line: <item>` inside a step then places it without naming an area, into the area its scores fall in, and a score of 5 or more counts as the large side. A `line <area>: <item>` for a scored item is read only when the area matches its scores. Scores outside 0 to 10, or only one of the two, are refused
 - Add `reverse: yes` to an axis line, as `axis <name> [from: <low end>, to: <high end>, reverse: yes]`, and that axis puts large values on the left or at the bottom, with its arrow pointing that way
 - Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores instead of moving a card. The ruled axes show 0 to 10, a table of the items and their scores sits left of the plot, and the step that plots an item draws lines from both axes to the dot with its scores and lights the area it lands in. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out, and a narrow frame stacks the table above the plot
+- When a score chip on an axis would touch the name of a point shown at that step, the chip moves off the axis for that step, to the left of the vertical axis or below the horizontal one, with its edge on the axis line. The names of the points stay where they are, and the chips keep their size
 
 ```dragon
 matrix Sort the work by effort and impact
@@ -1452,6 +1551,7 @@ Write `sankey <title> [shape: rows]` to stack one full-width bar per step from t
 - Each line cuts its target section out of the source section, from the left and in the order written. What a box with no source has not handed out yet is a gray bar that reads like `16h left`
 - Sections that split off in that step and the sections of the last row show their name and amount, and sections carried over from the step before are faint bars with no text
 - The band coming down from the row above and the amount chip are drawn only for the sections that split off in that step
+- When two amount chips of one step would overlap, as in a narrow frame such as a phone, the later chip stops one chip higher and the gap above that row grows by one chip. Chips keep their size and stay above their own section
 - When a name does not fit in its section, the section shows only the amount and the name is listed under that row's bar with a color mark. At phone width the bars still span the full width
 
 ```dragon
@@ -1569,7 +1669,7 @@ dragon export ccip.json --out out
 | Option | Meaning |
 |---|---|
 | `--out <dir>` | Where to write. Created if missing (default: the current dir) |
-| `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow` |
+| `--width <px>` | Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`. A pipe diagram is always `fixed` |
 | `--palette <name>` | Colors (`clear` / `paper` / `night` / `arcade` / `sea`, default `paper`, and `sea` for the pipe diagram). `arcade` also cuts the top-right and bottom-left corners of boxes |
 | `--line <name>` | How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws box edges, lines, arrows and rings as gently wobbling hand-drawn pen lines and keeps icons, text and the diagram frame as they are |
 | `--theme <mode>` | `light` or `dark` |

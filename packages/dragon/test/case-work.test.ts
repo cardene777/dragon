@@ -9,8 +9,11 @@
  * - 子の process で命令を起こしていた件は、同じ process の呼び出しに替えた (`child`)
  *
  * 件の字を構文で読み、直した形から外れた件を名前と呼び出しと共に挙げる。数え方は `case-work.ts` が持つ。
+ *
+ * 子の process を起こす仕事と頁を開く仕事は、表に挙げた件に限らず、repo の全ての件で件の中に置かない (#3816)。
+ * 件を持つ全ての file を読み、件の中にその呼び出しが在る件を file と件の名前と呼び出しの名前で挙げる。
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -35,6 +38,10 @@ interface Work {
   casesIn: (source: string, fileName?: string) => FoundCase[];
   countOf: (calls: readonly Call[]) => number;
   describeCalls: (calls: readonly Call[]) => string;
+  /** repo の根から見た、件を持つ全ての file の path (#3816) */
+  caseFiles?: (root: string) => string[];
+  /** file の字から、件の中で子の process を起こすか頁を開く件を `file > 件の名前: 理由` の形で全て (#3816) */
+  childOrPageIn?: (source: string, fileName: string) => string[];
 }
 interface Loaded<T> {
   get: () => T;
@@ -96,6 +103,9 @@ const RULES: Rule[] = [
   { file: `${T}layout-check.test.ts`, name: "layout-check-skips-intended-overlaps", load: 0 },
   { file: `${T}light-entry.test.ts`, name: "light-entry-draws-same-svg", load: 4 },
   { file: `${T}light-entry.test.ts`, name: "light-mounts-parsed-try-without-validator", load: 0 },
+  // 軽い入口の帯の入口で頁を開く件 (#3789)
+  { file: `${T}light-entry.test.ts`, name: "light-entry-mounts-framed-diagram", load: 0 },
+  { file: `${T}light-entry.test.ts`, name: "light-frame-refuses-unloaded-kind", load: 0 },
   { file: `${T}overview-place.test.ts`, name: "overview-outside-window", load: 0 },
   { file: `${T}pipe-diagram.test.ts`, name: "pipe-move-shifts-tank-levels", load: 0 },
   { file: `${T}pipe-diagram-r6.test.ts`, name: "pipe-r6-final-step-draws-all-tanks", load: 0 },
@@ -133,6 +143,118 @@ const RULES: Rule[] = [
   { file: `${T}player.test.ts`, name: "player-pipe-flows-show-moves", load: 0, child: true },
   { file: `${T}player.test.ts`, name: "player-pipe-flows-show-calls-and-returns", load: 0, child: true },
   { file: `${T}player.test.ts`, name: "player-pipe-narrow-keeps-text-readable", load: 0, child: true },
+  // 子の process を起こす件と頁を開く件のうち、#3800 の関門で混んだ機械の 1 件 10 秒の上限を超えた件を持つ 10 の file の件は、仕事を読む段で済ませる (#3815)
+  { file: `${T}cli-arguments.test.ts`, name: "cli-rejects-extra-files", load: 0, child: true },
+  { file: `${T}cli-arguments.test.ts`, name: "cli-lists-every-extra-file", load: 0, child: true },
+  { file: `${T}cli-arguments.test.ts`, name: "cli-rejects-bad-format", load: 0, child: true },
+  { file: `${T}cli-arguments.test.ts`, name: "cli-rejects-bad-values", load: 0, child: true },
+  { file: `${T}cli-arguments.test.ts`, name: "cli-rejects-unknown-lang-names-value", load: 0, child: true },
+  { file: `${T}cli-arguments.test.ts`, name: "cli-bad-value-in-english", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "cli-prints-version", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-reports-error-at-line-and-column", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-reads-markdown-fences-at-file-lines", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-warns-similar-names-and-passes", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-prints-json", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-reads-stdin", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-usage-errors-exit-2", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-names-edge-shape-for-missing-arrow-target", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-missing-arrow-target-in-both-languages", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-missing-target-at-line-end-and-shared-edge", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-keeps-unknown-head-and-complete-edge-messages", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-lineup-missing-target-says-no-edge-lines", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-passes-definitions-file", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-reports-definition-error-at-line", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-uses-blocks-option-definitions", load: 0, child: true },
+  { file: `${T}cli-check.test.ts`, name: "check-blocks-option-usage-errors", load: 0, child: true },
+  { file: `${T}editor-open.test.ts`, name: "editor-open-sends-nothing", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-lists-mark-and-five-buttons-in-order", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-mark-opens-gallery", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-mark-is-icon-only", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-expand-is-icon-only", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-copy-menu-writes-clipboard", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "export-menu-groups-seven-formats", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "export-menu-saves-notation-and-json", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-export-html-loads-capture", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "export-options-scale-and-transparent-png", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-opens-one-menu-at-a-time", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-menus-fit-narrow-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-menu-aligns-right-on-wide-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-text-follows-lang-setting-then-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "bar-text-english-on-english-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-styles-without-style-elements", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-player-styled-inside-frame", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-falls-back-to-nonce-style", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "diagram-font-has-fallback-stack", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-text-ignores-page-spacing", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "player-text-ignores-page-spacing", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "figure-header-ignores-page-css", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-diagram-keeps-plain-strokes", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-icons-keep-their-lines", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-bar-keeps-room-from-edges", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "plain-bar-leaves-room-to-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-header-fits-narrow-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-header-buttons-stay-inside", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-header-keeps-wide-page", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-header-names-icon-buttons", load: 0 },
+  { file: `${T}embed-bar.test.ts`, name: "frame-header-keeps-added-button-text", load: 0 },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-finds-crowded-lines", load: 0, child: true },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-line-names-step-and-parts", load: 0, child: true },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-prints-json", load: 0, child: true },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-skips-slot-never-held", load: 0, child: true },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-names-narrow-width", load: 0, child: true },
+  { file: `${T}layout-check.test.ts`, name: "layout-check-finds-line-across-node-name", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-applies-before-running", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-records-failed-names", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-restores-from-head", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-stops-on-unfinished-run", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-skips-ambiguous-target", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-rebuilds-package-sources", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutate-values-narrows-by-names", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutation-table-is-a-package-script", load: 0, child: true },
+  { file: `${T}mutate-values.test.ts`, name: "mutation-table-refuses-bad-input", load: 0, child: true },
+  { file: `${T}pen-line-colors.test.ts`, name: "pen-line-keeps-colors", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-replaces-block-with-figure", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-replaces-every-block", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-shows-notation-errors", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-draws-short-notation", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-draws-markdown-code-fence", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-draws-shared-block", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-loads-only-used-kinds", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-pins-own-version-on-cdn", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-within-budget", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-leaves-architecture-layout-out", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-draws-architecture-after-loading-layout", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-leaves-api-only-parts-out", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-adds-bar-with-data-header", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-loads-bar-only-when-asked", load: 0 },
+  // 帯つきの図を 1 度だけ描く件と、帯の設定の塊を読む件 (#3789)
+  { file: `${T}script-entry.test.ts`, name: "script-entry-draws-framed-block-once", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-reads-header-options", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-rejects-bad-header-options", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "script-entry-adds-font-link-once", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "embed-writes-offline-file", load: 0, child: true },
+  { file: `${T}script-entry.test.ts`, name: "embed-carries-page-icons", load: 0, child: true },
+  { file: `${T}script-entry.test.ts`, name: "pinned-script-lines-follow-package-version", load: 0, child: true },
+  { file: `${T}script-entry.test.ts`, name: "offline-page-frames-header-blocks", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-page-leaves-plain-blocks-bare", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-page-draws-framed-block-once", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-export-menu-lists-seven-formats", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-header-buttons-work-without-network", load: 0 },
+  // 埋めた頁の帯で保存した GIF と MP4 と HTML を確かめる件 (#3792)
+  { file: `${T}script-entry.test.ts`, name: "offline-exported-motion-files-have-format", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "offline-exported-html-plays-without-network", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "page-still-block-places-svg-without-player", load: 0 },
+  { file: `${T}script-entry.test.ts`, name: "page-still-block-shows-notation-errors", load: 0 },
+  { file: `${T}test-related.test.ts`, name: "related-picks-importers", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-skips-non-importers", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-table-covers-material-readers", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-names-unmapped-material", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-defaults-to-branch-changes", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-prints-chosen-files", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-scripts-only-change-picks-script-readers", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-package-change-outside-scripts-picks-all", load: 0, child: true },
+  { file: `${T}test-related.test.ts`, name: "related-new-package-json-picks-all", load: 0, child: true },
+  { file: `${T}time-task.test.ts`, name: "task-fills-passed-part", load: 0 },
 ];
 
 /** 数える道具を読む。無い時は undefined */
@@ -154,6 +276,51 @@ const COUNTED = await (async () => {
       cases.set(file, source === undefined ? undefined : w.casesIn(source, file));
     }
   return { w, cases };
+})();
+
+/** 件を探す置き場。vitest が回す検査の file と、`kind-cli.test.ts` と `kind-playground.test.ts` が読む `*-checks.ts` はこの下に在る */
+const CASE_PLACES = (): string[] =>
+  ["packages", "apps"].flatMap((top) =>
+    existsSync(join(ROOT, top)) ? readdirSync(join(ROOT, top)).map((name) => join(top, name, top === "packages" ? "test" : "src")) : [],
+  );
+
+/** 件の呼び出し (`it(`、`test(`、`it.each(` など) で始まる行 */
+const CASE_LINE = /^\s*(?:it|test)(?:\.[a-z]+)*\(/m;
+
+/**
+ * 置き場の下の字を名前で選ばずに全て見て、件を持つ file を集める。数える道具の集め方 (`caseFiles`) と別の方法で数え、読み漏らしに気付く。
+ * 字は軽いので読む段で 1 度だけ読む
+ */
+const HOLDERS = ((): string[] => {
+  const w = COUNTED.w;
+  if (w === undefined) return [];
+  const out: string[] = [];
+  for (const place of CASE_PLACES()) {
+    if (!existsSync(join(ROOT, place))) continue;
+    for (const rel of readdirSync(join(ROOT, place), { recursive: true, encoding: "utf8" })) {
+      if (rel.split("/").includes("node_modules") || !/\.(?:ts|tsx|mts|mjs|js)$/.test(rel)) continue;
+      const file = join(place, rel);
+      const source = readFileSync(join(ROOT, file), "utf8");
+      if (CASE_LINE.test(source) && w.casesIn(source, file).length > 0) out.push(file);
+    }
+  }
+  return out.sort();
+})();
+
+/**
+ * repo の全ての件のうち、件の中で子の process を起こすか頁を開く件 (#3816)。file の字を構文で読むのは重いので、読む段で 1 度だけ読む。
+ * 道具が無い時は undefined。読む途中で落ちた時は、落ちた理由を件に渡して file ごと落とさない
+ */
+const ANY_CASE = (() => {
+  const { w } = COUNTED;
+  if (w?.caseFiles === undefined || w.childOrPageIn === undefined) return undefined;
+  const { caseFiles, childOrPageIn } = w;
+  try {
+    const files = caseFiles(ROOT);
+    return { files, found: files.flatMap((file) => childOrPageIn(readFileSync(join(ROOT, file), "utf8"), file)), error: undefined };
+  } catch (error) {
+    return { files: [], found: [], error: error instanceof Error ? error.message : String(error) };
+  }
 })();
 
 /** 規則に当たる件を全て集め、`judge` が返した外れを `file > 件の名前: 理由` の形で返す */
@@ -252,6 +419,102 @@ describe("検査の件の中の重い仕事 (#3738)", () => {
     expect(w.describeCalls(cases.get("planted-child")?.child ?? []), "同じ file の関数を通して子の process を起こす呼び出しを名指さない").toBe("layoutOf");
     expect(count("planted-by-name"), "名前の字で引いた描く関数の呼び出しを数えない").toBe(1);
     expect(cases.has("LOADED"), "file を読み込む段の仕事を件と数えた").toBe(false);
+  });
+
+  it("case-work-finder-names-page-calls", async () => {
+    // 頁を開く呼び出し (`fileChromium`、`newContext`、`newPage`) は、同じ file の関数を通した呼び出しも重い仕事に数える (#3815)。
+    // 数えないと、読む段へ移した件に頁を開く仕事を書き戻しても、件の中の重い仕事の検査が気付かない
+    const w = await work();
+    expect(w?.casesIn, "件の重い仕事を数える道具 (packages/dragon/test/case-work.ts の casesIn) が無い").toBeTypeOf("function");
+    if (w === undefined) return;
+    const planted = [
+      'import { it } from "vitest";',
+      'const LOADED = await atLoad("見本", () => 1);',
+      'async function painted(html) { const browser = await fileChromium(); const context = await browser.newContext(); const page = await context.newPage(); await page.setContent(html); return page; }',
+      'it("planted-page-direct", async () => { const browser = await fileChromium(); const context = await browser.newContext(); await context.newPage(); });',
+      'it("planted-page-helper", async () => { LOADED.get(); await painted("<p>見本</p>"); });',
+      'it("planted-page-loaded", () => { expect(LOADED.get()).toBe(1); });',
+    ].join("\n");
+    const cases = new Map(w.casesIn(planted).map((c) => [c.name, c]));
+    const count = (name: string): number => w.countOf(cases.get(name)?.heavy ?? []);
+    expect(count("planted-page-direct"), "件の中で頁を開く呼び出し (fileChromium、newContext、newPage) を重い仕事に数えない").toBe(3);
+    expect(w.describeCalls(cases.get("planted-page-helper")?.heavy ?? []), "同じ file の関数を通して頁を開く呼び出しを名指さない").toBe("painted");
+    expect(count("planted-page-loaded"), "atLoad で作った物を読むだけの件に頁を開く呼び出しを数えた").toBe(0);
+  });
+
+  it("case-work-no-child-or-page-in-any-case", () => {
+    // 表に挙げた件に限らず、件を持つ全ての file の全ての件で、子の process を起こす仕事と頁を開く仕事は読み込む段で済ませる (#3816)
+    expect(COUNTED.w?.caseFiles, "件を持つ file を集める道具 (packages/dragon/test/case-work.ts の caseFiles) が無い").toBeTypeOf("function");
+    expect(COUNTED.w?.childOrPageIn, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (ANY_CASE === undefined) return;
+    expect(ANY_CASE.error, "件を持つ file を読む途中で落ちた").toBeUndefined();
+    expect(ANY_CASE.files.length, "件を持つ file を 1 つも読んでいない").toBeGreaterThan(0);
+    expect(ANY_CASE.found, "件の中で子の process を起こすか頁を開く件").toEqual([]);
+  });
+
+  it("case-work-any-case-names-child-and-page-calls", () => {
+    // 子の process を起こす呼び出しと頁を開く呼び出しは、同じ file の関数を通した呼び出しも挙げる。図を描く仕事は挙げない
+    const find = COUNTED.w?.childOrPageIn;
+    expect(find, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (find === undefined) return;
+    const planted = [
+      'import { it } from "vitest";',
+      'import { spawnSync } from "node:child_process";',
+      'function layoutOf(file) { return runCli(["check", file]); }',
+      "async function painted(html) { const browser = await fileChromium(); const page = await browser.newPage(); await page.setContent(html); return page; }",
+      'it("planted-spawn", () => { spawnSync("node", ["-v"]); });',
+      'it("planted-child-helper", async () => { await layoutOf("a.dragon"); });',
+      'it("planted-page-direct", async () => { const browser = await fileChromium(); const context = await browser.newContext(); await context.newPage(); });',
+      'it("planted-page-helper", async () => { await painted("<p>見本</p>"); });',
+      'it("planted-site", async () => { await withSite(async (page) => page.title()); });',
+      'it("planted-capture", async () => { await withCapturePage((page) => page.title()); });',
+      'it("planted-said", () => { const said = "runCli(y) fileChromium()"; return said; });',
+      'it("planted-draws", () => { renderDiagram(one); });',
+    ].join("\n");
+    expect(find(planted, "planted.test.ts"), "件の中の子の process と頁を開く呼び出しの挙げ方").toEqual([
+      "planted.test.ts > planted-spawn: 子の process を起こす spawnSync",
+      "planted.test.ts > planted-child-helper: 子の process を起こす layoutOf",
+      "planted.test.ts > planted-page-direct: 頁を開く fileChromium、newContext、newPage",
+      "planted.test.ts > planted-page-helper: 頁を開く painted",
+      "planted.test.ts > planted-site: 頁を開く withSite",
+      "planted.test.ts > planted-capture: 頁を開く withCapturePage",
+    ]);
+  });
+
+  it("case-work-any-case-allows-load-work", () => {
+    // file を読み込む段 (`atLoad`) と前処理の中で子の process を起こし頁を開く仕事は、件の中の仕事に数えない
+    const find = COUNTED.w?.childOrPageIn;
+    expect(find, "件の中の子の process と頁を開く呼び出しを挙げる道具 (packages/dragon/test/case-work.ts の childOrPageIn) が無い").toBeTypeOf("function");
+    if (find === undefined) return;
+    const planted = [
+      'import { beforeAll, it } from "vitest";',
+      'import { spawnSync } from "node:child_process";',
+      "async function painted(html) { const browser = await fileChromium(); const page = await browser.newPage(); await page.setContent(html); return page.content(); }",
+      'const RAN = await atLoad("命令", () => spawnSync("node", ["-v"]));',
+      'const SHOWN = await atLoad("頁", () => painted("<p>見本</p>"));',
+      'const [CHECKED, TITLED] = await Promise.all([atLoad("検査", () => runCli(["check"])), atLoad("見本帳", () => withSite(async (page) => page.title()))]);',
+      'beforeAll(() => { spawnSync("git", ["status"]); });',
+      'it("planted-reads-ran", () => { expect(RAN.get().status).toBe(0); });',
+      'it("planted-reads-shown", () => { expect(SHOWN.get()).toContain("見本"); });',
+      'it("planted-reads-both", () => { expect([CHECKED.get(), TITLED.get()]).toHaveLength(2); });',
+    ].join("\n");
+    expect(find(planted, "planted.test.ts"), "読み込む段と前処理の仕事を件の中の仕事と数えた").toEqual([]);
+  });
+
+  it("case-work-any-case-reads-every-case-file", () => {
+    // 数える道具が読む file に、件を持つ file が全て入る。`kind-cli.test.ts` が読む `*-cli-checks.ts` と、見本帳の検査が読む `*-playground-checks.ts` も入る
+    expect(COUNTED.w?.caseFiles, "件を持つ file を集める道具 (packages/dragon/test/case-work.ts の caseFiles) が無い").toBeTypeOf("function");
+    if (ANY_CASE === undefined) return;
+    const read = new Set(ANY_CASE.files);
+    expect(HOLDERS.length, "置き場の下に件を持つ file を 1 つも見つけていない").toBeGreaterThan(0);
+    expect(
+      HOLDERS.filter((file) => !read.has(file)),
+      "件を持つのに数える道具が読まない file",
+    ).toEqual([]);
+    expect(
+      ["cli", "playground"].filter((kind) => !ANY_CASE.files.some((file) => file.endsWith(`-${kind}-checks.ts`))),
+      "種類の検査の助けの file (*-cli-checks.ts と *-playground-checks.ts) を読まない",
+    ).toEqual([]);
   });
 
   it("at-load-failure-fails-only-its-readers", async () => {

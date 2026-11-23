@@ -52,4 +52,61 @@
 | 帯つきの図の再生の帯は、段の番号の左の端と次の段の釦の右の端を`.stage`の左右の縁から16px離し、段ごとの進み具合の下の端を`.stage`の下の縁から12px離す | `pnpm exec vitest run`の検査`frame-bar-keeps-room-from-edges`が通る | #3744 |
 | 帯の無い図の再生の帯は自分では余白を付けず、段の番号の左の端を図の枠の左の端に揃えて、余白を置いた頁に任せる | `pnpm exec vitest run`の検査`plain-bar-leaves-room-to-page`が通る | #3744 |
 | 1 fileのHTMLは、今と同じく再生の部品の下に12px、再生の帯と呼び出しの欄の左右に16pxの余白を付ける | `pnpm exec vitest run`の検査`html-page-keeps-bar-room`が通る | #3744 |
-| scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 |
+| scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 #3788 |
+| `dragon embed`で埋めた頁を通信を止めて開いた時、`data-header`を持つ塊ごとに帯 (`[data-dragon-header]`) が1つ付き、帯のボタンがjsDelivrの1行の入口の頁と同じコード、エディタ、コピー、エクスポート、拡大の順に並ぶ | `pnpm exec vitest run`の検査`offline-page-frames-header-blocks`が通る | #3786 |
+| 埋めた頁で`data-header`を持たない塊は、帯の無い図のまま描ける | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-page-leaves-plain-blocks-bare`が通る | #3786 #3792 |
+| 通信を止めて開いた埋めた頁で、帯のボタンとエクスポートの窓とコピーの窓の項目を1つずつ押した時、書き出せなかった知らせか頁の例外を出す項目が0個になる | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
+| 埋めた頁の帯は、どのボタンを押しても頁の外のfileを読みに行くことができない | `pnpm exec vitest run`の検査`offline-header-buttons-work-without-network`が通る | #3786 |
+| npmの帯 (`mountFramedDiagram`) のエクスポートの窓は、今と同じく画像、動き、記法の見出しの下に7つの形式を並べる | `pnpm exec vitest run`の検査`export-menu-groups-seven-formats`が通る | #3786 |
+| jsDelivrの1行の入口の頁で帯のエクスポートのHTMLを押すと、今と同じく入口の置き場から書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-adds-bar-with-data-header`が通る | #3786 #3792 |
+| npmの帯 (`mountFramedDiagram`) でエクスポートのHTMLを押すと、今と同じく隣の書き出す部品を読み、再生のscriptを埋めたHTMLを保存できる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`frame-export-html-loads-capture`が通る | #3786 #3792 |
+| 帯を出さずに置いた図 (`mountDragon`の`header: false`) の`export("html")`は、今と同じく再生のscriptを埋めたHTMLを返す | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`sdk-headless-exports-html`が通る | #3786 #3792 |
+| 頁の幅360px (左右に16pxの余白) で帯のエクスポートの窓とコピーの窓を開いた時、どちらの窓も左端が0px以上、右端が360px以下になる | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3786 |
+| 帯の枠の幅が280px (頁の幅312px、左右に16pxの余白) の時、エクスポートの窓の幅は枠の幅から20pxを引いた260pxになり、窓は枠の左右の縁を越えられない | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3786 |
+| 頁の幅1000pxで帯のエクスポートの窓を開いた時、窓の右端は今と同じくエクスポートのボタンの右端と揃い、窓の幅は300pxのまま | `pnpm exec vitest run`の検査`frame-menu-aligns-right-on-wide-page`が通る | #3786 |
+| jsDelivrの1行の入口が最初に読むscriptの量 (gzipした後) は、上限の90,000 byteを超えられない | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3786 |
+| `dragon embed`が書く頁は今と同じく1つのfileで、外への通信を止めて開くと塊が図に置き換わる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`embed-writes-offline-file`が通る | #3786 #3792 |
+| 頁が`body{letter-spacing:.12em;word-spacing:.3em;text-transform:uppercase}`を持つ時、帯つきの図と`mountDiagram`で置いた帯の無い図の両方で、図のSVGの全ての`text`の`letter-spacing`と`word-spacing`と`text-transform`の計算値と描いた字の幅が、頁のCSSの無い時と同じになる。字の間を自分で決めない字では、計算値は`normal`と`0px`と`none`になる | `pnpm exec vitest run`の検査`frame-text-ignores-page-spacing`が通る | #3787 |
+| 同じ頁で、帯つきの図の帯の題と、`<a>`で作るエディタを含む帯の全てのボタンの`letter-spacing`が`normal`、`text-transform`が`none`になり、帯の高さと各ボタンの幅が頁のCSSの無い時と同じになる | `pnpm exec vitest run`の検査`frame-text-ignores-page-spacing`が通る | #3787 |
+| 同じ頁で、帯の無い図の再生の帯 (`.dg-player`) の段の題と段の本文の`letter-spacing`が`normal`、`text-transform`が`none`になる | `pnpm exec vitest run`の検査`player-text-ignores-page-spacing`が通る | #3787 |
+| 頁が`button{background:#e11d48;color:#fff;border:0;border-radius:999px;padding:12px 24px;font-size:18px;font-weight:700;text-transform:uppercase;min-height:48px;min-width:96px;box-shadow:0 3px 0 #9f1239}`と`div{line-height:2.4}`を持つ時、頁のCSSは`createFigureHeader`で作った帯のボタンに影と最小の幅と大文字を付けられない。ボタンの`box-shadow`は`none`、`min-width`は`0px`、`text-transform`は`none`になる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| 同じ頁で、題と4つのボタンを置いた`createFigureHeader`の帯は、ボタンの高さが30px、帯の高さが49pxのまま描かれる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| 頁が`body{letter-spacing:.12em;word-spacing:.3em;text-transform:uppercase}`を持つ時、`createFigureHeader`で作った帯の題と全てのボタンの`letter-spacing`が`normal`、`text-transform`が`none`になる | `pnpm exec vitest run`の検査`figure-header-ignores-page-css`が通る | #3787 |
+| `createFigureHeader`は今と同じく`element`、`title`、`actions`、`settings`、`setColors`を返し、帯の頭を頁の中に置く | `pnpm exec vitest run`の検査`site-mark-and-favicon-match-the-bar-mark`と`catalog-card-has-the-bar`と`"header layout and controls remain the same when the embedder changes its colors"`が通る | #3787 |
+| 見本帳の帯は今と同じく、帯の頭の`actions`と`settings`へ見本帳のボタンと色味の選ぶ欄と拡大縮小を差し込む | `pnpm exec vitest run`の検査`catalog-bar-holds-theme-and-zoom`と`catalog-bar-code-toggles-source`が通る | #3787 |
+| 帯つきの図のSVGの全ての要素の縁取りの有無と線の太さは、同じ記法の帯の無い図と同じ | `pnpm exec vitest run`の検査`frame-diagram-keeps-plain-strokes`が通る | #3787 |
+| jsDelivrの1行の入口が時系列図の頁で最初に読むscriptのgzip後の合計は90,000 byte以下 | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3787 |
+| 頁の幅360px (左右に16pxの余白) に`oauth.dragon`と`day-hours.dragon`を帯つきで置いた時、帯のコード、エディタ、コピー、エクスポート、拡大の5つのボタンが字を見せない36px角のアイコンになって題の下に1段で並び、帯の高さが100px以下になる | `pnpm exec vitest run`の検査`frame-header-fits-narrow-page`が通る | #3788 |
+| 頁の幅360pxの帯の5つのボタンは、字を隠しても`aria-label`に読み上げの名前 (コード、dragonエディタで開く、コピー、エクスポート、図を拡大) を持つ | `pnpm exec vitest run`の検査`frame-header-names-icon-buttons`が通る | #3788 |
+| 頁の幅360pxの帯で、ボタンどうしが重なることと、ボタンが帯の枠の外へ出ることができない | `pnpm exec vitest run`の検査`frame-header-buttons-stay-inside`が通る | #3788 |
+| 頁の幅1000pxの帯は高さ49pxのまま、5つのボタンが字とアイコンを見せて1段に並ぶ | `pnpm exec vitest run`の検査`frame-header-keeps-wide-page`が通る | #3788 |
+| 置く側が設定`buttons`で足したボタンは、頁の幅360pxの帯でも字を見せたまま描ける | `pnpm exec vitest run`の検査`frame-header-keeps-added-button-text`が通る | #3788 |
+| 頁の幅360pxと312pxで、エクスポートとコピーの窓は今と同じく帯の枠の中に開く | `pnpm exec vitest run`の検査`frame-menus-fit-narrow-page`が通る | #3788 |
+| 帯のボタンの字は、今と同じく設定`lang`、置いた所から上の`lang`属性、英語の順で決まる | `pnpm exec vitest run`の検査`bar-text-follows-lang-setting-then-page`が通る | #3788 |
+| 軽い入口だけを読む頁で、`loadFor`を待った後に`@cardenelabs/dragon/light/frame`の`mountFramedDiagram`で帯つきの図を置け、その頁が読み込むfileに既定の入口`dist/index.js`が入らない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-mounts-framed-diagram`が通る | #3789 |
+| packageの`exports`は`./light/frame`をimportとrequireの両方で型つきで出す | `pnpm exec vitest run packages/dragon/test/pack-check.test.ts`の検査`entries-derived-from-exports`と`typed-entries`が通る | #3789 |
+| `@cardenelabs/dragon/light/frame`の帯のエクスポートは、書き出す部品を入口の隣の`capture.js`から後で読み、書き出す部品の中身を入口に束ねない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`entries-load-capture-beside`と`entries-skip-capture-body`が通る | #3789 |
+| `@cardenelabs/dragon/light/frame`の`mountFramedDiagram`は、`loadFor`を待っていない種類の図を種類の名前を含む誤りで拒み、置き先に帯を残さない | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-frame-refuses-unloaded-kind`が通る | #3789 |
+| jsDelivrの1行の頁で、`data-header`の塊の図を描く回数が1回になり、帯の塊が届く前に帯の無い図を描かない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-framed-block-once`が通る | #3789 |
+| jsDelivrの1行の頁で、`data-header`の塊を描いた後の頁の揺れ (layout shiftの合計) が0になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-draws-framed-block-once`が通る | #3789 |
+| `dragon embed`が埋めるscriptの頁でも、`data-header`の塊の図を描く回数が1回になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-page-draws-framed-block-once`が通る | #3789 |
+| `data-header`の無い頁は帯の塊を読まず、1行の入口が最初に読むscriptのgzip後の合計は上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-loads-bar-only-when-asked`と`script-entry-within-budget`が通る | #3789 |
+| `<html lang="ja">`の頁で`mountDragon`と`mountFramedDiagram`に誤りのある記法を渡すと、誤りの文が日本語で出る | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`embed-sdk-errors-follow-page-lang`が通る | #3789 |
+| `lang`属性の無い頁で`mountDragon`と`mountFramedDiagram`に誤りのある記法を渡すと、誤りの文は今と同じく英語で出る | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`embed-sdk-errors-stay-english-without-lang`が通る | #3789 |
+| jsDelivrの1行の頁で、`<script type="application/json" id="dragon-header">`の塊に書いた`buttons`と`look.colors`で、全ての`data-header`の塊の帯のボタンの並びと色を変えられる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-reads-header-options`が通る | #3789 |
+| `#dragon-header`の塊に知らないボタンの名前か読めないJSONを書いた頁では、`data-header`の塊をその誤りの文に置き換え、既定の帯で黙って描くことを拒む | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-rejects-bad-header-options`が通る | #3789 |
+| `#dragon-header`の塊の無い頁の帯は、今と同じくコード、エディタ、コピー、エクスポート、拡大の5つのボタンを並べる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-adds-bar-with-data-header`が通る | #3789 |
+| mdの頭の`---`の間に書いた`header-buttons`と`header-<色>`の行から、`dragon export`が書いた頁に`#dragon-header`の塊が入り、帯のボタンの並びと色がその行のとおりになる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-header-lines-set-header-block`が通る | #3789 |
+| `dragon export`は、mdの頭の`header-buttons`の知らないボタンの名前と、`;`か`<`を含む色の値を行の番号つきの誤りで拒み、頁を書かない | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-rejects-bad-header-lines`が通る | #3789 |
+| `header-`で始まる行の無いmdから書き出した頁は、今と同じく`#dragon-header`の塊を持たない | `pnpm exec vitest run packages/dragon/test/page-export.test.ts`の検査`page-without-header-lines-has-no-header-block`が通る | #3789 |
+| 今と同じ`mountFramedDiagram(host, source)`の呼び方で、既定の入口の頁に帯つきの図が置け、`destroy()`で取り除ける | `pnpm exec vitest run packages/dragon/test/article-frame.test.ts`の検査`"shared frame mounts the native checkout player and destroys its input view"`が通る | #3789 |
+| packageのREADMEの英語と日本語が、`@cardenelabs/dragon/light/frame`の使い方と、`#dragon-header`の塊の書き方と、mdの頭の`header-`の行の書き方を載せる | `pnpm exec vitest run packages/dragon/test/embed-sdk.test.ts`の検査`readme-documents-header-settings`が通る | #3789 |
+| `dragon embed`で埋めた頁の帯のエクスポートの窓は、jsDelivrの1行の入口の頁と同じく、画像の見出しの下にPNGとSVG、動きの見出しの下にHTMLとGIFとMP4、記法の見出しの下にdragon記法とJSONを、この順に並べる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-export-menu-lists-seven-formats`が通る | #3792 |
+| 通信を止めて開いた埋めた頁で、帯のエクスポートの7つの形式を1つずつ押した時、7つともファイルを保存し、書き出せなかった知らせか頁の例外を出す形式が0個になる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-header-buttons-work-without-network`が通る | #3792 |
+| 通信を止めて開いた埋めた頁の帯で、HTMLとGIFとMP4を押しても、頁の外のfileを読みに行けない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-header-buttons-work-without-network`が通る | #3792 |
+| 埋めた頁の帯で保存したGIFとMP4は、GIFとMP4のfileの形を持ち、コマを2つ以上持つ | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-exported-motion-files-have-format`が通る | #3792 |
+| 埋めた頁の帯で保存したHTMLを通信を止めて開くと、図を1つ描き、頁の例外を出さない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-exported-html-plays-without-network`が通る | #3792 |
+| 埋めた頁の帯で保存したHTMLを通信を止めて開いた時、頁の外のfileを読みに行けない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`offline-exported-html-plays-without-network`が通る | #3792 |
+| 埋めるscript (`dist/offline.global.js`) は、絵柄集の表 (`src/blocks/icon/tabler.js`) を束ねない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`offline-script-skips-icon-table`が通る | #3792 |
+| 配る入口の file (`dist/offline.global.js`を含む) は、書き出す部品のPNGを作る処理を持たない | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts`の検査`entries-skip-capture-body`が通る | #3792 |
+| jsDelivrの1行の入口が最初に読むscriptの量 (gzipした後) は、上限の90,000byteを超えられない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3792 |

@@ -14,6 +14,7 @@ import * as dragon from "./all-kinds";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 
+import { atLoad } from "./at-load";
 import { runCli } from "./export-support";
 import {
   expectWritten,
@@ -38,6 +39,40 @@ const pageOf = (doc: Document, id: string): Element | null =>
 /** 1つの項目だけを持つ小さなmd。`entry`は入口の中身、`item`は項目の頁の中身 */
 const small = (entry: string, item = "#### 結果\n\n確かめた。\n", head = ""): string =>
   `${head}# 小さな頁\n\n${entry}\n\n## 段\n\n### order\n\n注文を受ける。\n\n${item}`;
+
+// 件の中で子の process の命令を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの命令を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む
+
+/** 書き出したmdを`where`に書く命令を 1 回起こす */
+async function writeWhere(where: "mdの隣" | "--out のフォルダ") {
+  const md = writeNote();
+  const dir = where === "mdの隣" ? dirname(md) : tempDir("out");
+  const ran = await runCli(["export", md, ...(where === "mdの隣" ? [] : ["--out", dir])]);
+  return { dir, ran };
+}
+
+const WRITTEN_NEXT = await atLoad("mdの隣にmdを書き出す命令を起こす", () => writeWhere("mdの隣"));
+const WRITTEN_OUT = await atLoad("--out のフォルダにmdを書き出す命令を起こす", () => writeWhere("--out のフォルダ"));
+
+/** 図の設定`option`を付けてmdを書き出す命令を 1 回起こし、命令の後にmdのフォルダに在る頁を読む */
+async function refusedWith(option: string, value: string) {
+  const md = writeNote();
+  const ran = await runCli(["export", md, option, value]);
+  return { ran, pages: readdirSync(dirname(md)).filter((name) => name.endsWith(".html")) };
+}
+
+const REFUSED = {
+  "--fps": await atLoad("--fps を付けてmdを書き出す命令を起こす", () => refusedWith("--fps", "30")),
+  "--format": await atLoad("--format を付けてmdを書き出す命令を起こす", () => refusedWith("--format", "html")),
+  "--width": await atLoad("--width を付けてmdを書き出す命令を起こす", () => refusedWith("--width", "600")),
+};
+
+const CLI_WRITTEN = await atLoad("exportPage と比べるmdを命令で書き出す", async () => {
+  const md = writeNote();
+  const cli = tempDir("cli");
+  const ran = await runCli(["export", md, "--out", cli]);
+  return { md, cli, ran };
+});
 
 describe("mdから頁を書き出す (#3755)", () => {
   it("page-includes-files-by-kind", async () => {
@@ -132,6 +167,55 @@ describe("mdから頁を書き出す (#3755)", () => {
     }
   });
 
+  it("page-header-lines-set-header-block", async () => {
+    // mdの頭の`header-`の行は、頁の帯の設定の塊 (`#dragon-header`) になる (#3789)
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const dir = tempDir("header");
+    const head = '---\nlayout: tabs\nheader-buttons: code, export\nheader-accent: "#c0392b"\nheader-surface: #fafafa\n---\n\n';
+    writeFileSync(join(dir, "notes.md"), small("```dragon\nsequence 注文\nbox a\nbox b\nstep 一\n  a -> b\n```", undefined, head));
+    const doc = documentOf(expectWritten(await exportPage(join(dir, "notes.md"))));
+    const blocks = doc.querySelectorAll("#dragon-header");
+    expect(blocks.length, "頁の帯の設定の塊の数").toBe(1);
+    expect(blocks[0]?.getAttribute("type"), "帯の設定の塊の type").toBe("application/json");
+    expect(JSON.parse(blocks[0]?.textContent ?? "null"), "帯の設定の塊の中身").toEqual({
+      buttons: ["code", "export"],
+      look: { colors: { accent: "#c0392b", surface: "#fafafa" } },
+    });
+  });
+
+  it("page-rejects-bad-header-lines", async () => {
+    // 知らないボタンの名前と、`;`か`<`を含む色の値と、知らない`header-`の行は、行の番号つきで断って頁を書かない (#3789)
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const cases: [string, string, string][] = [
+      ["知らないボタンの名前", "header-buttons: code, share", "share"],
+      ["2度書いたボタン", "header-buttons: code, code", "code"],
+      ["; を含む色", "header-accent: red; background: url(x)", "header-accent"],
+      ["< を含む色", 'header-accent: "</script><script>alert(1)</script>"', "header-accent"],
+      ["知らない header- の行", "header-acent: red", "header-acent"],
+    ];
+    for (const [name, line, word] of cases) {
+      const dir = tempDir("bad-header");
+      writeFileSync(join(dir, "notes.md"), small("入口の字。", undefined, `---\nlayout: entry\n${line}\n---\n\n`));
+      const result = await exportPage(join(dir, "notes.md"));
+      expect(result.ok, `${name} を持つ md を書き出した`).toBe(false);
+      const errors = result.ok ? [] : result.errors;
+      expect(errors.map((e) => e.line), `${name} の行`).toEqual([3]);
+      expect(errors[0]?.message ?? "", `${name} の断りの文`).toContain(word);
+      expect(existsSync(join(dir, "notes.html")), `${name} を拒んだのに頁を書いた`).toBe(false);
+    }
+  });
+
+  it("page-without-header-lines-has-no-header-block", async () => {
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const dir = tempDir("no-header");
+    writeFileSync(join(dir, "notes.md"), small("```dragon\nsequence 注文\nbox a\nbox b\nstep 一\n  a -> b\n```"));
+    const doc = documentOf(expectWritten(await exportPage(join(dir, "notes.md"))));
+    expect(doc.querySelectorAll("#dragon-header").length, "header- の行の無い md の頁の帯の設定の塊").toBe(0);
+  });
+
   it("page-escapes-raw-html", async () => {
     const exportPage = await exportPageTool();
     if (!exportPage) return;
@@ -184,10 +268,8 @@ describe("mdから頁を書き出す (#3755)", () => {
   // mdの書き出しは Chromium を借りないので、命令は子の process で起こす。process の中で読み込むと、束ねた命令の file を読み替えるだけで混んだ機械で 10 秒を超える。
   // 命令を起こす件は 1 件で命令を 1 回だけ起こす
   describe.for(["mdの隣", "--out のフォルダ"] as const)("%sに書く", (where) => {
-    it("page-export-command-writes-html", async () => {
-      const md = writeNote();
-      const dir = where === "mdの隣" ? dirname(md) : tempDir("out");
-      const ran = await runCli(["export", md, ...(where === "mdの隣" ? [] : ["--out", dir])]);
+    it("page-export-command-writes-html", () => {
+      const { dir, ran } = where === "mdの隣" ? WRITTEN_NEXT.get() : WRITTEN_OUT.get();
       expect(
         { code: ran.code, stdout: ran.stdout },
         `${where}へのmdの書き出し: ${ran.stderr}`,
@@ -206,14 +288,13 @@ describe("mdから頁を書き出す (#3755)", () => {
     { option: "--fps", value: "30" },
     { option: "--format", value: "html" },
     { option: "--width", value: "600" },
-  ])("$option を付ける", ({ option, value }) => {
-    it("page-export-refuses-diagram-options", async () => {
-      const md = writeNote();
-      const ran = await runCli(["export", md, option, value]);
+  ] as const)("$option を付ける", ({ option }) => {
+    it("page-export-refuses-diagram-options", () => {
+      const { ran, pages } = REFUSED[option].get();
       expect(ran.code, `${option} を付けたmdの書き出しの終わり方`).toBe(2);
       expect(ran.stderr, `${option} を付けたmdの書き出しの断り`).toContain(option);
       expect(
-        readdirSync(dirname(md)).filter((name) => name.endsWith(".html")),
+        pages,
         `${option} を拒んだのに頁を書いた`,
       ).toEqual([]);
     });
@@ -222,12 +303,10 @@ describe("mdから頁を書き出す (#3755)", () => {
   it("node-entry-exports-page", async () => {
     const exportPage = await exportPageTool();
     if (!exportPage) return;
-    const md = writeNote();
+    const { md, cli, ran } = CLI_WRITTEN.get();
     const api = tempDir("api");
     const path = expectWritten(await exportPage(md, { outDir: api }));
     expect(path, "exportPage が書いた file").toBe(join(api, "notes.html"));
-    const cli = tempDir("cli");
-    const ran = await runCli(["export", md, "--out", cli]);
     expect(ran.code, `命令の書き出し: ${ran.stderr}`).toBe(0);
     expect(readFileSync(path, "utf8"), "exportPage と命令が書いた頁").toBe(
       readFileSync(join(cli, "notes.html"), "utf8"),

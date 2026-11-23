@@ -307,6 +307,20 @@ export interface MatrixDot {
   area: string;
   color: ColorKey;
   label: MatrixLabel;
+  /**
+   * 軸の外へ出す点数の札 (#3791)。`x` は横の軸の札を軸の下へ、`y` は縦の軸の札を軸の左へ出す。
+   * 札の四角が打った段に見える点の名前に触れる時だけ持ち、軸の線の上に置く札は持たない
+   */
+  out?: { x?: true; y?: true };
+}
+
+/** 軸の上の点数の札の四角。`at` は軸の線の上の札の真ん中で、`out` の札は縦の軸なら右の端を、横の軸なら上の端を `at` に付ける */
+export function scoreChip(value: number, at: Point, axis: "x" | "y", out = false): Rect {
+  const S = MATRIX_LOOK.scatter;
+  const w = textWidth(String(value), MATRIX_TYPE.chip) + S.chip.padX * 2;
+  const h = S.chip.h;
+  if (!out) return { x: at[0] - w / 2, y: at[1] - h / 2, w, h };
+  return axis === "y" ? { x: at[0] - w, y: at[1] - h / 2, w, h } : { x: at[0] - w / 2, y: at[1], w, h };
 }
 
 /** 置く前の課題の表の行。`score` は横と縦の点数の字、`plot` は課題を打つ段と出来事の番号 */
@@ -489,6 +503,8 @@ export function layoutScatter(diagram: DiagramModel, lang: NotationLang, width?:
   // ほかの点と名前と区画の名前と段の番号と真ん中の線に重ならない所を、点が入る区画の中、点の図の枠の中の順に選ぶ。
   // 無い時は真ん中の線に重なってよいとして枠の中で選び直し、それでも無い時は枠の中の最初に探した所に置く。字が図の外へはみ出すより、破線に重なるほうが読める
   const taken: Rect[] = [...areaNames, ...badgeAt.map(badgeBox), ...dots.map((d) => ({ x: d.x - S.dot.r - 2, y: d.y - S.dot.r - 2, w: S.dot.r * 2 + 4, h: S.dot.r * 2 + 4 }))];
+  // 置いた名前の四角と、名前が見え始める段。名前は打った段から最後の段まで見える
+  const named: { rect: Rect; from: number }[] = [];
   const mids: Rect[] = [
     { x: plot.x, y: plot.y + halfH - 1, w: plot.w, h: 2 },
     { x: plot.x + halfW - 1, y: plot.y, w: 2, h: plot.h },
@@ -524,6 +540,7 @@ export function layoutScatter(diagram: DiagramModel, lang: NotationLang, width?:
     if (!pick) continue;
     dot.label = pick.label;
     taken.push(pick.rect);
+    named.push({ rect: pick.rect, from: dot.plots[0]?.step ?? 0 });
   }
 
   // 表の行。課題を書いた順に上から並べ、打つ課題は打つ区画の色にする
@@ -588,6 +605,31 @@ export function layoutScatter(diagram: DiagramModel, lang: NotationLang, width?:
       ticks: yTicks,
     },
   ];
+
+  // 軸の点数の札は、打った段の間だけ、横の軸の札を点の真下の軸の線の上に、縦の軸の札を点の真横の軸の線の上に、札の真ん中を置く。
+  // 札の四角がその段に見える点の名前に触れる時だけ、縦の軸の札は右の端を軸の線に付けて軸の左へ、横の軸の札は上の端を軸の線に付けて軸の下へ出す (#3791)。
+  // 名前は動かさないので、札が出ない段の絵は変わらない。外へ出した札が目盛りの数に触れる時は、軸の線の上に残す
+  const tickBoxes = [...xTicks, ...yTicks].flatMap((t) => {
+    if (!t.text) return [];
+    const w = textWidth(t.text.text, T.tick);
+    const [x, y] = t.text.at;
+    return [{ x: t.text.anchor === "middle" ? x - w / 2 : t.text.anchor === "end" ? x - w : x, y: y - T.tick.size * 0.8, w, h: T.tick.size }];
+  });
+  for (const dot of dots) {
+    const last = Math.max(...dot.plots.map((p) => p.step));
+    const seen = named.filter((n) => n.from <= last).map((n) => n.rect);
+    const out: { x?: true; y?: true } = {};
+    const chips: ["x" | "y", number, Point][] = [
+      ["x", dot.score[0], [dot.x, bottom]],
+      ["y", dot.score[1], [plot.x, dot.y]],
+    ];
+    for (const [axis, value, at] of chips) {
+      if (!seen.some((r) => hits(r, scoreChip(value, at, axis)))) continue;
+      const moved = scoreChip(value, at, axis, true);
+      if (![...seen, ...tickBoxes].some((r) => hits(r, moved))) out[axis] = true;
+    }
+    if (out.x || out.y) dot.out = out;
+  }
 
   // 段の番号。表の在る図は、その段で打つ課題の表の行の左、打たない段は表の題の右。表の無い図は、上で選んだ区画か枠の角
   const raw: SceneBadge[] = diagram.steps.map((_, s) => {

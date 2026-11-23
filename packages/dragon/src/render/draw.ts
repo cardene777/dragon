@@ -9,6 +9,7 @@
  * 止めるか流すかは `--play` の変数で外から変えられる (頁に置く `player.ts` がこれを使う)。
  * 色と字は値の表から CSS の変数として 1 度だけ書き、部品はその変数だけを読む。
  * 止め絵を選ぶと (`still`)、最後の段の止め絵に全ての段の線の名前と箱の中の処理を出し、流れ全体を 1 枚で読ませる (#3200)。
+ * 頁に止めて置く図 (`figure`) は keyframes を組まず、最後の段の止め絵の時刻の値を部品の style に書き込む (#3812)。
  */
 import { drawUserBlocks, isUserPath, type UserBlock, type UserBlocks, userBlock, userBlockReader, userBlockUseMessages, withUserBlocks } from "../user-blocks";
 import { action } from "../blocks/act/draw";
@@ -31,6 +32,7 @@ import type { PipeWordsInput, StoredPipeLayout } from "../kinds/pipe/layout";
 import { textWidth } from "../layout/measure";
 import {
   type Layout,
+  type Point,
   type Rect,
   rewrapStrip,
   type SceneField,
@@ -51,6 +53,7 @@ import {
   LOOK,
   type Palette,
   paletteVars,
+  PLAIN_TEXT,
   resolvePalette,
   type Theme,
   TYPE,
@@ -67,6 +70,7 @@ import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
 import { findOverlaps, type Framed, type Ink, type Overlap, type Stroke, type Trace } from "./ink";
 import { Motion } from "./motion";
+import { r1 } from "./round";
 
 export interface RenderOptions {
   /** Native input diagrams align their SVG ports to the controls' measured rectangles. */
@@ -96,6 +100,14 @@ export interface RenderOptions {
    * 箱の下の 1 行に出す処理は、その箱で最後に起きた処理か書き換えの字を出す。違う段の名前が重なっても置き直さず、最後の段の重なり (`overlaps`) に出す
    */
   still?: boolean;
+  /**
+   * 頁に止めて置く図 (#3801)。最後の段の止め絵の時刻を図の中に書き込み、再生の部品が無くても最後の段の形を描く。
+   * 段の番号の丸を出さず、量の図は段の名前の所に図の題を出す。字の並びは一般の sans-serif と monospace に落ちる。
+   * 色味を渡さない時は、頁の白い地に馴染む `clear` で描く (配管の図は今どおり `sea`)。
+   * 色は頁の `data-theme="dark"` の時と、`data-theme="light"` でない頁で暗い `prefers-color-scheme` の時に暗い色に変わる。
+   * 頁が `--dragon-figure-background` を渡すと、図の地をその色で塗る。手順の帯 (`cycle` の `[shape: band]`) は番号の丸の空きを取らず、手順の名前を山形の中に書く (#3809)
+   */
+  figure?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
   /**
@@ -160,7 +172,8 @@ const PAST = `color-mix(in srgb,var(--mute) ${X.past}%,var(--bg))`;
 
 /** 部品の見た目。どの値も値の表から読む。 */
 const PART_CSS = [
-  ".dg{display:block;width:100%;height:auto;overflow:visible}",
+  // 字の大きさは字の幅の表で測るので、置いた頁の字の間と大文字を受け継がない (#3787)
+  `.dg{display:block;width:100%;height:auto;overflow:visible;${PLAIN_TEXT}}`,
   ".dg .dg-a{animation-duration:var(--T);animation-timing-function:linear;animation-iteration-count:infinite;animation-fill-mode:both;animation-delay:calc(var(--at,0) * -1s);animation-play-state:var(--play,running)}",
   ".dg .dg-popc{transform-box:fill-box;transform-origin:center}",
   ".dg-bg{fill:var(--bg)}",
@@ -306,6 +319,17 @@ const PART_CSS = [
   `.dg-mm-vp{fill:color-mix(in srgb,var(--ink) ${X.view}%,transparent);stroke:var(--ink);stroke-width:${S.badgeRing};vector-effect:non-scaling-stroke}`,
 ].join("");
 
+/**
+ * 全体図の円と塗った形と線の見た目 (#3849)。全体図にそれを描く寄って追う図にだけ書き、ほかの図の SVG を変えない。
+ * 円の地は半透明に塗り、重なった所を元の図と同じく混ざった色に見せる
+ */
+const MINI_SHAPE_CSS = [
+  `.dg-mm-dot{fill:${mix(X.mini)}}`,
+  `.dg-mm-disc{fill:var(--c);fill-opacity:${LOOK.mini.disc};stroke:var(--c);stroke-opacity:${LOOK.mini.discEdge};stroke-width:.6}`,
+  `.dg-mm-area{fill:var(--c);fill-opacity:${LOOK.mini.area}}`,
+  `.dg-mm-line{fill:none;stroke:${mix(X.mini)};stroke-width:${LOOK.mini.line};stroke-linecap:round;stroke-linejoin:round}`,
+].join("");
+
 /** 同じ原本と同じ見た目からは同じ名前になるよう、中身から短い名前を作る (keyframes の名前が頁の中で混ざらないため)。 */
 function nameOf(text: string): string {
   let h = 0x811c9dc5;
@@ -399,6 +423,7 @@ export function drawSvg(
   framed: Framed[] = [],
   pieces?: PipePiece[],
   strokes: Stroke[] = [],
+  figure?: StillFigure,
 ): string {
   // 札の言葉で全体図の地の幅が変わりうるので、同じ頁に置いた別の言葉の図と名前を分ける。
   // 色は色味の名前でなく色の値から名前を作り、色の値を重ねた図 (#3198) と同じ色味の名前の図の変数の規則を分ける
@@ -406,7 +431,8 @@ export function drawSvg(
   const id = nameOf(
     `${JSON.stringify(diagram)}|${vars}|${follow ? `${follow.width}|${follow.lang}` : ""}`,
   );
-  const m = new Motion(`dg${id}`, timeline.total, timeline.last);
+  // 止めて置く図 (#3801) は keyframes を組まず、最後の段の止め絵の時刻の値を書き込む (#3812)
+  const m = new Motion(`dg${id}`, timeline.total, timeline.last, figure?.at);
   // 後から読む種類の部品の組。最初から読む種類 (時系列図と構成図) は持たない (#3656)
   const parts = partsOf(layout.kind);
   // 種類の行に `[shape: pipe]` を書いた時系列図は、後から読んだ見た目の部品の組が列の頭と線と札と段の番号と処理の札を描く (#3720)
@@ -427,6 +453,7 @@ export function drawSvg(
     boxText: boxTextY(layout.boxes),
     corner: palette.corner,
     ...(theme === "dark" ? { dark: true } : {}),
+    ...(figure ? { figure: true } : {}),
     seats: seatsOf(layout.edges, carried),
     ...parts?.hooks?.(m, timeline),
   };
@@ -536,9 +563,10 @@ export function drawSvg(
     const e = layout.edges.find((x) => x.step === time.step && x.event === time.event);
     if (e) L.top.push(carrier(e, time, ctx));
   }
-  const content = Object.values(L)
-    .map((parts) => parts.join(""))
-    .join("");
+  const layers = Object.values(L).map((parts) => parts.join(""));
+  const content = layers.join("");
+  // 寄って追う窓の線の端の箱の札 (#3836) は番号の丸の下に描くので、番号の丸より下の層の字の長さを渡す
+  const under = layers.slice(0, Object.keys(L).indexOf("badge")).join("").length;
 
   const { near, far, nearY, farY } = LOOK.shadow;
   const shadow = `<filter id="dg-sh-${id}" x="-20%" y="-30%" width="140%" height="180%"><feDropShadow dx="0" dy="${nearY}" stdDeviation="${near}" style="flood-color:var(--sh);flood-opacity:var(--shA)"/><feDropShadow dx="0" dy="${farY}" stdDeviation="${far}" style="flood-color:var(--sh);flood-opacity:var(--shB)"/></filter>`;
@@ -572,12 +600,38 @@ export function drawSvg(
     `<rect class="dg-bg" width="${layout.width}" height="${layout.height}" rx="${LOOK.region.radius}"/>`,
   );
   const view = follow
-    ? followView(layout, timeline, diagram, m, id, content, follow, heads, drawTable, ctx.corner, look)
-    : { body: `${bg}${content}`, w: layout.width, h: layout.height };
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${PART_CSS}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+    ? followView(layout, timeline, diagram, m, id, content, under, follow, heads, drawTable, ctx.corner, look)
+    : { body: `${bg}${content}`, w: layout.width, h: layout.height, css: "" };
+  const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${monoDots(view.body, css)}</svg>`
+  );
+}
+
+/** 頁に止めて置く図 (#3801) の止め絵の時刻と、暗い頁で使う色味 */
+export interface StillFigure {
+  /** 最後の段の止め絵の時刻 (秒) */
+  at: number;
+  /** 頁が暗い時に描く色味 */
+  dark: Palette;
+}
+
+/**
+ * 止めて置く図の見た目の規則 (#3801)。図の根に止め絵の時刻を書き込み、動きを止めたまま最後の段の形を描く。
+ * 字の並びは全ての図と同じ字の変数 (`FONT_VARS`) が持ち、同梱した字を読まない頁でも明朝に落ちない (#3847)。
+ * 頁の `data-theme="dark"` と、`data-theme="light"` でない頁の暗い `prefers-color-scheme` で、暗い色味の色に替える。
+ * 地の色 (`--bg`) は頁が `--dragon-figure-background` を渡した時にその色を読み、図の地も `--bg` で塗る縁取りや札の地も頁の枠の色に揃える (#3809)。
+ * 渡さない頁では色味の地の色のまま描く
+ */
+function figureCss(id: string, figure: StillFigure, lookDark: string, lightBg: string): string {
+  const pageBg = (bg: string): string => `--bg:var(--dragon-figure-background,${bg})`;
+  const dark = `${paletteVars(figure.dark, "dark")}${lookDark ? `;${lookDark}` : ""};${pageBg(figure.dark.dark.bg ?? "")}`;
+  return (
+    `.dg-${id}{--at:${figure.at};--play:paused;${pageBg(lightBg)}}` +
+    `:root[data-theme="dark"] .dg-${id}{${dark}}` +
+    `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dg-${id}{${dark}}}`
   );
 }
 
@@ -660,6 +714,9 @@ function focusParts(layout: Layout, diagram: DiagramModel, step: number): Rect[]
  * 頭の列を貼る時は、図の頭の箱の下から図の下端までを頭の列の下に見せ、窓がそれより高い時は窓を詰める。どちらも箱の行を 2 重に映さないため (#3834)。
  * 値の表は図の一番下に在り、窓が近づくまで映らず、窓より広い表は右側が切れる。全体図と同じ理由で窓の外に出し、
  * 窓と全体図の下に図の枠の幅で組み直す (#3270)。窓と全体図は表を除いた図の高さ `worldH` の中だけを見る。
+ * 線の端の箱を挙げる種類 (考えを広げる地図、量の行き先の図、状態遷移図) は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、
+ * 窓の端で切れる箱に名前の札を窓の枠の内に出す (#3836)。寄せ直しと札は種類の部品の組の `ends` が持ち、後から読む塊に置く。
+ * 札は番号の丸と処理の札の下に描き、窓と一緒に動く中身の層 (番号の丸より下の層の字の長さ `under` の所) に入れる。
  */
 function followView(
   layout: Layout,
@@ -668,12 +725,13 @@ function followView(
   m: Motion,
   id: string,
   content: string,
+  under: number,
   follow: FollowFrame,
   heads: string,
   drawTable: (s: SceneStrip, from: SceneStrip) => string,
   corner: Corner,
   look: SequenceLook | undefined,
-): { body: string; w: number; h: number } {
+): { body: string; w: number; h: number; css: string } {
   const F = LOOK.follow;
   const M = LOOK.mini;
   const frameWidth = Math.max(1, follow.width);
@@ -754,8 +812,8 @@ function followView(
     look ? Math.max(top + below / 2, Math.min(worldH - below / 2, y)) : Math.min(worldH - below / 2, Math.max(top + below / 2, y));
   const r = LOOK.badge.r;
   let prev: [number, number] = [layout.width / 2, worldH / 2];
-  // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
-  const middles = timeline.steps.map((_, s) => {
+  /** 段 `s` の頭の列の下の残りの窓の真ん中 */
+  const aimAt = (s: number): [number, number] => {
     // 寄せる所を種類の部品の組が決める種類 (時間軸の図の針と印の列 #3165、試す図の出来事が着く所 #3337) は、番号の丸へ寄せ直さない
     if (parts?.aim) {
       prev = parts.aim(layout, timeline, s, focusParts(layout, diagram, s), vw, below) ?? prev;
@@ -783,6 +841,23 @@ function followView(
     // 動く物の無い次の段は、寄せ直した窓のまま止める
     prev = [near.x + near.w / 2, near.y + near.h / 2];
     return [clampX(prev[0]), clampY(prev[1])] as [number, number];
+  };
+  // 線の端の箱を挙げる種類は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、窓の端で切れる箱に名前の札を出す (#3836)
+  const ends = parts?.ends?.(layout, diagram, {
+    vw,
+    vh: below,
+    strip,
+    top,
+    sh: `filter="url(#dg-sh-${id})"`,
+    clamp: ([x, y]) => [clampX(x), clampY(y)],
+    moving: (s) => focusParts(layout, diagram, s),
+  });
+  // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
+  const middles = timeline.steps.map((_, s): [number, number] => {
+    if (!ends) return aimAt(s);
+    // 寄せ直した所を次の段が留まる所にする
+    prev = ends.aim(aimAt(s), s);
+    return prev;
   });
   const centers = middles.map(([x, y]): [number, number] => [x, y - strip / 2]);
   const c0 = centers[0] as [number, number];
@@ -810,7 +885,10 @@ function followView(
    * 全体図の地と札と、今見ている所の枠。窓と同じ動きで枠を動かす。
    * 時系列図の枠は頭の列の下の線を見せる所だけを囲む。頭の箱は頭の列に常に出ているため (#3122)
    */
-  const overview = (): { clip: string; body: string } => {
+  const overview = (): { clip: string; body: string; css: string } => {
+    // 図の上の点の並びを、全体図の上の点の並び (`x,y` を空白で区切る) にする
+    const miniPoints = (points: readonly Point[]): string => points.map(([x, y]) => `${r1(mx + x * k)},${r1(my + y * k)}`).join(" ");
+    const own = parts?.overview?.(layout) ?? [];
     const shapes = [
       ...layout.regions.map(
         (r) =>
@@ -820,16 +898,22 @@ function followView(
         (b) =>
           `<rect class="dg-mm-card" style="${cs(b.color)}" x="${mx + b.x * k}" y="${my + b.y * k}" width="${b.w * k}" height="${b.h * k}" rx="${partRadius(corner, M.card)}"/>`,
       ),
-      // 後から読む種類は、全体図に描く部品を種類の部品の組が挙げる (試す図は待ち行列の枠を地に、網の節と出ているブロックを札に描く、#3337)
-      ...(parts?.overview?.(layout) ?? []).map(
-        ({ rect: t, band, color }) =>
-          `<rect class="${band ? "dg-mm-band" : "dg-mm-card"}" style="${cs(color)}" x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, band ? M.band : M.card)}"/>`,
-      ),
+      // 後から読む種類は、全体図に描く部品を種類の部品の組が挙げる (試す図は待ち行列の枠を地に、網の節と出ているブロックを札に描く、#3337)。
+      // 円と塗った形と線は、量の帯の曲線と集まりの円と結びの線を縮めても元の図と同じ形に見せるために描く (#3849)
+      ...own.map((s) => {
+        const style = `style="${cs(s.color)}"`;
+        if ("disc" in s) return `<circle class="${s.band ? "dg-mm-disc" : "dg-mm-dot"}" ${style} cx="${r1(mx + s.disc.cx * k)}" cy="${r1(my + s.disc.cy * k)}" r="${r1(s.disc.r * k)}"/>`;
+        if ("area" in s) return `<path class="dg-mm-area" ${style} d="M${miniPoints(s.area)}Z"/>`;
+        if ("line" in s) return `<polyline class="dg-mm-line" ${style} points="${miniPoints(s.line)}"/>`;
+        const t = s.rect;
+        return `<rect class="${s.band ? "dg-mm-band" : "dg-mm-card"}" ${style} x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, s.band ? M.band : M.card)}"/>`;
+      }),
     ].join("");
     const vp = m.move(
       cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]),
     );
     return {
+      css: own.some((shape) => !("rect" in shape)) ? MINI_SHAPE_CSS : "",
       clip: `<clipPath id="dg-mm-${id}">${frameShape(corner, "", { x: mx, y: my, w: mw, h: mh }, `<rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="4"/>`)}</clipPath>`,
       body:
         frameShape(
@@ -842,23 +926,24 @@ function followView(
         `<g clip-path="url(#dg-mm-${id})"><rect class="dg-mm-world" x="${mx}" y="${my}" width="${mw}" height="${mh}"/>${shapes}<rect class="dg-mm-vp dg-a"${strip === 0 ? "" : ` y="${strip * k}"`} width="${vw * k}" height="${(vh - strip) * k}" rx="${partRadius(corner, 2)}" style="${vp}"/></g>`,
     };
   };
-  const mini = bare ? { clip: "", body: "" } : overview();
+  const mini = bare ? { clip: "", body: "", css: "" } : overview();
   // 頭の列は窓の中身の上に重ね、窓と同じ時刻と緩急で横にだけ動かす (#3118)
   const head =
     strip === 0
       ? ""
       : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
         `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${pinned}</g></g>`;
+  const tags = ends ? ends.tags(middles, m, timeline) : "";
   const body =
     `<defs><clipPath id="dg-vp-${id}">${frameShape(corner, "", { x: 0, y: 0, w: vw, h: vh }, `<rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/>`)}</clipPath>${mini.clip}</defs>` +
-    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content}</g>${head}</g>` +
+    `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content.slice(0, under)}${tags}${content.slice(under)}</g>${head}</g>` +
     `${frameShape(corner, ' class="dg-vp-frame"', { x: 0.5, y: 0.5, w: vw - 1, h: vh - 1 }, `<rect class="dg-vp-frame" x="0.5" y="0.5" width="${vw - 1}" height="${vh - 1}" rx="${LOOK.region.radius}"/>`)}${mini.body}`;
   const w = beside && !bare ? vw + M.inset + bgW : full;
   // 全体図を出さない時は、窓のすぐ下に表を置く
   const bottom = beside || bare ? vh : bgY + bgH;
-  if (!layout.strip) return { body, w, h: bottom };
+  if (!layout.strip) return { body, w, h: bottom, css: mini.css };
   const table = rewrapStrip(layout.strip, 0, bottom + M.inset, full);
-  return { body: body + drawTable(table, layout.strip), w, h: table.y + table.h };
+  return { body: body + drawTable(table, layout.strip), w, h: table.y + table.h, css: mini.css };
 }
 
 /**
@@ -970,8 +1055,10 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 並べ方と描き方は版1と同じ欄の形を読み、図の id もこの形の字から作る (#3346)。
   // 後から読む種類は、種類の名前で引いた部品の組が並べる前の直しと並べ方を持つ (#3656)。
   // 配管の図は `[fold]` の呼び出しの内側の段を、開くと頼まれていなければ 1 つの段にまとめてから並べる (#3389)
-  const model = toModel(read.diagram);
-  const parts = partsOf(model.kind, lang);
+  // 止めて置く図 (#3801) は、種類の部品の組が持つ止めて置く時の直し (量の図は段の名前の所に図の題を出す) を、並べる前に当てる
+  const given = toModel(read.diagram);
+  const parts = partsOf(given.kind, lang);
+  const model = options.figure === true ? (parts?.figure?.(given) ?? given) : given;
   const diagram = parts?.fold?.(model, options, lang) ?? model;
   // 後から読む図の種類 (#3347) は部品の組の並べ方で並べ、時系列図は登録簿に登録した並べ方で並べ (#3345、#3763)、
   // 構成図と知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
@@ -982,7 +1069,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
       ? parts.layout(diagram, lang, options)
       : eagerLayout(diagram.kind === "sequence" ? "sequence" : "architecture", lang)(diagram, lang);
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
-  const kindPalette = options.palette === undefined ? KIND_PALETTE[diagram.kind] : undefined;
+  // 頁に止めて置く図 (#3801) は、頁の白い地に馴染む澄んだ色味 (`clear`) を既定にする
+  const kindPalette = options.palette === undefined ? (KIND_PALETTE[diagram.kind] ?? (options.figure === true ? "clear" : undefined)) : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
   const timeline = buildTimeline(diagram, options.still === true);
   // 札の時刻は部品の組が直す。手順の図は段の印の点と運ぶ物と光る間を直し (#3561)、
@@ -1009,7 +1097,10 @@ export function renderLayout(
   const framed: Framed[] = [];
   const pieces: PipePiece[] = [];
   const strokes: Stroke[] = [];
-  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes);
+  // 止めて置く図 (#3801) は、最後の段の止め絵の時刻と、頁が暗い時の色味を渡す
+  const figure: StillFigure | undefined =
+    options.figure === true ? { at: timeline.stills[timeline.steps.length - 1] ?? 0, dark: paletteOf(options, "dark") } : undefined;
+  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes, figure);
   // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない
   const svg = drawLines(drawn, options.line, options.lang ?? DEFAULT_LANG);
   // 箱の札を種類の部品の組が描く図の種類 (時間軸の図と列の図) は、崩れの確かめも共通の描き方が箱の札を描いた図の種類の箱だけを見る

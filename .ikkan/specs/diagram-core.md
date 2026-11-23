@@ -30,7 +30,7 @@
 | 色味を指定せずに描いた時、紙と墨で描く | `pnpm test`の検査`palette-defaults-to-paper`が通る | #2985 |
 | 色味 4 案 (澄んだ色 / 紙と墨 / 夜の計器 / アーケードの画面) の明暗それぞれで、1 型 / 2 型 / 3 型を模した全ての 2 色の差が 6 以上、通常の見え方の差が 15 以上ある | `pnpm test`の検査`palettes-keep-cvd-separation`が通る | #2985 |
 | 図の種類ごとの描画が、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #2985 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 #3847 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段ごとの止め絵を釦で送れる | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #2985 |
 | 図を開いた時、各段の題と本文を段の順に読み上げの道具から読める | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #2985 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2985 |
@@ -247,7 +247,7 @@
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに同じ file の形のある字を 1 つだけ足して含み、`unicode-range` には描く空白の類の字だけを載せる | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`と`font-subset-range-lists-drawn-chars`が通る | #3213 |
 | 英語の見本 10 個と、全角空白だけを `[117]` の file で描く図で、書き出した HTML が埋める字の file を Chromium が全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3213 |
 | HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 #3847 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3213 |
 | 表を持つ9種の見本を枠の幅 321px と 565px と 778px に寄って追う図で置いた時、表 (`.dg-strip`) の左端と右端が図の幅の中に在り、全ての欄の名前と値が表の内側に在る | `pnpm test`の検査`follow-strip-whole-in-figure`が通る | #3270 |
 | oauth と ccip を枠の幅 390px と 560px に寄って追う図で置いた時、表は窓の中身の動く組の外に描かれ、窓の枠と全体図の地の下に重ならずに在る | `pnpm test`の検査`follow-strip-below-window`が通る | #3270 |
@@ -356,3 +356,58 @@
 | 値の表を持つ見本のpaymentを幅360で寄って追う形に置いた時の窓の大きさは、今どおり幅360と高さ320のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-strip.test.ts`の検査`follow-strip-narrow-keeps-window`が通る | #3834 |
 | pipeの見た目の短い時系列図 (箱4つ、段4つ) を幅390に置いた時は、今どおり列の頭と器を帯に留め、帯の下に元の列の頭を映さない | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts`の検査`follow-pipe-look-keeps-band`が通る | #3834 |
 | 既定の見た目の時系列図を寄って追う形に置いても、パイプ図の部品の列の頭と生存線の管を描かず、箱の名前は窓に1度だけ描く | `pnpm exec vitest run packages/dragon/test/pipe-port.test.ts`の検査`port-sequence-default-look-kept`が通る | #3834 |
+| mindの見本wallet-uxを幅390に置いた時、親の箱が窓の端で切れる段2から段5で、段で足した枝と葉と番号の丸は全部窓に入る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-added-in-window`が通る | #3836 |
+| 同じ図の段2から段5で、足した物の親と反対の側の端から窓の端までが16以下になるまで、窓を親の側へ寄せる | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-slides-to-parent`が通る | #3836 |
+| 同じ図の段2から段5の止め絵で、親「使いやすいウォレット」の名前を全部書いた札が、親が切れた側の窓の端に見える | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-mind-tag-names-parent`が通る | #3836 |
+| 札はその段の止め絵でだけ見え、最初の段と、線の端の箱が切れない段の止め絵では見えない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-tag-only-in-its-step`が通る | #3836 |
+| sankeyの見本salaryを幅390に置いた段3で、足した帯の行き先の食費と遊びの棒と名前と量は全部窓に入り、窓の上で切れる出どころ「手取り30万円」の札が窓の上の端に見える | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-sankey-tag-on-top`が通る | #3836 |
+| sankeyの見本fee-splitを幅390に置いた段3で、番号の丸と、行き先「交換所の取り分」の棒と名前と量が窓に入り、足した帯の幅の半分以上が窓に映る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-sankey-band-in-window`が通る | #3836 |
+| stateの見本subscriptionを幅390に置いた段5で、線の元「停止」は窓に全部入り、窓の外の「有料」の札は線が窓の左の端を横切る高さに見え、段の線の札「カードを直す」とどの状態の箱にも重ならない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-state-tag-on-line`が通る | #3836 |
+| stateの見本support-ticketを幅390に置いた段6で、線の両端「再開」と「完了」が窓に全部入る | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-state-both-ends`が通る | #3836 |
+| repoのmindとsankeyとstateの記法のfileのうち幅390で寄って追う形になる物 (数えた時点で46件) を置いた時、線の端の箱が窓の端で切れる段のうち、その箱の名前の札が見えない段は0件 | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-every-cut-end-has-tag`が通る | #3836 |
+| 同じ46件を幅390に置いた時、線の端の箱が窓から切れる幅の合計が、線の端の箱を寄せる範囲に入れない時の窓より増えた段は0件 | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-never-cut-more`が通る | #3836 |
+| 線の端の箱が今の窓に全部入る段 (support-ticketの段1から段5、subscriptionの段1から段4、salaryの段1) を幅390に置いた時、窓の位置は今のままで、札を出さない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-fitting-steps-kept`が通る | #3836 |
+| 幅760で寄って追う形になるmindとstateの見本5件 (budget-app.en、dao-proposal.en、wallet-ux.en、order.en、support-ticket.en) を置いた時、全ての段の窓の位置は今のままで、札を出さない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-wide-windows-kept`が通る | #3836 |
+| 止めて置く図と、全体を止める見せ方のmindとsankeyとstateの図には札を描かない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-no-tag-without-follow`が通る | #3836 |
+| 線の端の箱を挙げない種類 (木の図の見本hd-walletと構成図の見本) を幅390に置いた時、窓の位置は今のままで、札を描かない | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-other-kinds-kept`が通る | #3836 |
+| 軽い入口が最初に読むscriptのgzip後の合計が上限90,000byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3836 |
+| 見本帳の最初に読むscriptとCSSのgzip後の合計が上限186KB以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3836 |
+| sankeyの見本6件(day-hours、fee-split、phone-storage、revenue、salary、token-allocation)を幅390で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-day-hours`と`overview-has-parts-fee-split`と`overview-has-parts-phone-storage`と`overview-has-parts-revenue`と`overview-has-parts-salary`と`overview-has-parts-token-allocation`が通る | #3849 |
+| vennの見本5件(hobbies、l2-chains、skills、wallet-dots、wallet-usage)を幅390で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-hobbies`と`overview-has-parts-l2-chains`と`overview-has-parts-skills`と`overview-has-parts-wallet-dots`と`overview-has-parts-wallet-usage`が通る | #3849 |
+| erの見本4件(library-loan、nft-sale、order-total、token-transfer)を幅390で、nft-saleを幅760で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-library-loan`と`overview-has-parts-nft-sale`と`overview-has-parts-order-total`と`overview-has-parts-token-transfer`と`overview-has-parts-nft-sale-w760`が通る | #3849 |
+| chartの見本4件(bakery-sales、device-dots、shop-funnel、wallet-onboarding)を幅390で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-bakery-sales`と`overview-has-parts-device-dots`と`overview-has-parts-shop-funnel`と`overview-has-parts-wallet-onboarding`が通る | #3849 |
+| cycleの見本2件(farm-year、focus-clock)を幅390で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-farm-year`と`overview-has-parts-focus-clock`が通る | #3849 |
+| sankeyのsalaryを幅390で置いた時、全体図に棒の数(7)と同じ数の四角の札と、帯の数(6)と同じ数の塗った帯の形が描かれる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-sankey-bars-and-ribbons`が通る | #3849 |
+| vennのhobbiesを幅390で置いた時、全体図に円の数(3)と同じ数の円が描かれ、円の塗りの濃さ(`fill-opacity`)が1より小さいので、重なった所が2つの円の色の混ざった色に見える | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-venn-translucent-discs`が通る | #3849 |
+| vennのhobbiesの全体図は、円を細い四角を並べて描かず、四角の部品は名前の数(3)を超えない | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-venn-discs-not-stepped`が通る | #3849 |
+| erのlibrary-loanを幅390で置いた時、全体図に表の数(3)と同じ数の地の四角と、頭の行の数(3)と同じ数の札の四角と、結びの線の数(2)と同じ数の線が描かれる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-er-tables-heads-links`が通る | #3849 |
+| chartのbakery-salesを幅390で置いた時、全体図に系列の数(2)と同じ数の折れ線と、値の在る点の数と同じ数の点が描かれる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-chart-lines-and-points`が通る | #3849 |
+| cycleのfarm-yearを幅390で置いた時、全体図に山形の数(8)と同じ数の札の四角と、戻る線の数(1)と同じ数の線が描かれる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-cycle-segments-and-return`が通る | #3849 |
+| mindのwallet-uxを幅390で置いた時、全体図の札の数と、どの札の位置と大きさも、この課題の前と同じになる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-mind-unchanged`が通る | #3849 |
+| 軽い入口で頁が最初に読むscriptのgzip後の合計が、上限の90,000byteを超えない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3849 |
+| 図の種類の登録表(`KIND_FOLDERS`)のchartとpipeについて、その種類の見本を全て並べた時、寄って追う形になり得る見本は5つの幅のどれでも全体図の部品を1つ以上持つ。pipeの見本は全て寄って追う形にならない見本になり、数えない | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-parts-chart`と`overview-parts-pipe`が通る | #3852 |
+| 登録表のchartとpipe以外の16種類について、その種類の見本を全て並べた時、寄って追う形になり得る見本は5つの幅のどれでも全体図の部品を1つ以上持つ | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-parts-architecture`と`overview-parts-checkout`と`overview-parts-cycle`と`overview-parts-er`と`overview-parts-flow`と`overview-parts-git`と`overview-parts-lineup`と`overview-parts-matrix`と`overview-parts-mind`と`overview-parts-sankey`と`overview-parts-sequence`と`overview-parts-state`と`overview-parts-time`と`overview-parts-tree`と`overview-parts-try`と`overview-parts-venn`が通る | #3852 |
+| 登録表の全ての種類が見本を1件以上持ち、見本の無い種類が在る時は検査がその種類の名前を挙げて落ちる | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-kinds-have-examples`が通る | #3852 |
+| 1つの種類の`overview`を空にした時、検査はその種類の見本の名前と幅を全て挙げて落ちる。chartの`overview`を空の組に差し替えて数えると、chartの見本16件が全て挙がる | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-parts-names-the-empty-examples`が通る | #3852 |
+| 全体図の部品を数える検査と準備のfileは、絵を描く部品(`drawSvg`、`followSvg`、`mountDiagram`)とブラウザ(`playwright`、jsdom)を読まず、並べ方と種類の`overview`だけで数える | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-check-reads-layouts-only`が通る | #3852 |
+| `chooseView`は、pipeの図には枠の幅に依らず、原本が`view: follow`を書いても`fixed`を返す | `pnpm exec vitest run packages/dragon/test/view.test.ts`の検査`view-mode-pipe-always-fixed`が通る | #3852 |
+| `chooseView`は、pipe以外の図では今どおり字の大きさと原本の`view`で見せ方を選ぶ | `pnpm exec vitest run packages/dragon/test/view.test.ts`の検査`view-mode-fixed-when-text-readable`と`view-mode-follow-when-text-too-small`と`view-mode-honors-explicit-choice`が通る | #3852 |
+| 書き出しの頁の計画(`planPage`)に幅760を渡してpipeの見本`swap`を書き出す時、寄って追う絵(`followSvg`)を描かず、書き出しが選ぶ見せ方が`fixed`になる | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts`の検査`overview-export-keeps-pipe-fixed`が通る | #3852 |
+| 再生の部品(`mountDiagram`)は、pipeの見本`swap`を幅390の枠に置いても止めた形(`data-view="fixed"`)で見せ、全体図を描かない | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-pipe-player-stays-fixed`が通る | #3852 |
+| chartの`donut`の見本`os-share`を幅320で、`staking-rewards`を幅280で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-os-share-w320`と`overview-has-parts-staking-rewards-w280`が通る | #3852 |
+| `os-share`を幅320で、`staking-rewards`を幅280で置いた時、全体図に、最後の段で値を持つ項目の数と同じ数の塗った輪の区切り(`path.dg-mm-area`)と、凡例の行の数と同じ数の札(`rect.dg-mm-card`)が描かれる。最初の項目の輪の区切りは12時の向きから時計回りに始まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-chart-donut-ring-and-legend`が通る | #3852 |
+| #3849で直した22件の全体図と、種類ごとの全体図の部品と、mindの`wallet-ux`の全体図は今のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-salary`と`overview-has-parts-nft-sale-w760`と`overview-sankey-bars-and-ribbons`と`overview-venn-translucent-discs`と`overview-er-tables-heads-links`と`overview-chart-lines-and-points`と`overview-cycle-segments-and-return`と`overview-mind-unchanged`が通る | #3852 |
+| 図の字の並びは1つだけで、`--sans`は`"Noto Sans JP Variable","Noto Sans JP","Noto Sans CJK JP",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif`、`--mono`は`"JetBrains Mono Variable","JetBrains Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace`の順に並ぶ。別の並びを持つ`FONT_STACK_VARS`は無い | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`font-stack-order-matches-decision`が通る | #3847 |
+| 描いたSVGは、書き出すSVGも含めて、`--sans`と`--mono`を決めた並びで1度だけ名指し、字を使う所はどれもその変数を読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`render-uses-bundled-fonts`が通る(今ある検査を書き換える) | #3847 |
+| 帯の付かない再生の部品の帯の`style`が、`--sans`と`--mono`を決めた並びで持つ | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`player-bar-font-has-fallback-stack`が通る | #3847 |
+| 同梱した字を読まず、Noto Sans JPも無い形の頁をChromiumで開くと、図の字と帯の題と説明文がどれも明朝とTimesで描かれず、計算した`font-family`が`sans-serif`か`monospace`で終わる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`gothic-without-noto`が通る | #3847 |
+| 同梱した字を読む頁では、図の字と帯の字がNoto Sans JPとJetBrains Monoだけで描かれる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`same-font-with-noto`が通る | #3847 |
+| 使い方の頁、packageのREADMEの英語と日本語、プラグインの文書は、同梱の字を読まない頁では代わりのゴシックで描かれ、字の幅が数px違うことがあると書く。仕様`.ikkan/specs/diagram-core.md`の`render-uses-bundled-fonts`を名指す2行は「端末の字に落ちない」と書かない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`docs-describe-gothic-fallback`が通る | #3847 |
+| 帯つきの図の字の並びは`sans-serif`で終わる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`diagram-font-has-fallback-stack`が通る | #3847 |
+| 止めて置く図の字の並びは`sans-serif`と`monospace`で終わる | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-font-has-fallback-stack`が通る | #3847 |
+| 字の file を読めない頁でHTMLに書き出すと、字の名前と範囲を名指して断る | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-refuses-unreadable-font`が通る | #3847 |
+| ブラウザで書き出すHTMLは、字の`@font-face`のほかは`dragon export`のHTMLと同じになる | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-matches-export`が通る | #3847 |
+| 見本の指紋の記録`packages/dragon/test/fixtures/examples-svg.json`は、SVGの指紋1926件だけを書き直し、置き場所の指紋1926件、時刻の指紋1926件、読んだ原本の指紋574件は変えずに、検査が通る | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3847 |
+| 見本の読んだ原本のJSONの鍵の順は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`parsed-json-key-order-unchanged`が通る | #3847 |
+| jsDelivrの1行の入口が最初に読むscriptは、gzipで90,000byte以下のままである | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3847 |
+| 見本帳の頁が最初に読むscriptとCSSは、gzipで186KB以下のままである | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3847 |

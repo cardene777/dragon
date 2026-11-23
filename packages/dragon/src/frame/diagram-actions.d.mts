@@ -30,5 +30,20 @@ export interface DiagramActions {
   destroy(): void;
 }
 
+/** 書き出す部品 (`capture.js`) のうち、エクスポートが使う関数 (#3786) */
+export interface CaptureParts {
+  captureFrames(options: {
+    width: number; height: number; total: number; format: 'gif' | 'mp4';
+    draw: (seconds: number) => Promise<HTMLCanvasElement>;
+    signal?: AbortSignal; onProgress?: (fraction: number) => void;
+  }): Promise<Blob>;
+  captureHtml(source: string): Promise<string>;
+}
+/** 書き出す部品を読む処理。入口が渡す (`capture-load.mjs`) */
+export type CaptureLoader = () => Promise<CaptureParts>;
+
 export const PAPER: string;
-export function createDiagramActions(document: Document, host: HTMLElement, source: string, diagram: Diagram, notify?: ActionNotify): DiagramActions;
+/** 作る時に書き出す部品を読む形式 */
+export const CAPTURE_FORMATS: readonly ExportFormat[];
+/** `loadCapture`を渡さない時は、`CAPTURE_FORMATS`の形式のエクスポートを断る */
+export function createDiagramActions(document: Document, host: HTMLElement, source: string, diagram: Diagram, notify?: ActionNotify, loadCapture?: CaptureLoader): DiagramActions;

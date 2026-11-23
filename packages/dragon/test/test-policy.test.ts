@@ -10,24 +10,23 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /**
- * 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる。読むのは 1 度だけ。
+ * 検査の file の字を全てつないだ物。検査の名前は `"名前"` の形で書かれる。
  * 種類の検査から移した確かめ (`packages/dragon/test/*-checks.ts`) は、それを読む検査の file (`kind-playground.test.ts`、`kind-cli.test.ts`) が回すので、検査の file に数える (#3763)
  */
-let sourcesRead: string | undefined;
 function testSources(): string {
-  sourcesRead ??= execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx", "packages/dragon/test/*-checks.ts"], { encoding: "utf8" })
+  return execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", "*.test.ts", "*.test.tsx", "packages/dragon/test/*-checks.ts"], { encoding: "utf8" })
     .split("\n")
     .filter((path) => path !== "" && existsSync(join(ROOT, path)))
     .map((path) => readFileSync(join(ROOT, path), "utf8"))
     .join("\n");
-  return sourcesRead;
 }
-// 件の上限の外で、file を読み込む時に読んでおく (#3733)
-testSources();
+// 件の上限の外で、file を読み込む時に 1 度だけ読む (#3733)。件の中で git を起こさず、その結果を読む (#3816)
+const SOURCES = await atLoad("検査の file を git で挙げて字を読む", testSources);
 
 /** 検査の名前が検査の file に書かれているか。名前は引用符で囲んで書く */
 const named = (sources: string, name: string): boolean => [`"${name}"`, `'${name}'`, `\`${name}\``].some((quoted) => sources.includes(quoted));
@@ -133,7 +132,7 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     const record = join(ROOT, "docs/removed-tests.md");
     expect(existsSync(record), "外した検査の記録 docs/removed-tests.md が無い").toBe(true);
     if (!existsSync(record)) return;
-    const sources = testSources();
+    const sources = SOURCES.get();
     // 欄は 外した検査 | 在った file | 理由 | 同じ守りを担う検査
     const rows = tableRows(readFileSync(record, "utf8")).filter((cells) => cells.length === 4 && cells[0] !== "外した検査");
     expect(rows.length, "外した検査が記録に 1 件も無い").toBeGreaterThan(0);
@@ -158,7 +157,7 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     // 名指さない行 (`pnpm test` の検査など) は、全ての検査の file のどこかに在るかを見る
     expect(specTestFiles, "照らす道具 `packages/dragon/test/spec-test-files.ts` が無い").toBeDefined();
     if (specTestFiles === undefined) return;
-    const sources = testSources();
+    const sources = SOURCES.get();
     const quoted = quotedTexts(sources);
     const isNamed = (name: string): boolean => (/["'`]/u.test(name) ? named(sources, name) : quoted.has(name));
     const dir = join(ROOT, ".ikkan/specs");
@@ -232,6 +231,17 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
     const rows = reachedRows();
     expect(rows, "`.ikkan/checks.md` の欄 `届く検査` が 1 行でない").toHaveLength(1);
     expect(rows[0]?.[1] ?? "", "欄 `届く検査` が `無し` でない").toMatch(/^無し/u);
+  });
+
+  it("suite-commands-pass-near-limit-reporter", () => {
+    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package と見本帳の 2 つの実行の両方で渡す (#3740)
+    expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
+    const missing = ["一式", "配る前のテスト"].flatMap((field) => {
+      const runs = commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step));
+      if (runs.length !== 2) return [`${field} の vitest の実行が 2 つでない (${runs.length} 個)`];
+      return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
+    });
+    expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
   });
 
   it("checks-suite-and-release-tests-typecheck-after-build", () => {

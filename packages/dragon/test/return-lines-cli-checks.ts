@@ -106,8 +106,15 @@ describe("評価でClaudeが描いた支払いの図の行きと帰りの線 (#3
 });
 
 
+// 件ごとに命令で崩れを調べると、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。件ごとの命令を file を読み込む段で 1 つずつ順に起こし、件はその崩れを読む
+const STATE_BREAKS = await atLoad("状態遷移図を命令で崩れを調べる", () => breaksOf(STATE_PAIR));
+
+const SEQUENCE_BREAKS = await atLoad("時系列図を命令で崩れを調べる", () => breaksOf(SEQUENCE_REPLY));
+
+const FINALITY_BREAKS = await atLoad("時間の図の見本を命令で崩れを調べる", () => breaksOf(FINALITY));
+
 describe("状態遷移図と時系列図の行きと帰りの線 (#3521)", () => {
-  it("return-lines-state-apart", async () => {
+  it("return-lines-state-apart", () => {
     const layout = layoutOf(STATE_PAIR);
     for (const [a, b] of [
       ["待ち", "作業中"],
@@ -118,10 +125,10 @@ describe("状態遷移図と時系列図の行きと帰りの線 (#3521)", () =>
       expect(gaps.length, `${a} と ${b} の行きと帰りの線が並んで走らない`).toBeGreaterThan(0);
       for (const { gap } of gaps) expect(gap, `${a} と ${b} の行きと帰りの線の間`).toBeGreaterThan(apart().line);
     }
-    expect((await breaksOf(STATE_PAIR)).filter((b) => b.kind === "lines-close"), "状態遷移図の並んで近すぎる線").toEqual([]);
+    expect(STATE_BREAKS.get().filter((b) => b.kind === "lines-close"), "状態遷移図の並んで近すぎる線").toEqual([]);
   });
 
-  it("return-lines-sequence-unchanged", async () => {
+  it("return-lines-sequence-unchanged", () => {
     const layout = layoutOf(SEQUENCE_REPLY);
     for (const [a, b] of [
       ["app", "api"],
@@ -132,13 +139,13 @@ describe("状態遷移図と時系列図の行きと帰りの線 (#3521)", () =>
       for (const edge of [there, back]) expect(edge.points.every(([, y]) => y === (edge.points[0] as Point)[1]), `${edge.from} から ${edge.to} への線が横の線でない`).toBe(true);
       expect(Math.abs((there.points[0] as Point)[1] - (back.points[0] as Point)[1]), `${a} と ${b} の行きと帰りの線が同じ行に在る`).toBeGreaterThan(0);
     }
-    expect(closeKinds(await breaksOf(SEQUENCE_REPLY)), "時系列図の線と番号の崩れ").toEqual([]);
+    expect(closeKinds(SEQUENCE_BREAKS.get()), "時系列図の線と番号の崩れ").toEqual([]);
   });
 });
 
 describe("段の番号の丸の間を検査と同じ値で決める (#3521)", () => {
 
-  it("return-lines-badge-gap-clears-finality", async () => {
-    expect((await breaksOf(FINALITY)).filter((b) => b.kind === "badges-close"), "時間の図の近すぎる番号").toEqual([]);
+  it("return-lines-badge-gap-clears-finality", () => {
+    expect(FINALITY_BREAKS.get().filter((b) => b.kind === "badges-close"), "時間の図の近すぎる番号").toEqual([]);
   });
 });

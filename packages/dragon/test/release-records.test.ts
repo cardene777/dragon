@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -1153,11 +1154,45 @@ describe("版の記録 (#3151)", () => {
   });
 });
 
+// GitHub Release の本文は scripts/release-notes.mjs が CHANGELOG.md の版の節から作る
+const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
+const notes = (version: string, file?: string): string =>
+  execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
+
+// 件の中で本文を作る命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの命令を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む
+
+const MISSING_VERSION = await atLoad("節の無い版で本文を作る命令を起こす", () => {
+  const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
+  return { status: run.status, stdout: run.stdout };
+});
+
+const ABSOLUTE_LINKS = await atLoad("相対 link を持つ節から本文を作る命令を起こす", () => {
+  const dir = mkdtempSync(join(tmpdir(), "release-notes-"));
+  try {
+    const file = join(dir, "CHANGELOG.md");
+    writeFileSync(
+      file,
+      [
+        "# Changelog",
+        "",
+        "## [1.2.3] - 2026-11-03",
+        "",
+        "- See [the guide](docs/guide.md), [the readme](./README.md), [the site](https://example.invalid/x), and [below](#notes).",
+        "",
+        "## [1.2.2] - 2026-11-02",
+        "",
+        "- Older",
+        "",
+      ].join("\n"),
+    );
+    return notes("1.2.3", file);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 describe("Release の本文 (#3335)", () => {
-  // GitHub Release の本文は scripts/release-notes.mjs が CHANGELOG.md の版の節から作る
-  const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
-  const notes = (version: string, file?: string): string =>
-    execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
   /**
    * 全ての版の本文。版ごとに命令を起こすので、順に起こすと版が増えるほど遅くなり、1 件の上限 (10 秒) に近づいていた (#3381)。
    * 一度に起こすのは 8 つまでにする
@@ -1204,39 +1239,18 @@ describe("Release の本文 (#3335)", () => {
   });
 
   it("release-notes-missing-version-fails", () => {
-    const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
+    const run = MISSING_VERSION.get();
     expect(run.status, "節の無い版で 1 以外を返した").toBe(1);
     expect(run.stdout, "節の無い版で本文を出した").toBe("");
   });
 
   it("release-notes-absolute-links", () => {
-    // 節の中の相対 link は Release の頁では切れるので、repo の main を指す link に直す
-    const dir = mkdtempSync(join(tmpdir(), "release-notes-"));
-    try {
-      const file = join(dir, "CHANGELOG.md");
-      writeFileSync(
-        file,
-        [
-          "# Changelog",
-          "",
-          "## [1.2.3] - 2026-11-03",
-          "",
-          "- See [the guide](docs/guide.md), [the readme](./README.md), [the site](https://example.invalid/x), and [below](#notes).",
-          "",
-          "## [1.2.2] - 2026-11-02",
-          "",
-          "- Older",
-          "",
-        ].join("\n"),
-      );
-      const text = notes("1.2.3", file);
-      expect(text).toContain("[the guide](https://github.com/cardene777/dragon/blob/main/docs/guide.md)");
-      expect(text).toContain("[the readme](https://github.com/cardene777/dragon/blob/main/README.md)");
-      expect(text, "絶対 URL を書き換えた").toContain("[the site](https://example.invalid/x)");
-      expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
-      expect(text, "次の版の節まで出した").not.toContain("Older");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    // 節の中の相対 link は Release の頁では切れるので、repo の main を指す link に直す。本文は読み込む段で一時の CHANGELOG.md から作った
+    const text = ABSOLUTE_LINKS.get();
+    expect(text).toContain("[the guide](https://github.com/cardene777/dragon/blob/main/docs/guide.md)");
+    expect(text).toContain("[the readme](https://github.com/cardene777/dragon/blob/main/README.md)");
+    expect(text, "絶対 URL を書き換えた").toContain("[the site](https://example.invalid/x)");
+    expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
+    expect(text, "次の版の節まで出した").not.toContain("Older");
   });
 });

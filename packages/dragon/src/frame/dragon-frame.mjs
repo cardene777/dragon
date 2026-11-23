@@ -1,11 +1,12 @@
 import { createFigureHeader, HEADER_CSS } from './header.mjs';
+import { BUILTIN_BUTTONS } from './names';
 import { EDITOR_BASE, editorPasteUrl, editorUrl } from '../editor-url';
 import { adoptStyle, stylesFor } from '../adopt-css';
 import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
-import { createDiagramActions, PAPER } from './diagram-actions.mjs';
+import { CAPTURE_FORMATS, createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { EDGE_PLAYER_ROOM_CSS } from '../look/player-room';
-import { FONT_STACK_VARS } from '../look/values';
+import { FONT_VARS, PLAIN_TEXT } from '../look/values';
 
 export function diagramEditorUrl(source) {
   return editorUrl(source);
@@ -23,21 +24,26 @@ const icons = {
 /** 画像の大きさの選び。既定は2倍 */
 const SCALES=[1,2,3];
 /** 帯に初めから在るボタン (#3698) */
-const BUILTIN=['code','editor','copy','export','expand'];
+const BUILTIN=BUILTIN_BUTTONS;
 /** 設定`look`の欄と、帯の内側へ渡す変数 (#3698) */
 const LOOK_VARS={font:'--dragon-header-font',fontSize:'--dragon-header-font-size',radius:'--dragon-header-radius',height:'--dragon-header-height'};
 const FRAME_VARS={border:'--dragon-frame-border',background:'--dragon-frame-background'};
+/** 帯の窓と帯の枠の左右の縁の間を空ける幅。窓は枠の幅からこの2倍を引いた幅まで縮む (#3786) */
+const MENU_ROOM=10;
 
 /**
- * 帯と、帯の内側の見た目。図の字の変数は代わりの字の並びで上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695)。
+ * 帯と、帯の内側の見た目。図の字の変数は全ての図と同じ字の並び (`FONT_VARS`) で上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695、#3847)。
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする。
  * 帯の内側の影の根には図のSVGも描くので、帯の釦の絵柄の線の決まりは帯の段 (`[data-dragon-header]`) の中のSVGだけに当て、図の字と地に縁取りを付けない (#3744)。
- * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)
+ * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)。
+ * 置いた頁の字の間と大文字の指定は影の根の中へ受け継がれるので、帯の枠の根で戻す (`look/plain-text.ts`、#3787)。
+ * 帯の幅が600px以下の時は、初めからの5つのボタンの字を隠して36px角のアイコンにし、題の下の1段に収める。置く側が足したボタンは字のまま描く (#3788)
  */
 const FRAME_CSS = `
-:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
+:host{display:block;min-width:0;color:#294533;font:13px/1.5 system-ui,sans-serif;${PLAIN_TEXT};border:var(--dragon-frame-border,1px solid #cfd9cb);border-radius:12px;background:var(--dragon-frame-background,${PAPER});container-type:inline-size;overflow:visible}
 *{box-sizing:border-box}[hidden]{display:none!important}button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.55}button:focus-visible,summary:focus-visible{outline:3px solid #5b8eaa;outline-offset:2px}[data-dragon-header] svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pop{position:relative}[data-dragon-header] .dg-header-actions svg.chevron{width:12px;height:12px}
+@container(max-width:600px){[data-dragon-header] .dg-header-actions{gap:6px}[data-dragon-header] .dg-header-actions>:is(.code-toggle,.editor,.expand),[data-dragon-header] .dg-header-actions>.pop>:is(.copy-toggle,.export-toggle){width:36px;height:36px;min-height:36px;padding:0}[data-dragon-header] .dg-header-actions .dg-label,[data-dragon-header] .dg-header-actions svg.chevron{display:none}}
 .menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:220px;margin:0;padding:6px;border:1px solid var(--h-line);border-radius:10px;background:var(--h-bg);color:var(--h-fg);box-shadow:0 12px 35px #0002}
 .menu[data-menu=export]{width:300px}
 .menu>button{display:block;width:100%;text-align:left;border:0;border-radius:6px;padding:8px 11px;background:transparent;color:var(--h-fg);font-size:12px}.menu>button:hover{background:var(--h-hover)}.menu>button+button{margin-top:2px}
@@ -50,19 +56,22 @@ const FRAME_CSS = `
 .stage{min-width:0;border-radius:0 0 12px 12px;overflow:hidden}.code{background:#19261f;border-radius:0 0 12px 12px;color:#d9e6d5}.code-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #ffffff19}.code-head button{font:11px ui-monospace,monospace;color:#9eaf99;border:1px solid #50624d;border-radius:5px;padding:5px 9px;background:none}.code-head [aria-pressed=true]{background:#354733;color:#f0f6eb}.copy{margin-left:auto}.code pre{margin:0;padding:18px;max-height:620px;min-height:360px;overflow:auto;white-space:pre;tab-size:2;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace}.status{padding:9px 14px;margin:0;font-size:12px;color:#596e50}.status:empty{display:none}:host(:fullscreen){height:100vh;overflow:auto;background:${PAPER};border:0;border-radius:0}:host(:fullscreen) [data-dragon-header]{position:sticky;top:0;z-index:30}
 :host([data-code-open]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}:host([data-code-open]) [data-dragon-header],:host([data-code-open]) .status{grid-column:1/-1}:host([data-code-open]) .code{border-left:1px solid #53604e;border-radius:0;min-width:0}:host([data-code-open]) .code pre{min-height:0;max-height:calc(100dvh - 150px);font-size:11px}
 @media(max-width:700px){:host([data-code-open]){grid-template-columns:minmax(0,1fr)}}
-.dg-player,.dg-player svg.dg{${FONT_STACK_VARS.replace(/;|$/gu,'!important;')}}
+.dg-player,.dg-player svg.dg{${FONT_VARS.replace(/;|$/gu,'!important;')}}
 ${EDGE_PLAYER_ROOM_CSS}
 `;
 /** 拡大の窓の後ろを暗くする見た目。窓は帯を置いた所の根に置く */
 const EXPANDED_CSS='.dragon-expanded-dialog::backdrop{background:#1b2c25b3;backdrop-filter:blur(3px)}';
 
-/** 帯の中身。字は帯の言葉の表 `t` から入れ、置く人の値は入れない */
+/**
+ * 帯の中身。字は帯の言葉の表 `t` から入れ、置く人の値は入れない。
+ * ボタンの字は`dg-label`に包み、帯の幅が600px以下の時に字を隠すので、字と同じ読み上げの名前を`aria-label`に持たせる (#3788)
+ */
 const barHtml = t => `<div class="bar"><div class="actions">`
-  + `<button class="code-toggle" data-action="code" type="button" aria-pressed="false">${t.code}</button>`
-  + `<a class="editor" data-action="editor" target="_blank" rel="noopener" aria-label="${t.editorLabel}" title="${t.editorLabel}">${t.editor}</a>`
-  + `<div class="pop" data-action="copy"><button class="copy-toggle" type="button" aria-expanded="false" aria-haspopup="true">${t.copy}</button>`
+  + `<button class="code-toggle" data-action="code" type="button" aria-pressed="false" aria-label="${t.code}"><span class="dg-label">${t.code}</span></button>`
+  + `<a class="editor" data-action="editor" target="_blank" rel="noopener" aria-label="${t.editorLabel}" title="${t.editorLabel}"><span class="dg-label">${t.editor}</span></a>`
+  + `<div class="pop" data-action="copy"><button class="copy-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-label="${t.copy}"><span class="dg-label">${t.copy}</span></button>`
   + `<div class="menu" data-menu="copy" hidden><button type="button" data-copy="source">${t.copySource}</button><button type="button" data-copy="image">${t.copyImage}</button><button type="button" data-copy="url">${t.copyUrl}</button></div></div>`
-  + `<div class="pop" data-action="export"><button class="export-toggle" type="button" aria-expanded="false" aria-haspopup="true">${t.export}</button>`
+  + `<div class="pop" data-action="export"><button class="export-toggle" type="button" aria-expanded="false" aria-haspopup="true" aria-label="${t.export}"><span class="dg-label">${t.export}</span></button>`
   + `<div class="menu" data-menu="export" hidden>`
   + `<p class="group" data-group="images">${t.images}</p><button type="button" data-format="png">PNG</button><button type="button" data-format="svg">SVG</button>`
   + `<p class="group" data-group="motion">${t.motion}</p><button type="button" data-format="html">HTML</button><button type="button" data-format="gif">GIF</button><button type="button" data-format="mp4">MP4</button>`
@@ -81,6 +90,7 @@ const barHtml = t => `<div class="bar"><div class="actions">`
  * browsers without `adoptedStyleSheets` get `<style>` elements carrying `options.nonce`.
  * `options.look` fits the bar and the frame to the embedder, `options.buttons` drops, reorders and adds bar buttons, and
  * `options.notify` hears exports, editor openings and copies (#3698).
+ * `options.capture` loads the capture part for HTML, GIF and MP4; without it the export menu drops those formats (#3786).
  */
 export function createDragonFrame(document, source, diagram, options = {}) {
   const environment = document.defaultView;
@@ -105,7 +115,9 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   icon('download',$('.export-toggle'));icon('chevron',$('.export-toggle'),'chevron');icon('expand',$('.expand'));
   const host = document.createElement('div');host.className='dragon-host';$('.stage').append(host);
   const notify=options.notify;
-  const actions=createDiagramActions(document,host,source,diagram,notify);
+  const actions=createDiagramActions(document,host,source,diagram,notify,options.capture);
+  // 書き出す部品を読む処理を渡さない置き方では、作れないHTMLとGIFとMP4と動きの見出しを窓から外す (#3786)。`dragon embed`の頁は束ねた部品を渡す (#3792)
+  if(!options.capture)for(const el of root.querySelectorAll(`[data-group="motion"],${CAPTURE_FORMATS.map(f=>`[data-format="${f}"]`).join(',')}`))el.remove();
   const sourceText=actions.sourceText;
   const words=snippetWords(options.words);
   // 帯のボタンは設定`buttons`で帯から外れることがあるので、根から引き直さずに持っておく (#3698)
@@ -121,10 +133,24 @@ export function createDragonFrame(document, source, diagram, options = {}) {
   /** 帯の窓。窓は1つだけ開く */
   const menus=['copy','export'].map(name=>({name,wrap:$(`[data-action="${name}"]`),toggle:$(`.${name}-toggle`),menu:$(`[data-menu="${name}"]`)}));
   const closeMenus=()=>{for(const {toggle,menu} of menus){menu.hidden=true;toggle.setAttribute('aria-expanded','false');}};
+  /**
+   * 開いた窓を帯の枠の中に収める (#3786)。窓は右端をボタンの右端に揃えて開き、幅は枠の幅から左右の空きを引いた幅まで縮める。
+   * 帯が狭くてボタンが2段目の左に来た時は、右端を揃えると枠の左から出るので、左端をボタンの左端に揃え、それでも右から出る時は枠の右の縁に寄せる
+   */
+  const placeMenu=({wrap,menu})=>{
+    menu.style.removeProperty('left');menu.style.removeProperty('right');menu.style.removeProperty('width');
+    const edge=frame.getBoundingClientRect(),anchor=wrap.getBoundingClientRect();
+    const natural=menu.getBoundingClientRect().width,width=Math.min(natural,edge.width-MENU_ROOM*2);
+    const lowest=edge.left+MENU_ROOM,highest=edge.right-MENU_ROOM-width;
+    let left=anchor.right-width;
+    if(left<lowest)left=Math.max(lowest,Math.min(anchor.left,highest));
+    if(width===natural&&left===anchor.right-width)return;
+    menu.style.width=`${width}px`;menu.style.right='auto';menu.style.left=`${left-anchor.left}px`;
+  };
   for(const entry of menus)entry.toggle.addEventListener('click',()=>{
     const show=entry.menu.hidden;closeMenus();
     entry.menu.hidden=!show;entry.toggle.setAttribute('aria-expanded',String(show));
-    if(show)entry.menu.querySelector('button')?.focus();
+    if(show){placeMenu(entry);entry.menu.querySelector('button')?.focus();}
   });
   const activateView=view=>{
     const open=view==='code';frame.toggleAttribute('data-code-open',open);

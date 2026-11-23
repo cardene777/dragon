@@ -13,7 +13,7 @@ export const shape: BlockShape = {
   definitions: {
     chartShape: {
       description:
-        "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で、dots は項目ごとの件数を点の数で描く",
+        "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で、dots は項目ごとの件数を点の数で、line は時間につれた項目ごとの量の変わりを折れ線で描く",
       enum: [...CHART_SHAPES],
     },
     dotUnit: {

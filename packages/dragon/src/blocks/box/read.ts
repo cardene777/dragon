@@ -12,8 +12,11 @@ import { LANE_ATTRS } from "../item/block";
 import { LANE_MOST } from "../line/block";
 import { urlOf } from "../link/read";
 
-/** 配管の図 (#3389) の箱は関係者で、種類は行から導くので、書ける属性は形を替える `icon` だけ */
-export const PARTY_ATTRS = ["icon"] as const;
+/**
+ * 配管の図 (#3389) の箱は関係者で、種類は行から導くので、書ける属性は形を替える `icon` と、トークンの箱の名前の下の字 `note` (#3803)。
+ * `note` はトークンの箱にだけ書け、トークンの箱かは `hold` の行を全て読んでから槽のブロックが確かめる
+ */
+export const PARTY_ATTRS = ["icon", "note"] as const;
 
 /** 列の図の箱の `order` に書ける並べ方。`none` は順番の無い置き場 (#3351) */
 export const ORDERS = ["none"] as const;
@@ -93,6 +96,8 @@ export const reading: BlockReading<BoxMessages> = {
       state.claim(source, declared.id, declared.idAt);
       state.figure.firstBox ??= source;
       const { note, ...look } = readLook(source, declared.attrs, state.m);
+      const noteAttr = declared.attrs.get("note");
+      if (noteAttr && state.kind === "pipe") (state.figure.pipe.notes ??= []).push({ source, id: declared.id, at: noteAttr.at });
       const link = declared.attrs.get("link");
       const order = declared.attrs.get("order");
       if (order && state.kind !== "lineup") throw fail(source, order.at, state.m.lineupOnlyAttr("order"));

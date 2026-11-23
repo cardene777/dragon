@@ -8,7 +8,14 @@
  * 子の process を起こす呼び出しも同じ形で `CHILD` から辿る。
  * 繰り返し (`for`、`while`、配列の `map` などに渡した関数) の中の呼び出しは、何回起きるか字から決まらないので数を無限と数える。
  * 説明の文と字の列の中の名前は呼び出しでないので数えない。
+ *
+ * 子の process を起こす仕事と頁を開く仕事は、repo の全ての件で件の中に置かない (#3816)。
+ * 件を持つ file を集める (`caseFiles`) と、件の中のその呼び出しを件の名前と共に挙げる (`childOrPageIn`) もここが持つ。
+ *
+ * 頁を読む待ちに上限を付ける部品は`page-wait.ts`だけが持つ (#3843)。部品の写しを名前に依らず形で挙げる (`waitCopiesIn`) もここが持つ。
  */
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import ts from "typescript";
 
 /** 図を描く、画面を置く、書き出す、子の process を起こす、頁を開く仕事の名前。同じ file の中の関数は、これを呼べば重い名前に加わる */
@@ -45,10 +52,17 @@ export const HEAVY = new Set([
   "openedAggregator",
   // 図を JSON Schema で検査する。全ての部品の図の記法を 1 件で検査すると、混んだ機械で 1 件の上限に近づいた
   "validateDiagram",
+  // 頁を開く呼び出し。混んだ機械で、件の中で Chromium の頁を開く件が 1 件の上限を超えた (#3815)
+  "fileChromium",
+  "newContext",
+  "newPage",
 ]);
 
 /** 子の process を起こす名前。同じ file の中の関数は、これを呼べば子の process を起こす名前に加わる */
 export const CHILD = new Set(["runCli", "spawnSync", "spawn", "execFile", "execFileSync", "fork", "execSync", "inFreshNode"]);
+
+/** Chromium の頁を開く名前 (#3815、#3816)。同じ file の中の関数は、これを呼べば頁を開く名前に加わる */
+export const PAGE = new Set(["fileChromium", "newContext", "newPage", "withPage", "withSite", "withCapturePage"]);
 
 /** 部品を名前の字で引く道具 (`draw("renderDiagram")(...)`)。名前の字を呼び出しの名前に数える */
 const BY_NAME = new Set(["draw", "api"]);
@@ -70,6 +84,8 @@ export interface FoundCase {
   heavy: Call[];
   /** 件の中の子の process を起こす呼び出し */
   child: Call[];
+  /** 件の中の Chromium の頁を開く呼び出し */
+  page: Call[];
   /** 件が、file を読み込む段で済ませた仕事の結果を読む (`atLoad` で作った物の `get()`) */
   readsAtLoad: boolean;
 }
@@ -256,6 +272,7 @@ export function casesIn(source: string, fileName = "checked.test.ts"): FoundCase
   const functions = namedCalls(file);
   const heavy = reach(HEAVY, functions);
   const child = reach(CHILD, functions);
+  const page = reach(PAGE, functions);
   const loaded = atLoadNames(file);
   const found: FoundCase[] = [];
   const visit = (node: ts.Node): void => {
@@ -268,6 +285,7 @@ export function casesIn(source: string, fileName = "checked.test.ts"): FoundCase
           name: first.text,
           heavy: calls.filter((c) => heavy.has(c.name)),
           child: calls.filter((c) => child.has(c.name)),
+          page: calls.filter((c) => page.has(c.name)),
           readsAtLoad: readsLoaded(body, loaded),
         });
       }
@@ -283,3 +301,117 @@ export const countOf = (calls: readonly Call[]): number => (calls.some((c) => c.
 
 /** 呼び出しを人が読む形にする (`render`、`checkLayoutText (繰り返しの中)`) */
 export const describeCalls = (calls: readonly Call[]): string => calls.map((c) => (c.looped ? `${c.name} (繰り返しの中)` : c.name)).join("、");
+
+/**
+ * 件を持つ file の名前。vitest が回す検査の file (`vitest.config.ts` の `include`) と、
+ * `kind-cli.test.ts` と `kind-playground.test.ts` が読む種類の検査の助けの file (`*-cli-checks.ts`、`*-playground-checks.ts`)
+ */
+const CASE_FILE = /(?:\.test\.(?:ts|tsx|mjs)|-checks\.ts)$/;
+
+/** 件を持つ file を探す置き場 (repo の根から)。package の検査は `packages/<名前>/test`、見本帳の検査は `apps/<名前>/src` に在る */
+const CASE_PLACES: readonly (readonly [string, string])[] = [
+  ["packages", "test"],
+  ["apps", "src"],
+];
+
+/** repo の根 `root` から見た、件を持つ全ての file の path (#3816)。子の process を起こさずに字の置き場を辿る */
+export function caseFiles(root: string): string[] {
+  const out: string[] = [];
+  for (const [top, inner] of CASE_PLACES) {
+    if (!existsSync(join(root, top))) continue;
+    for (const name of readdirSync(join(root, top))) {
+      const place = join(top, name, inner);
+      if (!existsSync(join(root, place))) continue;
+      for (const rel of readdirSync(join(root, place), { recursive: true, encoding: "utf8" }))
+        if (!rel.split("/").includes("node_modules") && CASE_FILE.test(rel)) out.push(join(place, rel));
+    }
+  }
+  return out.sort();
+}
+
+/**
+ * file の字から、件の中で子の process を起こすか頁を開く件を `file > 件の名前: 理由` の形で全て返す (#3816)。
+ * 同じ file の関数を通した呼び出しも数え、file を読み込む段 (`atLoad`) と前処理の中の呼び出しは件の中に数えない
+ */
+export function childOrPageIn(source: string, fileName: string): string[] {
+  return casesIn(source, fileName).flatMap((c) => {
+    const why = [
+      ...(c.child.length > 0 ? [`子の process を起こす ${describeCalls(c.child)}`] : []),
+      ...(c.page.length > 0 ? [`頁を開く ${describeCalls(c.page)}`] : []),
+    ];
+    return why.length > 0 ? [`${fileName} > ${c.name}: ${why.join("。")}`] : [];
+  });
+}
+
+/** 待ちを上限で切る写しの形 (#3843) */
+const RACE_COPY = "Promise.raceとsetTimeoutで切る";
+/** 期限まで読み直す写しの形 (#3843) */
+const POLL_COPY = "期限まで50msごとに読み直す";
+/** 読み直す写しが待つ間 (ms) */
+const POLL_MS = 50;
+
+type FunctionNode = ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction | ts.MethodDeclaration;
+
+const isFunctionNode = (node: ts.Node): node is FunctionNode =>
+  ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node) || ts.isMethodDeclaration(node);
+
+/** 関数の名前。宣言の名前か、関数を入れた変数と欄の名前。名前の無い関数は「(名前の無い関数)」 */
+function functionName(node: FunctionNode): string {
+  if (node.name !== undefined && ts.isIdentifier(node.name)) return node.name.text;
+  const { parent } = node;
+  if ((ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent)) && ts.isIdentifier(parent.name)) return parent.name.text;
+  return "(名前の無い関数)";
+}
+
+/** `a.b` の形の `a` と `b` が `owner` と `name` か */
+const isMember = (node: ts.Node, owner: string, name: string): boolean =>
+  ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === owner && node.name.text === name;
+
+/** 呼び出しの名前の最後の語 (`setTimeout(...)` と `globalThis.setTimeout(...)` は `setTimeout`) */
+const calleeTail = (callee: ts.Expression): string | undefined =>
+  ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : undefined;
+
+/** 関数の中身 (中の関数を含む) が持つ写しの形 */
+function copyShapes(fn: FunctionNode): string[] {
+  let race = false;
+  let timer = false;
+  let now = false;
+  let pollWait = false;
+  const visit = (node: ts.Node, inLoop: boolean): void => {
+    if (ts.isCallExpression(node)) {
+      if (isMember(node.expression, "Promise", "race")) race = true;
+      if (calleeTail(node.expression) === "setTimeout") {
+        timer = true;
+        const ms = node.arguments[1];
+        if (inLoop && ms !== undefined && ts.isNumericLiteral(ms) && Number(ms.text) === POLL_MS) pollWait = true;
+      }
+    }
+    if (isMember(node, "Date", "now")) now = true;
+    const loop = inLoop || ts.isIterationStatement(node, false);
+    ts.forEachChild(node, (child) => visit(child, loop));
+  };
+  if (fn.body !== undefined) visit(fn.body, false);
+  return [...(race && timer ? [RACE_COPY] : []), ...(pollWait && now ? [POLL_COPY] : [])];
+}
+
+/**
+ * fileの字から、待ちに上限を付ける部品 (`page-wait.ts`) の写しを`file > 関数の名前: 形`の形で全て返す (#3843)。
+ * 名前に依らず形で探す。`Promise.race`と`setTimeout`の両方を呼ぶ関数と、繰り返しの中で50msの`setTimeout`を待ち`Date.now()`で期限を見る関数を写しと数える。
+ * 写しを中に持つ外側の関数は挙げず、形を持つ一番内側の関数だけを挙げる。説明の文と字の列の中の字は数えない
+ */
+export function waitCopiesIn(source: string, fileName: string): string[] {
+  const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const matched: { fn: FunctionNode; shapes: string[] }[] = [];
+  const visit = (node: ts.Node): void => {
+    if (isFunctionNode(node)) {
+      const shapes = copyShapes(node);
+      if (shapes.length > 0) matched.push({ fn: node, shapes });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  const inside = (inner: ts.Node, outer: ts.Node): boolean => inner !== outer && inner.pos >= outer.pos && inner.end <= outer.end;
+  return matched
+    .filter((m) => !matched.some((other) => inside(other.fn, m.fn)))
+    .map((m) => `${fileName} > ${functionName(m.fn)}: ${m.shapes.join("、")}`);
+}
