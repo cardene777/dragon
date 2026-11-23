@@ -8,30 +8,22 @@
  * `closest('[data-node]')` を読む。帯と経路の部品が既に同じ属性で箱の id を持つので、名前を揃える。
  * 線と札は `data-node` を持たない。押した所の外側を辿った時に、線の札から箱を引かないため。
  *
+ * ここは流れ図と構成図の 2 つの種類だけを読む。種類を読むほど、その種類の描く所を変えた時に選ばれる検査が増えるため (#3763)。
+ * 見本帳の全ての種類の図が箱の id を持つかは、全ての種類を既に読む `examples.test.ts` が確かめる。
+ *
  * `dragon embed` で書き出した 1 枚の HTML は、埋めた script がこの検査と同じ描く処理で開いた頁の中で描く。
  * 0.79.7 の枝は書き出す時に図を描く処理 (#3801) を持たないので、書き出した字の検査を持たない。
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { api, type Json } from "./diagram-support";
+import { api } from "./diagram-support";
 import { draw } from "./render-support";
 import "../src/kind-use/architecture";
-import "../src/kind-use/cycle";
 import "../src/kind-use/flow";
-import "../src/kind-use/git";
-import "../src/kind-use/lineup";
-import "../src/kind-use/matrix";
-import "../src/kind-use/pipe";
-import "../src/kind-use/sankey";
-import "../src/kind-use/sequence";
-import "../src/kind-use/state";
-import "../src/kind-use/time";
-import "../src/kind-use/tree";
 
 // 検査は repo の上から回すので、repo の上を作業の場所から取る (`embed-docs.test.ts` と同じ)
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages", "dragon");
 
 /** 記法を読んで描いた SVG の字。読めなければ誤りを名指して落とす */
 function svgOf(text: string): string {
@@ -157,41 +149,6 @@ describe("箱と囲みの id", () => {
     const label = textsOf(doc, "呼ぶ");
     expect(label.length, "線の札 呼ぶ が描いた図に無い").toBeGreaterThan(0);
     for (const t of label) expect(idOf(t.closest("[data-node]")), "線の札 呼ぶ が data-node を持つ要素の中に在る").toBeUndefined();
-  });
-});
-
-/** 見本帳の見本のうち、記法に `box` を持つ図。種類ごとに分ける */
-function galleryBoxes(): Map<string, { file: string; diagram: Json; ids: string[] }[]> {
-  const dir = join(PACKAGE, "examples");
-  const byKind = new Map<string, { file: string; diagram: Json; ids: string[] }[]>();
-  for (const file of readdirSync(dir).filter((f: string) => f.endsWith(".json") && !f.endsWith(".en.json")).sort()) {
-    const diagram = JSON.parse(readFileSync(join(dir, file), "utf8")) as Json & { kind: string; blocks?: { box?: { id: string }[] } };
-    const ids = (diagram.blocks?.box ?? []).map((b) => b.id);
-    if (ids.length === 0) continue;
-    const list = byKind.get(diagram.kind) ?? [];
-    list.push({ file, diagram, ids });
-    byKind.set(diagram.kind, list);
-  }
-  return byKind;
-}
-
-const GALLERY = galleryBoxes();
-
-/**
- * 配管の図は `[fold]` の呼び出しの内側にしか出ない関係者を、開くまで描かない (#3389)。
- * 畳んだままでは押せる箱が無いので、畳んだ呼び出しを全て開いて描き、全ての箱を確かめる。
- * 開く番号は出てきた順の 0 からで、見本の畳む呼び出しの数より多く並べても描く物は変わらない
- */
-const OPEN_ALL = Array.from({ length: 32 }, (_, i) => i);
-
-describe.each([...GALLERY.keys()])("見本帳の %s の図", (kind) => {
-  it("every-gallery-box-carries-its-id", () => {
-    const missing: string[] = [];
-    for (const { file, diagram, ids } of GALLERY.get(kind) ?? []) {
-      const found = new Set(nodes(docOf(draw("renderDiagram")(diagram, { open: OPEN_ALL }).svg)).map(idOf));
-      for (const id of ids) if (!found.has(id)) missing.push(`${file} の ${id}`);
-    }
-    expect(missing, "箱の id を data-node に持つ要素が描いた図に無い").toEqual([]);
   });
 });
 

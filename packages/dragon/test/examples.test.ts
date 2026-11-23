@@ -8,7 +8,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Diagram } from "../src/schema";
-import { api, exampleText } from "./diagram-support";
+import { api, exampleText, type Json } from "./diagram-support";
+import { draw } from "./render-support";
 // 全ての種類の見本を描くので、全ての種類を読む (#3763)
 import "./all-kinds";
 
@@ -47,5 +48,44 @@ describe("見本の説明 (#3240)", () => {
     expect(files.length, "packages/dragon/examples の見本の file の数").toBeGreaterThan(0);
     const numbered = files.filter((file) => /\(#\d+\)/u.test(readFileSync(join(examples, file), "utf8").split("\n")[0] ?? ""));
     expect(numbered, "最初の注釈の行に作業の番号を持つ見本の file").toEqual([]);
+  });
+});
+
+/** 見本帳の見本のうち、記法に `box` を持つ図。種類ごとに分ける */
+function galleryBoxes(): Map<string, { file: string; diagram: Json; ids: string[] }[]> {
+  const byKind = new Map<string, { file: string; diagram: Json; ids: string[] }[]>();
+  for (const file of readdirSync(examples).filter((f) => f.endsWith(".json") && !f.endsWith(".en.json")).sort()) {
+    const diagram = JSON.parse(readFileSync(join(examples, file), "utf8")) as Json & { kind: string; blocks?: { box?: { id: string }[] } };
+    const ids = (diagram.blocks?.box ?? []).map((b) => b.id);
+    if (ids.length === 0) continue;
+    const list = byKind.get(diagram.kind) ?? [];
+    list.push({ file, diagram, ids });
+    byKind.set(diagram.kind, list);
+  }
+  return byKind;
+}
+
+const GALLERY = galleryBoxes();
+
+/**
+ * 配管の図は `[fold]` の呼び出しの内側にしか出ない関係者を、開くまで描かない (#3389)。
+ * 畳んだままでは押せる箱が無いので、畳んだ呼び出しを全て開いて描き、全ての箱を確かめる。
+ * 開く番号は出てきた順の 0 からで、見本の畳む呼び出しの数より多く並べても描く物は変わらない
+ */
+const OPEN_ALL = Array.from({ length: 32 }, (_, i) => i);
+
+/**
+ * 見本帳の全ての種類の図で、描いた箱が記法の id を `data-node` に持つ (#3795)。
+ * 全ての種類を描くので、全ての種類を既に読むこの file に置く。押した箱の id の読み方は `node-ids.test.ts` が確かめる
+ */
+describe.each([...GALLERY.keys()])("見本帳の %s の図", (kind) => {
+  it("every-gallery-box-carries-its-id", () => {
+    const missing: string[] = [];
+    for (const { file, diagram, ids } of GALLERY.get(kind) ?? []) {
+      const svg = draw("renderDiagram")(diagram, { open: OPEN_ALL }).svg;
+      const found = new Set([...svg.matchAll(/\sdata-node="([^"]*)"/gu)].map((m) => m[1]));
+      for (const id of ids) if (!found.has(id)) missing.push(`${file} の ${id}`);
+    }
+    expect(missing, "箱の id を data-node に持つ要素が描いた図に無い").toEqual([]);
   });
 });
