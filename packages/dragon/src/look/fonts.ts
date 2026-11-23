@@ -1,8 +1,8 @@
 /**
  * 図が使う 2 つの字。どちらも package の依存として同梱する。
  *
- * 描いた SVG は字をこの 2 つの名前でしか名指さない。端末の字の名前を持たないので、
- * 同梱した字が読み込まれていない時に、端末の字へ黙って落ちて幅が変わることが無い。
+ * 描いた SVG は字をこの 2 つの名前から名指し、その後に代わりの字を並べる (`values.ts` の `FONT_STACKS`、#3847)。
+ * 字の幅は同梱した字の幅の表で見積もるので、同梱した字を読まない頁では、代わりの字で描いた字が数px広くなることがある。
  * 頁に字を読み込むのは `@cardenelabs/dragon/fonts` の入口 (`load-fonts.ts`) が持つ。
  */
 export const FONTS = { sans: "Noto Sans JP Variable", mono: "JetBrains Mono Variable" } as const;

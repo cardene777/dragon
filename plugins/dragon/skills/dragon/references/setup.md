@@ -135,7 +135,7 @@ const player = mountDiagram(host, parsed.diagram, { lang: "en" });
 const { svg } = renderDiagram(parsed.diagram, { still: false });
 ```
 
-- Import `@cardenelabs/dragon/fonts` once. Layout measures text with the bundled fonts, so without it text can overflow.
+- Import `@cardenelabs/dragon/fonts` once. Layout measures text with the bundled fonts. Without it, text is drawn in the device's sans-serif fonts and can be a few pixels wider than measured.
 - `parseNotation` returns `{ ok: true, diagram }` or `{ ok: false, errors }`. Each error has `line`, `column` and `message`. A readable diagram with similar box names also has `notices` in the same shape.
 - `renderDiagram(diagram, options)` returns `{ svg, ... }`. The SVG plays on a loop. `still: true` draws one picture of the last step with every label shown.
 - `mountDiagram(host, diagram, options)` places a player and returns it (`next`, `prev`, `play`, `pause`, `destroy`). Options include `lang`, `palette`, `theme`, `colors`, `pausedAt`, `playOnce`, `still`, `zoom` and `onStep`.
@@ -150,4 +150,4 @@ const { svg } = renderDiagram(parsed.diagram, { still: false });
 npx dragon embed page.html
 ```
 
-It replaces the script line with the bundled script and writes `page.offline.html` (`--out <file>` picks the name). The file fetches nothing, and draws in the device's fonts.
+It replaces the script line with the bundled script and writes `page.offline.html` (`--out <file>` picks the name). The file fetches nothing, and draws in the device's sans-serif fonts listed after the bundled fonts.
