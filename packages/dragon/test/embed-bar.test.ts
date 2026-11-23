@@ -1603,11 +1603,13 @@ describe("同梱した字を読まない頁の字 (#3847)", () => {
     // dragon embed で埋めた頁と保存した HTML も、同梱の字の後に並べた端末の字で描く
     expect(readme).not.toContain("draws in the device's fonts because the bundled fonts are not embedded");
     expect(readmeJa).not.toContain("同梱の字を埋めないので端末の字で描く");
-    // 仕様の `render-uses-bundled-fonts` を名指す行は、端末の字に落ちないと書かない
-    const spec = repoText(".ikkan/specs/diagram-core.md")
+    // 仕様で確かめ方の欄に `render-uses-bundled-fonts` を名指す行は、条件の欄に端末の字に落ちないと書かない。
+    // この課題の文書の受入条件の行は、条件の文の中でこの言い回しを引くので、行の全体ではなく確かめ方の欄で選ぶ
+    const rows = repoText(".ikkan/specs/diagram-core.md")
       .split("\n")
-      .filter((line) => line.includes("render-uses-bundled-fonts"));
-    expect(spec.length, "仕様に render-uses-bundled-fonts を名指す行が無い").toBeGreaterThan(0);
-    expect(spec.filter((line) => line.includes("端末の字に落ちない")), "端末の字に落ちないと書く仕様の行").toEqual([]);
+      .map((line) => line.split(" | "))
+      .filter((cells) => cells.length >= 3 && (cells[1] ?? "").includes("`render-uses-bundled-fonts`"));
+    expect(rows.length, "仕様に render-uses-bundled-fonts を確かめ方に名指す行が無い").toBeGreaterThan(0);
+    expect(rows.map((cells) => cells[0] ?? "").filter((criterion) => criterion.includes("端末の字に落ちない")), "端末の字に落ちないと書く仕様の行").toEqual([]);
   });
 });
