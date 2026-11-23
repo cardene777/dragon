@@ -32,7 +32,7 @@ import type { SequenceLook } from "./look-store";
 import type { EdgeTime, LabelTime, Timeline } from "../timeline";
 import { USER_DASH, userEdgeOf } from "../user-blocks";
 import type { Frame, Motion } from "./motion";
-import { type Ctx, cssFont, esc, pathOf, r1 } from "./parts";
+import { type Ctx, cssFont, esc, nodeAttr, pathOf, r1 } from "./parts";
 
 /** シーケンス図の部品の見た目 (Tracelyth #91、#93、#97、#111) */
 const SEQ_CSS = [
@@ -161,7 +161,7 @@ function seqHead(box: SequenceLayout["boxes"][number], y: number, corner: Corner
   // 名前は他の図の箱の名前と同じ `dg-sn` も持つ。置いた頁は図の名前をこの印で読み、図を縮める下限の字の大きさもこの字で測る
   const name = `<text class="dg-sn dg-sqh-n" x="${r1(tx)}" y="${r1(box.sub !== undefined ? my - 1.5 : my + 4.6)}">${esc(box.name)}</text>`;
   const note = box.sub !== undefined ? `<text class="dg-sqh-s" x="${r1(tx)}" y="${r1(my + 11.5)}">${esc(box.sub)}</text>` : "";
-  return `<g class="dg-sqh ${who ? "dg-sqh-who" : "dg-sqh-cab"}" data-head="${esc(box.id)}" style="${cs(box.color)}"><rect class="dg-sqh-fr" x="${r1(box.x)}" y="${r1(y)}" width="${r1(box.w)}" height="${S.headH}" rx="${partRadius(corner, who ? S.headH / 2 : 10)}"/>${mark}${initial}${name}${note}</g>`;
+  return `<g class="dg-sqh ${who ? "dg-sqh-who" : "dg-sqh-cab"}" data-head="${esc(box.id)}"${nodeAttr(box.id)} style="${cs(box.color)}"><rect class="dg-sqh-fr" x="${r1(box.x)}" y="${r1(y)}" width="${r1(box.w)}" height="${S.headH}" rx="${partRadius(corner, who ? S.headH / 2 : 10)}"/>${mark}${initial}${name}${note}</g>`;
 }
 
 /** 矢印の先。破線の戻りは開いた矢じり、実線は塗った矢じりで、お金の矢印は大きく描く */

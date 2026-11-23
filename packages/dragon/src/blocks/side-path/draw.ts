@@ -9,7 +9,7 @@ import type { SceneBox, ScenePath, SceneSide } from "../../layout/scene";
 import { type ColorKey, type Corner, LOOK, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import { ALWAYS, type Ink, type Trace } from "../../render/ink";
-import { arrowHead, esc, pathOf, r1, write } from "../../render/parts";
+import { arrowHead, esc, nodeAttr, pathOf, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
 import { drawsIcon, glyph } from "../icon/draw";
 
@@ -50,7 +50,7 @@ export function ghostCard(box: SceneBox, ink: Ink[], corner: Corner): string {
   const frame = { x: box.x, y: box.y, w: box.w, h: box.h };
   const sub = box.sub ? write(ink, "dg-ss", tx, box.cy + G.subY, box.sub, TYPE.boxSub, ALWAYS, "start") : "";
   return (
-    `<g data-ghost="${esc(box.id)}" style="${cs(box.color)}">${frameShape(corner, ' class="dg-ghost"', frame, `<rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>`)}` +
+    `<g data-ghost="${esc(box.id)}"${nodeAttr(box.id)} style="${cs(box.color)}">${frameShape(corner, ' class="dg-ghost"', frame, `<rect class="dg-ghost" x="${r1(box.x)}" y="${r1(box.y)}" width="${r1(box.w)}" height="${box.h}" rx="${radius}"/>`)}` +
     `${mark}${write(ink, "dg-sn", tx, box.cy + nameY, box.name, TYPE.boxName, ALWAYS, "start")}${sub}</g>`
   );
 }

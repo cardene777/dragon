@@ -78,7 +78,7 @@ import type { Timeline } from "../timeline";
 import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, esc, cssFont as font, r1, write } from "./parts";
+import { type Ctx, esc, cssFont as font, nodeAttr, r1, write } from "./parts";
 import { Shifter } from "./pipe-shift";
 import { far, gapOf, gridOf, PathPoints, SpotGrid } from "./pipe-spot";
 
@@ -1552,7 +1552,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const bare = (layout.ledgers ?? []).some((l) => l.box === p.id);
       // 前の値と今の値を並べて見せる行を持つ段は、その段に呼ばれなくても箱を薄くしない (#3721)
       const changed = layout.plates.some((x) => x.party === p.id && x.step === s && x.boxed && x.was !== undefined);
-      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved || changed, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }), bare)));
+      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved || changed, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }) + nodeAttr(p.id), bare)));
     }
     // 槽と水。水と数は、変わった出来事の時刻に段の始まりの値から今の値へ替わる
     for (const g of layout.glasses.filter((x) => x.step === s)) {
@@ -1661,7 +1661,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 名札と輪
     for (const p of layout.parties.filter((x) => x.shape !== "token")) {
       const involved = pillOf(p.id)?.involved ?? false;
-      const attrs = on({ party: p.id, role: p.role });
+      const attrs = on({ party: p.id, role: p.role }) + nodeAttr(p.id);
       parts.push(
         dimmed(
           involved,
