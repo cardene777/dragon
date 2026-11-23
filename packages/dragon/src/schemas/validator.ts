@@ -4,12 +4,13 @@
  * 形に書けない決まりは、絵柄集の絵柄 (`tabler:<名前>`) が絵柄集に在るか。5,000 を超える名前を形に並べると検査の関数が大きくなるので、
  * 形は名前の書き方だけを決め、在るかは原本の検査 (`validateDiagram`) が登録した絵柄集の表と比べる。
  * 量の図の漏斗の見た目 (#3621) で前の項目より大きい値を書いていないかと、折れ線の見た目 (#3802) の段の数と値を書かない項目と `none` の値も、
- * 形に書けないので、ここで確かめる。
+ * 形に書けないので、ここで確かめる。配管の図の箱の名前の下の字 (`sub`) がトークンの箱だけに在るか (#3803) も、残高の欄と比べるのでここで確かめる。
  * 全部を持つ入口は読み込みの時に登録し、軽い入口は原本の JSON を読む前にだけこの塊を後から読む
  */
 import { funnelErrors } from "../blocks/chart-shape/funnel";
 import { lineErrors } from "../blocks/chart-shape/line";
 import { holdLinkErrors } from "../blocks/hold/link-fields";
+import { holdNoteErrors } from "../blocks/hold/note-fields";
 import { tablerErrors } from "../blocks/icon/set-fields";
 import type { FieldError } from "../schema";
 import type { NotationLang } from "../words";
@@ -18,4 +19,4 @@ import shape from "./validate-diagram.js";
 /** 量の図の見た目ごとの値の誤り。見た目の違う図の誤りは返さない */
 const chartErrors = (input: unknown, lang: NotationLang): FieldError[] => [...funnelErrors(input, lang), ...lineErrors(input, lang)];
 
-export const VALIDATOR = { shape, tablerErrors, chartErrors, holdLinkErrors };
+export const VALIDATOR = { shape, tablerErrors, chartErrors, holdLinkErrors, holdNoteErrors };

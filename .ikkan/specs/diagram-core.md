@@ -30,7 +30,7 @@
 | 色味を指定せずに描いた時、紙と墨で描く | `pnpm test`の検査`palette-defaults-to-paper`が通る | #2985 |
 | 色味 4 案 (澄んだ色 / 紙と墨 / 夜の計器 / アーケードの画面) の明暗それぞれで、1 型 / 2 型 / 3 型を模した全ての 2 色の差が 6 以上、通常の見え方の差が 15 以上ある | `pnpm test`の検査`palettes-keep-cvd-separation`が通る | #2985 |
 | 図の種類ごとの描画が、色、字、余白、動きの値を共通の値の表からだけ読み、描画の file に色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #2985 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #2985 #3212 #3847 |
 | 動きを嫌う設定で図を開いた時、自動再生せず、段ごとの止め絵を釦で送れる | `pnpm test`の検査`reduced-motion-shows-stills`が通る | #2985 |
 | 図を開いた時、各段の題と本文を段の順に読み上げの道具から読める | `pnpm test`の検査`steps-exposed-to-screen-readers`が通る | #2985 |
 | 依存を足した後も、入れた依存が公開されている中身と一致する | `pnpm verify:deps`が終了 0 | #2985 |
@@ -247,7 +247,7 @@
 | 空白の類だけが入る字の file は、描く空白の類の字のほかに同じ file の形のある字を 1 つだけ足して含み、`unicode-range` には描く空白の類の字だけを載せる | `pnpm test`の検査`blank-font-file-adds-one-shaped-char`と`font-subset-range-lists-drawn-chars`が通る | #3213 |
 | 英語の見本 10 個と、全角空白だけを `[117]` の file で描く図で、書き出した HTML が埋める字の file を Chromium が全て読める | `pnpm test`の検査`export-font-faces-all-load`が通る | #3213 |
 | HTML に書き出した時、形のある字が入る字の file は図で使った字だけを含み、図で描く字はどれかの字の file に入る | `pnpm test`の検査`html-export-embeds-font-subset`が通る | #3213 |
-| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字で描かれ、端末の字に落ちない | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 |
+| 頁と書き出しの字が、同梱した Noto Sans JP と等幅の字を先に名指し、決めた代わりの字の並びを1度だけ持つ | `pnpm test`の検査`render-uses-bundled-fonts`が通る | #3213 #3847 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3213 |
 | 表を持つ9種の見本を枠の幅 321px と 565px と 778px に寄って追う図で置いた時、表 (`.dg-strip`) の左端と右端が図の幅の中に在り、全ての欄の名前と値が表の内側に在る | `pnpm test`の検査`follow-strip-whole-in-figure`が通る | #3270 |
 | oauth と ccip を枠の幅 390px と 560px に寄って追う図で置いた時、表は窓の中身の動く組の外に描かれ、窓の枠と全体図の地の下に重ならずに在る | `pnpm test`の検査`follow-strip-below-window`が通る | #3270 |
@@ -397,3 +397,17 @@
 | chartの`donut`の見本`os-share`を幅320で、`staking-rewards`を幅280で寄って追う形に置いた時、全体図に部品が1つ以上描かれ、どの部品も全体図の描く所に収まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-os-share-w320`と`overview-has-parts-staking-rewards-w280`が通る | #3852 |
 | `os-share`を幅320で、`staking-rewards`を幅280で置いた時、全体図に、最後の段で値を持つ項目の数と同じ数の塗った輪の区切り(`path.dg-mm-area`)と、凡例の行の数と同じ数の札(`rect.dg-mm-card`)が描かれる。最初の項目の輪の区切りは12時の向きから時計回りに始まる | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-chart-donut-ring-and-legend`が通る | #3852 |
 | #3849で直した22件の全体図と、種類ごとの全体図の部品と、mindの`wallet-ux`の全体図は今のまま変わらない | `pnpm exec vitest run packages/dragon/test/follow-overview.test.ts`の検査`overview-has-parts-salary`と`overview-has-parts-nft-sale-w760`と`overview-sankey-bars-and-ribbons`と`overview-venn-translucent-discs`と`overview-er-tables-heads-links`と`overview-chart-lines-and-points`と`overview-cycle-segments-and-return`と`overview-mind-unchanged`が通る | #3852 |
+| 図の字の並びは1つだけで、`--sans`は`"Noto Sans JP Variable","Noto Sans JP","Noto Sans CJK JP",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif`、`--mono`は`"JetBrains Mono Variable","JetBrains Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace`の順に並ぶ。別の並びを持つ`FONT_STACK_VARS`は無い | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`font-stack-order-matches-decision`が通る | #3847 |
+| 描いたSVGは、書き出すSVGも含めて、`--sans`と`--mono`を決めた並びで1度だけ名指し、字を使う所はどれもその変数を読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`render-uses-bundled-fonts`が通る(今ある検査を書き換える) | #3847 |
+| 帯の付かない再生の部品の帯の`style`が、`--sans`と`--mono`を決めた並びで持つ | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`player-bar-font-has-fallback-stack`が通る | #3847 |
+| 同梱した字を読まず、Noto Sans JPも無い形の頁をChromiumで開くと、図の字と帯の題と説明文がどれも明朝とTimesで描かれず、計算した`font-family`が`sans-serif`か`monospace`で終わる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`gothic-without-noto`が通る | #3847 |
+| 同梱した字を読む頁では、図の字と帯の字がNoto Sans JPとJetBrains Monoだけで描かれる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`same-font-with-noto`が通る | #3847 |
+| 使い方の頁、packageのREADMEの英語と日本語、プラグインの文書は、同梱の字を読まない頁では代わりのゴシックで描かれ、字の幅が数px違うことがあると書く。仕様`.ikkan/specs/diagram-core.md`の`render-uses-bundled-fonts`を名指す2行は「端末の字に落ちない」と書かない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`docs-describe-gothic-fallback`が通る | #3847 |
+| 帯つきの図の字の並びは`sans-serif`で終わる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`diagram-font-has-fallback-stack`が通る | #3847 |
+| 止めて置く図の字の並びは`sans-serif`と`monospace`で終わる | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-font-has-fallback-stack`が通る | #3847 |
+| 字の file を読めない頁でHTMLに書き出すと、字の名前と範囲を名指して断る | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-refuses-unreadable-font`が通る | #3847 |
+| ブラウザで書き出すHTMLは、字の`@font-face`のほかは`dragon export`のHTMLと同じになる | `pnpm exec vitest run packages/dragon/test/capture.test.ts`の検査`capture-html-matches-export`が通る | #3847 |
+| 見本の指紋の記録`packages/dragon/test/fixtures/examples-svg.json`は、SVGの指紋1926件だけを書き直し、置き場所の指紋1926件、時刻の指紋1926件、読んだ原本の指紋574件は変えずに、検査が通る | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3847 |
+| 見本の読んだ原本のJSONの鍵の順は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`parsed-json-key-order-unchanged`が通る | #3847 |
+| jsDelivrの1行の入口が最初に読むscriptは、gzipで90,000byte以下のままである | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3847 |
+| 見本帳の頁が最初に読むscriptとCSSは、gzipで186KB以下のままである | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3847 |

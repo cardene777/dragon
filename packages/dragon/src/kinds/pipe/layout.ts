@@ -146,7 +146,7 @@ export interface PipeParty extends Rect {
   row?: number;
   /** 名前の字。丸の名札は丸の下、箱は箱の中に書く */
   label: PipeText;
-  /** 残高の行を持つトークンの箱の、名前の下の `balanceOf` の字 (Tracelyth #175) */
+  /** 残高の行を持つトークンの箱の、名前の下の字。書き手の `note` か、書かない箱は `balanceOf` (Tracelyth #175、#3803) */
   sub?: PipeText;
   /** 決めた形で並べたトークンの箱が扱うトークン */
   token?: string;
@@ -4429,6 +4429,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
   ) as LinkedHold[];
   const names = new Map(diagram.boxes.map((b) => [b.id, b.name]));
   const nameOf = (id: string): string => names.get(id) ?? id;
+  // トークンの箱の名前の下の字。書き手が `note` (原本の `sub`) で替えられ、書かない箱は ERC-20 の関数の名前 `balanceOf` を描く (Tracelyth #175、#3803)
+  const subs = new Map(diagram.boxes.flatMap((b) => (b.sub !== undefined ? [[b.id, b.sub] as const] : [])));
+  const subOf = (id: string): string => subs.get(id) ?? "balanceOf";
   const declaredAt = new Map(diagram.boxes.map((b, i) => [b.id, i]));
   const snapOf = (s: number): Snap => sim.snaps[s] as Snap;
   const amountStyle = sized(T.amount, sizes.amount);
@@ -4674,7 +4677,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       P.token.w,
       topsW(id),
       nameW(id) + P.token.nameW,
-      ...(rowsOf(id).length > 0 ? [textWidth("balanceOf", T.boxSub) + P.token.nameW] : []),
+      ...(rowsOf(id).length > 0 ? [textWidth(subOf(id), T.boxSub) + P.token.nameW] : []),
       ...(lefts.length > 0 ? [Math.max(...lefts) + ROWS.gap + valueColW(id)] : []),
     );
   };
@@ -6730,8 +6733,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           shape,
           ...(shape === "token" ? {} : { row: bandOf(id) === 1 ? maxRow + 1 : rowOf(id) }),
           label,
-          // 残高の行を持つトークンの箱は、名前の下に小さな `balanceOf` の字を置き、行が何の値かを見出しで1度だけ言う (Tracelyth #175)
-          ...(shape === "token" && rowsOf(id).length > 0 ? { sub: textAt("balanceOf", r.x + r.w / 2, r.y + ROWS.subY, T.boxSub, "middle") } : {}),
+          // 残高の行を持つトークンの箱は、名前の下に小さな `note` の字か `balanceOf` の字を置き、行が何の値かを見出しで1度だけ言う (Tracelyth #175、#3803)
+          ...(shape === "token" && rowsOf(id).length > 0 ? { sub: textAt(subOf(id), r.x + r.w / 2, r.y + ROWS.subY, T.boxSub, "middle") } : {}),
           holder: holding.has(id),
         };
       });
