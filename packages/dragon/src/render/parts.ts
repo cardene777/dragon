@@ -22,6 +22,14 @@ import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/**
+ * 箱と囲みを描いた要素に付ける、記法の id (`box <id>` と `group <id>`) を持つ属性 (#3795)。
+ * 図を置いた頁は箱を押した時に `closest('[data-node]')` で押した箱の id を読む。名前の字で探すと同じ名前の箱を取り違えるため。
+ * 線と札には付けない。押した所の外側を辿った時に、線の札から箱を引かないため
+ */
+export const NODE_ATTR = "data-node";
+/** 要素の開きの札に足す ` data-node="<id>"` */
+export const nodeAttr = (id: string): string => ` ${NODE_ATTR}="${esc(id)}"`;
 /** 座標を小数 2 桁に丸める。角の形 (`corner.ts`) も読むため、置き場は `round.ts` が持つ */
 export { r1 };
 

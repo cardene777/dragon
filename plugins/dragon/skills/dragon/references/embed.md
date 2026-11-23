@@ -28,6 +28,22 @@ step Place the order
 </pre>
 ```
 
+## Find the box that was pressed
+
+Every drawn box and group carries its notation id in `data-node`.
+For example, `box api as API server` draws an element with `data-node="api"`.
+To show something when a box is pressed, read the id from the pressed element with `closest('[data-node]')`.
+A box inside a group returns the box, not the group, and lines and labels carry no id.
+
+```html
+<script>
+document.addEventListener("click", (event) => {
+  const node = event.target.closest('[data-node]');
+  if (node) showNote(node.getAttribute("data-node"));
+});
+</script>
+```
+
 ## The SDK function
 
 ```ts

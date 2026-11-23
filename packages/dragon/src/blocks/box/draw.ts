@@ -14,7 +14,7 @@ import { LOOK, MOTION, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
 import { ALWAYS, type Ink, type Shown } from "../../render/ink";
 import type { Motion } from "../../render/motion";
-import { activeKf, type Ctx, esc, r1, rangeKf, write } from "../../render/parts";
+import { activeKf, type Ctx, esc, nodeAttr, r1, rangeKf, write } from "../../render/parts";
 import type { Span } from "../../timeline";
 import { heldFrames } from "../carry/timing";
 import { cs } from "../color/draw";
@@ -149,7 +149,7 @@ export function card(
   const name = ctx.boxName?.(box, ctx.ink, tx, base) ?? write(ctx.ink, "dg-sn", tx, base, box.name, TYPE.boxName, ALWAYS, "middle");
   // 足した箱のブロックの箱は、その定義の色の役で描く (#3399)
   const markup =
-    `<g style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
+    `<g${nodeAttr(box.id)} style="${cs(userBoxOf(box.id)?.color ?? box.color)}">${cardFrame(box, ctx, act, box.y, box.h)}` +
     `${slot}${mark}${name}${subs}</g>`;
   // 箱の中に書いた字 (名前、下の字、絵柄) に箱の名札を付け、崩れの確かめが箱の形の外へはみ出す字を探せるようにする (#3484)
   for (const ink of ctx.ink.slice(inked)) ink.box = box.id;
@@ -164,7 +164,7 @@ export function headCard(box: SceneBox, ctx: Ctx, on: number[], changes: SubChan
   const { pad, h, nameY, subY } = LOOK.follow.head;
   const subs = subLines(box, ctx.m, changes, pad + subY);
   const act = on.length > 0 ? activeKf(ctx, on) : undefined;
-  return `<g style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
+  return `<g${nodeAttr(box.id)} style="${cs(box.color)}">${cardFrame(box, ctx, act, pad, h)}<text class="dg-sn" x="${r1(box.cx)}" y="${r1(pad + nameY)}" text-anchor="middle">${esc(box.name)}</text>${subs}</g>`;
 }
 
 /** 配管の図の名札を描く時に呼ぶ側が渡す、配管の図の値の表 (#3398) */

@@ -53,3 +53,12 @@
 | 帯の無い図の再生の帯は自分では余白を付けず、段の番号の左の端を図の枠の左の端に揃えて、余白を置いた頁に任せる | `pnpm exec vitest run`の検査`plain-bar-leaves-room-to-page`が通る | #3744 |
 | 1 fileのHTMLは、今と同じく再生の部品の下に12px、再生の帯と呼び出しの欄の左右に16pxの余白を付ける | `pnpm exec vitest run`の検査`html-page-keeps-bar-room`が通る | #3744 |
 | scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3744 |
+| `box api as API server`を持つ流れの図を描いた時、その箱を描いた要素が`data-node="api"`を持つ | `pnpm exec vitest run`の検査`box-carries-notation-id`が通る | #3795 |
+| 同じ名前の箱が2つ在る図を描いた時、2つの箱を描いた要素がそれぞれ自分の記法のidを`data-node`に持つ | `pnpm exec vitest run`の検査`same-name-boxes-carry-distinct-ids`が通る | #3795 |
+| 記法の`group <id> as <name>`を持つ図を描いた時、囲みを描いた要素が`data-node="<id>"`を持つ | `pnpm exec vitest run`の検査`group-carries-notation-id`が通る | #3795 |
+| 見本帳の見本のうち記法に`box`を持つ全ての図を描いた時、各`box <id>`のidを`data-node`に持つ要素が描いた図に在る | `pnpm exec vitest run`の検査`every-gallery-box-carries-its-id`が通る | #3795 |
+| 図を置いたページで箱を押した時、ページのscriptが押された要素から`closest('[data-node]')`で箱のidを読め、囲みの中の箱を押すと囲みでなく箱のidを返す | `pnpm exec vitest run`の検査`click-reads-innermost-node-id`が通る | #3795 |
+| `dragon embed`で書き出した1枚のHTMLでも、箱と囲みを描いた要素が`data-node`に記法のidを持つ | `pnpm exec vitest run`の検査`embed-html-keeps-node-ids`が通る | #3795 |
+| 組み込みの文書 (`plugins/dragon/skills/dragon/references/embed.md`と`packages/dragon/README.md`と`packages/dragon/README.ja.md`) が、箱と囲みのidを持つ属性`data-node`と、押した箱のidを`closest('[data-node]')`で読む書き方を持つ | `pnpm exec vitest run`の検査`embed-docs-name-node-attribute`が通る | #3795 |
+| 線と札を描いた要素は`data-node`を持たない | `pnpm exec vitest run`の検査`lines-and-labels-carry-no-node-id`が通る | #3795 |
+| 量の帯の図の棒は、今と同じく`data-node`に記法のidを持つ | `pnpm exec vitest run`の検査`sankey-band-grows-at-its-step`が通る | #3795 |
