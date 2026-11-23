@@ -213,3 +213,17 @@ describe("線の札の字を地の文とコードで分ける (#3850)", () => {
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(changelogEntry(join(ROOT, file), 3850), `${file} に線の札の字の項 (#3850) が無い`).not.toBe("");
   });
 });
+
+describe("見本帳の最初に読む量と使い方の頁の組み込みの節の直し (#3868)", () => {
+  // 検査は repo の上から回すので、repo の上を作業の場所から取る
+  const ROOT = process.cwd();
+  // 最初に読む script から部品の使い方の表を外した直しと、使い方の頁の組み込みの節に5つ目のコードを足した直しの2つの項
+  it("changelog-lists-first-load-part-uses", () => {
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const items = changelogEntry(join(ROOT, file), 3868)
+        .split("\n")
+        .filter((line) => line.startsWith("- ") && line.includes("(#3868)"));
+      expect(items.length, `${file} の #3868 の項の数 (最初に読む量と組み込みの節の2つ)`).toBe(2);
+    }
+  });
+});

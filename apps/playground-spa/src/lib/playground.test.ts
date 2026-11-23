@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
+import { BLOCK_USES } from "../catalog/blocks-uses.gen";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { EMBED_PATH, EMBEDDING_PATH, PATHS } from "../site/routes";
@@ -121,6 +122,19 @@ describe("公開する頁 (#2995)", () => {
     expect(
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),
       "最初に読む script に在る崩れの種類の名前",
+    ).toEqual([]);
+  });
+
+  // 部品の使い方の表 (各ブロックの `gallery/uses.ts`) はカタログの頁だけが見本を探すのに使う。最初に読む script に入ると、
+  // 67 件の表が gzip で約 3KB 上の上限を押し上げるので、表の鍵 (`head:axis` など) が最初の script に無いことを確かめる (#3868)
+  it("first-load-skips-part-uses", () => {
+    const { first } = PART_DESCS.get();
+    const keys = Object.values(BLOCK_USES).flatMap((uses) => Object.keys(uses));
+    expect(keys.length, "部品の使い方の表の鍵を数えられない").toBeGreaterThan(0);
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    expect(
+      keys.filter((key) => first.includes(JSON.stringify(key))),
+      "最初に読む script に在る部品の使い方の表の鍵",
     ).toEqual([]);
   });
 
