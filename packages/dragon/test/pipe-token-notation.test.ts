@@ -11,6 +11,11 @@
  * - 数を移す `move usdc: 100 alice -> bob` の原本と書き戻しと描き方は変えない
  *
  * 描いた槽は `layoutPipe` の `levels` を段ごとに読む。番号の付いた残高の槽は `<トークン> #<番号>` の名前で並ぶ
+ *
+ * トークンの箱の名前の下の字 (#3803 の step 2 で本人が選んだ形)
+ *
+ * - `box usdc as USDC [note: Holding]` の `note` を名前の下に描き、書かない箱は今どおり `balanceOf` を描く
+ * - `note` はトークンの箱にだけ書け、人の箱と契約の箱に書いた行は読む時に誤りとして拒む。原本の JSON の `sub` も同じに拒む
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -285,5 +290,112 @@ describe("記法の説明 (#3722)", () => {
     expect(rows.filter((row) => row.startsWith("hold ") && row.includes("#")), "番号の付いた残高の書き方").not.toEqual([]);
     // 説明の中の例は記法として読める
     for (const example of ["mint usdc: 100 -> alice", "burn usdc: 100 alice", "move art: #1 alice -> bob", "move items: 2 #1 alice -> bob"]) expect(doc, `説明の例 ${example}`).toContain(example);
+  });
+});
+
+describe("トークンの箱の名前の下の字 (#3803)", () => {
+  /** Alice が Router を通して USDC を Bob へ送る図。`boxes` は箱の宣言の 3 行で、`note` を書く箱を差し替える */
+  const sendText = (boxes: { alice?: string; router?: string; usdc?: string } = {}): string =>
+    [
+      "pipe AliceがBobへ送る",
+      boxes.alice ?? "box alice as Alice",
+      boxes.router ?? "box router as Router",
+      boxes.usdc ?? "box usdc as USDC",
+      "box bob as Bob",
+      "hold alice: 100 USDC",
+      "hold bob: 0 USDC",
+      "step 送る",
+      "  say 送る。",
+      "  alice -> router: send",
+      "  router -> usdc: transfer",
+      "  move usdc: 40 alice -> bob",
+      "  return usdc: ok",
+      "  return router: ok",
+    ].join("\n");
+
+  /** 描いたトークンの箱 `usdc` */
+  const usdcOf = (diagram: Json) => {
+    const party = layoutOf(diagram).parties.find((p) => p.id === "usdc");
+    expect(party, "USDC の箱を描かない").toBeDefined();
+    return party as NonNullable<typeof party>;
+  };
+
+  it("pipe-token-note-draws-under-name", () => {
+    // note を書いたトークンの箱は、名前の下に balanceOf の代わりに note の字を描く
+    const diagram = read(sendText({ usdc: "box usdc as USDC [note: Holding]" }));
+    expect(usdcOf(diagram).sub?.text, "名前の下の字").toBe("Holding");
+  });
+
+  it("pipe-token-note-widens-box", () => {
+    // balanceOf より長い字は、箱を字が収まる幅に広げ、字は箱の中に収まる
+    const plain = usdcOf(read(sendText()));
+    const long = usdcOf(read(sendText({ usdc: "box usdc as USDC [note: Splice.Api.Token.HoldingV1]" })));
+    const sub = long.sub;
+    expect(sub?.text, "名前の下の字").toBe("Splice.Api.Token.HoldingV1");
+    expect(long.w, "長い字の箱の幅").toBeGreaterThan(plain.w);
+    expect(sub && sub.x >= long.x && sub.x + sub.w <= long.x + long.w, `字 ${JSON.stringify(sub)} が箱 ${JSON.stringify({ x: long.x, w: long.w })} からはみ出る`).toBe(true);
+  });
+
+  it("pipe-token-note-round-trip", () => {
+    // note は原本の箱の sub に入り、原本の検査を通り、記法へ書き戻すと同じ行に戻る
+    const diagram = read(sendText({ usdc: "box usdc as USDC [note: Holding]" }));
+    const usdc = (diagram as { blocks: { box: { id: string; sub?: string }[] } }).blocks.box.find((b) => b.id === "usdc");
+    expect(usdc?.sub, "原本の箱の sub").toBe("Holding");
+    expect(roundTrip(diagram), "書き戻した記法").toContain("box usdc as USDC [note: Holding]");
+  });
+
+  it("pipe-note-refuses-non-token-box", () => {
+    // 人の箱と契約の箱の note は、その行の note を指して、トークンの箱にだけ書けると言って拒む
+    for (const [who, line, at] of [
+      ["alice", "box alice as Alice [note: Party]", 2],
+      ["router", "box router as Router [note: Template]", 3],
+    ] as const) {
+      const text = sendText(who === "alice" ? { alice: line } : { router: line });
+      for (const [lang, word] of [
+        ["ja", "トークンの箱にだけ書ける"],
+        ["en", "only on a token box"],
+      ] as const) {
+        const errors = refusal(text, lang);
+        expect(errors.map((e) => e.line), `${line} を拒まない (${lang})`).toEqual([at]);
+        expect(errors[0]?.column, `${line} の誤りが note を指さない (${lang})`).toBe(line.indexOf("note") + 1);
+        expect(errors[0]?.message ?? "", `${line} の誤りの文 (${lang})`).toContain(word);
+      }
+    }
+  });
+
+  it("pipe-json-refuses-sub-on-non-token-box", () => {
+    // 原本の JSON でも、トークンの箱の sub は通し、人の箱と契約の箱の sub はその欄を指して拒む
+    const base = read(sendText()) as { blocks: { box: { id: string; sub?: string }[] } };
+    const withSub = (id: string): Json => ({ ...base, blocks: { ...base.blocks, box: base.blocks.box.map((b) => (b.id === id ? { ...b, sub: "Holding" } : b)) } }) as unknown as Json;
+    const token = api("validateDiagram")(withSub("usdc"));
+    expect(token.ok ? [] : token.errors, "トークンの箱の sub").toEqual([]);
+    for (const id of ["alice", "router"]) {
+      const at = base.blocks.box.findIndex((b) => b.id === id);
+      for (const [lang, word] of [
+        ["ja", "トークンの箱"],
+        ["en", "token box"],
+      ] as const) {
+        const checked = api("validateDiagram")(withSub(id), { lang });
+        const errors = checked.ok ? [] : checked.errors;
+        expect(errors.map((e) => e.pointer), `${id} の sub を拒まない (${lang})`).toContain(`/blocks/box/${at}/sub`);
+        expect(errors.find((e) => e.pointer === `/blocks/box/${at}/sub`)?.message ?? "", `${id} の sub の誤りの文 (${lang})`).toContain(word);
+      }
+    }
+  });
+
+  it("pipe-notation-docs-list-token-note", () => {
+    // 記法の説明の宣言の表に、トークンの箱の note の書き方と例が在る
+    const doc = readFileSync(PIPE_DOC, "utf8");
+    const rows = doc.split("\n").flatMap((line) => /^\| `([^`]+)` \|/u.exec(line)?.[1] ?? []);
+    expect(rows.filter((row) => row.startsWith("box ") && row.includes("[note: ")), "トークンの箱の note の行の書き方").not.toEqual([]);
+    expect(doc, "説明の例").toContain("box usdc as USDC [note: Holding]");
+  });
+
+  it("pipe-token-without-note-draws-balanceOf", () => {
+    // note を書かないトークンの箱は、日本語の図でも英語の図でも名前の下に balanceOf を描く
+    for (const lang of ["ja", "en"] as const) {
+      const party = layoutPipe(toModel(read(sendText(), lang) as unknown as Diagram), { lang }).parties.find((p) => p.id === "usdc");
+      expect(party?.sub?.text, `名前の下の字 (${lang})`).toBe("balanceOf");
+    }
   });
 });
