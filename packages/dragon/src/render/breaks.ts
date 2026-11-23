@@ -112,7 +112,9 @@ export type PipePiece =
   | { kind: "pipe"; from: string; to: string; step: number; points: Point[]; half: number; shown: Shown[] }
   | { kind: "valve"; from: string; to?: string; step?: number; body: Rect; lever: Rect[]; shown: Shown[] }
   | { kind: "gauge"; box: string; rects: Rect[]; shown: Shown[] }
-  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] };
+  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] }
+  /** 字を字の記録 (`ink`) に残さない札。処理を借りる呼び出しの線の札、ログの札、呼び出しの札 (#3854) */
+  | { kind: "card"; text: string; rect: Rect; shown: Shown[] };
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {

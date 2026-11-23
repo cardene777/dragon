@@ -4211,8 +4211,11 @@ function finishPipe(out: PipeLayout): PipeLayout {
     ...(out.tanks ?? []),
     ...(out.plates ?? []).filter((p) => !p.row),
     ...out.enclosures,
+    ...(out.gauges ?? []).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h })),
+    ...(out.events ?? []).map((e): Rect => ({ x: e.x, y: e.y, ...(({ w, h }) => ({ w, h }))(logCardSize(out, e)) })),
   ];
   const lines = [...(out.calls ?? []), ...(out.valuePipes ?? []), ...(out.links ?? []), ...(out.writes ?? [])].flatMap((l) => segsOf(l.points));
+  const tieLines = (out.ties ?? []).map((t): [Point, Point] => [[t.x, t.y1], [t.x, t.y2]]);
   // 処理を借りる呼び出し (delegatecall) の線に、線の上の札を付ける。いちばん長い横の線の真ん中の上に置き、ふさがっていれば下に置く
   out.callTags = [];
   const seen = new Set<string>();
@@ -4266,9 +4269,28 @@ function finishPipe(out: PipeLayout): PipeLayout {
       !solid.some((o) => overlap(r, o, 8)) &&
       !rests.some((o) => overlap(r, o, 8)) &&
       !trail.some((o) => overlap(r, o, 4)) &&
-      !others.some((s) => crosses(r, s, 16));
-    const first: Point = flat ? [cx - w / 2, cy - 16 - h] : [cx + 16, cy - h / 2];
-    const pick = spots.map(([x, y]) => ({ x, y, w, h })).find(clear) ?? { x: first[0], y: first[1], w, h };
+      !others.some((s) => crosses(r, s, 16)) &&
+      !tieLines.some((s) => crosses(r, s, 4));
+    // 管の横に置ける所が無い時は、管の上に札を重ねる (#3854)。札は光る管より手前に描き、管の芯に沿って4pxずつずらした所を、
+    // 管の道の真ん中に近い順に試す。管の上では返り値の札が通るのは避けられないので、通る道は測らず、止まる所だけから離す
+    const total = lengthOf(c.points);
+    const onPipeAt = (d: number): Rect => {
+      const [px, py] = along(c.points, d);
+      return { x: px - w / 2, y: py - h / 2, w, h };
+    };
+    const onPipe = Array.from({ length: Math.floor(total / 4) + 1 }, (_, k) => k * 4)
+      .sort((u, v) => Math.abs(u - total / 2) - Math.abs(v - total / 2))
+      .map(onPipeAt);
+    const clearOnPipe = (r: Rect): boolean =>
+      r.y >= M &&
+      r.x >= M &&
+      r.x + r.w <= out.width - M &&
+      !solid.some((o) => overlap(r, o, 8)) &&
+      !rests.some((o) => overlap(r, o, 8)) &&
+      !others.some((s) => crosses(r, s, 16)) &&
+      !tieLines.some((s) => crosses(r, s, 4));
+    // 管の上にも空いた所が無い時は、管の道の真ん中に最も近い所 (4pxの刻みで、等しい時は手前) に重ねる
+    const pick = spots.map(([x, y]) => ({ x, y, w, h })).find(clear) ?? onPipe.find(clearOnPipe) ?? onPipeAt(4 * Math.ceil(total / 8 - 0.5));
     out.callTags.push({ call: c.index, from: c.from, to: c.to, text, ...pick });
   }
   return out;
