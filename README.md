@@ -121,6 +121,7 @@ Changes stay provisional until the outermost call returns, and then they all bec
 
 | Line | What it writes |
 |---|---|
+| `box <token> as <name> [note: <text>]` | The text under a token box's name. A token box without it shows `balanceOf`. Only a box whose name is a unit on a `hold` line takes it, and a `note` on a person or contract box stops with an error |
 | `hold <owner>: <amount> <token>, ...` | Balances, before the first step. `hold <contract>: <name> <value>` declares a stored value |
 | `<caller> -> <callee>: <text>` | A call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` and `[call: static]` set its kind, and `[fold]` folds its inner steps into one box |
 | `move <token>: <amount> <from> -> <to>` | Moves a balance through the token's pipe |
