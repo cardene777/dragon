@@ -49,6 +49,22 @@ Run `dragon embed page.html` to make a file that reads nothing from outside. A `
 
 Set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`, to paint the figure background, the line outlines, and the label plates with the page's color on light and dark pages. A donut wraps a middle name that does not fit the ring onto two lines, and a step band (`cycle` with `[shape: band]`) writes the step names inside the chevrons.
 
+## Find the box that was pressed
+
+Every drawn box and group carries its notation id in `data-node`.
+For example, `box api as API server` draws an element with `data-node="api"`.
+To show something when a box is pressed, read the id from the pressed element with `closest('[data-node]')`.
+A box inside a group returns the box, not the group, and lines and labels carry no id.
+
+```html
+<script>
+document.addEventListener("click", (event) => {
+  const node = event.target.closest('[data-node]');
+  if (node) showNote(node.getAttribute("data-node"));
+});
+</script>
+```
+
 ## The SDK function
 
 ```ts

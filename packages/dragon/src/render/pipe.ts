@@ -78,7 +78,7 @@ import type { Timeline } from "../timeline";
 import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, esc, cssFont as font, r1, write } from "./parts";
+import { type Ctx, esc, cssFont as font, nodeAttr, r1, write } from "./parts";
 import { Shifter } from "./pipe-shift";
 import { far, gapOf, gridOf, PathPoints, SpotGrid } from "./pipe-spot";
 
@@ -1661,7 +1661,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     // 名札と輪
     for (const p of layout.parties.filter((x) => x.shape !== "token")) {
       const involved = pillOf(p.id)?.involved ?? false;
-      const attrs = on({ party: p.id, role: p.role });
+      const attrs = on({ party: p.id, role: p.role }) + nodeAttr(p.id);
       parts.push(
         dimmed(
           involved,

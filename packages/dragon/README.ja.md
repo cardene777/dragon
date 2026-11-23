@@ -367,6 +367,22 @@ step Place the order
 </pre>
 ```
 
+### 押した箱を見分ける
+
+描いた箱と囲みは、記法のidを`data-node`に持つ。
+例えば`box api as API server`は`data-node="api"`を持つ要素になる。
+箱を押した時に何かを出すには、押された要素から`closest('[data-node]')`でidを読む。
+囲みの中の箱を押すと囲みでなく箱が返り、線と札はidを持たない。
+
+```html
+<script>
+document.addEventListener("click", (event) => {
+  const node = event.target.closest('[data-node]');
+  if (node) showNote(node.getAttribute("data-node"));
+});
+</script>
+```
+
 ### SDKの関数
 
 `@cardenelabs/dragon/embed` の `mountDragon(host, source, options)` は、要素に帯つきの図を置き、置いた図を返す。
