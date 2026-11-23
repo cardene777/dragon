@@ -1,0 +1,37 @@
+pipe AliceのWETHを3人とやり取りする
+layout mesh
+
+box dave as Dave
+box erin as Erin
+box alice as Alice
+box usdc as USDC
+box weth as WETH
+box dai as DAI
+box bob as Bob
+box carol as Carol
+box frank as Frank
+
+hold dave: 100 WETH
+hold erin: 3 WETH
+hold alice: 1000 USDC, 345 WETH, 300 DAI
+hold bob: 2 WETH
+hold carol: 1 WETH
+hold frank: 4 WETH
+
+step 5 WETHがDaveからAliceへ移る
+  say DaveがWETH.transferを呼び出します。5 WETHがDaveからAliceへ移動します。
+  dave -> weth: transfer(to: alice, amount: 5 WETH)
+  move weth: 5 dave -> alice
+  return weth
+
+step 10 WETHがAliceからCarolへ移る
+  say AliceがWETH.transferを呼び出します。10 WETHがAliceからCarolへ移動します。
+  alice -> weth: transfer(to: carol, amount: 10 WETH)
+  move weth: 10 alice -> carol
+  return weth
+
+step 20 WETHがAliceからFrankへ移る
+  say AliceがWETH.transferを呼び出します。20 WETHがAliceからFrankへ移動します。
+  alice -> weth: transfer(to: frank, amount: 20 WETH)
+  move weth: 20 alice -> frank
+  return weth

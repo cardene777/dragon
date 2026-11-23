@@ -1,0 +1,20 @@
+pipe AliceがWETHをCarolへ送る
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box weth as WETH
+box dai as DAI
+box bob as Bob
+box carol as Carol
+
+hold alice: 1000 USDC, 5 WETH, 300 DAI
+hold bob: 2 WETH
+hold carol: 1 WETH
+
+step 1 WETHがAliceからCarolへ移る
+  say AliceがWETH.transferを呼び出します。1 WETHがAliceからCarolへ移動します。
+  alice -> weth: transfer(to: carol, amount: 1 WETH)
+  move weth: 1 alice -> carol
+  emit weth: Transfer(from: alice, to: carol, amount: 1 WETH)
+  return weth
