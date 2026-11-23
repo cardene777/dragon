@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.79.7] - 2026-11-24
+
+### Added
+
+- **Every drawn box and group carries its notation id in `data-node`** (#3795)
+
+  `box api as API server` draws an element with `data-node="api"`, and `group src as Sender` draws one with `data-node="src"`. A page that places a diagram can read the id of the pressed box with `closest('[data-node]')`, so two boxes with the same name are no longer mixed up. Lines and labels carry no id. The shared boxes, groups, sequence heads, pipe parties and token boxes, lineup lanes, and matrix areas carry it, and the embed docs and the README show how to read it.
+
 ## [0.79.6] - 2026-11-23
 
 ### Fixed
