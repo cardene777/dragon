@@ -127,9 +127,10 @@ script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.57
 
 通信の無い所で開ける 1 file にするには、頁を `dragon embed` に渡す。
 script の 1 行を、全ての図の種類を持つ束ねた script に置き換え、頁の隣に `page.offline.html` を書く (`--out <file>` で書く file を選ぶ)。
-この file は外から何も読まず、同梱の字を埋めないので端末の字で描く。
+この file は外から何も読まない。
+同梱の字を埋めないので、同梱の字の後に並べた端末のsans-serifの字で描く。
 `data-header`の塊の帯のエクスポートは、jsDelivrの頁と同じPNG、SVG、HTML、GIF、MP4、dragon記法、JSONの7つを外から読まずに保存する。
-保存したHTMLも、埋めた頁と同じく端末の字で描く。
+保存したHTMLも、埋めた頁と同じく端末のsans-serifの字で描く。
 
 ```sh
 dragon embed page.html
@@ -283,7 +284,8 @@ const player = mountDiagram(host, parsed.diagram);
 ```
 
 字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。
-図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。
+図は同梱の字で測った字の幅で組む。
+読み込まないと同梱の字の後に並べた端末のsans-serifの字で描かれ、字の幅が測った幅より数px広くなることがある。
 CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 この入口は Node の組み込みの module を読まないため、Next.js の Turbopack のように頁を束ねる道具でもそのまま読める。
 再生の部品が出す字 (釦の読み上げの名前、全体図の札) は英語で出る。

@@ -10,7 +10,7 @@
  * 見せる頁とタブを選ぶ処理 (`RUNTIME`) は頁に埋めた短い script で、外へ通信しない。
  * 色と字は dragon の図と同じ紙の色味 (`paper` の明るい色) と同梱の字を使う。
  */
-import { PALETTES, COLOR_ORDER, FONT_STACK_VARS } from "../look/values";
+import { PALETTES, COLOR_ORDER, FONT_VARS } from "../look/values";
 import { escapeHtml } from "./markdown";
 import type { Layout, PageHeader } from "./read";
 import { type PageLang, WORDS } from "./text";
@@ -80,7 +80,7 @@ const groupColor = (n: number): string => {
 };
 
 const STYLE = `
-:root{color-scheme:light;${COLORS};${FONT_STACK_VARS};--r:12px}
+:root{color-scheme:light;${COLORS};${FONT_VARS};--r:12px}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--pg-bg);color:var(--pg-ink);font:15px/1.8 var(--sans);overflow-wrap:break-word}

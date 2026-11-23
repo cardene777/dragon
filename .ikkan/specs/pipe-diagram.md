@@ -231,4 +231,23 @@
 | 見本帳の図は、配管の図も含めて崩れを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3854 |
 | 配管の図の見本は、決まりの表への違反を持たない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3854 |
 | 配管の図の見本の置き場所の指紋が記録と合う。線の札が動く`vault-proxy`の4件だけ記録を書き直し、ほかの見本の記録は変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3854 |
-| 配管の図を描く所を変えた時に選ぶ検査のfileは130以下のままである | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3854 |
+| 配管の図を描く所を変えた時に選ぶ検査のfileは130以下のままである | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3854 #3803 |
+| 記法で`box usdc as USDC [note: Holding]`と書いたトークンの箱は、名前の下に`balanceOf`の代わりに`Holding`を描く | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-draws-under-name`が通る | #3803 |
+| トークンの箱の`note`の字が`balanceOf`より長い時、箱はその字が収まる幅に広がり、字は箱の中に収まる | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-widens-box`が通る | #3803 |
+| `note`を書いたトークンの箱の図は原本の検査を通り、記法へ書き戻すと`[note: Holding]`が残る | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-round-trip`が通る | #3803 |
+| 人の箱か契約の箱に`note`を書いた配管の図は、記法を読む処理(エディタと`dragon check`が使う`parseNotation`)が誤りとして断り、日本語と英語の誤りの文が`note`はトークンの箱にだけ書けると言う | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-note-refuses-non-token-box`が通る | #3803 |
+| 原本のJSONで人の箱か契約の箱に`sub`を書いた配管の図は、原本の検査が誤りとして断る | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-json-refuses-sub-on-non-token-box`が通る | #3803 |
+| 記法の文書`pipe.md`が、トークンの箱の`box`の行に`[note: <字>]`を書けることを書く | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-notation-docs-list-token-note`が通る | #3803 |
+| `note`を書かないトークンの箱は、今と同じく名前の下に`balanceOf`を描く | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-without-note-draws-balanceOf`が通る | #3803 |
+| 今ある見本の描いた結果の指紋は1行も変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3803 |
+| scriptの1行の入口が最初に読むscriptの合計は、今と同じくgzipで90,000byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3803 |
+| 網型でAliceが3つの槽 (USDC、WETH、DAI) を持ち、真ん中のWETHの槽から隣り合わないCarolのWETHの槽へ値を送る記法 (`side-port-middle-tank`) で、管の両端は槽の左か右の側面の、角の丸みと管の太さの半分を除いた平らな所に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-middle-tank-on-flat-side`が通る | #3781 |
+| その記法で、管を通すWETHとDAIの槽の間だけが48pxに広がり、管を通さないUSDCとWETHの槽の間は16pxのまま | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-middle-tank-gap-widened`が通る | #3781 |
+| その記法で、管は太さまで含めて、どの槽にも槽の下の残高と増減と語の字にも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-middle-tank-clears-text`が通る | #3781 |
+| 網型で真ん中のWETHの槽がDave、Carol、Frankの3人とやり取りし、左右の側面をDaveとCarolの管が使う記法 (`side-port-both-sides-used`) で、Frankへの管だけが槽の底の平らな所 (角の丸みと管の太さの半分を除いた所) から出て、ほかの2本は側面の平らな所に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-both-sides-bottom-on-flat`が通る | #3781 |
+| その記法で、底から出る管に掛かる残高と増減と語の字は横へずれ、どの管も太さまで含めて槽と槽の下の字に重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-both-sides-clears-text`が通る | #3781 |
+| 見本帳のETHの送金の図 (AliceがVaultへ1ETHを送る) を帳簿型、母線型、上、下の型で描く記法 (`bottom-port-eth`) で、管の両端は槽の底の平らな所に在る | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-bottom-port-other-shapes-on-flat`が通る | #3781 |
+| その4つの型で、管は太さまで含めて、どの槽にも槽の下の残高と増減と語の字にも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-bottom-port-other-shapes-clears-text`が通る | #3781 |
+| Tracelythのカタログを写した網型の14枚で、管の口は今どおり槽の側面の平らな所に在り、槽と残高の字を横切らない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-on-flat-side`と`pipe-side-port-under-clears-tanks-and-text`が通る | #3781 |
+| 見本と検査の記法と見本帳の部品の図の指紋の記録 (`examples-svg.json`、6382件) は、足した記法3件の鍵30件を除いて変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3781 |
+| 配管の図の見本の置き場所の指紋 (`pipe-layout-fingerprints.json`) は変わらない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3781 |

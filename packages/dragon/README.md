@@ -123,9 +123,9 @@ The text in the diagram and the error lines are in Japanese when the page's `lan
 
 To make a file that opens without the network, pass the page to `dragon embed`.
 It replaces the script line with the bundled script, which holds every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` picks the file).
-The file fetches nothing from outside, and draws in the device's fonts because the bundled fonts are not embedded.
+The file fetches nothing from outside. The bundled fonts are not embedded, so it draws in the device's sans-serif fonts listed after the bundled fonts.
 The Export menu on a `data-header` block's bar saves the same seven formats as the jsDelivr page (PNG, SVG, HTML, GIF, MP4, notation, and JSON) without fetching anything.
-The saved HTML also draws in the device's fonts, like the embedded page.
+The saved HTML also draws in the device's sans-serif fonts, like the embedded page.
 
 ```sh
 dragon embed page.html
@@ -276,7 +276,8 @@ const player = mountDiagram(host, parsed.diagram);
 ```
 
 The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing.
-Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels.
+Diagrams are laid out with character widths measured from the bundled fonts.
+Without it, they are drawn in the device's sans-serif fonts listed after the bundled fonts, and text can be a few pixels wider than measured.
 A bundler (such as Vite) carries the CSS and font files to the page.
 The entry does not read Node's built-in modules, so it also works with bundlers such as Next.js Turbopack.
 The text the player shows, such as the names read aloud for its buttons and the overview label, is in English.

@@ -46,7 +46,6 @@ import {
   type Colors,
   type Corner,
   EASE,
-  FONT_STACK_VARS,
   FONT_VARS,
   isColorName,
   isColorValue,
@@ -621,7 +620,7 @@ export interface StillFigure {
 
 /**
  * 止めて置く図の見た目の規則 (#3801)。図の根に止め絵の時刻を書き込み、動きを止めたまま最後の段の形を描く。
- * 字の並びは同梱した字の後に一般の字を持ち、同梱した字を読まない頁でも明朝に落ちない。
+ * 字の並びは全ての図と同じ字の変数 (`FONT_VARS`) が持ち、同梱した字を読まない頁でも明朝に落ちない (#3847)。
  * 頁の `data-theme="dark"` と、`data-theme="light"` でない頁の暗い `prefers-color-scheme` で、暗い色味の色に替える。
  * 地の色 (`--bg`) は頁が `--dragon-figure-background` を渡した時にその色を読み、図の地も `--bg` で塗る縁取りや札の地も頁の枠の色に揃える (#3809)。
  * 渡さない頁では色味の地の色のまま描く
@@ -630,7 +629,7 @@ function figureCss(id: string, figure: StillFigure, lookDark: string, lightBg: s
   const pageBg = (bg: string): string => `--bg:var(--dragon-figure-background,${bg})`;
   const dark = `${paletteVars(figure.dark, "dark")}${lookDark ? `;${lookDark}` : ""};${pageBg(figure.dark.dark.bg ?? "")}`;
   return (
-    `.dg-${id}{${FONT_STACK_VARS};--at:${figure.at};--play:paused;${pageBg(lightBg)}}` +
+    `.dg-${id}{--at:${figure.at};--play:paused;${pageBg(lightBg)}}` +
     `:root[data-theme="dark"] .dg-${id}{${dark}}` +
     `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dg-${id}{${dark}}}`
   );
