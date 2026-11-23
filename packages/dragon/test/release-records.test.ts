@@ -222,6 +222,20 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-79-6-lists-follow-heads-once", () => {
+    // 窓に図の高さが収まる寄って追う時系列図で、頭の列と図の頭の箱の行を2重に映さない直し (#3834) を 0.79.6 で出す (#3862)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 6), `package の版 ${version()} が 0.79.6 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.6\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.6"), "0.79.6");
+      expect(released, `${file} に日付付きの ## [0.79.6] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.6 の節に (#3834) の項が無い`).toContain("(#3834)");
+      // 次の版の項は Unreleased に積まれるので、0.79.6 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3834) が残る`).not.toContain("(#3834)");
+    }
+  });
+
   it("changelog-0-79-5-lists-mesh-gap-steady", () => {
     // 網型の箱と人の間を全ての道で決め、呼び方を切り替えても箱と人を動かさない直し (#3826) を 0.79.5 で出す (#3828)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
