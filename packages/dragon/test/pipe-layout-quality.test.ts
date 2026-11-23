@@ -1101,3 +1101,96 @@ describe.for(SHAPES)("%s 長い名前と多いログ", (shape) => {
     expect(linesOverTextOf(f), "箱と槽の中か字の上を通る線").toEqual([]);
   });
 });
+
+// ---- 処理を借りる呼び出しの線の札 (#3854)
+
+/** 処理を借りる呼び出し (delegatecall) の線に付ける札。札は全ての段で見える */
+interface CallTag extends Text {
+  from: string;
+  to: string;
+}
+type TagLayout = PipeLayout & { callTags?: CallTag[]; gauges?: (Rect & { step: number })[] };
+/** 描く処理が崩れの確かめに渡す部品。返した値の札 (`chip`) は止まる所の四角と、止まって見える時刻を持つ */
+type DrawnPieces = Drawn & { pieces?: { kind: string; text?: string; rect?: Rect; shown: Shown[] }[] };
+interface TagFigure {
+  svg: string;
+  layout: TagLayout;
+  drawn: DrawnPieces;
+}
+// 見本`vault-proxy`の最後の段で、線の札`delegatecall()`の上の縁が VaultProxy の箱に隠れ、右の端がログの札に隠れた。
+// 日本語と英語の見本を file を読み込む段で描き、件は描いた物を読む (#3738)
+const VAULT = await atLoad("見本 vault-proxy の日本語と英語の図を描く", () =>
+  new Map(
+    (["ja", "en"] as const).map((lang): [string, TagFigure] => {
+      const parsed = api.parseNotation(exampleText(lang === "ja" ? "vault-proxy.dragon" : "vault-proxy.en.dragon"), { lang });
+      if (!parsed.ok) throw new Error(`vault-proxy (${lang}) を読めない: ${parsed.errors.map((e) => `${e.line}行目 ${e.message}`).join(" / ")}`);
+      let drawn: DrawnPieces = { inks: [], stills: [], frame: { w: 0, h: 0 } };
+      const rendered = api.renderDiagram(parsed.diagram, {
+        lang,
+        findBreaks: (d: DrawnPieces) => {
+          drawn = d;
+          return [];
+        },
+      });
+      return [lang, { svg: rendered.svg, layout: rendered.layout as TagLayout, drawn }];
+    }),
+  ),
+);
+const vaultFigure = (lang: string): TagFigure => VAULT.get().get(lang) as TagFigure;
+const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
+/** 点 `p` から点の並び `points` の線までの距離 */
+function distanceToLine([x, y]: Point, points: readonly Point[]): number {
+  return Math.min(
+    ...segsOf(points).map(([a, b]) => {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const len = dx * dx + dy * dy;
+      const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / len));
+      return Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy));
+    }),
+    Number.POSITIVE_INFINITY,
+  );
+}
+
+describe.for(["ja", "en"])("vault-proxy (%s) の線の札", (lang) => {
+  it("pipe-call-tag-clears-parts", () => {
+    const { layout: L, drawn } = vaultFigure(lang);
+    const tags = L.callTags ?? [];
+    expect(tags.length, "線の札の枚数").toBe(1);
+    const hits: string[] = [];
+    drawn.stills.forEach((still, s) => {
+      // 段 s の止め絵に見えている部品。ログの札は発した段から後に見え、呼び出しの札は見える区間に、返した値の札は止まって見える区間に見える
+      const parts: { name: string; rect: Rect }[] = [
+        ...L.parties.map((p) => ({ name: `箱 ${p.name}`, rect: p as Rect })),
+        ...L.parties.map((p) => ({ name: `箱 ${p.name} の名前`, rect: p.label as Rect })),
+        ...L.tanks.map((t) => ({ name: `槽 ${t.party}/${t.token}`, rect: t as Rect })),
+        ...(L.gauges ?? []).map((g) => ({ name: `計器 (段 ${g.step + 1})`, rect: g as Rect })),
+        ...(L.logCards ?? []).filter((c) => (c.step ?? 0) <= s).map((c) => ({ name: `ログの札 ${c.title}`, rect: c as Rect })),
+        ...(L.callCards ?? []).filter((c) => visibleAt(c.shown, still)).map((c) => ({ name: `呼び出しの札 ${c.call}`, rect: c as Rect })),
+        ...(drawn.pieces ?? [])
+          .filter((p) => p.kind === "chip" && p.rect && visibleAt(p.shown, still))
+          .map((p) => ({ name: `返した値の札 ${p.text}`, rect: p.rect as Rect })),
+      ];
+      for (const t of tags) for (const part of parts) if (overlaps(t, part.rect)) hits.push(`段 ${s + 1} ${t.text} と${part.name}`);
+    });
+    expect([...new Set(hits)], "線の札が重なる部品").toEqual([]);
+  });
+
+  it("pipe-call-tag-sits-on-pipe-without-room", () => {
+    // VaultProxy と VaultLogic の間の管は短く、横に札を置ける所が無い。札は自分の管の上に重ね、札の真ん中を管の芯に載せる
+    const { layout: L } = vaultFigure(lang);
+    const tag = (L.callTags ?? []).find((t) => t.from === "proxy" && t.to === "logic");
+    const branch = L.mains.find((m) => m.from === "proxy")?.branches.find((b) => b.to === "logic");
+    expect(tag && branch, "VaultProxy から VaultLogic への線と線の札").toBeTruthy();
+    const center = centerOf(tag as Rect);
+    expect(distanceToLine(center, branch?.points ?? []), `札の真ん中 ${JSON.stringify(center.map(Math.round))} から管の芯までの距離`).toBeLessThan(1);
+  });
+
+  it("pipe-call-tag-drawn-above-lit-pipes", () => {
+    // 段ごとの絵は呼び出しの管を光らせて描く。線の札は全ての段の絵より後に描き、光る管に隠れない
+    const { svg } = vaultFigure(lang);
+    const tagAt = svg.indexOf("data-pipe-calltag=");
+    expect(tagAt, "線の札を描いていない").toBeGreaterThanOrEqual(0);
+    expect(tagAt, "線の札の組が最後の段の組より前に在る").toBeGreaterThan(svg.lastIndexOf("data-pipe-frame="));
+  });
+});
