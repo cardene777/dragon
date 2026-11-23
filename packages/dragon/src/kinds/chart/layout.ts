@@ -772,7 +772,7 @@ const RING_STEP = 3;
 
 /**
  * ドーナツの輪の 1 つの区切りを、外の縁と内の縁の点で囲んだ形 (#3852)。
- * 本体の図と同じく 12 時の向きから時計回りに測り、隣の区切りと続いて見えないよう両端を `gap` の半分ずつ削る (`blocks/chart-set/draw.ts` の `arcState`)
+ * 本体の図と同じく 12 時の向きから時計回りに測り、隣の区切りと続いて見えないよう両端を `gap` の半分ずつ削る (輪を描くブロックの `arcState` と同じ削り方)
  */
 function ringSegment(ring: NonNullable<ChartPlan["ring"]>, arc: ChartArc): Point[] {
   const gap = Math.min((CHART_LOOK.donut.gap / (2 * Math.PI * ring.r)) * 360, arc.sweep);

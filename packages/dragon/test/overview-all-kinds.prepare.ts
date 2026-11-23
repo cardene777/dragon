@@ -14,8 +14,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import "./built-globals";
-import "../src/kinds/all";
+import "./all-kinds";
 import { planPage } from "../src/export/page";
 import type { KindParts } from "../src/kinds/parts";
 import { partsOf } from "../src/kinds/registry";
