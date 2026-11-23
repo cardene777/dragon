@@ -45,7 +45,7 @@ export interface Counted {
 
 /** 種類の `overview` を受け、並べ方 `layout` の全体図の部品の数を返す */
 function partsCount(layout: Layout, overview: KindParts["overview"]): number {
-  return layout.regions.length + layout.boxes.length + (overview?.(layout as never) ?? []).length;
+  return layout.regions.length + layout.boxes.length + (overview?.(layout) ?? []).length;
 }
 
 /** 見本の file を読んだ原本と言葉 */
@@ -58,7 +58,8 @@ function read(file: string): { diagram: unknown; lang: NotationLang } {
 
 const EMPTY_OVERVIEW: KindParts["overview"] = () => [];
 
-export default async function prepare() {
+/** 並べて数える仕事は待つ物を持たないので、結果をそのまま返す。準備の段は返した値を待ってから件へ渡す */
+export default function prepare() {
   const files = readdirSync(EXAMPLES)
     .filter((file) => file.endsWith(".dragon"))
     .sort();
