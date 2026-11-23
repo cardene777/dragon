@@ -573,6 +573,7 @@ The words that start a line are `sequence` `architecture` `state` `git` `time` `
 Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
+A line label made of words is drawn in the text font, and a label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word) or one that starts with a digit is drawn in the monospace font. Wrap the whole label in backticks (`` `git rebase main` ``) to draw a command with no sign in the monospace font; the backticks are not drawn.
 A destination in the `link` attribute of a box line makes that box a link in the drawn diagram.
 A `source <name> [url: <URL>]` line inside a step is a source of that step; a step can have any number, and they are listed as links in the step list that screen readers read.
 A destination or source URL is a path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#`.
