@@ -411,3 +411,15 @@
 | 見本の読んだ原本のJSONの鍵の順は変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`parsed-json-key-order-unchanged`が通る | #3847 |
 | jsDelivrの1行の入口が最初に読むscriptは、gzipで90,000byte以下のままである | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3847 |
 | 見本帳の頁が最初に読むscriptとCSSは、gzipで186KB以下のままである | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3847 |
+| 日本語を含まない線の札のうち、コードの印を持たず数で始まらない札 (`Approve`、`Re-run every transaction in the EVM`) を、日本語の札と同じ字 (`TYPE.labelJa`、太さ650) で描く | `pnpm test`の検査`prose-label-drawn-in-sans`が通る | #3850 |
+| `()`、`_`、`/`、`0x`、語の中の大文字のどれかを持つ札 (`transfer(Bob, 100)`、`eth_sendRawTransaction`、`GET /me`、`0x3f9a…c21e`、`CCIPMessageSent`) を、今と同じ等幅の字 (`TYPE.label`) で描く | `pnpm test`の検査`code-label-stays-mono`が通る | #3850 |
+| 数で始まる札 (`200 OK`、`15%`) を、今と同じ等幅の字で描く | `pnpm test`の検査`number-label-stays-mono`が通る | #3850 |
+| backtickで囲んだ札 (例えば`git rebase main`を囲んだ札) を、記号の有無に依らず等幅の字で描き、囲みのbacktickを描かない | `pnpm test`の検査`backticked-label-drawn-mono-without-backticks`が通る | #3850 |
+| 日本語を含む札を、今と同じ字 (`TYPE.labelJa`) で描く | `pnpm test`の検査`japanese-label-stays-sans`が通る | #3850 |
+| 札の幅を、選んだ字の幅で見積もる。地の文の札は等幅でない字の幅、backtickで囲んだ札は囲みを外した字の幅で計る | `pnpm test`の検査`label-width-measured-in-chosen-font`が通る | #3850 |
+| 時系列図、構成図、流れ図、状態遷移図、木の図、枝分かれの図の線の札と、流れ図と状態遷移図の側道の札が、同じ決まりで字を選ぶ | `pnpm test`の検査`label-font-rule-in-every-kind`が通る | #3850 |
+| `strip`の値は、英語の普通の文の値 (`refunded`、`back on shelf`) も今と同じ等幅の字で描く | `pnpm test`の検査`strip-values-stay-mono`が通る | #3850 |
+| 配管の図の置き場所は今と変わらない | `pnpm test`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3850 |
+| 見本の`git rebase main`の札4件と`git switch main`の札2件をbacktickで囲み、等幅の字のまま描く | `pnpm test`の検査`examples-git-commands-stay-mono`が通る | #3850 |
+| 記法の説明 (`plugins/dragon/skills/dragon/references/notation.md`、`packages/dragon/README.md`、`packages/dragon/README.ja.md`、`docs/design/base/GRAMMAR.md`) に、札の字の決まりと、backtickで囲むと等幅で描くことを書く | `pnpm test`の検査`docs-explain-label-font`が通る | #3850 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`に#3850の項がある | `pnpm test`の検査`changelog-lists-label-font`が通る | #3850 |
