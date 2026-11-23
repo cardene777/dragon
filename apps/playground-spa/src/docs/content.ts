@@ -452,7 +452,7 @@ export const DOCS: Record<Lang, DocsText> = {
       head: ["設定", "意味"],
       rows: (palettes, fallback) => [
         ["--out <dir>", "書き出す先。無ければ作る (既定は今の dir)"],
-        ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる"],
+        ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる。配管の図は常に`fixed`"],
         ["--palette <名前>", `色味 (${palettes}、既定は \`${fallback}\`)`],
         ["--line <名前>", "線の描き方 (`ruler` / `pen`、既定は `ruler`)。`pen` は手描きのペンの線で描く"],
         ["--theme <明暗>", "`light` か `dark`"],
@@ -746,7 +746,7 @@ export const DOCS: Record<Lang, DocsText> = {
       head: ["Option", "Meaning"],
       rows: (palettes, fallback) => [
         ["--out <dir>", "Where to write. Created if missing (default: the current dir)"],
-        ["--width <px>", "Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`"],
+        ["--width <px>", "Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`. A pipe diagram is always `fixed`"],
         ["--palette <name>", `Colours (${palettes}, default \`${fallback}\`)`],
         ["--line <name>", "How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws hand-drawn pen lines"],
         ["--theme <mode>", "`light` or `dark`"],

@@ -20,3 +20,6 @@
 | 折れ線の見た目 | 量の図の見た目`[shape: line]`。`item`の行ごとに1本の線を引き、図の段 (`step`) の1つを時間の軸の点の1つにして、段の題を横の軸の名前にする (#3802) |
 | 帯 | 図の上に置き、題とコードとエディタとコピーとエクスポートと拡大のボタンを並べる行。jsDelivrの頁では属性`data-header`を持つ塊に付き、npmでは`@cardenelabs/dragon/frame`と`@cardenelabs/dragon/light/frame`と`@cardenelabs/dragon/embed`が付ける (#3699、#3789) |
 | 帯の設定の塊 | jsDelivrの頁に置く`<script type="application/json" id="dragon-header">`。SDKの`mountDragon`と同じ鍵 (`buttons`と`look`) で帯のボタンの並びと見た目を書き、頁の全ての`data-header`の塊に効く。`dragon export`はmdの頭の`header-`で始まる行からこれを作る (#3789) |
+| 全体図 | 寄って追う形の窓の下か右に出る、図の全体を縮めた小さな図。今見ている所の枠を、窓と同じ動きで出す (#3042、#3852) |
+| 全体図の部品 | 全体図に描く四角と円と塗った形と線。並べ方の`regions`と`boxes`と、種類の部品の組の`overview`が挙げる (#3849、#3852) |
+| 寄って追う形にならない見本 | 見せ方を選ぶ`chooseView`が枠の幅1でも`fixed`を返す見本。書き手が`view: fixed`と書いた図と配管の図 (`pipe`) が当たり、全体図を持たない (#3852) |
