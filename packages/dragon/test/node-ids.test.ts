@@ -8,7 +8,8 @@
  * `closest('[data-node]')` を読む。帯と経路の部品が既に同じ属性で箱の id を持つので、名前を揃える。
  * 線と札は `data-node` を持たない。押した所の外側を辿った時に、線の札から箱を引かないため。
  *
- * `dragon embed` で書き出した 1 枚の HTML の件は、全ての種類を読む埋める処理を使うので `node-ids-embed.test.ts` に分ける (#3763)。
+ * `dragon embed` で書き出した 1 枚の HTML は、埋めた script がこの検査と同じ描く処理で開いた頁の中で描く。
+ * 0.79.7 の枝は書き出す時に図を描く処理 (#3801) を持たないので、書き出した字の検査を持たない。
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
