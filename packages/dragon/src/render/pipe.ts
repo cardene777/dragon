@@ -1552,7 +1552,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const bare = (layout.ledgers ?? []).some((l) => l.box === p.id);
       // 前の値と今の値を並べて見せる行を持つ段は、その段に呼ばれなくても箱を薄くしない (#3721)
       const changed = layout.plates.some((x) => x.party === p.id && x.step === s && x.boxed && x.was !== undefined);
-      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved || changed, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }), bare)));
+      parts.push((bare ? "" : frame(ctx, "dg-pp-tokbg", p, P.token.radius)) + dimmed(involved || changed, tokenBox(p, involved, undefined, ctx, whole, on({ party: p.id, role: p.role }) + nodeAttr(p.id), bare)));
     }
     // 槽と水。水と数は、変わった出来事の時刻に段の始まりの値から今の値へ替わる
     for (const g of layout.glasses.filter((x) => x.step === s)) {

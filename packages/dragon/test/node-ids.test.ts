@@ -176,11 +176,18 @@ function galleryBoxes(): Map<string, { file: string; diagram: Json; ids: string[
 
 const GALLERY = galleryBoxes();
 
+/**
+ * 配管の図は `[fold]` の呼び出しの内側にしか出ない関係者を、開くまで描かない (#3389)。
+ * 畳んだままでは押せる箱が無いので、畳んだ呼び出しを全て開いて描き、全ての箱を確かめる。
+ * 開く番号は出てきた順の 0 からで、見本の畳む呼び出しの数より多く並べても描く物は変わらない
+ */
+const OPEN_ALL = Array.from({ length: 32 }, (_, i) => i);
+
 describe.each([...GALLERY.keys()])("見本帳の %s の図", (kind) => {
   it("every-gallery-box-carries-its-id", () => {
     const missing: string[] = [];
     for (const { file, diagram, ids } of GALLERY.get(kind) ?? []) {
-      const found = new Set(nodes(docOf(draw("renderDiagram")(diagram, {}).svg)).map(idOf));
+      const found = new Set(nodes(docOf(draw("renderDiagram")(diagram, { open: OPEN_ALL }).svg)).map(idOf));
       for (const id of ids) if (!found.has(id)) missing.push(`${file} の ${id}`);
     }
     expect(missing, "箱の id を data-node に持つ要素が描いた図に無い").toEqual([]);
