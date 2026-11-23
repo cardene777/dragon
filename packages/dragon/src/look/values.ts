@@ -123,14 +123,19 @@ export function paletteVars(palette: Palette, theme: Theme): string {
     .join(";");
 }
 
-/** 字の変数。同梱した 2 つの字を 1 度だけ名指し、字を使う所はどれもこの変数を読む。 */
-export const FONT_VARS = `--sans:"${FONTS.sans}";--mono:"${FONTS.mono}"`;
-
 /**
- * 帯つきの図で動かす図の字の変数 (#3695)。同梱した字の後に代わりの字の並びを持ち、同梱した字を読まない頁に置いても明朝に落ちない。
- * 書き出す SVG と帯を付けない図は`FONT_VARS`のまま代わりの字を持たず、同梱した字を埋められない時に端末の字へ黙って落ちない
+ * 字の並び (#3847)。同梱した 2 つの字を先に名指し、その後に代わりの字を並べて総称の字で終える。
+ * 同梱した字を読まない頁でも、図の字と帯の字がブラウザの既定の字 (日本語では明朝) に落ちない。
+ * 欧文の字 (`Arial`) を日本語のゴシックより先に置く。字の幅の見積もりは同梱した字の幅の表のままなので、
+ * 欧文の幅が同梱した字に近い字を先に選ばせる
  */
-export const FONT_STACK_VARS = `--sans:"${FONTS.sans}","Noto Sans JP","Hiragino Sans",sans-serif;--mono:"${FONTS.mono}","JetBrains Mono",ui-monospace,monospace`;
+export const FONT_STACKS = {
+  sans: `"${FONTS.sans}","Noto Sans JP","Noto Sans CJK JP",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif`,
+  mono: `"${FONTS.mono}","JetBrains Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace`,
+} as const;
+
+/** 字の変数。字を使う所はどれもこの変数を読む (#3847) */
+export const FONT_VARS = `--sans:${FONT_STACKS.sans};--mono:${FONT_STACKS.mono}`;
 
 /**
  * 置いた頁の字の間と大文字の指定を戻す性質 (#3787)。定義は`plain-text.ts`に置き、描く本体と再生の部品と帯の枠はここから読む。

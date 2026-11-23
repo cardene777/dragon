@@ -6,7 +6,7 @@ import { paintSnippet, snippetWords, SNIPPET_CSS } from './dragon-snippet.mjs';
 import { CAPTURE_FORMATS, createDiagramActions, PAPER } from './diagram-actions.mjs';
 import { FRAME_TEXT, frameLang } from './frame-text.mjs';
 import { EDGE_PLAYER_ROOM_CSS } from '../look/player-room';
-import { FONT_STACK_VARS, PLAIN_TEXT } from '../look/values';
+import { FONT_VARS, PLAIN_TEXT } from '../look/values';
 
 export function diagramEditorUrl(source) {
   return editorUrl(source);
@@ -32,7 +32,7 @@ const FRAME_VARS={border:'--dragon-frame-border',background:'--dragon-frame-back
 const MENU_ROOM=10;
 
 /**
- * 帯と、帯の内側の見た目。図の字の変数は代わりの字の並びで上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695)。
+ * 帯と、帯の内側の見た目。図の字の変数は全ての図と同じ字の並び (`FONT_VARS`) で上書きし、同梱した字を読まない頁に置いても明朝に落とさない (#3695、#3847)。
  * 再生の部品は字の変数を自分の`style`属性に書くので、`!important`で上書きする。
  * 帯の内側の影の根には図のSVGも描くので、帯の釦の絵柄の線の決まりは帯の段 (`[data-dragon-header]`) の中のSVGだけに当て、図の字と地に縁取りを付けない (#3744)。
  * 帯の枠は図を幅いっぱいに置くので、1 file の HTML と同じく再生の帯の中身を枠の左右と下の縁から離す (`look/player-room.ts`、#3744)。
@@ -56,7 +56,7 @@ const FRAME_CSS = `
 .stage{min-width:0;border-radius:0 0 12px 12px;overflow:hidden}.code{background:#19261f;border-radius:0 0 12px 12px;color:#d9e6d5}.code-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #ffffff19}.code-head button{font:11px ui-monospace,monospace;color:#9eaf99;border:1px solid #50624d;border-radius:5px;padding:5px 9px;background:none}.code-head [aria-pressed=true]{background:#354733;color:#f0f6eb}.copy{margin-left:auto}.code pre{margin:0;padding:18px;max-height:620px;min-height:360px;overflow:auto;white-space:pre;tab-size:2;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace}.status{padding:9px 14px;margin:0;font-size:12px;color:#596e50}.status:empty{display:none}:host(:fullscreen){height:100vh;overflow:auto;background:${PAPER};border:0;border-radius:0}:host(:fullscreen) [data-dragon-header]{position:sticky;top:0;z-index:30}
 :host([data-code-open]){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}:host([data-code-open]) [data-dragon-header],:host([data-code-open]) .status{grid-column:1/-1}:host([data-code-open]) .code{border-left:1px solid #53604e;border-radius:0;min-width:0}:host([data-code-open]) .code pre{min-height:0;max-height:calc(100dvh - 150px);font-size:11px}
 @media(max-width:700px){:host([data-code-open]){grid-template-columns:minmax(0,1fr)}}
-.dg-player,.dg-player svg.dg{${FONT_STACK_VARS.replace(/;|$/gu,'!important;')}}
+.dg-player,.dg-player svg.dg{${FONT_VARS.replace(/;|$/gu,'!important;')}}
 ${EDGE_PLAYER_ROOM_CSS}
 `;
 /** 拡大の窓の後ろを暗くする見た目。窓は帯を置いた所の根に置く */
