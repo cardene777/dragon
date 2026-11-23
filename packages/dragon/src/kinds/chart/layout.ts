@@ -794,7 +794,7 @@ function ringSegment(ring: NonNullable<ChartPlan["ring"]>, arc: ChartArc): Point
  * 棒の見た目 (`[shape: bar]`) は棒の通り道を地、最後の段の長さの棒を札で描く。
  * 点で数える見た目 (`[shape: dots]`) は点の図の共通の部品が描く。
  * 輪の見た目 (`[shape: donut]`) は、最後の段で値を持つ項目の輪の区切りを項目の色の塗った形で、
- * 凡例の行を色の見本の左端から割合の字の右端までの項目の色の札で描く。幅 320 以下の枠では寄って追う形になるため (#3852)
+ * 凡例の行を色の見本の左端から割合の字の右端までの項目の色の札で描く。狭い枠では寄って追う形になるため (見本の os-share は幅 300 以下、staking-rewards は幅 332 以下、#3852)
  */
 export function chartOverview(layout: ChartLayout): OverviewShape[] {
   const plan = layout.chart;

@@ -204,7 +204,7 @@ function firstPoint(el: Element): [number, number] {
   return [x, y];
 }
 
-/** 輪の見た目の 2 つの見本と、寄って追う形になる枠の幅。#3849 は幅 390 と 760 だけを数え、幅 320 以下で空になる全体図を見逃した */
+/** 輪の見た目の 2 つの見本と、寄って追う形に決めて置く枠の幅。見本は os-share が幅 300 以下、staking-rewards が幅 332 以下で寄って追う形になる。#3849 は幅 390 と 760 だけを数え、狭い枠で空になる全体図を見逃した */
 const DONUTS: [string, number][] = [
   ["os-share", 320],
   ["staking-rewards", 280],
