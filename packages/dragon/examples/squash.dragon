@@ -36,7 +36,7 @@ step mainが進む
 step squashでまとめる
   say mainへ戻ってfeatureをsquashで取り込み、C1からC3の変更を全て合わせた1つのcommit Sを作る。Sの親はmainの先端Eだけで、featureとは線で繋がらない。
   code git switch main → git merge --squash feature → git commit
-  HEAD -> E: git switch main
+  HEAD -> E: `git switch main`
   main -> E
   commit S on main [hash: 7d3a5e2, note: C1からC3をまとめる]
   note 遠く: mainにSが届いた

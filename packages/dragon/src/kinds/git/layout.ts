@@ -43,6 +43,7 @@ import {
   pathLength,
   placeLabel,
   type Point,
+  labelWidth,
   type Rect,
   type SceneBadge,
   type SceneBox,
@@ -794,7 +795,7 @@ function labelsOf(diagram: DiagramModel, layout: GitLayout): SceneLabel[] {
     const target = layout.commits.find((c) => c.id === source.to);
     if (!target) continue;
     const top = layout.lanes[0]?.id === target.branch;
-    const w = textWidth(source.label, hasWide(source.label) ? TYPE.labelJa : TYPE.label) + LOOK.label.padX * 2;
+    const w = labelWidth(source.label) + LOOK.label.padX * 2;
     const [mx] = move.line.reduce((sum, p) => [sum[0] + p[0] / (move.line as Point[]).length, 0], [0, 0]);
     const rows = Math.max(0, ...layout.tags.filter((t) => t.step === move.step && Math.abs(t.x + t.w / 2 - target.cx) < 0.5).map((t) => target.cy - t.y));
     // 置く側を書いた名前は、その側の線の脇から探す

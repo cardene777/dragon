@@ -28,7 +28,7 @@ import {
   edgeColor,
   edgesOf,
   gapBetween,
-  labelStyle,
+  labelWidth,
   type Layout,
   layoutStrip,
   loopUnder,
@@ -281,7 +281,7 @@ export function layoutTree(diagram: DiagramModel): TreeLayout {
   const treeRight = Math.max(x0, ...nodes.flatMap((n) => [n.x + n.w, ...(n.card ? [n.card.x + n.card.w] : [])]));
   const rootBox = nodes.find((n) => n.root);
   const ids = new Set(diagram.boxes.map((b) => b.id));
-  const named = edgesOf(diagram).flatMap(({ edge }) => (edge.label !== undefined && (ids.has(edge.from) || ids.has(edge.to)) ? [textWidth(edge.label, labelStyle(edge.label)) + LOOK.label.padX * 2] : []));
+  const named = edgesOf(diagram).flatMap(({ edge }) => (edge.label !== undefined && (ids.has(edge.from) || ids.has(edge.to)) ? [labelWidth(edge.label) + LOOK.label.padX * 2] : []));
   // 根と箱を行きと帰りで結ぶ線は離して2本引くので、2つの段の番号が運ぶ物の待つ所と着く所を避けて真ん中に並ぶ長さまで、根から離す (#3607)
   const lines = edgesOf(diagram).map(({ edge }) => edge);
   const paired = lines.flatMap((edge) => (edge.from !== edge.to && (ids.has(edge.from) || ids.has(edge.to)) && lines.some((o) => o.from === edge.to && o.to === edge.from) ? [pairReach(edge.carry)] : []));

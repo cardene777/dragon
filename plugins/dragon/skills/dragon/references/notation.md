@@ -50,6 +50,7 @@ end
 ```
 
 - The label is optional. A label may contain `,`; it ends at `[` or the end of the line.
+- A label made of words is drawn in the text font. A label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word such as `sendRawTransaction`) or one that starts with a digit is drawn in the monospace font. To draw a command with no sign in the monospace font, wrap the whole label in backticks (`` `git rebase main` ``); the backticks are not drawn.
 - `carry` is what travels: an envelope when left out, `coin` for money, `none` for nothing.
 - `tag` writes a short value on a tag that travels along the line.
 - `side` is `above`, `below`, `left` or `right`. Write it only when the automatic label place overlaps something, for example `[side: below]` on replies in a sequence diagram.

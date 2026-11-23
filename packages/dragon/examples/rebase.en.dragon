@@ -41,7 +41,7 @@ step main moves on
 step Start the rebase
   say Git walks back to the fork point B, sets C and D aside, and moves HEAD to E. HEAD points at E directly, not through a branch (detached). From here it replays one commit at a time.
   code git rebase main
-  HEAD -> E: git rebase main
+  HEAD -> E: `git rebase main`
   set HEAD: E (detached)
   set History: Replaying
 

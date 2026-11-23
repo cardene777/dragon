@@ -25,7 +25,7 @@ import {
   edgeColor,
   edgesOf,
   frameLines,
-  labelStyle,
+  labelWidth,
   type Layout,
   lineBadges,
   lineKey,
@@ -245,7 +245,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const a = slots.get(edge.from);
     const b = slots.get(edge.to);
     if (!a || !b || edge.label === undefined || a.group !== b.group || a.row !== b.row || Math.abs(a.col - b.col) !== 1 || vertical(edge.labelSide)) continue;
-    const need = textWidth(edge.label, labelStyle(edge.label)) + LOOK.label.padX * 2 + A.labelRoom * 2;
+    const need = labelWidth(edge.label) + LOOK.label.padX * 2 + A.labelRoom * 2;
     const i = Math.min(a.col, b.col);
     between[i] = Math.max(between[i] ?? 0, need);
   }
@@ -670,7 +670,7 @@ function arrange(diagram: DiagramModel, groups: Group[], slots: Map<string, Slot
     const soft: Rect[] = [...regions.map((r) => r.header), ...labels.filter((l) => l.step === edge.step)];
     // 指示の無い線の名前は、空いていなければ反対の側も探す。ずらした線は自分の側だけを探す
     const side = source.labelSide ?? outward.get(edge);
-    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
+    const w = labelWidth(source.label) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探す (#3186)
     const below = edge.from === edge.to ? { side: "below" as const, base: loopLabelBase(edge.points, w) } : undefined;
     const { a, b, vertical } = longest(edge.points);
