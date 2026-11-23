@@ -366,7 +366,7 @@ describe("トークンの箱の名前の下の字 (#3803)", () => {
   it("pipe-json-refuses-sub-on-non-token-box", () => {
     // 原本の JSON でも、トークンの箱の sub は通し、人の箱と契約の箱の sub はその欄を指して拒む
     const base = read(sendText()) as { blocks: { box: { id: string; sub?: string }[] } };
-    const withSub = (id: string): Json => ({ ...base, blocks: { ...base.blocks, box: base.blocks.box.map((b) => (b.id === id ? { ...b, sub: "Holding" } : b)) } }) as unknown as Json;
+    const withSub = (id: string): Json => ({ ...base, blocks: { ...base.blocks, box: base.blocks.box.map((b) => (b.id === id ? { ...b, sub: "Holding" } : b)) } });
     const token = api("validateDiagram")(withSub("usdc"));
     expect(token.ok ? [] : token.errors, "トークンの箱の sub").toEqual([]);
     for (const id of ["alice", "router"]) {
