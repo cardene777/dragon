@@ -30,6 +30,8 @@ import {
   edgesOf,
   type EdgeEvent,
   labelStyle,
+  labelText,
+  labelWidth,
   type Layout,
   layoutStrip,
   lineBadges,
@@ -325,7 +327,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       labels.push({ x: same2.x, y: same2.y, w: same2.w, h: same2.h, step: e.step, event: e.event, text: same2.text, family: same2.family, color: nameColor(e) });
       continue;
     }
-    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
+    const w = labelWidth(source.label) + LOOK.label.padX * 2;
     const below = loop ? { side: "below" as const, base: loopLabelBase(e.points, w) } : {};
     const side = source.labelSide ?? (e.to === "finish" ? undefined : outward.get(e));
     labels.push(
@@ -343,7 +345,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const style = labelStyle(p.label);
     const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", flip: true }, { hard: boxes, soft: [...marks, ...labels, ...placed], touch: badgeRects, lines: others(path.points) });
     placed.push(rect);
-    path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: p.label, family: style.family };
+    path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: labelText(p.label), family: style.family };
   });
 
   const layout: Layout = { kind: "flow", width: 0, height: 0, regions: [], boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths, ends };

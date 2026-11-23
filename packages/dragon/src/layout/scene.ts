@@ -825,7 +825,37 @@ export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: 
   return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap * apart);
 }
 
-export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
+/** 全体を backtick で囲んだ札。印の無いコマンド (`git rebase main`) も等幅で描くために書き手が囲む (#3850) */
+const BACKTICKED = /^`([^`]+)`$/u;
+
+/**
+ * コードの札の印 (#3850)。括弧と記号、英字が続く `/` (`GET /me`)、`0x` で始まる値、語の中の大文字
+ * (`sendRawTransaction`、`CCIPMessageSent`)、英字の間の `.`、`-` で始まる引数、2 字以上の大文字で始まる語
+ * (`SELECT orders`)、数で始まる札 (`200 OK`、`15%`)。どれも持たない札は英語の地の文の札にする
+ */
+const CODE_SIGNS = [
+  /[()[\]{}<>=_\\:;`#$@|&*]/u,
+  /\/[A-Za-z]/u,
+  /0x[0-9a-fA-F]/u,
+  /[a-z][A-Z]/u,
+  /[A-Za-z]\.[A-Za-z]/u,
+  /(?:^|\s)--?[a-z]/u,
+  /^[A-Z]{2,}(?:\s|$)/u,
+  /^[+-]?\d/u,
+];
+
+/** 描く札の字。backtick の囲みは描かない (#3850) */
+export const labelText = (text: string): string => BACKTICKED.exec(text)?.[1] ?? text;
+
+/**
+ * 線の札の字 (#3850)。コードの札は等幅の字 (`label`) で、英語の地の文の札は日本語の札と同じ字 (`labelJa`) で描く。
+ * 等幅の字は和文を持たないので、日本語を含む札は印があっても `labelJa` で描く
+ */
+export const labelStyle = (text: string) =>
+  hasWide(text) ? TYPE.labelJa : BACKTICKED.test(text) || CODE_SIGNS.some((sign) => sign.test(text)) ? TYPE.label : TYPE.labelJa;
+
+/** 札の字の幅。囲みを外した字を、描く字で測る (#3850) */
+export const labelWidth = (text: string): number => textWidth(labelText(text), labelStyle(text));
 
 const OPPOSITE: Record<LabelSide, LabelSide> = { above: "below", below: "above", left: "right", right: "left" };
 
@@ -835,7 +865,7 @@ const OPPOSITE: Record<LabelSide, LabelSide> = { above: "below", below: "above",
  * `flip` を立てると、同じ離れで反対の側も探す (#3175)。片側だけを遠くまで探すと、図の端の外へ出るため
  */
 export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLabel {
-  const w = textWidth(request.text, labelStyle(request.text)) + LOOK.label.padX * 2;
+  const w = labelWidth(request.text) + LOOK.label.padX * 2;
   const h = LOOK.label.h;
   const segment = longest(request.points);
   const mx = (segment.a[0] + segment.b[0]) / 2;
@@ -914,7 +944,7 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const found = obstacles.nearest
     ? (tiers((rect) => free(rect) && clear(rect)) ?? (frames.length > 0 ? tiers(free) : undefined) ?? find(free, searchMax))
     : find((rect) => free(rect) && across(rect), searchMax);
-  return { ...(found ?? first), step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+  return { ...(found ?? first), step: request.step, event: request.event, text: labelText(request.text), family: labelStyle(request.text).family, color: request.color };
 }
 
 /**

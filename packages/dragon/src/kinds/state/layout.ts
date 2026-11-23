@@ -30,6 +30,8 @@ import {
   edgesOf,
   type EdgeEvent,
   labelStyle,
+  labelText,
+  labelWidth,
   type Layout,
   lineBadges,
   lineKey,
@@ -353,7 +355,7 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
       labels.push({ x: same.x, y: same.y, w: same.w, h: same.h, step: e.step, event: e.event, text: same.text, family: same.family, color: e.color });
       continue;
     }
-    const w = textWidth(source.label, labelStyle(source.label)) + LOOK.label.padX * 2;
+    const w = labelWidth(source.label) + LOOK.label.padX * 2;
     // 輪の名前は輪の下から探し、空いていなければ横へずらす
     const row = rowBase.get(`${key}\n${source.label}`);
     const below = loop
@@ -381,7 +383,7 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
     const lead = into ? { side: "below" as const, base: { x: x0 + LOOK.label.soft, y: lane + LOOK.label.soft }, slide: Math.max(...path.points.map(([x]) => Math.abs(x - x0))) } : {};
     const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", ...lead }, { hard: boxes, soft: [...soft, ...labels, ...placed], touch: badgeRects, lines: others(path.points) });
     placed.push(rect);
-    path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: p.label, family: style.family };
+    path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: labelText(p.label), family: style.family };
   });
 
   const layout: Layout = { kind: "state", width: 0, height: 0, regions: [], boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths, ends, ...(side ? { side } : {}) };
@@ -441,7 +443,7 @@ export function layoutState(diagram: DiagramModel, lang: NotationLang): Layout {
 
 /** 線の色。移った先の状態の色で、終わりへ移る線は終わる状態の色。硬貨を運ぶ線は構成図と同じく硬貨の色 (#3171) */
 /** 線の名前の札の幅 */
-const pillWidth = (text: string): number => textWidth(text, labelStyle(text)) + LOOK.label.padX * 2;
+const pillWidth = (text: string): number => labelWidth(text) + LOOK.label.padX * 2;
 
 /**
  * 同じ線に段ごとに違う名前が付く時の、名前ごとの札の左上 (#3607)。鍵は線の鍵と名前を改行でつないだ字。
