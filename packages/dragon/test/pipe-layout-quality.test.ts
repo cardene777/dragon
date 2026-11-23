@@ -1132,7 +1132,7 @@ const VAULT = await atLoad("見本 vault-proxy の日本語と英語の図を描
           return [];
         },
       });
-      return [lang, { svg: rendered.svg, layout: rendered.layout as TagLayout, drawn }];
+      return [lang, { svg: rendered.svg, layout: rendered.layout, drawn }];
     }),
   ),
 );
@@ -1161,12 +1161,12 @@ describe.for(["ja", "en"])("vault-proxy (%s) の線の札", (lang) => {
     drawn.stills.forEach((still, s) => {
       // 段 s の止め絵に見えている部品。ログの札は発した段から後に見え、呼び出しの札は見える区間に、返した値の札は止まって見える区間に見える
       const parts: { name: string; rect: Rect }[] = [
-        ...L.parties.map((p) => ({ name: `箱 ${p.name}`, rect: p as Rect })),
-        ...L.parties.map((p) => ({ name: `箱 ${p.name} の名前`, rect: p.label as Rect })),
-        ...L.tanks.map((t) => ({ name: `槽 ${t.party}/${t.token}`, rect: t as Rect })),
-        ...(L.gauges ?? []).map((g) => ({ name: `計器 (段 ${g.step + 1})`, rect: g as Rect })),
-        ...(L.logCards ?? []).filter((c) => (c.step ?? 0) <= s).map((c) => ({ name: `ログの札 ${c.title}`, rect: c as Rect })),
-        ...(L.callCards ?? []).filter((c) => visibleAt(c.shown, still)).map((c) => ({ name: `呼び出しの札 ${c.call}`, rect: c as Rect })),
+        ...L.parties.map((p) => ({ name: `箱 ${p.name}`, rect: p })),
+        ...L.parties.map((p) => ({ name: `箱 ${p.name} の名前`, rect: p.label })),
+        ...L.tanks.map((t) => ({ name: `槽 ${t.party}/${t.token}`, rect: t })),
+        ...(L.gauges ?? []).map((g) => ({ name: `計器 (段 ${g.step + 1})`, rect: g })),
+        ...(L.logCards ?? []).filter((c) => (c.step ?? 0) <= s).map((c) => ({ name: `ログの札 ${c.title}`, rect: c })),
+        ...(L.callCards ?? []).filter((c) => visibleAt(c.shown, still)).map((c) => ({ name: `呼び出しの札 ${c.call}`, rect: c })),
         ...(drawn.pieces ?? [])
           .filter((p) => p.kind === "chip" && p.rect && visibleAt(p.shown, still))
           .map((p) => ({ name: `返した値の札 ${p.text}`, rect: p.rect as Rect })),
