@@ -636,6 +636,15 @@ export function mountDiagram(
   let marked: readonly Rect[] = [];
 
   /**
+   * 段ごとの組 (`data-dg-only` に段の番号を持つ要素、持ち主ごとのカードの図、#3846) の見え方。
+   * 止めている間は今の段の組だけを見せてほかの組に `hidden` を付け、流している間は隠さずに図の動きに任せる
+   */
+  const showOnly = (): void => {
+    if (!svg) return;
+    for (const part of svg.querySelectorAll("[data-dg-only]")) part.toggleAttribute("hidden", !playing && part.getAttribute("data-dg-only") !== String(step));
+  };
+
+  /**
    * 渡された四角を点線で囲む。寄って追う図では窓の中身と一緒に動く所に置き、止めて見せる図では図の上に置く。
    * 囲みは字の四角より `LOOK.mark.pad` だけ広げ、字の縁に線が掛からないようにする
    */
@@ -940,6 +949,7 @@ export function mountDiagram(
     if (fresh) drawMarks();
     controls?.fit(frame, next);
     controls?.mark(next, step);
+    showOnly();
     settle();
     panTo();
   };
@@ -990,6 +1000,7 @@ export function mountDiagram(
     fillNow();
     panTo();
     if (svg) controls?.mark(svg, step);
+    showOnly();
     calls?.show(rendered.diagram, step);
     // 段が替わると箱の位置と中身が替わるので、開いた札を閉じる (#3877)
     notes?.stepped(step);
