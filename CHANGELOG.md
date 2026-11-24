@@ -39,6 +39,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - A still figure writes the shape of its last step as plain values instead of keyframes stopped at that moment, so a donut keeps one arc per item and bars keep their lengths on a page that turns animations off, such as one with `* { animation: none !important; }` for reduced motion. Moving diagrams keep their keyframes. A line chart puts each value above, below, right of, or left of its point, in that order, where it crosses no line, point, or other value and stays between the legend and the zero line, and a still line chart shows the value of every step (#3812)
 - The catalog loads the release notes page and the page shown for unknown addresses after its first screen, like the guide and catalog pages, instead of in the script it loads first. The script and CSS it loads first shrink from 186.2KB to 185.4KB after gzip and fit the 186KB budget again. The two pages look the same and are read in the background once the first screen is drawn (#3832)
 
+## [0.79.7] - 2026-11-24
+
+### Added
+
+- **Every drawn box and group carries its notation id in `data-node`** (#3795)
+
+  `box api as API server` draws an element with `data-node="api"`, and `group src as Sender` draws one with `data-node="src"`. A page that places a diagram can read the id of the pressed box with `closest('[data-node]')`, so two boxes with the same name are no longer mixed up. Lines and labels carry no id. The shared boxes, groups, sequence heads, pipe parties and token boxes, lineup lanes, and matrix areas carry it, and the embed docs and the README show how to read it.
+
 ## [0.79.6] - 2026-11-23
 
 ### Fixed
