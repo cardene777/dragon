@@ -46,12 +46,13 @@ describe("考えを広げる地図の書き方の文書 (#3619)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).kind === "mind";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に mind の行の書き方が無い`).toBe(true);
       expect(grow.test(text), `${path} に考えの行 (idea <名札> as <名前> of <親>) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(mindFences(text), `${path} に考えを広げる地図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(mindFences(text), `${path} に考えを広げる地図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // README の描ける図の欄に考えを広げる地図が載る
     expect(/^\| Diagram kinds \|.*\bmind map\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に mind map が無い").toBe(true);

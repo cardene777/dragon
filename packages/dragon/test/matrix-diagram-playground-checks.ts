@@ -47,16 +47,15 @@ describe("2つの軸で置く図の書き方の文書 (#3622)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).kind === "matrix";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に matrix の行の書き方が無い`).toBe(true);
       expect(axis.test(text), `${path} に軸の行 (axis <名前> [from: <小さい側>, to: <大きい側>]) の書き方が無い`).toBe(true);
-      if (path !== "README.md") {
-        expect(item.test(text), `${path} に課題の行 (item <名札> as <名前>) の書き方が無い`).toBe(true);
-        expect(place.test(text), `${path} に区画へ置く行 (line <区画>: <課題>) の書き方が無い`).toBe(true);
-        expect(matrixFences(text), `${path} に 2つの軸で置く図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-      }
+      expect(item.test(text), `${path} に課題の行 (item <名札> as <名前>) の書き方が無い`).toBe(true);
+      expect(place.test(text), `${path} に区画へ置く行 (line <区画>: <課題>) の書き方が無い`).toBe(true);
+      expect(matrixFences(text), `${path} に 2つの軸で置く図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // README の描ける図の欄に 2つの軸で置く図が載る
     expect(/^\| Diagram kinds \|.*\btwo-axis matrix\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に two-axis matrix が無い").toBe(true);

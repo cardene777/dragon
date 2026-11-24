@@ -18,7 +18,7 @@
 | 今の見本 (入門、OAuth、CCIP) は、今どおり記法から JSON、JSON から記法、記法から JSON と変換して同じ JSON に戻る | `pnpm test`の検査`roundtrip-keeps-json-identical`が通る | #3167 |
 | 一式 (型検査、build、lint、全ての検査) が通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'` が終了 0 | #3167 |
 | 使い方の頁の状態遷移図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、`start` の線、`finish` の線、通らない道を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-state-example-parses`が通る | #3172 |
-| repo の README の描ける図の欄に状態遷移図があり、行の頭の表に `state` の行と、`start` と `finish` の線の行がある。package の README の行の頭の語に `state` があり、`start`、`finish`、通らない道を使う `state` の例を載せた状態遷移図の小節がある | `pnpm test`の検査`readme-notation-covers-state`が通る | #3172 |
+| repo の README の描ける図の欄と package の README の行の頭の語に `state` がある。英語と日本語の手引き (`packages/dragon/examples/quick-start.en.md`と`packages/dragon/examples/quick-start.md`)の状態遷移図の小節に、`state` の行と、`start` と `finish` の線の行と、`start`、`finish`、通らない道を使う `state` の例がある | `pnpm test`の検査`guide-notation-covers-state`が通る | #3172 #3881 |
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `state` の行があり、`state` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-state`が通る | #3172 |
 | package の版が 0.37.0 以上で、`CHANGELOG.md` の `## [0.37.0]` の節に状態遷移図 (#3163) と見た目を揃えた変更 (#3171) の項がある | `pnpm test`の検査`changelog-0-37-0-releases-state`が通る | #3172 |
 | package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3172 #3202 |
@@ -27,13 +27,13 @@
 | 記法の全ての語をどれかの部品が受け持ち、部品の頁の経路が組み立てで作られる | `pnpm test`の検査`catalog-parts-cover-every-word`が通る | #3172 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3172 #3202 #3208 |
 | 使い方の頁の枝分かれの図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、枝を 3 本以上宣言し、枝を切る出来事、当て直しの commit、merge commit、札を動かす線を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-git-example-parses`が通る | #3202 |
-| repo の README の描ける図の欄に枝分かれの図があり、行の頭の表に `git` と `branch` と `commit` の行と、`<枝> from <commit>` と `<札> -> <commit>` の行がある。package の README の行の頭の語に `git`、`branch`、`commit` があり、`copy`、`merge`、`from`、札を動かす線を使う `git` の例を載せた枝分かれの図の小節がある | `pnpm test`の検査`readme-notation-covers-git`が通る | #3202 |
+| repo の README の描ける図の欄と package の README の行の頭の語に `git`、`branch`、`commit` がある。英語と日本語の手引き (`packages/dragon/examples/quick-start.en.md`と`packages/dragon/examples/quick-start.md`)の枝分かれの図の小節に、`git`、`branch`、`commit` の行と、枝を切る `from` と札を動かす `HEAD ->` の行と、`copy`、`merge`、`from`、札を動かす線を使う `git` の例がある | `pnpm test`の検査`guide-notation-covers-git`が通る | #3202 #3881 |
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `git`、`branch`、`commit` の行があり、`git` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-git`が通る | #3202 |
 | package の版が 0.40.0 以上で、`CHANGELOG.md` の `## [0.40.0]` の節に枝分かれの図 (#3164) と、書き方を載せたこの課題 (#3202) の項がある | `pnpm test`の検査`changelog-0-40-0-releases-git`が通る | #3202 |
 | 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3202 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使い、部品の頁が英語でも出て、部品の頁の見本の札がその見本へ向かう | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-parts.test.ts`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3208 |
 | 使い方の頁の時間軸の図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、4 段を持ち、区切り、印の列、2 つ以上の節目、拡大の範囲を宣言し、針を進める出来事、印の色を変える出来事、範囲の出来事、物差しの欄を 1 つ以上ずつ持つ | `pnpm test`の検査`docs-time-example-parses`が通る | #3221 |
-| repo の README の描ける図の欄に時間軸の図があり、行の頭の表に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` の行と、針を進める `now ->` の行がある。package の README の行の頭の語に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` があり、`now`、`mark`、`span`、`[meter: ]` を使う `time` の例を載せた時間軸の図の小節がある | `pnpm test`の検査`readme-notation-covers-time`が通る | #3221 |
+| repo の README の描ける図の欄と package の README の行の頭の語に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` がある。英語と日本語の手引き (`packages/dragon/examples/quick-start.en.md`と`packages/dragon/examples/quick-start.md`)の時間軸の図の小節に、その 8 つの行と針を進める `now ->` の行と、`now`、`mark`、`span`、`[meter: ]` を使う `time` の例がある | `pnpm test`の検査`guide-notation-covers-time`が通る | #3221 #3881 |
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `time`、`scale`、`period`、`row`、`point`、`zoom`、`mark`、`span` の行があり、`time` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-time`が通る | #3221 |
 | `CHANGELOG.md` に、時間軸の図の書き方を使い方の頁と README と書き方の手引きに載せたこの課題 (#3221) の項がある | `pnpm test`の検査`changelog-lists-time-docs`が通る | #3221 |
 | package の版が前提の配り方の節と、`CHANGELOG.md` の版の見出しに書かれている | `pnpm test`の検査`release-version-in-premise`と`release-version-in-changelog`が通る | #3221、#3235 |
@@ -42,7 +42,7 @@
 | 使い方の頁の例を含む全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`overlaps-none-in-every-example`が通る | #3221、#3235 |
 | 型の検査、build、lint と、既存の検査の全てが通る | `bash -c 'pnpm typecheck && pnpm build && pnpm lint && pnpm exec vitest run --reporter=verbose'`が終了 0 | #3221 |
 | 使い方の頁の木の図の節の例の記法 (日本語と英語) を `parseNotation` が誤り無く読み、JSON Schema の検査を通り、4段を持ち、葉を4つと親を3つ持ち、値を持つ葉と親が全てで、親子の箱どうしの運ぶ物の線を1つ以上持つ | `pnpm test`の検査`docs-tree-example-parses`が通る | #3235 |
-| repoのREADMEの描ける図の欄に木の図があり、行の頭の表に `tree`、`leaf`、`node` の行がある。packageのREADMEの行の頭の語に `tree`、`leaf`、`node` があり、`[hash: ]` を使う `tree` の例を載せた木の図の小節がある | `pnpm test`の検査`readme-notation-covers-tree`が通る | #3235 |
+| repo の README の描ける図の欄と package の README の行の頭の語に `tree`、`leaf`、`node` がある。英語と日本語の手引き (`packages/dragon/examples/quick-start.en.md`と`packages/dragon/examples/quick-start.md`)の木の図の小節に、その 3 つの行と、`[hash: ]` を使う `tree` の例がある | `pnpm test`の検査`guide-notation-covers-tree`が通る | #3235 #3881 |
 | 書き方の手引き `quick-start.md` と英語版の行の形の節に `tree`、`leaf`、`node` の行があり、`tree` で始まる例を `parseNotation` が誤り無く読む | `pnpm test`の検査`quick-start-covers-tree`が通る | #3235 |
 | `CHANGELOG.md` に木の図の書き方を載せたこの課題 (#3235) の項がある | `pnpm test`の検査`changelog-records-tree-docs`が通る | #3235 |
 | 2つのREADMEのdragon記法の節に決まりが4つ並び、dragonの囲みの例がどれも読める | `pnpm test`の検査`readme-notation-examples-parse`が通る | #3235 |

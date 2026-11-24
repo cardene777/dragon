@@ -37,11 +37,10 @@ describe("試す図の書き方の文書 (#3337)", () => {
         const parsed = parse(fence.source);
         return parsed.ok && (parsed.diagram as Source).kind === "try";
       }).length;
+    // 種類ごとの書き方は README から記法の手引きへ移したので、手引きの試す図の小節を見る (#3881)
     const docs: [string, string][] = [
-      ["packages/dragon/README.ja.md", "### 試す図"],
-      ["packages/dragon/README.md", "### Try diagram"],
-      ["packages/dragon/examples/quick-start.md", "try "],
-      ["packages/dragon/examples/quick-start.en.md", "try "],
+      ["packages/dragon/examples/quick-start.md", "### 試す図"],
+      ["packages/dragon/examples/quick-start.en.md", "### Try diagram"],
     ];
     for (const [path, heading] of docs) {
       const text = readRepo(path);

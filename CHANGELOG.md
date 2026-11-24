@@ -19,6 +19,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- The READMEs now open with a picture of a diagram in light and dark themes, badges for the npm version, the license, and the catalog, and a table that compares dragon with mermaid. A gallery shows every kind of diagram as a picture and links to its section of the notation guide. The notation for each kind moved from the READMEs to a new Diagram kinds section of the notation guide (`packages/dragon/examples/quick-start.en.md`), and the English READMEs were rewritten in plainer English. `pnpm readme:images` redraws the pictures and badges from the examples (#3881).
 - `dragon export` no longer follows a pipe diagram (`pipe`) when given `--width`; it writes the whole diagram in the fixed view. The player has always shown pipe diagrams fixed, but the export alone made a following video at widths such as 760, which cut box names and balances at the window edge and left the overview empty. The rule now lives in one place, `chooseView`, and both the player and the export read it. A pipe video exported with a width shows the whole diagram (#3852)
 
 ### Fixed

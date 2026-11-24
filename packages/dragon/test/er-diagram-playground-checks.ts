@@ -56,13 +56,14 @@ describe("表どうしの関係の図の書き方の文書 (#3618)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).kind === "er";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に er の行の書き方が無い`).toBe(true);
       expect(table.test(text), `${path} に表を宣言する行 (table <名札> as <名前>) の書き方が無い`).toBe(true);
       expect(field.test(text), `${path} に結びを持つ項目 (field <名前>: <値> [ref: <表>.<項目>]) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(erFences(text), `${path} に表どうしの関係の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(erFences(text), `${path} に表どうしの関係の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // README の描ける図の欄に表どうしの関係の図が載る
     expect(/^\| Diagram kinds \|.*\btable relation diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に table relation diagram が無い").toBe(true);

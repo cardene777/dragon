@@ -55,17 +55,18 @@ describe("手順の図の書き方の文書 (#3561)", () => {
         const parsed = parse(fence.source);
         return parsed.ok && (parsed.diagram as unknown as Source).kind === "flow";
       }).length;
-    /** README は英語で書き、手引きは日本語と英語の 2 つを持つ */
+    /** 手引きは日本語と英語の 2 つを持つ */
     const dotted = (path: string, text: string): void => {
       const ja = path === "packages/dragon/examples/quick-start.md";
       expect(ja ? text.includes("点線") : /dotted/iu.test(text), `${path} に最初の段より前の線が点線になることが無い`).toBe(true);
     };
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       for (const [word, form] of forms) expect(form.test(text), `${path} に ${word} の行の書き方が無い`).toBe(true);
       dotted(path, text);
-      if (path !== "README.md") expect(flowFences(text), `${path} に手順の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(flowFences(text), `${path} に手順の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
     const content = repoText("apps/playground-spa/src/docs/content.ts");

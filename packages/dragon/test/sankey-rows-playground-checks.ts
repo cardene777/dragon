@@ -286,9 +286,8 @@ describe("段ごとの帯の見た目の書き方の文書 (#3641)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).sankey?.shape === "rows";
       }).length;
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
     for (const path of [
-      "packages/dragon/README.md",
-      "packages/dragon/README.ja.md",
       "packages/dragon/examples/quick-start.md",
       "packages/dragon/examples/quick-start.en.md",
     ]) {

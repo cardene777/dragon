@@ -627,11 +627,8 @@ describe("工程表の見本 (#3562)", () => {
       return text.slice(start, end < 0 ? undefined : end);
     };
     // 書き方の文書と、task の行の書き方
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
     const forms: [string, string][] = [
-      ["README.md", "`task <id> as <name> <range>"],
-      ["README.ja.md", "`task`"],
-      ["packages/dragon/README.md", "`task <id> as <name> <range>"],
-      ["packages/dragon/README.ja.md", "`task <名札> as <名前> <範囲>"],
       ["packages/dragon/examples/quick-start.md", "`task <名札> as <名前> <範囲>"],
       ["packages/dragon/examples/quick-start.en.md", "`task <id> as <name> <range>"],
       ["plugins/dragon/skills/dragon/references/kinds/time.md", "`task <id> as <name> <range>"],

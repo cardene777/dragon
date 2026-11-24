@@ -178,11 +178,12 @@ describe("層の見た目の書き方の文書 (#3625)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).lineup?.shape === "layers";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md", "plugins/dragon/skills/dragon/references/kinds/lineup.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md", "plugins/dragon/skills/dragon/references/kinds/lineup.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(/\[shape: layers\]/u.test(text), `${path} に [shape: layers] の書き方が無い`).toBe(true);
-      if (path.endsWith("quick-start.md") || path.endsWith("quick-start.en.md") || path === "packages/dragon/README.md") {
+      if (path.endsWith("quick-start.md") || path.endsWith("quick-start.en.md")) {
         expect(layersFences(text), `${path} に層の見た目として読める dragon の囲みが無い`).toBeGreaterThan(0);
       }
     }
