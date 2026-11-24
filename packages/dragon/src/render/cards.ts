@@ -48,6 +48,7 @@ const CARDS_CSS = [
   `.dg-cd-empty{fill:none;stroke:var(--line);stroke-width:${S.hair};stroke-dasharray:${L.empty.dash.join(" ")}}`,
   `.dg-cd-emptyt{${font(T.empty)};fill:var(--mute)}`,
   `.dg-cd-line{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-dasharray:1 1}`,
+  `.dg-cd-dash{stroke-dasharray:${L.call.dash.join(" ")}}`,
   `.dg-cd-head-on{fill:none;stroke:var(--c);stroke-width:${S.edgeOn};stroke-linecap:round;stroke-linejoin:round}`,
   `.dg-cd-call{fill:${mix(LOOK.mix.cap)};stroke:${mix(LOOK.mix.capEdge, "transparent")}}`,
   `.dg-cd-callt{${font(T.call)};fill:var(--ct)}`,
@@ -117,7 +118,10 @@ function callTargets(layout: CardsLayout, ctx: Ctx): Map<string, { start: number
   return out;
 }
 
-/** 段 `s` に列 `column` から出る呼び出しの線と名前の札。線は引き始める時刻から伸び、着いた時に矢じりを出す */
+/**
+ * 段 `s` に列 `column` から出る呼び出しの線と名前の札。線は引き始める時刻から伸び、着いた時に矢じりを出す。
+ * 断られた呼び出し (線の色が rose) は点線で描いて引き始める時刻に出し、見出しの下の間の線の上に × の印を重ねる
+ */
 function calls(layout: CardsLayout, column: string, s: number, ctx: Ctx, window: Shown): string {
   const { m } = ctx;
   return layout.edges
@@ -126,12 +130,15 @@ function calls(layout: CardsLayout, column: string, s: number, ctx: Ctx, window:
       const time = ctx.t.edges.find((t) => t.step === e.step && t.event === e.event);
       if (!time) return "";
       ctx.traces.push({ from: e.from, to: e.to, points: e.points, shown: [[time.start, window[1]]] });
-      const line = m.kf([
-        [0, { "stroke-dashoffset": 1 }],
-        [time.start, { "stroke-dashoffset": 1 }, EASE.inOut],
-        [time.drawn, { "stroke-dashoffset": 0 }],
-        [m.total, { "stroke-dashoffset": 0 }],
-      ]);
+      const refused = e.color === "rose";
+      const line = refused
+        ? m.vis(time.start, m.last)
+        : m.kf([
+            [0, { "stroke-dashoffset": 1 }],
+            [time.start, { "stroke-dashoffset": 1 }, EASE.inOut],
+            [time.drawn, { "stroke-dashoffset": 0 }],
+            [m.total, { "stroke-dashoffset": 0 }],
+          ]);
       const head = m.kf([
         [0, { opacity: 0 }],
         [time.drawn - 0.05, { opacity: 0 }],
@@ -143,7 +150,14 @@ function calls(layout: CardsLayout, column: string, s: number, ctx: Ctx, window:
       const label = tag
         ? `<g class="dg-a" style="${cs(tag.color)};${m.rise(time.start + MOTION.labelDelay)}"><rect class="dg-cd-call" x="${r1(tag.x)}" y="${r1(tag.y)}" width="${r1(tag.w)}" height="${tag.h}" rx="${partRadius(ctx.corner, L.call.radius)}"/>${say(ctx, "dg-cd-callt", tag.x + tag.w / 2, tag.y + tag.h / 2 + T.call.size * MIDDLE, tag.text, T.call, shown, "middle")}</g>`
         : "";
-      return `<g style="${cs(e.color)}"><path class="dg-cd-line dg-a" pathLength="1" d="${pathOf(e.points, ctx.corner)}" style="${line}"/><path class="dg-cd-head-on dg-a" d="${arrowHead(e.points)}" style="${head}"/></g>${label}`;
+      const [x0 = 0, y0 = 0] = e.points[0] ?? [];
+      const c = L.call.cross;
+      const cy = y0 + L.call.room / 2;
+      const cross = refused ? `<path class="dg-cd-x dg-a" d="M${r1(x0 - c)} ${r1(cy - c)}L${r1(x0 + c)} ${r1(cy + c)}M${r1(x0 + c)} ${r1(cy - c)}L${r1(x0 - c)} ${r1(cy + c)}" style="${m.vis(time.drawn, m.last)}"/>` : "";
+      const path = refused
+        ? `<path class="dg-cd-line dg-cd-dash dg-a" d="${pathOf(e.points, ctx.corner)}" style="${line}"/>`
+        : `<path class="dg-cd-line dg-a" pathLength="1" d="${pathOf(e.points, ctx.corner)}" style="${line}"/>`;
+      return `<g style="${cs(e.color)}">${path}<path class="dg-cd-head-on dg-a" d="${arrowHead(e.points)}" style="${head}"/>${cross}</g>${label}`;
     })
     .join("");
 }

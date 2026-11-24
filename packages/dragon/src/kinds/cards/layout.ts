@@ -308,7 +308,8 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
       filled.set(column, y + L.refusal.h);
     });
     for (const y of filled.values()) bottom = Math.max(bottom, y);
-    // 呼び出しの線。列の最初のカードへは真っ直ぐ下ろし、2 枚目から後と別の列のカードへは列の左の端を下りて横から入る
+    // 呼び出しの線。列の最初のカードへは真っ直ぐ下ろし、2 枚目から後のカードと左の列のカードへは列の左の端を下りて横から入る。
+    // 右の列のカードへは列の右の端を下りるので、線は呼んだ列のカードを横切らない
     const refused = new Set(step.events.flatMap((e) => (e.type === "refuse" ? [e.target] : [])));
     step.events.forEach((e, event) => {
       if (e.type !== "edge") return;
@@ -317,7 +318,8 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
       const target = own ?? seats.find((seat) => seat.step === s && seat.id === e.to);
       if (!target) return;
       const first = own !== undefined && own.y <= cardsTop + 0.5;
-      const down = first ? target.x + L.call.x : x + L.call.rail;
+      const right = own === undefined && target.x > x;
+      const down = first ? target.x + L.call.x : right ? x + colW - L.call.rail : x + L.call.rail;
       const mid = target.y + target.h / 2;
       const points: Point[] = first
         ? [
@@ -333,7 +335,8 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
       edges.push({ step: s, event, from: e.from, to: e.to, points, color, carry: e.carry });
       if (e.label !== undefined) {
         const w = textWidth(e.label, T.call) + L.call.padX * 2;
-        callTags.push({ step: s, event, text: e.label, color, x: down + L.call.gap, y: headBottom + (L.call.room - L.call.h) / 2, w, h: L.call.h });
+        // 名前の札は線の右に置き、列の右の端を下りる線では線の左に置く
+        callTags.push({ step: s, event, text: e.label, color, x: right ? down - L.call.gap - w : down + L.call.gap, y: headBottom + (L.call.room - L.call.h) / 2, w, h: L.call.h });
       }
     });
     boxes.forEach((box, i) => {

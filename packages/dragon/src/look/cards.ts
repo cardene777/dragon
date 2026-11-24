@@ -38,7 +38,8 @@ export const CARDS_TYPE = {
  * 見出しの高さ `headH`、名前の左端 `nameX` と基準線 `nameY`、名前と添え書きの間 `subGap`、カードの左右の余白 `padX`、
  * 呼び出しの線の無い図の見出しと最初のカードの間 `top`、最後の物と列の下の端の間 `bottom`。
  * `call` は呼び出しの線で、見出しと最初のカードの間に空ける高さ `room`、最初のカードへ真っ直ぐ下ろす線のカードの左端からの位置 `x`、
- * 2 枚目から後のカードへ回り込む線の列の左端からの位置 `rail`、線の名前の札の高さ `h` と字の左右の余白 `padX` と線との間 `gap`、角の丸み `radius`。
+ * 2 枚目から後のカードへ回り込む線の列の端からの位置 `rail`、線の名前の札の高さ `h` と字の左右の余白 `padX` と線との間 `gap`、角の丸み `radius`、
+ * 断られた呼び出しの点線の模様 `dash` と、線に重ねる × の印の半分の大きさ `cross`。
  * `card` はカードで、高さ `h`、上下の間 `gap`、角の丸み `radius`、字の左右の余白 `padX`、名前と量の基準線 `nameY` と `amountY`、量の無いカードの名前の基準線 `soloY`、
  * 縁の太さ `edge` と光った縁の太さ `strong`、消したカードの地の濃さ `gone`、消し線の太さ `strike`。
  * `tag` は「できた」と「消えた」の札で、高さ `h`、字の左右の余白 `padX`、カードの右の端から `inset`。
@@ -52,7 +53,7 @@ export const CARDS_TYPE = {
 export const CARDS_LOOK = {
   margin: 20,
   column: { minW: 196, gap: 16, radius: 16, tint: 7, headTint: 12, headH: 50, nameX: 16, nameY: 31, subGap: 8, padX: 14, top: 14, bottom: 14 },
-  call: { room: 40, x: 24, rail: 7, h: 22, padX: 11, gap: 9, radius: 11 },
+  call: { room: 40, x: 24, rail: 7, h: 22, padX: 11, gap: 9, radius: 11, dash: [5, 4], cross: 4.5 },
   card: { h: 58, gap: 10, radius: 10, padX: 13, nameY: 24, amountY: 44, soloY: 34, edge: 1.1, strong: 2.2, gone: 55, strike: 2 },
   tag: { h: 20, padX: 9, inset: 10 },
   mark: { h: 20, padX: 8, inset: 9, tint: 14, edge: 45 },
