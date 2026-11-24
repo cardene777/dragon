@@ -23,6 +23,7 @@ import { reading as edgeReading } from "./edge/read";
 import { reading as edgeLabelReading } from "./edge-label/read";
 import { reading as emitReading } from "./emit/read";
 import { reading as foldReading } from "./fold/read";
+import { reading as gaugeReading } from "./gauge/read";
 import { reading as gistReading } from "./gist/read";
 import { reading as groupReading } from "./group/read";
 import { reading as holdReading } from "./hold/read";
@@ -94,6 +95,7 @@ export const READINGS = {
   "edge-label": edgeLabelReading,
   "emit": emitReading,
   "fold": foldReading,
+  "gauge": gaugeReading,
   "gist": gistReading,
   "group": groupReading,
   "hold": holdReading,

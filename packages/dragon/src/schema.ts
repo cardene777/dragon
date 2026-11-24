@@ -52,6 +52,7 @@ import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
 import type { ErCell, ErField, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
 import type { VennCount, VennNone, VennSet } from "./blocks/circle/block";
+import type { Gauge, GaugeSet } from "./blocks/gauge/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
@@ -133,7 +134,8 @@ export type DiagramEvent =
   | ErCell
   | ErFormula
   | VennCount
-  | VennNone;
+  | VennNone
+  | GaugeSet;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -168,6 +170,8 @@ export type { ErCell, ErField, ErFormula, ErLookup, ErTable };
 
 /** 集合の重なりの図 (#3620) の集まりと、段の中の数の出来事の型は集まりの円のブロックが持つ */
 export type { VennCount, VennNone, VennSet };
+/** 量の目盛り (#3880) の宣言と、段の中の値の出来事の型は目盛りのブロックが持つ */
+export type { Gauge, GaugeSet };
 
 /** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
 export type { TreeLeaf, TreeNode };
@@ -372,6 +376,8 @@ export interface DiagramBlocks {
   table?: ErTable[];
   /** 集合の重なりの図 (#3620) の集まり。宣言した順に円を置く */
   circle?: VennSet[];
+  /** 量の目盛り (#3880)。`on` の箱の下と図の上の帯に、宣言した順に縦に積む */
+  gauge?: Gauge[];
 }
 
 /**
@@ -435,6 +441,8 @@ export interface DiagramModel {
   regions?: Region[];
   boxes: Box[];
   strip?: Strip;
+  /** 量の目盛り (#3880)。版1の原本に無かった欄なので、版2の原本の `gauge` をそのまま持つ */
+  gauge?: Gauge[];
   steps: Step[];
   /** 時系列図の生存線の並びと、見た目 (#3720)。見た目は版2の原本の根の `sequence` の欄から移す */
   sequence?: { lifelines: string[]; shape?: SequenceShape };
