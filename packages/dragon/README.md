@@ -4,13 +4,34 @@ Animated diagrams that people and AI write in a plain notation.
 
 [日本語](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.ja.md)
 
-dragon draws a diagram that plays step by step from a short text file.
-The catalog, with every kind of diagram and an editor that plays what you type, is at <https://cardene777.github.io/dragon/>.
+<p>
+<a href="https://github.com/cardene777/dragon/blob/main/CHANGELOG.md"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/badges/npm.svg" alt="npm version"></a>
+<a href="https://github.com/cardene777/dragon/blob/main/LICENSE"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/badges/license.svg" alt="license MIT"></a>
+<a href="https://cardene777.github.io/dragon/"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/badges/catalog.svg" alt="catalog"></a>
+</p>
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/hero-dark.png">
+<img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/hero.png" alt="An architecture diagram of a photo upload, paused at its last step with the player bar below it">
+</picture>
+
+dragon turns a short text file into a diagram that plays one step at a time.
+The catalog at <https://cardene777.github.io/dragon/> shows every kind of diagram, with an editor that plays what you type.
+
+## Why dragon
+
+| | mermaid | dragon |
+|---|---|---|
+| What you get | A still picture | A diagram that plays step by step. Lines light up, chips travel, and values change |
+| Look | A theme picked per diagram | One table of colors, sizes, and spacing that every kind reads |
+| Export | SVG, PNG, and PDF through mermaid-cli | MP4, GIF, HTML, and PNG through `dragon export` |
+| Writing with AI | Parse errors when the diagram renders | `dragon check` points to the line and column, and a skill teaches the notation to AI agents |
+| On GitHub | Drawn from a `mermaid` code block | Shown as an exported picture, and plays on any page with one script line |
 
 ## The idea
 
-dragon builds diagrams out of blocks.
-Like Lego, it puts together blocks of set shapes, so every kind of diagram is assembled with the same look.
+dragon builds diagrams out of blocks, the way Lego builds models out of bricks.
+Every kind of diagram is assembled from blocks of fixed shapes, so all of them share one look.
 
 | Block | What it is | Examples |
 |---|---|---|
@@ -19,23 +40,22 @@ Like Lego, it puts together blocks of set shapes, so every kind of diagram is as
 | Connector blocks | Blocks that join two blocks | the edge (`->`), the merge of a git graph |
 
 A diagram is blocks put together.
-A diagram kind decides only how its blocks are laid out and which ways of attaching it accepts.
-Which blocks a diagram can use follows from how each block attaches.
-Colors, text sizes, and spacing live in one table, and every block reads from it, so every diagram has the same look.
+A diagram kind only decides how its blocks are laid out and which connections it accepts.
+Colors, text sizes, and spacing live in one table that every block reads, so every diagram looks consistent.
 
 You can also add your own blocks in your own project.
-Base one on a box, a line, or an icon, change its shape and color role, and write it as a definition made of data only ([Add your own blocks](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.md#add-your-own-blocks)).
-To add diagram kinds or more blocks to base on, send a pull request to this repository or work in a fork.
+Start from a box, a line, or an icon, change its shape and color role, and write it as plain data ([Add your own blocks](https://github.com/cardene777/dragon/blob/main/packages/dragon/README.md#add-your-own-blocks)).
+To add a diagram kind or a new base block, open a pull request to this repository or work in a fork.
 
-The other axis is to be as easy as mermaid to write, and to show the diagram right away.
+dragon also aims to be as easy as mermaid to write, and to show the diagram right away.
 
-- Short to write. The diagram kind and one `A -> B: name` line make a diagram, and the names on the lines become boxes
-- One script line. Put one script line and the notation on a page, and it becomes a diagram that plays
-- Fast for AI to write. AI writes the same notation as people and fixes the line and column that the parser's error messages point to. JSON stays as the source and converts to and from the notation
-- Light and fast. A page loads only the blocks its diagrams use
+- Short to write. The diagram kind and one `A -> B: name` line make a diagram, and the names on the lines become boxes.
+- One script line. Add one script line and the notation to a page, and the notation becomes a diagram that plays.
+- Fast for AI to write. AI writes the same notation as people and fixes the line and column that the parser's error messages point to. JSON stays as the source and converts to and from the notation.
+- Light and fast. A page loads only the blocks its diagrams use.
 
-The notation takes mermaid as its model but is its own form, and it is not compatible with mermaid.
-It leaves out hard-to-read forms such as `-->|text|`, and lets the first English word of a line tell what the line is.
+The notation is modeled on mermaid, but it is not compatible with mermaid.
+It drops hard-to-read forms such as `-->|text|`, and the first English word of each line says what the line is.
 
 ## Install
 
@@ -47,14 +67,14 @@ The package has four parts.
 
 | Part | What it is |
 |---|---|
-| Source | JSON with a skeleton of kind, title and steps, and a field for each block name (`blocks`) (see below). It carries a format version, and older versions are converted when read |
-| Notation | The dragon notation, where the first English word of each line decides its kind (the section below). It converts to and from JSON, and names and text can be in any language ([notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
+| Source | JSON that holds the kind, title, and steps, plus a field for each block name (`blocks`) (see below). It records a format version, and older versions are converted when read |
+| Notation | The dragon notation, where the first English word of each line sets the line's kind (see below). It converts to and from JSON, and names and text can be in any language ([notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
 | Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, tree, lineup, and try diagrams |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Write diagrams with AI
 
-The dragon skill teaches an AI agent to write diagrams in the dragon notation, check them with `dragon check`, and fix them until they read.
+The dragon skill teaches an AI agent to write diagrams in the dragon notation, check them with `dragon check`, and fix them until the check passes.
 In Claude Code, add the GitHub repository cardene777/dragon as a plugin marketplace and install the plugin.
 
 ```text
@@ -62,7 +82,7 @@ In Claude Code, add the GitHub repository cardene777/dragon as a plugin marketpl
 /plugin install dragon@dragon
 ```
 
-For another AI agent, copy the skill directory `plugins/dragon/skills/dragon` in the GitHub repository cardene777/dragon to the place where that agent reads skills.
+For other AI agents, copy the `plugins/dragon/skills/dragon` directory from the cardene777/dragon repository on GitHub into the folder where the agent loads its skills.
 The agent starts from `SKILL.md` and reads only the reference file for the kind of diagram it draws.
 The plugin version matches the npm version of `@cardenelabs/dragon`, and the skill checks the installed version with `dragon --version`.
 
@@ -75,9 +95,9 @@ browser -> app: GET /login
 app -> browser: Return the sign-in page
 ```
 
-The diagram kind and lines joining boxes with `->` are enough to make a diagram.
-The names on the lines become boxes, and each line becomes one step, lit in the order written.
-Write `box` and `step` lines when a box needs a shown name or a caption, or a step needs a title and a body.
+A diagram kind plus lines that join boxes with `->` is all a diagram needs.
+Each name on a line becomes a box, and each line becomes a step that lights up in the order you wrote it.
+Add `box` and `step` lines when a box needs a display name or a caption, or when a step needs a title and a body.
 
 ```dragon
 sequence Ask to sign in
@@ -90,12 +110,51 @@ step Press sign in
   browser -> app: GET /login
 ```
 
-Paste it into the editor on the catalog to watch it play, or put it on your own page as the next section shows.
+Paste it into the editor on the catalog to watch it play, or put it on your own page as shown below.
+
+## Diagram kinds
+
+Each picture is the last step of an example in [`packages/dragon/examples`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples).
+Select a kind to read how to write it.
+
+<table>
+<tr>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#sequence-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sequence-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sequence.png" alt="A sequence diagram" width="260"></picture><br>Sequence diagram</a></td>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#architecture-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/architecture-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/architecture.png" alt="An architecture diagram" width="260"></picture><br>Architecture diagram</a></td>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#state-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/state-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/state.png" alt="A state diagram" width="260"></picture><br>State diagram</a></td>
+</tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#git-graph"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/git-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/git.png" alt="A git graph" width="260"></picture><br>Git graph</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#time-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/time-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/time.png" alt="A time diagram" width="260"></picture><br>Time diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#tree-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/tree-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/tree.png" alt="A tree diagram" width="260"></picture><br>Tree diagram</a></td>
+</tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#lineup-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/lineup-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/lineup.png" alt="A lineup diagram" width="260"></picture><br>Lineup diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#try-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/try-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/try.png" alt="A try diagram" width="260"></picture><br>Try diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#pipe-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/pipe-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/pipe.png" alt="A pipe diagram" width="260"></picture><br>Pipe diagram</a></td>
+</tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#chart"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/chart-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/chart.png" alt="A chart" width="260"></picture><br>Chart</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#flow-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/flow-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/flow.png" alt="A flow diagram" width="260"></picture><br>Flow diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#cycle-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cycle-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cycle.png" alt="A cycle diagram" width="260"></picture><br>Cycle diagram</a></td>
+</tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#mind-map"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/mind-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/mind.png" alt="A mind map" width="260"></picture><br>Mind map</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#table-relation-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/er-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/er.png" alt="A table relation diagram" width="260"></picture><br>Table relation diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#two-axis-matrix"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/matrix-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/matrix.png" alt="A two-axis matrix" width="260"></picture><br>Two-axis matrix</a></td>
+</tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#set-overlap-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn.png" alt="A set overlap diagram" width="260"></picture><br>Set overlap diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#sankey-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey.png" alt="A Sankey diagram" width="260"></picture><br>Sankey diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#checkout-diagram">Checkout diagram</a><br>A purchase model the reader can change</td>
+</tr>
+</table>
 
 ## Show it with one script line
 
-On any HTML page, put one script line and the notation in a `<pre class="dragon">` block, and the block turns into a diagram that plays.
-Nothing needs to be installed or built.
+Add one script line to any HTML page and write the notation in a `<pre class="dragon">` block.
+The block turns into a diagram that plays.
+There is nothing to install or build.
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -112,20 +171,25 @@ step Press sign in
 </pre>
 ```
 
-The script loads from jsDelivr with the version pinned up to the middle number (`@0.57`), so fixes in later patch versions reach the page and a version that changes the notation does not.
-It loads the renderer for `sequence` first, and the renderer of any other kind, `architecture` included, only when a block on the page uses it.
-It adds a `<link>` for the CSS of the two bundled fonts from jsDelivr to the page once.
-It draws every block on the page when the page has loaded, and does not watch for blocks added later.
-A block that has no width then, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
-Indentation that every line of a block shares is removed before reading, and `<` in the notation is written as `&lt;`.
-A block with an error in its notation is not drawn, and its error lines are shown in its place (`<pre class="dragon-error">`).
-The text in the diagram and the error lines are in Japanese when the page's `lang` starts with `ja`, and in English otherwise.
+The script loads from jsDelivr, with the URL pinned to the minor version.
+Later patch releases with fixes reach the page, but a release that changes the notation does not.
+It loads the `sequence` renderer up front.
+It loads the renderer for any other kind, `architecture` included, only when a block on the page uses that kind.
+It adds one `<link>` to the page that loads the CSS for the two bundled fonts from jsDelivr.
+It draws every block on the page once the page has loaded.
+It does not watch for blocks added later.
+A block that has no width at that point, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
+Indentation shared by every line of a block is removed before parsing.
+Write `<` in the notation as `&lt;`.
+A block whose notation has an error is not drawn, and its error messages appear in its place (`<pre class="dragon-error">`).
+Diagram text and error messages are in Japanese when the page's `lang` starts with `ja`, and in English otherwise.
 
-To make a file that opens without the network, pass the page to `dragon embed`.
-It replaces the script line with the bundled script, which holds every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` picks the file).
-The file fetches nothing from outside. The bundled fonts are not embedded, so it draws in the device's sans-serif fonts listed after the bundled fonts.
+To make a file that works offline, run `dragon embed` on the page.
+It replaces the script line with the bundled script, which contains every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` sets the file).
+The file fetches nothing from the network.
+It does not embed the bundled fonts, so it uses the device's sans-serif fonts, which come after the bundled fonts in the font list.
 The Export menu on a `data-header` block's bar saves the same seven formats as the jsDelivr page (PNG, SVG, HTML, GIF, MP4, notation, and JSON) without fetching anything.
-The saved HTML also draws in the device's sans-serif fonts, like the embedded page.
+The HTML it saves also uses the device's sans-serif fonts, like the embedded page.
 
 ```sh
 dragon embed page.html
@@ -133,7 +197,7 @@ dragon embed page.html
 
 ### A still figure
 
-When a page such as a report or an explainer should show the last step in one picture instead of stepping through the diagram, add `data-still` to the block.
+To show only the last step as a single picture, for example in a report or an explainer, add `data-still` to the block.
 
 ```html
 <pre class="dragon" data-still>
@@ -148,25 +212,29 @@ step This week
 </pre>
 ```
 
-A block with `data-still` gets no player (the buttons, the step number, the step title and text, and the progress bar), and is replaced by an SVG that draws the last step (`<div class="dragon-figure dragon-still">`).
+A `data-still` block gets no player: no buttons, step number, step title and text, or progress bar.
+It is replaced by an SVG of the last step (`<div class="dragon-figure dragon-still">`).
 A chart draws its values and shows the diagram title where the step title would be.
-A flow draws every line its steps passed as a solid line.
-Its fonts fall back to the device's sans-serif after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
-It uses the `clear` palette by default, which sits well on a white page, and turns dark when the page's `<html>` has `data-theme="dark"`, or when the device prefers a dark scheme and the page does not have `data-theme="light"`.
-To paint the figure with the page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.
-The background, the outlines of lines, and the plates behind labels then take that color on light and dark pages alike.
-A donut writes a middle name that does not fit inside the ring on two lines, and a step band (`cycle` with `[shape: band]`) writes each step name inside its chevron.
-The figure never grows wider than its own width, and shrinks with its aspect ratio kept when its frame is narrower.
+A flow diagram draws every line its steps passed through as a solid line.
+Its font list puts the device's sans-serif fonts after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
+It uses the `clear` palette by default, which suits a white page.
+It turns dark when the page's `<html>` has `data-theme="dark"`.
+It also turns dark when the device prefers a dark color scheme and the page does not set `data-theme="light"`.
+To give the figure your page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.
+The background, the outlines around lines, and the plates behind labels then use that color on both light and dark pages.
+A donut chart wraps a center label onto two lines when it does not fit inside the ring.
+A step band (`cycle` with `[shape: band]`) writes each step name inside its chevron.
+The figure never grows past its own width, and it shrinks to fit a narrower frame while keeping its aspect ratio.
 
-Pass a page whose blocks are all still to `dragon embed`, and it draws the blocks as SVGs in place and adds no bundled script.
-On a page that also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the moving ones.
+If every block on a page is still, `dragon embed` draws them as SVGs in place and adds no bundled script.
+If the page also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the rest.
 From the package, pass `figure: true` to `renderDiagram` to get the same SVG.
 
 ## Write a page from Markdown
 
-`dragon export notes.md` reads a Markdown file and writes one HTML page, `notes.html`, next to it (`--out <dir>` picks the folder).
-The page holds the prose, the tables and the `dragon` code blocks of the file, and splits the headings into pages and tabs.
-The same work is `exportPage(file, { outDir, lang })` from `@cardenelabs/dragon/node`.
+`dragon export notes.md` reads a Markdown file and writes one HTML page, `notes.html`, next to it (`--out <dir>` sets the folder).
+The page contains the file's prose, tables, and `dragon` code blocks, and it turns the headings into pages and tabs.
+To do the same from code, call `exportPage(file, { outDir, lang })` from `@cardenelabs/dragon/node`.
 
 | Heading | Becomes |
 |---|---|
@@ -177,16 +245,22 @@ The same work is `exportPage(file, { outDir, lang })` from `@cardenelabs/dragon/
 | `####` | A tab, in the entry and in an item page |
 | `#####` | A tab inside a tab |
 
-The default layout shows the entry with one card per item, grouped by `##`, and a card moves to the item's page without reloading.
-An item page leads back to the entry and to the items before and after it.
-Choose another layout with a `layout` line between `---` lines at the top: `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them.
+The default layout shows the entry with one card per item, grouped by `##`.
+Clicking a card opens the item's page without a reload.
+An item page links back to the entry and to the previous and next items.
+To choose another layout, add a `layout` line between `---` lines at the top of the file.
+`layout: sidebar` keeps a table of contents on the left.
+`layout: tabs` puts the groups in tabs along the top, with each group's items in tabs below them.
 `layout: entry` is the default.
 
-The top lines can also set the order of the bar buttons with `header-buttons` and the bar colors with `header-<color field>`, one line each.
-`header-buttons` lists button names (`code`, `editor`, `copy`, `export`, `expand`) separated by `,` in the order to show them, and drops the buttons you leave out.
-The color fields are `surface`, `background`, `foreground`, `muted`, `border`, `accent` and `hover`; put a color value that starts with `#` in `"`.
-The export writes these lines into the page's bar settings block (`<script type="application/json" id="dragon-header">`, see [One script line with the bar](#one-script-line-with-the-bar)), which applies to the bars of every diagram on the page.
-An unknown button name, a button written twice, a color value with `;` or `<`, and an unknown `header-` line stop the export with the line named.
+The lines between `---` can also set the bar's button order with `header-buttons` and its colors with `header-<color field>`, one line per setting.
+`header-buttons` lists button names (`code`, `editor`, `copy`, `export`, `expand`) separated by `,`, in the order to show them.
+Buttons you leave out are dropped.
+The color fields are `surface`, `background`, `foreground`, `muted`, `border`, `accent`, and `hover`.
+Put a color value that starts with `#` in quotes (`"`).
+The export writes these lines into the page's bar settings block (`<script type="application/json" id="dragon-header">`; see [One script line with the bar](#one-script-line-with-the-bar)).
+That block applies to the bar of every diagram on the page.
+An unknown button name, a duplicate button, a color value with `;` or `<`, or an unknown `header-` line stops the export, and the error names the line.
 
 ```md
 ---
@@ -196,22 +270,26 @@ header-accent: "#c0392b"
 ---
 ```
 
-A box in a diagram moves to an item when its link names that item's place, written `[link: #<place>]`.
-A place is made from the heading text the way GitHub makes heading anchors: letters become lowercase, punctuation is dropped, and spaces become `-`, so `### Take the order` is `#take-the-order`.
-`#<item>/<tab>` opens a tab of an item, and the address of the page keeps the item and the tab that are open.
-A link to a place the page does not have stops the export.
+A box in a diagram opens an item when its link points to that item's place, written `[link: #<place>]`.
+A place comes from the heading text, the same way GitHub makes heading anchors.
+Letters become lowercase, punctuation is dropped, and spaces become `-`, so `### Take the order` becomes `#take-the-order`.
+`#<item>/<tab>` opens a tab inside an item, and the page URL keeps track of the open item and tab.
+A link to a place that does not exist on the page stops the export.
 
-A line that holds only `![name](path)` puts that file in the page: a `.md` file as Markdown, a `.dragon` file as a diagram, and any other text file as a code block named `name`.
-An image file stays an image.
-Only files in the folder of the Markdown file and below are read, and a line that points outside stops the export.
+A line that contains only `![name](path)` inserts that file into the page.
+A `.md` file goes in as Markdown, a `.dragon` file as a diagram, and any other text file as a code block named `name`.
+An image file is shown as an image.
+Only files in the Markdown file's folder or its subfolders are read.
+A line that points outside that folder stops the export.
 
 Raw HTML in the Markdown is shown as text and never runs.
-The words the page adds are in Japanese when the text has kana or kanji and in English otherwise, and `--lang ja` or `--lang en` picks them.
-The page draws its diagrams with the jsDelivr script line, so pass the page to `dragon embed` for a file that opens without the network.
-An error in the notation of a diagram, an unknown `layout`, or a `###` before the first `##` stops the export with the file and line.
-The export accepts only `--out` and `--lang`, and refuses the options for diagrams such as `--fps`.
+The words the page adds itself are in Japanese when the text has kana or kanji, and in English otherwise.
+Use `--lang ja` or `--lang en` to choose.
+The page draws its diagrams with the jsDelivr script line, so run `dragon embed` on it to get a file that works offline.
+A notation error in a diagram, an unknown `layout`, or a `###` before the first `##` stops the export, and the error names the file and line.
+Page export accepts only `--out` and `--lang`, and rejects diagram options such as `--fps`.
 
-The worked example in [`examples/page/`](examples/page/page.en.md) uses every rule.
+The worked example in [`examples/page/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/page/page.en.md) uses every rule above.
 
 ````md
 ---
@@ -260,7 +338,7 @@ dragon embed notes.html
 
 ## Put it on a page
 
-Import the font entry `@cardenelabs/dragon/fonts` once on the page, and pass the source read from the notation to `mountDiagram`.
+Import the font entry `@cardenelabs/dragon/fonts` once on the page, then parse the notation and pass the result to `mountDiagram`.
 
 ```ts
 import "@cardenelabs/dragon/fonts";
@@ -276,33 +354,45 @@ const player = mountDiagram(host, parsed.diagram);
 ```
 
 The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing.
-Diagrams are laid out with character widths measured from the bundled fonts.
-Without it, they are drawn in the device's sans-serif fonts listed after the bundled fonts, and text can be a few pixels wider than measured.
-A bundler (such as Vite) carries the CSS and font files to the page.
-The entry does not read Node's built-in modules, so it also works with bundlers such as Next.js Turbopack.
-The text the player shows, such as the names read aloud for its buttons and the overview label, is in English.
+dragon lays out diagrams using character widths measured from the bundled fonts.
+Without the font entry, diagrams use the device's sans-serif fonts listed after the bundled fonts, and text can be a few pixels wider than measured.
+Your bundler (Vite, for example) ships the CSS and font files with the page.
+The entry does not import any Node built-in modules, so it also works with bundlers such as Next.js Turbopack.
+The player's own text, such as the screen reader names of its buttons and the overview label, is in English.
 For Japanese, pass `{ lang: "ja" }` to `mountDiagram` as the third argument, and to `parseNotation` for its error messages.
-`migrateFile`, which moves a source file to the current format version, comes from the Node-only entry `@cardenelabs/dragon/node`.
+`migrateFile` upgrades a source file to the current format version.
+It comes from the Node-only entry `@cardenelabs/dragon/node`.
 
-Use the `player` returned by `mountDiagram` to move through the steps (`next`, `prev`, `play`, `pause`, `destroy`).
-The third argument takes settings (`PlayerOptions`), such as the palette and a function called when the step changes.
-To place a diagram stopped on a still of one step, pass the step number (from 0) as `pausedAt`, and to play it once and stop on the last step, pass `playOnce: true`.
-`still: true` stops on the last step, shows every step's line labels and box actions as strongly as the last step's, and does not move, so readers who do not play the diagram still see the whole flow in one picture.
+Use the `player` that `mountDiagram` returns to control the diagram (`next`, `prev`, `play`, `pause`, `destroy`).
+The third argument takes settings (`PlayerOptions`), such as the palette and a callback for step changes.
+To show a diagram paused on one step, pass that step's number (counting from 0) as `pausedAt`.
+To play it once and stop on the last step, pass `playOnce: true`.
+`still: true` stops on the last step and does not move.
+It shows every step's line labels and box actions as strongly as the last step's.
+Readers who never play the diagram still see the whole flow in one picture.
 `renderDiagram` also takes `still`.
-Without any of these, the diagram plays every step on a loop from the moment it is placed.
+Without any of these, the diagram starts playing as soon as it is placed and loops through every step.
 
-To change how fast the diagram plays, pass a multiplier as `speed` (`speed: 2` moves through the steps in half the time), or call `setSpeed` on the `player` after placing it.
-The motion, the step label and `onStep` all follow the same speed, and changing it while the diagram plays continues from where it is.
+To change the playback speed, pass a multiplier as `speed`, or call `setSpeed` on the `player` later.
+For example, `speed: 2` plays the steps in half the time.
+The motion, the step label, and `onStep` all follow this speed.
+Changing it during playback continues from the current point.
 `speed` and `setSpeed` take a finite number greater than 0 and throw a `RangeError` for anything else.
 
-A pipe diagram placed in a frame narrower than 600px starts fitted to the frame width, so its box names come out small.
-Pass `zoom: "readable"` to start zoomed in so box names are readable (10.5px or larger on screen), with the frame grown to the zoomed diagram's height and panning sideways.
-Moving through the steps pans the diagram to the parties in each step, and the zoom-out button returns it to the fitted view.
-The setting works only for pipe diagrams in frames narrower than 600px; wider frames and other kinds draw as before.
+In a frame narrower than 600px, a pipe diagram starts scaled to fit the frame width, so its box names look small.
+Pass `zoom: "readable"` to start zoomed in, so box names are readable (10.5px or larger on screen).
+The frame grows to the zoomed diagram's height, and the diagram pans sideways.
+As the steps advance, the view pans to the parties in each step.
+The zoom-out button returns to the fitted view.
+The setting affects only pipe diagrams in frames narrower than 600px.
+Wider frames and other kinds draw as usual.
 
-Choose colors by name with `palette`, and pass color variable names and values in `colors` to override only those colors for the current `theme`.
-The keys are the names the palette has (`bg`, `surf`, `ink`, `line`, `c-green`, `t-green`, and so on; the type is `ColorName`), and the colors you leave out keep the palette's values.
-The placed diagram, the overview shown while following, and the buttons and step bar all use the same colors, and `renderDiagram` takes the same `colors`.
+Pick a color set by name with `palette`.
+To override single colors for the current `theme`, pass color variable names and values in `colors`.
+The keys are the palette's color names (`bg`, `surf`, `ink`, `line`, `c-green`, `t-green`, and so on; the type is `ColorName`).
+Colors you leave out keep the palette's values.
+The diagram, the overview shown while following, and the buttons and step bar all use these colors.
+`renderDiagram` takes the same `colors`.
 
 ```ts
 mountDiagram(host, parsed.diagram, {
@@ -311,16 +401,22 @@ mountDiagram(host, parsed.diagram, {
 });
 ```
 
-A name the palette does not have, or a value that cannot be read as a color (one that contains `;`, `"`, `<`, and so on), is refused with that name and nothing is drawn.
+A name the palette does not have is rejected, and so is a value that is not a valid color (one containing `;`, `"`, `<`, and so on).
+The error names it, and nothing is drawn.
 
-Pass `line: "pen"` to draw box edges, lines, arrows and rings as gently wobbling hand-drawn pen lines.
-Icons, text and the diagram frame stay as they are, line ends, bends and sharp corners stay where they were, and the same diagram wobbles the same way every time it is drawn.
+Pass `line: "pen"` to draw box edges, lines, arrows, and rings as gently wobbling, hand-drawn pen lines.
+Icons, text, and the diagram frame do not change.
+Line ends, bends, and sharp corners stay in place, and a given diagram wobbles the same way every time it is drawn.
 The default `line: "ruler"` draws straight lines, and `renderDiagram` and `captureHtml` take the same `line`.
 
-To draw a pipe diagram in your page's own words, pass `words.pipe`.
-`tags` replaces the words under the tank amounts (`provisional`, `final`, `rolled`), `io` replaces the labels on the sender's and receiver's tanks (`in`, `out`), and `fold`, `open`, and `foldTitle` replace the text of a folded box, its "click to open" line, and the title of the folded step.
-In `fold`, `{steps}` and `{parties}` become the number of inner steps and parties, and in `foldTitle`, `{name}` becomes the name of the called party.
-You can pass only some of the words; the rest keep the words of `lang`. `renderDiagram` takes the same `words`.
+To use your own wording in a pipe diagram, pass `words.pipe`.
+`tags` replaces the words under the tank amounts (`provisional`, `final`, `rolled`).
+`io` replaces the labels on the sender's and receiver's tanks (`in`, `out`).
+`fold`, `open`, and `foldTitle` replace the text of a folded box, its "click to open" line, and the title of the folded step.
+In `fold`, `{steps}` and `{parties}` become the number of inner steps and parties.
+In `foldTitle`, `{name}` becomes the name of the called party.
+You can pass just some of the words; the rest keep the defaults for `lang`.
+`renderDiagram` takes the same `words`.
 
 ```ts
 mountDiagram(host, parsed.diagram, {
@@ -330,23 +426,26 @@ mountDiagram(host, parsed.diagram, {
 
 ## Embed it in other tools
 
-Tools and services can put a diagram with the bar (Code, Editor, Copy, Export and expand) on their pages in four ways.
+Tools and services can embed a diagram with its bar (Code, Editor, Copy, Export, and expand) in their pages in four ways.
 All four draw the same diagram from the same notation, and the player's step controls stay under the diagram.
-The gallery's embedding page shows the four ways side by side with the same diagram.
+The embedding page in the gallery shows all four side by side, using the same diagram.
 
 ### One script line with the bar
 
-Add `data-header` to a `<pre class="dragon">` block, and the one-line script entry puts the bar on that block.
+Add `data-header` to a `<pre class="dragon">` block, and the one-line script adds the bar to that block.
 Blocks without the attribute stay plain diagrams.
-Only on a page with `data-header` blocks does the entry load the bar, at the same time as the parts the notation uses, and it draws the diagram once inside the bar.
-A block stays as notation until the bar arrives, and the entry never draws a plain diagram first and draws it again.
-Pages without `data-header` never load the bar, so they load no more than before.
+The script loads the bar only on pages that have `data-header` blocks.
+It loads the bar together with the parts the notation uses, and draws the diagram once, inside the bar.
+A block stays as notation until the bar arrives, and the script never draws a plain diagram first and then redraws it.
+Pages without `data-header` never load the bar, so they load nothing extra.
 
-Write the order of the bar buttons and the bar look in a bar settings block on the page, `<script type="application/json" id="dragon-header">`.
-Its keys are `buttons` and `look`, the same as in the SDK's `mountDragon`, and it applies to the bars of every `data-header` block on the page.
-For example, with `{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }` in the block, the bar shows only the code and export buttons and uses red as its accent.
-`buttons` takes only the names of the five built-in buttons; your own buttons need a click handler, so they cannot be written there.
-A block that is not valid JSON or names an unknown button turns every `data-header` block into that error text.
+To set the bar's button order and look, add a bar settings block to the page: `<script type="application/json" id="dragon-header">`.
+Its keys are `buttons` and `look`, as in the SDK's `mountDragon`.
+It applies to the bar of every `data-header` block on the page.
+For example, `{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }` shows only the code and export buttons and uses red as the accent.
+`buttons` accepts only the names of the five built-in buttons.
+Custom buttons need a click handler, so they cannot go here.
+If the settings block is not valid JSON or names an unknown button, every `data-header` block shows that error instead.
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -364,8 +463,9 @@ step Place the order
 
 Every drawn box and group carries its notation id in `data-node`.
 For example, `box api as API server` draws an element with `data-node="api"`.
-To show something when a box is pressed, read the id from the pressed element with `closest('[data-node]')`.
-A box inside a group returns the box, not the group, and lines and labels carry no id.
+To react when someone presses a box, read the id from the pressed element with `closest('[data-node]')`.
+Pressing a box inside a group returns the box, not the group.
+Lines and labels carry no id.
 
 ```html
 <script>
@@ -378,7 +478,7 @@ document.addEventListener("click", (event) => {
 
 ### The SDK function
 
-`mountDragon(host, source, options)` from `@cardenelabs/dragon/embed` puts a diagram with the bar in an element, and returns the placed diagram.
+`mountDragon(host, source, options)` from `@cardenelabs/dragon/embed` places a diagram with its bar in an element and returns the placed diagram.
 
 ```ts
 import { mountDragon } from "@cardenelabs/dragon/embed";
@@ -394,21 +494,27 @@ const embed = mountDragon(host, source, {
 host.addEventListener("dragon-export", (event) => console.log(event.detail.format));
 ```
 
-`look` fits the bar color (`colors`), the bar font (`font`), font size (`fontSize`), button corners (`radius`) and height (`height`), and the line and background of the frame around the diagram (`frame`) to your page.
-`buttons` lists the bar buttons in order; built-in buttons you leave out are dropped, and an object adds your own button whose `onClick` receives the placed diagram.
-Setting `header` to `false` puts only the diagram, and the returned object still exports (`export`), opens the editor (`openEditor`) and copies (`copy`).
-`lang` picks the bar language (`ja` or `en`); without it the bar follows the nearest `lang` attribute above the element, and English otherwise.
+`look` matches the bar to your page.
+It sets the bar colors (`colors`), font (`font`), font size (`fontSize`), button corners (`radius`) and height (`height`), and the border and background of the frame around the diagram (`frame`).
+`buttons` lists the bar buttons in order, and built-in buttons you leave out are dropped.
+An object in the list adds a custom button, and its `onClick` receives the placed diagram.
+Set `header` to `false` to place the diagram without the bar.
+The returned object can still export (`export`), open the editor (`openEditor`), and copy (`copy`).
+`lang` sets the bar language (`ja` or `en`).
+Without it, the bar follows the nearest `lang` attribute above the element, or falls back to English.
 Notation errors use the same language as the bar, so they are in Japanese on a `<html lang="ja">` page.
-`nonce` is put on the style element made for browsers without `adoptedStyleSheets`.
-The element sends four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported) and `dragon-share` (opened the editor or copied).
+`nonce` is set on the style element that dragon creates for browsers without `adoptedStyleSheets`.
+The element fires four events with `bubbles` and `composed`: `dragon-render` (drawn or not), `dragon-step` (the step changed), `dragon-export` (exported), and `dragon-share` (opened the editor or copied).
 
 ### The Web Component
 
 `defineDragonElement()` registers `<dragon-diagram>`.
-The element reads the notation from its text and puts a diagram with the bar in its shadow root.
-`header="false"` drops the bar, `nonce` passes the setting of the same name, and the element follows the nearest `lang` attribute above it.
-It redraws when the attributes or the text change, removes the diagram when it is taken off the page, and the four events reach the page outside the element.
-React and other frameworks can use the element as it is.
+The element reads the notation from its text and renders a diagram with the bar in its shadow root.
+`header="false"` removes the bar, and `nonce` passes on the setting of the same name.
+The element follows the nearest `lang` attribute above it.
+It redraws when its attributes or text change, and removes the diagram when it is taken off the page.
+The four events reach the page outside the element.
+React and other frameworks can use the element as is.
 
 ```html
 <script type="module">
@@ -427,8 +533,9 @@ React and other frameworks can use the element as it is.
 
 ### An iframe
 
-Where your page cannot run the package, open the gallery's embed page in an iframe.
-`embedUrl(source, { lang })` returns the embed page URL with the notation packed after `#`, which browsers do not send to the server.
+If your page cannot run the package, load the gallery's embed page in an iframe.
+`embedUrl(source, { lang })` returns the embed page URL with the notation packed after the `#`.
+Browsers do not send that part of the URL to the server.
 The embed page sends the same four events to your page with `postMessage` as `{ source: "dragon", type, detail }`.
 Allow `clipboard-write` so the Copy button works inside the iframe.
 
@@ -450,11 +557,16 @@ Allow `clipboard-write` so the Copy button works inside the iframe.
 
 ## Load diagram kinds on demand
 
-To keep what a page loads first small, import from `@cardenelabs/dragon/light`.
-It exports the same functions as the default entry, but leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`, and the blocks that only those kinds use.
-Await `loadFor` with the notation or JSON you are about to read, and it loads only that kind's renderer and the blocks that diagram uses.
-A diagram read from notation with `parseNotation` skips the schema check when it is drawn, so a page that draws notation never loads the check. When you pass JSON, `loadFor` also loads the schema check, and reading or drawing JSON before that stops with an error that tells you to await `loadFor`.
-After that, the same functions as the default entry read, draw, and print the same diagram without waiting.
+To keep a page's initial load small, import from `@cardenelabs/dragon/light`.
+It exports the same functions as the default entry.
+It leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`.
+It also leaves out the blocks that only those kinds use.
+Before reading a diagram, await `loadFor` with its notation or JSON.
+It loads only that kind's renderer and the blocks the diagram uses.
+A diagram parsed from notation with `parseNotation` skips the schema check when drawn, so a page that draws notation never loads the check.
+When you pass JSON, `loadFor` also loads the schema check.
+Reading or drawing JSON before that fails with an error that tells you to await `loadFor`.
+After that, the same functions as in the default entry read, draw, and print the diagram without waiting.
 
 ```ts
 import { loadFor, mountDiagram, parseNotation } from "@cardenelabs/dragon/light";
@@ -466,18 +578,25 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 
 To load a kind ahead of time, await `loadKind` with the kind's name.
 It loads the kind's renderer, every block of that kind, and the schema check.
-To read a diagram's title and kind without drawing it, await `loadReadings`, which loads only the blocks and leaves the renderer out.
-`diagramKind` returns the kind of a notation or JSON before you read it, and `definesBlocks` tells whether a notation has block definitions, which need `loadReadings` or `loadFor` before you read it.
-Drawing a kind that has not been loaded stops with an error that names the kind, and reading a line of a block that has not been loaded stops with an error that names the block.
-If loading fails, `loadFor` and `loadKind` reject, and the next call loads it again.
-`sequence` and `architecture` and their blocks are there from the start, so their notation reads and draws without loading anything.
-The pipe look of a sequence diagram (`[shape: pipe]`) is the one exception: `loadFor` loads it, or await `loadLook("pipe")` to load it ahead of time, and drawing it before that stops with an error that tells you to await `loadLook`.
-Mixing it with the default entry on one page puts every kind's renderer on the page.
+To read a diagram's title and kind without drawing it, await `loadReadings`.
+It loads only the blocks, not the renderer.
+`diagramKind` returns the kind of a notation or JSON before you read it.
+`definesBlocks` tells whether a notation has block definitions, which need `loadReadings` or `loadFor` before you read it.
+Drawing a kind that is not loaded fails with an error that names the kind.
+Reading a line of a block that is not loaded fails with an error that names the block.
+If loading fails, `loadFor` and `loadKind` reject, and the next call tries again.
+`sequence`, `architecture`, and their blocks are included from the start, so their notation reads and draws without loading anything.
+The one exception is the pipe look of a sequence diagram (`[shape: pipe]`).
+`loadFor` loads it, or you can await `loadLook("pipe")` to load it ahead of time.
+Drawing it before then fails with an error that tells you to await `loadLook`.
+Using the light entry and the default entry on the same page loads every kind's renderer.
 
 To put a diagram with the bar on a page that uses the light entry, import from `@cardenelabs/dragon/light/frame` instead of `@cardenelabs/dragon/frame`.
-It exports the same names as `@cardenelabs/dragon/frame` (`mountFramedDiagram`, `createDragonFrame`, `createFigureHeader`, `diagramEditorUrl`), and reads the notation and draws the diagram with the light entry, so the default entry stays off the page.
-After `loadFor`, it puts the diagram with the bar without waiting.
-Notation of a kind that has not been loaded stops with an error that names the kind and tells you to await `loadFor`, and leaves no bar in the element.
+It exports the same names as `@cardenelabs/dragon/frame` (`mountFramedDiagram`, `createDragonFrame`, `createFigureHeader`, `diagramEditorUrl`).
+It reads the notation and draws the diagram with the light entry, so the default entry stays off the page.
+After `loadFor`, it places the diagram with its bar without waiting.
+Notation of a kind that is not loaded fails with an error that names the kind and tells you to await `loadFor`.
+In that case, the element gets no bar.
 
 ```ts
 import { loadFor } from "@cardenelabs/dragon/light";
@@ -489,12 +608,14 @@ mountFramedDiagram(host, text);
 
 ## Add your own blocks
 
-You can add your own blocks in your own project by basing one on a box, a line, or an icon and changing its shape and color role.
-A block keeps the placement, the motion, and the diagram kinds of the block it is based on, and reads its colors from the palette table, so it looks like every other block.
+You can add your own blocks to your project.
+Base each one on a box, a line, or an icon, and change its shape and color role.
+A new block keeps the placement, motion, and diagram kinds of the block it is based on.
+It reads its colors from the palette table, so it looks like every other block.
 
-Write definitions after a `blocks 1` line, each from `block +<name>` to `end`.
+Write definitions after a `blocks 1` line, each one running from `block +<name>` to `end`.
 Start the name with `+`.
-If dragon later adds a block of the same name, your diagrams keep their meaning.
+That way, if dragon later adds a block with the same name, your diagrams keep their meaning.
 
 ```text
 architecture Across the bridge
@@ -531,12 +652,15 @@ step Hand over
 | `icon` | Write `[icon: +<name>]` on a box line | `path "…"` drawn in a 20 by 20 square centered on (0, 0) | The color of its box |
 
 A definition based on `box` can also give its boxes an icon with a line such as `icon key` or `icon tabler:building-bridge-2`.
-It takes the same names as `icon:` on a box line, and an icon written on the box line wins over the definition's.
+It accepts the same names as `icon:` on a box line.
+An icon written on the box line overrides the definition's icon.
 
-A definition based on `icon` can take colored shapes as `paint <color> "<path>"` lines in place of a one-color `path`.
-Write the view box of the original SVG as `view <x> <y> <width> <height>`, and the icon is scaled into the 20 by 20 square of an icon, with each shape filled in the color written for it.
-Write a color as `#` and 3 or 6 hex digits, and put `evenodd` after the color for a shape filled by the even-odd rule.
-A colored icon can go on the boxes of every diagram kind that takes icons.
+A definition based on `icon` can use colored shapes, written as `paint <color> "<path>"` lines, instead of a one-color `path`.
+Write the original SVG's view box as `view <x> <y> <width> <height>`.
+dragon scales the icon to fit the 20 by 20 icon square and fills each shape with the color written for it.
+Write a color as `#` followed by 3 or 6 hex digits.
+Put `evenodd` after the color to fill a shape with the even-odd rule.
+A colored icon works on boxes in every diagram kind that supports icons.
 
 ```text
 blocks 1
@@ -548,20 +672,22 @@ block +phone
 end
 ```
 
-`dragon icon <file.svg>` turns a colored SVG you have into definition lines of this form.
-`--name +<name>` names the definition, and without it the name is made from the file name.
-Shapes not filled with one color (gradients, patterns, embedded images, text) and elements with a transform or a stroke are refused, with the element named.
-When you use a cloud provider's icons, convert the latest ones from the provider.
+`dragon icon <file.svg>` converts a colored SVG into definition lines in this form.
+`--name +<name>` sets the definition's name; without it, the name comes from the file name.
+The command rejects shapes not filled with a single color (gradients, patterns, embedded images, text) and elements with a transform or a stroke.
+The error names the element.
+When you use a cloud provider's icons, convert the latest versions from the provider.
 
-A definition is data only, and a path takes only path syntax (commands, numbers, and separators).
-It cannot hold URLs, code, or SVG elements, so reading a definition someone else wrote runs nothing.
-A definition without the version line (`blocks 1`), or with an unknown version, is refused.
+A definition is data only.
+A path accepts only path syntax (commands, numbers, and separators).
+It cannot contain URLs, code, or SVG elements, so reading a definition someone else wrote never runs anything.
+dragon rejects a definition that lacks the version line (`blocks 1`) or has an unknown version.
 
-Definitions are read in three places.
+dragon reads definitions from three places.
 
-- At the head of a diagram, for that diagram only
-- In a file the page reads with `<link rel="dragon-blocks" href="bridge.dragon">`, for every notation block on the page
-- In code, read with `readBlocks` and passed as the `blocks` option of `parseNotation` and `renderDiagram`
+- At the top of a diagram, for that diagram only
+- In a file the page loads with `<link rel="dragon-blocks" href="bridge.dragon">`, for every notation block on the page
+- In code, by reading them with `readBlocks` and passing them as the `blocks` option of `parseNotation` and `renderDiagram`
 
 ```ts
 import { parseNotation, readBlocks, renderDiagram } from "@cardenelabs/dragon";
@@ -574,7 +700,7 @@ if (read.ok) {
 }
 ```
 
-To add diagram kinds or more blocks to base on, send a pull request to this repo or work in a fork.
+To add diagram kinds or new base blocks, send a pull request to this repository or work in a fork.
 
 ## Notation
 
@@ -585,15 +711,22 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set`, and a line is written as `id -> id`.
-Sequence, architecture and state diagrams can leave out the title on the first line, the box declarations, the steps and the step bodies.
-A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
-A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
-A line label made of words is drawn in the text font, and a label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word) or one that starts with a digit is drawn in the monospace font. Wrap the whole label in backticks (`` `git rebase main` ``) to draw a command with no sign in the monospace font; the backticks are not drawn.
-A value written with `set` in the strip under the diagram follows the same rule. A hash or another word mixing lowercase letters and digits (`8b04f71`), a value cut short with `…`, a version starting with `v` (`v2.4.0`), and a path such as `m/44'/60'` also stay monospace, and a name with no sign, such as a branch name, is wrapped in backticks (`` set HEAD: `main` ``).
-A destination in the `link` attribute of a box line makes that box a link in the drawn diagram.
-A `source <name> [url: <URL>]` line inside a step is a source of that step; a step can have any number, and they are listed as links in the step list that screen readers read.
-A destination or source URL is a path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey`. They also include `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code`. The rest are `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+Sequence, architecture, and state diagrams can omit the title on the first line, the box declarations, the steps, and the step bodies.
+A diagram with no `box` lines makes a box for each name on its lines, in the order the names appear.
+It still draws the diagram, but it points out box names that differ by one character.
+A diagram with no `step` lines makes each line a step, and a step without `say` uses the line label as its body.
+A line label made of plain words is drawn in the text font.
+A label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word), or one that starts with a digit, is drawn in the monospace font.
+To draw a command with no code sign in the monospace font, wrap the whole label in backticks (`` `git rebase main` ``); the backticks are not drawn.
+A value written with `set` in the strip under the diagram follows the same rule.
+Hashes and other words that mix lowercase letters and digits (`8b04f71`) also stay monospace, as do values cut short with `…`.
+So do versions starting with `v` (`v2.4.0`) and paths such as `m/44'/60'`.
+To show a name with no code sign in monospace, such as a branch name in the strip, wrap it in backticks (`` set HEAD: `main` ``).
+A `link` attribute on a box line makes that box a link in the drawn diagram.
+A `source <name> [url: <URL>]` line inside a step cites a source for that step, and a step can have any number of them.
+They appear as links in the step list that screen readers read.
+A link or source URL can be a path starting with `/`, a URL starting with `http://` or `https://`, or a place on the page starting with `#`.
 
 ```dragon
 architecture Send orders to the warehouse
@@ -614,1024 +747,16 @@ step Pass to shipping
 ```
 
 `parseNotation` turns the notation into the source JSON, and `printNotation` turns the source JSON back into the notation.
-`printNotation` leaves out declarations and steps when a diagram allows it, and writes everything when you pass `{ short: false }`.
-Error messages are in the language you pass, as in `parseNotation(text, { lang: "ja" })`, and are in English when you pass none.
-The old form of the notation (starting with `時系列図` or `構成図`) is not read, and stops with an error that shows the new form of that line.
-The table from the old form to the new one is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
-
-### State diagram
-
-Starting with `state` makes a state diagram that follows one thing moving between states step by step. Each box is a state, and each line is a move from one state to another.
-Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark.
-Lines written before the first `step` are paths the diagram could take but does not this time, drawn dotted.
-
-```dragon
-state States of an order until it arrives
-
-box awaiting as Awaiting payment [note: Waits for funds, color: amber, icon: clock]
-box shipped as Shipped [note: With the carrier, color: violet, icon: truck]
-box delivered as Delivered [note: Handed over, color: green, icon: check]
-box cancelled as Cancelled [note: Payment returned, color: rose, icon: x]
-
-awaiting -> cancelled: Cancel
-cancelled -> finish
-
-step Place the order
-  say Confirming the order starts it at Awaiting payment.
-  start -> awaiting: Place order [tag: #1042]
-
-step Ship
-  say Once the payment clears, the goods go out and the order moves to Shipped.
-  awaiting -> shipped: Ship [tag: #1042]
-
-step Arrive
-  say The goods arrive, the order moves to Delivered, and it closes.
-  shipped -> delivered: Receive [tag: #1042]
-  delivered -> finish: Close the order [tag: #1042]
-```
-
-### Git graph
-
-Starting with `git` makes a git graph that follows commits stacking on branches until they are merged, step by step. Declare branches on `branch` lines from the top, and each branch gets its own band.
-Inside a step, `commit <id> on <branch>` adds a commit to the tip of the branch, `copy <source>` makes a replayed commit, and `merge <branch>` makes a merge commit. `hash` and `note` put a hash and a short note beside the circle.
-`<branch> from <commit>` cuts a branch, and `<ref> -> <commit>` moves a branch ref or `HEAD` without making a commit. A commit that no ref can reach any more turns into a dotted circle.
-`delete <branch>` deletes a branch: its ref leaves the diagram from that step on, and its band stays. The branch `HEAD` points at cannot be deleted, so move `HEAD` to another branch first.
-
-```dragon
-git Merge fix with a merge commit and replay feature
-
-branch main [note: Target]
-branch feature [note: Work branch]
-branch fix [note: Fix branch]
-
-step Cut branches
-  say Cut fix and feature from A on main, and add a commit to each.
-  commit A on main [hash: 3fa0c19, note: First shape]
-  fix from A
-  commit F on fix [hash: 9b2e4d1, note: Fix a typo]
-  feature from A
-  commit C on feature [hash: c41d0e5, note: Add search]
-
-step Merge commit
-  say Merge fix into main with merge commit M. M has two parents, A and F.
-  commit M on main merge fix [hash: 7d3a5e2, note: Merge fix]
-
-step Replay
-  say Move HEAD to M to detach it, and copy C onto M as C'.
-  HEAD -> M
-  commit C' on main copy C [hash: a90c6b4, note: Add search]
-
-step Fast-forward
-  say Move feature to C', and move main up to C' too. The old C can no longer be reached from any branch.
-  feature -> C'
-  main -> C'
-```
-
-### Time diagram
-
-Starting with `time` makes a time diagram that follows, step by step, which tick each event happens on along evenly spaced time. `scale <unit> <length> <count>` declares the ticks, `period` the periods, `row` a row of marks, `point` a point below the axis, and `zoom <range>` the ticks to zoom in on in the top band.
-Inside a step, `now -> <tick>` moves the needle. The needle moves one tick at a fixed speed, and the marks of the ticks it passes appear as it goes. `mark` changes the color of marks, and `span` puts a bracket under the axis or a frame around the rows.
-`[meter: <ratio>]` on a strip field makes a meter that fills with the needle up to the ratio written with `set`.
-
-```dragon
-time How a block becomes final
-
-scale slot 12s 64
-period epoch 32
-row block [color: blue, empty: 5]
-point C0 at 0
-point C1 at 32
-zoom 0-1
-
-box proposer [color: blue, icon: user]
-box block [color: blue, icon: box]
-
-strip Finality: Elapsed, Votes this epoch [meter: 2/3]
-
-step Propose blocks
-  say In each slot one proposer is chosen and proposes one block. The top band zooms in on the first 2 slots.
-  proposer -> block [at: 0]
-  proposer -> block [at: 1]
-  now -> 1
-  set Elapsed: 24 s
-
-step Collect one epoch of votes
-  say 32 slots make one epoch. A block mark appears on each slot the needle passes, and a slot whose proposer did not answer gets an empty mark.
-  note C0: Proposed [color: blue]
-  span 0-31: 1 epoch = 6.4 min [color: slate]
-  now -> 31
-  set Elapsed: 6 min 24 s
-  set Votes this epoch: 97%
-
-step Move to the next epoch
-  say Votes for C0 passed 2/3 of the total, so C0 is justified. In the next epoch, votes gather on C1.
-  note C0: Justified [color: violet]
-  note C1: Proposed [color: blue]
-  now -> 63
-  set Elapsed: 12 min 48 s
-  set Votes this epoch: 97%
-
-step C0 becomes final
-  say Once C1 is justified too, the earlier of the two justified in a row, C0, becomes final. A final block cannot be undone.
-  C0 -> C1: over 2/3 [carry: none]
-  note C1: Justified [color: violet]
-  note C0: Final [color: green]
-  mark block 0-31 [color: green]
-  span 0-31: Final, cannot be undone [shape: box, color: rose]
-```
-
-To show how long tasks take, as in a schedule, write `task <id> as <name> <range> [color: <color>]` before the first step.
-Each task gets its own row and is drawn as one thick bar over the ticks of the range. A range counts ticks from 0 like `mark`, as `0-2` or `13`.
-The name sits to the left of the row and the first and last tick names with the scale name (such as `Day 1–3`) inside the bar, and the part of the bar the needle has passed fills in.
-A diagram with tasks needs no `row`, and tasks and rows keep the declared order from top to bottom.
-
-```dragon
-time Schedule up to the release
-
-scale day 1d 14 [from: 1]
-
-task design as Design 0-2 [color: blue]
-task build as Build 3-8 [color: violet]
-task test as Test 7-10 [color: amber]
-task ship as Release 13 [color: green]
-
-step Build and test
-  say Start building on day 4, and start testing alongside it on day 8.
-  now -> 10
-```
-
-### Tree diagram
-
-Starting with `tree` makes a tree diagram that follows, step by step, how leaf values fold up into their parents until one root remains. Inside a step, `leaf <id> [hash: <value>]` writes a leaf and `node <id> of <child>, <child> [hash: <value>]` writes a parent, and each box appears in the step that writes it.
-Leaves line up from the left in written order, a parent sits above the middle of its children, and the box that no parent takes becomes the root.
-A carrier on a line between a parent and a child runs along the tree line, and the tree line keeps that color once passed. From the step a carrier first runs on a tree line, only the boxes that send or receive carriers are drawn strongly.
-
-```dragon
-tree Proving a transaction is included
-
-step Hash each transaction
-  say Compute a value from each of the 4 transactions. These values become the leaves.
-  leaf tx1 [hash: 3fa0]
-  leaf tx2 [hash: 8b04]
-  leaf tx3 [hash: c41d]
-  leaf tx4 [hash: e5f8]
-
-step Pair them up
-  say Join neighbouring values two at a time and hash again. Two parents appear.
-  node 1to2 of tx1, tx2 [hash: 7a21]
-  node 3to4 of tx3, tx4 [hash: b9e4]
-
-step The root appears
-  say Joining the last two gives one root that sums up every transaction.
-  node root of 1to2, 3to4 [hash: e71c]
-
-step Climb from tx3 to the root
-  say Take the neighbouring value at each level and climb. The root comes out without reading tx1 or tx2.
-  tx3 -> 3to4 [tag: c41d]
-  tx4 -> 3to4 [tag: e5f8]
-  3to4 -> root [tag: b9e4]
-  1to2 -> root [tag: 7a21]
-```
-
-### Board and stations looks of a lineup diagram
-
-Start with `lineup` to draw a lineup diagram, which follows chips in lanes step by step.
-By default it uses the board look, and `[shape: stations]` on the first line switches to the stations look.
-
-- The board puts the boxes side by side as pale vertical columns in the order declared, and stacks the chips in each column as cards from the top. The column head shows the name and the number of cards
-- `[limit: <number>]` on a box shows the count as `2/3`. The board puts that many ticks under the head and fills one for each card, and the stations look draws a dashed slot for each free seat
-- A box with `[order: none]` shows a "No order" pill under its name, and its cards carry no numbers. `note <lane>: <text>` in a step shows a value chip under the name until the next `note` on the same lane
-- When a `line` moves a chip back to an earlier lane, it is a send-back. A return line and a "Sent back" label are drawn, the card gets a back mark, and a dashed trace stays in the lane it left
-- `line <lane>:` with nothing after the `:` empties that lane
-- The stations look puts the boxes on one line as stops and stacks the cards under each stop. It refuses `seal`, `open`, `pick`, and `stamp`, because it does not draw them
-
-On a phone-width frame, the board stacks its columns from the top with two cards to a row, and the stations line runs down the left.
-
-```dragon
-lineup Ship a change to production [shape: stations]
-
-box Dev
-box Review [color: violet]
-box Staging [color: amber, limit: 2]
-box Live as Production [color: green, order: none]
-
-item login, search
-
-step Send them to review
-  say Two changes go to review.
-  line Review: login, search
-
-step Check them on staging
-  say Both approved changes go on Staging, which is now full with 2.
-  line Staging: login, search
-  line Review:
-
-step Send it back if it fails
-  say search fails on Staging, so it is sent back to Dev, and only login ships.
-  line Dev: search
-  line Live: login
-  line Staging:
-```
-
-### Layers look of a lineup diagram
-
-Start with `lineup` to draw a lineup diagram, which follows chips in lanes step by step.
-Add `[shape: layers]` to the first line to stack the boxes as horizontal layers instead, for one request or transaction going down through them.
-
-- The boxes stack from the top in the order declared. The left of each band shows the layer's name, its `note`, and its number. A layers lineup takes up to 8 layers and draws no arrows between them
-- `line <layer>: <chip>` inside a step is the layer the chip is in. The band the chip is in is drawn strongest, and the bands it has passed stay lit
-- `note <layer>: <text>` is the mark of the layer, such as what it did and how long it took. It stays until the next `note` on the same layer
-- A chip with `note` shows it as a second line on its card
-- The layers look refuses `[order: none]`, `role`, `seal`, `open`, `pick`, and `stamp`, because it does not draw them
-
-On a narrow frame, the mark and the card move under the name and description of each layer.
-
-```dragon
-lineup An L2 transaction until it is final [shape: layers]
-
-box wallet as Wallet [note: Signs with the private key, color: violet]
-box l2 as L2 (rollup) [note: Bundles transactions into one, color: amber]
-box l1 as L1 (Ethereum) [note: Waits until it cannot be undone, color: green]
-
-item Transaction [color: blue, note: Swap 100 USDC]
-
-step The wallet signs
-  say The wallet signs the transaction with the owner's key.
-  line wallet: Transaction
-  note wallet: Signed in 1 s
-
-step The L2 bundles it
-  say The L2 bundles it with other transactions and answers within seconds.
-  line l2: Transaction
-  note l2: Bundled in 2 s
-
-step L1 makes it final
-  say Once the L1 block is final, the transaction can no longer be undone.
-  line l1: Transaction
-  note l1: Final in 13 min
-```
-
-### Stairs look of a lineup diagram
-
-Add `[shape: stairs]` to the first line instead to set the layers of the layers look as stairs, each lower layer shifted right by the same width.
-It takes the same `box`, `item`, `line`, and `note` lines as the layers look, and refuses the same lines.
-
-- `box <id> as <name> [time: <length>]` is the time spent in that layer, as a number and a unit (`ms`, `s`, `min`, `h`, `d`). Write `time` on every box or on none. A layer that takes no time can be written as `0s`
-- With `time`, a scale of the time spent so far sits to the right of the stairs. Its numbers start at 0 and go up in round steps (1, 2, or 5 times a power of 10), in the largest unit written on the boxes
-- At each step, the needle of the scale moves to the time spent through the layer the chip went down to, including that layer, with a card such as `1min 3s`
-- The chip walks no line between layers
-
-On a phone-width frame, the stairs fill the width and the scale lies horizontally under the diagram.
-
-```dragon
-lineup Until a video can be watched [shape: stairs]
-
-box upload as Upload [note: Sends the video to storage, color: violet, time: 40s]
-box encode as Encode [note: Remakes it for each quality, color: amber, time: 3min]
-box viewer as Viewer's device [note: Plays the video, color: green, time: 3s]
-
-item video [color: blue, note: Trip video]
-
-step Upload
-  say The phone sends the video to storage.
-  line upload: video
-
-step Encode
-  say Storage remakes the video in four qualities.
-  line encode: video
-
-step Play
-  say The viewer's device starts playback.
-  line viewer: video
-```
-
-### Try diagram
-
-Start with `try` to draw a try diagram, which readers move themselves by typing values and pressing buttons. Write the part lines before the first step, from top to bottom, and the parts are stacked in that order.
-
-- `route <name>: <node> - <node> - ..., ... [from: <node>, to: <node>]` is a network. It carries a sent chip from `from` to `to` along the shortest path
-- `queue <name> [order: <field>, accept: <name>]` is a waiting line. It sorts chips from the highest value of the `order` field. With `accept`, the input strip sends only chips with those names into the queue, and the send button cannot be pressed for any other name. Wrap two or more names as `accept: "<name>, <name>"`. When the first field has a `choose` line, the names in `accept` come from its choices
-- `chain <name> [edit: <field>]` is a chain of blocks. Each block holds the previous block's `hash` as `prev`, and with `edit` the reader can change that field of a chip inside a block
-- `log <name> [all: <field> = <value>, yes: <mark>, no: <mark>]` is a log. It lists the chips a button gathers as numbered records, and unlike a chain a record has no `prev` or `hash`. With `all`, a record shows the `yes` mark when that field of every chip in it has the value, and the `no` mark when even one differs
-- `ask <field>, <field>, ... [into: <queue or field>, via: <route>]` is the input strip. The first field's value becomes the chip's name. When `into` names a field, a sent chip enters the queue whose name matches that field's value. Give that field a `choose` line and place a queue named after each choice
-- `choose <field>: <value>, <value>, ...` gives that field choices. The reader picks one from the choices in the written order instead of typing. The first field takes choices too, and changing that field of a chip inside a block picks from the same choices
-- `press <name> [from: <queue>, into: <chain or log>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block or a new record. Write two or more queues as `from: "<queue>, <queue>"` and it gathers the top `take` chips of each, in the written order, into one block or record, and cannot be pressed while any of those queues holds fewer than `take`. With `at` it sits on that part, and without it in the input strip
-- `side <part>, <part>, ...` puts route, queue, chain, and log parts on one row, left to right in the written order, when the frame is wide. A queue takes only the width its chips need and the rest goes to the route, chain, and log. When the row would shrink the text below a readable size, the parts stack as without the line
-- `check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]` is a gate on a node of the shortest path of the route that `ask` sends through (`via`). A sent chip checks the gates of each node it reaches in the written order, and stops at that node on the first gate whose condition does not hold. A stopped chip enters no queue, and the `into` log, which has no `all`, gains one record with the chip, the node, the `no` error and whether it can be retried. The op is `>=`, `<=`, `>`, `<`, `==` or `!=`. When the value is a number, the field is compared as a number and a field that is not a number does not pass. A value that is not a number is compared as text with `==` and `!=`. Records of a gate with `retry` are marked retryable, and those of a gate without it are marked fix and resend
-
-Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
-The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Images, videos, and print draw the author's example steps.
-
-```dragon
-try How a transaction gets into a block
-
-route Network: You - node-1 - Builder, You - node-2 - node-3 - Builder [from: You, to: Builder]
-queue Mempool [order: Fee]
-chain Chain [edit: Amount]
-ask Sender, To, Amount, Fee [into: Mempool, via: Network]
-choose To: Bob, Carol, Dave, Erin
-press Build [from: Mempool, into: Chain, take: 2]
-
-item tx1 [To: Carol, Amount: 3, Fee: 7]
-item tx2 [To: Dave, Amount: 5, Fee: 5]
-item tx3 [To: Erin, Amount: 2, Fee: 4]
-
-step Transactions wait in line
-  say Transactions in the mempool line up from the highest fee.
-  line Chain: tx1
-  line Mempool: tx2, tx3
-
-step You send one
-  say Your transaction crosses the network to the builder.
-  ask You, Bob, 5, 12
-
-step The builder makes a block
-  say The two highest fees go into block 2, which holds block 1's hash as prev.
-  press Build
-```
-
-### Pipe diagram
-
-Start with `pipe` to draw a pipe diagram, which follows one transaction step by step: the calls between contracts, the balances, and the stored values.
-Declare the parties with `box`. Whether each party is a sender, a contract, a token contract, or an account comes from the lines, so it is not written.
-
-- `hold <owner>: <amount> <token>, <amount> <token>` declares balances before the first step, and `hold <contract>: <name> <value>` declares a stored value. Name a token by its declared party, as in `box usdc as USDC`. `ETH` needs no declaration. Wrap names that read as amounts and names that contain `[` in `"`
-- `<caller> -> <callee>: <text>` is a call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` borrows the callee's code and writes to the caller's values, `[call: static]` cannot write, and `[fold]` folds the call's inner steps into one box that opens when pressed
-- `return <party>: <value>` closes the innermost open call, and `revert <party>: <reason>` fails it and rolls back only the changes inside it
-- `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
-- `mint <token>: <amount> -> <to>` fills only the receiver's tank, and `burn <token>: <amount> <holder>` drains only the holder's tank, so no zero address party is drawn
-- For NFTs and ERC-1155, write the token ID after `#` and the count before it, as in `move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`, `mint art: #3 -> alice`, and `hold alice: 5 #1 ITEMS`. Without a count it is one, and each ID gets its own tank. A `#` with no ID after it is refused
-- `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
-- `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
-- `layout <shape>` before the first step chooses how to place the token boxes and tanks. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. The places come only from the `box` and `hold` lines, so changing who calls or the arguments moves no box or tank, and people and boxes outside the calls are drawn faint. A diagram without token boxes keeps no space above the people for boxes and card wallets, so in a diagram that shows a call card, the people and tanks sit lower by the card's height
-- `route <person> -> <contract>`, one pair per line after the `layout` line, names a call path that `layout top` and `layout bottom` keep open (`route bob -> usdc`). Without route lines the placement keeps open only the calls from people that appear in the steps, so list every pair a set of diagrams uses to keep the boxes and tanks in the same places across them
-- `gist <key point>` is the key point of the step, shown in a note after the step's arrows under the figure. A pipe diagram does not show the step body under the figure, so write here a point the body alone would carry. A step takes at most one, and other kinds of diagram cannot take it
-
-Tank levels are drawn to scale for each token. Changes stay provisional (hatched) until the outermost call returns, and then they all turn final (green). Changes that a `revert` rolls back are marked in red.
-
-```dragon
-pipe Swap 1 ETH for USDC
-
-box alice as Alice
-box ex as Exchange
-box old as OldPool
-box pool as Pool
-box usdc as USDC
-
-hold alice: 1 ETH, 0 USDC
-hold ex: 0 ETH
-hold pool: 5000 USDC
-hold ex: "swaps[alice]" 0
-
-step Alice asks Exchange with 1 ETH attached
-  say ETH attached to a call moves into the callee's tank as the call is made.
-  alice -> ex: swap [value: 1 ETH]
-
-step The old pool is closed
-  say The check fails, and every change up to it rolls back.
-  ex -> old: swap
-  check old: open == true [fail]
-  revert old: closed
-
-step Read the pool price
-  say A call that cannot write reads only the price.
-  ex -> pool: price [call: static]
-  return pool: 3200
-
-step Hand the swap to the pool
-  say The inner steps fold into one box, which opens when pressed.
-  ex -> pool: swap [fold]
-
-step Work out the amount to pay
-  say Work out how much USDC 1 ETH is worth at the current price.
-  calc pool: 1 ETH -> 3200 USDC
-
-step USDC moves to Alice
-  say USDC takes the amount from the pool's balance and adds it to Alice's.
-  pool -> usdc: transfer
-  move usdc: 3200 pool -> alice
-  emit usdc: Transfer(pool, alice, 3200)
-  return usdc: true
-
-step The pool returns the amount it paid
-  say Even after the inner call returns, the changes stay provisional.
-  return pool: 3200 USDC
-
-step The swap ends
-  say Exchange writes its record and returns, and every change becomes final here.
-  gist Every change becomes final when the outermost call returns
-  write ex: "swaps[alice]" 1
-  emit ex: Swapped(alice, 3200)
-  return ex: 3200 USDC
-```
-
-### Pipe look of a sequence diagram
-
-Add `[shape: pipe]` to the first line of a sequence diagram to draw it with the parts of the pipe diagram: each lifeline becomes a pipe, and each box sits on top of its pipe.
-In this look, `hold <owner>: <amount> <token>` lines before the first step put each owner's balance under its box. A sequence diagram without `[shape: pipe]` refuses `hold`.
-A sequence diagram without the attribute keeps the current look.
-With `@cardenelabs/dragon/light`, `loadFor` loads this look as a separate chunk, so a page that draws only the current look loads nothing more.
-
-A line of a sequence diagram takes `[op: <number>]` in either look, the number of the operation that raised the line. The drawn line carries the step and the number in `data-op`, as in `0/3`, so the page that shows the diagram can link the line to a record or a line of code. Lines of other kinds of diagram refuse it.
-
-```dragon
-sequence Send USDC [shape: pipe]
-
-box alice as Alice
-box usdc as USDC
-box bob as Bob
-
-hold alice: 100 USDC
-hold bob: 0 USDC
-
-step Alice calls transfer
-  say Alice calls transfer on USDC to send 10 to Bob.
-  alice -> usdc: transfer(to: bob, amount: 10) [carry: none, op: 3]
-  alice -> bob: 10 USDC [carry: coin, op: 4]
-
-step USDC returns
-  say USDC returns true.
-  usdc -> alice: true [carry: none, op: 5]
-```
-
-### Chart
-
-Start with `chart` to draw a chart, which compares items step by step. Write the shape on the first line.
-`chart <title> [shape: donut]` draws the share of each item as the angle of an arc, and `chart <title> [shape: bar]` draws the amount of each item as the length of a horizontal bar.
-
-- `item <id> as <name> [color: <color>]` declares an item before the first step. A donut lays the arcs clockwise from 12 o'clock in the order declared and shows the names and rounded percentages in its legend. A bar chart stacks the bars from the top with each name on the left. An item without `color` gets a color in the order declared, and a chart takes from 1 to 8 items
-- `set <id>: <value>` inside a step is the value of the item, a number of 0 or more written without a unit. An item without `set` keeps its previous value, and an item with no value yet shows no arc or bar
-
-Going to the next step moves the arcs and bars from the previous values to the new ones. The largest value over all steps gets the longest bar, and each value shows at the end of its bar.
-The shape stays the same through the steps, and a chart takes no `box`, `group`, `strip`, or line.
-
-`chart <title> [shape: funnel]` draws a funnel, where the count shrinks stage by stage. Declare the stages from the top with `item` and write each count with `set`.
-A stage's bar appears in the step that sets it, left-aligned and as long as its value compared with the first stage. The gap to the stage above stays as a pale bar with the number who left, and the rate kept from the stage above shows beside the count.
-The last step adds a row with the share of the first stage that made it to the last one. A value larger than the stage above, and a stage that never gets a value, are errors when the notation is read.
-
-```dragon
-chart People on the way to buying [shape: funnel]
-
-item visit as Visited the shop [color: blue]
-item view as Viewed a product [color: violet]
-item buy as Bought [color: green]
-
-step Visit
-  say 10,000 people visited the shop site.
-  set visit: 10000
-
-step View a product
-  say 4,200 people went on to a product page.
-  set view: 4200
-
-step Buy
-  say 380 people bought.
-  set buy: 380
-```
-
-`chart <title> [shape: dots]` counts with dots.
-The box of the whole holds empty dots from before the first step, and in the step that sets an item, that many dots move from the box to the item's cluster.
-The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
-Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
-Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
-With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel and a line chart refuse `set none`.
-
-```dragon
-chart Devices of 1,000 people [shape: dots]
-
-item i as iPhone
-item a as Android
-item w as Windows
-item m as Mac
-
-step iPhone
-  say 412 people use an iPhone most, which makes 41 dots.
-  set i: 412
-
-step Android
-  say 287 people use Android, the second most after iPhone.
-  set a: 287
-
-step Windows
-  say 158 people use a Windows computer.
-  set w: 158
-
-step Mac
-  say 93 people use a Mac, which makes 9 dots.
-  set m: 93
-
-step None of them
-  say The 50 people who use none of them stay grey in the box of the whole.
-  set none: 50
-```
-
-`chart <title> [shape: line]` draws how amounts change over time as a line chart.
-Each `item` is one line in its own color with its name in the legend at the top, and each `step` is one point on the time axis, labeled with the step title.
-`set <id>: <value>` gives the item's value at that step, and a step without `set` keeps the previous value.
-The value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10.
-Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point.
-A line chart needs at least two steps, and an item that never gets a value and `set none` are errors when the notation is read.
-
-```dragon
-chart A bakery's sales over one week (yen) [shape: line]
-
-item shop as Counter [color: amber]
-item online as Online [color: blue]
-
-step Mon
-  say The week starts with 42,000 yen at the counter and 12,000 yen online.
-  set shop: 42000
-  set online: 12000
-
-step Tue
-  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
-  set shop: 38000
-  set online: 15000
-
-step Wed
-  say The counter comes back to 45,000 yen.
-  set shop: 45000
-```
-
-```dragon
-chart Support requests by channel [shape: bar]
-
-item mail as Email [color: blue]
-item chat as Chat [color: green]
-item phone as Phone [color: amber]
-
-step April
-  say Most requests come by email.
-  set mail: 120
-  set phone: 64
-
-step May
-  say Chat opens, and phone requests drop.
-  set mail: 104
-  set chat: 38
-  set phone: 58
-```
-
-### Flow diagram
-
-Start with `flow` to draw a flow diagram, which follows a procedure from top to bottom and branches at choices.
-The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
-
-- `box <id> as <name>` is a step of the procedure
-- `choice <id> as <question>` is a choice, drawn as a diamond with the question inside. A long question wraps onto two lines after a particle or a space. Each line out of a choice carries the answer as its label, and a choice has at most two ways out
-- Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark
-- Lines written before the first `step` are paths not taken this time and stay dotted. A box that no line in a step reaches gets a dotted border and a muted name
-- The line that moves in a step turns blue and a dot runs along it until it arrives. A passed line stays dark, and a choice the dot reached is filled with light amber. A line without `carry` or `tag` runs this dot instead of an envelope
-
-```dragon
-flow Login check
-
-box input as Input
-choice pw as Password correct?
-choice otp as 2FA correct?
-box done as Signed in [color: green]
-box err as Show an error [color: rose]
-
-pw -> err: No
-otp -> err: No
-
-step Enter
-  say The user enters an ID and a password.
-  start -> input
-
-step Check the password
-  say The server checks the password.
-  input -> pw: Send
-
-step Check the 2FA code
-  say The password matched, so the 2FA code is checked.
-  pw -> otp: Yes
-
-step Sign in
-  say The code matches too, and the user is signed in. The no paths stay dotted.
-  otp -> done: Yes
-  done -> finish
-```
-
-### Cycle diagram
-
-Start with `cycle` to draw a cycle diagram, which follows a flow that goes around the same steps again and again.
-The steps sit on a ring clockwise from the top in the order written, and arc arrows join each step to the next.
-
-- `box <id> as <name>` is a step on the ring, written before the first `step`. A cycle diagram takes 2 to 8 steps
-- `<id> -> <id> [tag: <text>]` inside a step is a line to the next step on the ring. In that step the chip runs along the arc to the next step, and the arc and its arrowhead stay lit in the color of the receiving step
-- A line from the last step to the first one is also a line to the next step, and it starts the next round. A line that skips a step, goes backward, returns to the same step or carries a `: <label>` is refused, and so are `act` and `group` lines
-- The step number sits beside the box of the step the chip reached. A step without a line puts its number beside the box the step before ended at
-- `strip <title>: <field>, <field>` puts the strip title and the field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large and the others smaller, field names are not shown, and a value that changes after it was first written shows in the color of that step's box while the step lasts
-
-```dragon
-cycle The weekly review
-
-box plan as Decide [note: start of week, color: blue]
-box work as Do [note: every day, color: green]
-box look as Look back [note: end of week, color: amber]
-
-strip Week: round, day
-
-step Decide
-  say At the start of the week, decide what to do that week.
-  set round: Week 1
-  set day: Monday
-
-step Do
-  say Work on what was decided each day.
-  plan -> work [tag: tasks]
-  set day: Tuesday to Thursday
-
-step Look back
-  say At the end of the week, look back on what got done and what is left.
-  work -> look [tag: progress]
-  set day: Friday
-
-step On to the next week
-  say Take what is left back to deciding the next week.
-  look -> plan [tag: left]
-  set round: Week 2
-  set day: Monday
-```
-
-`cycle <title> [shape: clock]` draws the steps on a clock dial instead of a ring.
-
-- Each `box` takes the length of its step, such as `[time: 25min]`. A length is a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`), and every step needs one. The steps sit clockwise from 12 o'clock as arcs as long as they take
-- Numbers around the dial count from 0 at round steps, in the largest unit written. One hand points at the start of the arc of the step the diagram is at, and the chip of a line rides the tip of the hand
-- The arcs entered in the current round stay lit in their step colors until the hand passes 12 o'clock again
-- `[shape: clock, turn: left]` turns the dial counterclockwise. `turn` can be written only with `[shape: clock]`
-- At a phone width the step numbers sit outside the dial in place of the names, and a list of numbers, names and lengths sits below the dial
-
-```dragon
-cycle Focus and rest schedule [shape: clock]
-
-box focus as Focus [time: 25min, color: blue]
-box short as Short rest [time: 5min, color: green]
-box review as Look back [time: 10min, color: amber]
-box long as Long rest [time: 20min, color: rose]
-
-strip Schedule: round, focused
-
-step Start focusing
-  say Notifications go off and the work at hand gets 25 minutes of focus.
-  set round: Round 1
-  set focused: 0 min
-
-step Short rest
-  say After 25 minutes the work stops for a 5 minute stretch.
-  focus -> short [tag: 25 min]
-  set focused: 25 min
-
-step Look back
-  say After the rest, 10 minutes go into writing down what moved and what got stuck.
-  short -> review
-
-step Long rest
-  say With the notes written, a long 20 minute rest clears the head.
-  review -> long [tag: notes]
-
-step On to the next round
-  say The rest ends and the second round of focus begins.
-  long -> focus
-  set round: Round 2
-```
-
-`cycle <title> [shape: band]` unrolls the ring into a band and runs the steps left to right.
-
-- The steps sit in the order written as chevrons of equal width. Each name sits below its chevron and the step numbers sit above
-- `[time: <length>]` on every `box` puts a scale over the band that marks when each step starts, counted from 0 in the largest unit that writes every mark as a whole number or with one decimal. Write a length on every step or on none
-- Each round gets its own band, stacked top to bottom. A round that has not started yet stays faint, and the head of each band shows the strip title and the field values of that round
-- The chip of a line runs along the middle of the band from chevron to chevron, and the chevron it reaches stays lit. The line from the last step to the first one follows a return arrow from the right end down to the left end of the next band
-- `turn` cannot be written with `[shape: band]`
-- At a phone width the chevrons shrink with the step numbers inside, and a list of numbers, names and lengths sits below the bands
-
-```dragon
-cycle A year on the field [shape: band]
-
-box sow as Sow [time: 60d, color: green]
-box grow as Grow [time: 120d, color: blue]
-box harvest as Harvest [time: 60d, color: amber]
-box rest as Rest the soil [time: 120d, color: slate]
-
-strip Field: year, season
-
-step Sow
-  say In spring the soil is tilled and seeds go into the field.
-  set year: Year 1
-  set season: Spring
-
-step Grow
-  say Once the shoots are up, they get water and grow all summer.
-  sow -> grow [tag: shoots]
-  set season: Summer
-
-step Harvest
-  say In autumn the ripe crop is harvested.
-  grow -> harvest [tag: crop]
-  set season: Autumn
-
-step Rest the soil
-  say After the harvest, compost goes on the field and the soil rests through winter.
-  harvest -> rest [tag: compost]
-  set season: Winter
-
-step Into year 2
-  say When spring comes, seeds go into the rested soil again.
-  rest -> sow [tag: seeds]
-  set year: Year 2
-  set season: Spring
-
-step Grow in year 2
-  say In year 2 the shoots again grow through the summer.
-  sow -> grow [tag: shoots]
-  set season: Summer
-```
-
-
-### Mind map
-
-Start with `mind` to draw a mind map, which spreads ideas out from one topic in the middle, branch by branch.
-Branches go round clockwise from the upper left in the order written (up left, up right, down right and down left for four), and the leaves of a branch sit in a column outside it.
-
-- `idea <id> as <name>` inside a step is the topic in the middle. A mind map has exactly one idea without `of`, and a second one or none at all is refused
-- `idea <id> as <name> of <parent>` inside a step is an idea joined to its parent. An idea of the topic is a branch, and an idea of a branch is a leaf. Ideas go three levels deep, and a fourth level or a parent that has not been written yet is refused
-- `as <name>` can be left out, and the id is then shown as the name. Wrap a name that contains the word `of` in `"`
-- `[color: <color>]` gives an idea its own color. A branch without a color gets the next color no other branch has taken, and leaves take their branch's color
-- Ideas and lines start faint and turn solid at the step that writes them. The line from the parent is drawn from the parent's side, and the step number sits beside the first idea of that step
-- `box`, `strip`, lines between boxes and `act` lines are refused in a mind map
-
-```dragon
-mind Getting a study meetup ready
-
-step Put the topic
-  say Put what to get ready in the middle.
-  idea meetup as Study meetup
-
-step Talk branch
-  say Put the talk on a branch and list its parts as leaves.
-  idea talk as The talk of meetup [color: blue]
-  idea intro as First five minutes of talk
-  idea demo as Live demo of talk
-
-step Venue branch
-  say Do the same for the venue.
-  idea room as Venue of meetup
-  idea seats as Number of seats of room
-  idea screen as Screen to project on of room
-```
-
-### Table relation diagram
-
-Start with `er` to draw a table relation diagram, which follows step by step which row of which table one value goes through.
-The tables sit left to right in one row in the order written, and a line joins each field that holds a link to the field it points at.
-
-- `table <id> as <name>` is a table, written before the first `step`. The `field <name>: <value>` lines up to the next `table` line are its fields. A table relation diagram takes 1 to 6 tables, and `[color: <color>]` sets a table color
-- `[key]` on a field is the key mark (PK), and `field <name>: <value> [ref: <table>.<field>]` links it to a field of another table (FK). The linking field is the many side and gets a three-pronged end, and the field it points at is the one side and gets a bar end. A link to a missing table or field is refused
-- `pick <table>.<field>` inside a step lights that row and the table frame, and the frame keeps a thin color in later steps
-- `<table>.<field> -> <table>.<field> [tag: <value>]` runs a value chip along the line between linked fields, and the chip stops halfway. A line between fields that are not linked, or one with a `: <label>`, is refused
-- `set <table>.<field>: <value>` rewrites the value of a field from that step on. `note <table>.<field>: <text>` shows a formula card under the table from that step on, and cards on the same table stack downward
-- The step number sits at the right of the header of the table that step picks a row from
-
-```dragon
-er Look up the customer of an order
-
-table users as Customers
-  field id: U-7 [key]
-  field name: Tanaka
-  field orders: 2
-
-table orders as Orders
-  field id: O-41 [key]
-  field user_id: U-7 [ref: users.id]
-  field amount: $12
-
-step Look up the order
-  say Look up the row of order O-41.
-  pick orders.id
-
-step Follow the customer
-  say Follow the user_id along the link and look up Tanaka, customer U-7.
-  orders.user_id -> users.id [tag: U-7]
-  pick users.id
-
-step Count the order
-  say Add one to the orders Tanaka has.
-  note users.orders: 2 + 1 = 3
-  set users.orders: 3
-  pick users.orders
-```
-
-### Two-axis matrix
-
-Start with `matrix` to draw a two-axis matrix, which sorts items into four areas by two measures, step by step.
-The horizontal axis runs below the areas from left to right and the vertical axis left of them from bottom to top, and the items wait in a list left of the areas until a step places them.
-
-- `axis <name> [from: <low end>, to: <high end>]` is an axis, written before the first `step`. Write the horizontal axis first and then the vertical one; the name and both ends show outside the arrow. A matrix without exactly two axes is refused
-- `box <id> as <name>` is an area. Write exactly four; they go top left, top right, bottom left and bottom right in the order written, with the name at the top left. A matrix without exactly four areas is refused
-- `item <id> as <name>` is an item to sort, written before the first `step`. Items wait in the "Not placed yet" list in the order written
-- `line <area>: <item>, <item>` inside a step places items into an area. The cards slide from the list into the area and the area lights up in that step. A placed card stays until a later step places it in another area. An unknown area or item, or the same item twice on one line, is refused
-- `as <name>` can be left out, and the id is then shown as the name. Lines between boxes and `strip` lines are refused in a two-axis matrix
-- `item <id> as <name> [x: <across>, y: <up>]` gives an item scores from 0 to 10, with at most one decimal place. `line: <item>` inside a step then places it without naming an area, into the area its scores fall in, and a score of 5 or more counts as the large side. A `line <area>: <item>` for a scored item is read only when the area matches its scores. Scores outside 0 to 10, or only one of the two, are refused
-- Add `reverse: yes` to an axis line, as `axis <name> [from: <low end>, to: <high end>, reverse: yes]`, and that axis puts large values on the left or at the bottom, with its arrow pointing that way
-- Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores instead of moving a card. The ruled axes show 0 to 10, a table of the items and their scores sits left of the plot, and the step that plots an item draws lines from both axes to the dot with its scores and lights the area it lands in. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out, and a narrow frame stacks the table above the plot
-- When a score chip on an axis would touch the name of a point shown at that step, the chip moves off the axis for that step, to the left of the vertical axis or below the horizontal one, with its edge on the axis line. The names of the points stay where they are, and the chips keep their size
-
-```dragon
-matrix Sort the work by effort and impact
-
-axis Effort [from: low, to: high]
-axis Impact [from: low, to: high]
-
-box now as Do now
-box plan as Plan it
-box spare as When free
-box drop as Skip
-
-item login as Faster login
-item pay as Add payments
-item word as Fix wording
-
-step Line up
-  say Line up the work on the left.
-
-step Do now
-  say Low effort and high impact goes first.
-  line now: login
-
-step The rest
-  say Sort the rest by effort and impact.
-  line plan: pay
-  line spare: word
-```
-
-```dragon
-matrix Plot the work by score [shape: scatter]
-
-axis Effort [from: low, to: high]
-axis Impact [from: low, to: high]
-
-box now as Do now
-box plan as Plan it
-box spare as When free
-box drop as Skip
-
-item login as Faster login [x: 2, y: 8]
-item pay as Add payments [x: 8, y: 7.5]
-item word as Fix wording [x: 3, y: 3]
-
-step Line up
-  say Line up the work and its scores in the table on the left.
-
-step Login
-  say Plot the work with low effort and high impact.
-  line: login
-
-step Payments
-  say Plot the work with high impact and high effort.
-  line: pay
-
-step Wording
-  say Plot the work with low effort and low impact.
-  line: word
-```
-
-### Set overlap diagram
-
-Start with `venn` to draw a set overlap diagram, which overlaps two or three sets as circles and counts how many fall in each region step by step.
-Two sets sit left and right, and three sets sit top left, top right and below.
-
-- `item <id> as <name>` is a set, written before the first `step`. A set overlap diagram takes 2 or 3 sets, and `[color: <color>]` sets a circle color
-- `set <id>: <count>` inside a step writes the total of a set. Its circle appears in the step that first writes it, and the name and the total sit outside the circle
-- `set <id> & <id>: <count>` writes the count in an overlap, and lights its region with a count chip in that step. An overlap larger than one of its sets is refused
-- Each region shows the count that is only in it, worked out from the totals and the overlaps. A region shows nothing until every count it needs is written
-- `set none: <count>` writes the count in none of the sets, and shows it in a frame around the circles from that step on. In other diagram kinds `none` still reads as an ordinary box id
-- Add `[shape: dots]` to the first line to count with dots instead of circles. The dots move into a cluster for each set and each overlap, a dot in two or more sets is painted in slices of their colors, and `[shape: dots, unit: <count>]` chooses how many each dot stands for.
-- The step number sits beside the name of the circle that appears in that step, or under the count of the region that step lights
-
-```dragon
-venn People who run in the morning and at night
-
-item morning as Run in the morning
-item night as Run at night
-
-step Morning
-  say 30 people run in the morning.
-  set morning: 30
-
-step Night and both
-  say 20 people run at night, and 5 of them also run in the morning.
-  set night: 20
-  set morning & night: 5
-
-step Neither
-  say 12 people run at neither time.
-  set none: 12
-```
-
-### Sankey diagram
-
-Start with `sankey` to draw a Sankey diagram, which follows step by step where one amount goes and how much, with bands as wide as the amounts.
-Boxes no line goes into sit in the left column, and each target sits in a column to the right of its source.
-
-- `box <id> as <name>` declares a source or a target before the first `step`. `[color: <color>]` sets the color of its bar and of the bands going into it, and a box takes no `note`, `icon` or `link`
-- `<source> -> <target>: <amount>` inside a step grows a band from the source bar to the target bar in that step, and an amount chip crosses it. The number at the start of the label is the amount: `40%` reads as 40 and `1,200 yen` as 1200
-- A band takes the share of the source bar that its amount makes up, and the bands stack down the source bar in the order written. A target's bar fills in as each band reaches it
-- A box with no source holds the sum of what leaves it, and a target holds the sum of what comes in. Write every amount in one diagram in the same unit
-- A label that does not start with a number, a line whose flow leads back to a box it came from, and a box sending out more than comes in are refused
-- A line takes no `tag`, `carry` or `side`, because the amount chip shows the line label. `group`, `strip`, `act`, `note` and `set` lines are refused
-- The step number sits to the right of the first target that step reaches
-
-```dragon
-sankey Where the pocket money goes
-
-box pay as Pocket money 10,000 yen [color: slate]
-box food as Food [color: amber]
-box save as Savings [color: green]
-box fun as Fun [color: rose]
-
-step Get it
-  say A month of pocket money is 10,000 yen.
-
-step Food
-  say Half of it, 5,000 yen, goes to food.
-  pay -> food: 5,000 yen
-
-step The rest
-  say Save 3,000 yen and spend 2,000 yen on fun.
-  pay -> save: 3,000 yen
-  pay -> fun: 2,000 yen
-```
-
-Write `sankey <title> [shape: rows]` to stack one full-width bar per step from the top instead of drawing bands.
-
-- Boxes, steps and lines are written as in the band look, and there is one row per step. Each row is split into the sections that the lines so far have cut, and a section is as wide as its share of the total of the boxes with no source
-- Each line cuts its target section out of the source section, from the left and in the order written. What a box with no source has not handed out yet is a gray bar that reads like `16h left`
-- Sections that split off in that step and the sections of the last row show their name and amount, and sections carried over from the step before are faint bars with no text
-- The band coming down from the row above and the amount chip are drawn only for the sections that split off in that step
-- When two amount chips of one step would overlap, as in a narrow frame such as a phone, the later chip stops one chip higher and the gap above that row grows by one chip. Chips keep their size and stay above their own section
-- When a name does not fit in its section, the section shows only the amount and the name is listed under that row's bar with a color mark. At phone width the bars still span the full width
-
-```dragon
-sankey How a day is spent [shape: rows]
-
-box day as One day [color: slate]
-box sleep as Sleep [color: blue]
-box awake as Awake [color: amber]
-box work as Work [color: violet]
-box free as Free time [color: rose]
-
-step One day
-  say A day has 24 hours.
-
-step Sleep
-  say Sleep 8 hours.
-  day -> sleep: 8h
-
-step Awake
-  say The other 16 hours are awake time.
-  day -> awake: 16h
-
-step Split
-  say Split the awake time into work and free time.
-  awake -> work: 10h
-  awake -> free: 6h
-```
-
-Write `sankey <title> [shape: treemap]` to make the whole amount one square and split it into areas by amount, step by step.
-
-- Boxes, steps and lines are written as in the band look. The boxes with no source make up the whole square, and each step draws a cut that carves out its target sections. A section's area is its share of the total of the boxes with no source
-- The part not split yet is cut across its longer side by the share of the amount. Lines written in the same step from the same source carve out one strip as large as their total, and the strip is divided in the order the lines are written
-- What a box with no source has not handed out yet is a gray section that reads like `48GB left`
-- When a target section is split again, its frame and name chip stay, and the inside below the chip is divided into the child sections
-- Sections show their name and amount, and no amount chip is drawn. When a name does not fit in its section, the section shows only the amount and the name is listed under the square with a color mark
-
-```dragon
-sankey Phone storage [shape: treemap]
-
-box all as Storage [color: slate]
-box photo as Photos [color: blue]
-box app as Apps [color: green]
-box game as Games [color: rose]
-box work as Work [color: blue]
-
-step Storage
-  say The phone has 128GB of storage.
-
-step Photos and apps
-  say Photos use 48GB and apps use 32GB.
-  all -> photo: 48GB
-  all -> app: 32GB
-
-step Inside the apps
-  say Split the 32GB of apps into games and work.
-  app -> game: 20GB
-  app -> work: 12GB
-```
+`printNotation` omits declarations and steps when the diagram allows it, and writes everything when you pass `{ short: false }`.
+Error messages use the language you pass, as in `parseNotation(text, { lang: "ja" })`, and default to English.
+The old form of the notation (starting with `時系列図` or `構成図`) is no longer read.
+It fails with an error that shows the new form of that line.
+[`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md) has a table that maps the old form to the new one.
 
 ## Source JSON
 
-The source JSON has a skeleton of the format version (`version`), the diagram kind (`kind`), the title (`title`) and the steps (`steps`), and lists the blocks placed on the diagram under a field for each block name (`blocks`).
+The source JSON is built around the format version (`version`), the diagram kind (`kind`), the title (`title`), and the steps (`steps`).
+It lists the blocks placed on the diagram under one field per block name (`blocks`).
 Boxes go in `blocks.box`, groups in `blocks.group`, and the strip in `blocks.strip`.
 Git graph branches go in `blocks.branch`, the paths a state diagram does not take in `blocks.path`, lineup chips in `blocks.item`, and lineup roles in `blocks.role`.
 A time diagram's scale, period, rows, tasks, points and zoom range go in `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.task`, `blocks.point` and `blocks.zoom`.
@@ -1663,22 +788,22 @@ What happens in a step (lines and actions inside a box) goes in each step's `eve
 ```
 
 Version 1 sources (with `boxes` or `regions` at the top) can still be read.
-`readDiagram` moves a version 1 source to the version 2 shape, returns it, and notes the move in `warnings`.
+`readDiagram` converts a version 1 source to the version 2 shape, returns it, and records the conversion in `warnings`.
 To rewrite the source file itself, use `migrateFile` from `@cardenelabs/dragon/node`.
 The mapping between version 1 and version 2 fields is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
 
 ## Export
 
-Export uses a headless Chromium and captures the same drawing as the page one frame at a time, with the clock stopped.
-The captured frames are packed into MP4 and GIF inside the same Chromium, so ffmpeg is not needed.
-Install `playwright-core`, which runs Chromium, only when you use export.
+Export runs a headless Chromium and captures the same drawing as the page, one frame at a time, with the clock stopped.
+It encodes the frames into MP4 and GIF inside the same Chromium, so you do not need ffmpeg.
+You only need `playwright-core`, which runs Chromium, if you use export.
 
 ```sh
 pnpm add -D playwright-core
 pnpm exec playwright-core install chromium
 ```
 
-Pass the source JSON (`.json`) or the notation (`.dragon`) and it writes four files with the same name.
+Pass the source JSON (`.json`) or the notation (`.dragon`), and it writes four files with the same base name.
 
 ```sh
 dragon export ccip.json --out out
@@ -1698,21 +823,26 @@ dragon export ccip.json --out out
 | `--blocks <file>` | A file of block definitions. The diagram is drawn with them, and the HTML carries them, so a diagram that uses added blocks without defining them at its head can be exported |
 
 The PNG is a still of the last step in the `fixed` view.
-When text overlaps in some step, the export still finishes and prints each overlap on its own line to standard error, with the step and the text (with `--lang en`, for example `Step 5: Step number 1 and step number 5 overlap`). The exit code stays 0.
-The HTML is a single file with fonts cut down to the characters the diagram draws, and it fetches nothing from outside.
+If text overlaps in any step, the export still finishes.
+It prints each overlap to standard error on its own line, naming the step and the text.
+With `--lang en`, a line looks like `Step 5: Step number 1 and step number 5 overlap`.
+The exit code stays 0.
+The HTML is a single file with fonts cut down to the characters the diagram draws, and it fetches nothing from the network.
 To call it from Node, use `exportDiagram` from `@cardenelabs/dragon/export`.
 
 ### Export in the browser
 
-A diagram drawn on a page can be turned into GIF, MP4, PNG, and SVG inside the reader's browser.
-Load the entry `@cardenelabs/dragon/capture` when the export button is pressed, so pages that only draw do not carry it.
-Pass the SVG element drawn on the page, and `captureGif`, `captureMp4`, and `capturePng` return a Blob, and `captureSvg` returns a string.
-GIF and MP4 capture one cycle of the diagram's motion, with the same frame count and size as `dragon export` writes for the same diagram.
-The PNG is a still of the current moment, twice the size of the SVG.
-PNG and SVG also take SVGs that are not dragon diagrams.
-Fonts are embedded whole, taking from the page's `@font-face` rules only the font files whose range covers the characters drawn.
-When a font file cannot be read, the call refuses and names the font and its range.
-MP4 is made with H.264 in WebCodecs, so `canCaptureMp4` returns `false` in browsers that cannot make it.
+You can turn a diagram drawn on a page into GIF, MP4, PNG, or SVG in the reader's browser.
+Load the `@cardenelabs/dragon/capture` entry only when the export button is pressed, so pages that only draw diagrams do not carry it.
+Pass in the SVG element drawn on the page.
+`captureGif`, `captureMp4`, and `capturePng` return a Blob, and `captureSvg` returns a string.
+GIF and MP4 capture one cycle of the diagram's motion, with the same frame count and size that `dragon export` writes for that diagram.
+The PNG is a still of the current moment, at twice the size of the SVG.
+PNG and SVG capture also accept SVGs that are not dragon diagrams.
+Fonts are embedded whole.
+From the page's `@font-face` rules, only the font files whose range covers the drawn characters are included.
+If a font file cannot be read, the call fails and names the font and its range.
+MP4 uses H.264 through WebCodecs, so `canCaptureMp4` returns `false` in browsers that cannot encode it.
 
 ```ts
 import { canCaptureMp4, captureGif, captureMp4, capturePng, captureSvg } from "@cardenelabs/dragon/capture";
@@ -1724,13 +854,16 @@ const gif = await captureGif(svg);
 const mp4 = (await canCaptureMp4()) ? await captureMp4(svg) : undefined;
 ```
 
-Pass the `timeline` that `renderDiagram` returns to GIF and MP4 (`captureGif(svg, { timeline })`) to build the GIF colors from the same pictures as `dragon export`.
+For GIF and MP4, pass the `timeline` that `renderDiagram` returns (`captureGif(svg, { timeline })`).
+The GIF colors are then built from the same pictures as `dragon export`.
 
-`captureHtml` takes the notation instead of the SVG and returns a single HTML file that opens without fetching anything, like `dragon export --format html`.
-The page is built by the same code as `dragon export`, so it is the same text except for the `@font-face` rules.
-Fonts are embedded whole from the page's `@font-face` rules for the characters the page and the player bar can draw, and a font file that cannot be read is refused with its family and range named.
+`captureHtml` takes the notation instead of an SVG and returns a single HTML file that opens without fetching anything, like `dragon export --format html`.
+The same code as `dragon export` builds the page, so the text is identical except for the `@font-face` rules.
+Fonts are embedded whole from the page's `@font-face` rules, covering the characters the page and the player bar can draw.
+If a font file cannot be read, the call fails and names its family and range.
 The player script (`player.global.js`, over 1 MB) sits next to the entry and is fetched only on the first call.
-`palette` and `theme` pick the colors, `line` picks how lines are drawn, and `lang` picks the language of the text in the diagram and of the refusals.
+`palette` and `theme` set the colors, and `line` sets how lines are drawn.
+`lang` sets the language of the diagram text and of the error messages.
 
 ```ts
 import { captureHtml } from "@cardenelabs/dragon/capture";
@@ -1739,8 +872,8 @@ const html = await captureHtml(source, { lang: "en", palette: "paper", theme: "l
 const file = new Blob([html], { type: "text/html" });
 ```
 
-`editorUrl` from the drawing entry makes a URL that opens the notation in the editor.
-The notation goes after `#n=` in the URL, so it is not sent to the server that serves the page.
+`editorUrl` from the drawing entry builds a URL that opens the notation in the editor.
+The notation goes after `#n=` in the URL, so it never reaches the server that hosts the page.
 
 ```ts
 import { editorUrl } from "@cardenelabs/dragon";
