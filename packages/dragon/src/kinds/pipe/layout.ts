@@ -2493,8 +2493,10 @@ function placeTop(composed: PipeLayout, diagram: DiagramModel, shape: "top" | "b
   const dx0 = P.margin - all.x;
   // 札入れと呼び出しの札の高さを、上の形は箱の上に、下の形は箱の下に空けておく。上の形で値の札と残高の行が多い箱は上へ伸びるので、
   // 伸びた箱の上端から札の高さを空け、札の数で図の位置を変えない (Tracelyth #171)
+  // トークンの箱が無い図は箱も札入れも置かないので、人の列の上に何も空けず、描く物の上端を余白に揃える。
+  // 呼び出しの札は描く時に呼ばれた物の上に出し、図の上端からはみ出す分だけ図を下げる (#3860)
   const highestBox = Math.min(boxTop, ...boxes.map((id) => parties.get(id).y));
-  const dy0 = P.margin - Math.min(all.y, down ? rowTop - L.top : highestBox - L.cards);
+  const dy0 = P.margin - (boxes.length === 0 ? all.y : Math.min(all.y, down ? rowTop - L.top : highestBox - L.cards));
   const lowestBox = Math.max(-Infinity, ...boxes.map((id) => parties.get(id).y + parties.get(id).h));
   const fresh = new WeakSet<object>();
   for (const [k, v] of Object.entries(out)) if (k !== "width" && k !== "height" && typeof v === "object") move(v, dx0, dy0, fresh);
@@ -3926,7 +3928,8 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     }
   }
   const dx0 = P.margin - all.x;
-  const dy0 = P.margin - Math.min(all.y, ledger ? ceiling - L.cards : all.y);
+  // 帳簿型でトークンの箱が無い図は札入れを置かないので、札の高さを空けず、描く物の上端を余白に揃える (#3860)
+  const dy0 = P.margin - Math.min(all.y, ledger && B > 0 ? ceiling - L.cards : all.y);
   const fresh = new WeakSet<object>();
   // 帳簿型の2つ目からの行の箱の札は、その行の張り出しの上を横へ通る呼び出しの道より上に出す (Tracelyth #171)
   const ceilings: Record<string, { y: number }> = ledger
