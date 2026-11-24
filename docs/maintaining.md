@@ -332,6 +332,16 @@ npx prettier --list-different . | sed -E 's/.*\.([A-Za-z0-9]+)$/\1/' | sort | un
 skill は使う人の dragon の版を `dragon --version` で確かめ、プラグインの版と比べるため (#3455)。
 2 つの版が違うと `packages/dragon/test/notation-skill.test.ts` の `plugin-version-matches-package` が落ちる。
 
+同じ PR で、README の版の札 (`docs/readme/badges/npm.svg`) も `pnpm readme:images --badges` で今の版に描き直す。
+札は外の札の service を読まないよう repo の中に置いた SVG で、版を上げても自分では変わらないため (#3881)。
+札の版が package の版と違うと `packages/dragon/test/readme-public.test.ts` の `readme-public-badges` が落ちる。
+
+## README の絵を描き直す
+
+図の見た目を変えた PR では、`pnpm build:packages` の後に `pnpm readme:images` を回し、README の先頭の絵と図の種類の一覧の絵 (`docs/readme`) を今の見た目に揃える (#3881)。
+絵は `scripts/readme-images.mjs` が挙げた見本を、既定の意匠 `paper` の明るい表示と暗い表示で書き出す。
+GitHub と npm の頁は `dragon` の囲みを字のまま出すので、README を開いた人が見る図は、この絵だけになる。
+
 ## 版を出す前に同じ版が出ていないか確かめる
 
 版を上げる PR を取り込んだら、印 (`v<版>`) を付ける前に、npm に出た版と GitHub の印を引く。

@@ -11,7 +11,7 @@
 | 集まりが2つより少ないか3つより多い図は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/venn-diagram.test.ts`の検査`venn-rejects-other-than-two-or-three-sets`が通る | #3620 |
 | 重なりの数が重なる集まりのどれかの数より大きい図は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/venn-diagram.test.ts`の検査`venn-rejects-an-overlap-larger-than-its-set`が通る | #3620 |
 | 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、集合の重なりの図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3620 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、集合の重なりの図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`venn-docs-describe-the-notation`が通る | #3620 |
+| 使い方の頁と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、集合の重なりの図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`venn-docs-describe-the-notation`が通る | #3620 #3881 |
 | ほかの種類の図では、`venn`と`none`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/venn-diagram.test.ts`の検査`notation-keeps-venn-words-plain-outside-venn`が通る | #3620 |
 | カタログの種類が集合の重なりの図の分だけ1つ増え、どの種類も見本を4枚以上載せる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3620 |
 | 集合の重なりの図の見本4枚 (`wallet-usage`、`l2-chains`、`hobbies`、`skills`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/venn-examples.test.ts`の検査`venn-has-four-examples-in-both-langs`が通る | #3620 |

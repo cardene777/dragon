@@ -60,7 +60,7 @@
 | 作業の棒の描画も、色、字、余白、動きの値を共通の値の表からだけ読み、描画のfileに色の値と字の大きさを直接書かない | `pnpm test`の検査`renderers-read-values-from-one-table`が通る | #3562 |
 | 軽い入口が作業を持つ時間軸の図を読んで描く | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-load-for-reads-every-later-example`と`light-entry-draws-same-svg`が通る | #3562 |
 | repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3562 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) とAIのskillの`references/kinds/time.md`に`task`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに工程表の棒が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`docs-describe-time-task`が通る | #3562 |
+| 使い方の頁と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) とAIのskillの`references/kinds/time.md`に`task`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに工程表の棒が載る | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`docs-describe-time-task`が通る | #3562 #3881 |
 | 使い方の頁と`CHANGELOG.md`の前の形との対応表の頭の語が、読む部品の語と一致し、AIのskillの記法の囲みが全て読める | `pnpm test`の検査`skill-fences-parse`が通る | #3562 |
 | 見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`page-bundle-within-budget`が通る | #3562 |
 | `release-plan`を描いた時、軸の字が左から`1日`、`5日`、`10日`、`14日`の順に出て、`0日`が出ない | `pnpm exec vitest run packages/dragon/test/time-task.test.ts`の検査`task-axis-uses-bar-numbers`が通る | #3574 |

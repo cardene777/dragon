@@ -24,7 +24,7 @@
 | 図を動かしている間、保存の道具を使わず、頁の外への通信が0件である | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`interactive-uses-no-storage-or-network`が通る | #3337 |
 | 書き出しと印刷では、書き手が例として書いた段を描く | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`interactive-export-draws-author-steps`が通る | #3337 |
 | 見本「トランザクションがブロックに入るまで」の日本語と英語の`.dragon`と`.json`が`packages/dragon/examples/`に在り、記法を読んだ原本がJSONと一致し、bitsumiの色味で描ける | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`tx-block-example-matches-json`と`tx-block-example-renders-in-bitsumi-palette`が通る | #3337 |
-| 使い方の頁、2つのREADME、日本語と英語の手引きに新しい種類の書き方が載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-interactive-kind`が通る | #3337 |
+| 使い方の頁と、日本語と英語の手引きの試す図の小節に、新しい種類の書き方が載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-interactive-kind`が通る | #3337 #3881 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに新しい種類と語が載る | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`changelog-lists-interactive-kind`が通る | #3337 |
 | 今の図の描き方、見本、部品の頁、文字の重なり、値の表、頁の大きさの検査が通る | `pnpm exec vitest run packages/dragon/test/lineup-diagram.test.ts packages/dragon/test/notation.test.ts packages/dragon/test/look.test.ts apps/playground-spa/src/lib/catalog-parts.test.ts apps/playground-spa/src/lib/text-overlaps.test.ts apps/playground-spa/src/lib/playground.test.ts`の検査`auction-renders-7-steps`と`every-dragon-file-parses`と`renderers-read-values-from-one-table`と`catalog-parts-cover-every-word`と`overlaps-none-in-every-example`と`page-bundle-within-budget`が通る | #3337 |
 | `packages/dragon/examples/tx-block.dragon` を枠324pxで描く時、全体の見せ方 (`fixed`) になり、箱の名前の字が 10.5px 以上 | `pnpm exec vitest run --reporter=verbose`の検査`try-narrow-fixed-readable`が通る | #3366 |
@@ -41,7 +41,7 @@
 | `select`で選んで送ると、同じ値を自由入力の欄に打って送った時と同じ段が原本に足される | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-send-matches-typed-send`が通る | #3422 |
 | ブロックの中のチップの選択肢を持つ欄を書き換える時、書き換えの欄も同じ選択肢を同じ順に並べた`select`の要素で描かれ、今の値を選んだ状態で開く | `pnpm exec vitest run packages/dragon/test/interactive-choices.test.ts`の検査`interactive-choose-edit-uses-select`が通る | #3422 |
 | 常に、`choose`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`が通る | #3422 |
-| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`choose`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-choices`が通る | #3422 |
+| 英語と日本語の手引きの試す図の小節と、使い方の頁の試す図の節が、`choose`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-choices`が通る | #3422 #3881 |
 | `packages/dragon/package.json`の`version`が`0.56.0`で、英語と日本語の変更履歴の`## [0.56.0]`の節が`(#3422)`の項を持ち、その項が`choose`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-56-0-adds-try-choices`が通る | #3422 |
 | 試す図の最初の step より前に`side <部品>, <部品>`の行を書いた記法を読むと、原本の試す図が同じ行に置く部品の名前を書いた順で持ち、原本の形の検査がその原本を通す | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-parses-row`が通る | #3429 |
 | `side`の行を持つ原本を記法に書き戻すと、`side`の行が元の記法と同じ文字列で並び、読み直すと元の原本と同じJSONになる | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-round-trip-keeps-notation`が通る | #3429 |
@@ -53,7 +53,7 @@
 | 横に並べた時、網を運ばれるチップの道の最後の点が送り先の待ち行列の席に着き、部品の題とチップの四角が重ならない | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-trip-reaches-queue`が通る | #3429 |
 | 横に並べた試す図を寄って追う見せ方で再生すると、チップが待ち行列へ入る段の窓がその待ち行列の四角を含む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-follow-holds-queue`が通る | #3429 |
 | 常に、`side`の行を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3429 |
-| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`side`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-side`が通る | #3429 |
+| 英語と日本語の手引きの試す図の小節と、使い方の頁の試す図の節が、`side`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-side`が通る | #3429 #3881 |
 | `packages/dragon/package.json`の`version`が`0.57.0`で、英語と日本語の変更履歴の`## [0.57.0]`の節が`(#3429)`の項を持ち、その項が`side`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-57-0-adds-try-side`が通る | #3429 |
 | 試す図を描くと、`.dg-bar`が`.dg-frame`の次の兄弟要素に在り、`.dg-try`が`.dg-bar`の次の兄弟要素に在る | `pnpm exec vitest run packages/dragon/test/interactive-player.test.ts`の検査`interactive-caption-sits-under-frame`が通る | #3437 |
 | 書き出した試す図の HTML を幅 390px と 1280px で開くと、`.dg-frame`と`.dg-bar`と`.dg-try`の四角が上からこの順に並び、互いに重ならない | `pnpm exec vitest run packages/dragon/test/interactive-browser.test.ts`の検査`interactive-caption-above-controls`が通る | #3437 |
@@ -68,7 +68,7 @@
 | `all`を書いた`log`の記録は、中のチップのその欄が全てその値の時に`yes`の印を、1つでも違う時に`no`の印を持つ | `pnpm exec vitest run packages/dragon/test/interactive-group-log.test.ts`の検査`interactive-log-shows-verdict`が通る | #3441 |
 | 描いた試す図の`log`の記録は、番号と、チップごとの名前と`all`の欄の値と、記録の印の字を描き、`prev`と`hash`と`SHA-256`の字を描かない | `pnpm exec vitest run packages/dragon/test/interactive-group-log.test.ts`の検査`interactive-log-draws-without-hash`が通る | #3441 |
 | 常に、`into`に待ち行列を書いた試す図と`log`を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3441 |
-| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`into`に欄を書く書き方と`log`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-log`が通る | #3441 |
+| 英語と日本語の手引きの試す図の小節と、使い方の頁の試す図の節が、`into`に欄を書く書き方と`log`の行の書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-log`が通る | #3441 #3881 |
 | `packages/dragon/package.json`の`version`が`0.60.0`で、英語と日本語の変更履歴の`## [0.60.0]`の節が`(#3441)`の項を持ち、その項が`log`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-60-0-adds-try-log`が通る | #3441 |
 | 段を送った時、再生の部品は図の`SVG`を写して置き直さず、同じ要素の`--at`と`--play`と`data-motion`を替える | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-goto-keeps-the-figure`が通る | #3445 |
 | 段を送った時と流し直す時、図の中の全ての動きの時刻を0にして、動きの時計を最初から数え直す。`getAnimations`を持たない環境では時刻を0にする所を飛ばし、止まらずに段を送る | `pnpm exec vitest run packages/dragon/test/player.test.ts`の検査`player-goto-rewinds-animations`が通る | #3445 |
@@ -97,7 +97,7 @@
 | `from`に2つ以上の待ち行列を書いた釦を押すと、それぞれの上から`take`件ずつが1つの記録にまとまってそれぞれの待ち行列から外れ、`log`の`all`の印はまとめた全部のチップで決まる | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-gather-takes-from-each`が通る | #3453 |
 | `from`に書いた待ち行列のどれかが`take`件に満たない間は、釦を押すと足りない待ち行列を名指した誤りが返り、どの待ち行列も記録も変わらない | `pnpm exec vitest run packages/dragon/test/interactive-accept-gather.test.ts`の検査`interactive-gather-waits-for-every-queue`が通る | #3453 |
 | 常に、`accept`と2つ以上の`from`を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3453 |
-| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`accept`の書き方と`from`に2つ以上の待ち行列を書く書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-accept-gather`が通る | #3453 |
+| 英語と日本語の手引きの試す図の小節と、使い方の頁の試す図の節が、`accept`の書き方と`from`に2つ以上の待ち行列を書く書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-accept-gather`が通る | #3453 #3881 |
 | `packages/dragon/package.json`の`version`が`0.62.0`で、英語と日本語の変更履歴の`## [0.62.0]`の節が`(#3453)`の項を持ち、その項が`accept`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-62-0-adds-accept-gather`が通る | #3453 |
 | `item`の行と書き手の例の`ask`が5字以上の名前を持つ試す図を描くと、待ち列のチップの字と、釦で記録に移した記録の行の字が、その名前を切らずに持つ | `pnpm exec vitest run packages/dragon/test/interactive-chip-name.test.ts`の検査`try-chip-keeps-author-name`が通る | #3458 |
 | 5字以上の名前のチップは、幅がその名前の字の幅より広く、枠の幅を1440と324にして並べたどちらでも、チップが待ち列の枠の内に、待ち列が図の枠の内に収まる | `pnpm exec vitest run packages/dragon/test/interactive-chip-name.test.ts`の検査`try-chip-fits-long-name`が通る | #3458 |
@@ -116,7 +116,7 @@
 | 頁の入力の帯で送ったチップが関門で止まると、網のその節に止まった印が出て、記録の列に止まった節とエラーの名前と再試行できるかの印が日本語と英語で出る | `pnpm exec vitest run packages/dragon/test/interactive-gate.test.ts`の検査`interactive-gate-player-shows-record`が通る | #3476 |
 | 常に、関門を持たない試す図の記法は今どおり読めて、書き戻して読み直すと元の原本と同じJSONになり、見本の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/interactive-diagram.test.ts packages/dragon/test/examples-svg.test.ts`の検査`interactive-notation-parses`と`interactive-round-trip-keeps-json`と`examples-svg-unchanged`が通る | #3476 |
 | 常に、配管の図の段の中の`check`は今どおり読めて書き戻せ、試す図とほかの種類の段の中に書いた`check`は配管の図 (`pipe`) を名指した誤りで止まり、時系列図と構成図と状態遷移図では`check`を名札として読む | `pnpm exec vitest run packages/dragon/test/pipe-diagram.test.ts`の検査`notation-compiles-pipe-examples-to-json`と`pipe-roundtrip-keeps-json-identical`と`notation-limits-pipe-lines-to-pipe`と`notation-keeps-pipe-words-plain-outside-pipe`が通る | #3476 |
-| 英語と日本語のREADMEの試す図の小節と、使い方の頁の試す図の節が、`check`で関門を書く書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-gate`が通る | #3476 |
+| 英語と日本語の手引きの試す図の小節と、使い方の頁の試す図の節が、`check`で関門を書く書き方を持つ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-try-gate`が通る | #3476 #3881 |
 | `packages/dragon/package.json`の`version`が`0.65.0`で、英語と日本語の変更履歴の`## [0.65.0]`の節が`(#3476)`の項を持ち、その項が`check`を名指す | `pnpm exec vitest run packages/dragon/test/release-records.test.ts`の検査`changelog-0-65-0-adds-try-gate`が通る | #3476 |
 | エラーの名前が`SEQUENCER_REQUEST_FAILED`で止まった節が`Sequencer`の関門の記録を3件以上持つ試す図を、幅324で描くと`viewBox`の幅が324以下になり、幅を渡さずに描くと740以下になる | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-gate-record-fits-widths`が通る | #3478 |
 | 関門の記録は、止まった節の字とエラーの名前の字を別の行に持ち、どちらの字の幅も記録の枠の幅より狭い | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-gate-record-splits-rows`が通る | #3478 |
@@ -158,7 +158,7 @@
 | 待ち列と記録の列を`side`の行に書いた試す図を読むと記法の誤りにならず、書き戻した記法も同じ`side`の行を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-accepts-log`が通る | #3506 |
 | 待ち列と記録の列を`side`の行に書き、記録が3件ある試す図を幅740で描いた時、図の幅は740のままで、2つの部品の上の端のずれは1未満で重ならず、どの記録も記録の列の四角の右の端より左に収まる | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-log-in-row`が通る | #3506 |
 | 同じ図を幅324の枠で描いた時、縦に組み、部品の四角と図の高さが`side`の行を持たない図と同じ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-log-stacks-when-narrow`が通る | #3506 |
-| 英語と日本語の README の`side`の行の説明が、待ち列の残りの幅を記録の列にも渡すと書く | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`docs-side-gives-rest-to-log`が通る | #3506 |
+| 英語と日本語の手引きの`side`の行の説明が、待ち列の残りの幅を記録の列にも渡すと書く | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`docs-side-gives-rest-to-log`が通る | #3506 #3881 |
 | 待ち列と記録の列を`side`の行に書き、記録の列に割り当てた幅に3件が1段で入らない試す図を幅740で描いた時、出す記録は1段に入る数だけで全て同じ高さに並び、古い記録を畳んだ印を持つ | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-log-folds-to-one-line`が通る | #3506 |
 | 記録がまだ1件も無い記録の列は、記録1件分の空いた段を取らず、図が記録1件の図より低い | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-log-empty-takes-no-line`が通る | #3506 |
 | 常に、網と待ち列と機械の列を`side`の行に書いた図は今どおり並び、細い枠では縦に積む | `pnpm exec vitest run packages/dragon/test/interactive-side.test.ts`の検査`interactive-side-places-parts-in-a-row`と`interactive-side-queue-takes-chip-width`と`interactive-side-stacks-when-narrow`が通る | #3506 |
