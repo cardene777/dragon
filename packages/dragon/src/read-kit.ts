@@ -44,10 +44,11 @@ export function skipSpaces(text: string, at: number): number {
   return i;
 }
 
-/** `[<鍵>: <値>]` の 1 つ。`at` は鍵の位置 */
+/** `[<鍵>: <値>]` の 1 つ。`at` は鍵の位置。繰り返せる鍵は、2 つ目から後を書いた順に `more` に持つ (#3846) */
 export interface Attr {
   value: string;
   at: number;
+  more?: Attr[];
 }
 
 /** `at` の `"` から閉じる `"` までを読む。`end` は閉じた `"` の次 */
@@ -89,9 +90,10 @@ export function readName(source: SourceLine, at: number, m: Messages): { value: 
 
 /**
  * `at` の `[` から行の終わりの `]` までの属性を読む。`allowed` に無い鍵は誤り。`flags` の鍵は値を持たない印で、`:` を書かずに置き、値は空の字になる。
- * `allowed` を渡さない時はどの鍵も読み、鍵を確かめるのは呼ぶ側に任せる (試す図のチップの欄は、後の行の入力の帯で決まる、#3337)
+ * `allowed` を渡さない時はどの鍵も読み、鍵を確かめるのは呼ぶ側に任せる (試す図のチップの欄は、後の行の入力の帯で決まる、#3337)。
+ * `many` の鍵は繰り返して書け、2 つ目から後を最初の値の `more` に積む (持ち主ごとのカードの図のカードの `mark`、#3846)
  */
-export function readAttrs(source: SourceLine, at: number, allowed: readonly string[] | undefined, m: Messages, flags: readonly string[] = []): Map<string, Attr> {
+export function readAttrs(source: SourceLine, at: number, allowed: readonly string[] | undefined, m: Messages, flags: readonly string[] = [], many: readonly string[] = []): Map<string, Attr> {
   const text = source.text;
   if (!text.endsWith("]")) throw fail(source, at, m.attrUnclosed);
   const close = text.length - 1;
@@ -112,7 +114,8 @@ export function readAttrs(source: SourceLine, at: number, allowed: readonly stri
     if (colon >= close || text[colon] !== ":") throw fail(source, start, m.attrNoColon(bare));
     const key = text.slice(start, colon).trim();
     if (allowed && !allowed.includes(key)) throw fail(source, start, m.badAttr(key, allowed));
-    if (attrs.has(key)) throw fail(source, start, m.attrTwice(key));
+    const had = attrs.get(key);
+    if (had && !many.includes(key)) throw fail(source, start, m.attrTwice(key));
     let end = skipSpaces(text, colon + 1);
     let value: string;
     if (text[end] === '"') {
@@ -127,7 +130,8 @@ export function readAttrs(source: SourceLine, at: number, allowed: readonly stri
       end = stop;
     }
     if (value === "") throw fail(source, start, m.attrNoValue(key));
-    attrs.set(key, { value, at: start });
+    if (had) (had.more ??= []).push({ value, at: start });
+    else attrs.set(key, { value, at: start });
     if (end >= close) return attrs;
     i = end + 1;
   }

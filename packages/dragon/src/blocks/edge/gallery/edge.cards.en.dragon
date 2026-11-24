@@ -1,0 +1,14 @@
+cards Lines
+
+box alice as Alice
+box shop as Shop
+
+item p1 as Payment #1 in alice, shop [amount: 30 USD]
+
+step Call
+  say A line goes from a column id to a card id with ->, and the name goes after the :.
+  alice -> p1: Pay
+
+step Receive
+  say The line leaves the column head and lights the edge of the card it calls.
+  shop -> p1: Receive

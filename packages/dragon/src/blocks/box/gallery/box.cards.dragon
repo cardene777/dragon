@@ -1,0 +1,13 @@
+cards 箱
+
+box alice as Alice
+box bob as Bob [mark: 受取人]
+
+item t1 as 切符#1 in alice, bob [amount: 2枚, mark: bob]
+
+step 並べる
+  say boxの行で持ち主の列を置く。列は書いた順に左から並ぶ。
+
+step 印を出す
+  say 列のmarkはその列で出す印の語で、カードのmarkで印を出す列を選ぶ。
+  item t2 as 切符#2 in bob [amount: 3枚]

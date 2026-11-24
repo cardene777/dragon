@@ -36,7 +36,8 @@
         "matrix",
         "venn",
         "sankey",
-        "checkout"
+        "checkout",
+        "cards"
       ]
     },
     "title": {
@@ -234,6 +235,13 @@
           "maxItems": 3,
           "items": {
             "$ref": "#/definitions/vennSet"
+          }
+        },
+        "card": {
+          "description": "持ち主ごとのカードの図の、最初の段より前から在るカード。in に書いた全ての列に写しが載り、列の中は書いた順に上から積む",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/card"
           }
         },
         "path": {
@@ -783,6 +791,49 @@
           },
           "venn": {
             "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "cards"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "card": {
+                "$ref": "#/definitions/absent"
+              },
+              "box": {
+                "items": {
+                  "properties": {
+                    "mark": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "steps": {
+            "items": {
+              "properties": {
+                "events": {
+                  "items": {
+                    "$ref": "#/definitions/notCardsEvent"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2184,6 +2235,119 @@
               "minimum": 0
             }
           }
+        },
+        {
+          "description": "持ち主ごとのカードの図で、その段でカードを作る。作ったカードは in の列の下に足し、その段だけ作った印を出す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "id",
+            "name",
+            "in"
+          ],
+          "properties": {
+            "type": {
+              "const": "card"
+            },
+            "id": {
+              "$ref": "#/definitions/id"
+            },
+            "name": {
+              "$ref": "#/definitions/text"
+            },
+            "in": {
+              "description": "写しが載る列 (箱) の名札。書いた順",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            },
+            "amount": {
+              "description": "量。数と単位 (1000 USDC)。列の合計は単位ごとに足す",
+              "type": "string",
+              "pattern": "^[0-9]+(,[0-9]{3})*(\\.[0-9]+)?(\\s*[^\\s0-9.,]\\S*)?$"
+            },
+            "total": {
+              "description": "none は量をカードに出すが、列の合計に足さない",
+              "enum": [
+                "none"
+              ]
+            },
+            "mark": {
+              "description": "印を出す列の名札。この列に載る写しにだけ、その列の mark の語の札を出す。選ぶ列は mark の語を持つ",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            }
+          }
+        },
+        {
+          "description": "持ち主ごとのカードの図で、在るカード card を in の列へ動かす。前の列の写しは消える",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "card",
+            "in"
+          ],
+          "properties": {
+            "type": {
+              "const": "card-move"
+            },
+            "card": {
+              "$ref": "#/definitions/id"
+            },
+            "in": {
+              "description": "写しが載る列 (箱) の名札。書いた順",
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/id"
+              }
+            }
+          }
+        },
+        {
+          "description": "持ち主ごとのカードの図で、カード card を消す。消したカードは消し線で残り、列の合計から外れる",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "card"
+          ],
+          "properties": {
+            "type": {
+              "const": "card-delete"
+            },
+            "card": {
+              "$ref": "#/definitions/id"
+            }
+          }
+        },
+        {
+          "description": "持ち主ごとのカードの図で、カードか列 target が断られる。カードは変わらず、断られた札と理由 reason の札を出す",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "target",
+            "reason"
+          ],
+          "properties": {
+            "type": {
+              "const": "refuse"
+            },
+            "target": {
+              "$ref": "#/definitions/id"
+            },
+            "reason": {
+              "$ref": "#/definitions/text"
+            }
+          }
         }
       ]
     },
@@ -2842,6 +3006,24 @@
         }
       }
     },
+    "notCardsEvent": {
+      "description": "持ち主ごとのカードの図だけが書ける出来事を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "card",
+              "card-move",
+              "card-delete",
+              "refuse"
+            ]
+          }
+        }
+      }
+    },
     "vennSteps": {
       "description": "集合の重なりの図の段。集まりか重なりの数を書く出来事 (count) と、どれにも入らない数を書く出来事 (none) だけを書け、配管の図だけの段の要点 (gist) を書けない",
       "items": {
@@ -2990,6 +3172,10 @@
         "time": {
           "description": "回り続ける図の時計の文字盤の見た目 (shape: clock) と輪を開いた帯の見た目 (shape: band) の手順の長さと、列の図の階段の見た目 (shape: stairs) の層の時間",
           "$ref": "#/definitions/boxTime"
+        },
+        "mark": {
+          "description": "持ち主ごとのカードの図の列で出す印の語。カードの mark でこの列を選ぶと、この列に載るそのカードの写しにこの語の札を出す",
+          "$ref": "#/definitions/text"
         }
       }
     },
@@ -4089,6 +4275,51 @@
           }
         }
       ]
+    },
+    "card": {
+      "description": "カード。name は見せる名前",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "in"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "in": {
+          "description": "写しが載る列 (箱) の名札。書いた順",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/id"
+          }
+        },
+        "amount": {
+          "description": "量。数と単位 (1000 USDC)。列の合計は単位ごとに足す",
+          "type": "string",
+          "pattern": "^[0-9]+(,[0-9]{3})*(\\.[0-9]+)?(\\s*[^\\s0-9.,]\\S*)?$"
+        },
+        "total": {
+          "description": "none は量をカードに出すが、列の合計に足さない",
+          "enum": [
+            "none"
+          ]
+        },
+        "mark": {
+          "description": "印を出す列の名札。この列に載る写しにだけ、その列の mark の語の札を出す。選ぶ列は mark の語を持つ",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/id"
+          }
+        }
+      }
     }
   },
   "if": {
@@ -5437,67 +5668,179 @@
                                     }
                                   },
                                   "else": {
-                                    "properties": {
-                                      "blocks": {
-                                        "required": [
-                                          "box"
-                                        ],
-                                        "properties": {
-                                          "box": {
-                                            "minItems": 1
-                                          },
-                                          "strip": {
-                                            "$ref": "#/definitions/plainStrip"
-                                          },
-                                          "path": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "branch": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "scale": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "period": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "row": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "task": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "point": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "zoom": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "item": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "role": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "part": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "hold": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "side": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "check": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "choice": {
-                                            "$ref": "#/definitions/absent"
-                                          }
+                                    "if": {
+                                      "required": [
+                                        "kind"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "const": "cards"
                                         }
-                                      },
-                                      "steps": {
-                                        "$ref": "#/definitions/plainSteps"
+                                      }
+                                    },
+                                    "then": {
+                                      "properties": {
+                                        "blocks": {
+                                          "required": [
+                                            "box"
+                                          ],
+                                          "properties": {
+                                            "box": {
+                                              "description": "持ち主の列。1 つ以上で、書いた順に左から並べ、カードを列の中に上から積む。名前の脇の添え書きと印の語のほかを持たない",
+                                              "minItems": 1,
+                                              "items": {
+                                                "properties": {
+                                                  "example": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "color": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "icon": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "region": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "link": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "block": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "order": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "limit": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "time": {
+                                                    "$ref": "#/definitions/absent"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "group": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "strip": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "path": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "choice": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "branch": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "scale": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "period": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "row": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "task": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "point": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "zoom": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "item": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "role": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "part": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "hold": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "side": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "check": {
+                                              "$ref": "#/definitions/absent"
+                                            }
+                                          }
+                                        },
+                                        "steps": {
+                                          "$ref": "#/definitions/plainSteps"
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "properties": {
+                                        "blocks": {
+                                          "required": [
+                                            "box"
+                                          ],
+                                          "properties": {
+                                            "box": {
+                                              "minItems": 1
+                                            },
+                                            "strip": {
+                                              "$ref": "#/definitions/plainStrip"
+                                            },
+                                            "path": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "branch": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "scale": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "period": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "row": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "task": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "point": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "zoom": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "item": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "role": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "part": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "hold": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "side": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "check": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "choice": {
+                                              "$ref": "#/definitions/absent"
+                                            }
+                                          }
+                                        },
+                                        "steps": {
+                                          "$ref": "#/definitions/plainSteps"
+                                        }
                                       }
                                     }
                                   }

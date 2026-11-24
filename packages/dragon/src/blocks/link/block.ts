@@ -8,6 +8,7 @@
  * 飛び先は箱の行の属性で行の頭の語を持たないので、箱の行を読む処理が `urlOf` を呼び、箱の宣言を書き戻す処理が `link` の鍵を書く。
  * 量の行き先の図 (#3626) の箱は量の棒で札を包まないので、飛び先のブロックを描かない図の種類に書く。
  */
+import type { NotationLang } from "../../words";
 import type { Block } from "../block";
 
 /** 頁を移る形の決まり。/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所 (#3755)。原本の形の検査と、記法から読んだ図を読む時に使う (#3400) */
@@ -18,13 +19,16 @@ export interface LinkFieldMessages {
   url: string;
 }
 
+/** 頁を移る形だけを書ける決まりの文。記法から読んだ図の値を確かめる時は原本の形の検査を読まないので (`version.ts`)、文の表を通さずここから読む */
+export const LINK_MESSAGES: Record<NotationLang, LinkFieldMessages> = {
+  ja: { url: "/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所にする" },
+  en: { url: "Use a path that starts with /, a URL that starts with http:// or https://, or a place on the page that starts with #" },
+};
+
 export const block: Block<LinkFieldMessages> = {
   name: "link",
   rank: 89,
   attach: { how: "attach-to-box", except: ["lineup", "pipe", "sankey"] },
   words: { attrs: { box: ["link"] } },
-  fieldMessages: {
-    ja: { url: "/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所にする" },
-    en: { url: "Use a path that starts with /, a URL that starts with http:// or https://, or a place on the page that starts with #" },
-  },
+  fieldMessages: LINK_MESSAGES,
 };
