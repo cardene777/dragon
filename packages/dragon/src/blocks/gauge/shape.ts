@@ -22,7 +22,8 @@ export const shape: BlockShape = {
         unit: { description: "値の後ろに出す単位", $ref: "#/definitions/text" },
         over: { description: "上限を超えた段に目盛りの下に出す札の字。limit を書いた目盛りだけが持てる", $ref: "#/definitions/text" },
       },
-      dependencies: { over: ["limit"] },
+      if: { required: ["over"] },
+      then: { required: ["limit"] },
     },
   },
   events: {

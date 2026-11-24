@@ -213,6 +213,11 @@ const ONLY_HEADS: ReadonlyMap<string, KindName> = new Map(
  * `item` は量の図 (#3560) と集合の重なりの図 (#3620) でも項目と集まりの行として書け、その行は項目のブロックと集まりの円のブロックが行の形で先に読む
  */
 const LINEUP_OR_TRY = ["item", "line"];
+/**
+ * 手順の図と列の図だけに書ける量の目盛りの行の頭の語 (#3880)。目盛りの読み方は書ける 2 つの図の種類の図でだけ後から読むので、
+ * ほかの種類の図に書いた行は、読み方を読まずに 2 つの図の種類だけの語の誤りで止める。書ける図の種類はブロックの定義から引く
+ */
+const FLOW_OR_LINEUP = ["gauge"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
@@ -492,6 +497,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (word === "layout" && kind !== "pipe") throw fail(source, 0, m.pipeOnly(word));
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
     if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
+    if (FLOW_OR_LINEUP.includes(word) && !blockKinds("gauge").includes(kind)) throw fail(source, 0, m.flowOrLineupOnly(word));
     const only = ONLY_HEADS.get(word);
     // 残高と書き換える値の hold の行は、パイプ図の部品で描く時系列図 (`[shape: pipe]`) の列の頭の下の器と札にも使う (Tracelyth #93、#3720)。
     // 見た目を書かない時系列図は値の持ち分を描かないので、今どおり断る

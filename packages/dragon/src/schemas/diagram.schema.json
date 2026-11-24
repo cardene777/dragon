@@ -145,6 +145,13 @@
         "strip": {
           "$ref": "#/definitions/strip"
         },
+        "gauge": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/gauge"
+          }
+        },
         "scale": {
           "$ref": "#/definitions/scale"
         },
@@ -1374,6 +1381,29 @@
             },
             "tag": {
               "$ref": "#/definitions/text"
+            }
+          }
+        },
+        {
+          "description": "目盛り gauge の値を value にする。値はその段の総量で、書かない段は前の段の値を保つ",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "gauge",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "gauge"
+            },
+            "gauge": {
+              "$ref": "#/definitions/id"
+            },
+            "value": {
+              "description": "その段の総量。0 以上の数",
+              "type": "number",
+              "minimum": 0
             }
           }
         },
@@ -3067,6 +3097,50 @@
       "type": "string",
       "pattern": "^([0-9]+/[0-9]+|[0-9]+(\\.[0-9]+)?%)$"
     },
+    "gauge": {
+      "description": "量の目盛り。on の箱のすぐ下か、on を書かない時は図の上の帯に、宣言した順に縦に積む",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "on": {
+          "description": "目盛りを置く箱の名札",
+          "$ref": "#/definitions/id"
+        },
+        "limit": {
+          "description": "上限。書かない目盛りは棒を描かず、値と単位だけを出す",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "description": "値の後ろに出す単位",
+          "$ref": "#/definitions/text"
+        },
+        "over": {
+          "description": "上限を超えた段に目盛りの下に出す札の字。limit を書いた目盛りだけが持てる",
+          "$ref": "#/definitions/text"
+        }
+      },
+      "if": {
+        "required": [
+          "over"
+        ]
+      },
+      "then": {
+        "required": [
+          "limit"
+        ]
+      }
+    },
     "path": {
       "description": "移れる道。送る側に始まりの印 start、受ける側に終わりの印 finish を書ける。どの段にも出ない道は点線で描き、運ぶ物を走らせない",
       "type": "object",
@@ -4180,6 +4254,9 @@
             },
             "choice": {
               "$ref": "#/definitions/absent"
+            },
+            "gauge": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -4265,6 +4342,9 @@
                 "$ref": "#/definitions/absent"
               },
               "choice": {
+                "$ref": "#/definitions/absent"
+              },
+              "gauge": {
                 "$ref": "#/definitions/absent"
               }
             }
@@ -4454,6 +4534,9 @@
                   },
                   "check": {
                     "$ref": "#/definitions/absent"
+                  },
+                  "gauge": {
+                    "$ref": "#/definitions/absent"
                   }
                 }
               },
@@ -4527,6 +4610,9 @@
                     },
                     "choice": {
                       "$ref": "#/definitions/absent"
+                    },
+                    "gauge": {
+                      "$ref": "#/definitions/absent"
                     }
                   }
                 },
@@ -4593,6 +4679,9 @@
                         "$ref": "#/definitions/absent"
                       },
                       "choice": {
+                        "$ref": "#/definitions/absent"
+                      },
+                      "gauge": {
                         "$ref": "#/definitions/absent"
                       }
                     }
@@ -4666,6 +4755,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "choice": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "gauge": {
                           "$ref": "#/definitions/absent"
                         }
                       }
@@ -4831,6 +4923,9 @@
                             },
                             "choice": {
                               "$ref": "#/definitions/absent"
+                            },
+                            "gauge": {
+                              "$ref": "#/definitions/absent"
                             }
                           }
                         },
@@ -4920,6 +5015,9 @@
                               },
                               "choice": {
                                 "$ref": "#/definitions/absent"
+                              },
+                              "gauge": {
+                                "$ref": "#/definitions/absent"
                               }
                             }
                           },
@@ -4995,6 +5093,9 @@
                                   "$ref": "#/definitions/absent"
                                 },
                                 "choice": {
+                                  "$ref": "#/definitions/absent"
+                                },
+                                "gauge": {
                                   "$ref": "#/definitions/absent"
                                 }
                               }
@@ -5075,6 +5176,9 @@
                                   },
                                   "choice": {
                                     "$ref": "#/definitions/absent"
+                                  },
+                                  "gauge": {
+                                    "$ref": "#/definitions/absent"
                                   }
                                 }
                               },
@@ -5150,6 +5254,9 @@
                                       "$ref": "#/definitions/absent"
                                     },
                                     "choice": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "gauge": {
                                       "$ref": "#/definitions/absent"
                                     }
                                   }
@@ -5232,6 +5339,9 @@
                                         "$ref": "#/definitions/absent"
                                       },
                                       "table": {
+                                        "$ref": "#/definitions/absent"
+                                      },
+                                      "gauge": {
                                         "$ref": "#/definitions/absent"
                                       }
                                     }
@@ -5332,6 +5442,9 @@
                                         },
                                         "choice": {
                                           "$ref": "#/definitions/absent"
+                                        },
+                                        "gauge": {
+                                          "$ref": "#/definitions/absent"
                                         }
                                       }
                                     },
@@ -5428,6 +5541,9 @@
                                           },
                                           "check": {
                                             "$ref": "#/definitions/absent"
+                                          },
+                                          "gauge": {
+                                            "$ref": "#/definitions/absent"
                                           }
                                         }
                                       },
@@ -5492,6 +5608,9 @@
                                             "$ref": "#/definitions/absent"
                                           },
                                           "choice": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "gauge": {
                                             "$ref": "#/definitions/absent"
                                           }
                                         }

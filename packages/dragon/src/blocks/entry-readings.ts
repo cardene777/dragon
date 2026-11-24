@@ -6,7 +6,6 @@ import { reading as carryReading } from "./carry/read";
 import { reading as colorReading } from "./color/read";
 import { reading as edgeReading } from "./edge/read";
 import { reading as edgeLabelReading } from "./edge-label/read";
-import { reading as gaugeReading } from "./gauge/read";
 import { reading as groupReading } from "./group/read";
 import { reading as iconReading } from "./icon/read";
 import { reading as lifelineReading } from "./lifeline/read";
@@ -18,7 +17,7 @@ import { reading as sourceReading } from "./source/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
 
-/** 入口が初めから持つ読み方。コアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349) */
+/** 入口が初めから持つ読み方。後から読まない図の種類で使えるコアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349、#3880) */
 export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "act": actReading,
   "box": boxReading,
@@ -26,7 +25,6 @@ export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "color": colorReading,
   "edge": edgeReading,
   "edge-label": edgeLabelReading,
-  "gauge": gaugeReading,
   "group": groupReading,
   "icon": iconReading,
   "lifeline": lifelineReading,

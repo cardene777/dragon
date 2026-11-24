@@ -8,7 +8,7 @@ item p1, p2, p3
 gauge budget as 1日の予算 [on: sent, limit: 100, unit: USDC, over: 上限を超えたので止める]
 
 step 並べる
-  say gauge で量を持つ箱の下に目盛りを置く。値を書く前の目盛りは 0 から始まる。
+  say gauge で量を持つ箱の下に目盛りを置く。値を書く前の目盛りは0から始まる。
   line queue: p1, p2, p3
 
 step 2件を送る

@@ -12,7 +12,7 @@
  */
 import type { Attr } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
-import type { Block, KindName } from "../block";
+import type { Block } from "../block";
 
 /** 目盛りの宣言。`on` は目盛りを置く箱、`limit` は上限、`unit` は値の後ろに出す単位、`over` は上限を超えた段の札の字 */
 export interface Gauge {
@@ -41,9 +41,6 @@ export interface GaugeDraft {
 
 /** 目盛りの行に書ける属性の鍵 */
 export const GAUGE_ATTRS: readonly string[] = ["on", "limit", "unit", "over"];
-
-/** 目盛りを置ける図の種類 */
-export const GAUGE_KINDS: readonly KindName[] = ["flow", "lineup"];
 
 export const block: Block = {
   name: "gauge",

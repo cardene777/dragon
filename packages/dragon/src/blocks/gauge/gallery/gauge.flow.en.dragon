@@ -4,7 +4,7 @@ box agent as AI agent
 box vi as VeriIntent
 box signer as Signer
 
-gauge budget as Daily budget [on: vi, limit: 100, unit: USDC, over: Over the limit, so it stops]
+gauge budget as Daily budget [on: vi, limit: 100, unit: USDC, over: Stopped over the limit]
 
 step Send the first
   say gauge places a gauge under the box that holds the amount, and set writes the total of the step.

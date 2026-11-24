@@ -60,6 +60,8 @@ export interface CoreMessages {
   lineupOnly: (word: string) => string;
   /** 列の図と試す図だけの行 (`item` と `line`) を、別の種類の図に書いた (#3349) */
   lineupOrTryOnly: (word: string) => string;
+  /** 手順の図と列の図だけの行 (量の目盛りの `gauge`) を、別の種類の図に書いた (#3880) */
+  flowOrLineupOnly: (word: string) => string;
   /** 列の図と試す図と量の図だけの `item` の行を、別の種類の図に書いた (#3560) */
   itemOnly: string;
   /** 図の種類の行の属性 `key` (見た目の `shape` と 1 点の件数の `unit`) を、その属性を持てる図の種類 `kinds` の外の図の行に書いた (#3560、#3635、#3637) */
@@ -130,6 +132,7 @@ const ja = (): Messages => {
     treeOnly: (word) => `${word} の行は tree (木の図) でだけ書ける`,
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
+    flowOrLineupOnly: (word) => `${word} の行は flow (手順の図) と lineup (列の図) でだけ書ける`,
     itemOnly: "item の行は lineup (列の図) と try (試す図) と chart (量の図) と venn (集合の重なりの図) でだけ書ける",
     headOnlyAttr: (key, kinds) => `最初の行の ${key} は ${list(kinds)} の図にだけ書ける`,
     tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
@@ -186,6 +189,7 @@ const en = (): Messages => {
     treeOnly: (word) => `${word} lines can be written only in tree diagrams`,
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
+    flowOrLineupOnly: (word) => `${word} lines can be written only in flow and lineup diagrams`,
     itemOnly: "item lines can be written only in lineup, try, chart and venn diagrams",
     headOnlyAttr: (key, kinds) => `${key} on the first line can be written only in ${list(kinds)} diagrams`,
     tryOnly: (word) => `${word} lines can be written only in try diagrams`,

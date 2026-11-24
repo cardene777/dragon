@@ -1,7 +1,7 @@
 // packages/dragon/scripts/build-blocks.mjs が置き場の dir から書き出した。手で直さない
 import type { BlockReading } from "./block";
 
-/** 後から読む図の種類の個別ブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349) */
+/** 後から読む図の種類だけで使えるブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349、#3880) */
 export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = {
   "ask": () => import("./ask/read").then((m): BlockReading => m.reading),
   "axis": () => import("./axis/read").then((m): BlockReading => m.reading),
@@ -21,6 +21,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "delete": () => import("./delete/read").then((m): BlockReading => m.reading),
   "emit": () => import("./emit/read").then((m): BlockReading => m.reading),
   "fold": () => import("./fold/read").then((m): BlockReading => m.reading),
+  "gauge": () => import("./gauge/read").then((m): BlockReading => m.reading),
   "gist": () => import("./gist/read").then((m): BlockReading => m.reading),
   "hold": () => import("./hold/read").then((m): BlockReading => m.reading),
   "idea": () => import("./idea/read").then((m): BlockReading => m.reading),

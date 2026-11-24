@@ -2,6 +2,7 @@
  * `gauge` のブロックの読み方 (#3880)。読む処理と書き戻す処理と日英の誤りの文を、入口に置く定義 (`block.ts`) と分けて持つ。
  *
  * 宣言の行は `gauge <名札> as <名前> [on: <箱>, limit: <数>, unit: <単位>, over: <字>]` で、最初の `step` より前に書く。
+ * この読み方は手順の図と列の図の図を読む時だけ後から読み、ほかの種類の図に書いた行は読む処理 (`parser.ts`) が読み方を読まずに断る。
  * `on` の箱と、名札が中身の帯の欄と重ならないかは、全ての宣言を読んでから (最初の段を始める時か記法の終わりに) 確かめ、誤りは目盛りの行に出す。
  * 段の中の `set <目盛り>: <総量>` の行は、目盛りを 1 つでも宣言した図でだけ、行の形 (`take`) で中身の帯より先に読む。
  * 目盛りの名札でなく中身の帯の欄でもない名前の `set` の行は、目盛りが無いと断る。目盛りを宣言しない図の `set` の行は今どおり中身の帯が読む。
@@ -10,11 +11,9 @@ import { attrs, name, num, quote, shown } from "../../print-kit";
 import { fail, readDeclared, readQuoted, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import type { BlockReading, ParseState } from "../block";
-import { GAUGE_ATTRS, GAUGE_KINDS, type Gauge, type GaugeDraft } from "./block";
+import type { Gauge, GaugeDraft } from "./block";
 
 export interface GaugeMessages {
-  /** 手順の図と列の図のほかの図に書いた */
-  gaugeKinds: string;
   /** 段の中に書いた */
   gaugeInStep: string;
   /** `on` の箱 `box` を宣言していない */
@@ -47,10 +46,9 @@ const declaredOf = (state: ParseState): GaugeDraft[] => (state.figure.gauge ??= 
 /** `gauge <名札> as <名前> [on: <箱>, limit: <数>, unit: <単位>, over: <字>]` の行 */
 function readGauge(source: SourceLine, state: ParseState): void {
   const { m } = state;
-  if (!(GAUGE_KINDS as readonly string[]).includes(state.kind)) throw fail(source, 0, m.gaugeKinds);
   if (state.current()) throw fail(source, 0, m.gaugeInStep);
   state.beforeSteps(source);
-  const read = readDeclared(source, "gauge", GAUGE_ATTRS, m);
+  const read = readDeclared(source, "gauge", state.attrs.gauge ?? [], m);
   state.claim(source, read.id, read.idAt);
   const strip = state.figure.strip;
   if (strip?.fields.includes(read.id)) throw fail(source, read.idAt, m.gaugeClash(read.id));
@@ -106,12 +104,8 @@ function takeSet(source: SourceLine, state: ParseState): boolean {
 }
 
 export const reading: BlockReading<GaugeMessages> = {
-  read: {
-    gauge: (source, state) => {
-      readGauge(source, state);
-    },
-  },
-  take: (source, state) => takeSet(source, state),
+  read: { gauge: readGauge },
+  take: takeSet,
   // `on` の箱は目盛りの行より後に宣言してもよく、中身の帯も後に宣言できるので、全ての宣言を読んでから確かめる
   settle: (state) => {
     const { m, figure } = state;
@@ -131,7 +125,6 @@ export const reading: BlockReading<GaugeMessages> = {
   },
   messages: {
     ja: {
-      gaugeKinds: "gauge は手順の図 (flow) と列の図 (lineup) にだけ書ける",
       gaugeInStep: "gauge は最初の step より前に書く",
       gaugeNoBox: (box) => `${box} という箱は無い。gauge の on には宣言した箱の名札を書く`,
       gaugeLimit: "gauge の limit は 0 より大きい数で書く",
@@ -143,7 +136,6 @@ export const reading: BlockReading<GaugeMessages> = {
       gaugeSetShape: "目盛りの set は set <目盛り>: <総量> の形で書く",
     },
     en: {
-      gaugeKinds: "Write gauge only in a flow or a lineup diagram",
       gaugeInStep: "Write gauge before the first step",
       gaugeNoBox: (box) => `There is no box named ${box}. Write a declared box in the on of gauge`,
       gaugeLimit: "Write the limit of gauge as a number above 0",
