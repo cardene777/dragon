@@ -21,7 +21,10 @@ const L = CARDS_LOOK;
 const T = CARDS_TYPE;
 
 /** 字の形の真ん中から基準線までの下がりの、字の大きさに対する割合 */
-const MIDDLE = 0.35;
+export const MIDDLE = 0.35;
+
+/** 真ん中が (`cx`, `cy`) で、腕の長さが `s` の × の印の道筋。断られた札と断られた呼び出しの線に使う */
+export const crossPath = (cx: number, cy: number, s: number): string => `M${r1(cx - s)} ${r1(cy - s)}L${r1(cx + s)} ${r1(cy + s)}M${r1(cx + s)} ${r1(cy - s)}L${r1(cx - s)} ${r1(cy + s)}`;
 
 /**
  * 字を 1 つ描き、字の四角と見えている間を記録する。`attrs` は `text` の要素に足す属性で、前に空白を付けて渡す。
@@ -41,19 +44,14 @@ export interface CardTimes {
   call?: { start: number; color: ColorKey };
 }
 
-/** `a` から見えたまま残る動き。段の写しの組が隠すので、消えるのは繰り返す前 */
-const from = (ctx: Ctx, a: number): string => ctx.m.vis(a, ctx.m.last);
-
-/** 消し線を `at` から引く動き。`at` が無い (前の段で消した) 線は引き終えた形で描く */
-const strikeKf = (ctx: Ctx, at: number | undefined): string =>
-  at === undefined
-    ? ""
-    : ctx.m.kf([
-        [0, { "stroke-dashoffset": 1 }],
-        [at, { "stroke-dashoffset": 1 }, EASE.inOut],
-        [at + MOTION.fade + MOTION.untilFade, { "stroke-dashoffset": 0 }],
-        [ctx.m.total, { "stroke-dashoffset": 0 }],
-      ]);
+/** 消し線を `at` から引く動き */
+const strikeKf = (ctx: Ctx, at: number): string =>
+  ctx.m.kf([
+    [0, { "stroke-dashoffset": 1 }],
+    [at, { "stroke-dashoffset": 1 }, EASE.inOut],
+    [at + MOTION.fade + MOTION.untilFade, { "stroke-dashoffset": 0 }],
+    [ctx.m.total, { "stroke-dashoffset": 0 }],
+  ]);
 
 /** 写しの縁に掛かる札 (「できた」と「消えた」)。右の端をカードの右の端から `inset` 内に置き、札の真ん中を上の縁に重ねる */
 function tag(seat: CardsSeat, text: string, color: ColorKey, at: number, ctx: Ctx, shown: Shown[]): string {
@@ -96,14 +94,15 @@ export function drawCard(seat: CardsSeat, words: CardsWords, ctx: Ctx, times: Ca
   ];
   if (seat.state === "removed") {
     // 消した写しは地を薄くし、名前と量の行に消し線を引く。消した段では出来事の時刻から薄くして線を引く
-    const veil = removedNow ? ` class="dg-cd-veil dg-a" style="${from(ctx, at)}"` : ' class="dg-cd-veil"';
+    const veil = removedNow ? ` class="dg-cd-veil dg-a" style="${m.vis(at, m.last)}"` : ' class="dg-cd-veil"';
     const lines = [nameY, ...(seat.amount === undefined ? [] : [amountY])]
       .map((y) => `<path class="dg-cd-strike${removedNow ? " dg-a" : ""}" pathLength="1" d="M${r1(seat.x + L.card.padX / 2)} ${r1(y - T.card.size * MIDDLE)}H${r1(seat.x + seat.w - L.card.padX / 2)}"${removedNow ? ` style="${strikeKf(ctx, at)}"` : ""}/>`)
       .join("");
     parts.push(`<rect${veil} ${box}/><g style="${cs("rose")}">${lines}</g>`);
   }
-  // 段の中で作った写しは緑、動いた写しは青の縁を出来事の時刻から出し、呼び出しを受けた写しは線を引き始める時から線の色の縁を出す
-  const outline = (color: ColorKey, a: number): string => `<rect class="dg-cd-on dg-a" ${box} style="${cs(color)};${from(ctx, a)}"/>`;
+  // 段の中で作った写しは緑、動いた写しは青の縁を出来事の時刻から出し、呼び出しを受けた写しは線を引き始める時から線の色の縁を出す。
+  // 縁は繰り返す前まで残し、段の写しの組が隠す
+  const outline = (color: ColorKey, a: number): string => `<rect class="dg-cd-on dg-a" ${box} style="${cs(color)};${m.vis(a, m.last)}"/>`;
   if (created) parts.push(outline("green", at));
   else if (seat.moved) parts.push(outline("blue", at));
   if (times.call) parts.push(outline(times.call.color, times.call.start));
@@ -133,7 +132,6 @@ export function drawRefusal(refusal: CardsRefusal, words: CardsWords, ctx: Ctx, 
   const shown: Shown[] = [[at, window[1]]];
   const cx = x + R.crossX;
   const cy = y + R.titleY - T.refused.size * MIDDLE;
-  const s = R.cross;
   const chipW = Math.min(w - R.padX * 2, textWidth(refusal.reason, T.reason) + R.padX * 2);
   const chipX = x + (w - chipW) / 2;
   const chipY = y + R.chipY - R.chip / 2;
@@ -141,7 +139,7 @@ export function drawRefusal(refusal: CardsRefusal, words: CardsWords, ctx: Ctx, 
   return (
     `<g class="dg-popc dg-a" style="${cs("rose")};${ctx.m.pop(at)}">` +
     `<rect class="dg-cd-ref" x="${r1(x)}" y="${r1(y)}" width="${r1(w)}" height="${r1(h)}" rx="${partRadius(ctx.corner, R.radius)}" ${ctx.sh}/>` +
-    `<path class="dg-cd-x" d="M${r1(cx - s)} ${r1(cy - s)}L${r1(cx + s)} ${r1(cy + s)}M${r1(cx + s)} ${r1(cy - s)}L${r1(cx - s)} ${r1(cy + s)}"/>` +
+    `<path class="dg-cd-x" d="${crossPath(cx, cy, R.cross)}"/>` +
     say(ctx, "dg-cd-reft", x + R.textX, y + R.titleY, words.refused, T.refused, shown) +
     `<g data-dragon="reason"><rect class="dg-cd-why" x="${r1(chipX)}" y="${r1(chipY)}" width="${r1(chipW)}" height="${R.chip}" rx="${partRadius(ctx.corner, R.chip / 2)}"/>${reason}</g>` +
     "</g>"

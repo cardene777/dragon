@@ -198,10 +198,11 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
   const boxes = diagram.boxes;
   // カードの今を段ごとに進める。消したカードも残し、作った順を持つ
   const { start, moments } = replay(diagram);
-  const amounts = start.map((live) => live.card.amount);
-  for (const step of diagram.steps) for (const e of step.events) if (e.type === "card") amounts.push(e.amount);
-  const parsed = amounts.flatMap((text) => {
-    const amount = text === undefined ? undefined : amountOf(text);
+  // 最初の段より前のカードと段の中で作ったカード。量の単位を出た順に集め、カードの幅を決める
+  const everyCard: CardItem[] = start.map((live) => live.card);
+  for (const step of diagram.steps) for (const e of step.events) if (e.type === "card") everyCard.push(e);
+  const parsed = everyCard.flatMap((card) => {
+    const amount = card.amount === undefined ? undefined : amountOf(card.amount);
     return amount ? [amount] : [];
   });
   const units = [...new Set(parsed.map((amount) => amount.unit))];
@@ -211,8 +212,6 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
   const markW = (word: string): number => textWidth(word, T.mark) + L.mark.padX * 2;
   const tagW = Math.max(...[words.made, words.gone].map((w) => textWidth(w, T.tag) + L.tag.padX * 2));
   const markOf = new Map(boxes.map((box) => [box.id, box.mark]));
-  const everyCard: CardItem[] = start.map((live) => live.card);
-  for (const step of diagram.steps) for (const e of step.events) if (e.type === "card") everyCard.push(e);
   let cardW = 0;
   for (const card of everyCard) {
     const marks = (card.mark ?? []).map((id) => markOf.get(id) ?? "");
@@ -293,7 +292,8 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
         });
         now.set(key, y);
       });
-      filled.set(box.id, here.length === 0 ? seatY(1) - L.card.gap : seatY(here.length) - L.card.gap);
+      // カードの無い列は、カードの無い列の点線の枠 1 枚の下までを埋まった所にする
+      filled.set(box.id, seatY(Math.max(1, here.length)) - L.card.gap);
       if (here.length === 0) empties.push({ step: s, column: box.id, x: x + L.column.padX, y: seatY(0), w: cardW, h: L.card.h });
     }
     // 断られた札は、カードを呼んだ列か、カードが載る最初の列か、断られた列の、カードの下に置く

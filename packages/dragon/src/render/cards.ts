@@ -8,7 +8,7 @@
  * 見た目の規則も持ち主ごとのカードの図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない。
  * この file は後から読む持ち主ごとのカードの図の塊 (`kinds/cards.ts`) だけが読む
  */
-import { type CardTimes, drawCard, drawRefusal, say } from "../blocks/card/draw";
+import { type CardTimes, crossPath, drawCard, drawRefusal, MIDDLE, say } from "../blocks/card/draw";
 import { cs } from "../blocks/color/draw";
 import type { CardsColumn, CardsLayout, CardsTotal } from "../kinds/cards/layout";
 import { textWidth } from "../layout/measure";
@@ -22,9 +22,6 @@ import { arrowHead, type Ctx, cssFont as font, cssMix as mix, nodeAttr, pathOf, 
 const L = CARDS_LOOK;
 const T = CARDS_TYPE;
 const S = LOOK.stroke;
-
-/** 字の形の真ん中から基準線までの下がりの、字の大きさに対する割合 */
-const MIDDLE = 0.35;
 
 /** 持ち主ごとのカードの図の見た目の規則 */
 const CARDS_CSS = [
@@ -151,9 +148,7 @@ function calls(layout: CardsLayout, column: string, s: number, ctx: Ctx, window:
         ? `<g class="dg-a" style="${cs(tag.color)};${m.rise(time.start + MOTION.labelDelay)}"><rect class="dg-cd-call" x="${r1(tag.x)}" y="${r1(tag.y)}" width="${r1(tag.w)}" height="${tag.h}" rx="${partRadius(ctx.corner, L.call.radius)}"/>${say(ctx, "dg-cd-callt", tag.x + tag.w / 2, tag.y + tag.h / 2 + T.call.size * MIDDLE, tag.text, T.call, shown, "middle")}</g>`
         : "";
       const [x0 = 0, y0 = 0] = e.points[0] ?? [];
-      const c = L.call.cross;
-      const cy = y0 + L.call.room / 2;
-      const cross = refused ? `<path class="dg-cd-x dg-a" d="M${r1(x0 - c)} ${r1(cy - c)}L${r1(x0 + c)} ${r1(cy + c)}M${r1(x0 + c)} ${r1(cy - c)}L${r1(x0 - c)} ${r1(cy + c)}" style="${m.vis(time.drawn, m.last)}"/>` : "";
+      const cross = refused ? `<path class="dg-cd-x dg-a" d="${crossPath(x0, y0 + L.call.room / 2, L.call.cross)}" style="${m.vis(time.drawn, m.last)}"/>` : "";
       const path = refused
         ? `<path class="dg-cd-line dg-cd-dash dg-a" d="${pathOf(e.points, ctx.corner)}" style="${line}"/>`
         : `<path class="dg-cd-line dg-a" pathLength="1" d="${pathOf(e.points, ctx.corner)}" style="${line}"/>`;
@@ -224,10 +219,9 @@ function changeAt(layout: CardsLayout, ctx: Ctx, s: number): number | undefined 
 /** 持ち主ごとのカードの図。列ごとに列の地と見出しと段ごとの組を 1 つの組 (`data-dragon="column"`) に入れ、列の下に合計の帯を置く */
 export function drawCards(layout: CardsLayout, ctx: Ctx): { base: string; css: string; attrs: string } {
   const targets = callTargets(layout, ctx);
-  const stepCount = ctx.t.steps.length;
   const columns = layout.columns.map((column) => {
     const steps: string[] = [];
-    for (let s = 0; s < stepCount; s++) {
+    for (let s = 0; s < ctx.t.steps.length; s++) {
       const window = windowOf(ctx, s);
       const empty = layout.empties
         .filter((e) => e.step === s && e.column === column.id)

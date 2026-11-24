@@ -11,7 +11,7 @@
 import { attrs, name, shown } from "../../print-kit";
 import { AS, type Attr, fail, ID, readAttrs, readQuoted, skipSpaces } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
-import { type BlockReading, none, type ParseState } from "../block";
+import type { BlockReading, ParseState } from "../block";
 import type { EdgeEvent } from "../edge/block";
 import { amountOf } from "./amount";
 import type { CardItem } from "./block";
