@@ -28,6 +28,9 @@ export interface FigureText {
   next: string;
   /** 段の一覧の読み上げの名前 */
   steps: (title: string) => string;
+  /** 札で見せる図 (#3877) の、印の付いた箱の読み上げの名前と、札の閉じるのアイコンの読み上げの名前 */
+  openNote: (name: string) => string;
+  closeNote: string;
   /** 状態遷移図の脇道の囲みの名前と添え書き (#3163)。添え書きの 2 行目は脇道へ入れる状態の数を言う (#3171) */
   side: string;
   sideNote: string;
@@ -136,6 +139,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     play: "動かす",
     next: "次の段",
     steps: (title) => `${title}の段`,
+    openNote: (name) => `${name}の説明を開く`,
+    closeNote: "説明を閉じる",
     side: "脇道",
     sideNote: "今回は通らない",
     sideFrom: (count) => `${count}つの状態から入れる`,
@@ -196,6 +201,8 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     play: "Play",
     next: "Next step",
     steps: (title) => `Steps of ${title}`,
+    openNote: (name) => `Open the note of ${name}`,
+    closeNote: "Close the note",
     side: "Side path",
     sideNote: "Not taken this time",
     sideFrom: (count) => `Enterable from ${count} ${count === 1 ? "state" : "states"}`,

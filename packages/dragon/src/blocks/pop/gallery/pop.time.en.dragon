@@ -1,0 +1,13 @@
+time Note card [note: pop]
+
+scale slot 12s 6
+row block
+zoom 0-2
+
+box proposer [note: One is picked for each slot and builds the block of that slot, example: The one picked in slot 0]
+box block
+
+step Build
+  say A box with note gets an i mark at its top right in every column. Click it and a card with the whole note and an example band opens just below.
+  proposer -> block [at: 0]
+  now -> 0

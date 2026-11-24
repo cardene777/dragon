@@ -29,6 +29,7 @@
  * ただし狭い枠に収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
 import { drawGist } from "./blocks/gist/draw";
+import { mountNoteCards, type NoteCards } from "./blocks/pop/draw";
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import type { Styles } from "./adopt-css";
@@ -178,6 +179,7 @@ const CANVAS = { keep: 64, ms: 450 } as const;
 function playerCss(): string {
   const P = LOOK.player;
   const C = LOOK.corner.cut;
+  const N = LOOK.note;
   const hidden = px(P.hidden);
   return [
     // 再生の帯の題と本文も、置いた頁の字の間と大文字を受け継がない (#3787)
@@ -248,6 +250,20 @@ function playerCss(): string {
     ".dg-player[data-pipe] .dg-ctl{flex-wrap:wrap}",
     `@container dg-bar (width >= ${px(P.wide)}){.dg-player[data-pipe] .dg-lay{grid-template-columns:minmax(0,1fr) auto auto}.dg-zm{grid-area:1/3;align-self:start}}`,
     `.dg-spot{fill:none;stroke:var(--t-amber);stroke-width:${px(LOOK.stroke.mark)};stroke-dasharray:${LOOK.mark.dash} ${LOOK.mark.gap};pointer-events:none}`,
+    // 箱の説明の札 (#3877)。札は図の枠の中の層に置き、箱の下が枠の外へはみ出しても切らない。層は押す動きを図へ通し、札だけが受ける
+    ".dg-player[data-notes] .dg-frame{position:relative;overflow:visible}",
+    ".dg-notes{position:absolute;inset:0;pointer-events:none}",
+    `.dg-nc{display:none;position:absolute;z-index:2;box-sizing:border-box;width:${px(N.card)};max-width:100%;padding:${px(N.padY)} ${px(N.padX)};border:${px(LOOK.stroke.hair)} solid var(--line);border-radius:${px(N.radius)};background:var(--surf);color:var(--ink);box-shadow:0 ${px(N.shadowY)} ${px(N.shadow)} color-mix(in srgb,var(--sh) ${N.shadowMix}%,transparent);pointer-events:auto;text-align:start;overflow:hidden}`,
+    ".dg-nc[data-open]{display:block}",
+    ".dg-nc>p{margin:0;overflow-wrap:anywhere}",
+    `.dg-nc>.dg-nc-n{${font(TYPE.noteName)};color:var(--mute);margin:0 ${px(N.close)} ${px(N.nameGap)} 0}`,
+    `.dg-nc>.dg-nc-t{${font(TYPE.noteBody)};line-height:${N.bodyLine};white-space:pre-line}`,
+    `.dg-nc>.dg-nc-e{${font(TYPE.noteExample)};line-height:${N.bodyLine};margin:${px(N.exampleGap)} -${px(N.padX)} -${px(N.padY)};padding:${px(N.exampleGap)} ${px(N.padX)};background:var(--sunk);color:var(--ink2)}`,
+    `.dg-nc-x{position:absolute;top:${px(N.padY / 2)};right:${px(N.padY / 2)};width:${px(N.close)};height:${px(N.close)};padding:0;border:0;border-radius:${px(N.close / 2)};background:none;color:var(--mute);cursor:pointer;display:grid;place-items:center}`,
+    `.dg-nc-x:hover{color:var(--ink);background:var(--sunk)}.dg-nc-x:focus-visible{outline:${px(P.focus)} solid var(--c-blue)}`,
+    `.dg-nc-x svg{width:${px(N.icon)};height:${px(N.icon)};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`,
+    // 印刷の形では全ての札を開き、図の幅と高さに対する箱の真ん中と下端の割合の所に置く。閉じるのアイコンと影は描かない
+    `@media print{.dg-player[data-notes] .dg-nc{display:block;left:clamp(0px,calc(var(--nx) - ${px(N.card / 2)}),calc(100% - ${px(N.card)}));top:calc(var(--ny) + ${px(N.gap)});box-shadow:none}.dg-player[data-notes] .dg-nc-x{display:none}}`,
   ].join("");
 }
 
@@ -858,7 +874,16 @@ export function mountDiagram(
     if (fresh) {
       // 箱の飛び先 (#3199) の link を持つ図を隠すと、Tab で押せる link が読み上げから消える。
       // その図は名前を残した group として読ませ、link の無い図は段の一覧に読ませて図を隠す (#3329)
-      if (next.querySelector("a[href]")) {
+      // 札で見せる図 (#3877) の印の付いた箱も押せる物なので、同じく group として読ませ、箱を Tab で選んで開けるようにする。
+      // 描き直すと箱の位置が替わるので、開いた札は閉じる
+      notes?.close();
+      for (const box of next.querySelectorAll("[data-note]")) {
+        const name = rendered.layout.noteCards?.find((note) => note.box === box.getAttribute("data-note"))?.name ?? "";
+        box.setAttribute("role", "button");
+        box.setAttribute("tabindex", "0");
+        box.setAttribute("aria-label", words.openNote(name));
+      }
+      if (next.querySelector("a[href],[data-note]")) {
         next.removeAttribute("aria-hidden");
         next.setAttribute("role", "group");
       } else {
@@ -917,6 +942,8 @@ export function mountDiagram(
     panTo();
     if (svg) controls?.mark(svg, step);
     calls?.show(rendered.diagram, step);
+    // 段が替わると箱の位置と中身が替わるので、開いた札を閉じる (#3877)
+    notes?.stepped(step);
     options.onStep?.(step);
   };
   const restart = (t: number, play: boolean): void => {
@@ -1012,9 +1039,13 @@ export function mountDiagram(
     show();
   };
 
+  /** 札で見せる図 (#3877) の箱の札。札の層は図の後ろに置き、頁が `svg` を探すと図を見つけるようにする */
+  let notes: NoteCards | undefined;
   controls?.arrange(mode, width);
   place(markup());
   show();
+  notes = mountNoteCards(doc, frame, row, rendered.layout, words);
+  if (notes) root.dataset.notes = "";
   if (controls) frame.append(controls.layer);
 
   const timer = win?.setInterval(() => {
@@ -1058,6 +1089,20 @@ export function mountDiagram(
       controls?.pick(chip.getAttribute("data-chip") ?? "", step);
       return;
     }
+    // 札で見せる図 (#3877)。閉じるのアイコンで閉じ、札の中を押しても段を移らず、印の付いた箱を押すとその箱の札を開く
+    if (notes) {
+      const target = event.target as Element | null;
+      if (target?.closest?.('[data-dragon="note-close"]')) {
+        notes.close();
+        return;
+      }
+      if (target?.closest?.('[data-dragon="note-card"]')) return;
+      const noted = target?.closest?.("[data-note]");
+      if (noted) {
+        notes.open(noted.getAttribute("data-note") ?? "", noted, step);
+        return;
+      }
+    }
     const fold = (event.target as Element | null)?.closest?.("[data-pipe-fold]");
     if (fold) {
       unfold(Number(fold.getAttribute("data-pipe-fold")));
@@ -1078,6 +1123,20 @@ export function mountDiagram(
   progress.addEventListener("click", onProgress);
   frame.addEventListener("click", onFigure);
   frame.addEventListener("scroll", onPan);
+  // 札で見せる図 (#3877) は、Tab で選んだ印の付いた箱を Enter か空白で開き、Escape で閉じる
+  const onNoteKey = (event: KeyboardEvent): void => {
+    if (!notes) return;
+    if (event.key === "Escape") {
+      notes.close();
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const noted = (event.target as Element | null)?.closest?.("[data-note]");
+    if (!noted) return;
+    event.preventDefault();
+    notes.open(noted.getAttribute("data-note") ?? "", noted, step);
+  };
+  frame.addEventListener("keydown", onNoteKey);
   // 配管の図の拡大と縮小と引いて送る動き (#3418) は、配管の図の塊の受け手が受ける。最初に読む量に入れないため (#3720)。
   // キャンバス式の窓 (Tracelyth #197) の中の図の位置は再生の部品が持ち、受け手には窓か否かと、位置を読む口と動かす口を渡す
   const zoomCalls = {
@@ -1178,6 +1237,8 @@ export function mountDiagram(
       progress.removeEventListener("click", onProgress);
       frame.removeEventListener("click", onFigure);
       frame.removeEventListener("scroll", onPan);
+      frame.removeEventListener("keydown", onNoteKey);
+      notes?.destroy();
       unbindZoom?.();
       root.remove();
     },

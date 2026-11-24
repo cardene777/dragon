@@ -1,0 +1,9 @@
+git 押すと出る札 [note: pop]
+
+branch main
+
+box 作業ツリー [note: 手元で書き換えて、まだ commit していない file の置き場, example: 2 つの file を書き換えた]
+
+step 積む
+  say note を持つ箱は右上に i の印を持つ。押すと箱のすぐ下に札が出て、note の全文と例の帯を読める。
+  commit A on main

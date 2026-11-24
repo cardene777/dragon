@@ -1,0 +1,8 @@
+sequence Note card [note: pop]
+
+box shop as Shop [note: Takes the order and checks the stock before it asks the warehouse to ship, example: Three orders on one day go to the warehouse together]
+box store as Warehouse [note: Keeps the goods and ships them]
+
+step Ask
+  say A box with note gets an i mark at its top right. Click it and a card with the whole note and an example band opens just below.
+  shop -> store: ship

@@ -1,0 +1,8 @@
+architecture 押すと出る札 [note: pop]
+
+box アプリ [note: 注文の画面を出し、受けた注文を API に送る, example: 3 個の注文を 1 回で送る]
+box API [note: 注文を確かめて記録に書く]
+
+step 送る
+  say note を持つ箱は右上に i の印を持つ。押すと箱のすぐ下に札が出て、note の全文と例の帯を読める。
+  アプリ -> API: 注文

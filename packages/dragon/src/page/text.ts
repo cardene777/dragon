@@ -23,6 +23,8 @@ export interface PageWords {
 export interface PageMessages {
   /** 頭の `---` の間の `layout` の値が知らない値 */
   badLayout: (value: string, allowed: string) => string;
+  /** 頭の `note` の値が `pop` でも `under` でもない (#3877) */
+  badNote: (value: string, allowed: string) => string;
   /** 頭の `header-buttons` に帯に無いボタンの名前を書いた (#3789) */
   badHeaderButton: (name: string, allowed: string) => string;
   /** 頭の `header-buttons` に同じボタンを 2 度書いた */
@@ -73,6 +75,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
 export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
   ja: {
     badLayout: (value, allowed) => `layout の値 ${value} は使えない (${allowed} から選ぶ)`,
+    badNote: (value, allowed) => `note の値 ${value} は使えない (${allowed} から選ぶ。pop は頁の全ての図の箱の説明を押すと出る札で見せる)`,
     badHeaderButton: (name, allowed) => `header-buttonsの${name}は帯に無いボタン。${allowed}から選ぶ`,
     repeatedHeaderButton: (name) => `header-buttonsに${name}を2度書いた`,
     badHeaderColor: (key, value) => `${key}の値「${value}」は色として使えない。空にせず、「;」「<」「>」「{」「}」「"」「\\」を書かない`,
@@ -90,6 +93,7 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
   },
   en: {
     badLayout: (value, allowed) => `layout ${value} is not available (choose from ${allowed})`,
+    badNote: (value, allowed) => `note ${value} is not available (choose from ${allowed}; pop shows the box notes of every diagram on the page on cards that open on a click)`,
     badHeaderButton: (name, allowed) => `header-buttons: ${name} is not a bar button (choose from ${allowed})`,
     repeatedHeaderButton: (name) => `header-buttons lists ${name} twice`,
     badHeaderColor: (key, value) => `${key}: "${value}" is not usable as a color. Do not leave it empty or write ; < > { } " \\`,

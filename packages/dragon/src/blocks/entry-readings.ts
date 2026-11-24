@@ -12,6 +12,7 @@ import { reading as lifelineReading } from "./lifeline/read";
 import { reading as linkReading } from "./link/read";
 import { reading as noteReading } from "./note/read";
 import { reading as opReading } from "./op/read";
+import { reading as popReading } from "./pop/read";
 import { reading as sourceReading } from "./source/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
@@ -30,6 +31,7 @@ export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "link": linkReading,
   "note": noteReading,
   "op": opReading,
+  "pop": popReading,
   "source": sourceReading,
   "step": stepReading,
   "strip": stripReading,

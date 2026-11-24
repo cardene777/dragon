@@ -1,0 +1,9 @@
+tree Note card [note: pop]
+
+box ledger as Ledger [note: Joins the leaf hashes two at a time and keeps only the last root hash, example: Kept root 7a21]
+
+step Join
+  say A box with note gets an i mark at its top right. Click it and a card with the whole note and an example band opens just below.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  node root of tx1, tx2 [hash: 7a21]

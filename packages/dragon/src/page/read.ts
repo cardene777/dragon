@@ -6,10 +6,12 @@
  * 囲み (```` ``` ````) の中の `#` は見出しに数えない。
  * 頭の `---` の間には `title` (頁の題) と `layout` (頁の組み立て) を書ける。
  * 帯のボタンの並び (`header-buttons`、名前を `,` で区切る) と帯の色 (`header-<色の欄>`) も 1 行ずつ書け、頁の帯の設定の塊になる (#3789)。
+ * `note: pop` は 1 行目に `note` を書かない頁の全ての図を、箱の説明を押すと出る札で見せ、`pop` と `under` の外の値は行の番号つきで断る (#3877)。
  * 知らないボタンの名前と、2 度書いたボタンと、`;` `<` `>` `{` `}` `"` `\` を含む色の値と、知らない `header-` の行は、行の番号つきで断る。ほかの行は読まない。
  *
  * 場所の名前は見出しの字から作る。項目は頁の中で、タブは同じ所に並ぶタブの中で重ならないよう分ける。
  */
+import { NOTE_MODES } from "../blocks/pop/block";
 import { BUILTIN_BUTTONS, HEADER_COLOR_KEYS } from "../frame/names";
 import { fenceCloses, fenceOpen, headingOf, type Line } from "./markdown";
 import { slugger } from "./slug";
@@ -62,6 +64,8 @@ export interface Outline {
   /** 頁の題。`#` の見出しか、頭の `title` */
   title: string | undefined;
   layout: Layout;
+  /** 頭に `note: pop` を書いた時だけ持つ。1 行目に `note` を書かない頁の全ての図を、箱の説明を押すと出る札で見せる (#3877) */
+  note?: "pop";
   /** 頭に `header-` の行を書いた時だけ持つ */
   header?: PageHeader;
   entry: Part;
@@ -129,6 +133,10 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
     else errors.push({ line: layoutLine.line, message: m.badLayout(layoutLine.text, LAYOUTS.join(" / ")) });
   }
   const header = readHeader(head.values, m, errors);
+  // 頁の全ての図の箱の説明の見せ方 (#3877)。under は書かない頁と同じで、ほかの値は行を名指して断る
+  const noteLine = head.values.get("note");
+  if (noteLine && !(NOTE_MODES as readonly string[]).includes(noteLine.text)) errors.push({ line: noteLine.line, message: m.badNote(noteLine.text, NOTE_MODES.join(" / ")) });
+  const note = noteLine?.text === "pop" ? "pop" : undefined;
   let title = head.values.get("title")?.text || undefined;
   let titled = false;
   const entry: Part = { lead: [], tabs: [] };
@@ -203,7 +211,7 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
     }
   }
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, outline: { title, layout, ...(header ? { header } : {}), entry, groups } };
+  return { ok: true, outline: { title, layout, ...(note ? { note } : {}), ...(header ? { header } : {}), entry, groups } };
 }
 
 /** 頁の中の場所の名前の並び (`項目/タブ/中のタブ`) が、頁に在る場所か */
