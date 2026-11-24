@@ -2,9 +2,18 @@
 
 > 動く図を、人も AI も書きやすい記法で書く。
 
-[![license MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
 [English](README.md)
+
+<p>
+<a href="CHANGELOG.md"><img src="docs/readme/badges/npm.svg" alt="npm version"></a>
+<a href="LICENSE"><img src="docs/readme/badges/license.svg" alt="license MIT"></a>
+<a href="https://cardene777.github.io/dragon/"><img src="docs/readme/badges/catalog.svg" alt="catalog"></a>
+</p>
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.png">
+<img src="docs/readme/hero.png" alt="写真を届ける構成図を最後の段で止め、下に再生の帯を出した絵">
+</picture>
 
 dragon は、短い文の file から段ごとに動く図を描く。
 箱と、箱をつなぐ線と、線の上を運ばれる物を描き、段を送るごとに話が進む。
@@ -12,6 +21,16 @@ dragon は、短い文の file から段ごとに動く図を描く。
 同じ原本を頁に置いて動かし、mp4、GIF、HTML、PNG にも書き出せる。
 
 見本帳 (全ての種類の図と、書くとその場で動く編集画面) は <https://cardene777.github.io/dragon/> にある。
+
+## mermaidとの違い
+
+| | mermaid | dragon |
+|---|---|---|
+| 出来上がる物 | 止まった1枚の絵 | 段ごとに動く図。線が光り、札が運ばれ、値が変わる |
+| 見た目 | 図ごとに選ぶテーマ | 全ての種類が読む、色と字の大きさと余白の1つの表 |
+| 書き出し | mermaid-cliでSVG、PNG、PDF | `dragon export`でMP4、GIF、HTML、PNG |
+| AIで書く時 | 描く時に出る読めない所の誤り | `dragon check`が誤りの行と列を示し、skillがAIに記法を教える |
+| GitHubでの見え方 | `mermaid`の塊をその場で描く | 書き出した絵で見せる。scriptの1行で、どの頁でも動かせる |
 
 ## 考え方
 
@@ -91,6 +110,44 @@ step ログインを押す
 自分の頁に出す時は、頁に script の 1 行と、記法を書いた `<pre class="dragon">` の塊を置くと、塊が動く図になる ([script の 1 行で頁に出す](packages/dragon/README.ja.md#script-の-1-行で頁に出す))。
 package を import して描く時は、`parseNotation` で読んだ結果を `mountDiagram` に渡す ([頁に置く](packages/dragon/README.ja.md#頁に置く))。
 
+## 描ける図
+
+どの絵も、[`packages/dragon/examples`](packages/dragon/examples)の見本を最後の段で止めた物。
+種類を押すと、その種類の書き方を読める。
+
+<table>
+<tr>
+<td align="center" width="33%"><a href="packages/dragon/examples/quick-start.md#時系列図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/sequence-dark.png"><img src="docs/readme/kinds/sequence.png" alt="時系列図" width="260"></picture><br>時系列図</a></td>
+<td align="center" width="33%"><a href="packages/dragon/examples/quick-start.md#構成図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/architecture-dark.png"><img src="docs/readme/kinds/architecture.png" alt="構成図" width="260"></picture><br>構成図</a></td>
+<td align="center" width="33%"><a href="packages/dragon/examples/quick-start.md#状態遷移図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/state-dark.png"><img src="docs/readme/kinds/state.png" alt="状態遷移図" width="260"></picture><br>状態遷移図</a></td>
+</tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#枝分かれの図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/git-dark.png"><img src="docs/readme/kinds/git.png" alt="枝分かれの図" width="260"></picture><br>枝分かれの図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#時間軸の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/time-dark.png"><img src="docs/readme/kinds/time.png" alt="時間軸の図" width="260"></picture><br>時間軸の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#木の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/tree-dark.png"><img src="docs/readme/kinds/tree.png" alt="木の図" width="260"></picture><br>木の図</a></td>
+</tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#列の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/lineup-dark.png"><img src="docs/readme/kinds/lineup.png" alt="列の図" width="260"></picture><br>列の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#試す図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/try-dark.png"><img src="docs/readme/kinds/try.png" alt="試す図" width="260"></picture><br>試す図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#配管の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/pipe-dark.png"><img src="docs/readme/kinds/pipe.png" alt="配管の図" width="260"></picture><br>配管の図</a></td>
+</tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#量の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/chart-dark.png"><img src="docs/readme/kinds/chart.png" alt="量の図" width="260"></picture><br>量の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#手順の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/flow-dark.png"><img src="docs/readme/kinds/flow.png" alt="手順の図" width="260"></picture><br>手順の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#回り続ける図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/cycle-dark.png"><img src="docs/readme/kinds/cycle.png" alt="回り続ける図" width="260"></picture><br>回り続ける図</a></td>
+</tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#考えを広げる地図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/mind-dark.png"><img src="docs/readme/kinds/mind.png" alt="考えを広げる地図" width="260"></picture><br>考えを広げる地図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#表どうしの関係の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/er-dark.png"><img src="docs/readme/kinds/er.png" alt="表どうしの関係の図" width="260"></picture><br>表どうしの関係の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#2つの軸で置く図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/matrix-dark.png"><img src="docs/readme/kinds/matrix.png" alt="2つの軸で置く図" width="260"></picture><br>2つの軸で置く図</a></td>
+</tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#集合の重なりの図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/venn-dark.png"><img src="docs/readme/kinds/venn.png" alt="集合の重なりの図" width="260"></picture><br>集合の重なりの図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#量の行き先の図"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/sankey-dark.png"><img src="docs/readme/kinds/sankey.png" alt="量の行き先の図" width="260"></picture><br>量の行き先の図</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.md#購入操作図">購入操作図</a><br>読む人が条件を変えられる購入の模型</td>
+</tr>
+</table>
+
 ## できること
 
 | 項目 | 形 |
@@ -111,103 +168,15 @@ package を import して描く時は、`parseNotation` で読んだ結果を `m
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-| 行の頭 | 書く物 |
-|---|---|
-| `sequence` `architecture` `state` `git` `time` `tree` `pipe` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` | 図の種類と題。時系列図と構成図と状態遷移図は題を省ける。見せ方は属性の `view` |
-| `group` … `end` | 区画。間に書いた `box` の行の箱を区画の中に置く |
-| `box` | 箱。`as` の後が見せる名前。飛び先は属性の `link` で、描いた図で箱が link になる |
-| `box` (回り続ける図) | 輪の上の手順。書いた順に真上から右回りに並び、2 つから 8 つまで書ける |
-| `choice` 名札 `as` 問い | 手順の図の判断。問いを中に書いたひし形になり、長い問いは 2 行に折る。出る線の名前が答えになる。出る道は 2 つまで |
-| `strip` | 中身の帯と、その欄。時間軸の図では欄に属性の `meter` を付けると物差しになる |
-| `branch` | 枝分かれの図の枝。上から順に帯を並べる |
-| `scale` 単位 長さ 数 | 時間軸の図の目盛り。長さは数と単位の組 (`12s` など) で書き、その数の目盛りを軸に等間隔で並べる |
-| `period` 名前 目盛りの数 | 時間軸の図の区切り。境ごとに名前と番号を置く |
-| `row` | 時間軸の図の印の列。目盛りごとに印が並び、属性の `empty` に書いた目盛りは空きの印になる |
-| `task` 名札 `as` 名前 範囲 | 時間軸の図の作業。範囲の目盛りの上に続いた太い棒を引き、棒の中に `1〜3日` のように期間を出して、針が通った分を濃く塗る。作業を持つ図は `row` を書かなくてよい |
-| `point` 名札 `at` 目盛り | 時間軸の図で軸の下に置く節目。状態は `note` で書き換える |
-| `zoom` 範囲 | 時間軸の図で上の帯に拡大する目盛り。宣言した箱が列ごとに並び、線は属性の `at` と `into` で列を選ぶ |
-| `step` | 段。次の `step` まで続く |
-| `say` | 段の本文。長い時は次の行から字下げして続ける |
-| `code` | 段で打つ命令 |
-| `source` | 段の出典。名前の後ろの属性 `url` に在り処を書き、読み上げの段の一覧に名前の link で出る |
-| `commit` 名札 `on` 枝 | 枝分かれの図で枝に積む commit。`copy` で当て直しの commit、`merge` で merge commit になり、`hash` と `note` は属性 |
-| 枝 `from` commit | 枝分かれの図で、その commit から枝を切る |
-| `mark` 列 範囲 | 時間軸の図で、その列の範囲の印の色を属性の `color` に変える |
-| `span` 範囲: 字 | 時間軸の図で、軸の下に範囲の括弧を出す。属性の `shape: box` で印の列を囲む枠になる |
-| `leaf` 名札 | 木の図の葉。段の中に書き、書いた順に左から並ぶ。値は属性の `hash` で、値を書くと名札は葉の下の札に出る |
-| `node` 名札 `of` 子, 子 | 木の図の親。段の中に書き、子の真ん中の上に置かれる。値は属性の `hash` で、どの親にも組まれなかった箱が根になる |
-| `idea` 名札 `as` 名前 `of` 親 | 考えを広げる地図の考え。段の中に書き、`of` の無い考えが真ん中の題になる。枝は書いた順に左上から右回りに伸び (4 つなら左上、右上、右下、左下)、葉は枝の外側に縦に並ぶ。考えは題、枝、葉の 3 段まで書け、枝の色 (属性の `color`) は線と葉に引き継ぐ |
-| 名札 `->` 名札 | 線。運ぶ物 (`carry`、`tag`) と名前を置く側 (`side`) は属性 |
-| 名札 `->` 名札 `[tag: 字]` (回り続ける図) | 輪の次の手順への線。札がその段で弧に沿って走り、走った弧は光ったまま残る。最後の手順から最初の手順への線で次の回に入り、1 つ飛ばす線と逆回りの線と名前を持つ線は誤りで止まる。中身の帯 (`strip`) は輪の真ん中に出る |
-| `table` 名札 `as` 名前 (表どうしの関係の図) | 表。最初の `step` より前に書き、書いた順に左から右へ横 1 列に並ぶ。1 つから 6 つまで書ける |
-| `field` 名前: 値 `[ref: 表.項目]` (表どうしの関係の図) | 上の `table` の行の表の項目。`key` は鍵の印 (PK) で、`ref` は別の表の項目への結び (FK) になる。結びを書いた項目が何件もの側、指した項目が 1 件の側になる |
-| `pick` 表.項目、表.項目 `->` 表.項目 (表どうしの関係の図) | 段の中で行と表を光らせる行と、結んだ項目どうしの線に沿って値の札を走らせる行。結んでいない項目どうしの線は誤りで止まる。`set` 表.項目: 値 は項目の値を、`note` 表.項目: 文 は表の下の式の札を、その段から出す |
-| `axis` 名前 `[from: 小さい側, to: 大きい側]` (2つの軸で置く図) | 軸。最初の `step` より前に横の軸、縦の軸の順にちょうど 2 行書く。横の軸は区画の下、縦の軸は区画の左に矢印で引き、軸の名前と両端の字を出す |
-| `box` 名札 `as` 名前 (2つの軸で置く図) | 区画。ちょうど 4 つ書き、書いた順に左上、右上、左下、右下に並ぶ |
-| `item` 名札 `as` 名前 (2つの軸で置く図) | 分ける課題。最初の `step` より前に書き、区画の左の置く前の一覧に書いた順に並ぶ |
-| `line` 区画: 課題, 課題 (2つの軸で置く図) | 段の中で課題を区画へ置く。札が一覧から区画へ滑り、区画が光る。置いた札は後の段で別の区画へ置き直すまで残り、無い区画と課題は誤りで止まる |
-| `item` 名札 `as` 名前 (集合の重なりの図) | 集まり。最初の `step` より前に書き、2 つか 3 つ書ける |
-| `set` 名札: 数、`set` 名札 `&` 名札: 数 (集合の重なりの図) | 段の中で、集まりの全体の数と、重なりの数を書く行。集まりの円は初めて数を書いた段で現れ、重なりの区画はその段で光る。区画の中には全体と重なりから出したそれぞれだけの数が出る。重なりの数が重なる集まりの数より大きい図は誤りで止まる。`set none: 数` はどれにも入らない数を円の外の枠に出す |
-| `venn` 題 `[shape: dots]` | 集合の重なりの図を点で数える見た目にする。集まりと重なりの群れへ点が寄り、2つ以上に入る点は入る集まりの色の扇形で塗る |
-| `box` (量の行き先の図) | 出どころと行き先。最初の `step` より前に書き、入る線の無い箱が左の列に、行き先は出どころの右の列に並ぶ |
-| 名札 `->` 名札: 量 (量の行き先の図) | 段の中で、出どころの棒から行き先の棒へ量に比べた幅の帯を伸ばし、量の札を帯に渡らせる線。線の名前の初めの数が量で、`40%` は 40、`1,200円` は 1200 と読む。数で始まらない名前、流れを辿ると元の箱へ戻る線、入る量より出る量の和が大きい箱は誤りで止まる |
-| `start` `->` 名札、名札 `->` `finish` | 状態遷移図と手順の図の始まりの印から出る線と、終わりの印へ入る線。最初の `step` より前に書いた線は今回は通らない道で、点線で残る。手順の図は段で動く線を青く引いて点を走らせ、運ぶ物を書かない線では封筒の代わりにこの点が走る |
-| 枝か `HEAD` `->` commit | 枝分かれの図で、commit を作らずに枝の札か HEAD を動かす |
-| `now ->` 目盛り | 時間軸の図で、針をその目盛りまで進める。過ぎた目盛りの印がその時に出る |
-| `box` トークン `as` 名前 `[note: 字]` | 配管の図のトークンの箱の名前の下に出す字。書かない箱は`balanceOf`を描く。`hold`の行で量の単位に名前を書いた箱にだけ書け、人の箱と契約の箱に書くと誤りで止まる |
-| `hold` 持ち主: 量 トークン, ... | 配管の図で最初の `step` より前に書く残高。`hold` Contract: 名前 値 は残高でない値 |
-| 呼ぶ者 `->` 呼ばれる者 | 配管の図の呼び出し。ETH を添える `value`、呼び出しの種類の `call` (`delegate` か `static`)、内側の段を 1 つの箱に畳む `fold` は属性 |
-| `move` トークン: 量 送り手 `->` 受け手 | 配管の図で、トークンの管を通して残高を移す |
-| `write` 者: 名前 値 | 配管の図で、値の札を書き替える |
-| `check` 者: 左 比べ方 右 | 配管の図の確認。両側が数なら dragon が比べ、数でない確認は属性の `fail` を書いた時だけ落ちる |
-| `return` 者: 値 | 配管の図で、いちばん内側で開いている呼び出しを閉じる。一番外の呼び出しが戻った段で、暫定の変更が全て確定する |
-| `revert` 者: 理由 | 配管の図で、いちばん内側の呼び出しを落とし、その内側の変更を元へ戻す |
-| `emit` 者: 名前(引数, ...) | 配管の図のイベント |
-| `calc` 者: 入る値 `->` 出る値 | 配管の図の換算 |
-| `chart` 題 `[shape: donut]` | 量の図。項目ごとの割合をドーナツの弧の角度で描き、凡例に整数に丸めた割合を出す。`[shape: bar]` は量を横棒の長さで描き、棒の端に値を出す。`[shape: funnel]` は段ごとに減る漏斗で、前の段との差を薄い棒で残して去った数を書き、最後の段で最後まで残った割合を出す。`[shape: dots]` は件数を点の数で数え、項目に件数を書いた段でその分の点が全体の箱から群れへ寄る。1点の件数は点が100個ほどになる数を図が選び、`[shape: dots, unit: <数>]` で決められる。`[shape: line]` は時間につれた量の変わりを折れ線で描き、段の1つを時間の軸の点の1つにして、段を送ると線が前の段の点から新しい段の点へ伸びる |
-| `item` 名札 `as` 名前 | 量の図で最初の `step` より前に書く比べる項目。色は属性の `color` で、項目は 8 個まで |
-| `set` 名札: 値 | 量の図の段の中で書く項目の値。0 以上の数を単位を付けずに書き、`set` を書かない項目は前の段の値を保つ |
-| `set none`: 値 | 量の図でどの項目にも入らない数。ドーナツと横棒は項目の後ろに灰色の弧か棒で描き、点で数える見た目は灰色のまま箱に残す。漏斗は断る |
-| `lineup` 題 `[shape: layers]` | 列の図の層の見た目。箱を書いた順に上から横の帯として重ね、帯の左に層の名前と `note` の説明と番号を出す。段の中の `line` 層: チップ がチップの居る層を、`note` 層: 字 がその層の印を書く。層は8つまで書け、層の間に矢印は描かない |
-| `act` | 箱の中で行う処理 |
-| `note` | 箱の下の小さな字を、その段から書き換える |
-| `set` | 帯の欄の値と札 |
-| `//` | 注釈。図には出ない |
-
-```dragon
-sequence 注文の状態を追う
-
-box 客 [note: 注文する人, color: slate, icon: user]
-box 店 as 店のアプリ [note: 注文を受ける, color: blue, icon: app]
-
-strip 注文: 番号, 状態
-
-step 注文する
-  say 客が注文を送り、店のアプリが番号を振る。
-  客 -> 店: 注文する
-  set 番号: 42
-  set 状態: 受付
-
-step 送る
-  say 店のアプリが品物を送り、注文を送った状態にする。
-  店 -> 客: 品物を送る [carry: none]
-  set 状態 [tag: 送った]
-```
-
-時系列図と構成図と状態遷移図は、箱の宣言と段も省ける (最初の図の 1 つ目の例)。
-`box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
-`step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
-
-書き方の全部は [`packages/dragon/examples/quick-start.md`](packages/dragon/examples/quick-start.md) (英語は [`quick-start.en.md`](packages/dragon/examples/quick-start.en.md)) にある。
-前の形の記法 (`時系列図` か `構成図` で始まる形) は読めない。
-書き直す時は、[`CHANGELOG.ja.md`](CHANGELOG.ja.md) と見本帳の使い方の頁にある前の形と新しい形の対応表を使う。
+全ての行の形と、図の種類ごとの書き方は[書き方の手引き](packages/dragon/examples/quick-start.md)にある。
+種類ごとの見本の全文は[`packages/dragon/examples`](packages/dragon/examples)にある。
 
 ## 詳しい書き方
 
 | 読む物 | 何が書いてあるか |
 |---|---|
-| [`packages/dragon/README.ja.md`](packages/dragon/README.ja.md) | 頁に置く書き方、図の種類の部品を後から読む書き方、図の種類ごとの記法、書き出し |
-| [書き方の手引き](packages/dragon/examples/quick-start.md) | 全ての行の形と属性 |
+| [`packages/dragon/README.ja.md`](packages/dragon/README.ja.md) | 頁に置く書き方、他のツールへの組み込み、図の種類の部品を後から読む書き方、ブロックを足す書き方、書き出し |
+| [書き方の手引き](packages/dragon/examples/quick-start.md) | 全ての行の形と属性と、図の種類ごとの書き方 |
 | [`CHANGELOG.ja.md`](CHANGELOG.ja.md) | 版ごとの変更と、前の形の記法を書き直す対応表 |
 
 ## 手伝う
