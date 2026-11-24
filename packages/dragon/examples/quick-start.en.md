@@ -1015,7 +1015,7 @@ Start with `architecture <title>` to draw an architecture diagram. Boxes are the
 
 ### State diagram
 
-Starting with `state` makes a state diagram that follows one thing moving between states step by step. Each box is a state, and each line is a move from one state to another.
+Start with `state <title>` to draw a state diagram, which follows one thing moving between states step by step. Each box is a state, and each line is a move from one state to another.
 Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark.
 Lines written before the first `step` are paths the diagram could take but does not this time, drawn dotted.
 
@@ -1046,9 +1046,9 @@ step Arrive
 
 ### Git graph
 
-Starting with `git` makes a git graph that follows commits stacking on branches until they are merged, step by step. Declare branches on `branch` lines from the top, and each branch gets its own band.
+Start with `git <title>` to draw a git graph, which follows commits stacking on branches until they are merged, step by step. Declare branches from the top on `branch <branch>` lines, and each branch gets its own band.
 Inside a step, `commit <id> on <branch>` adds a commit to the tip of the branch, `copy <source>` makes a replayed commit, and `merge <branch>` makes a merge commit. `hash` and `note` put a hash and a short note beside the circle.
-`<branch> from <commit>` cuts a branch, and `<ref> -> <commit>` moves a branch ref or `HEAD` without making a commit. A commit that no ref can reach any more turns into a dotted circle.
+`<branch> from <commit>` cuts a branch at the commit after `from`, and `HEAD` moves to that branch. `<branch> -> <commit>` or `HEAD -> <commit>` moves a branch ref or `HEAD` without making a commit. A commit that no ref can reach any more turns into a dotted circle.
 `delete <branch>` deletes a branch: its ref leaves the diagram from that step on, and its band stays. The branch `HEAD` points at cannot be deleted, so move `HEAD` to another branch first.
 
 ```dragon
@@ -1083,8 +1083,8 @@ step Fast-forward
 
 ### Time diagram
 
-Starting with `time` makes a time diagram that follows, step by step, which tick each event happens on along evenly spaced time. `scale <unit> <length> <count>` declares the ticks, `period` the periods, `row` a row of marks, `point` a point below the axis, and `zoom <range>` the ticks to zoom in on in the top band.
-Inside a step, `now -> <tick>` moves the needle. The needle moves one tick at a fixed speed, and the marks of the ticks it passes appear as it goes. `mark` changes the color of marks, and `span` puts a bracket under the axis or a frame around the rows.
+Start with `time <title>` to draw a time diagram, which follows, step by step, which tick each event happens on along evenly spaced time. `scale <unit> <length> <count>` declares the ticks, `period <name> <ticks>` the periods, `row <id>` a row of marks, `point <id> at <tick>` a point below the axis, and `zoom <range>` the ticks to zoom in on in the top band.
+Inside a step, `now -> <tick>` moves the needle. The needle moves one tick at a fixed speed, and the marks of the ticks it passes appear as it goes. `mark <row> <range>` changes the color of marks, and `span <range>: <text>` puts a bracket under the axis or a frame around the rows.
 `[meter: <ratio>]` on a strip field makes a meter that fills with the needle up to the ratio written with `set`.
 
 ```dragon
@@ -1156,7 +1156,7 @@ step Build and test
 
 ### Tree diagram
 
-Starting with `tree` makes a tree diagram that follows, step by step, how leaf values fold up into their parents until one root remains. Inside a step, `leaf <id> [hash: <value>]` writes a leaf and `node <id> of <child>, <child> [hash: <value>]` writes a parent, and each box appears in the step that writes it.
+Start with `tree <title>` to draw a tree diagram, which follows, step by step, how leaf values fold up into their parents until one root remains. Inside a step, `leaf <id> [hash: <value>]` writes a leaf and `node <id> of <child>, <child> [hash: <value>]` writes a parent, and each box appears in the step that writes it.
 Leaves line up from the left in written order, a parent sits above the middle of its children, and the box that no parent takes becomes the root.
 A carrier on a line between a parent and a child runs along the tree line, and the tree line keeps that color once passed. From the step a carrier first runs on a tree line, only the boxes that send or receive carriers are drawn strongly.
 
