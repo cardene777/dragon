@@ -6,7 +6,6 @@ import { reading as carryReading } from "./carry/read";
 import { reading as colorReading } from "./color/read";
 import { reading as edgeReading } from "./edge/read";
 import { reading as edgeLabelReading } from "./edge-label/read";
-import { reading as gaugeReading } from "./gauge/read";
 import { reading as groupReading } from "./group/read";
 import { reading as iconReading } from "./icon/read";
 import { reading as lifelineReading } from "./lifeline/read";
@@ -26,7 +25,6 @@ export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "color": colorReading,
   "edge": edgeReading,
   "edge-label": edgeLabelReading,
-  "gauge": gaugeReading,
   "group": groupReading,
   "icon": iconReading,
   "lifeline": lifelineReading,

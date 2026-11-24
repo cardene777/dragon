@@ -23,7 +23,6 @@ import type { Box, ChartItem, DiagramModel, DiagramEvent, GitBranch, LineupItem,
 import type { PipeRun } from "../pipe-run";
 import type { FlowChoice, FlowLine } from "./choice/block";
 import type { ErTable } from "./table/block";
-import type { GaugeDraft } from "./gauge/block";
 import type { MatrixAxis, MatrixShape } from "./axis/block";
 import type { MatrixItem } from "./matrix-item/block";
 import type { VennSet } from "./circle/block";
@@ -79,8 +78,6 @@ export interface FigureDraft {
   strip?: { title: string; fields: string[] };
   /** 時間軸の図の物差しの欄。中身の帯のブロックが `strip` の行の欄の `[meter: <割合>]` で組む */
   meters: StripMeter[];
-  /** 量の目盛り (#3880)。目盛りのブロックが `gauge` の行で足し、全ての宣言を読んでから `on` の箱と中身の帯の欄との重なりを確かめる */
-  gauge?: GaugeDraft[];
   /** 状態遷移図の、最初の段より前に書いた移れる道。parser が段より前の線を見分けて、脇道のブロックの `readPath` で読む (#3347) */
   paths: StatePath[];
   /** 枝分かれの図の枝。枝のブロックが `branch` の行で足す (#3347) */

@@ -23,7 +23,6 @@ import { desc as edgeDesc } from "../../../../packages/dragon/src/blocks/edge/ga
 import { desc as edgeLabelDesc } from "../../../../packages/dragon/src/blocks/edge-label/gallery/desc";
 import { desc as emitDesc } from "../../../../packages/dragon/src/blocks/emit/gallery/desc";
 import { desc as foldDesc } from "../../../../packages/dragon/src/blocks/fold/gallery/desc";
-import { desc as gaugeDesc } from "../../../../packages/dragon/src/blocks/gauge/gallery/desc";
 import { desc as gistDesc } from "../../../../packages/dragon/src/blocks/gist/gallery/desc";
 import { desc as groupDesc } from "../../../../packages/dragon/src/blocks/group/gallery/desc";
 import { desc as holdDesc } from "../../../../packages/dragon/src/blocks/hold/gallery/desc";
@@ -95,7 +94,6 @@ export const BLOCK_DESC = {
   "edge-label": edgeLabelDesc,
   "emit": emitDesc,
   "fold": foldDesc,
-  "gauge": gaugeDesc,
   "gist": gistDesc,
   "group": groupDesc,
   "hold": holdDesc,

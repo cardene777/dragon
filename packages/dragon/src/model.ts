@@ -36,7 +36,6 @@ export const HOMES = [
   ["hold", "pipe.holds"],
   ["table", "er.tables"],
   ["circle", "venn.sets"],
-  ["gauge", "gauge"],
 ] as const satisfies readonly (readonly [keyof DiagramBlocks, string])[];
 
 type Obj = Record<string, unknown>;
@@ -76,7 +75,6 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     if (!blank(model.flow?.choices)) blocks.choice = model.flow?.choices;
     if (model.strip !== undefined) blocks.strip = model.strip;
     if (!blank(model.flow?.paths)) blocks.path = model.flow?.paths;
-    if (!blank(model.gauge)) blocks.gauge = model.gauge;
   } else {
     for (const [field, home] of HOMES) {
       const [section, inner] = home.split(".");
@@ -148,7 +146,6 @@ export function toModel(diagram: Diagram): DiagramModel {
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
       boxes,
       ...(b.strip !== undefined ? { strip: b.strip } : {}),
-      ...(b.gauge !== undefined ? { gauge: b.gauge } : {}),
       steps: diagram.steps,
       flow: { choices: b.choice ?? [], paths: b.path ?? [] },
     };
@@ -165,8 +162,6 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.group !== undefined ? { regions: b.group } : {}),
     boxes,
     ...(b.strip !== undefined ? { strip: b.strip } : {}),
-    // 量の目盛り (#3880) は版1に無かった欄なので、版2の原本の `gauge` をそのまま持つ
-    ...(b.gauge !== undefined ? { gauge: b.gauge } : {}),
     steps: diagram.steps,
     // 時系列図の生存線は箱の並びから組み、見た目 (#3720) は原本の根の `sequence` の欄から移す
     ...(diagram.kind === "sequence" ? { sequence: { ...lifelinesOf(boxes), ...diagram.sequence } } : {}),
