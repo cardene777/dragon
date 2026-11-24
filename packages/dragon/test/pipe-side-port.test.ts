@@ -292,3 +292,92 @@ describe("網型で槽と槽を繋ぐ管の口", () => {
     );
   });
 });
+
+/*
+ * トークンの箱が無い図の人の上の空き (#3860)。
+ * 見本帳のETHの送金の図はAliceとVaultだけでトークンの箱を持たない。上、帳簿、下の型と`auto`で描いても、
+ * 型の行が無い図 (人の丸が図の上の縁から48px) と同じく、図の上の縁から一番上に描く部品までを48px以下にする。
+ * 一番上に描く部品は、置き場所が持つ全ての段の部品 (呼び出しの間だけ出る札も入る) のうち、上端が最も上の物とする
+ */
+interface Line {
+  points?: Point[];
+}
+interface Card extends Rect {
+  title: string;
+}
+interface Drawn {
+  parties: Array<Rect & { id: string; label?: Rect }>;
+  housings?: Rect[];
+  tanks: Rect[];
+  plates?: Rect[];
+  gauges?: Rect[];
+  callTags?: Rect[];
+  callCards?: Card[];
+  wallets?: Rect[];
+  calls?: Line[];
+  links?: Line[];
+  valuePipes?: Line[];
+  writes?: Line[];
+}
+/** 呼び出しの管と2人を結ぶ線の太さの半分。値の管は`HALF` */
+const CALL_HALF = 8;
+/** 図の上の縁から、型の行が無い図の人の丸までの高さ */
+const ROOM = 48;
+const SHAPES_WITHOUT_BOX = ["top", "ledger", "bottom", "auto"] as const;
+const drawnOf = (shape: string): Drawn => ethLayoutOf(shape) as unknown as Drawn;
+const finite = (r: Rect | undefined): r is Rect => r !== undefined && [r.x, r.y, r.w, r.h].every((v) => Number.isFinite(v));
+/** 管と線を、太さの半分だけ広げた線分ごとの矩形にする */
+const lineRects = (name: string, lines: readonly Line[] | undefined, half: number): Array<Rect & { name: string }> =>
+  (lines ?? []).flatMap((l) =>
+    (l.points ?? []).slice(1).map((q, i) => {
+      const p = (l.points as Point[])[i] as Point;
+      return { name, x: Math.min(p[0], q[0]) - half, y: Math.min(p[1], q[1]) - half, w: Math.abs(q[0] - p[0]) + half * 2, h: Math.abs(q[1] - p[1]) + half * 2 };
+    }),
+  );
+/** 図に描く部品の矩形。呼び出しの札は`cards`を真にした時だけ入れる */
+function partRects(l: Drawn, cards: boolean): Array<Rect & { name: string }> {
+  const named = (name: string, rs: readonly (Rect | undefined)[] | undefined): Array<Rect & { name: string }> => (rs ?? []).filter(finite).map((r) => ({ name, x: r.x, y: r.y, w: r.w, h: r.h }));
+  return [
+    ...l.parties.flatMap((p) => [...named(`人と箱 ${p.id}`, [p]), ...named(`名前 ${p.id}`, [p.label])]),
+    ...named("入れ物", l.housings),
+    ...named("槽", l.tanks),
+    ...named("札の入れ物", l.plates),
+    ...named("計器", l.gauges),
+    ...named("線の札", l.callTags),
+    ...named("札入れ", l.wallets),
+    ...(cards ? (l.callCards ?? []).filter(finite).map((c) => ({ name: `呼び出しの札 ${c.title}`, x: c.x, y: c.y, w: c.w, h: c.h })) : []),
+    ...lineRects("呼び出しの管", l.calls, CALL_HALF),
+    ...lineRects("2人を結ぶ線", l.links, CALL_HALF),
+    ...lineRects("値の管", l.valuePipes, HALF),
+    ...lineRects("書き換えの線", l.writes, CALL_HALF),
+  ];
+}
+/** 図の上の縁から一番上に描く部品までの高さと、その部品の名前 */
+function roomAbove(l: Drawn): { y: number; name: string } {
+  return partRects(l, true).reduce((a, r) => (r.y < a.y ? { y: r.y, name: r.name } : a), { y: Infinity, name: "(部品が無い)" });
+}
+
+describe("トークンの箱が無い図の人の上の空き (#3860)", () => {
+  for (const shape of SHAPES_WITHOUT_BOX)
+    it(`pipe-no-token-box-room-${shape}`, () => {
+      // ETHの送金の図をこの型で描くと、どの段でも、図の上の縁から一番上に描く部品までが48px以下になる
+      const top = roomAbove(drawnOf(shape));
+      expect(top.y, `layout ${shape} で図の上の縁から一番上の部品 (${top.name}) まで`).toBeLessThanOrEqual(ROOM);
+    });
+
+  it("pipe-no-token-box-card-clears-parts", () => {
+    // その4つの型で、呼び出しの札Vault.預けるは人の丸と箱と名前と槽と入れ物と管のどれにも重ならない
+    const hits: string[] = [];
+    let cards = 0;
+    for (const shape of SHAPES_WITHOUT_BOX) {
+      const l = drawnOf(shape);
+      for (const card of (l.callCards ?? []).filter(finite)) {
+        cards++;
+        for (const r of partRects(l, false))
+          if (card.x < r.x + r.w - 0.5 && r.x < card.x + card.w - 0.5 && card.y < r.y + r.h - 0.5 && r.y < card.y + card.h - 0.5) hits.push(`${shape}: 札 ${card.title} が ${r.name} に重なる`);
+      }
+    }
+    expect(cards, "数えた呼び出しの札の数").toBe(SHAPES_WITHOUT_BOX.length);
+    expect(hits, "部品に重なる呼び出しの札").toEqual([]);
+  });
+});
