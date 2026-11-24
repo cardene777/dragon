@@ -44,6 +44,7 @@ import { docs as opDocs } from "../../../../packages/dragon/src/blocks/op/galler
 import { docs as orderDocs } from "../../../../packages/dragon/src/blocks/order/gallery/docs";
 import { docs as pickDocs } from "../../../../packages/dragon/src/blocks/pick/gallery/docs";
 import { docs as pointDocs } from "../../../../packages/dragon/src/blocks/point/gallery/docs";
+import { docs as popDocs } from "../../../../packages/dragon/src/blocks/pop/gallery/docs";
 import { docs as pressDocs } from "../../../../packages/dragon/src/blocks/press/gallery/docs";
 import { docs as queueDocs } from "../../../../packages/dragon/src/blocks/queue/gallery/docs";
 import { docs as returnDocs } from "../../../../packages/dragon/src/blocks/return/gallery/docs";
@@ -114,6 +115,7 @@ export const BLOCK_DOCS = {
   "order": orderDocs,
   "pick": pickDocs,
   "point": pointDocs,
+  "pop": popDocs,
   "press": pressDocs,
   "queue": queueDocs,
   "return": returnDocs,

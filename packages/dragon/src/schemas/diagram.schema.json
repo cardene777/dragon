@@ -49,6 +49,12 @@
         "follow"
       ]
     },
+    "note": {
+      "description": "箱の説明の見せ方 (#3877)。pop は箱の sub を名前の下に描かず、i の印の付いた箱を押すと箱のすぐ下に出る札で見せ、箱の example を札の下の例の帯にする。箱の札を描く図の種類 (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、手順の図) だけが持てる。書かない図は名前の下の字で見せ、箱は example を持てない",
+      "enum": [
+        "pop"
+      ]
+    },
     "layout": {
       "description": "パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持てる。top は箱を人の列の上、bottom は下に集め、ledger と mesh と bus は槽をトークンごとの行に並べ、auto は top と bottom と箱の並びから点数の低い組を選ぶ。書いた図は呼び方を替えても箱と槽の置き場所を変えない",
       "enum": [
@@ -799,6 +805,59 @@
           },
           "routes": {
             "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "sequence",
+              "architecture",
+              "state",
+              "git",
+              "time",
+              "tree",
+              "flow"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "note": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "required": [
+            "note"
+          ]
+        }
+      },
+      "then": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "box": {
+                "items": {
+                  "properties": {
+                    "example": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2893,6 +2952,10 @@
           "$ref": "#/definitions/text"
         },
         "sub": {
+          "$ref": "#/definitions/text"
+        },
+        "example": {
+          "description": "札で見せる図 (根の note が pop) の札の下に、灰色の帯で出す例 (#3877)。sub を持つ箱だけが持てる",
           "$ref": "#/definitions/text"
         },
         "color": {

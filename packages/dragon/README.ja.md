@@ -253,11 +253,17 @@ package から描く時は、`renderDiagram` に `figure: true` を渡すと同�
 書き出しはこれらの行を頁の帯の設定の塊 (`<script type="application/json" id="dragon-header">`、[scriptの1行で帯を付ける](#scriptの1行で帯を付ける)) にして頁に入れ、頁の全ての図の帯に効かせる。
 知らないボタンの名前と、2度書いたボタンと、`;`か`<`を含む色の値と、知らない`header-`の行は、行を名指して書き出しを止める。
 
+`note: pop`の行を書くと、頁の全ての図の箱の説明を押すと出る札で見せる ([押すと出る札](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#押すと出る札))。
+1行目に`[note: under]`を書いた図だけは名前の下の字で見せる。
+この頁では、1行目に`note`を書かない図の箱にも`example`を書ける。
+`note: under`は行を書かない頁と同じで、ほかの値は行を名指して書き出しを止める。
+
 ```md
 ---
 layout: tabs
 header-buttons: code, export
 header-accent: "#c0392b"
+note: pop
 ---
 ```
 

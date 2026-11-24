@@ -18,6 +18,10 @@ export const shape: BlockShape = {
         id: { $ref: "#/definitions/id" },
         name: { $ref: "#/definitions/text" },
         sub: { $ref: "#/definitions/text" },
+        example: {
+          description: "札で見せる図 (根の note が pop) の札の下に、灰色の帯で出す例 (#3877)。sub を持つ箱だけが持てる",
+          $ref: "#/definitions/text",
+        },
         color: { $ref: "#/definitions/color" },
         icon: { $ref: "#/definitions/iconField" },
         region: { $ref: "#/definitions/id" },

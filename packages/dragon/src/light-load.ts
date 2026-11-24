@@ -9,6 +9,7 @@
  * この file は構成図の登録の file を後から読まない。読むと esbuild が軽い入口の build で構成図の登録を入口の外の塊へ分け、
  * 軽い入口を束ねる見本帳の build が副作用だけの import を外し、構成図を登録しないまま描いて落ちるため。
  */
+import { registerNoteCardsLoader } from "./blocks/pop/cards-store";
 import { readingLoaded, registerReading } from "./blocks/reading";
 import { KIND_FOLDERS } from "./kinds/index";
 import { LATER_READINGS } from "./blocks/later-readings";
@@ -25,6 +26,9 @@ import { lookOf, registerSequenceLook, sequenceLookLoaded } from "./render/look-
 import { type LineStyle, penLoaded, registerPen } from "./render/pen-store";
 
 export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind };
+
+// 押すと出る札の層を作る処理 (#3877) は札で見せる図だけが使うので、最初に読む量に入れず、再生の部品が札で見せる図を置いた時に後から読む
+registerNoteCardsLoader(async () => (await import("./blocks/pop/cards")).mountNoteCards);
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
   checkout: () => import("./kinds/checkout"),

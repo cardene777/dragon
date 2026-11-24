@@ -44,6 +44,7 @@ import { reading as opReading } from "./op/read";
 import { reading as orderReading } from "./order/read";
 import { reading as pickReading } from "./pick/read";
 import { reading as pointReading } from "./point/read";
+import { reading as popReading } from "./pop/read";
 import { reading as pressReading } from "./press/read";
 import { reading as queueReading } from "./queue/read";
 import { reading as returnReading } from "./return/read";
@@ -114,6 +115,7 @@ export const READINGS = {
   "order": orderReading,
   "pick": pickReading,
   "point": pointReading,
+  "pop": popReading,
   "press": pressReading,
   "queue": queueReading,
   "return": returnReading,

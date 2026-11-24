@@ -87,6 +87,8 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     kind: model.kind,
     title: model.title,
     ...(model.view !== undefined ? { view: model.view } : {}),
+    // 箱の説明の見せ方 (#3877) も、見せ方と同じく根の欄のまま移す
+    ...(model.note !== undefined ? { note: model.note } : {}),
     ...(model.layout !== undefined ? { layout: model.layout } : {}),
     ...(model.routes !== undefined ? { routes: model.routes } : {}),
     ...(model.define !== undefined ? { define: model.define } : {}),
@@ -140,6 +142,7 @@ export function toModel(diagram: Diagram): DiagramModel {
       kind: diagram.kind,
       title: diagram.title,
       ...(diagram.view !== undefined ? { view: diagram.view } : {}),
+      ...(diagram.note !== undefined ? { note: diagram.note } : {}),
       ...(diagram.define !== undefined ? { define: diagram.define } : {}),
       boxes,
       ...(b.strip !== undefined ? { strip: b.strip } : {}),
@@ -151,6 +154,8 @@ export function toModel(diagram: Diagram): DiagramModel {
     kind: diagram.kind,
     title: diagram.title,
     ...(diagram.view !== undefined ? { view: diagram.view } : {}),
+    // 箱の説明の見せ方 (#3877)。札で見せる図だけが持つ
+    ...(diagram.note !== undefined ? { note: diagram.note } : {}),
     ...(diagram.layout !== undefined ? { layout: diagram.layout } : {}),
     ...(diagram.routes !== undefined ? { routes: diagram.routes } : {}),
     ...(diagram.define !== undefined ? { define: diagram.define } : {}),

@@ -259,6 +259,14 @@ export const TYPE = {
   timeTask: text(10.5, 650),
   emptyText: text(11, 700),
   meterLine: text(10.5, 700, "mono"),
+  /**
+   * 押すと出る札 (#3877)。箱の右上の印の i の字 (斜体で描く)、札の上の箱の名前、札の本文、札の下の例の帯の字。
+   * 本文は段の説明文と同じ大きさにし、箱の名前は箱の名前の下の字と同じ大きさで札の頭に小さく置く
+   */
+  noteMark: text(11, 700),
+  noteName: text(11, 650),
+  noteBody: text(14, 500),
+  noteExample: text(12.5, 500),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -284,6 +292,29 @@ export const LOOK = {
     nameMid: 5,
     subY: 27,
     subMid: 20,
+  },
+  /**
+   * 押すと出る札 (#3877)。`badge` は箱の右上の印の丸の半径、`inset` は箱の右上の角から丸の真ん中までの縦横の間。
+   * 札は幅 `card` で、箱の下端から `gap` だけ下に置く。`padX` と `padY` は札の内側の余白、`close` は右上の閉じるのアイコンの釦の大きさ、
+   * `icon` はその絵柄の大きさ。`nameGap` は名前と本文の間、`exampleGap` は本文と例の帯の間、`bodyLine` は本文の行の高さ。
+   * 影は `shadowY` だけ下へずらし `shadow` だけぼかした、影の色を `shadowMix` % にした色
+   */
+  note: {
+    badge: 7.5,
+    inset: 13,
+    card: 300,
+    gap: 8,
+    padX: 16,
+    padY: 14,
+    radius: 12,
+    close: 24,
+    icon: 14,
+    nameGap: 4,
+    exampleGap: 12,
+    bodyLine: 1.6,
+    shadowY: 8,
+    shadow: 24,
+    shadowMix: 22,
   },
   region: {
     pad: 18,

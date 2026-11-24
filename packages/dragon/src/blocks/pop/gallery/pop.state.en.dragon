@@ -1,0 +1,8 @@
+state Note card [note: pop]
+
+box stocked as In stock [note: At least one item is left in the warehouse and orders are taken, example: One of three left was sold]
+box out as Sold out [note: Waits for new stock]
+
+step Sell out
+  say A state with note gets an i mark at its top right. Click it and a card with the whole note and an example band opens just below.
+  stocked -> out: last one sold

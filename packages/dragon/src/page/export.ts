@@ -87,9 +87,11 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   const outDir = resolve(options.outDir ?? dirname(path));
   const errors: PageError[] = [];
 
+  /** 頭の `note: pop` (#3877)。1 行目に `note` を書かない図を札で見せる既定として、図を読む時と頁の図の塊に渡す */
+  const note = outline.note;
   /** 図の記法を読み、誤りと頁に無い場所を指す飛び先を残す */
   const checkDiagram = (source: Source, notation: string, first: number): void => {
-    const parsed = parseNotation(notation, { lang });
+    const parsed = parseNotation(notation, { lang, ...(note ? { note } : {}) });
     if (!parsed.ok) {
       for (const error of parsed.errors) errors.push({ file: source.name, line: first + error.line - 1, message: error.message });
       return;
@@ -138,13 +140,14 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     }
     if (ext === ".dragon") {
       checkDiagram(shown, body.replace(/\r\n?/gu, "\n"), 1);
-      return figureHtml(body.replace(/\r\n?/gu, "\n").replace(/\n+$/u, ""));
+      return figureHtml(body.replace(/\r\n?/gu, "\n").replace(/\n+$/u, ""), note);
     }
     return `<div class="pg-include">${label}${codeHtml(body.replace(/\r\n?/gu, "\n").trimEnd(), ext.slice(1))}</div>`;
   };
 
   const hooksFor = (source: Source, stack: readonly string[]): RenderHooks => ({
     alerts: WORDS[lang].alerts,
+    ...(note ? { note } : {}),
     image: (src) => imageOf(source, src),
     diagram: (notation, first) => checkDiagram(source, notation, first),
     include: (name, target, line) => include(source, stack, name, target, line),

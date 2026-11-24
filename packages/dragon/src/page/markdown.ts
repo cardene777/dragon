@@ -29,6 +29,8 @@ export interface RenderHooks {
   diagram?(source: string, first: number): void;
   /** 注意書きに題を書かない時の題 */
   alerts: Readonly<Record<AlertKind, string>>;
+  /** 頭に `note: pop` を書いた頁 (#3877)。図の塊に `data-note="pop"` を付け、1 行目に `note` を書かない図を札で見せる */
+  note?: "pop";
 }
 
 /** HTMLの字と属性の値として書けるよう逃がす */
@@ -101,9 +103,9 @@ function cells(row: string): string[] {
  * 帯つきの図の塊。頁の script の1行の入口が図にする。
  * 図の種類を class (`pg-kind-flow` など) に書き、縦に流れる図を頁の幅いっぱいに描いて字が大きくなりすぎないよう、頁が読める幅に収める
  */
-export function figureHtml(source: string): string {
+export function figureHtml(source: string, note?: "pop"): string {
   const kind = /^\s*([a-z][a-z-]*)/u.exec(source.split("\n").find((text) => !blank(text)) ?? "")?.[1];
-  return `<div class="pg-figure${kind ? ` pg-kind-${kind}` : ""}"><pre class="dragon" data-header>${escapeHtml(source)}</pre></div>`;
+  return `<div class="pg-figure${kind ? ` pg-kind-${kind}` : ""}"><pre class="dragon" data-header${note ? ` data-note="${note}"` : ""}>${escapeHtml(source)}</pre></div>`;
 }
 
 /** code の囲み。`lang` は囲みに書いた言葉か載せた file の拡張子 */
@@ -260,7 +262,7 @@ export function renderBlocks(lines: readonly Line[], hooks: RenderHooks): string
       const source = body.join("\n");
       if (fence.lang === "dragon") {
         hooks.diagram?.(source, first);
-        out.push(figureHtml(source));
+        out.push(figureHtml(source, hooks.note));
       } else out.push(codeHtml(source, fence.lang));
       continue;
     }

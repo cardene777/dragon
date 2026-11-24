@@ -44,6 +44,7 @@ import { block as opBlock } from "./op/block";
 import { block as orderBlock } from "./order/block";
 import { block as pickBlock } from "./pick/block";
 import { block as pointBlock } from "./point/block";
+import { block as popBlock } from "./pop/block";
 import { block as pressBlock } from "./press/block";
 import { block as queueBlock } from "./queue/block";
 import { block as returnBlock } from "./return/block";
@@ -114,6 +115,7 @@ export const BLOCKS = {
   "order": orderBlock,
   "pick": pickBlock,
   "point": pointBlock,
+  "pop": popBlock,
   "press": pressBlock,
   "queue": queueBlock,
   "return": returnBlock,
@@ -139,4 +141,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "axis", "band", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "limit", "line", "link", "log", "matrix-item", "merge", "node", "note", "op", "order", "pick", "point", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "axis", "band", "box", "branch", "calc", "call", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "limit", "line", "link", "log", "matrix-item", "merge", "node", "note", "op", "order", "pick", "point", "pop", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;

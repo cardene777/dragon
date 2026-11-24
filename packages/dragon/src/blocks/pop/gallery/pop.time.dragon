@@ -1,0 +1,13 @@
+time 押すと出る札 [note: pop]
+
+scale slot 12s 6
+row ブロック
+zoom 0-2
+
+box 提案者 [note: 枠ごとに 1 人が選ばれ、その枠のブロックを作る, example: 枠 0 で選ばれた人]
+box ブロック
+
+step 作る
+  say note を持つ箱は列ごとに右上の i の印を持つ。押すと箱のすぐ下に札が出て、note の全文と例の帯を読める。
+  提案者 -> ブロック [at: 0]
+  now -> 0

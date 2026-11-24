@@ -12,6 +12,7 @@ import { ALWAYS } from "../../render/ink";
 import { esc, pathOf, r1, write } from "../../render/parts";
 import { card } from "../box/draw";
 import { linkTo } from "../link/draw";
+import { noteAt, noteMark } from "../pop/draw";
 import { ja, type TimeKit } from "../scale/draw";
 
 /** 拡大の帯の目盛り `unit` の列の箱 `box`。空きの枠、点線の枠で待つ箱、すぐに描く箱のどれか */
@@ -30,10 +31,10 @@ function columnBox(k: TimeKit, box: TimeBox, unit: number): string {
         : `<g class="dg-a" style="${m.vis(shown)}">${frame("dg-tm-ex")}${write(ink, "dg-tm-ext", box.cx, box.cy + LOOK.baseline.mark, word, TYPE.emptyText, [[shown, Number.POSITIVE_INFINITY]], "middle")}</g>`;
     return `<g data-empty="${esc(box.id)}">${frame("dg-tm-ph")}${mark}</g>`;
   }
-  const drawn = linkTo(
-    diagram.boxes.find((b) => b.id === box.id)?.link,
-    card(box, ctx, on, k.subs.get(box.id) ?? []),
-  );
+  // 札で見せる図 (#3877) の札を持つ箱は、列ごとの箱の右上に印を描く
+  const note = layout.noteCards?.find((n) => n.box === box.id);
+  const inner = card(box, ctx, on, k.subs.get(box.id) ?? []);
+  const drawn = linkTo(diagram.boxes.find((b) => b.id === box.id)?.link, note ? noteMark(noteAt(note, box), inner) : inner);
   if (!box.row) return drawn;
   // 印の列と同じ名札の箱は、線が届くまで点線の枠で待つ
   const shown = k.filled(box.row, unit);
