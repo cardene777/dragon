@@ -22,8 +22,8 @@ describe("ボードの見本と書き方 (#3624)", () => {
         return read.ok ? [read.diagram as unknown as Source] : [];
       });
     const back = { ja: /差し戻/u, en: /sen[dt] (?:a card |it )?back|back to an earlier/iu };
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
     for (const [path, lang] of [
-      ["packages/dragon/README.md", "en"],
       ["packages/dragon/examples/quick-start.md", "ja"],
       ["packages/dragon/examples/quick-start.en.md", "en"],
     ] as const) {

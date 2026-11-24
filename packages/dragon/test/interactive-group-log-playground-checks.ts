@@ -22,8 +22,8 @@ describe("書き方の文書 (#3441)", () => {
       return text.slice(start, next < 0 ? undefined : next);
     };
     for (const [path, heading, intoField] of [
-      ["packages/dragon/README.ja.md", "### 試す図", "`into` に欄"],
-      ["packages/dragon/README.md", "### Try diagram", "`into` names a field"],
+      ["packages/dragon/examples/quick-start.md", "### 試す図", "`into` に欄"],
+      ["packages/dragon/examples/quick-start.en.md", "### Try diagram", "`into` names a field"],
     ] as const) {
       const section = sectionOf(readRepo(path), heading);
       expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");

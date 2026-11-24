@@ -985,9 +985,10 @@ describe("段の要点 (#3464)", () => {
       const end = text.indexOf(next, start + heading.length);
       return text.slice(start, end < 0 ? undefined : end);
     };
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
     for (const [path, heading, form] of [
-      ["packages/dragon/README.ja.md", "### 配管の図", "gist <要点>"],
-      ["packages/dragon/README.md", "### Pipe diagram", "gist <key point>"],
+      ["packages/dragon/examples/quick-start.md", "### 配管の図", "gist <要点>"],
+      ["packages/dragon/examples/quick-start.en.md", "### Pipe diagram", "gist <key point>"],
     ] as const) {
       const section = sectionOf(readRepo(path), heading, "\n### ");
       expect(section, `${path} に配管の図の小節 (${heading}) が無い`).not.toBe("");

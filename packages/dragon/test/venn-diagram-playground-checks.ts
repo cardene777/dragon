@@ -44,12 +44,13 @@ describe("集合の重なりの図の書き方の文書 (#3620)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).kind === "venn";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に venn の行の書き方が無い`).toBe(true);
       expect(overlap.test(text), `${path} に重なりの数の行 (set <名札> & <名札>: <数>) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(vennFences(text), `${path} に集合の重なりの図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(vennFences(text), `${path} に集合の重なりの図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // README の描ける図の欄に集合の重なりの図が載る
     expect(/^\| Diagram kinds \|.*\bset overlap diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に set overlap diagram が無い").toBe(true);

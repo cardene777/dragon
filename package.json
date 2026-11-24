@@ -17,6 +17,7 @@
     "typecheck": "tsc -b && tsc -p tsconfig.config-files.json --noEmit && tsc -p packages/dragon/tsconfig.test.json --noEmit",
     "test": "vitest run",
     "test:related": "node scripts/test-related.mjs",
+    "readme:images": "node scripts/readme-images.mjs",
     "verify:deps": "node packages/dragon/scripts/verify-dep-integrity.mjs",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

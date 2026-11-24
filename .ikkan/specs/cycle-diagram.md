@@ -10,7 +10,7 @@
 | 輪の次の手順でない手順への線 (1つ飛ばす線、逆回りの線) を書くと、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-rejects-a-line-that-skips-a-step`が通る | #3623 |
 | 手順が2つより少ないか8つより多い回り続ける図は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`cycle-rejects-too-few-or-too-many-steps`が通る | #3623 |
 | 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、回り続ける図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3623 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、回り続ける図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`cycle-docs-describe-the-notation`が通る | #3623 |
+| 使い方の頁と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、回り続ける図の書き方の節が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`cycle-docs-describe-the-notation`が通る | #3623 #3881 |
 | ほかの種類の図では、`cycle`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts`の検査`notation-keeps-cycle-words-plain-outside-cycle`が通る | #3623 |
 | カタログの12種類のどれも見本を4枚以上載せる | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`every-kind-has-four-examples`が通る | #3623 |
 | 回り続ける図の見本6枚 (`eth-slot`、`sprint`、`pdca`、`restake`、`focus-clock`、`farm-year`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じ | `pnpm exec vitest run apps/playground-spa/src/lib/cycle-examples.test.ts --reporter=verbose`の検査`cycle-has-six-examples-in-both-langs`が通る | #3623 #3638 #3639 |
@@ -33,7 +33,7 @@
 | 見本帳に`[shape: clock]`の見本`focus-clock`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-examples-in-both-langs-have-no-breaks`が通る | #3638 |
 | 編集画面の棚に`[shape: clock]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-shelf-template-reads`が通る | #3638 |
 | 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: clock]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3638 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: clock]`と`time`と`turn`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-docs-describe-the-look`が通る | #3638 |
+| 使い方の頁と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: clock]`と`time`と`turn`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`clock-docs-describe-the-look`が通る | #3638 #3881 |
 | `time`を書かない今の回り続ける図は、手順を真上から右回りに輪の上へ置く | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-boxes-go-clockwise-from-top`が通る | #3638 |
 | 今の回り続ける図の記法を読んで書き戻すと、同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-roundtrip-keeps-notation`が通る | #3638 |
 | 輪の見た目の線の札は、今どおり弧の上を走る | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-tag-runs-along-the-arc`が通る | #3638 #3639 |
@@ -51,6 +51,6 @@
 | 見本帳に`[shape: band]`の見本`farm-year`が日本語と英語で1枚ずつ在り、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-examples-in-both-langs-have-no-breaks`が通る | #3639 |
 | 編集画面の棚に`[shape: band]`の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-shelf-template-reads`が通る | #3639 |
 | 軽い入口 (`@cardenelabs/dragon/light`) で`loadFor`を待った後、`[shape: band]`の図を読んで描ける | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-draws-each-later-kind-after-load-for`が通る | #3639 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/README.ja.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: band]`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-docs-describe-the-look`が通る | #3639 |
+| 使い方の頁と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、`[shape: band]`の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts --reporter=verbose`の検査`band-docs-describe-the-look`が通る | #3639 #3881 |
 | `shape`を書かない今の回り続ける図は、手順を真上から右回りに輪の上へ置く | `pnpm exec vitest run packages/dragon/test/cycle-diagram.test.ts --reporter=verbose`の検査`cycle-boxes-go-clockwise-from-top`が通る | #3639 |
 | 時計の文字盤の見た目は、今どおり手順を長さの弧で文字盤に置く | `pnpm exec vitest run packages/dragon/test/clock-look.test.ts --reporter=verbose`の検査`clock-arcs-follow-times`が通る | #3639 |

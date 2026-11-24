@@ -194,7 +194,8 @@ describe("点で数える見た目の書き方の文書 (#3635)", () => {
       }).length;
     const dots = (s: Source): boolean => (s.chart?.shape ?? s.venn?.shape) === "dots";
     const chartNone = (s: Source, source: string): boolean => s.kind === "chart" && /^\s*set none: /mu.test(source);
-    for (const path of ["packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(/\[shape: dots\]/u.test(text), `${path} に [shape: dots] の書き方が無い`).toBe(true);

@@ -47,7 +47,7 @@
 | `HEAD`が指している枝を消す行は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-rejects-the-head-branch`が通る | #3632 |
 | 消した枝へcommitを足す行は、読む時に誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-rejects-commits-on-a-deleted-branch`が通る | #3632 |
 | 見本`squash`の日本語と英語が`delete feature`の行で枝を消し、帯の`feature: 消した`の字を使わない | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`squash-example-deletes-the-feature-branch`が通る | #3632 |
-| 使い方の頁の枝分かれの図の説明と`packages/dragon/README.md`と見本帳の部品の図に、`delete`の行が載る | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-docs-describe-the-line`が通る | #3632 |
+| 使い方の頁の枝分かれの図の説明と、英語と日本語の手引き (`packages/dragon/examples/quick-start.en.md`と`packages/dragon/examples/quick-start.md`)の枝分かれの図の小節と、見本帳の部品の図に、`delete`の行が載る | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`git-delete-docs-describe-the-line`が通る | #3632 #3881 |
 | ほかの種類の図では、`delete`を箱の名札として読める | `pnpm exec vitest run packages/dragon/test/git-delete.test.ts`の検査`notation-keeps-delete-plain-outside-git`が通る | #3632 |
 | 見本`squash`の日本語と英語で、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run apps/playground-spa/src/lib/kind-examples.test.ts`の検査`added-examples-have-no-breaks`が通る | #3632 |
 | 見本帳の部品の図は崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3632 |

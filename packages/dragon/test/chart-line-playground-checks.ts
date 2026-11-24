@@ -121,11 +121,8 @@ describe("折れ線の見た目の書き方の文書 (#3802)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).chart?.shape === "line";
       }).length;
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
     const docs = [
-      "README.md",
-      "README.ja.md",
-      "packages/dragon/README.md",
-      "packages/dragon/README.ja.md",
       "packages/dragon/examples/quick-start.md",
       "packages/dragon/examples/quick-start.en.md",
       "plugins/dragon/skills/dragon/references/kinds/chart.md",
@@ -135,7 +132,7 @@ describe("折れ線の見た目の書き方の文書 (#3802)", () => {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(/\[shape: line\]/u.test(text), `${path} に [shape: line] の書き方が無い`).toBe(true);
-      if (/quick-start(?:\.en)?\.md$/u.test(path) || path.startsWith("packages/dragon/README") || path.endsWith("kinds/chart.md")) {
+      if (/quick-start(?:\.en)?\.md$/u.test(path) || path.endsWith("kinds/chart.md")) {
         expect(lineFences(text), `${path} に折れ線の見た目として読める dragon の囲みが無い`).toBeGreaterThan(0);
       }
     }

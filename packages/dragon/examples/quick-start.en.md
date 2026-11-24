@@ -963,3 +963,1041 @@ sequence Ask to sign in
 The notation and JSON convert both ways.
 Writing JSON back as notation uses a fixed layout, so the writer's line order and comment lines are not kept.
 The JSON shape is defined in `src/schemas/diagram.schema.json`, and the `version` field holds the format version.
+
+## Diagram kinds
+
+Each kind of diagram adds its own lines to the line forms above. The sections follow the order of the diagram kinds in the README.
+
+### Sequence diagram
+
+Start with `sequence <title>` to draw a sequence diagram. Each box is a party with a lifeline, and each step sends messages between the parties in order.
+
+- `box <id> as <name> [note: <caption>]` is a party. A diagram with no `box` line makes a party of each name on the lines
+- `<from> -> <to>: <label>` is a message. The `carry` and `tag` attributes put what travels on the line
+- A diagram with no `step` line makes each line one step
+
+#### Pipe look of a sequence diagram
+
+Add `[shape: pipe]` to the first line of a sequence diagram to draw it with the parts of the pipe diagram: each lifeline becomes a pipe, and each box sits on top of its pipe.
+In this look, `hold <owner>: <amount> <token>` lines before the first step put each owner's balance under its box. A sequence diagram without `[shape: pipe]` refuses `hold`.
+A sequence diagram without the attribute keeps the current look.
+With `@cardenelabs/dragon/light`, `loadFor` loads this look as a separate chunk, so a page that draws only the current look loads nothing more.
+
+A line of a sequence diagram takes `[op: <number>]` in either look, the number of the operation that raised the line. The drawn line carries the step and the number in `data-op`, as in `0/3`, so the page that shows the diagram can link the line to a record or a line of code. Lines of other kinds of diagram refuse it.
+
+```dragon
+sequence Send USDC [shape: pipe]
+
+box alice as Alice
+box usdc as USDC
+box bob as Bob
+
+hold alice: 100 USDC
+hold bob: 0 USDC
+
+step Alice calls transfer
+  say Alice calls transfer on USDC to send 10 to Bob.
+  alice -> usdc: transfer(to: bob, amount: 10) [carry: none, op: 3]
+  alice -> bob: 10 USDC [carry: coin, op: 4]
+
+step USDC returns
+  say USDC returns true.
+  usdc -> alice: true [carry: none, op: 5]
+```
+
+### Architecture diagram
+
+Start with `architecture <title>` to draw an architecture diagram. Boxes are the parts of a system, regions gather them, and each step moves something along the lines between them.
+
+- `group <id> as <name> [note: <note>]` opens a region and `end` closes it. The boxes on the `box` lines in between go inside the region
+- `box <id> as <name> [note: <caption>, icon: <icon>]` is a part
+- `<from> -> <to>: <label> [tag: <text>]` moves a chip along the line in the step
+
+### State diagram
+
+Start with `state <title>` to draw a state diagram, which follows one thing moving between states step by step. Each box is a state, and each line is a move from one state to another.
+Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark.
+Lines written before the first `step` are paths the diagram could take but does not this time, drawn dotted.
+
+```dragon
+state States of an order until it arrives
+
+box awaiting as Awaiting payment [note: Waits for funds, color: amber, icon: clock]
+box shipped as Shipped [note: With the carrier, color: violet, icon: truck]
+box delivered as Delivered [note: Handed over, color: green, icon: check]
+box cancelled as Cancelled [note: Payment returned, color: rose, icon: x]
+
+awaiting -> cancelled: Cancel
+cancelled -> finish
+
+step Place the order
+  say Confirming the order starts it at Awaiting payment.
+  start -> awaiting: Place order [tag: #1042]
+
+step Ship
+  say Once the payment clears, the goods go out and the order moves to Shipped.
+  awaiting -> shipped: Ship [tag: #1042]
+
+step Arrive
+  say The goods arrive, the order moves to Delivered, and it closes.
+  shipped -> delivered: Receive [tag: #1042]
+  delivered -> finish: Close the order [tag: #1042]
+```
+
+### Git graph
+
+Start with `git <title>` to draw a git graph, which follows commits stacking on branches until they are merged, step by step. Declare branches from the top on `branch <branch>` lines, and each branch gets its own band.
+Inside a step, `commit <id> on <branch>` adds a commit to the tip of the branch, `copy <source>` makes a replayed commit, and `merge <branch>` makes a merge commit. `hash` and `note` put a hash and a short note beside the circle.
+`<branch> from <commit>` cuts a branch at the commit after `from`, and `HEAD` moves to that branch. `<branch> -> <commit>` or `HEAD -> <commit>` moves a branch ref or `HEAD` without making a commit. A commit that no ref can reach any more turns into a dotted circle.
+`delete <branch>` deletes a branch: its ref leaves the diagram from that step on, and its band stays. The branch `HEAD` points at cannot be deleted, so move `HEAD` to another branch first.
+
+```dragon
+git Merge fix with a merge commit and replay feature
+
+branch main [note: Target]
+branch feature [note: Work branch]
+branch fix [note: Fix branch]
+
+step Cut branches
+  say Cut fix and feature from A on main, and add a commit to each.
+  commit A on main [hash: 3fa0c19, note: First shape]
+  fix from A
+  commit F on fix [hash: 9b2e4d1, note: Fix a typo]
+  feature from A
+  commit C on feature [hash: c41d0e5, note: Add search]
+
+step Merge commit
+  say Merge fix into main with merge commit M. M has two parents, A and F.
+  commit M on main merge fix [hash: 7d3a5e2, note: Merge fix]
+
+step Replay
+  say Move HEAD to M to detach it, and copy C onto M as C'.
+  HEAD -> M
+  commit C' on main copy C [hash: a90c6b4, note: Add search]
+
+step Fast-forward
+  say Move feature to C', and move main up to C' too. The old C can no longer be reached from any branch.
+  feature -> C'
+  main -> C'
+```
+
+### Time diagram
+
+Start with `time <title>` to draw a time diagram, which follows, step by step, which tick each event happens on along evenly spaced time. `scale <unit> <length> <count>` declares the ticks, `period <name> <ticks>` the periods, `row <id>` a row of marks, `point <id> at <tick>` a point below the axis, and `zoom <range>` the ticks to zoom in on in the top band.
+Inside a step, `now -> <tick>` moves the needle. The needle moves one tick at a fixed speed, and the marks of the ticks it passes appear as it goes. `mark <row> <range>` changes the color of marks, and `span <range>: <text>` puts a bracket under the axis or a frame around the rows.
+`[meter: <ratio>]` on a strip field makes a meter that fills with the needle up to the ratio written with `set`.
+
+```dragon
+time How a block becomes final
+
+scale slot 12s 64
+period epoch 32
+row block [color: blue, empty: 5]
+point C0 at 0
+point C1 at 32
+zoom 0-1
+
+box proposer [color: blue, icon: user]
+box block [color: blue, icon: box]
+
+strip Finality: Elapsed, Votes this epoch [meter: 2/3]
+
+step Propose blocks
+  say In each slot one proposer is chosen and proposes one block. The top band zooms in on the first 2 slots.
+  proposer -> block [at: 0]
+  proposer -> block [at: 1]
+  now -> 1
+  set Elapsed: 24 s
+
+step Collect one epoch of votes
+  say 32 slots make one epoch. A block mark appears on each slot the needle passes, and a slot whose proposer did not answer gets an empty mark.
+  note C0: Proposed [color: blue]
+  span 0-31: 1 epoch = 6.4 min [color: slate]
+  now -> 31
+  set Elapsed: 6 min 24 s
+  set Votes this epoch: 97%
+
+step Move to the next epoch
+  say Votes for C0 passed 2/3 of the total, so C0 is justified. In the next epoch, votes gather on C1.
+  note C0: Justified [color: violet]
+  note C1: Proposed [color: blue]
+  now -> 63
+  set Elapsed: 12 min 48 s
+  set Votes this epoch: 97%
+
+step C0 becomes final
+  say Once C1 is justified too, the earlier of the two justified in a row, C0, becomes final. A final block cannot be undone.
+  C0 -> C1: over 2/3 [carry: none]
+  note C1: Justified [color: violet]
+  note C0: Final [color: green]
+  mark block 0-31 [color: green]
+  span 0-31: Final, cannot be undone [shape: box, color: rose]
+```
+
+To show how long tasks take, as in a schedule, write `task <id> as <name> <range> [color: <color>]` before the first step.
+Each task gets its own row and is drawn as one thick bar over the ticks of the range. A range counts ticks from 0 like `mark`, as `0-2` or `13`.
+The name sits to the left of the row and the first and last tick names with the scale name (such as `Day 1–3`) inside the bar, and the part of the bar the needle has passed fills in.
+A diagram with tasks needs no `row`, and tasks and rows keep the declared order from top to bottom.
+
+```dragon
+time Schedule up to the release
+
+scale day 1d 14 [from: 1]
+
+task design as Design 0-2 [color: blue]
+task build as Build 3-8 [color: violet]
+task test as Test 7-10 [color: amber]
+task ship as Release 13 [color: green]
+
+step Build and test
+  say Start building on day 4, and start testing alongside it on day 8.
+  now -> 10
+```
+
+### Tree diagram
+
+Start with `tree <title>` to draw a tree diagram, which follows, step by step, how leaf values fold up into their parents until one root remains. Inside a step, `leaf <id> [hash: <value>]` writes a leaf and `node <id> of <child>, <child> [hash: <value>]` writes a parent, and each box appears in the step that writes it.
+Leaves line up from the left in written order, a parent sits above the middle of its children, and the box that no parent takes becomes the root.
+A carrier on a line between a parent and a child runs along the tree line, and the tree line keeps that color once passed. From the step a carrier first runs on a tree line, only the boxes that send or receive carriers are drawn strongly.
+
+```dragon
+tree Proving a transaction is included
+
+step Hash each transaction
+  say Compute a value from each of the 4 transactions. These values become the leaves.
+  leaf tx1 [hash: 3fa0]
+  leaf tx2 [hash: 8b04]
+  leaf tx3 [hash: c41d]
+  leaf tx4 [hash: e5f8]
+
+step Pair them up
+  say Join neighbouring values two at a time and hash again. Two parents appear.
+  node 1to2 of tx1, tx2 [hash: 7a21]
+  node 3to4 of tx3, tx4 [hash: b9e4]
+
+step The root appears
+  say Joining the last two gives one root that sums up every transaction.
+  node root of 1to2, 3to4 [hash: e71c]
+
+step Climb from tx3 to the root
+  say Take the neighbouring value at each level and climb. The root comes out without reading tx1 or tx2.
+  tx3 -> 3to4 [tag: c41d]
+  tx4 -> 3to4 [tag: e5f8]
+  3to4 -> root [tag: b9e4]
+  1to2 -> root [tag: 7a21]
+```
+
+### Lineup diagram
+
+Start with `lineup <title>` to draw a lineup diagram, which follows chips in lanes step by step. The `shape` attribute on the first line picks one of these looks.
+
+#### Board and stations looks of a lineup diagram
+
+Start with `lineup <title>` to draw a lineup diagram, which follows chips in lanes step by step.
+By default it uses the board look, and `[shape: stations]` on the first line switches to the stations look.
+
+- The board puts the boxes side by side as pale vertical columns in the order declared, and stacks the chips in each column as cards from the top. The column head shows the name and the number of cards
+- `[limit: <number>]` on a box shows the count as `2/3`. The board puts that many ticks under the head and fills one for each card, and the stations look draws a dashed slot for each free seat
+- A box with `[order: none]` shows a "No order" pill under its name, and its cards carry no numbers. `note <lane>: <text>` in a step shows a value chip under the name until the next `note` on the same lane
+- When a `line` moves a chip back to an earlier lane, it is a send-back. A return line and a "Sent back" label are drawn, the card gets a back mark, and a dashed trace stays in the lane it left
+- `line <lane>:` with nothing after the `:` empties that lane
+- The stations look puts the boxes on one line as stops and stacks the cards under each stop. It refuses `seal`, `open`, `pick`, and `stamp`, because it does not draw them
+
+On a phone-width frame, the board stacks its columns from the top with two cards to a row, and the stations line runs down the left.
+
+```dragon
+lineup Ship a change to production [shape: stations]
+
+box Dev
+box Review [color: violet]
+box Staging [color: amber, limit: 2]
+box Live as Production [color: green, order: none]
+
+item login, search
+
+step Send them to review
+  say Two changes go to review.
+  line Review: login, search
+
+step Check them on staging
+  say Both approved changes go on Staging, which is now full with 2.
+  line Staging: login, search
+  line Review:
+
+step Send it back if it fails
+  say search fails on Staging, so it is sent back to Dev, and only login ships.
+  line Dev: search
+  line Live: login
+  line Staging:
+```
+
+#### Layers look of a lineup diagram
+
+Start with `lineup <title>` to draw a lineup diagram, which follows chips in lanes step by step.
+Add `[shape: layers]` to the first line to stack the boxes as horizontal layers instead, for one request or transaction going down through them.
+
+- The boxes stack from the top in the order declared. The left of each band shows the layer's name, its `note`, and its number. A layers lineup takes up to 8 layers and draws no arrows between them
+- `line <layer>: <chip>` inside a step is the layer the chip is in. The band the chip is in is drawn strongest, and the bands it has passed stay lit
+- `note <layer>: <text>` is the mark of the layer, such as what it did and how long it took. It stays until the next `note` on the same layer
+- A chip with `note` shows it as a second line on its card
+- The layers look refuses `[order: none]`, `role`, `seal`, `open`, `pick`, and `stamp`, because it does not draw them
+
+On a narrow frame, the mark and the card move under the name and description of each layer.
+
+```dragon
+lineup An L2 transaction until it is final [shape: layers]
+
+box wallet as Wallet [note: Signs with the private key, color: violet]
+box l2 as L2 (rollup) [note: Bundles transactions into one, color: amber]
+box l1 as L1 (Ethereum) [note: Waits until it cannot be undone, color: green]
+
+item Transaction [color: blue, note: Swap 100 USDC]
+
+step The wallet signs
+  say The wallet signs the transaction with the owner's key.
+  line wallet: Transaction
+  note wallet: Signed in 1 s
+
+step The L2 bundles it
+  say The L2 bundles it with other transactions and answers within seconds.
+  line l2: Transaction
+  note l2: Bundled in 2 s
+
+step L1 makes it final
+  say Once the L1 block is final, the transaction can no longer be undone.
+  line l1: Transaction
+  note l1: Final in 13 min
+```
+
+#### Stairs look of a lineup diagram
+
+Add `[shape: stairs]` to the first line instead to set the layers of the layers look as stairs, each lower layer shifted right by the same width.
+It takes the same `box`, `item`, `line`, and `note` lines as the layers look, and refuses the same lines.
+
+- `box <id> as <name> [time: <length>]` is the time spent in that layer, as a number and a unit (`ms`, `s`, `min`, `h`, `d`). Write `time` on every box or on none. A layer that takes no time can be written as `0s`
+- With `time`, a scale of the time spent so far sits to the right of the stairs. Its numbers start at 0 and go up in round steps (1, 2, or 5 times a power of 10), in the largest unit written on the boxes
+- At each step, the needle of the scale moves to the time spent through the layer the chip went down to, including that layer, with a card such as `1min 3s`
+- The chip walks no line between layers
+
+On a phone-width frame, the stairs fill the width and the scale lies horizontally under the diagram.
+
+```dragon
+lineup Until a video can be watched [shape: stairs]
+
+box upload as Upload [note: Sends the video to storage, color: violet, time: 40s]
+box encode as Encode [note: Remakes it for each quality, color: amber, time: 3min]
+box viewer as Viewer's device [note: Plays the video, color: green, time: 3s]
+
+item video [color: blue, note: Trip video]
+
+step Upload
+  say The phone sends the video to storage.
+  line upload: video
+
+step Encode
+  say Storage remakes the video in four qualities.
+  line encode: video
+
+step Play
+  say The viewer's device starts playback.
+  line viewer: video
+```
+
+### Try diagram
+
+Start with `try <title>` to draw a try diagram, which readers move themselves by typing values and pressing buttons. Write the part lines before the first step, from top to bottom, and the parts are stacked in that order.
+
+- `route <name>: <node> - <node> - ..., ... [from: <node>, to: <node>]` is a network. It carries a sent chip from `from` to `to` along the shortest path
+- `queue <name> [order: <field>, accept: <name>]` is a waiting line. It sorts chips from the highest value of the `order` field. With `accept`, the input strip sends only chips with those names into the queue, and the send button cannot be pressed for any other name. Wrap two or more names as `accept: "<name>, <name>"`. When the first field has a `choose` line, the names in `accept` come from its choices
+- `chain <name> [edit: <field>]` is a chain of blocks. Each block holds the previous block's `hash` as `prev`, and with `edit` the reader can change that field of a chip inside a block
+- `log <name> [all: <field> = <value>, yes: <mark>, no: <mark>]` is a log. It lists the chips a button gathers as numbered records, and unlike a chain a record has no `prev` or `hash`. With `all`, a record shows the `yes` mark when that field of every chip in it has the value, and the `no` mark when even one differs
+- `ask <field>, <field>, ... [into: <queue or field>, via: <route>]` is the input strip. The first field's value becomes the chip's name. When `into` names a field, a sent chip enters the queue whose name matches that field's value. Give that field a `choose` line and place a queue named after each choice
+- `choose <field>: <value>, <value>, ...` gives that field choices. The reader picks one from the choices in the written order instead of typing. The first field takes choices too, and changing that field of a chip inside a block picks from the same choices
+- `press <name> [from: <queue>, into: <chain or log>, take: <count>, at: <part>]` is a button. It moves the top `take` chips of the queue into a new block or a new record. Write two or more queues as `from: "<queue>, <queue>"` and it gathers the top `take` chips of each, in the written order, into one block or record, and cannot be pressed while any of those queues holds fewer than `take`. With `at` it sits on that part, and without it in the input strip
+- `side <part>, <part>, ...` puts route, queue, chain, and log parts on one row, left to right in the written order, when the frame is wide. A queue takes only the width its chips need and the rest goes to the route, chain, and log. When the row would shrink the text below a readable size, the parts stack as without the line
+- `check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]` is a gate on a node of the shortest path of the route that `ask` sends through (`via`). A sent chip checks the gates of each node it reaches in the written order, and stops at that node on the first gate whose condition does not hold. A stopped chip enters no queue, and the `into` log, which has no `all`, gains one record with the chip, the node, the `no` error and whether it can be retried. The op is `>=`, `<=`, `>`, `<`, `==` or `!=`. When the value is a number, the field is compared as a number and a field that is not a number does not pass. A value that is not a number is compared as text with `==` and `!=`. Records of a gate with `retry` are marked retryable, and those of a gate without it are marked fix and resend
+
+Declare chips with `item <name> [<field>: <value>]`. Inside a step, `line` writes a queue's contents or a block, and `ask <value>, ...`, `press <name>`, and `item <name> [<field>: <value>]` write the author's example (send, build, change).
+The player stops at the first step and waits for the reader, and adds one step and plays it each time the reader sends, presses, or changes a value. Images, videos, and print draw the author's example steps.
+
+```dragon
+try How a transaction gets into a block
+
+route Network: You - node-1 - Builder, You - node-2 - node-3 - Builder [from: You, to: Builder]
+queue Mempool [order: Fee]
+chain Chain [edit: Amount]
+ask Sender, To, Amount, Fee [into: Mempool, via: Network]
+choose To: Bob, Carol, Dave, Erin
+press Build [from: Mempool, into: Chain, take: 2]
+
+item tx1 [To: Carol, Amount: 3, Fee: 7]
+item tx2 [To: Dave, Amount: 5, Fee: 5]
+item tx3 [To: Erin, Amount: 2, Fee: 4]
+
+step Transactions wait in line
+  say Transactions in the mempool line up from the highest fee.
+  line Chain: tx1
+  line Mempool: tx2, tx3
+
+step You send one
+  say Your transaction crosses the network to the builder.
+  ask You, Bob, 5, 12
+
+step The builder makes a block
+  say The two highest fees go into block 2, which holds block 1's hash as prev.
+  press Build
+```
+
+### Pipe diagram
+
+Start with `pipe <title>` to draw a pipe diagram, which follows one transaction step by step: the calls between contracts, the balances, and the stored values.
+Declare the parties with `box`. Whether each party is a sender, a contract, a token contract, or an account comes from the lines, so it is not written.
+
+- `hold <owner>: <amount> <token>, <amount> <token>` declares balances before the first step, and `hold <contract>: <name> <value>` declares a stored value. Name a token by its declared party, as in `box usdc as USDC`. `ETH` needs no declaration. Wrap names that read as amounts and names that contain `[` in `"`
+- `<caller> -> <callee>: <text>` is a call. `[value: <amount> ETH]` sends ETH with it, `[call: delegate]` borrows the callee's code and writes to the caller's values, `[call: static]` cannot write, and `[fold]` folds the call's inner steps into one box that opens when pressed
+- `return <party>: <value>` closes the innermost open call, and `revert <party>: <reason>` fails it and rolls back only the changes inside it
+- `move <token>: <amount> <from> -> <to>` moves a balance through the token's pipe, and `write <party>: <name> <value>` rewrites a value plate
+- `mint <token>: <amount> -> <to>` fills only the receiver's tank, and `burn <token>: <amount> <holder>` drains only the holder's tank, so no zero address party is drawn
+- For NFTs and ERC-1155, write the token ID after `#` and the count before it, as in `move art: #1 alice -> bob`, `move items: 2 #1 alice -> bob`, `mint art: #3 -> alice`, and `hold alice: 5 #1 ITEMS`. Without a count it is one, and each ID gets its own tank. A `#` with no ID after it is refused
+- `check <party>: <left> <op> <right>` is a check with `>=`, `<=`, `==`, `!=`, `>`, or `<`. dragon compares numbers itself, and a check on other values fails only with `[fail]`
+- `emit <party>: <name>(<arg>, ...)` is an event, and `calc <party>: <in> -> <out>` is a conversion
+- `layout <shape>` before the first step chooses how to place the token boxes and tanks. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. The places come only from the `box` and `hold` lines, so changing who calls or the arguments moves no box or tank, and people and boxes outside the calls are drawn faint. A diagram without token boxes keeps no space above the people for boxes and card wallets, so in a diagram that shows a call card, the people and tanks sit lower by the card's height
+- `route <person> -> <contract>`, one pair per line after the `layout` line, names a call path that `layout top` and `layout bottom` keep open (`route bob -> usdc`). Without route lines the placement keeps open only the calls from people that appear in the steps, so list every pair a set of diagrams uses to keep the boxes and tanks in the same places across them
+- `gist <key point>` is the key point of the step, shown in a note after the step's arrows under the figure. A pipe diagram does not show the step body under the figure, so write here a point the body alone would carry. A step takes at most one, and other kinds of diagram cannot take it
+- `box <token> as <name> [note: <text>]` sets the text under a token box's name. A token box without it shows `balanceOf`. Only a box whose name is a unit on a `hold` line takes it, and a `note` on a person or contract box stops with an error
+
+Tank levels are drawn to scale for each token. Changes stay provisional (hatched) until the outermost call returns, and then they all turn final (green). Changes that a `revert` rolls back are marked in red.
+
+```dragon
+pipe Swap 1 ETH for USDC
+
+box alice as Alice
+box ex as Exchange
+box old as OldPool
+box pool as Pool
+box usdc as USDC
+
+hold alice: 1 ETH, 0 USDC
+hold ex: 0 ETH
+hold pool: 5000 USDC
+hold ex: "swaps[alice]" 0
+
+step Alice asks Exchange with 1 ETH attached
+  say ETH attached to a call moves into the callee's tank as the call is made.
+  alice -> ex: swap [value: 1 ETH]
+
+step The old pool is closed
+  say The check fails, and every change up to it rolls back.
+  ex -> old: swap
+  check old: open == true [fail]
+  revert old: closed
+
+step Read the pool price
+  say A call that cannot write reads only the price.
+  ex -> pool: price [call: static]
+  return pool: 3200
+
+step Hand the swap to the pool
+  say The inner steps fold into one box, which opens when pressed.
+  ex -> pool: swap [fold]
+
+step Work out the amount to pay
+  say Work out how much USDC 1 ETH is worth at the current price.
+  calc pool: 1 ETH -> 3200 USDC
+
+step USDC moves to Alice
+  say USDC takes the amount from the pool's balance and adds it to Alice's.
+  pool -> usdc: transfer
+  move usdc: 3200 pool -> alice
+  emit usdc: Transfer(pool, alice, 3200)
+  return usdc: true
+
+step The pool returns the amount it paid
+  say Even after the inner call returns, the changes stay provisional.
+  return pool: 3200 USDC
+
+step The swap ends
+  say Exchange writes its record and returns, and every change becomes final here.
+  gist Every change becomes final when the outermost call returns
+  write ex: "swaps[alice]" 1
+  emit ex: Swapped(alice, 3200)
+  return ex: 3200 USDC
+```
+
+### Chart
+
+Start with `chart <title>` to draw a chart, which compares items step by step. Write the shape on the first line.
+`chart <title> [shape: donut]` draws the share of each item as the angle of an arc, and `chart <title> [shape: bar]` draws the amount of each item as the length of a horizontal bar.
+
+- `item <id> as <name> [color: <color>]` declares an item before the first step. A donut lays the arcs clockwise from 12 o'clock in the order declared and shows the names and rounded percentages in its legend. A bar chart stacks the bars from the top with each name on the left. An item without `color` gets a color in the order declared, and a chart takes from 1 to 8 items
+- `set <id>: <value>` inside a step is the value of the item, a number of 0 or more written without a unit. An item without `set` keeps its previous value, and an item with no value yet shows no arc or bar
+
+Going to the next step moves the arcs and bars from the previous values to the new ones. The largest value over all steps gets the longest bar, and each value shows at the end of its bar.
+The shape stays the same through the steps, and a chart takes no `box`, `group`, `strip`, or line.
+
+`chart <title> [shape: funnel]` draws a funnel, where the count shrinks stage by stage. Declare the stages from the top with `item` and write each count with `set`.
+A stage's bar appears in the step that sets it, left-aligned and as long as its value compared with the first stage. The gap to the stage above stays as a pale bar with the number who left, and the rate kept from the stage above shows beside the count.
+The last step adds a row with the share of the first stage that made it to the last one. A value larger than the stage above, and a stage that never gets a value, are errors when the notation is read.
+
+```dragon
+chart People on the way to buying [shape: funnel]
+
+item visit as Visited the shop [color: blue]
+item view as Viewed a product [color: violet]
+item buy as Bought [color: green]
+
+step Visit
+  say 10,000 people visited the shop site.
+  set visit: 10000
+
+step View a product
+  say 4,200 people went on to a product page.
+  set view: 4200
+
+step Buy
+  say 380 people bought.
+  set buy: 380
+```
+
+`chart <title> [shape: dots]` counts with dots.
+The box of the whole holds empty dots from before the first step, and in the step that sets an item, that many dots move from the box to the item's cluster.
+The diagram picks how many each dot stands for (1, 2 or 5 times a power of 10) so that the dots come to about 100, and shows it at the top of the box beside the total.
+Write the first line as `chart <title> [shape: dots, unit: <count>]` to choose it yourself. A step with more than 200 dots is an error when the notation is read.
+Donuts, bars and dots take `set none: <count>` inside a step for the count in none of the items.
+With dots those dots stay grey in the box, and a donut or a bar draws them as a grey arc or bar after the items. A funnel and a line chart refuse `set none`.
+
+```dragon
+chart Devices of 1,000 people [shape: dots]
+
+item i as iPhone
+item a as Android
+item w as Windows
+item m as Mac
+
+step iPhone
+  say 412 people use an iPhone most, which makes 41 dots.
+  set i: 412
+
+step Android
+  say 287 people use Android, the second most after iPhone.
+  set a: 287
+
+step Windows
+  say 158 people use a Windows computer.
+  set w: 158
+
+step Mac
+  say 93 people use a Mac, which makes 9 dots.
+  set m: 93
+
+step None of them
+  say The 50 people who use none of them stay grey in the box of the whole.
+  set none: 50
+```
+
+`chart <title> [shape: line]` draws how amounts change over time as a line chart.
+Each `item` is one line in its own color with its name in the legend at the top, and each `step` is one point on the time axis, labeled with the step title.
+`set <id>: <value>` gives the item's value at that step, and a step without `set` keeps the previous value.
+The value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10.
+Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point.
+A line chart needs at least two steps, and an item that never gets a value and `set none` are errors when the notation is read.
+
+```dragon
+chart A bakery's sales over one week (yen) [shape: line]
+
+item shop as Counter [color: amber]
+item online as Online [color: blue]
+
+step Mon
+  say The week starts with 42,000 yen at the counter and 12,000 yen online.
+  set shop: 42000
+  set online: 12000
+
+step Tue
+  say On a rainy Tuesday the counter drops to 38,000 yen, and online grows to 15,000 yen.
+  set shop: 38000
+  set online: 15000
+
+step Wed
+  say The counter comes back to 45,000 yen.
+  set shop: 45000
+```
+
+```dragon
+chart Support requests by channel [shape: bar]
+
+item mail as Email [color: blue]
+item chat as Chat [color: green]
+item phone as Phone [color: amber]
+
+step April
+  say Most requests come by email.
+  set mail: 120
+  set phone: 64
+
+step May
+  say Chat opens, and phone requests drop.
+  set mail: 104
+  set chat: 38
+  set phone: 58
+```
+
+### Flow diagram
+
+Start with `flow <title>` to draw a flow diagram, which follows a procedure from top to bottom and branches at choices.
+The boxes and choices that the steps pass through stack in one column in the order the lines first reach them, and a path that a choice sends elsewhere leaves to the right of the choice.
+
+- `box <id> as <name>` is a step of the procedure
+- `choice <id> as <question>` is a choice, drawn as a diamond with the question inside. A long question wraps onto two lines after a particle or a space. Each line out of a choice carries the answer as its label, and a choice has at most two ways out
+- Write `start` on the sending side for a line out of the start mark, and `finish` on the receiving side for a line into the end mark
+- Lines written before the first `step` are paths not taken this time and stay dotted. A box that no line in a step reaches gets a dotted border and a muted name
+- The line that moves in a step turns blue and a dot runs along it until it arrives. A passed line stays dark, and a choice the dot reached is filled with light amber. A line without `carry` or `tag` runs this dot instead of an envelope
+
+```dragon
+flow Login check
+
+box input as Input
+choice pw as Password correct?
+choice otp as 2FA correct?
+box done as Signed in [color: green]
+box err as Show an error [color: rose]
+
+pw -> err: No
+otp -> err: No
+
+step Enter
+  say The user enters an ID and a password.
+  start -> input
+
+step Check the password
+  say The server checks the password.
+  input -> pw: Send
+
+step Check the 2FA code
+  say The password matched, so the 2FA code is checked.
+  pw -> otp: Yes
+
+step Sign in
+  say The code matches too, and the user is signed in. The no paths stay dotted.
+  otp -> done: Yes
+  done -> finish
+```
+
+### Cycle diagram
+
+Start with `cycle <title>` to draw a cycle diagram, which follows a flow that goes around the same steps again and again.
+The steps sit on a ring clockwise from the top in the order written, and arc arrows join each step to the next.
+
+- `box <id> as <name>` is a step on the ring, written before the first `step`. A cycle diagram takes 2 to 8 steps
+- `<id> -> <id> [tag: <text>]` inside a step is a line to the next step on the ring. In that step the chip runs along the arc to the next step, and the arc and its arrowhead stay lit in the color of the receiving step
+- A line from the last step to the first one is also a line to the next step, and it starts the next round. A line that skips a step, goes backward, returns to the same step or carries a `: <label>` is refused, and so are `act` and `group` lines
+- The step number sits beside the box of the step the chip reached. A step without a line puts its number beside the box the step before ended at
+- `strip <title>: <field>, <field>` puts the strip title and the field values in the middle of the ring. `set <field>: <value>` in a step changes a value. The first field shows large and the others smaller, field names are not shown, and a value that changes after it was first written shows in the color of that step's box while the step lasts
+
+```dragon
+cycle The weekly review
+
+box plan as Decide [note: start of week, color: blue]
+box work as Do [note: every day, color: green]
+box look as Look back [note: end of week, color: amber]
+
+strip Week: round, day
+
+step Decide
+  say At the start of the week, decide what to do that week.
+  set round: Week 1
+  set day: Monday
+
+step Do
+  say Work on what was decided each day.
+  plan -> work [tag: tasks]
+  set day: Tuesday to Thursday
+
+step Look back
+  say At the end of the week, look back on what got done and what is left.
+  work -> look [tag: progress]
+  set day: Friday
+
+step On to the next week
+  say Take what is left back to deciding the next week.
+  look -> plan [tag: left]
+  set round: Week 2
+  set day: Monday
+```
+
+`cycle <title> [shape: clock]` draws the steps on a clock dial instead of a ring.
+
+- Each `box` takes the length of its step, such as `[time: 25min]`. A length is a number other than 0 and a unit (`ms`, `s`, `min`, `h` or `d`), and every step needs one. The steps sit clockwise from 12 o'clock as arcs as long as they take
+- Numbers around the dial count from 0 at round steps, in the largest unit written. One hand points at the start of the arc of the step the diagram is at, and the chip of a line rides the tip of the hand
+- The arcs entered in the current round stay lit in their step colors until the hand passes 12 o'clock again
+- `[shape: clock, turn: left]` turns the dial counterclockwise. `turn` can be written only with `[shape: clock]`
+- At a phone width the step numbers sit outside the dial in place of the names, and a list of numbers, names and lengths sits below the dial
+
+```dragon
+cycle Focus and rest schedule [shape: clock]
+
+box focus as Focus [time: 25min, color: blue]
+box short as Short rest [time: 5min, color: green]
+box review as Look back [time: 10min, color: amber]
+box long as Long rest [time: 20min, color: rose]
+
+strip Schedule: round, focused
+
+step Start focusing
+  say Notifications go off and the work at hand gets 25 minutes of focus.
+  set round: Round 1
+  set focused: 0 min
+
+step Short rest
+  say After 25 minutes the work stops for a 5 minute stretch.
+  focus -> short [tag: 25 min]
+  set focused: 25 min
+
+step Look back
+  say After the rest, 10 minutes go into writing down what moved and what got stuck.
+  short -> review
+
+step Long rest
+  say With the notes written, a long 20 minute rest clears the head.
+  review -> long [tag: notes]
+
+step On to the next round
+  say The rest ends and the second round of focus begins.
+  long -> focus
+  set round: Round 2
+```
+
+`cycle <title> [shape: band]` unrolls the ring into a band and runs the steps left to right.
+
+- The steps sit in the order written as chevrons of equal width. Each name sits below its chevron and the step numbers sit above
+- `[time: <length>]` on every `box` puts a scale over the band that marks when each step starts, counted from 0 in the largest unit that writes every mark as a whole number or with one decimal. Write a length on every step or on none
+- Each round gets its own band, stacked top to bottom. A round that has not started yet stays faint, and the head of each band shows the strip title and the field values of that round
+- The chip of a line runs along the middle of the band from chevron to chevron, and the chevron it reaches stays lit. The line from the last step to the first one follows a return arrow from the right end down to the left end of the next band
+- `turn` cannot be written with `[shape: band]`
+- At a phone width the chevrons shrink with the step numbers inside, and a list of numbers, names and lengths sits below the bands
+
+```dragon
+cycle A year on the field [shape: band]
+
+box sow as Sow [time: 60d, color: green]
+box grow as Grow [time: 120d, color: blue]
+box harvest as Harvest [time: 60d, color: amber]
+box rest as Rest the soil [time: 120d, color: slate]
+
+strip Field: year, season
+
+step Sow
+  say In spring the soil is tilled and seeds go into the field.
+  set year: Year 1
+  set season: Spring
+
+step Grow
+  say Once the shoots are up, they get water and grow all summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+
+step Harvest
+  say In autumn the ripe crop is harvested.
+  grow -> harvest [tag: crop]
+  set season: Autumn
+
+step Rest the soil
+  say After the harvest, compost goes on the field and the soil rests through winter.
+  harvest -> rest [tag: compost]
+  set season: Winter
+
+step Into year 2
+  say When spring comes, seeds go into the rested soil again.
+  rest -> sow [tag: seeds]
+  set year: Year 2
+  set season: Spring
+
+step Grow in year 2
+  say In year 2 the shoots again grow through the summer.
+  sow -> grow [tag: shoots]
+  set season: Summer
+```
+
+### Mind map
+
+Start with `mind <title>` to draw a mind map, which spreads ideas out from one topic in the middle, branch by branch.
+Branches go round clockwise from the upper left in the order written (up left, up right, down right and down left for four), and the leaves of a branch sit in a column outside it.
+
+- `idea <id> as <name>` inside a step is the topic in the middle. A mind map has exactly one idea without `of`, and a second one or none at all is refused
+- `idea <id> as <name> of <parent>` inside a step is an idea joined to its parent. An idea of the topic is a branch, and an idea of a branch is a leaf. Ideas go three levels deep, and a fourth level or a parent that has not been written yet is refused
+- `as <name>` can be left out, and the id is then shown as the name. Wrap a name that contains the word `of` in `"`
+- `[color: <color>]` gives an idea its own color. A branch without a color gets the next color no other branch has taken, and leaves take their branch's color
+- Ideas and lines start faint and turn solid at the step that writes them. The line from the parent is drawn from the parent's side, and the step number sits beside the first idea of that step
+- `box`, `strip`, lines between boxes and `act` lines are refused in a mind map
+
+```dragon
+mind Getting a study meetup ready
+
+step Put the topic
+  say Put what to get ready in the middle.
+  idea meetup as Study meetup
+
+step Talk branch
+  say Put the talk on a branch and list its parts as leaves.
+  idea talk as The talk of meetup [color: blue]
+  idea intro as First five minutes of talk
+  idea demo as Live demo of talk
+
+step Venue branch
+  say Do the same for the venue.
+  idea room as Venue of meetup
+  idea seats as Number of seats of room
+  idea screen as Screen to project on of room
+```
+
+### Table relation diagram
+
+Start with `er <title>` to draw a table relation diagram, which follows step by step which row of which table one value goes through.
+The tables sit left to right in one row in the order written, and a line joins each field that holds a link to the field it points at.
+
+- `table <id> as <name>` is a table, written before the first `step`. The `field <name>: <value>` lines up to the next `table` line are its fields. A table relation diagram takes 1 to 6 tables, and `[color: <color>]` sets a table color
+- `[key]` on a field is the key mark (PK), and `field <name>: <value> [ref: <table>.<field>]` links it to a field of another table (FK). The linking field is the many side and gets a three-pronged end, and the field it points at is the one side and gets a bar end. A link to a missing table or field is refused
+- `pick <table>.<field>` inside a step lights that row and the table frame, and the frame keeps a thin color in later steps
+- `<table>.<field> -> <table>.<field> [tag: <value>]` runs a value chip along the line between linked fields, and the chip stops halfway. A line between fields that are not linked, or one with a `: <label>`, is refused
+- `set <table>.<field>: <value>` rewrites the value of a field from that step on. `note <table>.<field>: <text>` shows a formula card under the table from that step on, and cards on the same table stack downward
+- The step number sits at the right of the header of the table that step picks a row from
+
+```dragon
+er Look up the customer of an order
+
+table users as Customers
+  field id: U-7 [key]
+  field name: Tanaka
+  field orders: 2
+
+table orders as Orders
+  field id: O-41 [key]
+  field user_id: U-7 [ref: users.id]
+  field amount: $12
+
+step Look up the order
+  say Look up the row of order O-41.
+  pick orders.id
+
+step Follow the customer
+  say Follow the user_id along the link and look up Tanaka, customer U-7.
+  orders.user_id -> users.id [tag: U-7]
+  pick users.id
+
+step Count the order
+  say Add one to the orders Tanaka has.
+  note users.orders: 2 + 1 = 3
+  set users.orders: 3
+  pick users.orders
+```
+
+### Two-axis matrix
+
+Start with `matrix <title>` to draw a two-axis matrix, which sorts items into four areas by two measures, step by step.
+The horizontal axis runs below the areas from left to right and the vertical axis left of them from bottom to top, and the items wait in a list left of the areas until a step places them.
+
+- `axis <name> [from: <low end>, to: <high end>]` is an axis, written before the first `step`. Write the horizontal axis first and then the vertical one; the name and both ends show outside the arrow. A matrix without exactly two axes is refused
+- `box <id> as <name>` is an area. Write exactly four; they go top left, top right, bottom left and bottom right in the order written, with the name at the top left. A matrix without exactly four areas is refused
+- `item <id> as <name>` is an item to sort, written before the first `step`. Items wait in the "Not placed yet" list in the order written
+- `line <area>: <item>, <item>` inside a step places items into an area. The cards slide from the list into the area and the area lights up in that step. A placed card stays until a later step places it in another area. An unknown area or item, or the same item twice on one line, is refused
+- `as <name>` can be left out, and the id is then shown as the name. Lines between boxes and `strip` lines are refused in a two-axis matrix
+- `item <id> as <name> [x: <across>, y: <up>]` gives an item scores from 0 to 10, with at most one decimal place. `line: <item>` inside a step then places it without naming an area, into the area its scores fall in, and a score of 5 or more counts as the large side. A `line <area>: <item>` for a scored item is read only when the area matches its scores. Scores outside 0 to 10, or only one of the two, are refused
+- Add `reverse: yes` to an axis line, as `axis <name> [from: <low end>, to: <high end>, reverse: yes]`, and that axis puts large values on the left or at the bottom, with its arrow pointing that way
+- Start with `matrix <title> [shape: scatter]` to plot each item as a dot at its scores instead of moving a card. The ruled axes show 0 to 10, a table of the items and their scores sits left of the plot, and the step that plots an item draws lines from both axes to the dot with its scores and lights the area it lands in. Items with the same scores share one dot. `[shape: scatter, table: none]` leaves the table out, and a narrow frame stacks the table above the plot
+- When a score chip on an axis would touch the name of a point shown at that step, the chip moves off the axis for that step, to the left of the vertical axis or below the horizontal one, with its edge on the axis line. The names of the points stay where they are, and the chips keep their size
+
+```dragon
+matrix Sort the work by effort and impact
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login
+item pay as Add payments
+item word as Fix wording
+
+step Line up
+  say Line up the work on the left.
+
+step Do now
+  say Low effort and high impact goes first.
+  line now: login
+
+step The rest
+  say Sort the rest by effort and impact.
+  line plan: pay
+  line spare: word
+```
+
+```dragon
+matrix Plot the work by score [shape: scatter]
+
+axis Effort [from: low, to: high]
+axis Impact [from: low, to: high]
+
+box now as Do now
+box plan as Plan it
+box spare as When free
+box drop as Skip
+
+item login as Faster login [x: 2, y: 8]
+item pay as Add payments [x: 8, y: 7.5]
+item word as Fix wording [x: 3, y: 3]
+
+step Line up
+  say Line up the work and its scores in the table on the left.
+
+step Login
+  say Plot the work with low effort and high impact.
+  line: login
+
+step Payments
+  say Plot the work with high impact and high effort.
+  line: pay
+
+step Wording
+  say Plot the work with low effort and low impact.
+  line: word
+```
+
+### Set overlap diagram
+
+Start with `venn <title>` to draw a set overlap diagram, which overlaps two or three sets as circles and counts how many fall in each region step by step.
+Two sets sit left and right, and three sets sit top left, top right and below.
+
+- `item <id> as <name>` is a set, written before the first `step`. A set overlap diagram takes 2 or 3 sets, and `[color: <color>]` sets a circle color
+- `set <id>: <count>` inside a step writes the total of a set. Its circle appears in the step that first writes it, and the name and the total sit outside the circle
+- `set <id> & <id>: <count>` writes the count in an overlap, and lights its region with a count chip in that step. An overlap larger than one of its sets is refused
+- Each region shows the count that is only in it, worked out from the totals and the overlaps. A region shows nothing until every count it needs is written
+- `set none: <count>` writes the count in none of the sets, and shows it in a frame around the circles from that step on. In other diagram kinds `none` still reads as an ordinary box id
+- Add `[shape: dots]` to the first line to count with dots instead of circles. The dots move into a cluster for each set and each overlap, a dot in two or more sets is painted in slices of their colors, and `[shape: dots, unit: <count>]` chooses how many each dot stands for.
+- The step number sits beside the name of the circle that appears in that step, or under the count of the region that step lights
+
+```dragon
+venn People who run in the morning and at night
+
+item morning as Run in the morning
+item night as Run at night
+
+step Morning
+  say 30 people run in the morning.
+  set morning: 30
+
+step Night and both
+  say 20 people run at night, and 5 of them also run in the morning.
+  set night: 20
+  set morning & night: 5
+
+step Neither
+  say 12 people run at neither time.
+  set none: 12
+```
+
+### Sankey diagram
+
+Start with `sankey <title>` to draw a Sankey diagram, which follows step by step where one amount goes and how much, with bands as wide as the amounts.
+Boxes no line goes into sit in the left column, and each target sits in a column to the right of its source.
+
+- `box <id> as <name>` declares a source or a target before the first `step`. `[color: <color>]` sets the color of its bar and of the bands going into it, and a box takes no `note`, `icon` or `link`
+- `<source> -> <target>: <amount>` inside a step grows a band from the source bar to the target bar in that step, and an amount chip crosses it. The number at the start of the label is the amount: `40%` reads as 40 and `1,200 yen` as 1200
+- A band takes the share of the source bar that its amount makes up, and the bands stack down the source bar in the order written. A target's bar fills in as each band reaches it
+- A box with no source holds the sum of what leaves it, and a target holds the sum of what comes in. Write every amount in one diagram in the same unit
+- A label that does not start with a number, a line whose flow leads back to a box it came from, and a box sending out more than comes in are refused
+- A line takes no `tag`, `carry` or `side`, because the amount chip shows the line label. `group`, `strip`, `act`, `note` and `set` lines are refused
+- The step number sits to the right of the first target that step reaches
+
+```dragon
+sankey Where the pocket money goes
+
+box pay as Pocket money 10,000 yen [color: slate]
+box food as Food [color: amber]
+box save as Savings [color: green]
+box fun as Fun [color: rose]
+
+step Get it
+  say A month of pocket money is 10,000 yen.
+
+step Food
+  say Half of it, 5,000 yen, goes to food.
+  pay -> food: 5,000 yen
+
+step The rest
+  say Save 3,000 yen and spend 2,000 yen on fun.
+  pay -> save: 3,000 yen
+  pay -> fun: 2,000 yen
+```
+
+Write `sankey <title> [shape: rows]` to stack one full-width bar per step from the top instead of drawing bands.
+
+- Boxes, steps and lines are written as in the band look, and there is one row per step. Each row is split into the sections that the lines so far have cut, and a section is as wide as its share of the total of the boxes with no source
+- Each line cuts its target section out of the source section, from the left and in the order written. What a box with no source has not handed out yet is a gray bar that reads like `16h left`
+- Sections that split off in that step and the sections of the last row show their name and amount, and sections carried over from the step before are faint bars with no text
+- The band coming down from the row above and the amount chip are drawn only for the sections that split off in that step
+- When two amount chips of one step would overlap, as in a narrow frame such as a phone, the later chip stops one chip higher and the gap above that row grows by one chip. Chips keep their size and stay above their own section
+- When a name does not fit in its section, the section shows only the amount and the name is listed under that row's bar with a color mark. At phone width the bars still span the full width
+
+```dragon
+sankey How a day is spent [shape: rows]
+
+box day as One day [color: slate]
+box sleep as Sleep [color: blue]
+box awake as Awake [color: amber]
+box work as Work [color: violet]
+box free as Free time [color: rose]
+
+step One day
+  say A day has 24 hours.
+
+step Sleep
+  say Sleep 8 hours.
+  day -> sleep: 8h
+
+step Awake
+  say The other 16 hours are awake time.
+  day -> awake: 16h
+
+step Split
+  say Split the awake time into work and free time.
+  awake -> work: 10h
+  awake -> free: 6h
+```
+
+Write `sankey <title> [shape: treemap]` to make the whole amount one square and split it into areas by amount, step by step.
+
+- Boxes, steps and lines are written as in the band look. The boxes with no source make up the whole square, and each step draws a cut that carves out its target sections. A section's area is its share of the total of the boxes with no source
+- The part not split yet is cut across its longer side by the share of the amount. Lines written in the same step from the same source carve out one strip as large as their total, and the strip is divided in the order the lines are written
+- What a box with no source has not handed out yet is a gray section that reads like `48GB left`
+- When a target section is split again, its frame and name chip stay, and the inside below the chip is divided into the child sections
+- Sections show their name and amount, and no amount chip is drawn. When a name does not fit in its section, the section shows only the amount and the name is listed under the square with a color mark
+
+```dragon
+sankey Phone storage [shape: treemap]
+
+box all as Storage [color: slate]
+box photo as Photos [color: blue]
+box app as Apps [color: green]
+box game as Games [color: rose]
+box work as Work [color: blue]
+
+step Storage
+  say The phone has 128GB of storage.
+
+step Photos and apps
+  say Photos use 48GB and apps use 32GB.
+  all -> photo: 48GB
+  all -> app: 32GB
+
+step Inside the apps
+  say Split the 32GB of apps into games and work.
+  app -> game: 20GB
+  app -> work: 12GB
+```
+
+### Checkout diagram
+
+Start with `checkout <title>` to draw a checkout diagram, a purchase model the reader can change. Its blocks for parties, order flow, product, delivery, budget, approval, payment, order, and scenarios are described in [`src/checkout/README.md`](https://github.com/cardene777/dragon/blob/main/packages/dragon/src/checkout/README.md). The examples are the `examples/purchase-*.en.dragon` files.

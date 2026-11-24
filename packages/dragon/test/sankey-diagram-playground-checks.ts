@@ -45,12 +45,13 @@ describe("量の行き先の図の書き方の文書 (#3626)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).kind === "sankey";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に sankey の行の書き方が無い`).toBe(true);
       expect(amount.test(text), `${path} に量を書いた線 (<出どころ> -> <行き先>: <量>) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(sankeyFences(text), `${path} に量の行き先の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(sankeyFences(text), `${path} に量の行き先の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // README の描ける図の欄に量の行き先の図が載る
     expect(/^\| Diagram kinds \|.*\bsankey diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に sankey diagram が無い").toBe(true);

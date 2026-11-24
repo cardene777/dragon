@@ -22,7 +22,7 @@
 | 軽い入口が量の図を読んで描き、既定の入口と同じSVGを出す | `pnpm exec vitest run packages/dragon/test/light-entry.test.ts`の検査`light-entry-samples-cover-kinds`と`light-entry-draws-same-svg`と`default-entry-draws-every-kind`が通る | #3560 |
 | repoの全ての`.dragon`のfileを`parseNotation`が誤り無く読み、見本帳と編集画面に載せた全ての見本で、どの段でも字が重ならない | `pnpm test`の検査`every-dragon-file-parses`と`overlaps-none-in-every-example`が通る | #3560 |
 | 記法の全ての語をどれかの部品が受け持ち、部品の図の記法がその部品の語を使う | `pnpm test`の検査`catalog-parts-cover-every-word`と`catalog-part-snippets-use-their-words`が通る | #3560 |
-| 使い方の頁と`README.md`と`packages/dragon/README.md`と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`chart`と`[shape: donut]`と`[shape: bar]`と、`item`と`set`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに量の図が載り、`.ikkan/premises/product.md`の描ける図の種類が10になる | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-chart-diagram`が通る | #3560 |
+| 使い方の頁と手引き (`packages/dragon/examples/quick-start.md`と`quick-start.en.md`) に、頭の語`chart`と`[shape: donut]`と`[shape: bar]`と、`item`と`set`の行の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedのAddedに量の図が載り、`.ikkan/premises/product.md`の描ける図の種類が10になる | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`docs-describe-chart-diagram`が通る | #3560 #3881 |
 | AIのskillに全ての図の種類の`references/kinds/<種類>.md`が在って`SKILL.md`が全てを名指し、記法の囲みが全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-covers-every-kind`と`skill-fences-parse`が通る | #3560 |
 | 図の種類を足した時に触る登録先が全て一覧に載り、見本帳が最初に読むscriptとCSSが上限に収まる | `pnpm test`の検査`extend-registry-covers-kind-additions`と`page-bundle-within-budget`が通る | #3560 |
 | 量の図の原本の JSON が`shape: funnel`を受け付ける | `pnpm exec vitest run packages/dragon/test/chart-funnel.test.ts`の検査`schema-accepts-chart-funnel`が通る | #3621 |
@@ -31,7 +31,7 @@
 | 段の中で項目に`set`を書くと、その段でその項目の棒が現れ、前の項目との差を薄い棒で残して去った数と割合を出す | `pnpm exec vitest run packages/dragon/test/chart-funnel.test.ts`の検査`chart-funnel-shows-who-left`が通る | #3621 |
 | 最後の段で、最初の項目のうち最後の項目まで残った割合を出す | `pnpm exec vitest run packages/dragon/test/chart-funnel.test.ts`の検査`chart-funnel-shows-the-overall-rate`が通る | #3621 |
 | 前の項目より大きい値を書いた漏斗の見た目の量の図は、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/chart-funnel.test.ts`の検査`chart-funnel-rejects-a-rising-value`が通る | #3621 |
-| 使い方の頁と`packages/dragon/README.md`と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、漏斗の見た目の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-funnel-docs-describe-the-shape`が通る | #3621 |
+| 使い方の頁と`packages/dragon/examples/quick-start.md`と`packages/dragon/examples/quick-start.en.md`に、漏斗の見た目の書き方が在る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-funnel-docs-describe-the-shape`が通る | #3621 #3881 |
 | 漏斗の見た目の見本2枚 (一般の`shop-funnel`とWeb3の`wallet-onboarding`) が日本語と英語の記法を持ち、英語版の形が日本語版と同じで、`dragon check --layout`の崩れが0件 | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-funnel-examples-in-both-langs-have-no-breaks`が通る | #3621 |
 | 編集画面の棚に漏斗の見た目の書き始めの雛形が在り、雛形の記法を誤り無く読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-funnel-shelf-template-reads`が通る | #3621 |
 | 今の量の図の記法 (`[shape: donut]`と`[shape: bar]`) を読んで書き戻すと、今と同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/chart-diagram.test.ts`の検査`chart-roundtrip-keeps-json-identical`が通る | #3621 |
@@ -51,7 +51,7 @@
 | 原本のJSONで、どの段にも値を書かない項目、`none`の値、段が1つだけの図を検査が拒み、誤った欄の場所をJSON Pointerで示し、英語の文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-schema-rejects-errors`が通る | #3802 |
 | 折れ線の見本の日本語版と英語版が`packages/dragon/examples`に在り、記法として読め、既定の幅と幅390で描いて崩れの知らせが0件で、両方の項目と段と段ごとの`set`の数が同じで、見本帳の見本の一覧と量の図の頁に並ぶ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-examples-in-both-langs-have-no-breaks`が通る | #3802 |
 | 棚の記法の早見に`chart <題> [shape: line]`の頭の行が在り、量の図の見本の束に折れ線の見本が在って折れ線の図として読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-shelf-template-reads`が通る | #3802 |
-| 根のREADMEとpackageのREADMEと使い方の頁と手引きとスキルの`chart.md`が`[shape: line]`の書き方を持ち、変更履歴のAddedに日本語と英語で載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-docs-describe-the-shape`が通る | #3802 |
+| 使い方の頁と手引きとスキルの`chart.md`が`[shape: line]`の書き方を持ち、変更履歴のAddedに日本語と英語で載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-docs-describe-the-shape`が通る | #3802 #3881 |
 | 今の見本の描いたSVGの指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3802 |
 | 止めて置く図の横棒とドーナツが段の名前の所に図の題を出す | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-bar-chart-shows-title`と`still-figure-donut-shows-title`が通る | #3802 |
 | 描く本体 (`render/draw.ts`) が後から読む種類の名前を持たない | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`draw-names-no-later-kind`が通る | #3802 |
