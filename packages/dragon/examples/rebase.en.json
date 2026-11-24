@@ -59,7 +59,7 @@
         {
           "type": "strip",
           "field": "HEAD",
-          "value": "main"
+          "value": "`main`"
         },
         {
           "type": "strip",
@@ -86,7 +86,7 @@
         {
           "type": "strip",
           "field": "HEAD",
-          "value": "feature"
+          "value": "`feature`"
         }
       ]
     },
@@ -241,7 +241,7 @@
         {
           "type": "strip",
           "field": "HEAD",
-          "value": "feature"
+          "value": "`feature`"
         },
         {
           "type": "strip",
@@ -289,7 +289,7 @@
         {
           "type": "strip",
           "field": "HEAD",
-          "value": "main"
+          "value": "`main`"
         },
         {
           "type": "strip",

@@ -16,7 +16,7 @@ step Cut a branch
   commit B on main [hash: 8b04f71, note: Add the list]
   feature from B
   set main: B 8b04f71
-  set main history: B, A
+  set main history: `B, A`
 
 step Commit in small pieces
   say Build search on feature in three commits and push them to the remote repo. The typo fix and the forgotten check along the way stay in the history as they are.
@@ -31,7 +31,7 @@ step main moves on
   commit D on main [hash: e5f8312, note: Fix the tax rate]
   commit E on main [hash: 2a7c9d0, note: Add shipping]
   set main: E 2a7c9d0
-  set main history: E, D, B, A
+  set main history: `E, D, B, A`
 
 step Squash into one
   say Switch back to main and squash-merge feature to make one commit S that holds every change from C1 to C3. S has only E at the tip of main as its parent, and no line joins it to feature.
@@ -41,7 +41,7 @@ step Squash into one
   commit S on main [hash: 7d3a5e2, note: Squash C1 to C3]
   note remote: main now has S
   set main: S 7d3a5e2
-  set main history: S, E, D, B, A [tag: straight]
+  set main history: `S, E, D, B, A` [tag: straight]
 
 step Delete the feature branch
   say The squashed feature commits cannot be reached from main, so -d refuses and -D deletes the branch. The branch on the remote repo goes too. The feature ref disappears, and C1 to C3, now reachable from no branch, turn into dotted circles.

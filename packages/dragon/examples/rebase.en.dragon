@@ -15,7 +15,7 @@ step On main
   commit A on main [hash: 3fa0c19, note: First shape]
   commit B on main [hash: 8b04f71, note: Add the list]
   set main: B 8b04f71
-  set HEAD: main
+  set HEAD: `main`
   set History: Straight
 
 step Cut a branch
@@ -23,7 +23,7 @@ step Cut a branch
   code git switch -c feature
   feature from B
   set feature: B 8b04f71
-  set HEAD: feature
+  set HEAD: `feature`
 
 step Commit work
   say Add C and D on feature. Each commit moves feature to the new commit, and HEAD follows. main stays at B.
@@ -63,7 +63,7 @@ step Replay D
   commit D' on main copy D [hash: f1e7d28, note: Add shipping]
   feature -> D'
   set feature: D' f1e7d28
-  set HEAD: feature
+  set HEAD: `feature`
   set History: Can fast-forward
 
 step Checks pass
@@ -76,7 +76,7 @@ step Fast-forward main
   code git switch main → git merge --ff-only feature
   main -> D': git merge --ff-only feature
   set main: D' f1e7d28
-  set HEAD: main
+  set HEAD: `main`
   set History: Straight
 
 step A straight history

@@ -8,7 +8,7 @@ step 積む
   say strip で図の下に中身の帯と欄を置き、set で欄に値を入れる。
   commit A on main [hash: 3fa0c19]
   set main: A 3fa0c19
-  set HEAD: main
+  set HEAD: `main`
 
 step 進める
   say set の tag で、欄の値に札を添える。

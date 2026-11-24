@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { textWidth } from "../src/layout/measure";
+import type { Layout as SceneLayout } from "../src/layout/scene";
 import { LOOK, TYPE } from "../src/look/values";
 import type { Diagram } from "../src/schema";
 import { changelogEntry } from "./changelog-support";
@@ -30,6 +31,28 @@ const shape = (d: Diagram): Record<string, unknown> => ({
   steps: d.steps.length,
   lines: d.steps.map((step) => step.events.filter((event) => event.type === "edge").length),
 });
+
+/** 描いた字の `&`、`<`、`>`、`"` を元の字に戻す */
+const unescapeText = (text: string): string => text.replace(/&lt;/gu, "<").replace(/&gt;/gu, ">").replace(/&quot;/gu, '"').replace(/&amp;/gu, "&");
+
+/** 札を 1 つずつ別の線に書いた時系列図 (#3850) */
+const sequenceOf = (labels: string[]): string =>
+  ["sequence Labels", "box a as A", "box b as B", "step Go", ...labels.map((label, i) => (i % 2 === 0 ? `  a -> b: ${label}` : `  b -> a: ${label}`))].join("\n");
+
+/** 描いた札の字と、地の文の字 (`TYPE.labelJa`) で描いたか。段の間だけ出す札と、済んだ段に残す薄い札の両方を読む (#3850) */
+const labelFonts = (svg: string): { text: string; sans: boolean }[] =>
+  [...svg.matchAll(/<g class="(dg-cap[^"]*)"[^>]*>(?:<rect[^>]*\/>)?<text[^>]*>([^<]*)<\/text>/gu)].map((m) => ({
+    text: unescapeText(m[2] ?? ""),
+    sans: /\bdg-cap(?:-past)?j\b/u.test(m[1] ?? ""),
+  }));
+
+/** 字ごとに地の文の字で描いたか。同じ字を 2 つ以上描いた時 (段の札と済んだ段の札、色の付いた値と墨の値) は、どれか 1 つでも違えば違うと数える */
+const fontOf = (fonts: { text: string; sans: boolean }[], text: string): "sans" | "mono" | "missing" | "mixed" => {
+  const found = fonts.filter((f) => f.text === text);
+  if (found.length === 0) return "missing";
+  if (found.every((f) => f.sans)) return "sans";
+  return found.every((f) => !f.sans) ? "mono" : "mixed";
+};
 
 describe("見本の英語版 (#2995)", () => {
   it("english-examples-match-japanese", () => {
@@ -66,25 +89,9 @@ describe("線の札の字を地の文とコードで分ける (#3850)", () => {
     if (!parsed.ok) throw new Error(`記法を読めない: ${JSON.stringify(parsed.errors)}`);
     return draw("renderDiagram")(parsed.diagram);
   };
-  /** 描いた札の字と、地の文の字 (`TYPE.labelJa`) で描いたか。段の間だけ出す札と、済んだ段に残す薄い札の両方を読む */
-  const labelFonts = (svg: string): { text: string; sans: boolean }[] =>
-    [...svg.matchAll(/<g class="(dg-cap[^"]*)"[^>]*>(?:<rect[^>]*\/>)?<text[^>]*>([^<]*)<\/text>/gu)].map((m) => ({
-      text: (m[2] ?? "").replace(/&amp;/gu, "&").replace(/&lt;/gu, "<").replace(/&gt;/gu, ">"),
-      sans: /\bdg-cap(?:-past)?j\b/u.test(m[1] ?? ""),
-    }));
   /** 流れ図と状態遷移図の、今回通らない道の札 */
   const sidePathFonts = (svg: string): { text: string; sans: boolean }[] =>
     [...svg.matchAll(/<text class="(dg-path-t[^"]*)"[^>]*>([^<]*)<\/text>/gu)].map((m) => ({ text: m[2] ?? "", sans: /\bdg-path-tj\b/u.test(m[1] ?? "") }));
-  /** 札を 1 つずつ別の線に書いた時系列図 */
-  const sequenceOf = (labels: string[]): string =>
-    ["sequence Labels", "box a as A", "box b as B", "step Go", ...labels.map((label, i) => (i % 2 === 0 ? `  a -> b: ${label}` : `  b -> a: ${label}`))].join("\n");
-  /** 札ごとに地の文の字で描いたか。同じ札を 2 つ描いた時 (段の札と済んだ段の札) は、どれか 1 つでも違えば違うと数える */
-  const fontOf = (fonts: { text: string; sans: boolean }[], text: string): "sans" | "mono" | "missing" | "mixed" => {
-    const found = fonts.filter((f) => f.text === text);
-    if (found.length === 0) return "missing";
-    if (found.every((f) => f.sans)) return "sans";
-    return found.every((f) => !f.sans) ? "mono" : "mixed";
-  };
 
   it("prose-label-drawn-in-sans", () => {
     const prose = ["Approve", "Re-run every transaction in the EVM", "Check out"];
@@ -166,13 +173,6 @@ describe("線の札の字を地の文とコードで分ける (#3850)", () => {
     expect(drawn, "種類ごとに描いた札の字").toEqual(wanted);
   });
 
-  it("strip-values-stay-mono", () => {
-    const { svg } = render(exampleText("order.en.dragon"));
-    const values = [...svg.matchAll(/<text class="(dg-fvj?)\b[^"]*"[^>]*>([^<]*)<\/text>/gu)];
-    const fontOfValue = (text: string): string[] => [...new Set(values.filter((m) => m[2] === text).map((m) => m[1] ?? ""))];
-    expect({ refunded: fontOfValue("refunded"), shelf: fontOfValue("back on shelf") }, "strip の英語の普通の文の値を描いた字").toEqual({ refunded: ["dg-fv"], shelf: ["dg-fv"] });
-  });
-
   it("examples-git-commands-stay-mono", () => {
     const wanted: [string, string][] = [
       ["rebase.dragon", "git rebase main"],
@@ -212,6 +212,154 @@ describe("線の札の字を地の文とコードで分ける (#3850)", () => {
 
   it("changelog-lists-label-font", () => {
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(changelogEntry(join(ROOT, file), 3850), `${file} に線の札の字の項 (#3850) が無い`).not.toBe("");
+  });
+});
+
+describe("図の下の値の欄の字を地の文とコードで分ける (#3856)", () => {
+  const ROOT = process.cwd();
+  /** 記法を読んで描く。読めない時は誤りを名指して落とす */
+  const render = (text: string, lang: "ja" | "en" = "en"): Rendered => {
+    const parsed = api("parseNotation")(text, { lang });
+    if (!parsed.ok) throw new Error(`記法を読めない: ${JSON.stringify(parsed.errors)}`);
+    return draw("renderDiagram")(parsed.diagram);
+  };
+  /** 値を 1 つずつ別の欄 (`f0`、`f1` …) に書いた時系列図。欄の名前は値より短い */
+  const stripOf = (values: string[]): string =>
+    ["sequence Values", "box a as A", "box b as B", `strip State: ${values.map((_, i) => `f${i}`).join(", ")}`, "step Go", "  a -> b: go", ...values.map((value, i) => `  set f${i}: ${value}`)].join("\n");
+  /**
+   * 描いた値の字と、地の文の字 (`TYPE.fieldValueJa`、`dg-fvj`) で描いたか。等幅の字は `dg-fv`。
+   * 等幅の字の `…` は地の文の字の `...` を持つ `tspan` で描く (`render/draw.ts` の `MONO_DOTS`) ので、`…` に戻して読む
+   */
+  const valueFonts = (svg: string): { text: string; sans: boolean }[] =>
+    [...svg.matchAll(/<text class="(dg-fvj?)\b[^"]*"[^>]*>(.*?)<\/text>/gu)].map((m) => ({
+      text: unescapeText((m[2] ?? "").replace(/<tspan style="font-family:var\(--sans\)">\.\.\.<\/tspan>/gu, "…").replace(/<[^>]+>/gu, "")),
+      sans: m[1] === "dg-fvj",
+    }));
+  /** 値を値の欄に描き、値ごとの字を返す */
+  const fontsOf = (values: string[], lang: "ja" | "en" = "en"): Record<string, string> => {
+    const fonts = valueFonts(render(stripOf(values), lang).svg);
+    return Object.fromEntries(values.map((value) => [value, fontOf(fonts, value)]));
+  };
+  const every = (values: string[], font: string): Record<string, string> => Object.fromEntries(values.map((value) => [value, font]));
+
+  it("prose-strip-value-drawn-in-sans", () => {
+    // 英字と数が別の語に分かれた値 (`Day 10`、`Team 2`) は、英字と数字が混ざる語の印の外側の境目
+    const prose = ["refunded", "back on shelf", "Stopped on a conflict", "Day 10", "Team 2"];
+    expect(fontsOf(prose), "英語の普通の文の値を描いた字").toEqual(every(prose, "sans"));
+  });
+
+  it("hash-strip-value-stays-mono", () => {
+    // 英字と数字が混ざる語は 3 字 (`tx3`) が印の内側の境目
+    const hashes = ["B 8b04f71", "e5f8, 7a21, 6f53", "tx3", "Splx…"];
+    expect(fontsOf(hashes), "hash と途中で切った値を描いた字").toEqual(every(hashes, "mono"));
+  });
+
+  it("version-and-path-strip-value-stay-mono", () => {
+    const values = ["v2.4.0", "m/44'/60'/0'"];
+    expect(fontsOf(values), "版と道の値を描いた字").toEqual(every(values, "mono"));
+  });
+
+  it("code-strip-value-stays-mono", () => {
+    const code = ["C' (detached)", "0x9f3c…a1", "SUCCESS", "4,980 yen", "0 min"];
+    expect(fontsOf(code), "線の札の印を持つ値と数で始まる値を描いた字").toEqual(every(code, "mono"));
+  });
+
+  it("backticked-strip-value-drawn-mono-without-backticks", () => {
+    const fonts = valueFonts(render(stripOf(["`main`", "`Approve`"])).svg);
+    expect(
+      { main: fontOf(fonts, "main"), approve: fontOf(fonts, "Approve"), backticks: fonts.filter((f) => f.text.includes("`")).map((f) => f.text) },
+      "backtick で囲んだ値は囲みを外して等幅で描く",
+    ).toEqual({ main: "mono", approve: "mono", backticks: [] });
+  });
+
+  it("japanese-strip-value-stays-sans", () => {
+    // 印を持つ英語を含んでも、日本語を含む値は日本語の字で描く
+    const japanese = ["返金した", "transfer を呼ぶ", "e5f8 を使う"];
+    expect(fontsOf(japanese, "ja"), "日本語を含む値を描いた字").toEqual(every(japanese, "sans"));
+  });
+
+  it("strip-value-width-measured-in-chosen-font", () => {
+    // 欄の名前は値より短いので、欄の幅は値の幅になる。札 (`tag`) は値の右端から間を空けて置く
+    const prose = "Stopped on a conflict";
+    const { layout, svg } = render(stripOf([prose, "`main`", "e5f8312", `${prose} [tag: Now]`]));
+    // 検査の部品の `Layout` は帯を矩形だけで持つので、欄は描く処理の形 (`SceneLayout`) で読む
+    const fields = (layout as unknown as SceneLayout).strip?.fields ?? [];
+    const width = (name: string): number | undefined => fields.find((f) => f.name === name)?.w;
+    const near = (value: number | undefined): number | undefined => (value === undefined ? undefined : Math.round(value * 10) / 10);
+    const tagX = Number(/<g class="dg-tg[^"]*"[^>]*><rect x="([\d.]+)"/u.exec(svg)?.[1]);
+    const tagOffset = tagX - (fields.find((f) => f.name === "f3")?.x ?? Number.NaN);
+    const proseWidth = textWidth(prose, TYPE.fieldValueJa);
+    expect(
+      {
+        prose: near(width("f0")),
+        backticked: near(width("f1")),
+        code: near(width("f2")),
+        tagAtValueEnd: Math.abs(tagOffset - (proseWidth + LOOK.strip.tagGap)) < 0.1 ? "yes" : `offset ${tagOffset}`,
+      },
+      "値の欄の幅と札の位置は、描く字の幅で見積もる",
+    ).toEqual({
+      prose: near(proseWidth),
+      backticked: near(textWidth("main", TYPE.fieldValue)),
+      code: near(textWidth("e5f8312", TYPE.fieldValue)),
+      tagAtValueEnd: "yes",
+    });
+  });
+
+  it("added-signs-keep-label-fonts", () => {
+    // 値の欄のために足した印 (`v` で始まる版、英字と数に挟まれた `/`) が、数を持つ地の文の札を等幅にしない
+    const labels = ["send 0.05 WETH", "passed 2/3", "over 2/3"];
+    const fonts = labelFonts(render(sequenceOf(labels)).svg);
+    expect(Object.fromEntries(labels.map((text) => [text, fontOf(fonts, text)])), "数を持つ地の文の札を描いた字").toEqual(every(labels, "sans"));
+  });
+
+  it("examples-strip-names-stay-mono", () => {
+    // 枝の名前、commit の名前、道の始まりの `m` は印を持たないので、見本では backtick で囲む
+    const gallery = join(ROOT, "packages/dragon/src/blocks/strip/gallery");
+    const wanted: [string, string[]][] = [
+      ["rebase.dragon", ["main", "feature"]],
+      ["rebase.en.dragon", ["main", "feature"]],
+      ["rebase.json", ["main", "feature"]],
+      ["rebase.en.json", ["main", "feature"]],
+      ["squash.dragon", ["B, A", "E, D, B, A", "S, E, D, B, A"]],
+      ["squash.en.dragon", ["B, A", "E, D, B, A", "S, E, D, B, A"]],
+      ["hd-wallet.dragon", ["m"]],
+      ["hd-wallet.en.dragon", ["m"]],
+      ["strip.git.dragon", ["main"]],
+      ["strip.git.en.dragon", ["main"]],
+    ];
+    const found = wanted.map(([file, values]) => {
+      const lang = file.includes(".en.") ? "en" : "ja";
+      let source: unknown;
+      if (file.endsWith(".json")) source = exampleJson(file);
+      else {
+        const text = file.startsWith("strip.") ? readFileSync(join(gallery, file), "utf8") : exampleText(file);
+        const parsed = api("parseNotation")(text, { lang });
+        if (!parsed.ok) throw new Error(`${file} を読めない`);
+        source = parsed.diagram;
+      }
+      const written = JSON.stringify(source);
+      const fonts = valueFonts(draw("renderDiagram")(source).svg);
+      return { file, values: Object.fromEntries(values.map((value) => [value, `${written.includes(JSON.stringify(`\`${value}\``)) ? "written" : "bare"} ${fontOf(fonts, value)}`])) };
+    });
+    expect(found, "見本の枝の名前、commit の名前、道の始まりの値は backtick で囲み、等幅で描く").toEqual(
+      wanted.map(([file, values]) => ({ file, values: every(values, "written mono") })),
+    );
+  });
+
+  it("docs-explain-strip-value-font", () => {
+    // 値の欄の字の決まりを書いた行は、backtick と値の欄の両方の語を持つ
+    const docs: [string, RegExp][] = [
+      ["plugins/dragon/skills/dragon/references/notation.md", /backtick.*(?:strip|`set`)|(?:strip|`set`).*backtick/iu],
+      ["packages/dragon/README.md", /backtick.*(?:strip|`set`)|(?:strip|`set`).*backtick/iu],
+      ["packages/dragon/README.ja.md", /backtick.*(?:値の欄|strip|`set`)|(?:値の欄|strip|`set`).*backtick/iu],
+      ["docs/design/base/GRAMMAR.md", /backtick.*(?:値の欄|strip|`set`)|(?:値の欄|strip|`set`).*backtick/iu],
+    ];
+    const missing = docs.filter(([path, line]) => !readFileSync(join(ROOT, path), "utf8").split("\n").some((text) => line.test(text))).map(([path]) => path);
+    expect(missing, "値の欄の字の決まりと backtick を書いていない記法の説明").toEqual([]);
+  });
+
+  it("changelog-lists-strip-value-font", () => {
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) expect(changelogEntry(join(ROOT, file), 3856), `${file} に値の欄の字の項 (#3856) が無い`).not.toBe("");
   });
 });
 

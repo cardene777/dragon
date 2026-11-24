@@ -5,7 +5,8 @@
  * 段で書いた値と札 (`set`) の移り変わりを欄ごとに組み (`fieldChanges`)、帯を描く部品 (`strip`) が出す。
  * 時間軸の図の物差しの欄は、時間軸の図を描く部品が渡す `meter` が描く。
  */
-import { hasWide, textBox, textWidth } from "../../layout/measure";
+import { plainText, valueStyle, valueWidth } from "../../layout/code-text";
+import { textBox, textWidth } from "../../layout/measure";
 import type { Layout, SceneField, SceneStrip } from "../../layout/scene";
 import { type ColorKey, LOOK, MOTION, TYPE } from "../../look/values";
 import { frameShape, partRadius } from "../../render/corner";
@@ -104,17 +105,13 @@ export function strip(
     const tags = list.filter((c) => c.tag !== undefined);
     values.forEach((c, k) => {
       const next = values[k + 1]?.at;
-      const value = c.value as string;
-      const cls = hasWide(value) ? "dg-fvj" : "dg-fv";
+      const value = plainText(c.value as string);
+      const style = valueStyle(c.value as string);
+      const cls = style === TYPE.fieldValue ? "dg-fv" : "dg-fvj";
       // 値は、次の値が来るまで (色を付けた間と墨に戻した間を合わせて) 1 件で記録する
       ctx.ink.push({
         text: value,
-        rect: textBox(
-          value,
-          field.x,
-          field.y + S.valueY,
-          hasWide(value) ? TYPE.fieldValueJa : TYPE.fieldValue,
-        ),
+        rect: textBox(value, field.x, field.y + S.valueY, style),
         shown: [[c.at, next === undefined ? Number.POSITIVE_INFINITY : next - MOTION.untilFade]],
       });
       const textOf = (c: string): string =>
@@ -141,11 +138,7 @@ export function strip(
       const tag = c.tag as string;
       // 札は、その時に出ている値の右に置く
       const shown = [...values].reverse().find((v) => v.at <= c.at + 1e-9)?.value;
-      const x =
-        field.x +
-        (shown
-          ? textWidth(shown, hasWide(shown) ? TYPE.fieldValueJa : TYPE.fieldValue) + S.tagGap
-          : 0);
+      const x = field.x + (shown ? valueWidth(shown) + S.tagGap : 0);
       const w = textWidth(tag, TYPE.tag) + S.tagPadX * 2;
       const y = field.y + S.valueY - S.tagH / 2 - LOOK.baseline.tag;
       ctx.ink.push({

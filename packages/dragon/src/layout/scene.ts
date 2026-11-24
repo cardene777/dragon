@@ -8,6 +8,7 @@ import type { Family } from "../look/fonts";
 import { APART, COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
 import type { Carry, DiagramModel, DiagramEvent, LabelSide } from "../schema";
 import { userBlockReader } from "../user-blocks-registry";
+import { isCodeText, plainText, valueWidth } from "./code-text";
 import { hasWide, textWidth } from "./measure";
 
 export type Point = [number, number];
@@ -825,34 +826,14 @@ export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: 
   return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap * apart);
 }
 
-/** 全体を backtick で囲んだ札。印の無いコマンド (`git rebase main`) も等幅で描くために書き手が囲む (#3850) */
-const BACKTICKED = /^`([^`]+)`$/u;
-
-/**
- * コードの札の印 (#3850)。括弧と記号、英字が続く `/` (`GET /me`)、`0x` で始まる値、語の中の大文字
- * (`sendRawTransaction`、`CCIPMessageSent`)、英字の間の `.`、`-` で始まる引数、2 字以上の大文字で始まる語
- * (`SELECT orders`)、数で始まる札 (`200 OK`、`15%`)。どれも持たない札は英語の地の文の札にする
- */
-const CODE_SIGNS = [
-  /[()[\]{}<>=_\\:;`#$@|&*]/u,
-  /\/[A-Za-z]/u,
-  /0x[0-9a-fA-F]/u,
-  /[a-z][A-Z]/u,
-  /[A-Za-z]\.[A-Za-z]/u,
-  /(?:^|\s)--?[a-z]/u,
-  /^[A-Z]{2,}(?:\s|$)/u,
-  /^[+-]?\d/u,
-];
-
 /** 描く札の字。backtick の囲みは描かない (#3850) */
-export const labelText = (text: string): string => BACKTICKED.exec(text)?.[1] ?? text;
+export const labelText = plainText;
 
 /**
  * 線の札の字 (#3850)。コードの札は等幅の字 (`label`) で、英語の地の文の札は日本語の札と同じ字 (`labelJa`) で描く。
  * 等幅の字は和文を持たないので、日本語を含む札は印があっても `labelJa` で描く
  */
-export const labelStyle = (text: string) =>
-  hasWide(text) ? TYPE.labelJa : BACKTICKED.test(text) || CODE_SIGNS.some((sign) => sign.test(text)) ? TYPE.label : TYPE.labelJa;
+export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : isCodeText(text) ? TYPE.label : TYPE.labelJa);
 
 /** 札の字の幅。囲みを外した字を、描く字で測る (#3850) */
 export const labelWidth = (text: string): number => textWidth(labelText(text), labelStyle(text));
@@ -969,7 +950,7 @@ function fieldWidth(diagram: DiagramModel, name: string): number {
   for (const step of diagram.steps) {
     for (const event of step.events) {
       if (event.type !== "strip" || event.field !== name) continue;
-      if (event.value !== undefined) value = Math.max(value, textWidth(event.value, hasWide(event.value) ? TYPE.fieldValueJa : TYPE.fieldValue));
+      if (event.value !== undefined) value = Math.max(value, valueWidth(event.value));
       if (event.tag !== undefined) tag = Math.max(tag, textWidth(event.tag, TYPE.tag) + LOOK.strip.tagPadX * 2);
     }
   }
