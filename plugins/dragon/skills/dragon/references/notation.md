@@ -26,7 +26,7 @@ Lines starting with `//` and blank lines are not read.
 `<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn`, `matrix` and `sankey`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
-- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]` or `chart <title> [shape: dots]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers, `[shape: stairs]` to set those layers as stairs with a scale of the time spent from the `[time: <length>]` of each box, or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)), and `cycle` can take `[shape: clock]` to set its steps on a clock dial by their `[time: <length>]`, with `turn: left` to turn it counterclockwise, or `[shape: band]` to run its steps left to right on a band per round ([cycle](kinds/cycle.md)), and `sankey` can take `[shape: rows]` to stack one full-width bar per step, split into the sections the lines so far have cut, or `[shape: treemap]` to cut one square of the whole into areas by amount ([sankey](kinds/sankey.md)), and `sequence` can take `[shape: pipe]` to draw its lifelines as pipes with the parts of the pipe diagram ([sequence](kinds/sequence.md)). Only `chart`, `lineup`, `venn`, `matrix`, `cycle`, `sankey` and `sequence` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), only `matrix` with `[shape: scatter]` takes `table`, and only `cycle` with `[shape: clock]` takes `turn`.
+- `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]`, `chart <title> [shape: dots]` or `chart <title> [shape: line]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers, `[shape: stairs]` to set those layers as stairs with a scale of the time spent from the `[time: <length>]` of each box, or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)), and `cycle` can take `[shape: clock]` to set its steps on a clock dial by their `[time: <length>]`, with `turn: left` to turn it counterclockwise, or `[shape: band]` to run its steps left to right on a band per round ([cycle](kinds/cycle.md)), and `sankey` can take `[shape: rows]` to stack one full-width bar per step, split into the sections the lines so far have cut, or `[shape: treemap]` to cut one square of the whole into areas by amount ([sankey](kinds/sankey.md)), and `sequence` can take `[shape: pipe]` to draw its lifelines as pipes with the parts of the pipe diagram ([sequence](kinds/sequence.md)). Only `chart`, `lineup`, `venn`, `matrix`, `cycle`, `sankey` and `sequence` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), only `matrix` with `[shape: scatter]` takes `table`, and only `cycle` with `[shape: clock]` takes `turn`.
 - `[view: fixed]` keeps the whole diagram still and moves only what is inside. `[view: follow]` moves the frame to where things happen and shows a small overview. Leave it out and dragon picks by text size.
 
 ## Boxes and groups
@@ -50,6 +50,7 @@ end
 ```
 
 - The label is optional. A label may contain `,`; it ends at `[` or the end of the line.
+- A label made of words is drawn in the text font. A label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word such as `sendRawTransaction`) or one that starts with a digit is drawn in the monospace font. To draw a command with no sign in the monospace font, wrap the whole label in backticks (`` `git rebase main` ``); the backticks are not drawn.
 - `carry` is what travels: an envelope when left out, `coin` for money, `none` for nothing.
 - `tag` writes a short value on a tag that travels along the line.
 - `side` is `above`, `below`, `left` or `right`. Write it only when the automatic label place overlaps something, for example `[side: below]` on replies in a sequence diagram.
@@ -81,6 +82,7 @@ strip <title>: <field>, <field>, <field>
 
 Declare a strip before the first step to show values that change over the steps. Inside a step, `set <field>: <value>` fills a field and `set <field> [tag: <text>]` adds a tag to it.
 A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <id>: <value>` is the value of an item instead.
+A strip value picks its font by the same rule as a line label. A value made of words, such as `refunded`, is drawn in the text font. A value with a code sign, one that starts with a digit, a word mixing lowercase letters and digits such as a hash (`8b04f71`, `tx3`), a value cut short with `…`, a version starting with `v` (`v2.4.0`), and a path with `/` between a letter and a digit (`m/44'/60'`) are drawn in the monospace font. To draw a name with no sign, such as a branch name, in the monospace font, wrap the whole value in backticks (`` set HEAD: `main` ``); the backticks are not drawn.
 
 ## Attribute values
 
@@ -92,7 +94,7 @@ A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <
 | `side` | `above`, `below`, `left`, `right` |
 | `op` on a `sequence` line | a number |
 | `view` | `fixed`, `follow` |
-| `shape` on the `chart` head line | `donut`, `bar`, `funnel`, `dots` |
+| `shape` on the `chart` head line | `donut`, `bar`, `funnel`, `dots`, `line` |
 | `shape` on the `lineup` head line | `layers`, `stations` or `stairs` |
 | `shape` on the `venn` head line | `dots` |
 | `shape` on the `matrix` head line | `scatter` |

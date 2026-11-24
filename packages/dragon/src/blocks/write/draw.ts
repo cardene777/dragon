@@ -7,7 +7,8 @@
  * `write` の段では、書いた者の名札から書き替えた札まで書き込む管を引く。処理を借りる呼び出しの内側の書き込みは、呼んだ側の札へ向く。
  * この file は配管の図を描く部品 (`render/pipe.ts`) と配管の図のブロックの描き方だけが読み、見本帳を開いた時に読む塊に入れない
  */
-import type { PipeBadge, PipeLink, PipePlate, PipeWrite } from "../../kinds/pipe/layout";
+import { type PipeBadge, type PipeLink, type PipePlate, type PipeWrite, TICKET } from "../../kinds/pipe/layout";
+import { textWidth } from "../../layout/measure";
 import type { Rect } from "../../layout/scene";
 import { LINK, PIPE_LOOK, PIPE_TYPE } from "../../look/pipe";
 import { frameShape, partRadius } from "../../render/corner";
@@ -24,8 +25,11 @@ export const wide = (text: string): string => ([...text].some((ch) => (ch.codePo
 
 const strike = (r: Rect): string => `<rect class="dg-pp-strike" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}"/>`;
 
-/** 値の札。`attrs` は部品の印 (段の始まりの写しは持たない) */
-export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string): string {
+/**
+ * 値の札。`attrs` は部品の印 (段の始まりの写しは持たない)。
+ * `bare` を立てるとトークンの箱の中の行の今の値を描かない。数え上げる行は値を別に描くため (Tracelyth #221)
+ */
+export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string, bare = false): string {
   const changed = p.was !== undefined;
   if (p.boxed) {
     // トークンの箱の中の行 (Tracelyth #175)。区切りの線、札、頭の印、名前か頭の字、前の値と矢印、今の値の順に重ねる
@@ -52,7 +56,7 @@ export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string): st
       badges +
       label +
       was +
-      write(ctx.ink, `dg-pp-tval${changed ? " dg-pp-tval-on" : ""}${wide(p.text.text)}`, p.text.x, p.text.base, p.text.text, changed ? T.rowNow : T.rowValue, shown) +
+      (bare ? "" : write(ctx.ink, `dg-pp-tval${changed ? " dg-pp-tval-on" : ""}${wide(p.text.text)}`, p.text.x, p.text.base, p.text.text, changed ? T.rowNow : T.rowValue, shown)) +
       `</g>`
     );
   }
@@ -78,7 +82,7 @@ export function plate(p: PipePlate, ctx: Ctx, shown: Shown[], attrs: string): st
  * 2人をキーに持つ値の点線の矢印 (#107)。線は1つ目のキーの人から列の上の段を通って2つ目のキーの人の頭に着く。
  * `lit` はその段で値が変わった線で、濃く描く。リバートで戻った線は値の札のリバートと同じ赤で描く
  */
-export function linkLine(l: PipeLink, lit: boolean): string {
+export function linkLine(l: PipeLink, lit: boolean | undefined): string {
   const pts = l.points.map((p): [number, number] => [p[0], p[1]]);
   const tip = pts[pts.length - 1] as [number, number];
   const a = LINK.arrow;
@@ -88,9 +92,42 @@ export function linkLine(l: PipeLink, lit: boolean): string {
   return `<g class="dg-pp-rel${lit ? " dg-pp-rel-on" : ""}" style="${cs(l.undo ? "rose" : "violet")}"><path class="dg-pp-rell" d="${d}"/><path class="dg-pp-relh" d="${head}"/></g>`;
 }
 
-/** 2人を結ぶ線の札と増減の札 (#107)。札は段の上に値を書き、増減の札は札の右に並べる */
+/**
+ * 2人を結ぶ線の札と増減の札 (#107)。札は段の上に値を書き、増減の札は札の右に並べる。
+ * 札が券 (`ticket`) を持つ時は、使う側が持つ券 (Tracelyth #221) で描く。`attrs` は部品の印
+ */
 export function linkLabel(l: PipeLink, ctx: Ctx, shown: Shown[], attrs: string): string {
   const r = l.label;
+  // 使う側が持つ券 (Tracelyth #221)。持ち主の印と何をしてよいかを1行目に、残りを2行目に書き、前の値には取り消し線を引く
+  if (r.ticket) {
+    const t = r.ticket;
+    const mx = r.x + TICKET.padX + TICKET.mark;
+    const my = r.y + TICKET.line1 - T.ticketTitle.size * 0.36;
+    const x1 = mx + TICKET.mark + TICKET.markGap;
+    const lead = t.lead ? write(ctx.ink, `dg-pp-tkt${wide(t.lead)}`, r.x + TICKET.padX, r.y + TICKET.line2, t.lead, T.ticketTitle, shown) : "";
+    let x2 = r.x + TICKET.padX + (t.lead ? textWidth(t.lead, T.ticketTitle) + TICKET.markGap : 0);
+    let rest = "";
+    if (t.was) {
+      rest += write(ctx.ink, "dg-pp-tkw", x2, r.y + TICKET.line2, t.was, T.ticketValue, shown);
+      const ww = textWidth(t.was, T.ticketValue);
+      rest += `<line class="dg-pp-tks" x1="${r1(x2)}" y1="${r1(r.y + TICKET.line2 - T.ticketValue.size * 0.32)}" x2="${r1(x2 + ww)}" y2="${r1(r.y + TICKET.line2 - T.ticketValue.size * 0.32)}"/>`;
+      x2 += ww;
+      rest += write(ctx.ink, "dg-pp-tkw", x2 + textWidth(" ", T.ticketValue), r.y + TICKET.line2, "→", T.ticketValue, shown);
+      x2 += textWidth(" → ", T.ticketValue) + 3;
+    }
+    rest += write(ctx.ink, "dg-pp-tkn", x2, r.y + TICKET.line2, t.now, T.ticketNow, shown);
+    const tie = l.tie ? `<path class="dg-pp-tkl" d="M ${r1(l.tie[0])} ${r1(l.tie[1])} L ${r1(l.tie[2])} ${r1(l.tie[3])}"/>` : "";
+    return (
+      `<g${attrs} class="dg-pp-relp dg-pp-ticket" style="${cs(l.undo ? "rose" : "violet")}">` +
+      tie +
+      `<rect class="dg-pp-tkb" x="${r1(r.x)}" y="${r1(r.y)}" width="${r1(r.w)}" height="${r1(r.h)}" rx="${partRadius(ctx.corner, 10)}"/><circle class="dg-pp-tkm" cx="${r1(mx)}" cy="${r1(my)}" r="${TICKET.mark}"/>` +
+      write(undefined, "dg-pp-tkmt", mx, my + T.badge.size * 0.36, t.mark, T.badge, shown, "middle") +
+      write(ctx.ink, `dg-pp-tkt${wide(t.title)}`, x1, r.y + TICKET.line1, t.title, T.ticketTitle, shown) +
+      lead +
+      rest +
+      `</g>`
+    );
+  }
   const base = (box: Rect): number => box.y + box.h / 2 + T.keyValue.size * 0.36;
   const delta = l.delta
     ? `<g class="dg-pp-reld"><rect x="${r1(l.delta.x)}" y="${r1(l.delta.y)}" width="${r1(l.delta.w)}" height="${r1(l.delta.h)}" rx="${r1(partRadius(ctx.corner, l.delta.h / 2))}"/>` +

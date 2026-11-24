@@ -10,13 +10,19 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+import "../src/kind-use/state";
+import "../src/kind-use/tree";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /*
  * 描く部品の元の code を、検査の外 (この file を読む段) で先に読む。
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
 const [{ renderDiagram }, { parseNotation }, { APART, LOOK }, { lineGap }] = await Promise.all([
-  import("../src/render/svg"),
+  import("../src/render/draw"),
   import("../src/parser"),
   import("../src/look/values"),
   import("../src/layout/scene"),

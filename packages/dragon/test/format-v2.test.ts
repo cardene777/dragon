@@ -12,7 +12,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { migrateFile } from "@cardenelabs/dragon/node";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { describe, expect, it } from "vitest";
 import { SHAPES } from "../src/blocks/shapes";
 import { api } from "./diagram-support";

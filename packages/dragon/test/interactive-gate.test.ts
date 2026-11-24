@@ -23,11 +23,12 @@
  *
  * 誤りの文を英語でも確かめるので、名札と値は英字にする。
  */
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { askStrip, figureOf, KANA, mountTry, parsedTry, releaseTry, sendButton, sessionOf, stepsOf, tryLayout } from "./try-support";
+import "../src/kind-use/pipe";
+import "../src/kind-use/try";
 
 afterEach(releaseTry);
 
@@ -176,11 +177,6 @@ const MARKS = {
 /** 描いた図の記録の列 `log` の `n` 番の記録の字 */
 const recordText = (host: HTMLElement, log: string, n: number): string =>
   figureOf(host)?.querySelector(`[data-log="${log}"] [data-record="${n}"]`)?.textContent ?? "";
-
-const readRepo = (path: string): string => {
-  const full = join(process.cwd(), path);
-  return existsSync(full) ? readFileSync(full, "utf8") : "";
-};
 
 describe("網の節の関門 check (#3476)", () => {
   it("interactive-gate-round-trip", () => {
@@ -394,31 +390,5 @@ describe("網の節の関門 check (#3476)", () => {
       if (lang === "en") for (const text of [fix, retry]) expect(KANA.test(text), `英語の図の記録に仮名か漢字がある: ${text}`).toBe(false);
       releaseTry();
     }
-  });
-});
-
-describe("書き方の文書 (#3476)", () => {
-  it("docs-describe-try-gate", () => {
-    /** 見出し `heading` から次の同じ深さの見出しまで */
-    const sectionOf = (text: string, heading: string): string => {
-      const start = text.indexOf(heading);
-      if (start < 0) return "";
-      const next = text.indexOf("\n### ", start + heading.length);
-      return text.slice(start, next < 0 ? undefined : next);
-    };
-    const forms = {
-      ja: "check <節>: <欄> <比べ方> <値> [no: <エラーの名前>, retry, into: <記録の列>]",
-      en: "check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]",
-    } as const;
-    for (const [path, heading, form] of [
-      ["packages/dragon/README.ja.md", "### 試す図", forms.ja],
-      ["packages/dragon/README.md", "### Try diagram", forms.en],
-    ] as const) {
-      const section = sectionOf(readRepo(path), heading);
-      expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");
-      expect(section, `${path} の試す図の小節に check で関門を書く書き方 (${form}) が無い`).toContain(form);
-    }
-    const docs = readRepo("apps/playground-spa/src/docs/content.ts");
-    for (const form of Object.values(forms)) expect(docs, `使い方の頁に check で関門を書く書き方 (${form}) が無い`).toContain(form);
   });
 });

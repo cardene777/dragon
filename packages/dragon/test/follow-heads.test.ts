@@ -7,11 +7,17 @@
  * 頭の列は窓を切り抜く部品の中の `.dg-hd` で、地の四角 `.dg-hd-bg` の高さが頭の列の高さ、横に動かす部品が `.dg-hd > .dg-a`。
  * 頭の列の頭の箱は、アイコンを外した名前と下の字の 2 段にして、線を見せる高さを広げる (#3120)。
  * 窓の横の全体図の四角は、頭の列の下の線を見せる所だけを囲む (#3122)。
+ * 窓が図の高さを全部見せる短い時系列図は頭の列を貼らず、図の頭の箱をそのまま見せ、箱の行を 2 重に映さない (#3834)。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { exampleJson } from "./diagram-support";
+import { api, exampleJson } from "./diagram-support";
 import { type Diagramish, overflow, place, type Placed, releasePlaced, round } from "./follow-support";
 import { draw } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
+import "../src/render/look-all";
 
 /** 編集画面の幅 390px (携帯) と 860px (記法と並べた時) の、図の枠の幅 */
 const WIDTHS = [390, 560] as const;
@@ -30,6 +36,7 @@ const SWAPS: [number, string, string][] = [
  * 560px は図が低くなって右の全体図が太り、窓が 28px ほど狭くなるので、窓の左端が 14px ほど右へずれる。
  * 560px の段 10 は、窓が表を除いた図の下端で止まる高さ (#3270)
  * 一番左の箱の左に留まる札「challenge」にも図の枠の余白を取り、図の中身が 13.7px 右へ寄ったので、段 1 の外の窓の左端も 13.7px 右へずれた (#3515)
+ * 等幅の字の … を普通の字の ... の幅で測るので (Tracelyth #236)、560px の段 1 の外の窓の左端が 1.43px 右へずれた (#3761)
  */
 const UNDER: Record<number, [number, number, number][]> = {
   390: [
@@ -45,14 +52,14 @@ const UNDER: Record<number, [number, number, number][]> = {
   ],
   560: [
     [1, 0, 40],
-    [2, 110.77, 40],
-    [3, 46.27, 40],
-    [4, 47.77, 69],
-    [5, 47.77, 159],
-    [6, 114.82, 231],
-    [7, 126.27, 267],
-    [8, 263.27, 318],
-    [10, 197.02, 392],
+    [2, 112.2, 40],
+    [3, 47.7, 40],
+    [4, 49.2, 69],
+    [5, 49.2, 159],
+    [6, 116.25, 231],
+    [7, 127.7, 267],
+    [8, 264.7, 318],
+    [10, 198.45, 392],
   ],
 };
 /** 頭の列の高さと、頭の列の頭の箱の高さ (#3120) */
@@ -346,5 +353,141 @@ describe("寄って追う図の全体図の四角が、窓に見えている所�
       }
     }
     expect(out, "構成図の全体図の四角が窓の全体を囲まない段").toEqual([]);
+  });
+});
+
+/**
+ * 箱 4 つと段 4 つの短い時系列図 (#3834)。幅 390px では図が枠に収まらず寄って追う形になり、図の高さは窓に収まる。
+ * bitsumi の頁で箱の行が 2 重に映った図 (箱 3 つか 4 つ、段 4 つか 5 つ) と同じ形にする
+ */
+const SHORT_TEXT = [
+  "sequence 提案が決まるまで",
+  "",
+  "box 提案者 as 提案する人 [note: 案を出す, color: slate, icon: user]",
+  "box 委員会 as 運営の委員会 [note: 案を読む, color: blue, icon: app]",
+  "box 投票 as 投票の場 [note: 票を数える, color: violet, icon: shield]",
+  "box 網 as 網の運用者 [note: 案を入れる, color: green, icon: server]",
+  "",
+  "step 案を出す",
+  "  say 提案する人が案を委員会へ出す。",
+  "  提案者 -> 委員会: 案を出す",
+  "",
+  "step 投票にかける",
+  "  say 委員会が案を読み、投票の場へ回す。",
+  "  委員会 -> 投票: 投票を始める",
+  "",
+  "step 結果を返す",
+  "  say 投票の場が票を数え、結果を委員会へ返す。",
+  "  投票 -> 委員会: 賛成が多い [side: below]",
+  "",
+  "step 網へ入れる",
+  "  say 委員会が網の運用者へ、決まった案を入れるよう頼む。",
+  "  委員会 -> 網: 案を入れる",
+  "",
+].join("\n");
+
+/** dragon記法を原本の JSON に読む */
+function notation(name: string, text: string): Diagramish {
+  const read = api("parseNotation")(text, { lang: "ja" });
+  expect(read.ok, `${name} を読めない`).toBe(true);
+  return (read as { diagram: Diagramish }).diagram;
+}
+
+/** 見本帳の時系列図の記法 (`src/blocks/<名前>/gallery/<名前>.sequence.dragon`) */
+const gallery = (name: string): Diagramish =>
+  notation(`${name}.sequence`, readFileSync(join(process.cwd(), `packages/dragon/src/blocks/${name}/gallery/${name}.sequence.dragon`), "utf8"));
+
+/** 窓の上端に貼った頭の列の高さ。頭の列が無い時は 0 */
+function stripHeight(p: Placed): number {
+  const bg = p.figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-hd > rect.dg-hd-bg');
+  return bg ? Number(bg.getAttribute("height")) : 0;
+}
+
+/**
+ * 段 `step` の止め絵で窓に映る箱の行の数 (#3834)。窓の上端の頭の列が在れば 1 行と数え、
+ * 図の頭の箱 (見た目を選んだ時系列図は列の頭の下の器と札まで) が頭の列の下の窓に少しでも映れば、もう 1 行と数える
+ */
+function headRowsAt(p: Placed, step: number): number {
+  const strip = stripHeight(p);
+  const win = p.windowAt(step);
+  const shelf = (p.layout as { shelf?: number }).shelf;
+  const low = shelf ?? Math.max(...p.layout.boxes.map((b) => b.y + b.h));
+  const high = Math.min(...p.layout.boxes.map((b) => b.y));
+  const shown = low > win.y + strip + 0.01 && high < win.y + win.h - 0.01;
+  return (strip > 0 ? 1 : 0) + (shown ? 1 : 0);
+}
+
+describe("窓に高さが収まる短い時系列図は頭の列を貼らず、箱の行を 2 重に映さない (#3834)", () => {
+  it("follow-short-sequence-shows-figure-heads", () => {
+    const p = place("短い時系列図", notation("短い時系列図", SHORT_TEXT), 390);
+    expect(p.figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-hd'), "幅 390px の短い時系列図に頭の列が在る").toBeNull();
+    // 図の頭の箱はアイコンを持ったまま窓の中身に在る
+    const camera = p.figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-a');
+    expect(camera?.querySelectorAll(".dg-ic").length ?? 0, "窓の中身の頭の箱のアイコン").toBeGreaterThanOrEqual(p.layout.boxes.length);
+    // 窓は図の高さを全部見せ、縦に動かず横にだけ追う
+    const wins = Array.from({ length: p.steps }, (_, s) => p.windowAt(s));
+    const out = wins.flatMap((w, s) => (Math.abs(w.y) > 0.01 || w.h < p.layout.height - 0.01 ? [`段 ${s + 1} の窓 (y ${round(w.y)}、高さ ${round(w.h)}) が図の高さ ${round(p.layout.height)} を全部見せない`] : []));
+    expect(out, "図の高さを全部見せない段").toEqual([]);
+    expect(Math.max(...wins.map((w) => w.x)), "窓が横に動かない").toBeGreaterThan(0);
+  });
+
+  it("follow-short-sequence-single-head-row", () => {
+    const p = place("短い時系列図", notation("短い時系列図", SHORT_TEXT), 390);
+    const out: string[] = [];
+    for (let s = 0; s < p.steps; s++) {
+      const rows = headRowsAt(p, s);
+      if (rows !== 1) out.push(`段 ${s + 1} の窓に箱の行が ${rows} 行映る`);
+    }
+    expect(out, "箱の行が 1 行でない段").toEqual([]);
+  });
+
+  it("follow-heads-never-doubled", () => {
+    // 幅 390px で寄って追う形になる見本と見本帳の時系列図と、線の範囲が頭の列の下に収まる高い図 (retry)
+    const figures: [string, string | Diagramish][] = [
+      ["api.en", "api.en.json"],
+      ["wallet", "wallet.json"],
+      ["oauth", "oauth.json"],
+      ["color.sequence", gallery("color")],
+      ["icon.sequence", gallery("icon")],
+      ["retry", "retry.json"],
+    ];
+    const out: string[] = [];
+    for (const [name, source] of figures) {
+      releasePlaced();
+      const p = place(name, source, 390);
+      for (let s = 0; s < p.steps; s++) {
+        const rows = headRowsAt(p, s);
+        if (rows !== 1) out.push(`${name} / 段 ${s + 1} の窓に箱の行が ${rows} 行映る`);
+      }
+    }
+    expect(out, "箱の行が 2 重に映る段").toEqual([]);
+  });
+
+  it("follow-short-sequence-wide-stays-fixed", () => {
+    const diagram = notation("短い時系列図", SHORT_TEXT);
+    expect(draw("chooseView")(draw("renderDiagram")(diagram), 760).mode, "幅 760px の見せ方").toBe("fixed");
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: 760 });
+    document.body.appendChild(host);
+    const player = draw("mountDiagram")(host, diagram);
+    try {
+      const svg = host.querySelector('svg[data-dragon="figure"]');
+      expect(svg?.getAttribute("data-view"), "幅 760px の短い時系列図").toBe("fixed");
+      expect(svg?.querySelector(".dg-hd"), "幅 760px の短い時系列図に頭の列が在る").toBeNull();
+    } finally {
+      player.destroy();
+    }
+  });
+
+  it("follow-pipe-look-keeps-band", () => {
+    // 見た目を選んだ時系列図は、短い図でも列の頭と器を帯に留め、元の列の頭を帯の下に隠す (Tracelyth #86)
+    const p = place("pipe の短い時系列図", notation("pipe の短い時系列図", SHORT_TEXT.replace("sequence 提案が決まるまで", "sequence 提案が決まるまで [shape: pipe]")), 390);
+    expect(stripHeight(p), "pipe の見た目の短い時系列図に帯が無い").toBeGreaterThan(0);
+    const out: string[] = [];
+    for (let s = 0; s < p.steps; s++) {
+      const rows = headRowsAt(p, s);
+      if (rows !== 1) out.push(`段 ${s + 1} の窓に列の頭の行が ${rows} 行映る`);
+    }
+    expect(out, "列の頭の行が 1 行でない段").toEqual([]);
   });
 });

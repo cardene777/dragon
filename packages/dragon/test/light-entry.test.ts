@@ -6,13 +6,16 @@
  * 読んでいない種類を描くと、その種類の名前を含む誤りで止まる。
  */
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { casesNamed } from "./export-support";
 import { KIND_FOLDERS } from "../src/kinds/index";
+// 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
+// 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
+import type {} from "./all-kinds";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXAMPLES = join(ROOT, "examples");
@@ -184,18 +187,60 @@ afterEach(({ task }) => {
 /** 時系列図の入門の見本。後から読む種類の部品を要らない */
 const INTRO = readFileSync(join(EXAMPLES, "intro.dragon"), "utf8");
 
-describe("記法から読んだ図は描く時の検査を省く (#3400)", () => {
-  it("light-draws-parsed-without-validator", async () => {
-    const whole = await importEntry<Entry>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    const out = inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
+// 件ごとに新しい Node を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの Node を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む。子の Node に渡す原本は既定の入口で作る
+
+/** 既定の入口。子の Node に渡す原本を作るので、読めない時は読み込む段の仕事を落とす */
+async function wholeForNode<T extends Entry>(): Promise<T> {
+  const whole = await importEntry<T>(name);
+  if (!whole) throw new Error("既定の入口を読めない");
+  return whole;
+}
+
+const PARSED_IN_NODE = await atLoad("記法から読んだ図を新しい Node の軽い入口で描く", () =>
+  inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
       const text = ${JSON.stringify(INTRO)};
       await light.loadFor(text);
       const parsed = light.parseNotation(text);
       try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
       out.validator = ${VALIDATOR_LOADED};
+    `),
+);
+
+const JSON_BEFORE_VALIDATOR = await atLoad("原本の JSON を検査を読む前の新しい Node の軽い入口で描く", async () => {
+  const whole = await wholeForNode<Entry>();
+  const parsed = whole.parseNotation(INTRO);
+  const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
+  return inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
+      try { out.svg = light.renderDiagram(JSON.parse(${JSON.stringify(json)})).svg; } catch (e) { out.error = e.message; }
+      out.validator = ${VALIDATOR_LOADED};
     `);
+});
+
+const JSON_AFTER_LOAD_FOR = await atLoad("原本の JSON を loadFor の後に新しい Node の軽い入口で描いて読む", async () => {
+  const whole = await wholeForNode<Entry & { readDiagram(input: unknown): unknown }>();
+  const parsed = whole.parseNotation(INTRO);
+  const diagram = JSON.parse(JSON.stringify(parsed.ok ? parsed.diagram : {})) as { blocks: { box: { icon?: string }[] } };
+  const bad = structuredClone(diagram);
+  (bad.blocks.box[0] as { icon?: string }).icon = "usr";
+  const out = inFreshNode<{ svg?: string; error?: string; read?: unknown; validator: unknown }>(`
+      const json = JSON.parse(${JSON.stringify(JSON.stringify(diagram))});
+      const bad = JSON.parse(${JSON.stringify(JSON.stringify(bad))});
+      await light.loadFor(json);
+      await light.loadFor(bad);
+      out.validator = ${VALIDATOR_LOADED};
+      try { out.svg = light.renderDiagram(json).svg; } catch (e) { out.error = e.message; }
+      out.read = light.readDiagram(bad);
+    `);
+  return { diagram, bad, out };
+});
+
+describe("記法から読んだ図は描く時の検査を省く (#3400)", () => {
+  it("light-draws-parsed-without-validator", async () => {
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const out = PARSED_IN_NODE.get();
     expect(out.error, "記法から読んだ図を軽い入口で描けない").toBeUndefined();
     const parsed = whole.parseNotation(INTRO);
     expect(out.svg, "軽い入口で描いた SVG が既定の入口と違う").toBe(parsed.ok ? whole.renderDiagram(parsed.diagram).svg : "");
@@ -207,12 +252,7 @@ describe("記法から読んだ図は描く時の検査を省く (#3400)", () =>
     const whole = await importEntry<Entry>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const parsed = whole.parseNotation(INTRO);
-    const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
-    const out = inFreshNode<{ svg?: string; error?: string; validator: unknown }>(`
-      try { out.svg = light.renderDiagram(JSON.parse(${JSON.stringify(json)})).svg; } catch (e) { out.error = e.message; }
-      out.validator = ${VALIDATOR_LOADED};
-    `);
+    const out = JSON_BEFORE_VALIDATOR.get();
     expect(out.svg, "loadFor を待たずに原本の JSON を描けた (検査を通していない)").toBeUndefined();
     expect(out.error ?? "", "原本の形の検査を読んでいないことを名指さない").toMatch(/schema check.*loadFor|loadFor.*schema check/u);
   });
@@ -221,19 +261,7 @@ describe("記法から読んだ図は描く時の検査を省く (#3400)", () =>
     const whole = await importEntry<Entry & { readDiagram(input: unknown): unknown }>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const parsed = whole.parseNotation(INTRO);
-    const diagram = JSON.parse(JSON.stringify(parsed.ok ? parsed.diagram : {})) as { blocks: { box: { icon?: string }[] } };
-    const bad = structuredClone(diagram);
-    (bad.blocks.box[0] as { icon?: string }).icon = "usr";
-    const out = inFreshNode<{ svg?: string; error?: string; read?: unknown; validator: unknown }>(`
-      const json = JSON.parse(${JSON.stringify(JSON.stringify(diagram))});
-      const bad = JSON.parse(${JSON.stringify(JSON.stringify(bad))});
-      await light.loadFor(json);
-      await light.loadFor(bad);
-      out.validator = ${VALIDATOR_LOADED};
-      try { out.svg = light.renderDiagram(json).svg; } catch (e) { out.error = e.message; }
-      out.read = light.readDiagram(bad);
-    `);
+    const { diagram, bad, out } = JSON_AFTER_LOAD_FOR.get();
     expect(out.validator, "loadFor に原本の JSON を渡して待った後に、原本の形の検査を読んでいない").toBe(true);
     expect(out.error, "loadFor を待った後に原本の JSON を描けない").toBeUndefined();
     expect(out.svg, "軽い入口で原本の JSON を描いた SVG が既定の入口と違う").toBe(whole.renderDiagram(diagram).svg);
@@ -291,6 +319,17 @@ const TRIED = await atLoad("記法から読んだ試す図を新しい Node で�
   ),
 );
 
+// 原本の JSON から作った試す図も、同じく子の Node で置く仕事を file を読み込む段で済ませる (#3816)
+const TRIED_JSON = await atLoad("原本の JSON から作った試す図を新しい Node で置く", async () => {
+  const whole = await wholeForNode<Entry>();
+  const parsed = whole.parseNotation(TRY_EXAMPLE);
+  const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
+  return inFreshNode<{ mounted?: boolean; error?: string; validator: unknown }>(
+    // loadKind と原本の JSON を渡した loadFor は検査も読むので、記法を渡した loadFor で試す図の部品だけを読む
+    tryOnPage(`await light.loadFor(text); return JSON.parse(${JSON.stringify(json)});`),
+  );
+});
+
 describe("記法から読んだ試す図は、置いた後に写した図も検査を省く (#3416)", () => {
   it("light-mounts-parsed-try-without-validator", () => {
     const out = TRIED.get();
@@ -306,12 +345,7 @@ describe("記法から読んだ試す図は、置いた後に写した図も検�
     const whole = await importEntry<Entry>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const parsed = whole.parseNotation(TRY_EXAMPLE);
-    const json = JSON.stringify(parsed.ok ? parsed.diagram : {});
-    const out = inFreshNode<{ mounted?: boolean; error?: string; validator: unknown }>(
-      // loadKind と原本の JSON を渡した loadFor は検査も読むので、記法を渡した loadFor で試す図の部品だけを読む
-      tryOnPage(`await light.loadFor(text); return JSON.parse(${JSON.stringify(json)});`),
-    );
+    const out = TRIED_JSON.get();
     expect(out.mounted, "loadFor を待たずに原本の JSON の試す図を置けた (検査を通していない)").toBeUndefined();
     expect(out.error ?? "", "原本の形の検査を読んでいないことを名指さない").toMatch(/schema check.*loadFor|loadFor.*schema check/u);
   });
@@ -330,19 +364,56 @@ const TABLER_LOADED = `light.iconSetLoaded("tabler")`;
 /** 図の頭に定義を書かずに共有のブロックを使う構成図 */
 const SHARED_BLOCK = "architecture 橋\n\nbox eth as Ethereum\n+bridge cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
 
-describe("宣言と段を省いた短い記法 (#3438)", () => {
-  it("light-draws-short-notation", async () => {
-    const whole = await importEntry<Entry>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    const out = inFreshNode<{ ok?: boolean; svg?: string; error?: string; validator: unknown }>(`
+// 件ごとに新しい Node を起こす仕事を、file を読み込む段で 1 つずつ順に済ませる (#3816)
+
+const SHORT_IN_NODE = await atLoad("短い記法を新しい Node の軽い入口で描く", () =>
+  inFreshNode<{ ok?: boolean; svg?: string; error?: string; validator: unknown }>(`
       const text = ${JSON.stringify(SHORT)};
       await light.loadFor(text);
       const parsed = light.parseNotation(text);
       out.ok = parsed.ok;
       try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
       out.validator = ${VALIDATOR_LOADED};
-    `);
+    `),
+);
+
+const SHARED_IN_NODE = await atLoad("共有のブロックを使う図を新しい Node の軽い入口で描く", () =>
+  inFreshNode<{ ok?: boolean; svg?: string; error?: string }>(`
+      const text = ${JSON.stringify(SHARED_BLOCK)};
+      await light.loadFor(text);
+      const parsed = light.parseNotation(text);
+      out.ok = parsed.ok;
+      if (!parsed.ok) out.error = JSON.stringify(parsed.errors);
+      else try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
+    `),
+);
+
+const BLOCK_ICON_IN_NODE = await atLoad("定義に Tabler の絵柄を持つ図を新しい Node の軽い入口で読む", () =>
+  inFreshNode<{ before: unknown; after: unknown }>(`
+      out.before = ${TABLER_LOADED};
+      await light.loadFor(${JSON.stringify(BLOCK_ICON)});
+      out.after = ${TABLER_LOADED};
+    `),
+);
+
+const BLOCK_ICON_BEFORE_LOAD = await atLoad("loadFor の前に共有の橋の図を新しい Node の軽い入口で描く", () =>
+  inFreshNode<{ result: string; loaded: unknown }>(`
+      // 構成図の部品は最初から在るので、loadFor を待たずに読んで描く
+      const parsed = light.parseNotation(${JSON.stringify(SHARED_BLOCK)});
+      if (!parsed.ok) out.result = "読めない: " + parsed.errors.map((e) => e.message).join(" / ");
+      else {
+        try { out.result = light.renderDiagram(parsed.diagram).svg ? "描けた" : "空"; } catch (e) { out.result = "描けない: " + e.message; }
+      }
+      out.loaded = ${TABLER_LOADED};
+    `),
+);
+
+describe("宣言と段を省いた短い記法 (#3438)", () => {
+  it("light-draws-short-notation", async () => {
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    const out = SHORT_IN_NODE.get();
     expect(out.ok, "軽い入口が短い記法を読めない").toBe(true);
     expect(out.error, "短い記法から読んだ図を軽い入口で描けない").toBeUndefined();
     const parsed = whole.parseNotation(SHORT);
@@ -357,14 +428,7 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
     const whole = await importEntry<Entry>(name);
     expect(whole, "既定の入口を読めない").toBeDefined();
     if (!whole) return;
-    const out = inFreshNode<{ ok?: boolean; svg?: string; error?: string }>(`
-      const text = ${JSON.stringify(SHARED_BLOCK)};
-      await light.loadFor(text);
-      const parsed = light.parseNotation(text);
-      out.ok = parsed.ok;
-      if (!parsed.ok) out.error = JSON.stringify(parsed.errors);
-      else try { out.svg = light.renderDiagram(parsed.diagram).svg; } catch (e) { out.error = e.message; }
-    `);
+    const out = SHARED_IN_NODE.get();
     expect(out.ok, `軽い入口が共有のブロックを使う図を読めない ${out.error ?? ""}`).toBe(true);
     expect(out.error, "共有のブロックを使う図を軽い入口で描けない").toBeUndefined();
     // 共有の橋は石の橋の絵柄を持つ角丸の箱 (#3489)。軽い入口は絵柄集の表を読んでから描く
@@ -378,25 +442,13 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
   });
 
   it("light-loads-tabler-for-block-icon", () => {
-    const out = inFreshNode<{ before: unknown; after: unknown }>(`
-      out.before = ${TABLER_LOADED};
-      await light.loadFor(${JSON.stringify(BLOCK_ICON)});
-      out.after = ${TABLER_LOADED};
-    `);
+    const out = BLOCK_ICON_IN_NODE.get();
     expect(out.before, "読む前から絵柄集を持つ").toBe(false);
     expect(out.after, "定義に Tabler の絵柄を持つ図の loadFor が絵柄集を読まない").toBe(true);
   });
 
   it("light-refuses-block-icon-before-load", () => {
-    const out = inFreshNode<{ result: string; loaded: unknown }>(`
-      // 構成図の部品は最初から在るので、loadFor を待たずに読んで描く
-      const parsed = light.parseNotation(${JSON.stringify(SHARED_BLOCK)});
-      if (!parsed.ok) out.result = "読めない: " + parsed.errors.map((e) => e.message).join(" / ");
-      else {
-        try { out.result = light.renderDiagram(parsed.diagram).svg ? "描けた" : "空"; } catch (e) { out.result = "描けない: " + e.message; }
-      }
-      out.loaded = ${TABLER_LOADED};
-    `);
+    const out = BLOCK_ICON_BEFORE_LOAD.get();
     expect(out.loaded, "loadFor を待っていないのに絵柄集を読んだ").toBe(false);
     expect(out.result, "loadFor の前に共有の橋の図を描けた").not.toBe("描けた");
     expect(out.result, "誤りの文が絵柄集の名前を言わない").toMatch(/tabler/iu);
@@ -404,10 +456,10 @@ describe("宣言と段を省いた短い記法 (#3438)", () => {
   });
 });
 
+// 件ごとに新しい Node を起こして読んだ個別ブロックを数える仕事を、file を読み込む段で 1 つずつ順に済ませる (#3816)
 
-describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
-  it("light-entry-loads-only-used-blocks", () => {
-    const out = loadedAfter(`
+const USED_BLOCKS = await atLoad("拡大の範囲を書かない時間軸の図を新しい Node の軽い入口で読んで描く", () =>
+  loadedAfter(`
       out.before = light.LATER_BLOCKS.filter((block) => light.blockLoaded(block));
       const text = ${JSON.stringify(TIME_NO_ZOOM)};
       out.kind = light.diagramKind(text);
@@ -415,7 +467,34 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
       const parsed = light.parseNotation(text);
       out.parsed = parsed.ok ? true : parsed.errors[0].message;
       try { light.renderDiagram(parsed.diagram); out.drawn = true; } catch (e) { out.drawn = e.message; }
-    `);
+    `),
+);
+
+const READINGS_ONLY = await atLoad("ブロックの読み方だけを新しい Node の軽い入口で読む", () =>
+  loadedAfter(`
+      const text = ${JSON.stringify(TIME_NO_ZOOM)};
+      await light.loadReadings(text);
+      const parsed = light.parseNotation(text);
+      out.parsed = parsed.ok ? true : parsed.errors[0].message;
+      out.kindLoaded = light.kindLoaded("time");
+      try { light.renderDiagram(parsed.diagram); out.drawn = "描けた"; } catch (e) { out.drawn = e.message; }
+    `),
+);
+
+const UNLOADED_BLOCK = await atLoad("読んでいない個別ブロックの行を新しい Node の軽い入口で読む", () =>
+  loadedAfter(`
+      const first = (text) => { const parsed = light.parseNotation(text); return parsed.ok ? "読めた" : parsed.errors[0].message; };
+      out.time = first(${JSON.stringify(TIME_NO_ZOOM)});
+      out.before = light.LATER_BLOCKS.filter((block) => light.blockLoaded(block));
+      // 状態遷移図の決まりを持つブロックだけを読んでから、移れる道 (線の形で脇道のブロックが読む行) を持つ図を読む
+      await light.loadFor(${JSON.stringify(STATE_NO_PATH)});
+      out.path = first(${JSON.stringify(STATE_WITH_PATH)});
+    `),
+);
+
+describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3349)", () => {
+  it("light-entry-loads-only-used-blocks", () => {
+    const out = USED_BLOCKS.get();
     expect(out, "軽い入口を新しい Node で読めない").toBeDefined();
     if (!out) return;
     expect(out.before, "何も読む前に読んでいた後から読む個別ブロック").toEqual([]);
@@ -446,15 +525,55 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
     });
   });
 
-  it("light-load-readings-leaves-renderer-out", () => {
-    const out = loadedAfter(`
-      const text = ${JSON.stringify(TIME_NO_ZOOM)};
-      await light.loadReadings(text);
+  /**
+   * 種類の検査が子の Node で 1 つずつ持っていた確かめ (`<種類>-light-entry-draws-after-load-for`) を、見本ごとの件にまとめる (#3763)。
+   * 種類の検査が軽い入口を読むと、関係する検査を選ぶ命令が全ての種類の描く所を変えた時にその検査を選ぶため。
+   * 後から読む種類の見本に、見た目を替える行 (`[shape: ...]`) の見本と色付きの絵柄の定義を持つ見本を足す。
+   * 色付きの絵柄の見本は構成図で、構成図は軽い入口が最初から持つ
+   */
+  describe.for([
+    ...Object.entries(LATER_SAMPLES).map(([kind, file]) => ({ name: kind, kind, file })),
+    { name: "lineup [shape: stairs]", kind: "lineup", file: "video-publish.dragon" },
+    { name: "cycle [shape: clock]", kind: "cycle", file: "focus-clock.dragon" },
+    { name: "cycle [shape: band]", kind: "cycle", file: "farm-year.dragon" },
+    { name: "sankey [shape: rows]", kind: "sankey", file: "day-hours.dragon" },
+    { name: "sankey [shape: treemap]", kind: "sankey", file: "phone-storage.dragon" },
+    { name: "matrix [shape: scatter]", kind: "matrix", file: "feature-scores.dragon" },
+    { name: "chart [shape: dots]", kind: "chart", file: "device-dots.dragon" },
+    { name: "architecture の色付きの絵柄", kind: "architecture", file: "photo-delivery.dragon" },
+  ])("$name", ({ kind, file }) => {
+    it("light-entry-draws-each-later-kind-after-load-for", async () => {
+      const whole = await wholeEntry();
+      const text = readFileSync(join(EXAMPLES, file), "utf8");
+      const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+      expect(light.kindLoaded(kind), `${file} の種類 (${kind}) を loadFor の前に読んでいたか`).toBe(!(kind in LATER_SAMPLES));
+      await light.loadFor(text);
+      expect(light.kindLoaded(kind), `${file} の種類 (${kind}) を loadFor の後に読んでいない`).toBe(true);
       const parsed = light.parseNotation(text);
-      out.parsed = parsed.ok ? true : parsed.errors[0].message;
-      out.kindLoaded = light.kindLoaded("time");
-      try { light.renderDiagram(parsed.diagram); out.drawn = "描けた"; } catch (e) { out.drawn = e.message; }
-    `);
+      expect(parsed.ok ? true : messageOf(parsed), `${file} を loadFor の後に読めない`).toBe(true);
+      const expected = whole.parseNotation(text);
+      expect(parsed.ok ? light.renderDiagram(parsed.diagram).svg : "", `${file} を軽い入口で描いた SVG が既定の入口と違う`).toBe(expected.ok ? whole.renderDiagram(expected.diagram).svg : "");
+    });
+  });
+
+  // 時系列図と構成図は軽い入口が最初から持ち、loadFor を待たずに描く (#3763)
+  it("light-draws-sequence-and-architecture-without-load", async () => {
+    const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
+    const architecture = "architecture 橋\n\nbox eth as Ethereum\nbox cc as 橋\n\nstep 送る\n  say Ethereum が橋へ送る。\n  eth -> cc: 送る\n";
+    for (const [kind, text] of [
+      ["sequence", INTRO],
+      ["architecture", architecture],
+    ] as const) {
+      expect(light.kindLoaded(kind), `${kind} を最初から持たない`).toBe(true);
+      const parsed = light.parseNotation(text);
+      expect(parsed.ok ? true : messageOf(parsed), `${kind} を待たずに読めない`).toBe(true);
+      const svg = parsed.ok ? light.renderDiagram(parsed.diagram).svg : "";
+      expect(svg, `${kind} を待たずに描けない`).toContain('data-dragon="figure"');
+    }
+  });
+
+  it("light-load-readings-leaves-renderer-out", () => {
+    const out = READINGS_ONLY.get();
     expect(out, "軽い入口を新しい Node で読めない").toBeDefined();
     if (!out) return;
     expect(out.parsed, "ブロックの読み方だけを読んだ後に記法を読めない").toBe(true);
@@ -464,14 +583,7 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
   });
 
   it("light-parse-names-unloaded-block", () => {
-    const out = loadedAfter(`
-      const first = (text) => { const parsed = light.parseNotation(text); return parsed.ok ? "読めた" : parsed.errors[0].message; };
-      out.time = first(${JSON.stringify(TIME_NO_ZOOM)});
-      out.before = light.LATER_BLOCKS.filter((block) => light.blockLoaded(block));
-      // 状態遷移図の決まりを持つブロックだけを読んでから、移れる道 (線の形で脇道のブロックが読む行) を持つ図を読む
-      await light.loadFor(${JSON.stringify(STATE_NO_PATH)});
-      out.path = first(${JSON.stringify(STATE_WITH_PATH)});
-    `);
+    const out = UNLOADED_BLOCK.get();
     expect(out, "軽い入口を新しい Node で読めない").toBeDefined();
     if (!out) return;
     // 読んでいない個別ブロックの行を読むと、黙って別の行と読まず、ブロックの名前と待つ関数を名指して止める
@@ -598,19 +710,10 @@ const ENTRIES = await atLoad("既定の入口と軽い入口を読み、見本�
   return { whole, light };
 });
 
-describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
-  it("light-entry-samples-cover-kinds", async () => {
-    // 見本ごとの SVG の一致は下の見本ごとの検査が持つ。ここではどの種類も見本を持つ (走査が空振りしていない) ことを確かめる
-    const whole = await importEntry<Entry>(name);
-    expect(whole, "既定の入口を読めない").toBeDefined();
-    if (!whole) return;
-    expect([...new Set(DRAGON_FILES.map((file) => example(whole, file).kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
-  });
-
-  it("light-entry-refuses-unloaded-kind", () => {
-    let out: { refused: Record<string, string[]>; kept: string[]; loaded: string[] } | undefined;
-    try {
-      out = inFreshNode(`
+// 読んでいない種類を新しい Node で描く仕事も、file を読み込む段で済ませる (#3816)。Node を起こせない時は結果を持たず、件が落とす
+const UNLOADED_KINDS = await atLoad("読んでいない種類を新しい Node の軽い入口で描く", () => {
+  try {
+    return inFreshNode<{ refused: Record<string, string[]>; kept: string[]; loaded: string[] }>(`
         const fs = await import("node:fs");
         // 記法を読むには個別ブロックの読み方が要るので (#3349)、描く部品だけを確かめるよう原本を読む
         const read = (file) => JSON.parse(fs.readFileSync(new URL("./examples/" + file, "file://${ROOT}/"), "utf8"));
@@ -629,9 +732,22 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
         }
         for (const [kind, file] of Object.entries(kept)) if (message(() => light.renderDiagram(read(file))) === "描けた") out.kept.push(kind);
       `);
-    } catch {
-      out = undefined;
-    }
+  } catch {
+    return undefined;
+  }
+});
+
+describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
+  it("light-entry-samples-cover-kinds", async () => {
+    // 見本ごとの SVG の一致は下の見本ごとの検査が持つ。ここではどの種類も見本を持つ (走査が空振りしていない) ことを確かめる
+    const whole = await importEntry<Entry>(name);
+    expect(whole, "既定の入口を読めない").toBeDefined();
+    if (!whole) return;
+    expect([...new Set(DRAGON_FILES.map((file) => example(whole, file).kind))].sort(), "見本が描く種類").toEqual(ALL_KINDS);
+  });
+
+  it("light-entry-refuses-unloaded-kind", () => {
+    const out = UNLOADED_KINDS.get();
     expect(out, "軽い入口を新しい Node で読めない").toBeDefined();
     if (!out) return;
     for (const kind of LATER_KINDS) {
@@ -667,6 +783,13 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
     });
   });
 
+  // 配管の図の決まりの表の検査 (`pipe-diagram-rules.test.ts`) は表を元の file から引くので、既定の入口が出すことはここで確かめる (#3763)
+  it("default-entry-exports-pipe-rules", async () => {
+    const whole = (await importEntry<Entry>(name)) as unknown as { PIPE_RULES?: unknown; pipeViolations?: unknown } | undefined;
+    expect(whole?.PIPE_RULES, "配管の図の決まりの表 (PIPE_RULES) が既定の入口から出ていない").toBeDefined();
+    expect(whole?.pipeViolations, "決まりの表への違反を数える処理 (pipeViolations) が既定の入口から出ていない").toBeTypeOf("function");
+  });
+
   // 全ての見本を既定の入口で 1 件で描くと、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。見本ごとの件に分ける
   it("default-entry-cases-follow-files", ({ task }) => {
     expect(DRAGON_FILES.length, "見本を数えられない").toBeGreaterThan(1);
@@ -684,6 +807,109 @@ describe.for(DRAGON_FILES)("軽い入口と既定の入口の SVG (#3248) %s", (
     const dark = { theme: "dark", still: true, lang: "en" };
     expect(light.renderDiagram(diagram, plain).svg, `${file} (${JSON.stringify(plain)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, plain).svg);
     expect(light.renderDiagram(diagram, dark).svg, `${file} (${JSON.stringify(dark)}) を軽い入口で描いた SVG が既定の入口と違う`).toBe(whole.renderDiagram(diagram, dark).svg);
+  });
+});
+
+/** build した package の置き場 */
+const DIST = join(ROOT, "dist");
+/** 軽い入口の帯の入口 (#3789) */
+const LIGHT_FRAME = join(DIST, "light-frame.js");
+/** 軽い入口の頁で帯つきで置く時系列図。後から読む種類を持たない */
+const LIGHT_SEQUENCE = "sequence 注文\nbox a as あなた\nbox b as 店\nstep 確認\n  a -> b: 注文\n";
+/** 後から読む種類 (`state`) の記法。`loadFor` を待たずに置くと断られる */
+const LIGHT_STATE = "state 注文\n\nstate a as 受けた\nstate b as 送った\n\nstep 流す\n  a -> b\n";
+
+/** 軽い入口だけを読む頁で帯つきの図を置いて見たこと */
+interface LightFrameSeen {
+  /** 帯の入口を読めなかった時の誤り */
+  loadError?: string;
+  /** 帯の数と、帯の内側に描いた図の数と、帯のボタンの並び */
+  frames: number;
+  drawn: number;
+  buttons: string[];
+  /** `loadFor` を待たずに後から読む種類を置いた時の誤りの文と、置き先に残った要素の数 */
+  refused: string;
+  leftover: number;
+  /** 頁が読み込んだ file の path (`/` から) */
+  loaded: string[];
+}
+
+// 頁を開く仕事は、混んだ機械で 1 件 10 秒の上限を超えないよう、file を読み込む段で済ませる (#3815)
+const LIGHT_FRAME_PAGE = await atLoad("軽い入口だけを読む頁で、帯の入口から帯つきの図を置く", async (): Promise<LightFrameSeen> => {
+  const { fileChromium } = await import("./page-needs");
+  const html =
+    '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
+    // 既定の入口も import map に載せ、帯の入口が誤って読んだ時に読み込んだ file として数える
+    '<script type="importmap">{"imports":{"@cardenelabs/dragon/light":"/light/index.js","@cardenelabs/dragon":"/index.js"}}</script>' +
+    '</head><body><div id="host" style="width:760px"></div><div id="refused" style="width:760px"></div>' +
+    `<script type="module">
+      const sequence = ${JSON.stringify(LIGHT_SEQUENCE)};
+      const state = ${JSON.stringify(LIGHT_STATE)};
+      try {
+        const light = await import("@cardenelabs/dragon/light");
+        let frame;
+        try { frame = await import("/light-frame.js"); } catch (error) { window.seen = { loadError: String(error) }; throw error; }
+        await light.loadFor(sequence);
+        frame.mountFramedDiagram(document.getElementById("host"), sequence);
+        let refused = "置けた";
+        try { frame.mountFramedDiagram(document.getElementById("refused"), state); } catch (error) { refused = error.message; }
+        const root = document.querySelector("#host .dragon-frame")?.shadowRoot;
+        window.seen = {
+          frames: document.querySelectorAll(".dragon-frame").length,
+          drawn: root?.querySelectorAll('[data-dragon="player"] svg').length ?? 0,
+          buttons: [...(root?.querySelectorAll(".dg-header-actions > [data-action]") ?? [])].map((el) => el.dataset.action),
+          refused,
+          leftover: document.getElementById("refused").children.length,
+        };
+      } catch (error) {
+        window.seen ??= { loadError: String(error) };
+      }
+    </script></body></html>`;
+  const context = await (await fileChromium()).newContext({ viewport: { width: 900, height: 900 } });
+  context.setDefaultTimeout(10_000);
+  const loaded: string[] = [];
+  try {
+    await context.route("**/*", (route) => {
+      const url = new URL(route.request().url());
+      if (url.origin !== "http://localhost") return route.abort();
+      if (url.pathname === "/") return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
+      const file = join(DIST, url.pathname);
+      if (!file.startsWith(`${DIST}/`) || !file.endsWith(".js") || !existsSync(file)) return route.fulfill({ status: 404, body: "" });
+      loaded.push(url.pathname);
+      return route.fulfill({ contentType: "text/javascript", body: readFileSync(file) });
+    });
+    const page = await context.newPage();
+    await page.goto("http://localhost/");
+    await page.waitForFunction(() => "seen" in window, null, { timeout: 10_000 }).catch(() => undefined);
+    const seen = await page.evaluate(() => (window as unknown as { seen?: Omit<LightFrameSeen, "loaded"> }).seen);
+    return { frames: 0, drawn: 0, buttons: [], refused: "", leftover: 0, ...seen, loaded: [...loaded] };
+  } finally {
+    await context.close();
+  }
+});
+
+describe("軽い入口の頁の帯つきの図 (#3789)", () => {
+  it("light-entry-mounts-framed-diagram", () => {
+    expect(existsSync(LIGHT_FRAME), `軽い入口の帯の入口の build した file が無い: ${LIGHT_FRAME}`).toBe(true);
+    const seen = LIGHT_FRAME_PAGE.get();
+    expect(seen.loadError, "軽い入口の帯の入口を頁で読めない").toBeUndefined();
+    expect({ frames: seen.frames, drawn: seen.drawn, buttons: seen.buttons }, "loadFor を待った後に置いた帯つきの図").toEqual({
+      frames: 1,
+      drawn: 1,
+      buttons: ["code", "editor", "copy", "export", "expand"],
+    });
+    expect(seen.loaded, "頁が読み込んだ file に軽い入口と帯の入口が在る").toEqual(expect.arrayContaining(["/light/index.js", "/light-frame.js"]));
+    expect(seen.loaded, "頁が読み込んだ既定の入口").not.toContain("/index.js");
+  });
+
+  it("light-frame-refuses-unloaded-kind", () => {
+    expect(existsSync(LIGHT_FRAME), `軽い入口の帯の入口の build した file が無い: ${LIGHT_FRAME}`).toBe(true);
+    const seen = LIGHT_FRAME_PAGE.get();
+    expect(seen.loadError, "軽い入口の帯の入口を頁で読めない").toBeUndefined();
+    // 後から読む種類は、loadFor を待つまで種類の名前を含む誤りで断り、置き先に帯を残さない
+    expect(seen.refused, "loadFor を待たずに置いた状態遷移図の誤りの文").toContain("state");
+    expect(seen.refused, "誤りの文が loadFor を待つよう言わない").toContain("loadFor");
+    expect(seen.leftover, "断った置き先に残った要素").toBe(0);
   });
 });
 

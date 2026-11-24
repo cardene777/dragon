@@ -13,12 +13,14 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Blob as HbBlob, Face } from "harfbuzzjs";
 import type { Browser, Page } from "playwright-core";
-import { expect, type RunnerTask, type RunnerTestFile, vi } from "vitest";
+import { expect, vi } from "vitest";
 import { type Exported, type ExportOptions, type Format, type Ran, type RunPlace, runCli as spawnCli, withoutPlaywright } from "../../../test-support/prepare-tools";
 import { fileChromium } from "./page-needs";
 import { lendFileChromium } from "./shared-chromium";
 
 export { type Exported, type ExportOptions, type Format, type Ran, type RunPlace, withoutPlaywright };
+// 件の木を読む手助けは dist を読まない助けの file に置く。読む検査が dist を書く検査と数えられないため (#3763)
+export { casesNamed } from "./case-support";
 
 // 書き出しが起こす Chromium を、この file の検査の間は file で 1 つの Chromium に差し替える (#3599)
 await lendFileChromium();
@@ -85,19 +87,6 @@ export async function runCliInProcess(args: string[]): Promise<Ran> {
   }
 }
 
-/**
- * 集めた件の木で、名前が `name` の件が入る describe の名前 (#3421、#3424)。
- * `describe.for` の `$name` は字の列を引用符で囲んだ名前にするので、囲みを外して返す
- */
-export function casesNamed(file: RunnerTestFile, name: string): string[] {
-  const found: string[] = [];
-  const walk = (seen: RunnerTask): void => {
-    if (seen.type === "test" && seen.name === name) found.push((seen.suite?.name ?? "").replace(/^'(.*)'$/, "$1"));
-    if (seen.type === "suite") seen.tasks.forEach(walk);
-  };
-  file.tasks.forEach(walk);
-  return found;
-}
 
 /** file の頭の数バイトで形を見分ける */
 export function formatOf(bytes: Buffer): Format | "unknown" {
@@ -233,7 +222,7 @@ export interface CaptionStep {
  */
 export async function captionSteps(html: string, width: number): Promise<CaptionStep[]> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     const count = await page.locator('[data-dragon="steps"] > li').count();
     const seen: CaptionStep[] = [];
@@ -271,7 +260,7 @@ export interface CaptionLayout {
 /** 書き出した HTML を動きを嫌う設定で幅 `width` で開き、1 段目の段の本文の帯の並べ方を読む (#3057) */
 export async function captionLayout(html: string, width: number): Promise<CaptionLayout> {
   return withPage(html, { width, height: 2000 }, async (page) => {
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     await page.evaluate(() => document.fonts.ready);
     return page.evaluate(() => {
       const rect = (selector: string): Rect => {
@@ -305,7 +294,7 @@ export async function playerButtons(html: string, width: number, touch = false):
     html,
     { width, height: 2000 },
     async (page) => {
-      await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+      await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
       return page.evaluate(() =>
         [...document.querySelectorAll(".dg-btn")].map((button) => {
           const box = button.getBoundingClientRect();
@@ -375,7 +364,7 @@ export async function unfoldedSteps(html: string, width: number, at: number): Pr
   return withPage(html, { width, height: 2000 }, async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     const progress = (): Promise<Progress> =>
       page.evaluate(() => {
         const segs = [...document.querySelectorAll<HTMLElement>('[data-dragon="progress"] [data-dragon="segment"]')];
@@ -525,7 +514,7 @@ export async function drawnText(html: string): Promise<string> {
         copy.querySelectorAll("style").forEach((style) => style.remove());
         return copy.textContent ?? "";
       });
-    await page.locator('[data-dragon="player"] svg').waitFor({ state: "attached" });
+    await page.locator('[data-dragon="player"] svg[data-dragon="figure"]').waitFor({ state: "attached" });
     const playing = await read();
     await page.locator('[data-dragon="toggle"]').click();
     const paused = await read();

@@ -4,7 +4,7 @@
  */
 import { stepCarriers } from "../blocks/carry/step-times";
 import { drawEr } from "../render/er";
-import { erFocusParts, type ErLayout, layoutEr } from "./er/layout";
+import { erFocusParts, type ErLayout, layoutEr, erOverview } from "./er/layout";
 import type { KindParts } from "./parts";
 
 export const parts: KindParts<ErLayout> = {
@@ -13,4 +13,13 @@ export const parts: KindParts<ErLayout> = {
   // 表どうしを結ぶ線は結びの線が描くので、共通の線は描かない
   draw: (layout, diagram, ctx) => ({ ...drawEr(layout, diagram, ctx), edge: () => undefined }),
   focus: erFocusParts,
+  // 全体図に表と頭の行と結びの線を描く (#3849)
+  overview: erOverview,
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    er: typeof import("./er");
+  }
+}

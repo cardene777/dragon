@@ -8,6 +8,9 @@
  * 頁は `http://localhost/` に置く (WebCodecs は安全な頁でしか使えない)。build した `dist/capture.js` を読み、
  * 入口が読む詰める道具 (`gifenc` と `mediabunny`) は import map で node_modules の file へ向ける。
  * 字の CSS と字の file は、同梱の字の package (`@fontsource-variable/*`) の file をそのまま返す。
+ *
+ * 件の中で頁を開いて書き出すと、混んだ機械で 1 件 10 秒の上限を超えた (#3816)。
+ * 頁を開いて書き出す仕事と、比べる元の書き出しは file を読み込む段 (`at-load.ts`) で済ませ、件は記した値を元の件と同じ順で確かめる。
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
@@ -15,15 +18,21 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { PNG } from "pngjs";
-import type { Page } from "playwright-core";
-import { parseNotation, renderDiagram } from "@cardenelabs/dragon";
+import type { BrowserContext, Page } from "playwright-core";
+import { parseNotation, renderDiagram } from "../src/core";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
+import { ACTION_LIMIT_MS, PAGE_LIMIT_MS, within } from "./page-wait";
 import type { Json } from "./diagram-support";
 import { exporter, readGif } from "./export-support";
 import { fileChromium } from "./page-needs";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
-const ROOT = join(process.cwd(), "packages/dragon");
-const require_ = createRequire(join(ROOT, "package.json"));
+/** package の package.json。package の根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、package.json から根を引く (#3763) */
+const MANIFEST = join(process.cwd(), "packages/dragon/package.json");
+const ROOT = dirname(MANIFEST);
+const require_ = createRequire(MANIFEST);
 const FONTS = join(ROOT, "node_modules/@fontsource-variable");
 const CAPTURE = join(ROOT, "dist/capture.js");
 
@@ -49,20 +58,43 @@ interface PageParts {
   extra?: Record<string, Buffer>;
 }
 
+/** 書き出す入口を読んだ頁で `run` を回した結果。入口の build した file が無い時は頁を開かず、頁が入口を読めない時は `run` を回さない */
+interface Captured<T> {
+  /** 書き出す入口の build した file (`dist/capture.js`) が在る */
+  built: boolean;
+  /** 頁が書き出す入口を読めなかった理由 */
+  captureError?: string;
+  /** `run` の結果 */
+  result?: T;
+}
+
+/** file で 1 つの Chromium に文脈を作って `run` を回し、回し終えたら文脈を閉じる (#3424)。Chromium は閉じない */
+async function inContext<T>(what: string, run: (context: BrowserContext) => Promise<T>): Promise<T> {
+  const context = await within((await fileChromium()).newContext({ viewport: { width: 800, height: 600 } }), ACTION_LIMIT_MS, "頁の文脈を作る");
+  // 上限を書かない開く、待つ操作も、Playwright の既定の 30 秒ではなく 1 つの操作の上限で切る
+  context.setDefaultTimeout(ACTION_LIMIT_MS);
+  try {
+    return await within(run(context), PAGE_LIMIT_MS, what);
+  } finally {
+    // 記した値は手元に在るので、閉じるのが上限で終わらなくても落とさない。閉じ損ねた頁は file の process の終わりに Playwright が Chromium ごと止める
+    await within(context.close(), ACTION_LIMIT_MS, "頁の文脈を閉じる").catch(() => undefined);
+  }
+}
+
 /**
- * 書き出す入口を読んだ頁を開いて `run` を回す。入口を読めない時は判定に出してから止める。
+ * 書き出す入口を読んだ頁を開いて `run` を回す。入口を読めない時は `run` を回さず、件が `captured` で判定に出す。
  * 頁は file で 1 つの Chromium の文脈ごとに開いて閉じる (#3424)
  */
-async function withCapturePage<T>({ head, body, extra = {} }: PageParts, run: (page: Page) => Promise<T>): Promise<T> {
-  expect(existsSync(CAPTURE), "書き出す入口の build した file (dist/capture.js) が無い").toBe(true);
+async function withCapturePage<T>({ head, body, extra = {} }: PageParts, run: (page: Page) => Promise<T>): Promise<Captured<T>> {
+  const built = existsSync(CAPTURE);
+  if (!built) return { built };
   const html =
     '<!doctype html><html><head><meta charset="utf-8">' +
     '<script type="importmap">{"imports":{"gifenc":"/gifenc.js","mediabunny":"/mediabunny.js"}}</script>' +
     `${head}<style>html,body{margin:0}svg{display:block}</style></head><body>${body}` +
     '<script type="module">import("/mediabunny.js").then((m) => { window.mb = m; });' +
     'import("/capture.js").then((m) => { window.capture = m; }, (e) => { window.captureError = String(e); });</script></body></html>';
-  const context = await (await fileChromium()).newContext({ viewport: { width: 800, height: 600 } });
-  try {
+  return inContext("書き出す入口を読んだ頁の仕事", async (context): Promise<Captured<T>> => {
     const page = await context.newPage();
     await page.route("http://localhost/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
@@ -77,14 +109,19 @@ async function withCapturePage<T>({ head, body, extra = {} }: PageParts, run: (p
       return more ? route.fulfill({ body: more }) : route.fulfill({ status: 404 });
     });
     await page.goto("http://localhost/");
-    await page.waitForFunction(() => "capture" in window || "captureError" in window);
-    const failed = await page.evaluate(() => (window as unknown as { captureError?: string }).captureError);
-    expect(failed, "頁が書き出す入口を読めない").toBeUndefined();
+    await page.waitForFunction(() => "capture" in window || "captureError" in window, undefined, { timeout: ACTION_LIMIT_MS });
+    const captureError = await page.evaluate(() => (window as unknown as { captureError?: string }).captureError);
+    if (captureError !== undefined) return { built, captureError };
     await page.evaluate(() => document.fonts.ready);
-    return await run(page);
-  } finally {
-    await context.close();
-  }
+    return { built, result: await run(page) };
+  });
+}
+
+/** 頁で回した結果を返す。入口の build した file が無い時と、頁が入口を読めない時は判定で落とす */
+function captured<T>(shot: Captured<T>): T {
+  expect(shot.built, "書き出す入口の build した file (dist/capture.js) が無い").toBe(true);
+  expect(shot.captureError, "頁が書き出す入口を読めない").toBeUndefined();
+  return shot.result as T;
 }
 
 /** 区画の中の 2 つの箱を 1 段で結ぶ構成図。止めて見せる図で、日本語と英数字を描く */
@@ -114,7 +151,7 @@ interface Mp4Info {
 
 /** 頁で `mediabunny` を読み、渡した path の mp4 のコマの大きさと数を返す */
 async function mp4Info(page: Page, paths: string[]): Promise<Mp4Info[]> {
-  await page.waitForFunction(() => "mb" in window);
+  await page.waitForFunction(() => "mb" in window, undefined, { timeout: ACTION_LIMIT_MS });
   return page.evaluate(async (paths) => {
     const mb = (window as unknown as { mb: any }).mb;
     const out: { width: number; height: number; frames: number }[] = [];
@@ -132,32 +169,40 @@ async function mp4Info(page: Page, paths: string[]): Promise<Mp4Info[]> {
 /** 頁の Blob を Node の Buffer にする。頁の中で base64 にして渡す */
 const blobBytes = (base64: string): Buffer => Buffer.from(base64, "base64");
 
+// 頁ごとの仕事は流れごとに分け、落ちた仕事はそれを読む件だけを落とす。
+// 頁が読んだ file の回数 (`served`) を件が確かめるので、頁は 1 つずつ順に開く
+const FILM = await atLoad("構成図を exportDiagram と書き出す入口の両方で GIF と mp4 に書き出す", async () => {
+  const diagram = oneStep();
+  const exportDiagram = await exporter();
+  const exported = await exportDiagram(diagram, { outDir: mkdtempSync(join(tmpdir(), "dragon-capture-")), formats: ["mp4", "gif"], ...RATES });
+  const nodeGif = readGif(readFileSync(exported.files.gif as string));
+  const svg = renderDiagram(diagram).svg;
+  const shot = await withCapturePage({ head: FONT_LINKS, body: svg, extra: { "/node.mp4": readFileSync(exported.files.mp4 as string) } }, async (page) => {
+    const film = await page.evaluate(async (rates) => {
+      const capture = (window as unknown as { capture: Record<string, (...args: unknown[]) => Promise<unknown>> }).capture;
+      const svg = document.querySelector("svg");
+      const made = (await capture.captureFilm?.(svg, { formats: ["mp4", "gif"], ...rates })) as { frames: number; width: number; height: number; mp4?: Blob; gif?: Blob } | undefined;
+      const base64 = async (blob: Blob | undefined): Promise<string> => {
+        if (!blob) return "";
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let text = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        return btoa(text);
+      };
+      if (made?.mp4) (window as unknown as { browserMp4: string }).browserMp4 = URL.createObjectURL(made.mp4);
+      return made ? { frames: made.frames, width: made.width, height: made.height, gif: await base64(made.gif), mp4Type: made.mp4?.type ?? "", gifType: made.gif?.type ?? "" } : undefined;
+    }, RATES);
+    const browserMp4 = await page.evaluate(() => (window as unknown as { browserMp4?: string }).browserMp4 ?? "");
+    const infos = await mp4Info(page, browserMp4 ? ["/node.mp4", browserMp4] : ["/node.mp4"]);
+    return { film, infos };
+  });
+  return { exported, nodeGif, shot };
+});
+
 describe("ブラウザで書き出す GIF と mp4 (#3644)", () => {
-  it("capture-film-matches-export", async () => {
-    const diagram = oneStep();
-    const exportDiagram = await exporter();
-    const exported = await exportDiagram(diagram, { outDir: mkdtempSync(join(tmpdir(), "dragon-capture-")), formats: ["mp4", "gif"], ...RATES });
-    const nodeGif = readGif(readFileSync(exported.files.gif as string));
-    const svg = renderDiagram(diagram).svg;
-    const shot = await withCapturePage({ head: FONT_LINKS, body: svg, extra: { "/node.mp4": readFileSync(exported.files.mp4 as string) } }, async (page) => {
-      const film = await page.evaluate(async (rates) => {
-        const capture = (window as unknown as { capture: Record<string, (...args: unknown[]) => Promise<unknown>> }).capture;
-        const svg = document.querySelector("svg");
-        const made = (await capture.captureFilm?.(svg, { formats: ["mp4", "gif"], ...rates })) as { frames: number; width: number; height: number; mp4?: Blob; gif?: Blob } | undefined;
-        const base64 = async (blob: Blob | undefined): Promise<string> => {
-          if (!blob) return "";
-          const bytes = new Uint8Array(await blob.arrayBuffer());
-          let text = "";
-          for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-          return btoa(text);
-        };
-        if (made?.mp4) (window as unknown as { browserMp4: string }).browserMp4 = URL.createObjectURL(made.mp4);
-        return made ? { frames: made.frames, width: made.width, height: made.height, gif: await base64(made.gif), mp4Type: made.mp4?.type ?? "", gifType: made.gif?.type ?? "" } : undefined;
-      }, RATES);
-      const browserMp4 = await page.evaluate(() => (window as unknown as { browserMp4?: string }).browserMp4 ?? "");
-      const infos = await mp4Info(page, browserMp4 ? ["/node.mp4", browserMp4] : ["/node.mp4"]);
-      return { film, infos };
-    });
+  it("capture-film-matches-export", () => {
+    const { exported, nodeGif, shot: opened } = FILM.get();
+    const shot = captured(opened);
     expect(shot.film, "書き出す入口が captureFilm を出していないか、何も返さない").toBeDefined();
     if (!shot.film) return;
     const [nodeMp4, browserMp4] = shot.infos;
@@ -233,9 +278,22 @@ async function still(page: Page): Promise<{ png?: string; pngType?: string; svg?
   });
 }
 
+const STILL_ANY = await atLoad("dragon の図でない SVG を PNG と SVG に書き出す", () => withCapturePage({ head: FONT_LINKS, body: plainSvg("Hi") }, still));
+
+// 英字とキリル文字を描く。等幅の字の package は字の範囲ごとに 6 つの file を持ち、描いた字が入るのは latin と cyrillic の 2 つ
+const STILL_FONTS = await atLoad("英字とキリル文字を描いた SVG を書き出す", () => withCapturePage({ head: FONT_LINKS, body: plainSvg("Hi Ж") }, still));
+
+// 描く字 (英大文字) の範囲の file は在らず、描かない字 (キリル文字) の範囲の file も在らない。名指すのは描く字の範囲だけ
+const STILL_GONE = await atLoad("読めない字の file を名指す SVG を書き出す", () => {
+  const head =
+    '<style>@font-face{font-family:"Gone Sans";src:url(/missing/gone-latin.woff2) format("woff2");unicode-range:U+41-5A}' +
+    '@font-face{font-family:"Gone Sans";src:url(/missing/gone-cyrillic.woff2) format("woff2");unicode-range:U+400-4FF}</style>';
+  return withCapturePage({ head, body: plainSvg("AB", "Gone Sans") }, still);
+});
+
 describe("ブラウザで書き出す PNG と SVG (#3644)", () => {
-  it("capture-still-any-svg", async () => {
-    const shot = await withCapturePage({ head: FONT_LINKS, body: plainSvg("Hi") }, still);
+  it("capture-still-any-svg", () => {
+    const shot = captured(STILL_ANY.get());
     expect(shot.pngError ?? shot.svgError, "dragon の図でない SVG を断った").toBeUndefined();
     expect(shot.png, "書き出す入口が capturePng を出していないか、Blob を返さない").toBeDefined();
     expect(shot.pngType, "PNG の Blob の形").toBe("image/png");
@@ -253,9 +311,8 @@ describe("ブラウザで書き出す PNG と SVG (#3644)", () => {
     expect(embeddedFaces(svg).map((face) => face.family), "書き出した SVG に埋めた字").toEqual(["JetBrains Mono Variable"]);
   });
 
-  it("capture-embeds-used-fonts-only", async () => {
-    // 英字とキリル文字を描く。等幅の字の package は字の範囲ごとに 6 つの file を持ち、描いた字が入るのは latin と cyrillic の 2 つ
-    const shot = await withCapturePage({ head: FONT_LINKS, body: plainSvg("Hi Ж") }, still);
+  it("capture-embeds-used-fonts-only", () => {
+    const shot = captured(STILL_FONTS.get());
     expect(shot.svgError, "字を埋めた SVG を断った").toBeUndefined();
     const files = fontFilesBySha("jetbrains-mono");
     expect(files.size, "等幅の字の package の字の file の数").toBeGreaterThan(4);
@@ -266,12 +323,8 @@ describe("ブラウザで書き出す PNG と SVG (#3644)", () => {
     ).toEqual(["jetbrains-mono-cyrillic-wght-normal.woff2", "jetbrains-mono-latin-wght-normal.woff2"]);
   });
 
-  it("capture-refuses-unreadable-font", async () => {
-    // 描く字 (英大文字) の範囲の file は在らず、描かない字 (キリル文字) の範囲の file も在らない。名指すのは描く字の範囲だけ
-    const head =
-      '<style>@font-face{font-family:"Gone Sans";src:url(/missing/gone-latin.woff2) format("woff2");unicode-range:U+41-5A}' +
-      '@font-face{font-family:"Gone Sans";src:url(/missing/gone-cyrillic.woff2) format("woff2");unicode-range:U+400-4FF}</style>';
-    const shot = await withCapturePage({ head, body: plainSvg("AB", "Gone Sans") }, still);
+  it("capture-refuses-unreadable-font", () => {
+    const shot = captured(STILL_GONE.get());
     expect(shot.png, "字の file を読めないのに PNG を返した").toBeUndefined();
     expect(shot.svg, "字の file を読めないのに SVG を返した").toBeUndefined();
     for (const [what, message] of [
@@ -313,15 +366,81 @@ function firstDiff(a: string, b: string): string | undefined {
 /** 字の `@font-face` を外した頁。ブラウザは字を削れないので、字の file を丸ごと埋める (#3644)。そこだけを比べから外す */
 const withoutFaces = (html: string): string => html.replace(/@font-face\s*\{[^}]*\}/g, "");
 
+/** 記法を `dragon export` と書き出す入口の両方で HTML にした結果。記法を読めない時は書き出さない */
+interface HtmlPair {
+  /** 検査の記法を読めた */
+  ok: boolean;
+  /** `dragon export` が書き出した HTML */
+  node?: string;
+  /** 書き出す入口が書き出した HTML */
+  made?: Captured<{ html?: string; error?: string }>;
+}
+
+const HTML_PAIR = await atLoad("記法を exportDiagram と書き出す入口の両方で HTML に書き出す", async (): Promise<HtmlPair> => {
+  const parsed = parseNotation(HTML_NOTATION, { lang: "ja" });
+  if (!parsed.ok) return { ok: false };
+  const exportDiagram = await exporter();
+  const exported = await exportDiagram(parsed.diagram, { outDir: mkdtempSync(join(tmpdir(), "dragon-capture-html-")), formats: ["html"], lang: "ja" });
+  const node = readFileSync(exported.files.html as string, "utf8");
+  const made = await withCapturePage({ head: FONT_LINKS, body: "" }, (page) => htmlOf(page));
+  return { ok: true, node, made };
+});
+
+/** 書き出した HTML を頁の外への通信を止めて開き、描いた物と、取りに行った URL を読む */
+function openOffline(html: string): Promise<{ drawn: { player: boolean; texts: string }; asked: string[] }> {
+  return inContext("書き出した HTML を開いた頁の仕事", async (context) => {
+    const page = await context.newPage();
+    const asked: string[] = [];
+    await page.route("**/*", (route) => {
+      asked.push(route.request().url());
+      return route.abort();
+    });
+    await page.setContent(html, { waitUntil: "load" });
+    await page.waitForSelector("#dragon svg", { timeout: 10_000 });
+    const drawn = await page.evaluate(() => ({
+      player: document.querySelector("#dragon .dg-player") !== null,
+      texts: [...document.querySelectorAll("#dragon svg text")].map((text) => text.textContent ?? "").join(" "),
+    }));
+    // 読んだ時の URL を残す。後から届く通信は元の件も数えなかった
+    return { drawn, asked: [...asked] };
+  });
+}
+
+const OFFLINE = await atLoad("書き出す入口で HTML に書き出し、頁の外へ読みに行かせずに開く", async () => {
+  const made = await withCapturePage({ head: FONT_LINKS, body: "" }, (page) => htmlOf(page));
+  const html = made.result?.html;
+  // 書き出せなかった時は件が先に判定で落ちるので開かない
+  const opened = await atLoad("書き出した HTML を頁の外へ読みに行かせずに開く", () => {
+    if (typeof html !== "string") throw new Error("書き出す入口が HTML を返さないので開かない");
+    return openOffline(html);
+  });
+  return { made, opened };
+});
+
+// 図の仮名と漢字の範囲の字の file が在らない。断る文は字の名前と描く字の範囲を名指す
+const HTML_GONE = await atLoad("読めない字の file を名指す頁で HTML に書き出す", () => {
+  const head = '<style>@font-face{font-family:"Noto Sans JP Variable";src:url(/missing/jp.woff2) format("woff2");unicode-range:U+3000-30FF,U+4E00-9FFF}</style>';
+  return withCapturePage({ head, body: "" }, (page) => htmlOf(page));
+});
+
+const PLAYER_READS = await atLoad("書き出す入口で HTML に 2 度書き出し、再生の部品を読んだ回数を数える", () => {
+  served.clear();
+  return withCapturePage({ head: FONT_LINKS, body: "" }, async (page) => {
+    const before = served.get("/player.global.js") ?? 0;
+    await htmlOf(page);
+    const once = served.get("/player.global.js") ?? 0;
+    await htmlOf(page);
+    return { before, once, twice: served.get("/player.global.js") ?? 0 };
+  });
+});
+
 describe("ブラウザで書き出す HTML (#3667)", () => {
-  it("capture-html-matches-export", async () => {
-    const parsed = parseNotation(HTML_NOTATION, { lang: "ja" });
-    expect(parsed.ok, "検査の記法を読めない").toBe(true);
-    if (!parsed.ok) return;
-    const exportDiagram = await exporter();
-    const exported = await exportDiagram(parsed.diagram, { outDir: mkdtempSync(join(tmpdir(), "dragon-capture-html-")), formats: ["html"], lang: "ja" });
-    const node = readFileSync(exported.files.html as string, "utf8");
-    const made = await withCapturePage({ head: FONT_LINKS, body: "" }, (page) => htmlOf(page));
+  it("capture-html-matches-export", () => {
+    const pair = HTML_PAIR.get();
+    expect(pair.ok, "検査の記法を読めない").toBe(true);
+    if (!pair.ok || !pair.made) return;
+    const node = pair.node ?? "";
+    const made = captured(pair.made);
     expect(made.error, "captureHtml が断った").toBeUndefined();
     expect(typeof made.html, "書き出す入口が captureHtml を出していないか、文字列を返さない").toBe("string");
     expect(firstDiff(withoutFaces(made.html ?? ""), withoutFaces(node)), "dragon export の HTML と字の @font-face のほかが食い違う").toBeUndefined();
@@ -331,50 +450,26 @@ describe("ブラウザで書き出す HTML (#3667)", () => {
     ).toEqual(expect.arrayContaining(["Noto Sans JP Variable", "JetBrains Mono Variable"]));
   });
 
-  it("capture-html-opens-offline", async () => {
-    const made = await withCapturePage({ head: FONT_LINKS, body: "" }, (page) => htmlOf(page));
+  it("capture-html-opens-offline", () => {
+    const { made: shot, opened } = OFFLINE.get();
+    const made = captured(shot);
     expect(typeof made.html, "書き出す入口が captureHtml を出していないか、文字列を返さない").toBe("string");
-    const context = await (await fileChromium()).newContext({ viewport: { width: 800, height: 600 } });
-    try {
-      const page = await context.newPage();
-      const asked: string[] = [];
-      await page.route("**/*", (route) => {
-        asked.push(route.request().url());
-        return route.abort();
-      });
-      await page.setContent(made.html ?? "", { waitUntil: "load" });
-      await page.waitForSelector("#dragon svg", { timeout: 10_000 });
-      const drawn = await page.evaluate(() => ({
-        player: document.querySelector("#dragon .dg-player") !== null,
-        texts: [...document.querySelectorAll("#dragon svg text")].map((text) => text.textContent ?? "").join(" "),
-      }));
-      expect(drawn.player, "開いた HTML に再生の帯が無い").toBe(true);
-      expect(drawn.texts, "開いた HTML の図に箱の名前が無い").toContain("利用者");
-      expect(asked, "開いた HTML が頁の外へ読みに行った").toEqual([]);
-    } finally {
-      await context.close();
-    }
+    const { drawn, asked } = opened.get();
+    expect(drawn.player, "開いた HTML に再生の帯が無い").toBe(true);
+    expect(drawn.texts, "開いた HTML の図に箱の名前が無い").toContain("利用者");
+    expect(asked, "開いた HTML が頁の外へ読みに行った").toEqual([]);
   });
 
-  it("capture-html-refuses-unreadable-font", async () => {
-    // 図の仮名と漢字の範囲の字の file が在らない。断る文は字の名前と描く字の範囲を名指す
-    const head = '<style>@font-face{font-family:"Noto Sans JP Variable";src:url(/missing/jp.woff2) format("woff2");unicode-range:U+3000-30FF,U+4E00-9FFF}</style>';
-    const made = await withCapturePage({ head, body: "" }, (page) => htmlOf(page));
+  it("capture-html-refuses-unreadable-font", () => {
+    const made = captured(HTML_GONE.get());
     expect(made.html, "字の file を読めないのに HTML を返した").toBeUndefined();
     expect(made.error, "書き出す入口が captureHtml を出していないか、断らない").toBeDefined();
     expect(made.error, "断った文が字の名前を名指さない").toContain("Noto Sans JP Variable");
     expect(made.error, "断った文が描く字の範囲を名指さない").toMatch(/U\+0*3000-0*30FF/i);
   });
 
-  it("capture-html-loads-player-on-call", async () => {
-    served.clear();
-    const reads = await withCapturePage({ head: FONT_LINKS, body: "" }, async (page) => {
-      const before = served.get("/player.global.js") ?? 0;
-      await htmlOf(page);
-      const once = served.get("/player.global.js") ?? 0;
-      await htmlOf(page);
-      return { before, once, twice: served.get("/player.global.js") ?? 0 };
-    });
+  it("capture-html-loads-player-on-call", () => {
+    const reads = captured(PLAYER_READS.get());
     expect(reads, "再生の部品を読んだ回数 (入口を読んだ時、1 度呼んだ後、2 度呼んだ後)").toEqual({ before: 0, once: 1, twice: 1 });
   });
 });

@@ -14,6 +14,7 @@ import { exampleJson } from "./diagram-support";
 import prepare, { type CliExport, JAPANESE_SOURCES, LANG_FLAGS } from "./export-language.prepare";
 import { cliRunCount, drawnText, embeddedFonts, fontChars, formatOf, isBlank, type PlayerWords, playerWords } from "./export-support";
 import { prepared } from "./prepared";
+import "../src/kind-use/sequence";
 
 /** 寄って見せる見せ方になり、縦長の全体図を出す枠の幅。440px より狭い枠は縦長の全体図を出さない (#3055) */
 const NARROW = 440;

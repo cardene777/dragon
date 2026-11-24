@@ -16,6 +16,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError, patched, pointers, smallSequence } from "./diagram-support";
 import { covers, draw, gap, type LaidBox, type Layout, type Rect, type Rendered, sampleTimes, type Timeline } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/tree";
 
 
 const EXAMPLES = join(process.cwd(), "packages/dragon/examples");

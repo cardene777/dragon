@@ -10,9 +10,17 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
+import { type Diagramish, place, releasePlaced } from "./follow-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
+// 時系列図をパイプ図の部品で描く見た目 (#3720) も描くので、見た目の登録も読む
+import "../src/render/look-all";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 type Point = [number, number];
 interface Rect {
@@ -181,7 +189,6 @@ function drawPipe(text: string, options: Record<string, unknown> = {}): Rendered
   return api.renderDiagram(parse(text), { lang: "ja", ...options }) as Rendered<PipeLayout>;
 }
 
-const overlaps = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const people = (layout: PipeLayout): Party[] => layout.parties.filter((p) => p.shape === "round");
 const partyOf = (layout: PipeLayout, id: string): Party => {
   const found = layout.parties.find((p) => p.id === id);
@@ -268,20 +275,32 @@ describe("置き方の形", () => {
     for (const shape of ["ledger", "mesh", "bus"]) {
       const { layout, svg } = drawPipe(pipeText({ layout: shape, order, holds }));
       expect(layout.fixed?.shape, `${shape} の形`).toBe(shape);
-      // 槽はトークンごとの行に並べる。同じトークンの槽は同じ高さに、違うトークンの槽は違う高さに置く
       const rowY = (token: string): Set<number> => new Set(layout.tanks.filter((t) => t.token === token).map((t) => t.y));
-      expect(rowY("USDC").size, `${shape} のUSDCの槽が1つの行に無い`).toBe(1);
-      expect(rowY("WETH").size, `${shape} のWETHの槽が1つの行に無い`).toBe(1);
-      expect([...rowY("USDC")][0], `${shape} のUSDCとWETHが同じ行`).not.toBe([...rowY("WETH")][0]);
+      if (shape !== "mesh") {
+        // 帳簿型と母線型は槽をトークンごとの行に並べる。同じトークンの槽は同じ高さに、違うトークンの槽は違う高さに置く
+        expect(rowY("USDC").size, `${shape} のUSDCの槽が1つの行に無い`).toBe(1);
+        expect(rowY("WETH").size, `${shape} のWETHの槽が1つの行に無い`).toBe(1);
+        expect([...rowY("USDC")][0], `${shape} のUSDCとWETHが同じ行`).not.toBe([...rowY("WETH")][0]);
+      }
       if (shape === "ledger") {
         // 帳簿型は箱を持つトークンの行を囲む
         expect(layout.ledgers?.length ?? 0, "帳簿型の囲み").toBeGreaterThan(0);
         expect(countOf(svg, "dg-pp-ledger"), "帳簿型の囲みを描いていない").toBeGreaterThan(0);
       }
       if (shape === "mesh") {
-        // 網型はトークンの行ごとに全ての人の組をパイプで結ぶ (USDCを持つ3人は3組)
+        // #3720 は網型の槽もトークンごとの行に並べ、行ごとに全ての人の組をパイプで結んだ。パッチの並べ方 (#3761) は Tracelyth #221 と #225 の直しを持つ。
+        // 網型は全ての槽を1つの行に置き、人ごとの槽を丸の真下にトークンの行の順で横に並べ、トークンの数だけ縦に伸ばさない (Tracelyth #225)
+        expect(new Set(layout.tanks.map((t) => t.y)).size, "網型の槽が1つの行に無い").toBe(1);
+        for (const p of people(layout)) {
+          const mine = layout.tanks.filter((t) => t.party === p.id).sort((a, b) => a.x - b.x);
+          if (mine.length === 0) continue;
+          expect(mine.map((t) => t.token), `網型の ${p.id} の槽の並び`).toEqual(["USDC", "WETH"].filter((token) => mine.some((t) => t.token === token)));
+          const [first, last] = [mine[0] as Tank, mine.at(-1) as Tank];
+          expect(Math.abs((first.x + last.x + last.w) / 2 - (p.x + p.w / 2)), `網型の ${p.id} の槽が丸の真下に無い`).toBeLessThan(1);
+        }
+        // 網型は値が動いた組だけをパイプで結び、動かない組の線で図を込ませない (Tracelyth #221)。USDCはAliceからCarolへだけ動く
         const pairs = new Set(layout.valuePipes.filter((p) => p.token === "USDC").map((p) => [p.from, p.to].sort().join("-")));
-        expect(pairs.size, "網型のUSDCの組").toBe(3);
+        expect([...pairs], "網型のUSDCの組").toEqual(["alice-carol"]);
       }
       if (shape === "bus") {
         // 母線型は箱を持つトークンの行ごとに母線を引き、箱を行の左の端に置く
@@ -326,21 +345,20 @@ describe("トークンの箱と2人を結ぶ線", () => {
   });
 
   it("port-write-links-clear-of-chips", () => {
+    // #3720 は2人を結ぶ値を点線と線の札で描いたが、パッチの並べ方 (#3761) は使う側が持つ券で描き、2人を結ぶ線を描かない (Tracelyth #221)。
+    // 券は全ての置き場が決まった後に重ならない所へ置き直すので、描いた図の崩れの確かめで、券がほかの札と針と札入れに重ならないことを見る
     for (const steps of [SENT, DENIED]) {
-      const { layout, svg } = drawPipe(pipeText({ layout: "top", steps }));
+      const text = pipeText({ layout: "top", steps });
+      const { layout, svg } = drawPipe(text);
       const links = layout.links ?? [];
-      expect(links.length, "2人を結ぶ線").toBeGreaterThan(0);
-      expect(countOf(svg, "dg-pp-rell"), "2人を結ぶ点線を描いていない").toBeGreaterThan(0);
+      expect(links.length, "2人を結ぶ値").toBeGreaterThan(0);
       for (const l of links) {
-        expect([l.from, l.to, l.owner], "線の両端と持ち主").toEqual(["alice", "bob", "usdc"]);
-        const label = l.delta ? { x: l.label.x, y: l.label.y, w: l.delta.x + l.delta.w - l.label.x, h: l.label.h } : l.label;
-        const others: [string, Rect][] = [
-          ...layout.gauges.map((g): [string, Rect] => ["requireの針", g]),
-          ...(layout.callCards ?? []).map((c): [string, Rect] => ["呼び出しの札", c]),
-          ...(layout.wallets ?? []).map((w): [string, Rect] => ["札入れ", w]),
-        ];
-        for (const [what, rect] of others) expect(overlaps(label, rect), `段 ${l.step + 1} の線の札が${what}に重なる`).toBe(false);
+        expect([l.from, l.to, l.owner], "値の両端と持ち主").toEqual(["alice", "bob", "usdc"]);
+        expect((l.label as { ticket?: unknown }).ticket, `段 ${l.step + 1} の値を券で描いていない`).toBeDefined();
       }
+      expect(countOf(svg, "dg-pp-tkt"), "券を描いていない").toBeGreaterThan(0);
+      expect(countOf(svg, "dg-pp-rell"), "券で描く値に2人を結ぶ点線を描いた").toBe(0);
+      expect(dragon.checkLayoutText(text, { lang: "ja" }), "券を置いた図の崩れ").toEqual([]);
     }
     // 同じ人を2度書いた線は読まずに断る
     expect(refused(pipeText({ allowance: ALLOWANCE.replace("to: bob", "to: alice") })), "同じ人を2度書いた線").not.toBe("");
@@ -369,13 +387,11 @@ describe("トークンの箱と2人を結ぶ線", () => {
 });
 
 // 拡大の指定を 1 件で描き比べて置き比べると、混んだ機械で 1 件の上限 (10 秒) を超えた (#3738)。
-// 比べる元の、見本を枠の幅で描いた原寸と名前の字の高さは file を読み込む段で済ませ、件は置き方ごとに分ける
-const SWAP_DRAWN = await atLoad("配管の見本を 700px と 390px の枠で描く", () => {
+// 比べる元の、見本を枠の幅で描いた原寸は file を読み込む段で済ませ、件は置き方ごとに分ける
+const SWAP_DRAWN = await atLoad("配管の見本を 700px の枠で描く", () => {
   const source = example("swap.json");
   const wide = (api.renderDiagram(source, { lang: "ja", width: 700 }) as Rendered<PipeLayout>).layout;
-  const phone = (api.renderDiagram(source, { lang: "ja", width: 390 }) as Rendered<PipeLayout>).layout;
-  const nameOf = (layout: PipeLayout): number => Math.min(...layout.parties.map((p) => p.label.h));
-  return { source, native: wide.width, name: nameOf(wide), phoneWidth: phone.width, phoneName: nameOf(phone) };
+  return { source, native: wide.width };
 });
 
 describe("再生の部品", () => {
@@ -435,14 +451,12 @@ describe("再生の部品", () => {
 
   it("port-player-zoom-options", () => {
     reduceMotion(true);
-    const { source, native, name } = SWAP_DRAWN.get();
+    const { source, native } = SWAP_DRAWN.get();
     expect(native, "見本の図が枠より狭い").toBeGreaterThan(700);
-    // fitWide は600px以上の枠で、枠より広い図を縮めて始める。全体を枠に収めると名前の字が10.5pxを下回る図は、名前の字が10.5pxに見える幅で始める (#3721)
+    // fitWide は600px以上の枠で、枠より広い図の全体を枠の幅に収めて始め、「+」で寄せる (Tracelyth #177)。
+    // #3721 は名前の字が10.5pxを下回る図を名前が10.5pxに見える幅で始めたが、パッチの並べ方 (#3761) はこの下限を持たない
     const fit = mount(source, 700, { lang: "ja", fitWide: true });
-    expect((name * 700) / native, "見本の図の全体を枠に収めても名前の字が10.5px以上").toBeLessThan(10.5);
-    expect(fit.shown(), "fitWide の図を縮めていない").toBeLessThan(native);
-    expect((name * fit.shown()) / native, "fitWide で始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
-    expect((name * fit.shown()) / native, "fitWide で名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + name * 0.02);
+    expect(fit.shown(), "fitWide の図が枠の幅に収まらない").toBeCloseTo(700, 0);
     expect(fit.level(), "fitWide の始めの度合い").toBe("100%");
     // startZoom はその度合いで始める
     expect(mount(source, 700, { lang: "ja", fitWide: true, startZoom: 1.5 }).level(), "startZoom 1.5 の始めの度合い").toBe("150%");
@@ -457,12 +471,10 @@ describe("再生の部品", () => {
   });
 
   it("port-player-zoom-options", () => {
-    // 携帯の幅の枠でも、名前の字が10.5pxに見える幅で始める (#3721)
+    // 600pxより狭い携帯の幅の枠には fitWide は効かず、槽の残高の字が読める幅で始めて横に送る (#3450、#3761)
     reduceMotion(true);
-    const { source, phoneWidth, phoneName } = SWAP_DRAWN.get();
-    const phoneShown = mount(source, 390, { lang: "ja", fitWide: true }).shown();
-    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が始めた名前の字の大きさ").toBeGreaterThanOrEqual(10.5 - 1e-6);
-    expect((phoneName * phoneShown) / phoneWidth, "携帯の幅の枠で fitWide が名前の字を10.5pxより大きく始めた").toBeLessThan(10.5 + phoneName * 0.02);
+    const { source } = SWAP_DRAWN.get();
+    expect(mount(source, 390, { lang: "ja", fitWide: true }).shown(), "狭い枠で fitWide が効いた").toBeCloseTo(mount(source, 390, { lang: "ja" }).shown(), 0);
   });
 
   it("port-player-zoom-options", () => {
@@ -627,16 +639,29 @@ describe("シーケンス図", () => {
     expect(countOf(svg, "dg-sqtube"), "生存線の管").toBe(0);
     expect(countOf(svg, "dg-row"), "今の段の帯").toBe(0);
     expect(layout.rows, "今の段の帯の置き場").toBeUndefined();
-    // 寄って追う形も、窓の上端の頭の列 (#3118) に頭の箱だけを描き、パイプ図の部品の列の頭と器を描かない
+    // 寄って追う形も、窓の上端の頭の列 (#3118) に頭の箱だけを描き、パイプ図の部品の列の頭と器を描かない。
+    // 窓が図の高さを全部見せる短い図は頭の列を貼らない (#3834) ので、頭の列を貼る高さになるまで段を足した図で見る
+    const steps = Array.from({ length: 6 }, (_, i) => `step 確かめる${i + 1}\n  say BobがAliceに受け取ったと返す\n  bob -> alice: 受け取った${i + 1}\n`);
+    const tall = parse([plain.replace("sequence USDCを送る", "sequence USDCを送る [view: follow]"), ...steps].join("\n"));
     const host = document.createElement("div");
     Object.defineProperty(host, "clientWidth", { configurable: true, get: () => 360 });
     document.body.appendChild(host);
-    const player = api.mountDiagram(host, parse(plain.replace("sequence USDCを送る", "sequence USDCを送る [view: follow]")), { lang: "ja" });
+    const player = api.mountDiagram(host, tall, { lang: "ja" });
     const shown = host.querySelector("svg")?.outerHTML ?? "";
     player.destroy();
     expect(shown, "寄って追う形で描いていない").toContain('data-view="follow"');
     expect(countOf(groupOf(shown, "dg-hd"), "dg-sn"), "頭の列の頭の箱").toBe(3);
     expect(countOf(shown, "dg-sqc-head") + countOf(shown, "dg-sqtube"), "パイプ図の部品の列の頭と生存線の管").toBe(0);
+    // 箱の名前は窓に 1 度だけ映す。図の頭の箱は、どの段でも頭の列の下に隠れる
+    const placed = place("既定の見た目の時系列図", tall as Diagramish, 360);
+    try {
+      const strip = Number(placed.figure.querySelector('g[clip-path^="url(#dg-vp-"] > g.dg-hd > rect.dg-hd-bg')?.getAttribute("height") ?? 0);
+      const low = Math.max(...placed.layout.boxes.map((b) => b.y + b.h));
+      const seen = Array.from({ length: placed.steps }, (_, s) => placed.windowAt(s)).flatMap((w, s) => (low > w.y + strip + 0.01 ? [s + 1] : []));
+      expect(seen, "図の頭の箱が頭の列の下に映る段").toEqual([]);
+    } finally {
+      releasePlaced();
+    }
   });
 
   it("port-op-refused-outside-sequence", () => {

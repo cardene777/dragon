@@ -13,7 +13,7 @@ import type { Point } from "../../layout/scene";
 import { TRY_LOOK } from "../../look/try";
 import { TYPE } from "../../look/values";
 import { ALWAYS } from "../../render/ink";
-import { esc, pathOf, r1, sansOf, write } from "../../render/parts";
+import { esc, nodeAttr, pathOf, r1, sansOf, write } from "../../render/parts";
 import type { TryKit, TryWindow } from "../../render/try";
 import { cs } from "../color/draw";
 import { glyph } from "../icon/draw";
@@ -54,7 +54,7 @@ export function routeNet(k: TryKit): void {
           ALWAYS,
           "middle",
         );
-        return `<g data-node="${esc(n.id)}"><circle class="${end ? "dg-try-end" : "dg-try-node"}" cx="${r1(n.x)}" cy="${r1(n.y)}" r="${T.route.r}"/>${glyph(icon, n.x, n.y, T.route.glyph, end ? "dg-gl" : "dg-try-ng")}${label}</g>`;
+        return `<g${nodeAttr(n.id)}><circle class="${end ? "dg-try-end" : "dg-try-node"}" cx="${r1(n.x)}" cy="${r1(n.y)}" r="${T.route.r}"/>${glyph(icon, n.x, n.y, T.route.glyph, end ? "dg-gl" : "dg-try-ng")}${label}</g>`;
       })
       .join("");
     base.push(

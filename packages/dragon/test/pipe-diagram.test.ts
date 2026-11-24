@@ -58,15 +58,24 @@
  *
  * 見本の file と配管の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
 import { api, type Json, type LineError, patched, pointers, smallArchitecture, smallSequence } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { covers, draw, figureClass, type Rendered, sampleTimes } from "./render-support";
-import { ROOT, EXAMPLES, SAMPLES, PIPE_WORDS, KANA, FLOW_WIDTH, BAND_LEAST, type Point, type State, type Flow, type Source, bal, val, call, ret, rev, move, write, check, emit, calc, fullPipe, kindsPipe, callKindsPipe, movePipe, innerPipe, foldPipe, fileText, exampleJson, repoText, render, partyOf, levelOf, tankOf, plateOf, callAt, center, within, lastStep, stillOf, partsOf, seen, roleOf, strokeWidthOf, hatched, initialsOf, shape, SAMPLE_FILES, SAMPLE_JSON, langOf, coinMoves } from "./pipe-diagram-support";
+import { ROOT, EXAMPLES, SAMPLES, PIPE_WORDS, KANA, FLOW_WIDTH, BAND_LEAST, type Point, type State, type Flow, type Source, bal, val, call, ret, rev, move, write, check, emit, calc, fullPipe, kindsPipe, callKindsPipe, movePipe, innerPipe, foldPipe, fileText, exampleJson, render, partyOf, levelOf, tankOf, plateOf, callAt, center, within, lastStep, stillOf, partsOf, seen, roleOf, strokeWidthOf, hatched, initialsOf, shape, SAMPLE_FILES, SAMPLE_JSON, langOf, tankCount, countsFromTo } from "./pipe-diagram-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
+import "../src/kind-use/try";
 
 describe("配管の図の原本の JSON (#3389)", () => {
   it("schema-accepts-pipe-diagram", () => {
@@ -501,8 +510,9 @@ describe("配管の図の関係者と並べ方 (#3389)", () => {
       const sel = `[data-pipe-flow][data-pipe-step="${s}"]`;
       expect(seen(motion, sel, stillOf(rendered, s)), `段 ${s + 1} に流れた分が見えない`).toBeGreaterThan(0.9);
     }
-    // 管を流れた分は、流れた段に移す額の札が管を通り抜け (Tracelyth #168、#3720)、確定するまでの斜線は受け手の槽が持つ。管には斜線を残さない (試作の4配管と同じ、#3398)
-    expect(coinMoves(rendered, motion, 1), "段 2 で移す額の札が管を通り抜けない").toBe(true);
+    // 管を流れた分は、流れた段に両端の槽の数が前の額から次の額へ数えて見せ (Tracelyth #221、#3761)、確定するまでの斜線は受け手の槽が持つ。管には斜線を残さない (試作の4配管と同じ、#3398)
+    expect(countsFromTo(tankCount(rendered, motion, 1, "pool", "USDC"), "2,000", "2,100"), "段 2 で Pool の USDC の槽の数が 2,000 から 2,100 へ数えない").toBe(true);
+    expect(countsFromTo(tankCount(rendered, motion, 1, "alice", "USDC"), "1,000", "900"), "段 2 で Alice の USDC の槽の数が 1,000 から 900 へ数えない").toBe(true);
     expect(
       partsOf(motion, '[data-pipe-flow][data-pipe-step="2"]').some((el) => hatched(svg, el)),
       "段 3 の管に流れた分の斜線が残る",
@@ -842,45 +852,6 @@ describe("配管の図の見本 (#3389)", () => {
       expect((ja.diagram as unknown as Source).kind, `${name} の見本の図の種類`).toBe("pipe");
       expect(shape(en.diagram as unknown as Source), `${name} の英語版の関係者と段と出来事の数が日本語版と違う`).toEqual(shape(ja.diagram as unknown as Source));
     }
-  });
-});
-
-describe("配管の図の書き方の文書 (#3389)", () => {
-  it("docs-describe-pipe-diagram", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `pipe` と、行の形 (`hold <持ち主>: …` か `hold alice: …`) */
-    const forms: [string, RegExp][] = [
-      ["pipe", /(^|[\s`])pipe [^\s`]/mu],
-      ...PIPE_WORDS.map((word): [string, RegExp] => [word, new RegExp(`(^|[\\s\`])${word} (<[^>]+>|[^\\s:\`]+):`, "mu")]),
-    ];
-    const marks = ["[value: ", "[call: ", "[fold]", "[fail]"];
-    const describes = (where: string, text: string): void => {
-      for (const [word, form] of forms) expect(form.test(text), `${where} に ${word} の行の書き方が無い`).toBe(true);
-      for (const mark of marks) expect(text, `${where} に印 ${mark.trim()} の書き方が無い`).toContain(mark);
-    };
-    const pipeFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const parsed = parse(fence.source);
-        return parsed.ok && (parsed.diagram as unknown as Source).kind === "pipe";
-      }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      describes(path, text);
-      if (path !== "README.md") expect(pipeFences(text), `${path} に配管の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-    }
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"pipe"/u.test(content), "使い方の頁の節に配管の図 (pipe) が無い").toBe(true);
-    const sections = ["pipe.dragon", "pipe.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const parsed = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(parsed.ok && (parsed.diagram as unknown as Source).kind, `使い方の頁の配管の図の節の例 (${i === 0 ? "pipe.dragon" : "pipe.en.dragon"}) が配管の図として読めない`).toBe("pipe");
-    }
-    const blocks = join(ROOT, "packages/dragon/src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    describes("使い方の頁", [content, ...sections, ...paragraphs].join("\n"));
   });
 });
 

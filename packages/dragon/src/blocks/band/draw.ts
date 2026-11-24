@@ -15,7 +15,7 @@ import { EASE, MOTION } from "../../look/values";
 import { partRadius } from "../../render/corner";
 import { ALWAYS, type Shown } from "../../render/ink";
 import type { Frame } from "../../render/motion";
-import { type Ctx, r1, write } from "../../render/parts";
+import { type Ctx, nodeAttr, r1, write } from "../../render/parts";
 import { cs } from "../color/draw";
 
 const B = SANKEY_LOOK.band;
@@ -86,7 +86,7 @@ export function drawNodes(layout: SankeyLayout, ctx: Ctx): string {
         const rx = rounded ? partRadius(ctx.corner, Math.min(radius, h / 2)) : 0;
         return `<rect class="dg-sk-bar${style ? " dg-a" : ""}" x="${r1(node.x)}" y="${r1(y)}" width="${r1(node.w)}" height="${r1(h)}"${rx > 0 ? ` rx="${r1(rx)}"` : ""}${style ? ` style="${style}"` : ""}/>`;
       };
-      const head = `<g data-node="${node.id}" style="${cs(node.color)}">`;
+      const head = `<g${nodeAttr(node.id)} style="${cs(node.color)}">`;
       if (node.root) return `${head}${bar(node.y, node.h, true)}${labelOf(node, ctx, ALWAYS)}</g>`;
       const ins = layout.bands.filter((b) => b.to === node.id).sort((p, q) => p.b[0] - q.b[0]);
       const times = ins.map((band) => timesOf(band, ctx).drawn);

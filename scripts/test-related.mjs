@@ -304,6 +304,7 @@ export function branchChanges(root, base) {
 /**
  * 検査の file を回し、1 回の実行が上限で止まった時は、終わっていない file だけを次の実行で回して全部が回るまで続ける。
  * `run(files, out)` は 1 回の実行を回して終わり方を返す。止める段は `out` に、終わっていない file (`unfinished`) と、終わった file で落ちた検査 (`failed`) を JSON で書く。
+ * 読む所か前処理で落ちて落ちた件を持たない file は、`failed` に file の名前で入る (#3800)。
  * 止まった実行で落ちた検査は、続きが全部通っても終わり方 1 にして最後に名前を出す。`say` は人に見せる文を受ける
  */
 export function runUntilFinished(files, run, say) {
@@ -336,6 +337,18 @@ export function runUntilFinished(files, run, say) {
     say(`1回の実行の上限で止まったので、終わっていない ${leftover.unfinished.length} file を次の実行で回す (#3386)\n${leftover.unfinished.map((path) => `  ${path}\n`).join("")}`);
     left = leftover.unfinished;
   }
+}
+
+/** 1 件の上限に近い件を、実行の終わりに名前と秒数で出す報告の部品 (`scripts/near-limit-reporter.mjs`、#3740) */
+const NEAR_LIMIT_REPORTER = "--reporter=./scripts/near-limit-reporter.mjs";
+
+/**
+ * `vitest` に続けて渡す引数。報告の部品を渡し、命令の続き (`pass`) に報告が無い時は既定の報告も渡す (#3740)。
+ * vitest は命令で報告を 1 つでも渡すと既定の報告を使わないので、既定の報告を渡さないと検査の結果の行が消える
+ */
+export function vitestArgs(pass, files) {
+  const reporters = pass.some((arg) => arg.startsWith("--reporter")) ? [NEAR_LIMIT_REPORTER] : ["--reporter=default", NEAR_LIMIT_REPORTER];
+  return ["run", ...reporters, ...pass, ...files];
 }
 
 /**
@@ -389,7 +402,7 @@ function main() {
   if (o.list || chosen.length === 0) process.exit(0);
   const status = runUntilFinished(
     chosen,
-    (files, out) => spawnSync("pnpm", ["exec", "vitest", "run", ...o.pass, ...files], { cwd: root, stdio: "inherit", env: { ...process.env, DRAGON_UNFINISHED_OUT: out } }).status,
+    (files, out) => spawnSync("pnpm", ["exec", "vitest", ...vitestArgs(o.pass, files)], { cwd: root, stdio: "inherit", env: { ...process.env, DRAGON_UNFINISHED_OUT: out } }).status,
     (text) => process.stderr.write(text),
   );
   process.exit(status);

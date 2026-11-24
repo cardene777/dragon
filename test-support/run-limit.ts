@@ -10,6 +10,8 @@
  *
  * 環境変数 `DRAGON_UNFINISHED_OUT` が file を名指す時は、止める前にそこへ JSON を書く (#3386)。
  * `unfinished` は終わっていない検査を持つ file、`failed` は終わった file で落ちた検査の名前で、関係する検査を回す命令 (`scripts/test-related.mjs`) が読んで続きを回す。
+ * 読む所か前処理 (`beforeAll`) で落ちた file は、中の件が全て飛ばされて落ちた件を持たないので、`failed` に file の名前を書く (#3800)。
+ * 書かないと、続きが全て通った時に、続きを回す命令が落ちた file を通ったと読んで終わり方 0 で終わる。
  * 終わっていない file で落ちた検査は書かない。続きでその file を丸ごと回し直すので、そちらの結果を使う。
  * vitest の状態はまだ始まっていない file を持たないので、この実行の file は準備の段で先に読み、終わった file を引いて残りを出す。
  * 書き先は準備の段で読んで環境変数から外す (#3388)。vitest は検査の file の process に自分の環境変数を写すので、外さないと検査が起こす vitest まで同じ書き先を受け継ぐ。
@@ -69,16 +71,19 @@ function unfinished(project: TestProject, all: string[]): string[] {
   return [...names, ...all.filter((path) => !seen.has(path))];
 }
 
-/** 続きを回す命令へ渡す、終わっていない file と、終わった file で落ちた検査の名前 */
+/** 続きを回す命令へ渡す、終わっていない file と、終わった file で落ちた物の名前 */
 function leftover(project: TestProject, all: string[]): { unfinished: string[]; failed: string[] } {
   const done = new Set<string>();
   const failed: string[] = [];
   eachFile(project, (path, file) => {
     if (!DONE.has(file.result?.state ?? "")) return;
     done.add(path);
+    const before = failed.length;
     eachTest(path, file, (name, test) => {
       if (test.result?.state === "fail") failed.push(name);
     });
+    // 読む所か前処理で落ちた file は、file 自身は `fail` でも落ちた件を持たない (#3800)。file の名前を落ちた物として渡す
+    if (file.result?.state === "fail" && failed.length === before) failed.push(path);
   });
   return { unfinished: all.filter((path) => !done.has(path)), failed };
 }

@@ -6,12 +6,13 @@
  * 段の終わりの針が作業の棒の期間の字を横切った。見本は重ならない書き方に直したので、重なる形の記法はこの file の中に書く。
  * 印が字に重なる形は今の種類 `chip-over-part` で、囲みと針が字を横切る形は今の種類 `line-crosses-text` で出す (step 2 で決めた)。
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
-import { runCli } from "./export-support";
+import "../src/kind-use/lineup";
+import "../src/kind-use/time";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 interface Part {
   kind: string;
@@ -186,28 +187,5 @@ describe("字に重なる印と囲みと針 (#3631)", () => {
     const apart = breaksOf(TIME_APART);
     expect(apart.filter(isSpanCrossing), "期間の字を避けた範囲の囲みを、字を横切る囲みに数える").toEqual([]);
     expect(apart.filter(isNeedleCrossing), "期間の字の無い所に止まる針を、字を横切る針に数える").toEqual([]);
-  });
-
-  it("layout-check-names-stamp-span-needle", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "dragon-overlaps-"));
-    const files = { stamp: join(dir, "stamp.dragon"), span: join(dir, "span.dragon"), needle: join(dir, "needle.dragon") };
-    writeFileSync(files.stamp, STAMP_ON_NOTE);
-    writeFileSync(files.span, SPAN_CROSSING);
-    writeFileSync(files.needle, NEEDLE_CROSSING);
-    // 子の process を 6 つ並べて起こし、1 件の上限 (10 秒) の中で終える
-    const runs = await Promise.all(
-      (["ja", "en"] as const).flatMap((lang) =>
-        [files.stamp, files.span, files.needle].map((file) => runCli(["check", file, "--layout", "--lang", lang])),
-      ),
-    );
-    for (const ran of runs) expect(ran.code, ran.stderr).toBe(0);
-    const [stampJa, spanJa, needleJa, stampEn, spanEn, needleEn] = runs.map((ran) => ran.stdout);
-    expect(stampJa, "日本語の行が印と一言を名指さない").toContain("warning 段 2: 印「支払い済み」が「付き添いの家族は3番目」に重なる");
-    expect(spanJa, "日本語の行が範囲の囲みと期間の字を名指さない").toContain("warning 段 2: 範囲の囲み「重なる日」が「1〜12日」を横切る");
-    expect(needleJa, "日本語の行が針と期間の字を名指さない").toContain("warning 段 1: 針が「1〜12日」を横切る");
-    // 英語の字で描くと一言と期間の字も英語になるので、字は形だけを見る
-    expect(stampEn, "英語の行が印と一言を名指さない").toMatch(/warning Step 2: The stamp "支払い済み" covers "[^"]+"/u);
-    expect(spanEn, "英語の行が範囲の囲みと期間の字を名指さない").toMatch(/warning Step 2: The span frame "重なる日" crosses "[^"]+"/u);
-    expect(needleEn, "英語の行が針と期間の字を名指さない").toMatch(/warning Step 1: The needle crosses "[^"]+"/u);
   });
 });

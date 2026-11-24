@@ -21,7 +21,8 @@
  */
 import { FIGURE_TEXT, joinWords } from "./figure-text";
 import { OP_TEXT, type PipeLayout } from "./kinds/pipe/layout";
-import { LOOK, PIPE_FIRST, READABLE_PX, TYPE, ZOOM } from "./look/values";
+import { PIPE_TYPE } from "./look/pipe";
+import { FILL_NAME_PX, LOOK, PIPE_FIRST, READABLE_PX, TYPE, ZOOM } from "./look/values";
 import { checkPasses, isFault, PipeRun, quantityText } from "./pipe-run";
 import type { Styles } from "./adopt-css";
 import { cssFont as font } from "./render/parts";
@@ -444,8 +445,10 @@ export function mountPipeCalls(doc: Document, styles: Styles | undefined, lang: 
 
 /** 幅と度合いを決める再生の部品の設定 */
 interface PipeFitOptions {
-  /** 枠より広い図を縮めて始める (Tracelyth #177) */
+  /** 600px 以上の枠で、枠より広い図を縮めて始める (Tracelyth #177) */
   fitWide?: boolean;
+  /** `fitWide` と一緒に渡すと、600px 以上の枠で枠より狭い図も枠の幅へ広げて始める (Tracelyth #194) */
+  fitNarrow?: boolean;
   /** 読める大きさで始める (#3483) */
   zoom?: "readable";
 }
@@ -465,14 +468,15 @@ function widthFor(layout: PipeLayout, heights: number[], size: number): number {
  * 枠の幅が `ZOOM.fit` より狭い時は図を枠の幅に収める (#3418)。ただし収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  * 読める大きさで始める図は、縮めた時に全体を見せるので、残高の字に関わらず枠の幅に収める (#3483)。
  * 広い時は枠より広い図も縮めずに置く (#3398)。どちらも図を元の大きさより大きく描かない (#3305)。
- * `fitWide` を渡した時は、枠の幅に依らず枠より広い図を縮めて始め、「+」で寄せ「−」で全体へ戻す (Tracelyth #177)。
- * ただし全体を収めると関係者の名前の字が `READABLE_PX` を下回る図は、名前の字が `READABLE_PX` に見える幅より細くしない (#3721)
+ * `fitWide` を渡した時は、600px 以上の枠でも枠より広い図を枠の幅に収め、「+」で寄せ「−」で全体へ戻す (Tracelyth #177)。
+ * `fitNarrow` も渡した時は、枠より狭い図も枠の幅に広げて始める (Tracelyth #194)。広げるのは原寸までにし、文字と札を原寸より大きく描かない (Tracelyth #221)。
+ * 枠の幅に収めると人の名前の字が `FILL_NAME_PX` より小さくなる図は、名前がその大きさになる幅で描く (Tracelyth #230)
  */
 export function pipeBaseWidth(layout: PipeLayout, frame: number, options: PipeFitOptions): number {
-  if (options.fitWide) return Math.min(layout.width, Math.max(frame, widthFor(layout, (layout.parties ?? []).map((p) => p.label.h), READABLE_PX)));
   if (frame < ZOOM.fit)
     return Math.min(layout.width, Math.max(frame, options.zoom ? 0 : widthFor(layout, (layout.levels ?? []).map((level) => level.text.h), PIPE_FIRST.narrowPx)));
-  return layout.width;
+  if (options.fitWide && options.fitNarrow) return Math.min(layout.width, Math.max(frame, (layout.width * FILL_NAME_PX) / PIPE_TYPE.party.size));
+  return options.fitWide ? Math.min(layout.width, frame) : layout.width;
 }
 
 /**
@@ -490,7 +494,8 @@ export function pipeReadableZoom(layout: PipeLayout, frame: number, options: Pip
 
 /*
  * 拡大と縮小の釦、ホイール、ダブルクリック、引いて送る動きの受け手 (#3418、#3720)。
- * 釦は 1 回で `ZOOM.step` 倍、Ctrl か Command を押しながらのホイールは指した所を中心に拡大する。押さないホイールは今どおり枠か頁を送る。
+ * 釦は 1 回で `ZOOM.step` 倍、縦に回すホイールは修飾キーの有無に関わらず指した所を中心に拡大する。横の量が縦の量より大きい回し方はブラウザに任せて図を横に送る (Tracelyth #191)。
+ * キャンバス式の窓 (Tracelyth #197) では、横の量が大きい回し方と引く指 (触る指も) が図を窓の中で動かす。窓でない枠を縦に引いた分は、枠が送り切った後に外の枠を送る (Tracelyth #191)。
  * 釦で始めの大きさをまたぐ時は、始めの大きさで1度止める (Tracelyth #179)。
  * 見る人が枠を送るか拡大と縮小をした後は、段が進んでも枠を今の段の関係者の所へ送らない (Tracelyth #183)。
  * 配管の図にしか要らないので、段の動きと同じくこの塊に置き、軽い入口が最初に読む量に入れない。拡大の度合いを変える処理と、枠の中の見ている所は再生の部品が持つ
@@ -506,11 +511,22 @@ export interface PipeZoomCalls {
   hold: () => void;
   /** 手で送った後に、全体の線を見ている所に付ける */
   follow: () => void;
+  /**
+   * キャンバス式の窓 (Tracelyth #197)。`on` は枠が今キャンバス式の窓か、`view` は窓の左上から見た図の今の位置、
+   * `move` は (`left`, `top`) の所を窓の左上へ動かす口 (`smooth` なら滑らかに)、`stop` は段へ寄せる動きを止める口。書かなければ窓にしない
+   */
+  canvas?: {
+    on: () => boolean;
+    view: () => [number, number];
+    move: (left: number, top: number, smooth: boolean) => void;
+    stop: () => void;
+  };
 }
 
 /** 配管の図の枠 `frame` と、拡大の釦 `zoomIn` と縮小の釦 `zoomOut` に動きの受け手を付ける。付けた受け手を外す処理を返す */
 export function bindPipeZoom(frame: HTMLElement, zoomIn: HTMLElement, zoomOut: HTMLElement, calls: PipeZoomCalls): () => void {
   const { zoomTo, hold, follow } = calls;
+  const inCanvas = (): boolean => calls.canvas?.on() === true;
   const stepTo = (target: number): number => {
     const zoom = calls.zoom();
     return zoom < ZOOM.min !== target < ZOOM.min && zoom !== ZOOM.min ? ZOOM.min : target;
@@ -518,12 +534,18 @@ export function bindPipeZoom(frame: HTMLElement, zoomIn: HTMLElement, zoomOut: H
   const onZoomIn = (): void => zoomTo(stepTo(calls.zoom() * ZOOM.step));
   const onZoomOut = (): void => zoomTo(stepTo(calls.zoom() / ZOOM.step));
   const onWheel = (event: WheelEvent): void => {
-    // 押さないホイールで送った時も、段が進んでも枠を関係者の所へ送らない
+    // 横に送るホイールも、段が進んでも枠を関係者の所へ送らない
     hold();
-    if (!(event.ctrlKey || event.metaKey)) return;
-    event.preventDefault();
     // 行と頁の単位で送るホイールは、px に直してから度合いにする
     const unit = event.deltaMode === 1 ? TYPE.stepBody.size : event.deltaMode === 2 ? frame.clientHeight : 1;
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      if (!inCanvas() || !calls.canvas) return;
+      event.preventDefault();
+      const [x, y] = calls.canvas.view();
+      calls.canvas.move(x + event.deltaX * unit, y + event.deltaY * unit, false);
+      return;
+    }
+    event.preventDefault();
     zoomTo(calls.zoom() * Math.exp(-event.deltaY * unit * ZOOM.wheel), { x: event.clientX, y: event.clientY });
   };
   // ダブルクリックは押した所を中心に `ZOOM.double` 倍にし、`ZOOM.reset` まで拡大した図は 100% に戻す
@@ -532,14 +554,35 @@ export function bindPipeZoom(frame: HTMLElement, zoomIn: HTMLElement, zoomOut: H
     const zoom = calls.zoom();
     zoomTo(zoom >= ZOOM.reset ? ZOOM.min : zoom * ZOOM.double, { x: event.clientX, y: event.clientY });
   };
-  /** 引いている指。`ZOOM.drag` より動いた後は枠を送り、離した後の押下を図に渡さない */
-  let drag: { id: number; x: number; y: number; left: number; top: number; moved: boolean } | undefined;
+  /**
+   * 引いている指。`ZOOM.drag` より動いた後は枠を送り、離した後の押下を図に渡さない。
+   * `canvas` はキャンバス式の窓の中の図を動かす指、`outer` と `outerTop` は縦に送る外の枠とその引き始めの送り位置
+   */
+  let drag:
+    | { id: number; x: number; y: number; left: number; top: number; canvas?: boolean; outer?: HTMLElement; outerTop?: number; moved: boolean }
+    | undefined;
   let dragged = false;
   // マウスとペンで引くと枠を送る。指は枠をそのまま送れるので受けない
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.button !== 0 || event.pointerType === "touch") return;
+    if (event.button !== 0 || (event.pointerType === "touch" && !inCanvas())) return;
     dragged = false;
-    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: frame.scrollLeft, top: frame.scrollTop, moved: false };
+    // キャンバス式の窓は枠も外の枠も送らず、引いた分だけ図を動かす。指で引いても同じ (Tracelyth #197)
+    if (inCanvas() && calls.canvas) {
+      calls.canvas.stop();
+      const [left, top] = calls.canvas.view();
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left, top, canvas: true, moved: false };
+      return;
+    }
+    const outer = scrollParent();
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: frame.scrollLeft, top: frame.scrollTop, outer, outerTop: outer?.scrollTop ?? 0, moved: false };
+  };
+  // 図の枠を囲み、縦に送れる一番近い枠。図の枠が図の高さまで伸びる時は、縦に引きずった分をこの枠で送る (Tracelyth #191)
+  const scrollParent = (): HTMLElement | undefined => {
+    for (let el = frame.parentElement; el; el = el.parentElement) {
+      const overflowY = getComputedStyle(el).overflowY;
+      if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1) return el;
+    }
+    return undefined;
   };
   const onPointerMove = (event: PointerEvent): void => {
     if (!drag || event.pointerId !== drag.id) return;
@@ -557,8 +600,14 @@ export function bindPipeZoom(frame: HTMLElement, zoomIn: HTMLElement, zoomOut: H
         // 捕まえられない指でも、枠の上で動く間は送れる
       }
     }
+    if (drag.canvas) {
+      calls.canvas?.move(drag.left - dx, drag.top - dy, false);
+      return;
+    }
     frame.scrollLeft = Math.max(0, drag.left - dx);
     frame.scrollTop = Math.max(0, drag.top - dy);
+    // 枠が縦に送り切った分は、外の枠を送る
+    if (drag.outer) drag.outer.scrollTop = (drag.outerTop as number) - dy - (frame.scrollTop - drag.top);
     follow();
   };
   const onPointerUp = (event: PointerEvent): void => {

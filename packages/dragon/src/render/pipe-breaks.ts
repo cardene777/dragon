@@ -81,6 +81,7 @@ function partOf(piece: PipePiece): LayoutPart {
     case "line":
       return { kind: "flow", name: piece.name };
     case "chip":
+    case "card":
       return { kind: "text", text: piece.text };
     case "pipe":
       return { kind: "pipe", from: piece.from, to: piece.to, step: piece.step };
@@ -97,6 +98,7 @@ function spanOf(piece: PipePiece): [number, number][] {
     case "box":
     case "tank":
     case "chip":
+    case "card":
       return [[piece.rect.y, piece.rect.y + piece.rect.h]];
     case "pipe":
     case "line": {
@@ -128,6 +130,7 @@ export function pipeBreaks(
   const valves = of("valve");
   const gauges = of("gauge");
   const chips = of("chip");
+  const cards = of("card");
   const tanks = of("tank");
   const lines = of("line");
   /** `items` が揃って見える最初の段 (1 から数える)。揃って見えなければ `undefined` */
@@ -154,6 +157,25 @@ export function pipeBreaks(
           : (part.kind === "valve" ? [part.body, ...part.lever] : part.rects).some((r) => overlap(chip.rect, r));
       if (hit) add("chip-over-part", stepOf(chip, part), [{ kind: "text", text: chip.text }, partOf(part)]);
     }
+
+  // 字を記録しない札 (線の札、ログの札、呼び出しの札) が、箱か槽か計器かトークンの箱の弁か返した値の札か、ほかの札に重なる (#3854)。
+  // 呼び出しの管の弁は描かないので比べない
+  cards.forEach((card, i) => {
+    const others: PipePiece[] = [...boxes, ...tanks, ...gauges, ...valves.filter((v) => v.to === undefined), ...chips, ...cards.slice(i + 1)];
+    for (const part of others) {
+      const hit =
+        part.kind === "box"
+          ? overlapRounded(card.rect, part.rect, part.corner)
+          : part.kind === "valve"
+            ? [part.body, ...part.lever].some((r) => overlap(card.rect, r))
+            : part.kind === "gauge"
+              ? part.rects.some((r) => overlap(card.rect, r))
+              : part.kind === "tank" || part.kind === "chip" || part.kind === "card"
+                ? overlap(card.rect, part.rect)
+                : false;
+      if (hit) add("chip-over-part", stepOf(card, part), [partOf(card), partOf(part)]);
+    }
+  });
 
   // 管の端が箱の縁の角の丸みにかかるか、管の太さが箱の中を通る。丸の名札は角の丸みが高さの半分なので、真ん中から出入りする管だけが収まる
   for (const pipe of pipes)

@@ -11,6 +11,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { exampleJson, exampleSource, type Json } from "./diagram-support";
 import { draw, type Player } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 type Diagramish = { [key: string]: Json };
 type View = "fixed" | "follow";
@@ -35,8 +37,11 @@ const CASES = [
 const NARROW = [360, 390, 430] as const;
 /** 見本ごとの、枠の中で見える高さ。どちらも今の寄って追う図より低く、窓の下限 (160px) と全体図と窓の下の値の表が入る (#3270) */
 const HEIGHTS = { oauth: [340, 400], ccip: [560, 640] } as const;
-/** 今の寄って追う図の窓より高い、枠の中で見える高さ。ccip は 700px で全体図の下までが枠いっぱいになり、900px で図の高さで止まる */
-const TALL = [700, 900] as const;
+/**
+ * 今の寄って追う図の窓より高い、枠の中で見える高さ。ccip は 760px で全体図の下までが枠いっぱいになり、900px で図の高さで止まる。
+ * 等幅の字の … を普通の字の ... の幅で測ると (Tracelyth #236)、560px の ccip の値の表が 44px 高くなり、700px では窓が今より高くならない (#3761)
+ */
+const TALL = [760, 900] as const;
 /** 窓と、窓の下に置いた全体図の間 */
 const INSET = 12;
 /** 幅 1440px の画面の重ね窓の図の枠。oauth は高さに収めると箱の名前の字が読めず、ccip は読める */

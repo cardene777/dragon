@@ -3214,9 +3214,9 @@
       }
     },
     "url": {
-      "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL",
+      "description": "頁を移る形。/ で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所",
       "type": "string",
-      "pattern": "^(/|https?://)"
+      "pattern": "^(/|https?://|#.)"
     },
     "scale": {
       "description": "目盛り。unit の名前の目盛りを length の長さで count 個並べ、最初の目盛りの番号を from にする",
@@ -3538,7 +3538,7 @@
       ]
     },
     "holdLink": {
-      "description": "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる",
+      "description": "値の持ち分の線 (Tracelyth #107、#133)。2人をキーに持つ値は別の2人の from と to を持ち、2人を結ぶ点線と札で描く。1人をキーに持つ値は on を持ち、その人の列の下に札を置く。どちらも線の札に出す単位 unit を足せる。tank は数を残高と同じ槽で描く値 (Tracelyth #207) で、ほかの欄を持たない",
       "oneOf": [
         {
           "type": "object",
@@ -3573,6 +3573,18 @@
             "unit": {
               "type": "string",
               "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tank"
+          ],
+          "properties": {
+            "tank": {
+              "const": true
             }
           }
         }
@@ -3649,12 +3661,13 @@
       }
     },
     "chartShape": {
-      "description": "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で、dots は項目ごとの件数を点の数で描く",
+      "description": "量の図の見た目。donut は項目ごとの割合をドーナツの弧で、bar は項目ごとの量を横棒の長さで、funnel は段ごとに減る項目の量を漏斗の横棒で、dots は項目ごとの件数を点の数で、line は時間につれた項目ごとの量の変わりを折れ線で描く",
       "enum": [
         "donut",
         "bar",
         "funnel",
-        "dots"
+        "dots",
+        "line"
       ]
     },
     "dotUnit": {
@@ -4785,9 +4798,6 @@
                                 "minItems": 1,
                                 "items": {
                                   "properties": {
-                                    "sub": {
-                                      "$ref": "#/definitions/absent"
-                                    },
                                     "color": {
                                       "$ref": "#/definitions/absent"
                                     },

@@ -1,5 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "tsup";
+import { srcFingerprint } from "./scripts/src-fingerprint.mjs";
 import type { UserBlock } from "./src/user-blocks";
 import { readBlocks } from "./src/user-blocks-read";
 // 共有の定義は Tabler の絵柄を持てる (#3489)。読む前に絵柄集の表を登録する。表は build が tsup の前に書き出す (`scripts/build-tabler.mjs`)
@@ -33,12 +35,14 @@ function sharedBlocks(): UserBlock[] {
 }
 /**
  * 本体を束ねる全ての設定に渡す。定義を引く処理 (`user-blocks.ts`) がどの入口にも入るため。
- * Tabler の絵柄を持つ共有のブロックの名前も入れ、軽い入口が絵柄集の表を読むかを最初に読む束で決める (#3489)
+ * Tabler の絵柄を持つ共有のブロックの名前も入れ、軽い入口が絵柄集の表を読むかを最初に読む束で決める (#3489)。
+ * `src` の指紋も入れる。収めた配管の図の並べ方の鍵に入り、組んだ code と描く code が違う時に収めた並べ方を使わせない (#3748)
  */
 const SHARED = sharedBlocks();
 const SHARED_BLOCKS = {
   __DRAGON_SHARED_BLOCKS__: JSON.stringify(SHARED),
   __DRAGON_SHARED_TABLER__: JSON.stringify(SHARED.flatMap((b) => (b.icon?.startsWith("tabler:") ? [b.name] : []))),
+  __DRAGON_SRC_FINGERPRINT__: JSON.stringify(srcFingerprint(fileURLToPath(new URL("./src/", import.meta.url)))),
 };
 
 /**
@@ -52,6 +56,22 @@ const CAPTURE_BESIDE = {
   setup(build: { onResolve(options: { filter: RegExp }, resolve: () => { path: string; external: boolean }): void }) {
     // esbuild は filter を Go の正規表現で読み、u の印を受けない
     build.onResolve({ filter: /^\.\/capture\.js$/ }, () => ({ path: "./capture.js", external: true }));
+  },
+};
+/**
+ * `dragon embed` が頁に埋める script に、絵柄集の表 (`src/blocks/icon/sets-all.ts`、約 1.1MB) を束ねない (#3493、#3792)。
+ * 埋めた頁は、図が使う絵柄だけを頁に収めて登録する (`page-icons.ts`)。帯の HTML の書き出しが頁を組む処理 (`export/page.ts`) は、
+ * 描く部品の入口 (`render/svg.ts`) を通って表を読む行を持つので、埋める script を束ねる時だけ、その行が読む file を空の module に替える
+ */
+const PAGE_ICONS_ONLY = {
+  name: "dragon-page-icons-only",
+  setup(build: {
+    onResolve(options: { filter: RegExp }, resolve: () => { path: string; namespace: string }): void;
+    onLoad(options: { filter: RegExp; namespace: string }, load: () => { contents: string; loader: "js" }): void;
+  }) {
+    // esbuild は filter を Go の正規表現で読み、u の印を受けない
+    build.onResolve({ filter: /(^|\/)sets-all$/ }, () => ({ path: "sets-all", namespace: "dragon-no-icon-table" }));
+    build.onLoad({ filter: /.*/, namespace: "dragon-no-icon-table" }, () => ({ contents: "", loader: "js" }));
   },
 };
 /**
@@ -165,9 +185,11 @@ export default defineConfig([
     target: "es2022",
   },
   {
-    // `dragon embed` が頁に埋める script (#3343)。外を読めない頁で動くよう、全ての種類の部品を 1 file に束ねる
+    // `dragon embed` が頁に埋める script (#3343)。外を読めない頁で動くよう、全ての種類の部品を 1 file に束ねる。
+    // 帯で書き出した HTML の頁はこの script を再生の script として埋め、`DragonPlayer.mountDiagram` で図を置く (#3792)
     entry: { offline: "src/script-offline.ts" },
     format: ["iife"],
+    globalName: "DragonPlayer",
     platform: "browser",
     noExternal: [/.*/],
     minify: true,
@@ -175,6 +197,7 @@ export default defineConfig([
     clean: false,
     dts: false,
     define: SHARED_BLOCKS,
+    esbuildPlugins: [PAGE_ICONS_ONLY],
     outDir: "dist",
     target: "es2022",
   },

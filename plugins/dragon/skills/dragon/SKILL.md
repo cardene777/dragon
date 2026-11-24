@@ -160,7 +160,9 @@ Pick the way the destination supports. Details and code are in [setup](reference
 | A GitHub README or anywhere scripts do not run | Keep the notation in a `.dragon` file, export an image with `dragon export <file> --format gif` (or `png`), and embed the image |
 | An app | `npm install @cardenelabs/dragon`, then `parseNotation` and `renderDiagram`, or the player `mountDiagram` |
 | A tool or page that wants the diagram with its bar (Code, Editor, Copy, Export) | One of four ways: `data-header` on the script block, `mountDragon`, `<dragon-diagram>`, or an iframe from `embedUrl`. See [embed](references/embed.md) |
+| A report or explainer page that shows the last step as one picture | `data-still` on the `<pre class="dragon">` block, then `dragon embed page.html`, which draws it as an SVG with no player. See [embed](references/embed.md) |
 | A file that opens offline | `dragon embed page.html` |
+| An explanation with several diagrams, split into pages and tabs | Write it in Markdown (`#` title, `##` groups, `###` items, `####` tabs, `[link: #<item>]` on overview boxes, `![name](file to include)` alone on a line to include a file) and run `dragon export notes.md`. Pick `layout: sidebar` or `layout: tabs` at the top; the default is `entry`. See the package README |
 
 Keep the `.dragon` file next to any exported image so the diagram can be edited and exported again.
 
@@ -168,6 +170,12 @@ Keep the `.dragon` file next to any exported image so the diagram can be edited 
 
 If no existing box, line or icon expresses what the explanation needs, define your own block or use a shared one.
 Read [blocks](references/blocks.md). It also covers how to offer a reusable block to the dragon repo, and how to ask it for a new kind of diagram.
+
+## Contents other skills follow
+
+Other skills follow this skill's files through musubi, by the content names in `musubi.json`.
+The contents `notation`, `embed`, `layout`, `blocks`, and `setup` are the files of the same name linked above.
+Each kind is a content named after it, and its file is the one in the table in step 2: `architecture`, `chart`, `checkout`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `sankey`, `sequence`, `state`, `time`, `tree`, `try`, and `venn`.
 
 ## Common mistakes
 

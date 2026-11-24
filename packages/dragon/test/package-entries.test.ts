@@ -141,6 +141,43 @@ describe("package の入口 (#3021)", () => {
     expect(capture, "書き出す入口が読む詰める道具").toEqual(expect.arrayContaining(["gifenc", "mediabunny"]));
   });
 
+  it("entries-load-capture-beside", () => {
+    // 帯の入口は書き出す部品 (`capture.js`) を入口の隣から後で読む (#3786)。使い手の Vite や webpack は読む先を字の形で拾い、書き出す部品を束ねる。
+    // 検査が src の入口から書き出す部品を読む `src/frame/capture.js` (#3798) を置いても、build は読む先を外に残す
+    // 軽い入口の帯の入口 (#3789) も、同じ置き場の隣から読む
+    const entries = ["dist/frame.js", "dist/embed.js", "dist/light-frame.js", "dist/cdn/dragon-main.js"];
+    // build した file が無い入口は、読まないと数えて判定の文で落とす
+    const reads = Object.fromEntries(entries.map((file) => [file, existsSync(join(ROOT, file)) && readFileSync(join(ROOT, file), "utf8").includes('import("./capture.js")')]));
+    expect(reads, '書き出す部品を import("./capture.js") の字の形で読む入口').toEqual(Object.fromEntries(entries.map((file) => [file, true])));
+  });
+
+  it("entries-skip-capture-body", () => {
+    // 書き出す部品は動画の道具ごと束ねると大きいので、配る入口に束ねず隣の file に分ける (#3644、#3699)。
+    // 書き出す部品だけが持つ誤りの文で、`src/frame/capture.js` (#3798) を束ねた入口の file を探す
+    const mark = "Cannot encode the PNG";
+    const holds = (file: string): boolean => existsSync(join(ROOT, file)) && readFileSync(join(ROOT, file), "utf8").includes(mark);
+    const cdn = readdirSync(join(ROOT, "dist/cdn"))
+      .filter((file) => file.endsWith(".js") && file !== "capture.js")
+      .map((file) => `dist/cdn/${file}`);
+    expect(cdn.length, "script の1行の入口の塊の file の数").toBeGreaterThan(2);
+    const shipped = ["dist/frame.js", "dist/frame.cjs", "dist/embed.js", "dist/embed.cjs", "dist/light-frame.js", "dist/light-frame.cjs", "dist/offline.global.js", ...cdn];
+    expect(shipped.filter((file) => !existsSync(join(ROOT, file))), "build した file が無い配る入口").toEqual([]);
+    expect(shipped.filter(holds), "書き出す部品の中身を持つ配る入口の file").toEqual([]);
+    // 陰性でない対照。書き出す部品の file では、同じ字を見つける (探す字が古くなっていない)
+    expect(["dist/capture.js", "dist/cdn/capture.js"].filter(holds), "書き出す部品の中身を持つ書き出す部品の file").toEqual(["dist/capture.js", "dist/cdn/capture.js"]);
+  });
+
+  it("offline-script-skips-icon-table", () => {
+    // 埋めた頁は図が使う絵柄だけを頁に収めて登録するので、埋める script は絵柄集の表 (約 1.1MB) を束ねない (#3493)。
+    // 帯の HTML の書き出しを束ねても、頁を組む処理が読む表は外す (#3792)。表だけが持つ絵柄 `a-b` の形で探す
+    const mark = "M-7.5 3.33V-1.25A2.085 2.085 0 0 1-3.33-1.25V3.33M-3.33 0H-7.5";
+    const holds = (file: string): boolean => readFileSync(join(ROOT, file), "utf8").includes(mark);
+    expect(existsSync(join(ROOT, "dist/offline.global.js")), "build した埋める script").toBe(true);
+    expect(holds("dist/offline.global.js"), "埋める script が絵柄集の表を持つ").toBe(false);
+    // 陰性でない対照。表を束ねる既定の入口では、同じ字を見つける (探す字が古くなっていない)
+    expect(holds("dist/index.js"), "既定の入口が絵柄集の表を持つ").toBe(true);
+  });
+
   it("entry-types-match-module-system", () => {
     const { exports } = manifest();
     for (const entry of [".", "./export", "./node"]) {

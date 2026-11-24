@@ -17,7 +17,7 @@ All four draw the same diagram from the same notation. Check the notation with `
 Add `data-header` to the `<pre class="dragon">` block. Blocks without it stay plain diagrams. Pin the version to `<major>.<minor>` of the installed package.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.77/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order
@@ -26,6 +26,43 @@ box api as Order API
 step Place the order
   shop -> api: Send the order
 </pre>
+```
+
+## A still figure on a report or explainer page
+
+When the page should show the last step in one picture, such as a chart in a report or a flow in an explainer, add `data-still` to the block instead of `data-header`.
+The block becomes an SVG of the last step with no player: no buttons, step numbers, step captions, or progress bar.
+A chart shows its values and the diagram title, a flow draws every passed line solid, the fonts fall back to sans-serif, the palette defaults to `clear`, and the colors turn dark with the page's `data-theme="dark"` or the device's dark scheme.
+
+```html
+<pre class="dragon" data-still>
+chart Sales by product in thousands of yen [shape: bar]
+item croissant as Croissant
+item melon as Melon bun
+step This week
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+Run `dragon embed page.html` to make a file that reads nothing from outside. A `data-header` block keeps its bar, and the bar's Export menu saves the same seven formats as the jsDelivr page (PNG, SVG, HTML, GIF, MP4, notation, and JSON) without reading anything from outside. The saved HTML draws in the device's sans-serif fonts, like the embedded page. When every block is still, it draws them as SVGs and adds no script. From the package, `renderDiagram(diagram, { figure: true })` returns the same SVG.
+
+Set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`, to paint the figure background, the line outlines, and the label plates with the page's color on light and dark pages. A donut wraps a middle name that does not fit the ring onto two lines, and a step band (`cycle` with `[shape: band]`) writes the step names inside the chevrons.
+
+## Find the box that was pressed
+
+Every drawn box and group carries its notation id in `data-node`.
+For example, `box api as API server` draws an element with `data-node="api"`.
+To show something when a box is pressed, read the id from the pressed element with `closest('[data-node]')`.
+A box inside a group returns the box, not the group, and lines and labels carry no id.
+
+```html
+<script>
+document.addEventListener("click", (event) => {
+  const node = event.target.closest('[data-node]');
+  if (node) showNote(node.getAttribute("data-node"));
+});
+</script>
 ```
 
 ## The SDK function

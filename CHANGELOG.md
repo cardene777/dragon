@@ -6,6 +6,140 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A pipe diagram (`pipe`) can now replace the text under a token box's name with `note`, as in `box usdc as USDC [note: Holding]`. A box without it still shows `balanceOf`, so a diagram of an asset outside the EVM can name the form that holds the asset. A long text widens the box to fit. Only a token box, a box whose name is a unit on a `hold` line, takes `note`: the editor and `dragon check` stop a `note` on a person or contract box with an error, and the JSON check refuses its `sub` the same way (#3803)
+- On a page made by `dragon embed`, the Export menu on a `data-header` block's bar now lists the same seven formats as the one-line jsDelivr page, PNG, SVG, HTML, GIF, MP4, notation and JSON, and saves each of them with the network off. The bundled script now carries the GIF and MP4 encoders, and the saved HTML embeds the page's own bundled script as its player, so it opens offline and draws in the device's fonts like the page. The bundled script grows by about 266KB (about 78KB gzipped), because it leaves out the Tabler icon table and keeps only the icons the page uses (#3792)
+- A page that loads only the light entry can put a diagram with the bar from the new entry `@cardenelabs/dragon/light/frame`. It exports the same names as `@cardenelabs/dragon/frame` and reads and draws with the light entry, so the default entry stays off the page; it mounts after `loadFor`, and notation of a kind not loaded yet is refused with the kind named. A page with the one-line jsDelivr entry can set the order of the bar buttons and the bar look in a bar settings block, `<script type="application/json" id="dragon-header">`, with the same keys as the SDK's `mountDragon` (`buttons` and `look`), and a block it cannot read turns the `data-header` blocks into the error text. `dragon export` writes that block from `header-buttons` and `header-<color field>` lines at the top of the md, and stops with the line named for an unknown button or a color with `;` or `<` (#3789)
+- A chart draws a line chart with `[shape: line]`, showing how amounts change over time with the same `item` and `set` lines. Each item is one line in its own color with its name in the legend at the top, each step is one point on the time axis labeled with the step title, and the value axis runs from 0 up to the largest value rounded up to a step of 1, 2, 2.5 or 5 times a power of 10. Going to the next step draws each line from the previous point to the new one and shows the step's value beside the point, and a still figure draws every line in full with the chart title at the top. `dragon check` names a line chart with a single step, an item that never gets a value, and `set none` with their line and column, and the JSON check names the same fields. The examples `bakery-sales` compare a bakery's daily sales at the counter and online over a week (#3802)
+- A still figure paints its background, line outlines, and label plates with `--dragon-figure-background` when the page sets it, so the figure matches the page's card on light and dark pages. A donut writes a middle name that does not fit inside the ring on two lines and makes it smaller only when two lines still do not fit, and a still step band (`cycle` with `[shape: band]`) leaves out the room for step numbers and writes each step name inside its chevron. The dragon skill's `chart` and `layout` references give the lengths that fit, and the skill raises the versions of its `embed`, `chart`, and `layout` contents (#3809)
+- The dragon skill declares its references in `musubi.json`, so other skills can follow the notation, the ways to place a diagram, the layout fixes, the block guide, the setup, and each kind's guide through musubi, by content names that its `SKILL.md` lists. The skill's table of destinations also names `data-still` for a report or explainer page (#3807)
+- A block with `data-still` is replaced by a still figure: an SVG of the last step with no player, no step numbers, chart titles in place of step titles, a sans-serif fallback, the `clear` palette by default, and colors that follow the page's `data-theme` and the device's dark scheme. `renderDiagram` returns the same SVG with `figure: true`, and `dragon embed` draws still blocks as SVGs and adds no bundled script when no moving block is left (#3801)
+
+### Changed
+
+- `dragon export` no longer follows a pipe diagram (`pipe`) when given `--width`; it writes the whole diagram in the fixed view. The player has always shown pipe diagrams fixed, but the export alone made a following video at widths such as 760, which cut box names and balances at the window edge and left the overview empty. The rule now lives in one place, `chooseView`, and both the player and the export read it. A pipe video exported with a width shows the whole diagram (#3852)
+
+### Fixed
+
+- In a diagram written in English, every value in the strip under the diagram was drawn in the monospace font, so a prose value such as `refunded` looked the same as a hash such as `8b04f71`. A value without Japanese now picks its font by the line label rule (#3850): a value made of words uses the same font as Japanese values, and a value with a code sign, one that starts with a digit, a word mixing lowercase letters and digits such as a hash, a value cut short with `…`, a version starting with `v` such as `v2.4.0`, and a path such as `m/44'/60'` stay monospace. Wrapping the whole value in backticks draws it in the monospace font without the backticks, and a field's width and the place of its tag are measured in the chosen font. The examples wrap the branch names `main` and `feature`, the commit names of the squash diagram, and the path root `m` in backticks (#3856)
+- A pipe diagram without token boxes drawn with `layout top`, `layout ledger`, or `layout bottom` no longer leaves an empty band above the people where the token boxes and their card wallets would go. In the catalog's ETH transfer diagram, the space from the top edge to the call card was 330px with `top`, 220px with `ledger`, and 90px with `bottom`. Without token boxes nothing is kept above the people, the call card sits above the contract it calls, and the space from the top edge to the card is 20px, the same as with `mesh` and `bus`. A diagram without token boxes drawn with `layout auto` picks `bottom` and gets the same fix. Diagrams with token boxes keep their placement (#3860)
+- The catalog no longer loads the table of part examples, which only the catalog pages use to find the examples of a part, in the script it loads first. The first screen checks a part address against the block list it already has, and the part page reads the part from the catalog chunk it loads later. The script and CSS it loads first shrink from 186.2KB to 183.3KB after gzip and fit the 186KB budget again (#3868)
+- The guide page's embed section now shows the fifth code of the README's embed section, which reads the id of a pressed box with `closest('[data-node]')`, with the same text, so the page and the README show the same five codes again (#3868)
+- In a diagram written in English, every line label was drawn in the monospace font, so a prose label such as `Approve` looked the same as a code label such as `transfer(Bob, 100)`. A label without Japanese is now drawn in the monospace font only when it has a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word) or starts with a digit; other labels use the same font as Japanese labels. Wrapping the whole label in backticks draws a command with no sign in the monospace font, without the backticks. Label widths are measured in the font they are drawn in. `strip` values keep the monospace font, and the examples now wrap the `git rebase main` and `git switch main` labels in backticks (#3850)
+- In a pipe diagram with the mesh layout, a pipe from a tank that has the same owner's tanks on both sides no longer starts on the rounded bottom corner and looks detached from the tank. The gap next to the tank widens from 16px to 48px only where a pipe passes, and the pipe leaves from the flat side. Only when other pipes already use both sides of the tank does the pipe leave from the end of the flat bottom (26px from the center), and the balance, change, and state text it would cross moves sideways. In the ledger, bus, top, and bottom layouts, a pipe between two ETH tanks also leaves the bottom 26px from the center (#3781)
+- On a page that does not load the bundled fonts, diagram text and the bar's title and text no longer fall back to the browser's default font, which is a serif (Mincho) font for Japanese. The font variables `--sans` and `--mono` now name the bundled fonts first and end with the device's gothic fonts and `sans-serif`, and with monospace fonts and `monospace`. Every diagram, the bar, the still figure, and the HTML page read this one list. With Noto Sans JP loaded, diagrams draw in the same fonts as before. Layout still measures text with the bundled fonts, so text in a fallback font can be a few pixels wider (#3847)
+- In a pipe diagram, the tag on a `delegatecall` pipe is no longer hidden behind a box and a log card. On the last step of the `vault-proxy` example, the top of the tag sat under the VaultProxy box and its right end under a log card, so only `delegateca` could be read. When there is no spot beside the pipe clear of boxes, tanks, gauges, log cards and dotted lines, the tag now sits on its own pipe and is drawn above the lit pipes of every step, and log cards and call cards keep clear of it. `dragon check --layout` also reports, as the break kind `chip-over-part`, a call tag, a log card or a call card that overlaps a box, a tank, a gauge, the valve of a token box, the tag of a returned value or another such tag (#3854)
+- In a narrow frame, the overview of a following donut chart (`chart` with `[shape: donut]`) no longer shows only the frame of the part you are looking at. The overview draws the ring segments of the items that have a value at the last step in their colors, and each legend row as a card in its item's color. A new check lays out the examples of every diagram kind at five widths and requires at least one overview part for every example that can follow, so a newly added kind cannot land with an empty overview (#3852)
+- At phone width (390), the overview of a following `sankey`, `venn`, `er`, `chart` or `cycle` diagram no longer shows only the frame of the part you are looking at with nothing else in it, which left you unable to tell where in the whole diagram you were. The overview now draws the diagram in small: the curved bands and bars of a `sankey`, the circles and names of a `venn` with overlaps blended as in the diagram, the tables, header rows and relation lines of an `er`, the plot area, lines and points of a line `chart`, and the chevrons and return line of a band `cycle`. The step-by-step bars, treemap, dots, funnel and clock shapes draw their own parts too, and an `er` diagram that follows at width 760 gets the same overview. Circles and curves are drawn as smooth circles and paths, and the overview of the other kinds, such as `mind`, is unchanged (#3849)
+- At phone width (390), a following `mind`, `sankey` or `state` diagram no longer cuts the box at the far end of a line drawn in the step (the parent of the added idea in `mind`, the source of the added band in `sankey`, both states of the line in `state`) at the window edge, which left you unable to read where the added parts come from. The window moves toward that box while keeping the added parts in view, and a box that is still cut gets a tag with its full name inside the window frame. The tag covers the visible part of the box with the same shadow so no edge of the cut box shows outside it, is drawn under the step badges, and shows only while its step is held. Steps whose line-end boxes already fit, and windows at width 760, stay as they were (#3836)
+
+- At phone width (390 or less), the amount chips of the step-by-step bars of a sankey diagram (`[shape: rows]`) no longer overlap each other, and the score chips on the axes of a scored two-axis matrix (`[shape: scatter]`) no longer overlap the names of the points. When two amount chips of one step would overlap, the later chip stops one chip higher and the gap above that row grows by one chip. When a score chip would touch the name of a point shown at that step, the chip moves to the left of the vertical axis or below the horizontal one for that step. Chips and names keep their size, and diagrams that did not overlap at the default width are drawn as before. The record of breaks in the examples is empty again (#3791)
+- `dragon check --layout` and `checkLayoutText` also report two texts seen at the same step that are drawn on top of each other, as the break kind `texts-overlap` on the `step` line. The message is the one `dragon export` prints for the same overlap, and a line that runs across a text is still reported once, as `line-crosses-text`. The layout check of the examples and the script that rewrites its record read one list of examples, which now also holds the `.dragon` files in folders under `examples`, the diagrams in the md files, and the `.dragon` examples of the docs page, and the `.json` diagrams of the docs page are drawn from the diagram and checked for no breaks. The two overlaps found (step 4 of `day-hours` and step 3 of the scatter diagram in `quick-start.md`, both at width 390) stay in the record until a later issue (#3791) fixes them. The `layout` reference of the dragon skill explains `texts-overlap` and how to fix it, and the skill raises the version of its `layout` content (#3790)
+- On pages with the one-line jsDelivr entry and pages made by `dragon embed`, a `data-header` block loads the bar together with the parts its notation uses and draws the diagram once inside the bar, instead of drawing a plain diagram, removing it, and drawing it again, so the text below no longer moves when the bar appears. The SDK's `mountDragon` and `mountFramedDiagram` write notation errors in the bar's language, so they are in Japanese on a `<html lang="ja">` page (#3789)
+- A still figure writes the shape of its last step as plain values instead of keyframes stopped at that moment, so a donut keeps one arc per item and bars keep their lengths on a page that turns animations off, such as one with `* { animation: none !important; }` for reduced motion. Moving diagrams keep their keyframes. A line chart puts each value above, below, right of, or left of its point, in that order, where it crosses no line, point, or other value and stays between the legend and the zero line, and a still line chart shows the value of every step (#3812)
+- The catalog loads the release notes page and the page shown for unknown addresses after its first screen, like the guide and catalog pages, instead of in the script it loads first. The script and CSS it loads first shrink from 186.2KB to 185.4KB after gzip and fit the 186KB budget again. The two pages look the same and are read in the background once the first screen is drawn (#3832)
+
+## [0.79.7] - 2026-11-24
+
+### Added
+
+- **Every drawn box and group carries its notation id in `data-node`** (#3795)
+
+  `box api as API server` draws an element with `data-node="api"`, and `group src as Sender` draws one with `data-node="src"`. A page that places a diagram can read the id of the pressed box with `closest('[data-node]')`, so two boxes with the same name are no longer mixed up. Lines and labels carry no id. The shared boxes, groups, sequence heads, pipe parties and token boxes, lineup lanes, and matrix areas carry it, and the embed docs and the README show how to read it.
+
+## [0.79.6] - 2026-11-23
+
+### Fixed
+
+- **A following sequence diagram whose height fits the window no longer shows the row of head boxes twice** (#3834)
+
+  When the window shows the whole height of the diagram, it pins no head row, shows the head boxes of the diagram with their icons, and follows only sideways. When a diagram pins the head row and the part from the bottom of the head boxes to the bottom of the diagram is lower than the room under the head row, the window shrinks to that height so the edges of the head boxes do not show under the head row. A sequence diagram with a chosen look (`[shape: pipe]`) and a diagram well taller than the window look the same as before.
+
+## [0.79.5] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams keep the boxes and the people in the same place when only the caller, the arguments or the ticket's holder changes** (#3826)
+
+  0.79.4 decided the gap under the boxes by whether a ticket was tied to a person, which depends on the call being drawn, so switching the call of a catalog figure moved the boxes and the people by 34px. The gap under the boxes is now decided by the turns of every path from a person to a box, as in 0.79.2, so every mesh figure keeps the 72px gap and the same figure stays still across calls.
+
+## [0.79.4] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams keep room for an allowance ticket above the person it belongs to, and tie the ticket to that person again** (#3819)
+
+  0.79.3 pulled the boxes closer to the people row when no pipe turns under them, which left less room than a ticket's height, so in figures such as an ERC-20 `approve` or `transferFrom` the ticket slid away and lost its line to the person. A mesh figure with a ticket tied to a person now keeps the 0.79.2 gap of 72px under the boxes, while figures without such a ticket stay as close as in 0.79.3. A ticket is also placed where it overlaps the person sideways and can be tied with a short line before any spot that cannot, so the ticket in the multicall figure is now tied to Bob as well.
+
+## [0.79.3] - 2026-11-21
+
+### Fixed
+
+- **Mesh pipe diagrams bring a call pipe into the middle of a token box's side with as few bends as possible** (#3813)
+
+  When the caller's circle sits outside the width of the box, the call pipe rises to the box's vertical middle and turns once into the middle of the nearer side, instead of entering near the bottom corner. A caller right under the box still goes straight up into its bottom edge. Pipes entering the same side are spaced evenly around the middle, and the farther caller enters higher so the pipes do not cross. A box with no pipe turning under it sits 34px closer to the people row. When a pipe through the middle would leave no room for the card holder left of the boxes and the top right is also taken, the pipe drops just below the card holder. The holder on the left also tries the top of the box row when its own box is lower, so it no longer slides down onto a tank's balance text.
+
+## [0.79.2] - 2026-11-20
+
+### Changed
+
+- **Pipe diagrams round the corners of their pipes, draw value pipes as an outlined tube, put tank names above the glass, and make the liquid wave** (#3783)
+
+  Value pipes, call pipes and flow lines now bend through the same shared line path as the other diagrams, with the shared 12px radius; the arcade palette keeps square bends. A value pipe is a 14px ink stroke with an 11px bore, leaving a 1.5px rim on each side. A tank name sits outside, above the glass, with 8px between the bottom of its text box and the top of the glass. When the name shares the row with the input and output tags, the name goes to the left edge and the tags to the right edge. The top of the liquid is cut into a wave that drifts sideways, and stays still when reduced motion is requested.
+
+## [0.79.1] - 2026-11-20
+
+### Fixed
+
+- **In the mesh layout of a pipe diagram, a pipe between two tanks that are not next to each other leaves from the side of the tank** (#3775)
+
+  The pipe used to leave from the bottom of the tank, 9px in from the corner, to keep clear of the balance text under the tank. That point sat on the rounded corner, so the end of the pipe looked detached from the tank. The pipe now leaves from a side of the tank and goes down outside it. When the people between the two tanks hold no tank and no plate, the two sides are joined by one straight pipe, as two tanks next to each other already are. A tank with no free side still sends the pipe from its bottom.
+
+## [0.79.0] - 2026-11-20
+
+### Added
+
+- **The player takes `canvas` and `fitNarrow` for pipe diagrams** (#3761)
+
+  With `canvas: true`, a frame 600px wide or wider puts a pipe diagram in a canvas window: the frame does not scroll, a drag moves the figure in any direction, the wheel zooms around the pointer, and choosing a step moves the figure so the current step comes into the window. The page sets the height of the window. A narrower frame scrolls as before. With `fitNarrow: true` next to `fitWide`, a figure narrower than a frame 600px wide or wider starts widened to the frame, up to its natural size.
+
+- **`PipeCallTag`, `PipeEnclosure`, `PipeScore` and `PipeTicket` are exported as types** (#3761)
+
+### Changed
+
+- **Pipe diagrams are placed and drawn the way the patch Tracelyth applied to 0.68.1 placed and drew them** (#3761)
+
+  Tracelyth used dragon with a patch that held the fixes of 38 of its issues. The fixes are now in dragon, so Tracelyth can use dragon without the patch. With `layout top` and `layout bottom`, a value pipe leaves and enters a tank through a port on the left or right edge of the tank, drops into the gap next to the nearest tank before it runs under the row, and the bends of nearby lines take separate heights so that no two lines share a run. Value pipes no longer carry chevrons. A written value counts from the old value to the new value with the old value struck through, and a move counts the amounts of both tanks. A return chip that does not fit on its call pipe widens the gap between the two parties, or between their rows for a vertical pipe, and the diagram is placed once more. The zoom buttons draw line icons instead of characters. In the player, a vertical wheel over the figure zooms around the pointer with or without Ctrl or Command and does not scroll the page, and a wheel turned more sideways than vertically scrolls the figure sideways.
+
+## [0.78.0] - 2026-11-19
+
+### Added
+
+- **`dragon export notes.md` writes one HTML page from a Markdown file, with the headings split into pages and tabs** (#3755)
+
+  `#` is the page title, the text before the first `##` is the entry, `##` is a group, `###` is an item with its own page, `####` is a tab in the entry and in an item page, and `#####` is a tab inside a tab. The default layout (`layout: entry`) shows the entry with one card per item, grouped by `##`, and a card moves to the item's page without reloading; the item page leads back to the entry and to the items before and after it. `layout: sidebar` keeps a table of contents on the left, and `layout: tabs` puts the groups in tabs on top and the items of a group in tabs below them. The address of the page keeps the item and the tab that are open, so reloading opens them again. A box in a diagram moves to an item when its link names the item's place, such as `[link: #take-the-order]`, made from the heading text the way GitHub makes heading anchors. A line that holds only `![name](path)` puts a `.md` file in the page as Markdown, a `.dragon` file as a diagram and any other text file as a named code block, and reads only files in the folder of the Markdown file and below. Raw HTML is shown as text. The words the page adds follow the language of the text, and `--lang` picks them. A notation error, a link to a missing place, an include outside the folder, an unknown `layout` or a `###` before the first `##` stops the export with the file and line, and the export refuses the diagram options such as `--fps`. The same work is `exportPage` from `@cardenelabs/dragon/node`, and the worked example is in `packages/dragon/examples/page/`.
+
+- **A box link and a step source can name a place on the same page that starts with `#`** (#3755)
+
+  `[link: #order]` is accepted in the notation and in the source JSON, next to paths that start with `/` and URLs that start with `http://` or `https://`. Other forms such as `javascript:` are still refused.
+
+### Changed
+
+- **A pipe diagram in an HTML file from `dragon export`, in a page from `dragon embed` and in the gallery is drawn the first time without searching for its line paths** (#3748)
+
+  The first time a new process drew a pipe diagram, it placed the parts and searched for the paths of the lines, which held up the main thread. `dragon export` for HTML, `dragon embed` and the gallery build now place each pipe diagram while they write the page, store the layout of the first view and of each view with one folded box opened, and pass the stored layouts to the drawing, which `renderDiagram` takes as `layouts`. A stored layout carries a key made from the diagram, the language, the words and a fingerprint of every file in `packages/dragon/src`; a layout whose key does not match is not used, and the diagram is placed on the spot as before. In 464 drawings of the 58 pipe examples with eight forms of the `layout` line, the layout and the SVG drawn from the stored layouts match those placed on the spot.
+
+### Fixed
+
+- **A diagram block hidden when the page loads is drawn when it is shown, and a diagram hidden and shown again keeps its motion in step with the player** (#3755)
+
+  The script line drew every block when the page loaded, so a block inside a tab hidden with `display: none` was drawn into a frame with no width and stayed empty when the tab opened. A block that has no width then is now drawn when it first gets a width. A drawn diagram that was hidden and shown again restarted its motion from the beginning while the player's clock kept running, so the picture showed an earlier step than the step number; the player now places the picture at the clock's time when the frame gets its width back.
+
+- **Step numbers stay hidden inside an ancestor hidden with `visibility: hidden`** (#3755)
+
+  The step number marks set `visibility: visible` while they moved, which showed them through a tab hidden with `visibility: hidden`. They now take their visibility from the ancestor while they are shown, so a visible diagram shows them as before.
+
 ## [0.77.1] - 2026-11-18
 
 ### Changed

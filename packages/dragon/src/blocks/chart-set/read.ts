@@ -11,15 +11,20 @@
  *
  * `set none: <値>` (#3635) はどの項目にも入らない数で、漏斗のほかの見た目で書ける。値の出来事の項目の名札を `none` にして持ち、
  * 描く時に項目の後ろの灰色の弧か棒か点にする。漏斗の見た目では今までどおり宣言していない項目の誤りで止める。
- * 点で数える見た目 (#3635) は段ごとの全体 (項目の値と `none` の和) を積み、読み終えた時に、点の数が上限を超える段があれば頭の行を指して止める
+ * 点で数える見た目 (#3635) は段ごとの全体 (項目の値と `none` の和) を積み、読み終えた時に、点の数が上限を超える段があれば頭の行を指して止める。
+ *
+ * 折れ線の見た目 (#3802) は段の 1 つを時間の軸の点の 1 つにするので、段を数え、読み終えた時に段が 2 つより少なければ頭の行を指して止める。
+ * どの段にも値を書かなかった項目は線を引けないので、宣言の行の名札を指して止める (`blocks/chart-shape/line.ts`)。
+ * `set none` は漏斗と同じく宣言していない項目の誤りで止める
  */
 import { fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none, type ParseState } from "../block";
-import { CHART_NONE, ITEM_LINES } from "../chart-item/read";
+import { CHART_NONE, ITEM_LINES, takesNone } from "../chart-item/read";
 import { tooManyDots, unitOf } from "../../dot-count";
 import { DOTS_TEXT } from "../chart-shape/dots";
 import { FUNNEL_TEXT, risesAt } from "../chart-shape/funnel";
+import { LINE_STEPS_LEAST, LINE_TEXT } from "../chart-shape/line";
 
 /** `set <項目>: <値>` の行。項目と値の位置を取る */
 const SET = /^set\s+([^\s:[\]]+)\s*:\s*(.*)$/du;
@@ -39,6 +44,10 @@ export interface ChartSetMessages {
   chartFunnelUnset: (item: string) => string;
   /** 点で数える見た目で、点が `count` 個になる段がある (#3635)。`unit` は使った 1 点の件数 */
   chartDotsTooMany: (count: number, unit: number) => string;
+  /** 折れ線の見た目で、段が 2 つより少ない (#3802) */
+  chartLineFewSteps: string;
+  /** 折れ線の見た目で、項目 `item` の値をどの段にも書いていない (#3802) */
+  chartLineUnset: (item: string) => string;
 }
 
 /** 漏斗の見た目の、読んだ段までの項目の値と、書いている段の値の行 */
@@ -82,6 +91,26 @@ function dotsDraftOf(state: ParseState): DotsDraft | undefined {
   return draft;
 }
 
+/** 折れ線の見た目 (#3802) の、読んだ段の数と、値を書いた項目の名札 */
+interface LineDraft {
+  steps: number;
+  written: Set<string>;
+}
+
+/** 読んでいる量の図ごとの折れ線の値。鍵は読んでいる記法の量の図の欄 */
+const LINES = new WeakMap<object, LineDraft>();
+
+/** 折れ線の見た目の量の図なら、その図の値。ほかの見た目では `undefined` */
+function lineOf(state: ParseState): LineDraft | undefined {
+  const { chart } = state.figure;
+  if (chart.shape?.value !== "line") return undefined;
+  const found = LINES.get(chart);
+  if (found) return found;
+  const draft: LineDraft = { steps: 0, written: new Set() };
+  LINES.set(chart, draft);
+  return draft;
+}
+
 /** 書いていた段の全体の値を積む。最初の段を始める前は積まない */
 function closeDotsStep(state: ParseState): void {
   const draft = dotsDraftOf(state);
@@ -107,6 +136,16 @@ function closeFunnelStep(state: ParseState): void {
   draft.sets = [];
 }
 
+/** 折れ線の見た目で、段が 2 つより少なければ頭の行を、どの段にも値を書かない項目が在れば宣言の行の名札を指して止める */
+function finishLine(state: ParseState, head: SourceLine): void {
+  const draft = lineOf(state);
+  if (!draft) return;
+  if (draft.steps < LINE_STEPS_LEAST) throw fail(head, 0, state.m.chartLineFewSteps);
+  const unset = state.figure.chart.items.find((item) => !draft.written.has(item.id));
+  const line = unset && ITEM_LINES.get(unset);
+  if (unset && line) throw fail(line.source, line.at, state.m.chartLineUnset(unset.id));
+}
+
 export const reading: BlockReading<ChartSetMessages> = {
   take: (source, state) => {
     const { m } = state;
@@ -117,18 +156,21 @@ export const reading: BlockReading<ChartSetMessages> = {
     const raw = (found?.[2] ?? "").trim();
     const rawAt = found?.indices?.[2]?.[0];
     if (!found || id === undefined || idAt === undefined || rawAt === undefined || raw === "") throw fail(source, 0, m.chartSetShape);
-    // どの項目にも入らない数は漏斗のほかの見た目で書ける。漏斗の見た目では宣言していない項目として断る
-    const isNone = id === CHART_NONE && state.figure.chart.shape?.value !== "funnel";
+    // どの項目にも入らない数は漏斗と折れ線のほかの見た目で書ける。漏斗と折れ線の見た目では宣言していない項目として断る
+    const isNone = id === CHART_NONE && takesNone(state.figure.chart.shape?.value);
     if (!isNone && !state.figure.chart.items.some((item) => item.id === id)) throw fail(source, idAt, m.chartUndeclaredItem(id));
     if (!AMOUNT.test(raw)) throw fail(source, rawAt, m.chartSetAmount(raw));
     step.events.push({ type: "set", item: id, value: Number(raw) });
     funnelOf(state)?.sets.push({ id, value: Number(raw), source, at: rawAt });
     dotsDraftOf(state)?.now.set(id, Number(raw));
+    lineOf(state)?.written.add(id);
     return true;
   },
   beginStep: (state) => {
     closeFunnelStep(state);
     closeDotsStep(state);
+    const line = lineOf(state);
+    if (line) line.steps++;
   },
   finish: (state, head) => {
     closeFunnelStep(state);
@@ -136,6 +178,7 @@ export const reading: BlockReading<ChartSetMessages> = {
     const unset = draft && state.figure.chart.items.find((item) => !draft.values.has(item.id));
     const line = unset && ITEM_LINES.get(unset);
     if (unset && line) throw fail(line.source, line.at, state.m.chartFunnelUnset(unset.id));
+    finishLine(state, head);
     closeDotsStep(state);
     const dots = dotsDraftOf(state);
     if (!dots) return;
@@ -154,6 +197,8 @@ export const reading: BlockReading<ChartSetMessages> = {
       chartFunnelRises: FUNNEL_TEXT.ja.rises,
       chartFunnelUnset: FUNNEL_TEXT.ja.unset,
       chartDotsTooMany: DOTS_TEXT.ja.tooMany,
+      chartLineFewSteps: LINE_TEXT.ja.fewSteps,
+      chartLineUnset: LINE_TEXT.ja.unset,
     },
     en: {
       chartSetShape: "Write a chart value inside a step as set <item>: <value>",
@@ -162,6 +207,8 @@ export const reading: BlockReading<ChartSetMessages> = {
       chartFunnelRises: FUNNEL_TEXT.en.rises,
       chartFunnelUnset: FUNNEL_TEXT.en.unset,
       chartDotsTooMany: DOTS_TEXT.en.tooMany,
+      chartLineFewSteps: LINE_TEXT.en.fewSteps,
+      chartLineUnset: LINE_TEXT.en.unset,
     },
   },
 };

@@ -3,7 +3,7 @@
  *
  * 点の図の枠を区画の色で 4 つに塗り分け、真ん中の 5 点の所に破線を引く。課題を打った段の間だけ、点が入った区画を濃くして光らせる。
  * 点は打った段の線を引く時刻から出て最後の段まで残り、打った段の間だけ外に輪を重ねる。同じ点数の課題の名前は、打った段から点の名前の下に足す。
- * 打った段の間だけ、横と縦の軸から点まで区画の色の線を引き、軸の上に点数の札を出す。
+ * 打った段の間だけ、横と縦の軸から点まで区画の色の線を引き、軸の上に点数の札を出す。札がその段に見える点の名前に触れる時は、札を軸の外へ出す (#3791)。
  * 置く前の課題の表は課題を書いた順の行で、課題の名前と横と縦の点数を書き、打つ段の間だけ行を光らせる。
  * 点と名前と表の所は並べ方 (`kinds/matrix/layout.ts`)、軸と目盛りの描き方は軸のブロック (`blocks/axis/draw.ts`) が持つ。
  * この file は 2つの軸で置く図を描く部品 (`render/matrix.ts`) だけが読み、見本帳を開いた時に読む塊に入れない
@@ -11,7 +11,7 @@
 import { drawAxes } from "../blocks/axis/draw";
 import { cs } from "../blocks/color/draw";
 import { placeTime } from "../blocks/matrix-item/draw";
-import { areaLabel, type MatrixArea, type MatrixDot, type MatrixLabel, type MatrixLayout, type MatrixRow, type MatrixTable } from "../kinds/matrix/layout";
+import { areaLabel, type MatrixArea, type MatrixDot, type MatrixLabel, type MatrixLayout, type MatrixRow, type MatrixTable, scoreChip } from "../kinds/matrix/layout";
 import { textWidth } from "../layout/measure";
 import type { Rect } from "../layout/scene";
 import { MATRIX_LOOK, MATRIX_TYPE } from "../look/matrix";
@@ -19,7 +19,7 @@ import type { TextStyle } from "../look/values";
 import { MOTION } from "../look/values";
 import { partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
-import { type Ctx, cssFont as font, esc, r1 } from "./parts";
+import { type Ctx, cssFont as font, esc, nodeAttr, r1 } from "./parts";
 
 const S = MATRIX_LOOK.scatter;
 const T = MATRIX_TYPE;
@@ -69,14 +69,14 @@ export type AreaGlow = (area: MatrixArea, cls: string, rect: string) => string;
 function quarterOf(area: MatrixArea, glow: AreaGlow, ctx: Ctx): string {
   const at = area.label ?? areaLabel(area);
   const rect = rectOf(area);
-  return `<g data-matrix-area="${esc(area.id)}" style="${cs(area.color)}"><rect class="dg-mx-q" ${rect}/>${glow(area, "dg-mx-qg", rect)}${text(ctx, "dg-mx-name", at.x, at.y, area.name, T.area, at.anchor)}</g>`;
+  return `<g data-matrix-area="${esc(area.id)}"${nodeAttr(area.id)} style="${cs(area.color)}"><rect class="dg-mx-q" ${rect}/>${glow(area, "dg-mx-qg", rect)}${text(ctx, "dg-mx-name", at.x, at.y, area.name, T.area, at.anchor)}</g>`;
 }
 
-/** 軸の上の点数の札。`at` を札の真ん中にする */
-function chipOf(ctx: Ctx, at: [number, number], value: string, shown: Shown[]): string {
-  const w = textWidth(value, T.chip) + S.chip.padX * 2;
-  const r = { x: at[0] - w / 2, y: at[1] - S.chip.h / 2, w, h: S.chip.h };
-  return `<rect class="dg-mx-chip" ${rectOf(r, partRadius(ctx.corner, S.chip.radius))}/>${text(ctx, "dg-mx-ct", at[0], at[1] + T.chip.size * MATRIX_LOOK.baseline, value, T.chip, "middle", shown)}`;
+/** 軸の上の点数の札。`at` は軸の線の上の札の真ん中で、軸の外へ出す札 (`out`) は縦の軸なら右の端を、横の軸なら上の端を `at` に付ける (#3791) */
+function chipOf(ctx: Ctx, at: [number, number], value: number, axis: "x" | "y", out: boolean, shown: Shown[]): string {
+  const r = scoreChip(value, at, axis, out);
+  const [cx, cy] = out ? [r.x + r.w / 2, r.y + r.h / 2] : at;
+  return `<rect class="dg-mx-chip" ${rectOf(r, partRadius(ctx.corner, S.chip.radius))}/>${text(ctx, "dg-mx-ct", cx, cy + T.chip.size * MATRIX_LOOK.baseline, String(value), T.chip, "middle", shown)}`;
 }
 
 /** 打った段の、横と縦の軸から点への線と軸の上の点数の札。打つ時刻から段の終わりまで出る */
@@ -88,7 +88,7 @@ function guidesOf(dot: MatrixDot, plot: Rect, ctx: Ctx): string {
       const { start, span } = placeTime(ctx, p.step, p.event);
       const shown: Shown[] = [[start, span.end + MOTION.fade]];
       const lines = `<path class="dg-mx-gl" d="M${r1(dot.x)} ${r1(bottom)}L${r1(dot.x)} ${r1(dot.y + gap)}"/><path class="dg-mx-gl" d="M${r1(plot.x)} ${r1(dot.y)}L${r1(dot.x - gap)} ${r1(dot.y)}"/>`;
-      const chips = chipOf(ctx, [dot.x, bottom], String(dot.score[0]), shown) + chipOf(ctx, [plot.x, dot.y], String(dot.score[1]), shown);
+      const chips = chipOf(ctx, [dot.x, bottom], dot.score[0], "x", dot.out?.x === true, shown) + chipOf(ctx, [plot.x, dot.y], dot.score[1], "y", dot.out?.y === true, shown);
       return `<g class="dg-a" data-matrix-guide="${esc(dot.ids[k] as string)}" style="${cs(dot.color)};${ctx.m.vis(start, span.end)}">${lines}${chips}</g>`;
     })
     .join("");

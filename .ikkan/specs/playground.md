@@ -10,11 +10,11 @@
 | 重なりを知らせる文は、重なる 2 つの字を日本語と英語で書き、段の番号を「段の番号 N」(英語は `step number N`) と呼ぶ | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`overlap-message-in-both-languages`が通る | #3178 |
 | 再生の部品の段へ移る呼び出しで、図がその段で止まる | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-goes-to-step`が通る | #3178 |
 | 再生の部品に四角を渡すと、図の上に点線の四角を描き、空を渡すと消す。止めて見せる図でも寄って追う図でも、四角は図の中身と同じ所に在る | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`player-marks-rects`が通る | #3178 |
-| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3178 |
+| 書き出しの命令が字の重ならない図を書き出す時、標準エラーに何も出さない | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`export-quiet-without-overlaps`が通る | #3178 |
 | 頁の側では SVG を組まない | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-draws-with-package-parts`が通る | #3178 |
 | 全ての見本の全ての段で、`overlaps` が 0 件 | `pnpm exec vitest run apps/playground-spa/src/lib/text-overlaps.test.ts`の検査`overlaps-none-in-every-example`が通る | #3178 |
 | 書き出しの命令が、2 段目に図に描いた 2 つの字を組にした重なりを 1 件足した状態遷移図 (packages/dragon/test/fixtures/corner-note.dragon) を書き出した時、file を書き出し、標準エラーに「段 2」と文を並べた 1 行だけを出し、終わり方 0 で終える。英語を選ぶと「Step 2」と英語の文を出す | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`が通る | #3197 |
-| 組み上がった書き出しの命令は、重ならない図を書き出す時に標準エラーに何も出さない (重なりを足す包みが組み上がった命令に入らない) | `pnpm exec vitest run packages/dragon/test/overlap-notice.test.ts`の検査`export-quiet-without-overlaps`が通る | #3197 |
+| 組み上がった書き出しの命令は、重ならない図を書き出す時に標準エラーに何も出さない (重なりを足す包みが組み上がった命令に入らない) | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`export-quiet-without-overlaps`が通る | #3197 |
 | 見本帳の build で、最初に読む script に、概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) を除く見本の記法と、部品の図の記法の字の並びが含まれない | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-carries-no-catalog-notation`が通る | #3246 |
 | 見本帳の build で、後から読む塊のうち見本の記法を持つ塊と部品の図の記法を持つ塊がそれぞれ1つだけで、除いた全ての見本と全ての部品の図の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`catalog-notation-in-two-chunks`が通る | #3246 |
 | 見本帳の build で、最初に読む script が概要の頁と編集画面の最初の見本 (`intro`、`oauth`、`ccip`) の日本語と英語の記法を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-chunks.test.ts`の検査`first-load-keeps-home-examples`が通る | #3246 |

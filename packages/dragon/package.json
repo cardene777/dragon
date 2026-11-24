@@ -1,6 +1,6 @@
 {
   "name": "@cardenelabs/dragon",
-  "version": "0.77.1",
+  "version": "0.79.7",
   "description": "Animated diagrams that people and AI write in a plain notation. Plays on a page and exports MP4, GIF, HTML, and PNG.",
   "license": "MIT",
   "author": "cardene777",
@@ -47,6 +47,16 @@
       "require": {
         "types": "./dist/light/index.d.cts",
         "default": "./dist/light/index.cjs"
+      }
+    },
+    "./light/frame": {
+      "import": {
+        "types": "./dist/light-frame.d.ts",
+        "default": "./dist/light-frame.js"
+      },
+      "require": {
+        "types": "./dist/light-frame.d.cts",
+        "default": "./dist/light-frame.cjs"
       }
     },
     "./fonts": {
@@ -132,6 +142,8 @@
     "./dist/fonts.js",
     "./dist/fonts.cjs",
     "./src/kinds/all.ts",
+    "./src/kinds/basics.ts",
+    "./src/kind-use/*.ts",
     "./src/blocks/icon/sets-all.ts",
     "./src/render/pen-all.ts",
     "./src/render/look-all.ts",

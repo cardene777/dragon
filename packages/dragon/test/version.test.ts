@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { migrateFile } from "@cardenelabs/dragon/node";
 import { describe, expect, it } from "vitest";
 import { api, exampleJson, exampleText, patched } from "./diagram-support";
+import "../src/kind-use/sequence";
 
 describe("形式の版", () => {
   it("version-rejects-newer-than-tool", () => {

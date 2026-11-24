@@ -2,6 +2,7 @@
  * 同じ原本の JSON から、mp4、GIF、HTML、PNG を書き出す。
  *
  * 見せ方は頁と同じく枠の幅で選ぶ (`chooseView`)。幅は寄って見せる窓の幅にもなる。
+ * 配管の図は再生の部品と同じく寄って追わず、幅を渡しても止めた形で書き出す (#3852)。
  * 寄って見せる図で幅の指定が無い時は、記事の本文ほどの枠 (`FOLLOW_WIDTH`) で寄る。
  * 頁に要る物 (描いた図と色の値と描かれうる字) は、ブラウザの書き出す入口と同じ処理 (`page.ts`) で集める (#3667)。
  * PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
@@ -21,6 +22,9 @@ import { planFilm } from "./film";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
 import { planPage } from "./page";
+
+/** 書き出した頁と見本帳に収める配管の図の並べ方を組む部品 (#3748)。見本帳の build が読む */
+export { pipeLayouts, type PipeLayoutsOptions } from "./layouts";
 
 export type ExportFormat = "mp4" | "gif" | "html" | "png";
 

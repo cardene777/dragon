@@ -117,19 +117,31 @@ export function isColorValue(value: unknown): value is string {
 
 /** 色味の値を CSS の変数として並べる。 */
 export function paletteVars(palette: Palette, theme: Theme): string {
+  // 今のステップの帯の地 (`--wash`) は、読む時系列図の見た目 (`render/sequence.ts`) が自分の要素に置く (#3761)
   return Object.entries(palette[theme])
     .map(([key, value]) => `--${key}:${value}`)
     .join(";");
 }
 
-/** 字の変数。同梱した 2 つの字を 1 度だけ名指し、字を使う所はどれもこの変数を読む。 */
-export const FONT_VARS = `--sans:"${FONTS.sans}";--mono:"${FONTS.mono}"`;
+/**
+ * 字の並び (#3847)。同梱した 2 つの字を先に名指し、その後に代わりの字を並べて総称の字で終える。
+ * 同梱した字を読まない頁でも、図の字と帯の字がブラウザの既定の字 (日本語では明朝) に落ちない。
+ * 欧文の字 (`Arial`) を日本語のゴシックより先に置く。字の幅の見積もりは同梱した字の幅の表のままなので、
+ * 欧文の幅が同梱した字に近い字を先に選ばせる
+ */
+export const FONT_STACKS = {
+  sans: `"${FONTS.sans}","Noto Sans JP","Noto Sans CJK JP",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif`,
+  mono: `"${FONTS.mono}","JetBrains Mono",Menlo,Consolas,"Liberation Mono","Courier New",monospace`,
+} as const;
+
+/** 字の変数。字を使う所はどれもこの変数を読む (#3847) */
+export const FONT_VARS = `--sans:${FONT_STACKS.sans};--mono:${FONT_STACKS.mono}`;
 
 /**
- * 帯つきの図で動かす図の字の変数 (#3695)。同梱した字の後に代わりの字の並びを持ち、同梱した字を読まない頁に置いても明朝に落ちない。
- * 書き出す SVG と帯を付けない図は`FONT_VARS`のまま代わりの字を持たず、同梱した字を埋められない時に端末の字へ黙って落ちない
+ * 置いた頁の字の間と大文字の指定を戻す性質 (#3787)。定義は`plain-text.ts`に置き、描く本体と再生の部品と帯の枠はここから読む。
+ * 1行の入口のbuildで、値だけの小さな塊に分かれて最初に読むfileが1つ増えないよう、この表と同じ塊に入れる
  */
-export const FONT_STACK_VARS = `--sans:"${FONTS.sans}","Noto Sans JP","Hiragino Sans",sans-serif;--mono:"${FONTS.mono}","JetBrains Mono",ui-monospace,monospace`;
+export { PLAIN_TEXT } from "./plain-text";
 
 /** 区画や箱を分ける色の役。灰 (slate) と硬貨 (coin) は分類の色として順に配らない。 */
 export const COLOR_ORDER = ["blue", "amber", "green", "violet", "rose"] as const;
@@ -141,7 +153,7 @@ export interface TextStyle {
   family: Family;
 }
 
-const text = (size: number, weight: number, family: Family = "sans"): TextStyle => ({
+export const text = (size: number, weight: number, family: Family = "sans"): TextStyle => ({
   size,
   weight,
   family,
@@ -306,6 +318,9 @@ export const LOOK = {
     tail: 10,
     selfW: 34,
     selfH: 18,
+    // 呼ばれた側の生存線に立てる帯の幅と、お金の矢印 (硬貨で運ぶ線) の太さ (Tracelyth #86)
+    bar: 10,
+    money: 5,
   },
   /**
    * 状態遷移図 (#3163)。状態は `columns` つずつ並べて次の段へ折り返し、段の間 (`rowGap`) の真ん中を、段をまたぐ線が通る。
@@ -590,8 +605,11 @@ export const LOOK = {
    * 尖った角は、向きが `turn` (rad) を超えて変わる所
    */
   pen: { waves: [[150, 0.7], [60, 0.3]], amp: 1.7, full: 260, short: 0.3, least: 4, step: 10, end: 12, corner: 14, turn: 0.5 },
-  /** 寄って追う見せ方の全体図。`band` は区画と待ち行列の枠の地の角の丸み、`card` は箱と節とブロックの札の角の丸み */
-  mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10, band: 3, card: 1.5 },
+  /**
+   * 寄って追う見せ方の全体図。`band` は区画と待ち行列の枠の地の角の丸み、`card` は箱と節とブロックの札の角の丸み。
+   * `disc` と `discEdge` は集まりの円の地の塗りと縁の濃さで、重なった所は元の図と同じく色が混ざる。`area` は量の帯の塗りの濃さ、`line` は結びの線と折れ線の太さ (#3849)
+   */
+  mini: { w: 168, pad: 8, title: 14, inset: 12, radius: 10, band: 3, card: 1.5, disc: 0.3, discEdge: 0.7, area: 0.45, line: 1 },
   /**
    * 寄って追う見せ方の窓の高さの、幅に対する割合と下限。
    * `fitMinH` は見える高さに収める時 (#3047) の窓の高さの下限で、これより低い枠では収めずに枠の中で送る。
@@ -789,15 +807,17 @@ export const MOTION = {
   /**
    * 配管の図 (#3389)。段の中の出来事を 1 つずつ `beat` 秒ずつずらして起こし、出来事の多い段 (畳んだ箱の段) は全部で `most` 秒に収める。
    * 出来事の時刻から、水位が変わる長さ `level`、液の塊が管を通り抜ける長さ `slug`、弁の取っ手が回る長さ `lever`、計器の針が振れる長さ `needle`、
-   * 通ったかの印が出るまで `lamp` (#3398)
+   * 通ったかの印が出るまで `lamp` (#3398)、液面の波が 1 つ分横へ流れる長さ `wave` (#3783)
    */
-  pipe: { beat: 0.55, most: 3.3, level: 0.7, slug: 0.9, lever: 0.6, needle: 0.9, lamp: 0.4 },
+  pipe: { beat: 0.55, most: 3.3, level: 0.7, slug: 0.9, lever: 0.6, needle: 0.9, lamp: 0.4, wave: 2.8 },
   /** 量の図 (#3560)。段を送った時に、弧と棒が前の段の値から新しい値へ動く長さ `move` */
   chart: { move: 0.8 },
 } as const;
 
 /** 見せ方を決める字の大きさ。全体を枠に収めた時の箱の名前がこれを下回ると寄って追う。 */
 export const READABLE_PX = 10.5;
+/** 図の幅と高さに収める枠 (`fitWide` と `fitNarrow`) で、人の名前の字を描く大きさの下限 (px)。関数のモーダルで広い図の名前が読めなくなるのを防ぐ (Tracelyth #230) */
+export const FILL_NAME_PX = 8;
 
 /**
  * 配管の図の値のうち、最初に読む処理が使う物 (#3720)。`narrowPx` は再生の部品が狭い枠で槽の残高の字を読める大きさにする字の大きさ (px)、

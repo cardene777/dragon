@@ -1,7 +1,7 @@
 /**
  * 描いた図の崩れ (#3484)。描いた結果の座標から、段ごとの止め絵で見えている物どうしの崩れを数える。
  *
- * 字の重なり (`ink.ts`) が拾わない崩れを拾う。
+ * 字の重なり (`ink.ts`) が拾わない崩れを拾う。字どうしの重なりは崩れを確かめる処理 (`layout-check.ts`) が描いた結果の重なりから足す (`texts-overlap`、#3790)。
  * 番号の丸が自分の箱の見えている形から離れて浮く (`badge-off-shape`)、硬貨の枠が箱の形からはみ出す (`slot-outside-shape`)、
  * 箱の字が箱の形からはみ出す (`text-outside-shape`)、番号の丸どうしが近すぎる (`badges-close`)、並んだ 2 本の線が近すぎる (`lines-close`)、
  * 線が箱か囲みの枠に沿って近すぎる (`line-near-border`、#3526)、字が自分の箱か札の枠に接する (`text-touches-border`、#3526)。
@@ -90,7 +90,8 @@ export type LayoutBreakKind =
   | "title-outside-ring"
   | "parts-overlap"
   | "line-over-text"
-  | "empty-band";
+  | "empty-band"
+  | "texts-overlap";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -111,7 +112,9 @@ export type PipePiece =
   | { kind: "pipe"; from: string; to: string; step: number; points: Point[]; half: number; shown: Shown[] }
   | { kind: "valve"; from: string; to?: string; step?: number; body: Rect; lever: Rect[]; shown: Shown[] }
   | { kind: "gauge"; box: string; rects: Rect[]; shown: Shown[] }
-  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] };
+  | { kind: "chip"; text: string; rect: Rect; shown: Shown[] }
+  /** 字を字の記録 (`ink`) に残さない札。処理を借りる呼び出しの線の札、ログの札、呼び出しの札 (#3854) */
+  | { kind: "card"; text: string; rect: Rect; shown: Shown[] };
 
 /** 崩れ 1 件。`step` は崩れが見え始める段 (1 から数える)、`width` は幅 390 で描いた時だけ出る崩れの描いた幅 */
 export interface LayoutBreak {

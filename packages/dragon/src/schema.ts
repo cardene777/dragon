@@ -75,7 +75,7 @@ export interface Box {
   color?: Color;
   icon?: string;
   region?: string;
-  /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL (#3199) */
+  /** 飛び先。描いた図ではこの箱がここへの link になる。`/` で始まる path か、http:// か https:// で始まる URL か、`#` で始まる頁の中の場所 (#3199、#3755) */
   link?: string;
   /** 列の図の箱の並べ方 (#3351)。`none` は順番の無い置き場で、書かない箱は上から実行する札 */
   order?: "none";
@@ -745,11 +745,15 @@ interface Validate {
   errors?: readonly object[] | null;
 }
 
-/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、漏斗の見た目の値の検査 (#3621) */
+/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、量の図の漏斗 (#3621) と折れ線 (#3802) の見た目の値の検査 */
 interface Validator {
   shape: Validate;
   tablerErrors: (input: unknown, m: TablerMessages) => FieldError[];
-  funnelErrors: (input: unknown, lang: NotationLang) => FieldError[];
+  chartErrors: (input: unknown, lang: NotationLang) => FieldError[];
+  /** 値の持ち分の線が同じ人どうしを結ぶかの検査 (Tracelyth #133)。形の決まりは2つの欄の値を比べられないため */
+  holdLinkErrors: (input: unknown, message: string) => FieldError[];
+  /** 配管の図の名前の下の字 (`sub`) がトークンの箱だけに在るかの検査 (#3803)。トークンの箱かは残高の欄と比べて決まるため */
+  holdNoteErrors: (input: unknown, lang: NotationLang) => FieldError[];
 }
 
 /**
@@ -773,14 +777,15 @@ export const validatorLoaded = (): boolean => validator !== undefined;
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
   if (validator === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
-  const { shape: validate, tablerErrors, funnelErrors } = validator;
+  const { shape: validate, tablerErrors, chartErrors, holdLinkErrors, holdNoteErrors } = validator;
   const version1 = isVersion1(input);
   const lang = options.lang ?? DEFAULT_LANG;
   const m = FIELD_MESSAGES[lang];
   // 絵柄集の絵柄は、形が名前の書き方だけを決めるので、絵柄集に在るかをここで確かめる (#3493)。
   // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる。
-  // 量の図の漏斗の見た目の値が段を進むほど減るかも、形に書けないのでここで確かめる (#3621)
-  const sets = [...tablerErrors(input, m), ...funnelErrors(input, lang)];
+  // 量の図の漏斗の見た目の値が段を進むほど減るかと、折れ線の見た目の段の数と値を書かない項目も、形に書けないのでここで確かめる (#3621、#3802)。
+  // 値の持ち分の線が別の2人を結ぶかと、配管の図の名前の下の字がトークンの箱だけに在るかも、形が2つの欄を比べられないのでここで確かめる (Tracelyth #133、#3803)
+  const sets = [...tablerErrors(input, m), ...chartErrors(input, lang), ...holdLinkErrors(input, m.oneOf), ...holdNoteErrors(input, lang)];
   if (typeof input === "object" && input !== null && (input as Diagram).kind) {
     const native = readyParts((input as Diagram).kind)?.validate;
     if (native) sets.push(...native(input as Diagram).map(message => ({pointer:"/blocks",message})));

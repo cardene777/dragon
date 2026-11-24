@@ -1,11 +1,13 @@
 /**
  * 原本の JSON と記法の検査が共に使う道具。
  *
- * 道具の入口は `@cardenelabs/dragon` (= `dist`) から引く。
+ * 道具の入口は種類を登録しない入口 (`src/core.ts`) から引く。検査は使う種類の登録の file (`src/kind-use/<種類>.ts`) を自分で読む (#3763)。
  * 入口がまだ出ていない時に呼ぶと型の誤りで止まり、何が足りないかが判定に出ないため、
  * `api()` が先に「出ているか」を判定してから渡す。
  */
-import * as dragon from "@cardenelabs/dragon";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
+import * as dragon from "../src/core";
 import { expect } from "vitest";
 import { exampleJson, type Json } from "./diagram-data";
 
@@ -50,7 +52,7 @@ interface DragonApi {
 
 export function api<K extends keyof DragonApi>(name: K): DragonApi[K] {
   const value = (dragon as unknown as Partial<DragonApi>)[name];
-  expect(value, `${name} が @cardenelabs/dragon から出ていない`).toBeDefined();
+  expect(value, `${name} が src/core から出ていない`).toBeDefined();
   return value as DragonApi[K];
 }
 

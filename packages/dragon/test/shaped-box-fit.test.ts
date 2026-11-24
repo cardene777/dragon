@@ -9,8 +9,15 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/tree";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const ROOT = process.cwd();
 const FIXTURES = join(ROOT, "packages/dragon/test/fixtures/layout");

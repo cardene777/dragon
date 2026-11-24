@@ -33,10 +33,12 @@ const { 入口を導く, 型の確かめの中身, 型を持つ入口, 結果を
 
 const MANIFEST = join(dirname(fileURLToPath(import.meta.url)), "../package.json");
 const current = (): Record<string, unknown> => JSON.parse(readFileSync(MANIFEST, "utf8")) as Record<string, unknown>;
+/** package の名前。字で書くと、関係する検査を選ぶ命令がこの file を既定の入口を読む検査と数えるので、package.json から引く (#3763) */
+const NAME = current().name as string;
 
 /** 0.35.0 の `exports` (`./export` に `require` が無い) */
 const released0350 = {
-  name: "@cardenelabs/dragon",
+  name: NAME,
   exports: {
     ".": { types: "./dist/index.d.ts", import: "./dist/index.js", require: "./dist/index.cjs" },
     "./fonts": { import: "./dist/fonts.js", require: "./dist/fonts.cjs" },
@@ -71,6 +73,9 @@ describe("確かめる入口 (#3023)", () => {
         // 外のツールやサービスが図を置くSDKの入口 (#3698)
         "import @cardenelabs/dragon/embed",
         "require @cardenelabs/dragon/embed",
+        // 軽い入口だけを読む頁が帯つきの図を置く入口 (#3789)
+        "import @cardenelabs/dragon/light/frame",
+        "require @cardenelabs/dragon/light/frame",
       ].sort(),
     );
   });
@@ -84,12 +89,12 @@ describe("確かめる入口 (#3023)", () => {
   });
 
   it("typed-entries", () => {
-    expect(型を持つ入口(current()).sort()).toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/capture", "@cardenelabs/dragon/embed", "@cardenelabs/dragon/export", "@cardenelabs/dragon/frame", "@cardenelabs/dragon/header", "@cardenelabs/dragon/light", "@cardenelabs/dragon/node"]);
-    expect(型を持つ入口(released0350).sort(), "条件のどれかに型があれば型を持つ入口").toEqual(["@cardenelabs/dragon", "@cardenelabs/dragon/export"]);
+    expect(型を持つ入口(current()).sort()).toEqual([NAME, "@cardenelabs/dragon/capture", "@cardenelabs/dragon/embed", "@cardenelabs/dragon/export", "@cardenelabs/dragon/frame", "@cardenelabs/dragon/header", "@cardenelabs/dragon/light", "@cardenelabs/dragon/light/frame", "@cardenelabs/dragon/node"]);
+    expect(型を持つ入口(released0350).sort(), "条件のどれかに型があれば型を持つ入口").toEqual([NAME, "@cardenelabs/dragon/export"]);
   });
 
   it("type-check-sources-import-every-typed-entry", () => {
-    const names = ["@cardenelabs/dragon", "@cardenelabs/dragon/export"];
+    const names = [NAME, "@cardenelabs/dragon/export"];
     const { mts, cts } = 型の確かめの中身(names);
     for (const name of names) {
       expect(mts, `.mts が ${name} を読む`).toContain(`from ${JSON.stringify(name)}`);

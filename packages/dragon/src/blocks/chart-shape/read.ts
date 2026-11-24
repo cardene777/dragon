@@ -3,8 +3,8 @@
  * 軽い入口は、後から読む図の種類の個別ブロックの読み方を、書いた図が使う時に読む。
  *
  * 図の種類の行の `[shape: <見た目>]` は読む処理 (`parser.ts`) が読んで読んでいる記法の状態に置き、
- * 最初の段を始める時か記法の終わりに、書いてあるかと `donut` か `bar` か `funnel` かを確かめる。書き戻しは図の種類の行を書く所 (`printer.ts`) が持つ。
- * 漏斗の見た目の値が段を進むほど減るかは、値の行を読む所 (`blocks/chart-set/read.ts`) が確かめる。
+ * 最初の段を始める時か記法の終わりに、書いてあるかと `donut` か `bar` か `funnel` か `dots` か `line` かを確かめる。書き戻しは図の種類の行を書く所 (`printer.ts`) が持つ。
+ * 漏斗の見た目の値が段を進むほど減るかと、折れ線の見た目 (#3802) の段の数と値を書かない項目は、値の行を読む所 (`blocks/chart-set/read.ts`) が確かめる。
  * 点で数える見た目 (#3635) の 1 点の件数 `[unit: <数>]` は、点で数える見た目の図だけに書け、0 より大きい数かをここで確かめる。
  * 点の数が上限を超える段が無いかは、全ての段の値を読んだ値の行を読む所が確かめる。
  * 2つの軸で置く図だけの見た目 `scatter` (#3637) を書いた量の図は、書ける図の種類を言って止める
@@ -18,7 +18,7 @@ import { DOTS_TEXT } from "./dots";
 export interface ChartShapeMessages {
   /** 量の図の図の種類の行に `[shape: ]` が無い */
   chartNeedsShape: string;
-  /** `shape` に `donut` と `bar` と `funnel` と `dots` のほかの値を書いた */
+  /** `shape` に `donut` と `bar` と `funnel` と `dots` と `line` のほかの値を書いた */
   chartBadShape: (shapes: readonly string[]) => string;
   /** 2つの軸で置く図だけの見た目 `scatter` (#3637) を量の図に書いた */
   chartScatter: (shapes: readonly string[]) => string;
@@ -42,14 +42,14 @@ export const reading: BlockReading<ChartShapeMessages> = {
   print: none("図の種類の行の shape は、図の種類の行を書く所 (printer.ts) が書く"),
   messages: {
     ja: {
-      chartNeedsShape: "chart (量の図) の最初の行に [shape: donut] か [shape: bar] か [shape: funnel] か [shape: dots] を書く",
+      chartNeedsShape: "chart (量の図) の最初の行に [shape: donut] か [shape: bar] か [shape: funnel] か [shape: dots] か [shape: line] を書く",
       chartBadShape: (shapes) => `shape には ${list(shapes)} のどれかを書く`,
       chartScatter: (shapes) => `[shape: scatter] は matrix (2つの軸で置く図) にだけ書ける。chart (量の図) の shape には ${list(shapes)} のどれかを書く`,
       chartUnitNeedsDots: DOTS_TEXT.ja.unitNeedsDots,
       chartUnitAmount: DOTS_TEXT.ja.unitAmount,
     },
     en: {
-      chartNeedsShape: "Write [shape: donut], [shape: bar], [shape: funnel] or [shape: dots] on the first line of a chart",
+      chartNeedsShape: "Write [shape: donut], [shape: bar], [shape: funnel], [shape: dots] or [shape: line] on the first line of a chart",
       chartBadShape: (shapes) => `Write one of ${list(shapes)} for shape`,
       chartScatter: (shapes) => `[shape: scatter] can be written only in two-axis matrices. Write one of ${list(shapes)} for the shape of a chart`,
       chartUnitNeedsDots: DOTS_TEXT.en.unitNeedsDots,

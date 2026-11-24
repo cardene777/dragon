@@ -11,8 +11,14 @@ const view = mountFramedDiagram(host, source);
 view.destroy();
 ```
 
+軽い入口`@cardenelabs/dragon/light`だけを読む頁は、同じ名前を`@cardenelabs/dragon/light/frame`から読む (#3789)。
+記法を読む処理と`mountDiagram`は軽い入口から読むので、既定の入口を頁に入れず、`loadFor`を待った後に置く。
+記法の誤りの文は帯と同じ言葉で出す。
+
 上段には、題の左にdragonの印を置き、コード、エディタ、コピー、エクスポート、拡大のボタンをこの順に並べる。
 ボタンは全部枠を持ち、拡大は字を持たずにアイコンと読み上げの名前だけを持つ。
+帯の幅が600px以下の時は、5つのボタンの字を隠して36px角のアイコンにし、題の下に1段で並べる。
+隠した字は読み上げの名前 (`aria-label`) に残し、置く側が設定`buttons`で足したボタンは字のまま描く。
 dragonの印は見本帳の頁を新しいタブで開き、エディタは同じ記法をdragonエディタで開く。
 エディタは記法をブラウザの内で縮めてURLの`#z=`に詰め、記法を外のサーバーへ送らない。
 縮めてもURLが8000字 (`EDITOR_URL_LIMIT`) を超える記法は、記法をクリップボードにコピーしてから貼るよう頼むエディタ (`#paste`) を開き、知らせの欄に貼るよう出す。
@@ -69,9 +75,12 @@ mountFramedDiagram(host, source, {
 `adoptedStyleSheets`を持たないブラウザでは、`nonce`を付けたstyle要素を帯の内側に置く。
 図のSVGは書き出しが読む`<style>`を持つので残し、`nonce`を渡した時はその`<style>`にも付ける。
 図の字は同梱した字の後に代わりの字の並びを持ち、字を読まない頁に置いても明朝に落ちない。
+帯と図と再生の部品は、置いた頁の字の間と大文字の指定 (`letter-spacing`、`word-spacing`、`text-transform`、`text-indent`) を受け継がず、頁のCSSの無い時と同じ字の幅で描く。
 
 独自の軽い再生部品を持つサイトは`@cardenelabs/dragon/header`の`createFigureHeader`を使い、`actions`と`settings`へ既存の操作を置く。
 `mark`を渡すと題の左にdragonの印を置き、`styles: false`を渡すとstyle要素を作らずに`HEADER_CSS`を呼ぶ側が入れる。
+帯の頭は置いた頁の中に置くので、`HEADER_CSS`は`actions`に置いたボタンへ頁の`button`の指定が足す影と最小の幅と大文字と字の間を戻し、帯の行は頁の`div`の行の高さを受けない。
+頁が帯の頭より強い指定 (`#app button`など) で帯のボタンを変える時と、帯の頭が決めない性質 (`margin`など) を足す時は、その指定が帯に入る。
 style要素を作る時は`nonce`を付ける。
 この入口は描画本体や動画エンコーダーを読み込まない。
 PNGとSVGは入力欄を含む表示全体を写す。

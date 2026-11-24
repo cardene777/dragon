@@ -9,8 +9,9 @@
 import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "./all-kinds";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed, runCli } from "./export-support";
 import { draw, type Player, type Rendered, type RenderOptions } from "./render-support";
@@ -394,6 +395,21 @@ describe("手描きの線の崩れ (#3643)", () => {
   });
 });
 
+// 件の中で子の process の命令を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの命令を file を読み込む段で 1 つずつ順に起こし、命令の後に書き出しの置き場に在る file を読む。件はその結果を読む
+
+const PEN_EXPORTED = await atLoad("--line pen で見本を HTML に書き出す命令を起こす", async () => {
+  const out = join(mkdtempSync(join(tmpdir(), "dragon-pen-")), "out");
+  const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--line", "pen"]);
+  return { out, ran, written: existsSync(out) ? readdirSync(out).filter((file) => file.endsWith(".html")) : [] };
+});
+
+const CRAYON_REFUSED = await atLoad("--line crayon で見本を HTML に書き出す命令を起こす", async () => {
+  const out = join(mkdtempSync(join(tmpdir(), "dragon-pen-")), "out");
+  const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--line", "crayon"]);
+  return { ran, files: existsSync(out) ? readdirSync(out) : [] };
+});
+
 describe("手描きの線を選ぶ所 (#3643)", () => {
   const placed: Player[] = [];
   afterEach(() => {
@@ -419,11 +435,9 @@ describe("手描きの線を選ぶ所 (#3643)", () => {
     }
   });
 
-  it("cli-export-draws-pen-line", async () => {
-    const out = join(mkdtempSync(join(tmpdir(), "dragon-pen-")), "out");
-    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--line", "pen"]);
+  it("cli-export-draws-pen-line", () => {
+    const { out, ran, written } = PEN_EXPORTED.get();
     expect(ran.code, `--line pen で書き出せない: ${ran.stderr}`).toBe(0);
-    const written = existsSync(out) ? readdirSync(out).filter((file) => file.endsWith(".html")) : [];
     expect(written, "--line pen で HTML を書き出さない").toHaveLength(1);
     const html = readFileSync(join(out, written[0] ?? ""), "utf8");
     // 書き出した頁は、図を差し込む関数に描く時の指定を渡して描く
@@ -432,12 +446,11 @@ describe("手描きの線を選ぶ所 (#3643)", () => {
     expect((JSON.parse(options ?? "{}") as { line?: string }).line, "書き出した HTML の図の線の描き方").toBe("pen");
   });
 
-  it("cli-refuses-unknown-line", async () => {
-    const out = join(mkdtempSync(join(tmpdir(), "dragon-pen-")), "out");
-    const ran = await runCli(["export", join(EXAMPLES, "oauth.json"), "--out", out, "--format", "html", "--line", "crayon"]);
+  it("cli-refuses-unknown-line", () => {
+    const { ran, files } = CRAYON_REFUSED.get();
     expect(ran.code, "--line crayon の終わり方").toBe(2);
     for (const word of ["--line", "crayon", "ruler", "pen"]) expect(ran.stderr, `--line crayon の断りの文に ${word} が無い`).toContain(word);
-    expect(existsSync(out) ? readdirSync(out) : [], "--line crayon で書いた file").toEqual([]);
+    expect(files, "--line crayon で書いた file").toEqual([]);
   });
 });
 

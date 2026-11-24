@@ -14,6 +14,8 @@ import { KINDS } from "../catalog/catalog";
 import { CatalogIndex } from "../catalog/CatalogIndex";
 import { LATER_EXAMPLES } from "../examples";
 import { PATHS } from "../site/routes";
+import { atLoad } from "../../../../packages/dragon/test/at-load";
+import { whenReady } from "../site/later";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -28,17 +30,11 @@ globalThis.ResizeObserver ??= QuietObserver as unknown as typeof ResizeObserver;
 let host: HTMLDivElement;
 let unmount: (() => void) | undefined;
 
-/** 後から読む見本の塊が届くのを待つ */
-async function examplesArrived(): Promise<void> {
-  LATER_EXAMPLES.start();
-  for (let i = 0; i < 200 && LATER_EXAMPLES.state().status === "loading"; i += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  expect(LATER_EXAMPLES.state().status, "後から読む見本が届かない").toBe("ready");
-}
+// 後から読む塊は file を読み込む段で待つ。前処理で 25 ミリ秒ずつ見て待つと、混んだ機械で 1 件 10 秒の上限を超えた (#3759)
+const EXAMPLES_READY = await atLoad("見本帳の後から読む見本の塊を待つ", () => whenReady(LATER_EXAMPLES));
 
-beforeAll(async () => {
-  await examplesArrived();
+beforeAll(() => {
+  EXAMPLES_READY.get();
   host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);

@@ -7,9 +7,10 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "@cardenelabs/dragon";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import { api, type Json, smallArchitecture, smallSequence } from "./diagram-support";
+import "../src/kind-use/architecture";
 
 const SCHEMA = join(process.cwd(), "packages/dragon/src/schemas/diagram.schema.json");
 const ICON_NAMES = Object.keys((dragon as unknown as { ICONS: Record<string, string> }).ICONS);

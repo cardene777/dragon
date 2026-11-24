@@ -12,6 +12,13 @@ import { atLoad } from "./at-load";
 import { exampleJson } from "./diagram-support";
 import { type Diagramish, type Placed, place, releasePlaced } from "./follow-support";
 import { draw, type Player, type Rect } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/git";
+import "../src/kind-use/lineup";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
+import "../src/kind-use/tree";
 
 /** 表を持つ見本。原本の `strip` を持つ物を全て挙げる */
 const WITH_STRIP = ["oauth", "payment", "ccip", "finality", "withdraw", "merkle", "order", "rebase", "merge"] as const;
@@ -28,11 +35,12 @@ const ROOMY = 1200;
  * 表を持たない見本の、窓の幅と高さと図の幅と高さ。`faff7039` の時の値で、枠の幅ごとに `[窓の幅, 窓の高さ, 図の幅, 図の高さ]` を並べる。
  * 表を持たない図の窓は、この課題で変えない。
  * 入札の図 (`auction`) は卓の形 (#3351) で、横に並べると箱の名前が読めない幅 390 と 560 の枠では縦に組んだ幅 372 の図を寄って追う
+ * retry は 390 と 560 のどちらも、頭の箱の下から図の下端までが頭の列の下の残りより低いので、窓を 320 から 316 に詰め、頭の列の下に図の頭の箱の下の縁を映さない (#3834)
  */
 const NO_STRIP: Record<string, Record<number, [number, number, number, number]>> = {
   api: { 390: [390, 306, 390, 457], 560: [440, 306, 440, 465] },
   auction: { 390: [372, 320, 372, 320], 560: [372, 320, 450, 320] },
-  retry: { 390: [255.8, 320, 256, 320], 560: [255.8, 320, 379, 320] },
+  retry: { 390: [255.8, 316, 256, 316], 560: [255.8, 316, 379, 316] },
   wallet: { 390: [390, 320, 390, 464], 560: [560, 387, 560, 539] },
 };
 
@@ -61,10 +69,11 @@ const PHONE_WINDOW: Record<string, Record<number, [number, number]>> = {
 /**
  * 表を持つ見本を全体図を出す幅の枠に置いた時の、図の幅と高さ。`5e84321b` の時の値。
  * ccip は段 13 の線を箱と囲みの枠から余白だけ離して囲みが伸び、finality は区間の札を棒から離して段の並びが下がった値 (#3526)。
- * ccip は段 10 の名前を囲みの枠線から離して置くために帯の間が広がった値 (#3554)
+ * ccip は段 10 の名前を囲みの枠線から離して置くために帯の間が広がった値 (#3554)。
+ * ccip の 560px は、等幅の字の … を普通の字の ... の幅で測り (Tracelyth #236)、値の表の欄の並びが変わった値 (#3761)
  */
 const WIDE_FIGURE: Record<string, Record<number, [number, number]>> = {
-  ccip: { 560: [560, 669], 778: [778, 730] },
+  ccip: { 560: [560, 713], 778: [778, 730] },
   finality: { 560: [560, 732], 778: [728, 818] },
   order: { 560: [560, 683], 778: [778, 732] },
 };

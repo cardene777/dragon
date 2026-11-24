@@ -8,7 +8,7 @@ import { stepCarriers } from "../blocks/carry/step-times";
 import { drawBand } from "../render/band";
 import { drawClock } from "../render/clock";
 import { drawCycle } from "../render/cycle";
-import { type BandLayout, type ClockLayout, type CycleLayout, layoutBand, layoutClock, layoutCycle } from "./cycle/layout";
+import { type BandLayout, type ClockLayout, type CycleLayout, layoutBand, layoutClock, layoutCycle, bandOverview, clockOverview } from "./cycle/layout";
 import type { KindParts } from "./parts";
 
 export const parts: KindParts<CycleLayout | ClockLayout | BandLayout> = {
@@ -24,4 +24,13 @@ export const parts: KindParts<CycleLayout | ClockLayout | BandLayout> = {
     ...(!("shape" in layout) ? drawCycle(layout, fields, ctx) : layout.shape === "clock" ? drawClock(layout, fields, ctx) : drawBand(layout, fields, ctx)),
     edge: () => undefined,
   }),
+  // 輪を開いた帯と時計の文字盤は箱を持たないので、全体図に描く部品を挙げる (#3849)
+  overview: (layout) => (!("shape" in layout) ? [] : layout.shape === "clock" ? clockOverview(layout) : bandOverview(layout)),
 };
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    cycle: typeof import("./cycle");
+  }
+}

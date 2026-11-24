@@ -2,6 +2,7 @@
  * 最初に読む script に入れず後から読む頁 (#3280)。
  *
  * 使い方の頁とカタログの頁は、編集画面や概要の頁を見る人の最初の表示に要らない。
+ * 更新履歴の頁と見つからない頁も同じく最初の表示に要らないので、後から読む (#3832)。
  * 塊の読み方は見本と部品の図の記法と同じで (`site/later.ts`)、最初の画面を描いた後に裏で読み始め、
  * それより先に頁を開いた時はその時に読み始める。
  *
@@ -19,6 +20,8 @@ import { type LaterChunk, laterChunk, useLater } from "./later";
 
 export const LATER_DOCS = laterChunk(() => import("../docs/Docs"));
 export const LATER_CATALOG = laterChunk(() => import("../catalog/pages"));
+export const LATER_RELEASE_NOTES = laterChunk(() => import("../release-notes/ReleaseNotes"));
+export const LATER_NOT_FOUND = laterChunk(() => import("../not-found/NotFound"));
 
 /** 自動で読み直した印。読み直しの後も残る置き場に置き、頁が読み直しを繰り返さないようにする */
 const RELOADED = "dragon-page-reloaded";

@@ -1,7 +1,7 @@
 /**
  * 字の幅を、同梱した字の送り幅の表で測る。描かずに測るので、頁の無い所 (node) でも同じ値になる。
  */
-import { advance, EM, type Family } from "../look/fonts";
+import { advance, EM, type Family, SANS_ADVANCE } from "../look/fonts";
 import type { TextStyle } from "../look/values";
 import type { Rect } from "./scene";
 
@@ -17,7 +17,8 @@ export function familyFor(text: string, preferred: Family): Family {
 export function textWidth(text: string, style: TextStyle): number {
   const family = familyFor(text, style.family);
   let sum = 0;
-  for (const ch of text) sum += advance(ch, family);
+  // 等幅の字で描く … は、描いた後に点だけを普通の字の ... にする (monoDots) ので、普通の字の ... の幅で測る (Tracelyth #234, #236)
+  for (const ch of text) sum += style.family === "mono" && ch === "…" ? 3 * (SANS_ADVANCE["."] as number) : advance(ch, family);
   return (sum * style.size) / EM;
 }
 

@@ -7,7 +7,7 @@ import { type Attr, fail } from "../../read-kit";
 import type { SourceLine } from "../../tokenize";
 import { type BlockReading, none } from "../block";
 
-export const URL_FORM = /^(\/|https?:\/\/)/u;
+export const URL_FORM = /^(\/|https?:\/\/|#.)/u;
 
 export interface LinkMessages {
   /** 箱の飛び先 (`link`) か段の出典 (`url`) に、頁を移る形でない URL を書いた (#3199) */
@@ -24,7 +24,7 @@ export const reading: BlockReading<LinkMessages> = {
   read: none("飛び先は箱の行の属性で、行の頭の語を持たない。箱の行を読む処理が urlOf を呼ぶ"),
   print: none("飛び先は箱の行の属性で、箱の宣言を書き戻す処理が link の鍵を書く"),
   messages: {
-    ja: { badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL を書く` },
-    en: { badUrl: (key) => `Write a path that starts with / or a URL that starts with http:// or https:// for ${key}` },
+    ja: { badUrl: (key) => `${key} には / で始まる path か、http:// か https:// で始まる URL か、# で始まる頁の中の場所を書く` },
+    en: { badUrl: (key) => `Write a path that starts with /, a URL that starts with http:// or https://, or a place on the page that starts with # for ${key}` },
   },
 };

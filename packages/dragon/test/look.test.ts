@@ -12,7 +12,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { closestPair, type Sight } from "./color-vision";
 import { exampleJson, smallSequence } from "./diagram-support";
+import { MONO_STACK, SANS_STACK } from "./font-stacks";
 import { ARCADE_COLORS, draw, figureClass, figureVars, type Lang } from "./render-support";
+// src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
+import type {} from "./all-kinds";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 const PACKAGE = fileURLToPath(new URL("../", import.meta.url));
 const SLOTS = ["c-blue", "c-amber", "c-green", "c-violet", "c-rose"];
@@ -178,15 +183,36 @@ describe("字", () => {
 
     const rendered = draw("renderDiagram")(smallSequence());
     expect(rendered.fonts).toEqual(fonts);
-    // 描いた SVG は同梱した 2 つの字を変数で 1 度だけ名指し、字を使う所はどれもその変数を読む。
-    // 端末の字の名前を持たないので、同梱した字が無い時に端末の字へ黙って落ちない
+    // 描いた SVG は字の変数を 1 度ずつ持ち、同梱した 2 つの字を先に名指して代わりの字と総称の字を並べる (#3847)。
+    // 書き出す SVG も同じ並びを持ち、同梱した字を読まない頁でもブラウザの既定の字 (日本語では明朝) に落ちない。
+    // 字を使う所はどれもその変数を読み、字の名前は変数の他に書かない
     const svg = rendered.svg;
-    expect(svg).toMatch(new RegExp(`--sans:\\s*"${fonts.sans}"\\s*[;}]`));
-    expect(svg).toMatch(new RegExp(`--mono:\\s*"${fonts.mono}"\\s*[;}]`));
+    expect(svg.match(/--sans:/g)?.length, "--sans を名指す数").toBe(1);
+    expect(svg.match(/--mono:/g)?.length, "--mono を名指す数").toBe(1);
+    expect(/--sans:([^;}]+)/.exec(svg)?.[1], "描いた SVG の --sans の並び").toBe(SANS_STACK);
+    expect(/--mono:([^;}]+)/.exec(svg)?.[1], "描いた SVG の --mono の並び").toBe(MONO_STACK);
     expect(svg).not.toMatch(/font-family\s*=/);
     for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/^var\(--(sans|mono)\)$/);
     for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/var\(--(sans|mono)\)$/);
-    expect(svg).not.toMatch(/system-ui|sans-serif|monospace|Hiragino|Menlo|Meiryo|Yu Gothic/);
+    const outside = svg.replace(`--sans:${SANS_STACK}`, "").replace(`--mono:${MONO_STACK}`, "");
+    expect(outside, "字の変数の外に字の名前").not.toMatch(/Noto Sans|JetBrains|system-ui|sans-serif|monospace|Hiragino|Arial|Menlo|Consolas|Courier|Meiryo|Yu Gothic/);
+  });
+
+  it("font-stack-order-matches-decision", () => {
+    // 字の並びは src の 1 か所 (`look/values.ts`) だけが持ち、帯、帯つきの図、止めて置く図、HTML の頁もその並びを読む (#3847)。
+    // 並びが 2 つあると、図を置く形ごとに出る字が食い違う
+    const src = join(PACKAGE, "src");
+    const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
+      .filter((name) => /\.(?:ts|mjs)$/u.test(name))
+      .map((name) => ({ name: `src/${name.replaceAll("\\", "/")}`, code: readFileSync(join(src, name), "utf8") }));
+    expect(sources.filter(({ code }) => /--(?:sans|mono):/u.test(code)).map(({ name }) => name), "字の変数を定める file").toEqual(["src/look/values.ts"]);
+    const values = sources.find(({ name }) => name === "src/look/values.ts")?.code ?? "";
+    expect(values.match(/--sans:/gu)?.length, "look/values.ts が --sans を定める数").toBe(1);
+    expect(sources.filter(({ code }) => code.includes("FONT_STACK_VARS")).map(({ name }) => name), "別の並びを読む file").toEqual([]);
+    // 並びは同梱した字、代わりの字、総称の字の順。欧文の Arial を日本語のゴシックより先に置く
+    const svg = draw("renderDiagram")(smallSequence()).svg;
+    expect(/--sans:([^;}]+)/.exec(svg)?.[1]).toBe(SANS_STACK);
+    expect(/--mono:([^;}]+)/.exec(svg)?.[1]).toBe(MONO_STACK);
   });
 
   it("rendered-text-at-least-10-5px", () => {

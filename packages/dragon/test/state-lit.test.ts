@@ -8,15 +8,20 @@
  * 記録は `packages/dragon` から見た file の path ごとに、箱の光る区間と済んだ印の時刻を持ち、区間が逆だった箱を持たない。
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { api } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Rendered, type Span, type Timeline } from "./render-support";
+import "../src/kind-use/state";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
+/** file の名前を書く基の dir (package の根)。package の根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、見本の dir から引く (#3763) */
+const PACKAGE = dirname(EXAMPLES);
+/** 状態遷移図の記法の file を探す dir。記法の file は見本と、ブロックの見本と、検査の材料にだけ在る */
+const DIRS = [EXAMPLES, join(ROOT, "packages/dragon/src/blocks"), join(ROOT, "packages/dragon/test/fixtures"), join(ROOT, "packages/dragon/blocks")];
 
 interface StateTimeline extends Timeline {
   states?: { box: string; lit: Span[]; done?: number }[];
@@ -33,13 +38,12 @@ const isStateDiagram = (path: string): boolean =>
     .find((line) => line.trim() !== "" && !line.startsWith("//"))
     ?.startsWith("state ") === true;
 
-const FILES = ["src", "test", "examples", "blocks"]
-  .flatMap((dir) => walk(join(PACKAGE, dir)))
+const FILES = DIRS.flatMap((dir) => walk(dir))
   .filter((path) => path.endsWith(".dragon") && isStateDiagram(path))
   .map((path) => relative(PACKAGE, path))
   .sort();
 
-const before = JSON.parse(readFileSync(join(PACKAGE, "test/fixtures/state-lit-before.json"), "utf8")) as Record<string, Record<string, { lit: [number, number][]; done?: number }>>;
+const before = JSON.parse(readFileSync(join(ROOT, "packages/dragon/test/fixtures/state-lit-before.json"), "utf8")) as Record<string, Record<string, { lit: [number, number][]; done?: number }>>;
 
 const drawn = new Map<string, StateRendered>();
 
@@ -137,7 +141,7 @@ describe("着く前の箱の光 (#3575)", () => {
 
 describe("光る区間を作る場所 (#3575)", () => {
   it("flow-render-has-no-lit-fix", () => {
-    const flow = readFileSync(join(PACKAGE, "src/render/flow.ts"), "utf8");
+    const flow = readFileSync(join(ROOT, "packages/dragon/src/render/flow.ts"), "utf8");
     expect(flow, "手順の図を描く処理が光る区間の逆を直している").not.toContain("l.end > l.start");
     expect(flow, "手順の図を描く処理が段の終わりを引いている").not.toContain("stepEnd");
   });

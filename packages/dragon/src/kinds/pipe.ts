@@ -12,6 +12,8 @@ export const parts: KindParts<PipeLayout> = {
       lang,
       ...(options.words?.pipe === undefined ? {} : { words: options.words.pipe }),
       ...(options.width === undefined ? {} : { width: options.width }),
+      // 書き出した頁と見本帳が収めた並べ方 (#3748)
+      ...(options.layouts === undefined ? {} : { stored: options.layouts }),
     }),
   // 段ごとに図の全てを 1 枚の絵に描くので、描き方が全ての層を持つ
   draw: (layout, _diagram, ctx) => drawPipe(layout, ctx.t, ctx),
@@ -25,3 +27,10 @@ export const parts: KindParts<PipeLayout> = {
  * 再生の部品は配管の図を描けた後に、登録簿から引いて置く。最初に読む量に入れないため、この塊に置く
  */
 export { bindPipeZoom, mountPipeCalls, type PipeCalls, pipeBaseWidth, pipeReadableZoom, type PipeZoomCalls } from "../pipe-player";
+
+// 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
+declare module "./registry" {
+  interface LaterKinds {
+    pipe: typeof import("./pipe");
+  }
+}

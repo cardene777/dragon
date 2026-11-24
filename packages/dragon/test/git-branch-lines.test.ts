@@ -11,6 +11,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import "../src/kinds/basics";
+import "../src/kind-use/git";
+import "../src/kind-use/try";
+import "../src/kind-use/sankey";
+import "../src/kind-use/matrix";
+import { extractDiagrams } from "../src/markdown";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 /** 枝分かれの図の置き場所を決めた後に、分かれる線の出口を丸の真ん中へ戻すか。重なる線の知らせを確かめる検査だけが立てる */
 const overlap = vi.hoisted(() => ({ on: false }));
@@ -40,8 +48,8 @@ vi.mock("../src/kinds/git/layout", async (importOriginal) => {
  * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
  */
 const [{ renderDiagram }, { parseNotation }, { checkLayoutText }, { checkText, problemLine }, { APART, LOOK }] = await Promise.all([
-  // 全ての図の種類の部品と個別ブロックの読み方を持つ入口から読む。描く本体だけを読むと、枝分かれの図の記法を読めない
-  import("../src/render/svg"),
+  // 図の種類の部品は上の種類の登録の file が、個別ブロックの読み方は `kinds/basics` が登録する (#3763)。描く本体だけを読むと、枝分かれの図の記法を読めない
+  import("../src/render/draw"),
   import("../src/parser"),
   import("../src/render/layout-check"),
   import("../src/check"),
@@ -209,7 +217,20 @@ describe("同じ commit から分かれる枝の線は別々の道を通る (#35
   });
 
   it("layout-breaks-record-is-empty", () => {
-    expect(JSON.parse(readFileSync(RECORDED, "utf8")), "見本の崩れの記録に残る行").toEqual({});
+    // 崩れの検査が字どうしの重なりを知らせるようにした時 (#3790) に見つかった2件は、#3791が量の札の段違いと軸の点数の札を外へ出す形で直し、記録はまた空になる
+    const recorded = JSON.parse(readFileSync(RECORDED, "utf8")) as Record<string, { kind: string }[]>;
+    const left = Object.entries(recorded).flatMap(([file, breaks]) => breaks.map((b) => `${file}: ${b.kind}`));
+    expect(left.sort(), "見本の崩れの記録に残る行").toEqual([]);
+    // 記録から外した2件の図は、既定の幅と幅390で描いても字どうしの重なりを出さない
+    const scatter = extractDiagrams(read("quick-start.md")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]"));
+    expect(scatter.length, "quick-start.md の点数で点を打つ見た目の図の数").toBe(1);
+    for (const [where, text] of [
+      ["day-hours.dragon", read("day-hours.dragon")],
+      ["quick-start.md の点の図", scatter[0]?.source ?? ""],
+    ] as const) {
+      const overlaps = checkLayoutText(text, { lang: "ja" }).filter((b) => b.kind === "texts-overlap");
+      expect(overlaps.map((b) => JSON.stringify(b)), `記録から外した ${where} の字どうしの重なり`).toEqual([]);
+    }
   });
 });
 

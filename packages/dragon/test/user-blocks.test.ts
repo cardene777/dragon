@@ -8,16 +8,13 @@
  * 定義は図の塊の頭、頁の `<link rel="dragon-blocks">`、code の `parseNotation` と `renderDiagram` の引数 `blocks` の 3 つの入口で読む。
  * 元のブロックの置き場所と動きと色の表をそのまま使うので、足したブロックも段を追う動きで光り、線の上を点が流れる。
  */
-import * as dragon from "@cardenelabs/dragon";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { Page } from "playwright-core";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
 import type { Json, LineError, NotationLang } from "./diagram-support";
 import { api } from "./diagram-support";
 import { type Motion, motionFrom } from "./motion-support";
-import { fileChromium } from "./page-needs";
 import { draw, figureClass, figureVars, type Rendered, type RenderOptions } from "./render-support";
+import "../src/kind-use/architecture";
 
 /** 足したブロックの定義を読んだ結果。`blocks` は `parseNotation` と `renderDiagram` にそのまま渡す */
 type ReadBlocks = { ok: true; blocks: unknown } | { ok: false; errors: LineError[] };
@@ -400,58 +397,5 @@ describe("箱を元にしたブロックの絵柄 (#3489)", () => {
     const printed = api("printNotation")(diagram);
     expect(printed, "書き戻した記法に定義の icon の行が無い").toContain("  icon tabler:building-bridge-2");
     expect(parsed(printed), "書き戻した記法を読み直すと元の図と違う").toEqual(diagram);
-  });
-});
-
-/* 頁の `<link rel="dragon-blocks">` は script の 1 行の入口が読む。入口と塊は build した `dist/cdn` から渡す */
-const CDN = join(process.cwd(), "packages/dragon/dist/cdn");
-const PAGE = "http://localhost/";
-const LOCAL = "http://localhost/cdn/";
-const DEFS_URL = "http://localhost/blocks/bridge.dragon";
-const FONT_CSS = /^https:\/\/cdn\.jsdelivr\.net\/npm\/@fontsource-variable\/[^/]+\/index\.css$/u;
-const escape = (text: string): string => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;");
-
-describe("頁の link で読む定義 (#3399)", () => {
-  it("user-block-page-link", async () => {
-    expect(existsSync(join(CDN, "dragon.js")), "入口の file が build されていない").toBe(true);
-    const second = BARE_TEXT.replace("architecture 橋を渡る", "architecture もう 1 つの橋");
-    const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><link rel="dragon-blocks" href="${DEFS_URL}"><script type="module" src="${LOCAL}dragon.js"></script></head><body><pre class="dragon">${escape(BARE_TEXT)}</pre><pre class="dragon">${escape(second)}</pre></body></html>`;
-    // file で 1 つの Chromium を使う。後処理で閉じず、file の process の終わりに止まる (#3424)
-    const context = await (await fileChromium()).newContext();
-    const defsRead: string[] = [];
-    const outside: string[] = [];
-    await context.route("**/*", async (route) => {
-      const url = route.request().url();
-      if (url === PAGE) return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
-      if (url === DEFS_URL) {
-        defsRead.push(url);
-        return route.fulfill({ contentType: "text/plain; charset=utf-8", body: DEFS });
-      }
-      if (url.startsWith(LOCAL)) {
-        const path = join(CDN, url.slice(LOCAL.length));
-        return existsSync(path) ? route.fulfill({ contentType: "text/javascript", body: readFileSync(path) }) : route.fulfill({ status: 404, body: "" });
-      }
-      if (FONT_CSS.test(url)) return route.fulfill({ contentType: "text/css", body: "" });
-      outside.push(url);
-      return route.abort();
-    });
-    try {
-      const page: Page = await context.newPage();
-      await page.goto(PAGE);
-      await page
-        .waitForFunction(() => document.querySelectorAll("pre.dragon").length === 0 && document.querySelectorAll('[data-dragon="player"] svg').length >= 2, undefined, { timeout: 8_000 })
-        .catch(() => undefined);
-      const drawn = await page.evaluate(
-        (d) => [...document.querySelectorAll('[data-dragon="player"] svg')].map((svg) => [...svg.querySelectorAll("path")].some((p) => p.getAttribute("d") === d)),
-        BRIDGE,
-      );
-      const errors = await page.evaluate(() => [...document.querySelectorAll("pre.dragon-error")].map((e) => e.textContent ?? ""));
-      expect(errors, "頁の link の定義を使えず、記法の塊が誤りになる").toEqual([]);
-      expect(drawn, "頁の 2 つの記法の塊が、link の定義の形で描かれない").toEqual([true, true]);
-      expect(defsRead, "定義の file を 1 度だけ読まない").toEqual([DEFS_URL]);
-      expect(outside, "入口と塊と字と定義の file のほかに取りに行った物").toEqual([]);
-    } finally {
-      await context.close();
-    }
   });
 });

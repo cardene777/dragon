@@ -1,0 +1,36 @@
+pipe SwapRouter.swapExactTokensForTokensを実行
+layout mesh
+
+box alice as Alice
+box router as SwapRouter
+box usdc as USDC
+box pool as LiquidityPool
+box weth as WETH
+box bob as Bob
+
+hold alice: 900 USDC, 0 WETH
+hold pool: 2000 USDC, 9.5 WETH
+hold bob: 0.5 WETH, 0 USDC
+hold usdc: "allowance[Alice][SwapRouter]" 100 [from: alice, to: router, unit: USDC]
+
+step AliceがSwapRouterのswapExactTokensForTokensを呼ぶ
+  say AliceがSwapRouter.swapExactTokensForTokensを呼び出します。途中でLiquidityPool.token0を読み取ります。スワップは、プールにトークンを入れて別のトークンを受け取る仕組みです。受け取る量はプールの残高の比で決まり、最低受取量に届かないとリバートします。
+  alice -> router: swapExactTokensForTokens(amountIn: 100 USDC, amountOutMin: 0.5 WETH, to: bob)
+
+step 100 USDCがAliceからLiquidityPoolへ移る
+  say SwapRouterがUSDC.transferFromを呼び出します。100 USDCがAliceからLiquidityPoolへ移動します。USDCのallowance[Alice][SwapRouter]を100から0 USDCに書き換えます。
+  router -> usdc: transferFrom(from: alice, to: pool, amount: 100 USDC)
+  write usdc: "allowance[Alice][SwapRouter]" 0
+  move usdc: 100 alice -> pool
+  emit usdc: Transfer(from: alice, to: pool, amount: 100 USDC)
+  return usdc
+
+step SwapRouterがLiquidityPoolのswapを呼ぶ
+  say SwapRouterがLiquidityPool.swapを呼び出します。
+  router -> pool: swap(amountIn: 100 USDC, amountOutMin: 0.5 WETH, to: bob)
+
+step LiquidityPoolがリバートし、全ての変更が戻る
+  say LiquidityPool.swapのrequire(amountOut >= amountOutMin)が通らず、「amountOut below minimum」で失敗しました。amountOutMinは0.5 WETHでした。一番外側の呼び出しまでリバートし、全ての変更がトランザクションの前に戻りました。allowance[Alice][SwapRouter]は0から100 USDCに戻りました。
+  check pool: amountOut >= 0.5 WETH [fail]
+  revert pool: amountOut below minimum
+  revert router: amountOut below minimum

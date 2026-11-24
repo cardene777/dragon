@@ -2,6 +2,7 @@
 /**
  * `dragon export <図の file>` の命令。原本の JSON (`.json`) か記法 (`.dragon`) を読み、mp4、GIF、HTML、PNG を書き出す。
  * 書き出した file の path を 1 行ずつ出す。
+ * md (`.md`) を渡すと、見出しをタブに分けた頁の HTML を md の隣か `--out` のフォルダに 1 つ書き、図の書き出しの設定は断る (#3755)。
  * `dragon embed <HTML の file>` の命令は、頁の script の1行の入口を束ねた script の中身に置き換え、外へ通信しない1 file を書く (#3343)。
  * `dragon check <file>` の命令は、記法を描かずに確かめ、誤りと知らせを `<file>:<行>:<列> <重さ> <文>` の 1 件 1 行で出す (#3455)。
  * 誤りがあれば終わり方 1、知らせだけなら 0 で終わる。`dragon --version` は package の版を出す。
@@ -20,6 +21,7 @@ import { parseArgs } from "node:util";
 import { CHECKED_FILES, checkText, isBlocksFile, type Problem, problemLine, readBlocksFile } from "./check";
 import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/index";
+import { exportPage } from "./page/export";
 import { PALETTES, type Theme } from "./look/values";
 import { iconDefinition, iconNameOf, type SvgIconRefusal, svgIcon } from "./svg-icon";
 import { parseNotation } from "./parser";
@@ -64,6 +66,8 @@ const LINE_NAMES = LINE_STYLES.join(" / ");
 
 interface CliText {
   usage: string;
+  /** `dragon export <md の file>` の使い方 (#3755) */
+  pageUsage: string;
   /** `dragon embed` の使い方 */
   embedUsage: string;
   /** `dragon embed` の誤りの文 */
@@ -93,6 +97,8 @@ interface CliText {
   allowed: { lang: string; theme: string; positive: string; format: string; step: string; steps: (count: number) => string };
   /** 字の重なりの 1 行。`step` は 1 から数える */
   overlap: (step: number, text: string) => string;
+  /** md の書き出しに渡した、図の書き出しの設定 (#3755) */
+  pageOptions: (names: string[]) => string;
 }
 
 /** 命令が出す文。英語は日本語の文をそのまま英語にする */
@@ -112,6 +118,12 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
     ].join("\n"),
+    pageUsage: [
+      "使い方: dragon export <md の file (.md)> [設定]",
+      "  見出しを頁とタブに分けた HTML の頁を 1 つ書く (#は題、##は段、###は項目、####と#####はタブ)",
+      "  --out <dir>        書き出す先 (既定は md の在る dir)",
+      "  --lang <言葉>      頁に足す字と誤りの文の言葉 (ja か en)。既定は md の本文に仮名か漢字があれば ja、無ければ en",
+    ].join("\n"),
     embedUsage: [
       "使い方: dragon embed <HTML の file> [設定]",
       "  --out <file>       書き出す file (既定は元の file の隣の <名前>.offline.html)",
@@ -126,7 +138,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
-      "  --layout           図を描き、崩れ (丸や線の詰まり、字を横切る線、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
+      "  --layout           図を描き、崩れ (丸や線の詰まり、字を横切る線、字どうしの重なり、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
@@ -173,6 +185,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     badValue: (option, value, allowed) => `使えない値: ${option} ${value} (${allowed})`,
     allowed: { lang: "ja か en", theme: "light か dark", positive: "0 より大きい数", format: `${FORMATS.join(" / ")} を , で区切る`, step: "1 以上の整数", steps: (count) => `図の段は 1 から ${count}` },
     overlap: (step, text) => `段 ${step}: ${text}`,
+    pageOptions: (names) => `md の書き出しは --out と --lang だけを受ける。使えない設定: ${names.join(" ")}`,
   },
   en: {
     usage: [
@@ -189,6 +202,12 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --step <n>         Step the png shows (counted from 1, default: the last step)",
       "  --blocks <file>    Read the block definitions in this file and draw the diagram with them",
     ].join("\n"),
+    pageUsage: [
+      "Usage: dragon export <md file (.md)> [options]",
+      "  Writes one HTML page with the headings split into pages and tabs (# title, ## group, ### item, #### and ##### tabs)",
+      "  --out <dir>        Where to write (default: the dir of the md)",
+      "  --lang <lang>      Language of the words the page adds and of the errors (ja or en). Defaults to ja when the md has kana or kanji, and en otherwise",
+    ].join("\n"),
     embedUsage: [
       "Usage: dragon embed <HTML file> [options]",
       "  --out <file>       Where to write (default: <name>.offline.html next to the file)",
@@ -203,7 +222,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     checkUsage: [
       "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
-      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, lines crossing text, parts sticking out of a box shape or the diagram frame) per step",
+      "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, lines crossing text, overlapping texts, parts sticking out of a box shape or the diagram frame) per step",
       "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),
@@ -250,6 +269,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     badValue: (option, value, allowed) => `Invalid value: ${option} ${value} (${allowed})`,
     allowed: { lang: "ja or en", theme: "light or dark", positive: "a number above 0", format: `${FORMATS.join(" / ")} separated by ,`, step: "a whole number from 1", steps: (count) => `the diagram has steps 1 to ${count}` },
     overlap: (step, text) => `Step ${step}: ${text}`,
+    pageOptions: (names) => `Writing a page from an md takes only --out and --lang. Options not available: ${names.join(" ")}`,
   },
 };
 
@@ -488,6 +508,25 @@ function icon(args: string[], text: CliText): number {
   return 0;
 }
 
+/**
+ * `dragon export <md の file>`。見出しをタブに分けた頁の HTML を書き、その path を出す (#3755)。
+ * 図の書き出しの設定 (`--fps` など) は頁に効かないので、黙って捨てずに名指して断る。書き出せない訳は `<file>:<行> <文>` で 1 件 1 行に出す
+ */
+async function markdownPage(file: string, values: Values, text: CliText, lang: NotationLang | undefined): Promise<number> {
+  const refused = Object.keys(values).filter((key) => key !== "out" && key !== "lang");
+  if (refused.length > 0) {
+    console.error(`${text.pageOptions(refused.map((key) => `--${key}`))}\n${text.pageUsage}`);
+    return 2;
+  }
+  const result = await exportPage(file, { ...(values.out === undefined ? {} : { outDir: values.out }), ...(lang ? { lang } : {}) });
+  if (!result.ok) {
+    for (const error of result.errors) console.error(`${error.file}:${error.line} ${error.message}`);
+    return 1;
+  }
+  console.log(result.path);
+  return 0;
+}
+
 async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   const chosen = langOf(argv);
@@ -501,7 +540,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "check") return check(rest, early);
   if (command === "icon") return icon(rest, early);
   if (command !== "export") {
-    console.error(`${early.usage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.iconUsage}\n\n${early.versionUsage}`);
+    console.error(`${early.usage}\n\n${early.pageUsage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.iconUsage}\n\n${early.versionUsage}`);
     return 2;
   }
   const problem = optionProblem(rest, early);
@@ -525,12 +564,13 @@ async function main(argv: string[]): Promise<number> {
     console.error(`${early.extraFiles(extra)}\n${early.usage}`);
     return 2;
   }
+  // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
+  const lang = isLang(chosen) ? chosen : undefined;
+  if (extname(file) === ".md") return markdownPage(file, values, early, lang);
   const width = number(values.width);
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);
   const step = number(values.step);
-  // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
-  const lang = isLang(chosen) ? chosen : undefined;
   // 足したブロックの定義は図より先に読む。定義を頭に書かない図は、定義が無いと読めない (#3606)
   const blocks = values.blocks === undefined ? undefined : blocksOption(values.blocks, lang ?? DEFAULT_LANG, early, early.usage);
   if (typeof blocks === "number") return blocks;

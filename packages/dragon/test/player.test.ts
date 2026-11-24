@@ -9,11 +9,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PIPE_TYPE } from "../src/look/pipe";
+import { atLoad } from "./at-load";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { motionFrom, tagOpacity } from "./motion-support";
 import prepare, { FITTING, NARROW_SOURCES, PAN_FRAME, PHONE, PIPE_TEXT_SOURCES, READABLE_SOURCE } from "./player.prepare";
 import { prepared } from "./prepared";
 import { ARCADE_COLORS, cssVars, draw, figureVars, type LaidAction, type Player, type PlayerOptions } from "./render-support";
+import "../src/kind-use/flow";
+import "../src/kind-use/pipe";
+import "../src/kind-use/sequence";
 
 /** 準備の段が描いた、置いた図と比べる側の配置と時刻の表 (`player.prepare.ts`、#3734)。件の中では図を置く仕事だけを行う */
 const drawn = (): Awaited<ReturnType<typeof prepare>> => prepared(import.meta.url);
@@ -53,6 +57,60 @@ const click = (host: HTMLElement, name: string): void => {
 };
 
 const stepTitle = (host: HTMLElement): string | null | undefined => host.querySelector('[data-dragon="step-title"]')?.textContent;
+
+/** file を読み込む段で jsdom に置いた図 */
+interface Placed {
+  host: HTMLElement;
+  player: Player;
+}
+
+/**
+ * 図を件と同じく頁に付けてから jsdom に置く。`width` を渡すと置く枠の幅 (`clientWidth`) をその幅にする。
+ * 件の後処理が頁の中身を消すので、読む段で置いた図は、確かめる件が `adopt` で頁に付け直す
+ */
+function placeAtLoad(diagram: Json, options: PlayerOptions = {}, width?: number): Placed {
+  const host = document.createElement("div");
+  if (width !== undefined) Object.defineProperty(host, "clientWidth", { value: width });
+  document.body.appendChild(host);
+  return { host, player: draw("mountDiagram")(host, diagram, options) };
+}
+
+/** 読む段で置いた図を頁に付け直し、件の後処理で壊す */
+function adopt(placed: Placed): Placed {
+  document.body.appendChild(placed.host);
+  players.push(placed.player);
+  return placed;
+}
+
+// 箱を開いた aggregator を jsdom に置く仕事は、混んだ機械で 1 件 10 秒の上限に近づいた (#3734、#3739)。
+// その図を置く 5 件の図は、同じ件が置く小さな図も含めて file を読み込む段で置き、件は置いた図の段を送って確かめる
+
+const WIDE = await atLoad("箱を開いた aggregator を広い枠に置く", () => {
+  prefersReducedMotion(true);
+  return { wide: placeAtLoad(exampleJson("aggregator.json"), { open: [2] }, PAN_FRAME), small: placeAtLoad(exampleJson("swap.json")) };
+});
+
+const MOVES = await atLoad("箱を開いた aggregator と swap-two-hops を置く", () => {
+  prefersReducedMotion(true);
+  return { two: placeAtLoad(exampleJson("swap-two-hops.json"), { lang: "ja" }), agg: placeAtLoad(exampleJson("aggregator.json"), { lang: "ja", open: [2] }) };
+});
+
+const CALLS = await atLoad("箱を開いた aggregator と swap と vault-proxy を置く", () => {
+  prefersReducedMotion(true);
+  return {
+    swap: placeAtLoad(exampleJson("swap.json"), { lang: "ja" }),
+    agg: placeAtLoad(exampleJson("aggregator.json"), { lang: "ja", open: [2] }),
+    vault: placeAtLoad(exampleJson("vault-proxy.json"), { lang: "ja" }),
+  };
+});
+
+const NARROW = await atLoad("箱を開いた aggregator を携帯の幅に置く", () => {
+  prefersReducedMotion(true);
+  return {
+    ja: placeAtLoad(exampleJson(NARROW_SOURCES.ja), { lang: "ja", open: [2] }, PHONE),
+    en: placeAtLoad(exampleJson(NARROW_SOURCES.en), { lang: "en", open: [2] }, PHONE),
+  };
+});
 
 describe("動きを嫌う設定", () => {
   it("reduced-motion-shows-stills", () => {
@@ -648,13 +706,10 @@ describe("試作の形の再生の操作 (#3398)", () => {
 
   it("player-pans-wide-figure", () => {
     prefersReducedMotion(true);
-    const source = exampleJson("aggregator.json");
     const frame = PAN_FRAME;
-    const host = document.createElement("div");
-    Object.defineProperty(host, "clientWidth", { value: frame });
-    document.body.appendChild(host);
-    const player = draw("mountDiagram")(host, source, { open: [2] });
-    players.push(player);
+    // 図は読む段で幅 frame の枠に箱 2 を開いて置いた物
+    const placed = WIDE.get();
+    const { host, player } = adopt(placed.wide);
     // 比べる側の並びは、準備の段が同じ原本と設定 ({ open: [2], width: frame }) で描いた物
     const { wide } = drawn();
     const layout = { width: wide.width, parties: wide.parties };
@@ -692,7 +747,7 @@ describe("試作の形の再生の操作 (#3398)", () => {
     pan.dispatchEvent(new Event("scroll"));
     expect(Number.parseFloat(thumb?.style.left ?? ""), "手で左の端へ動かした後の全体の線の位置").toBeCloseTo(0, 0);
     // 枠に収まる図は横に送らない
-    const small = mount(exampleJson("swap.json"));
+    const small = adopt(placed.small);
     expect(small.host.querySelector('[data-dragon="overview"]'), "枠に収まる図に全体の線がある").toBeNull();
   });
 });
@@ -783,12 +838,21 @@ describe("配管の図の再生 (#3418)", () => {
     expect(svgWidth(), "拡大の釦を押した後の図の幅").toBeCloseTo(base * 1.25, 0);
     click(host, "zoom-out");
     expect(level(), "縮小の釦を押した後の度合い").toBe("100%");
-    // Ctrl か Command を押しながらのホイールで拡大する。押さないホイールは拡大しない
-    frame.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
-    expect(level(), "押さないホイールで拡大した").toBe("100%");
+    // 縦に回すホイールは、修飾キーの有無に関わらず指した所を中心に拡大し、頁の拡大と送りを止める (Tracelyth #191)。
+    // #3418 は押さないホイールを頁の送りに任せたが、パッチの再生の部品 (#3761) に合わせた
+    const plain = new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true });
+    frame.dispatchEvent(plain);
+    expect(Number.parseInt(level(), 10), "押さないホイールで拡大しない").toBeGreaterThan(100);
+    expect(plain.defaultPrevented, "押さないホイールで頁を送る").toBe(true);
+    // 横の量が縦の量より大きい回し方は拡大せず、ブラウザに任せて図を横に送る
+    const turned = level();
+    const side = new WheelEvent("wheel", { deltaX: 100, deltaY: 10, bubbles: true, cancelable: true });
+    frame.dispatchEvent(side);
+    expect(level(), "横に回すホイールで拡大した").toBe(turned);
+    expect(side.defaultPrevented, "横に回すホイールの横の送りを止めた").toBe(false);
     const ctrl = new WheelEvent("wheel", { deltaY: -100, ctrlKey: true, bubbles: true, cancelable: true });
     frame.dispatchEvent(ctrl);
-    expect(Number.parseInt(level(), 10), "Ctrl を押しながらのホイールで拡大しない").toBeGreaterThan(100);
+    expect(Number.parseInt(level(), 10), "Ctrl を押しながらのホイールで拡大しない").toBeGreaterThan(Number.parseInt(turned, 10));
     expect(ctrl.defaultPrevented, "Ctrl を押しながらのホイールで頁が拡大する").toBe(true);
     frame.dispatchEvent(new WheelEvent("wheel", { deltaY: 400, metaKey: true, bubbles: true, cancelable: true }));
     expect(level(), "Command を押しながらのホイールで縮小しない").toBe("100%");
@@ -833,10 +897,12 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
 
   it("player-pipe-flows-show-moves", () => {
     prefersReducedMotion(true);
-    const two = mount(exampleJson("swap-two-hops.json"), { lang: "ja" });
+    // 図は読む段で置いた物
+    const placed = MOVES.get();
+    const two = adopt(placed.two);
     two.player.goTo(2);
     expect(flowsOf(two.host), "見本 swap-two-hops の段 3 の矢印").toEqual([{ kind: "move", from: "Alice", amount: "100 USDC", to: "Pool1", tag: "送る" }]);
-    const agg = mount(exampleJson("aggregator.json"), { lang: "ja", open: [2] });
+    const agg = adopt(placed.agg);
     agg.player.goTo(6);
     // 呼び出しと返した値は出さず、動いた値だけを出す
     expect(flowsOf(agg.host), "箱を開いた aggregator の段 7 の矢印").toEqual([
@@ -870,9 +936,11 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
 
   it("player-pipe-flows-show-calls-and-returns", () => {
     prefersReducedMotion(true);
-    const swap = mount(exampleJson("swap.json"), { lang: "ja" });
+    // 図は読む段で置いた物
+    const placed = CALLS.get();
+    const swap = adopt(placed.swap);
     expect(flowsOf(swap.host), "見本 swap の段 1 の呼び出し").toEqual([{ kind: "call", from: "Alice", amount: "100 USDCを交換", to: "SwapRouter", tag: "呼ぶ" }]);
-    const agg = mount(exampleJson("aggregator.json"), { lang: "ja", open: [2] });
+    const agg = adopt(placed.agg);
     agg.player.goTo(3);
     // 同じ段で戻った呼び出しは、返した側から返した値の矢印 1 本にまとめる
     expect(flowsOf(agg.host), "箱を開いた aggregator の段 4 の矢印").toEqual([
@@ -881,7 +949,7 @@ describe("配管の図の下に段の動きを矢印で出す (#3450)", () => {
     ]);
     expect(rowsOf(agg.host).map((r) => r.dataset.line), "返した値の矢印が点線でない").toEqual(["dashed", "dashed"]);
     // 前の段で開いた呼び出しが戻る段は、返した値だけを出す
-    const vault = mount(exampleJson("vault-proxy.json"), { lang: "ja" });
+    const vault = adopt(placed.vault);
     vault.player.goTo(4);
     expect(flowsOf(vault.host), "見本 vault-proxy の段 5 の矢印").toEqual([{ kind: "return", from: "PriceOracle", amount: "3200", to: "VaultLogic", tag: "返す" }]);
   });
@@ -949,27 +1017,33 @@ describe("携帯の幅で配管の図の字を読める大きさに置く (#3450
   const READABLE_PX = 10.5;
 
   /**
-   * 幅 `PHONE` の枠に配管の見本を置き、置いた枠と図の幅と、画面で見える残高の字の大きさを返す。
+   * 幅 `PHONE` の枠に置いた配管の見本の、置いた枠と図の幅と、画面で見える残高の字の大きさを返す。
    * 並べた図の幅と残高の字の高さ (`laid`) は、準備の段が同じ原本と設定 ({ lang, width: PHONE, open }) で描いた物
    */
-  function placeOnPhone(file: string, lang: "ja" | "en", laid: { width: number; levelH?: number }, open?: number[]): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
-    prefersReducedMotion(true);
-    const source = exampleJson(file);
-    const host = document.createElement("div");
-    Object.defineProperty(host, "clientWidth", { value: PHONE });
-    document.body.appendChild(host);
-    players.push(draw("mountDiagram")(host, source, { lang, ...(open ? { open } : {}) }));
+  function readOnPhone(file: string, host: HTMLElement, laid: { width: number; levelH?: number }): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
     const frame = host.querySelector<HTMLElement>('[data-dragon="pan"],[data-dragon="zoom-frame"]');
     const shown = Number.parseFloat(frame?.querySelector<SVGElement>("svg")?.style.width || "0");
     expect(laid.levelH, `${file} の槽の残高の字が無い`).toBeDefined();
     return { host, shown, px: ((laid.levelH ?? 0) * shown) / laid.width, frame };
   }
 
-  // 言葉ごとに件を分け、1 件が混んだ機械でも上限に収まるようにする
+  /** 幅 `PHONE` の枠に配管の見本を置き、`readOnPhone` の値を返す */
+  function placeOnPhone(file: string, lang: "ja" | "en", laid: { width: number; levelH?: number }): { host: HTMLElement; shown: number; px: number; frame: HTMLElement | null } {
+    prefersReducedMotion(true);
+    const source = exampleJson(file);
+    const host = document.createElement("div");
+    Object.defineProperty(host, "clientWidth", { value: PHONE });
+    document.body.appendChild(host);
+    players.push(draw("mountDiagram")(host, source, { lang }));
+    return readOnPhone(file, host, laid);
+  }
+
+  // 言葉ごとに件を分け、1 件が混んだ機械でも上限に収まるようにする。図は読む段で箱 2 を開いて置いた物
   describe.for(["ja", "en"] as const)("%s", (lang) => {
     it("player-pipe-narrow-keeps-text-readable", () => {
+      prefersReducedMotion(true);
       const file = NARROW_SOURCES[lang];
-      const { host, shown, px, frame } = placeOnPhone(file, lang, drawn().narrow[lang], [2]);
+      const { host, shown, px, frame } = readOnPhone(file, adopt(NARROW.get()[lang]).host, drawn().narrow[lang]);
       expect(px, `箱を開いた aggregator (${lang}) を幅 ${PHONE} に置いた残高の字 (置いた図の幅 ${Math.round(shown)}px)`).toBeGreaterThanOrEqual(READABLE_PX);
       // 字を読める幅で置くと枠より広くなるので、縮めずに横に送り、全体のどこを見ているかを線で示す
       expect(frame?.dataset.dragon, "幅に収まらない図を横に送る枠にしていない").toBe("pan");

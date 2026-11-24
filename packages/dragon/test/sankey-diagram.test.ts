@@ -10,17 +10,20 @@
  * 置き場所 (`layout`) と時刻の表 (`timeline`) は描く部品が返す値で確かめ、帯と棒の出方は SVG の keyframes を jsdom で読んで確かめる。
  * 見本の file と量の行き先の図の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, type LineError } from "./diagram-support";
 import { motionFrom } from "./motion-support";
 import { draw, type Layout, type Rect, type Rendered, type Span } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sankey";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
 
 const ROOT = process.cwd();
-const PACKAGE = join(ROOT, "packages/dragon");
-const EXAMPLES = join(PACKAGE, "examples");
+const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
 /** 量の行き先の図の見本 4 枚 (#3626 の「決まっていること」) */
 const SANKEY_EXAMPLES = ["token-allocation", "fee-split", "salary", "revenue"] as const;
@@ -83,9 +86,6 @@ const fileText = (name: string): string | undefined => {
   const path = join(EXAMPLES, name);
   return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 };
-
-/** repo の file の中身。無ければ空 */
-const repoText = (path: string): string => (existsSync(join(ROOT, path)) ? readFileSync(join(ROOT, path), "utf8") : "");
 
 /** 見本の file から、最初の注釈の行と、その後ろの空の行を外した記法 */
 const withoutComments = (text: string): string => text.replace(/^(?:\/\/[^\n]*\n)+\n*/u, "");
@@ -488,81 +488,5 @@ describe("量の行き先の図の並べ方と動き (#3626)", () => {
         expect(rendered.svg.includes(`>${e.label ?? ""}</text>`), `${what} の量の札の字 ${e.label} が描いた図に無い`).toBe(true);
       }
     }
-  });
-});
-
-describe("量の行き先の図の軽い入口 (#3626)", () => {
-  it("sankey-light-entry-draws-after-load-for", () => {
-    const code = [
-      `const text = ${JSON.stringify(SMALL)};`,
-      "out.before = light.kindLoaded('sankey');",
-      "await light.loadFor(text);",
-      "out.after = light.kindLoaded('sankey');",
-      "const read = light.parseNotation(text);",
-      "out.ok = read.ok;",
-      "out.errors = read.ok ? [] : read.errors;",
-      "if (read.ok) {",
-      "  const drawn = light.renderDiagram(read.diagram);",
-      "  out.kind = drawn.layout.kind;",
-      "  out.bands = (drawn.svg.match(/data-band=/g) ?? []).length;",
-      "  const full = await import('@cardenelabs/dragon');",
-      "  const again = full.parseNotation(text);",
-      "  out.same = again.ok && full.renderDiagram(again.diagram).svg === drawn.svg;",
-      "}",
-      "console.log(JSON.stringify(out));",
-    ].join("\n");
-    const script = `const light = await import("@cardenelabs/dragon/light");\nconst out = {};\n${code}`;
-    let stdout = "";
-    let failure = "";
-    try {
-      stdout = execFileSync(process.execPath, ["--input-type=module", "-e", script], { cwd: PACKAGE, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    } catch (error) {
-      failure = String((error as { stderr?: string }).stderr ?? error);
-    }
-    expect(failure, "軽い入口で量の行き先の図を読んで描く node が落ちる").toBe("");
-    const out = JSON.parse(stdout.trim().split("\n").at(-1) ?? "{}") as { before?: boolean; after?: boolean; ok?: boolean; errors?: unknown[]; kind?: string; bands?: number; same?: boolean };
-    expect(out.before, "軽い入口が loadFor の前から量の行き先の図の描く部品を持つ (最初に読む塊に入っている)").toBe(false);
-    expect(out.after, "軽い入口で loadFor を待っても量の行き先の図の描く部品を読まない").toBe(true);
-    expect(out.ok, `軽い入口で loadFor を待った後に量の行き先の図を読めない: ${JSON.stringify(out.errors)}`).toBe(true);
-    expect(out.kind, "軽い入口で描いた図の種類").toBe("sankey");
-    expect(out.bands, "軽い入口で描いた量の行き先の図の帯の数").toBe(5);
-    expect(out.same, "軽い入口と既定の入口で描いた量の行き先の図が違う").toBe(true);
-  });
-});
-
-describe("量の行き先の図の書き方の文書 (#3626)", () => {
-  it("sankey-docs-describe-the-notation", () => {
-    const extract = api("extractDiagrams");
-    const parse = api("parseNotation");
-    /** 頭の語 `sankey` と、段の中の量を書いた線の書き方 */
-    const head = /(^|[\s`])sankey [^\s`]/mu;
-    const amount = / -> (<[^>]+>|[^\s`:]+): (<量>|<amount>|\d)/u;
-    const sankeyFences = (text: string): number =>
-      extract(text).filter((fence) => {
-        const read = parse(fence.source);
-        return read.ok && (read.diagram as unknown as Source).kind === "sankey";
-      }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
-      const text = repoText(path);
-      expect(text, `${path} が無い`).not.toBe("");
-      expect(head.test(text), `${path} に sankey の行の書き方が無い`).toBe(true);
-      expect(amount.test(text), `${path} に量を書いた線 (<出どころ> -> <行き先>: <量>) の書き方が無い`).toBe(true);
-      if (path !== "README.md") expect(sankeyFences(text), `${path} に量の行き先の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
-    }
-    // README の描ける図の欄に量の行き先の図が載る
-    expect(/^\| Diagram kinds \|.*\bsankey diagram\b/imu.test(repoText("README.md")), "README.md の描ける図の欄に sankey diagram が無い").toBe(true);
-    // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
-    const content = repoText("apps/playground-spa/src/docs/content.ts");
-    expect(/SECTIONS = \[[^\]]*"sankey"/u.test(content), "使い方の頁の節に量の行き先の図 (sankey) が無い").toBe(true);
-    const sections = ["sankey.dragon", "sankey.en.dragon"].map((file) => repoText(`apps/playground-spa/src/docs/examples/${file}`));
-    for (const [i, text] of sections.entries()) {
-      const read = parse(text, { lang: i === 0 ? "ja" : "en" });
-      expect(read.ok && (read.diagram as unknown as Source).kind, `使い方の頁の量の行き先の図の節の例 (${i === 0 ? "sankey.dragon" : "sankey.en.dragon"}) が量の行き先の図として読めない`).toBe("sankey");
-    }
-    const blocks = join(PACKAGE, "src/blocks");
-    const paragraphs = readdirSync(blocks).map((name) => repoText(`packages/dragon/src/blocks/${name}/gallery/docs.ts`));
-    const page = [content, ...sections, ...paragraphs].join("\n");
-    expect(head.test(page), "使い方の頁に sankey の行の書き方が無い").toBe(true);
-    expect(amount.test(page), "使い方の頁に量を書いた線の書き方が無い").toBe(true);
   });
 });

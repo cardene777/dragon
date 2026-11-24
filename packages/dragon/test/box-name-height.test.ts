@@ -13,6 +13,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api, type Json, smallArchitecture, smallSequence } from "./diagram-support";
 import { draw, type Rendered } from "./render-support";
+import "../src/kind-use/architecture";
+import "../src/kind-use/sequence";
 
 /** アイコンも置き場の枠も持つ箱が無い図の、名前と下の字の基準線の箱の真ん中からの下がり */
 const CENTERED = { name: 5, sub: 20 };
@@ -29,7 +31,8 @@ interface Drops {
 
 /** 箱ごとの、名前と下の字の基準線の箱の真ん中からの下がり。下の字は箱の札の中の字を全て読む */
 function textDrops(rendered: Rendered): Map<string, Drops> {
-  const cards = rendered.svg.split('<g style="--c:').slice(1);
+  // 箱の要素は記法の id を data-node に持つ (#3795) ので、色の役の前の属性を読み飛ばす
+  const cards = rendered.svg.split(/<g(?: data-node="[^"]*")? style="--c:/u).slice(1);
   const drops = new Map<string, Drops>();
   for (const box of rendered.layout.boxes) {
     const card = cards.find((c) => new RegExp(`<text class="dg-sn"[^>]*>${box.name}</text>`, "u").test(c));

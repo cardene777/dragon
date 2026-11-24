@@ -15,7 +15,7 @@ step main にある
   commit A on main [hash: 3fa0c19, note: 最初の形]
   commit B on main [hash: 8b04f71, note: 一覧を足す]
   set main: B 8b04f71
-  set HEAD: main
+  set HEAD: `main`
   set 履歴の形: 一直線
 
 step 枝を切る
@@ -23,7 +23,7 @@ step 枝を切る
   code git switch -c feature
   feature from B
   set feature: B 8b04f71
-  set HEAD: feature
+  set HEAD: `feature`
 
 step 作業を積む
   say feature に C と D を積む。commit のたびに feature が新しい commit へ進み、HEAD も付いていく。main は B のまま。
@@ -41,7 +41,7 @@ step main が進む
 step rebase を始める
   say Git は分かれ目の B まで戻って C と D を控え、HEAD を E へ移す。HEAD は枝を通さず E を直接指す (切り離し)。ここから 1 つずつ当て直す。
   code git rebase main
-  HEAD -> E: git rebase main
+  HEAD -> E: `git rebase main`
   set HEAD: E (切り離し)
   set 履歴の形: 当て直し中
 
@@ -63,7 +63,7 @@ step D を当て直す
   commit D' on main copy D [hash: f1e7d28, note: 送料を足す]
   feature -> D'
   set feature: D' f1e7d28
-  set HEAD: feature
+  set HEAD: `feature`
   set 履歴の形: 早送りできる
 
 step 検査が通る
@@ -76,7 +76,7 @@ step main を早送り
   code git switch main → git merge --ff-only feature
   main -> D': git merge --ff-only feature
   set main: D' f1e7d28
-  set HEAD: main
+  set HEAD: `main`
   set 履歴の形: 一直線
 
 step 一直線の履歴

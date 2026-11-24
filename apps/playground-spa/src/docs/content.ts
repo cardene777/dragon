@@ -122,7 +122,7 @@ export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = 
   embed: [
     null,
     [
-      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.77/dist/cdn/dragon.js"></script>',
+      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>',
       "",
       '<pre class="dragon" data-header>',
       "sequence Take an order",
@@ -131,6 +131,15 @@ export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = 
       "step Place the order",
       "  shop -> api: Send the order",
       "</pre>",
+    ].join("\n"),
+    // 押した箱のidを読むコード (#3795)。README の組み込みの節と同じく、scriptの1行の入口のコードの次に置く (#3868)
+    [
+      "<script>",
+      'document.addEventListener("click", (event) => {',
+      "  const node = event.target.closest('[data-node]');",
+      '  if (node) showNote(node.getAttribute("data-node"));',
+      "});",
+      "</script>",
     ].join("\n"),
     [
       'import { mountDragon } from "@cardenelabs/dragon/embed";',
@@ -396,7 +405,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "頁に置く",
         text: [
           "自分の頁に図を置く時は、頁で 1 度だけ字の入口 `@cardenelabs/dragon/fonts` を import し、記法を読んだ原本を `mountDiagram` に渡す。下の例は package の README と同じ物。",
-          "字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。",
+          "字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。図は同梱の字で測った字の幅で組む。読み込まないと同梱の字の後に並べた端末のsans-serifの字で描かれ、字の幅が測った幅より数px広くなることがある。CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。",
           "`mountDiagram` が返す `player` で段を動かす (`next`、`prev`、`play`、`pause`、`destroy`)。3 つめの引数には、色味や段が替わった時に呼ぶ関数などの設定 (`PlayerOptions`) を渡す。",
         ],
         exit: "続き → 他のツールに組み込む",
@@ -406,6 +415,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "外のツールやサービスは、帯 (コード、エディタ、コピー、エクスポート、拡大) を持つ図を4つの置き方で頁に置ける。4つとも同じ記法から同じ図を描き、図の再生と前後の操作は図の下に残る。下のコードは package の README と同じ物で、囲みの右上のボタンで写せる。",
           "scriptの1行の入口では、`<pre class=\"dragon\">`の塊に属性`data-header`を付けると、その塊に帯が付く。属性を持たない塊は帯の無い図のまま。",
+          "描いた箱と囲みは、記法のidを`data-node`に持つ。例えば`box api as API server`は`data-node=\"api\"`を持つ要素になる。箱を押した時に何かを出すには、押された要素から`closest('[data-node]')`でidを読む。囲みの中の箱を押すと囲みでなく箱が返り、線と札はidを持たない。",
           "npmで入れた頁では、`@cardenelabs/dragon/embed`の`mountDragon`が要素に帯つきの図を置き、置いた図を返す。",
           "Web Componentでは、`defineDragonElement()`が要素`<dragon-diagram>`を登録し、要素は中の字を記法として帯つきの図を置く。属性`header=\"false\"`で帯を外せる。",
           "頁でpackageを動かせない置き先では、見本帳の埋め込みの頁をiframeで開く。`embedUrl`が、ブラウザがサーバーへ送らない`#`の後ろに記法を詰めたURLを返す。",
@@ -452,7 +462,7 @@ export const DOCS: Record<Lang, DocsText> = {
       head: ["設定", "意味"],
       rows: (palettes, fallback) => [
         ["--out <dir>", "書き出す先。無ければ作る (既定は今の dir)"],
-        ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる"],
+        ["--width <px>", "枠の幅。見せ方 (`fixed` / `follow`) を選び、`follow` の時の窓の幅になる。配管の図は常に`fixed`"],
         ["--palette <名前>", `色味 (${palettes}、既定は \`${fallback}\`)`],
         ["--line <名前>", "線の描き方 (`ruler` / `pen`、既定は `ruler`)。`pen` は手描きのペンの線で描く"],
         ["--theme <明暗>", "`light` か `dark`"],
@@ -690,7 +700,7 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Placing on a page",
         text: [
           "To place a diagram on your own page, import the font entry `@cardenelabs/dragon/fonts` once on the page, and pass the source read from the notation to `mountDiagram`. The example below is the same as in the package README.",
-          "The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing. Diagrams are laid out with character widths measured from the bundled fonts, so without it they are drawn in the device's fonts and text can overflow its labels. A bundler (such as Vite) carries the CSS and font files to the page.",
+          "The font entry only loads the CSS for the two bundled fonts (Noto Sans JP and JetBrains Mono) and exports nothing. Diagrams are laid out with character widths measured from the bundled fonts. Without it, they are drawn in the device's sans-serif fonts listed after the bundled fonts, and text can be a few pixels wider than measured. A bundler (such as Vite) carries the CSS and font files to the page.",
           "Use the `player` returned by `mountDiagram` to move through the steps (`next`, `prev`, `play`, `pause`, `destroy`). The third argument takes settings such as the palette and a function called when the step changes (`PlayerOptions`).",
         ],
         exit: "Next → Embed it in other tools",
@@ -700,6 +710,7 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [
           "Tools and services can put a diagram with the bar (Code, Editor, Copy, Export and expand) on their pages in four ways. All four draw the same diagram from the same notation, and the player's step controls stay under the diagram. The code below is the same as in the package README, and the button at the top right of each block copies it.",
           "With the one-line script entry, add `data-header` to a `<pre class=\"dragon\">` block and that block gets the bar. Blocks without the attribute stay plain diagrams.",
+          "Every drawn box and group carries its notation id in `data-node`. For example, `box api as API server` draws an element with `data-node=\"api\"`. To show something when a box is pressed, read the id from the pressed element with `closest('[data-node]')`. A box inside a group returns the box, not the group, and lines and labels carry no id.",
           "On a page that installs the package, `mountDragon` from `@cardenelabs/dragon/embed` puts a diagram with the bar in an element and returns the placed diagram.",
           "As a Web Component, `defineDragonElement()` registers `<dragon-diagram>`, which reads the notation from its text and puts a diagram with the bar. `header=\"false\"` drops the bar.",
           "Where the page cannot run the package, open the gallery's embed page in an iframe. `embedUrl` returns its URL with the notation after `#`, which browsers do not send to the server.",
@@ -746,7 +757,7 @@ export const DOCS: Record<Lang, DocsText> = {
       head: ["Option", "Meaning"],
       rows: (palettes, fallback) => [
         ["--out <dir>", "Where to write. Created if missing (default: the current dir)"],
-        ["--width <px>", "Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`"],
+        ["--width <px>", "Frame width. Picks the view (`fixed` / `follow`) and sets the window width for `follow`. A pipe diagram is always `fixed`"],
         ["--palette <name>", `Colours (${palettes}, default \`${fallback}\`)`],
         ["--line <name>", "How lines are drawn (`ruler` / `pen`, default `ruler`). `pen` draws hand-drawn pen lines"],
         ["--theme <mode>", "`light` or `dark`"],

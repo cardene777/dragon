@@ -11,6 +11,9 @@ import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { EXAMPLES, exportIn, type Ran, runCli, scratch } from "../../../test-support/prepare-tools";
 import { exampleJson, exampleText, type Json } from "./diagram-data";
+// 既定の入口 (`dist`) で全ての種類の図を書き出すので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
+// 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの準備の段の検査を選ぶ。型だけなので、準備の段で src を読み込まない
+import type {} from "./all-kinds";
 
 /** 命令で書き出した結果と、書き出した先 */
 export interface CliExport {

@@ -22,6 +22,14 @@ import type { Frame, Motion } from "./motion";
 
 export const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+/**
+ * 箱と囲みを描いた要素に付ける、記法の id (`box <id>` と `group <id>`) を持つ属性 (#3795)。
+ * 図を置いた頁は箱を押した時に `closest('[data-node]')` で押した箱の id を読む。名前の字で探すと同じ名前の箱を取り違えるため。
+ * 線と札には付けない。押した所の外側を辿った時に、線の札から箱を引かないため
+ */
+export const NODE_ATTR = "data-node";
+/** 要素の開きの札に足す ` data-node="<id>"` */
+export const nodeAttr = (id: string): string => ` ${NODE_ATTR}="${esc(id)}"`;
 /** 座標を小数 2 桁に丸める。角の形 (`corner.ts`) も読むため、置き場は `round.ts` が持つ */
 export { r1 };
 
@@ -94,6 +102,8 @@ export interface Ctx {
   corner: Corner;
   /** 暗い色味で描くか (#3721)。配管の図は薄く描く部品を明るい色味より濃くし、暗い地でも同じだけ見えるようにする */
   dark?: boolean;
+  /** 頁に止めて置く図か (#3801)。段を送らないので、段の番号の丸を描かない */
+  figure?: boolean;
   /** 運ぶ物が置き場に座っている所と間 (#3518)。箱の置き場の枠は、運ぶ物が座っている間だけ見せる */
   seats: Seat[];
   /**
@@ -177,14 +187,17 @@ export function doneMark(box: SceneBox, at: number, ctx: Ctx): string {
  * `grey` を立てると (状態遷移図、#3171)、済んだ段の縁取りを線と同じ灰にする。
  * 同じ所に後の段の番号が来る時 (`until`) は、その段が始まる時に素早く消して数字を入れ替える (#3184)。
  * 見えていない間は `visibility` も隠し、同じ所に重ねたまだ来ていない段の番号が、押した時に前の段の番号を遮らないようにする。
+ * 見える間は `visibility` を祖先から受け継ぎ、`visibility: hidden` の祖先 (隠したタブなど) の中では動く間も隠れたままにする (#3755)。
  */
 export function badge(b: SceneBadge, ctx: Ctx, grey = false): string {
+  // 止めて置く図は段を送らないので、段の番号を出さない (#3801)
+  if (ctx.figure) return "";
   const { m } = ctx;
   const span = ctx.t.steps[b.step] as Span;
   const a = span.start;
   const e = span.end;
   const { r, ring: rr } = LOOK.badge;
-  const shown = { visibility: "visible" };
+  const shown = { visibility: "inherit" };
   const hidden = { visibility: "hidden" };
   const swap = b.until === undefined ? undefined : (ctx.t.steps[b.until] as Span).start;
   // 次の段がすぐ入れ替える時は、塗った番号のまま素早く消し、縁取りを出さない

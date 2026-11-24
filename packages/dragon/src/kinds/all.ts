@@ -1,52 +1,24 @@
 /**
  * 全ての種類の部品と、全てのブロックの読み方を読み込みの時に登録する (#3248、#3349)。全部入りの入口が読む。
+ * 種類ごとの登録は種類の登録の file (`kind-use/<種類>.ts`) が持ち、ここは全ての種類の分と共通の登録 (`basics.ts`) を読むだけ (#3763)。
  * 読むだけで登録するので、`package.json` の `sideEffects` に載せて束ねる道具に消させない。
  */
-import { registerReading } from "../blocks/reading";
-import { READINGS } from "../blocks/readings";
-import * as checkout from "./checkout";
-import * as chart from "./chart";
-import * as cycle from "./cycle";
-import * as er from "./er";
-import * as flow from "./flow";
-import * as git from "./git";
-import * as lineup from "./lineup";
-import * as matrix from "./matrix";
-import * as mind from "./mind";
-import * as pipe from "./pipe";
-import { registerKind } from "./registry";
-import { registerValidator } from "../schema";
-import { VALIDATOR } from "../schemas/validator";
-import { registerUserBlockReader } from "../user-blocks";
-import { USER_BLOCK_READER } from "../user-blocks-read";
-import * as sankey from "./sankey";
-import * as state from "./state";
-import * as time from "./time";
-import * as tree from "./tree";
-import * as tryKind from "./try";
-import * as venn from "./venn";
-
-registerKind("checkout", checkout);
-registerKind("chart", chart);
-registerKind("cycle", cycle);
-registerKind("er", er);
-registerKind("flow", flow);
-registerKind("git", git);
-registerKind("lineup", lineup);
-registerKind("matrix", matrix);
-registerKind("mind", mind);
-registerKind("pipe", pipe);
-registerKind("sankey", sankey);
-registerKind("state", state);
-registerKind("time", time);
-registerKind("tree", tree);
-registerKind("try", tryKind);
-registerKind("venn", venn);
-
-for (const [name, reading] of Object.entries(READINGS)) registerReading(name, reading);
-
-// 使う人が足すブロックの定義を読む処理 (#3399)。軽い入口は定義の行を持つ図の時だけ後から読む
-registerUserBlockReader(USER_BLOCK_READER);
-
-// 原本の形の検査 (#3400)。軽い入口は原本の JSON を読む前にだけ後から読む
-registerValidator(VALIDATOR);
+import "./basics";
+import "../kind-use/architecture";
+import "../kind-use/chart";
+import "../kind-use/checkout";
+import "../kind-use/cycle";
+import "../kind-use/er";
+import "../kind-use/flow";
+import "../kind-use/git";
+import "../kind-use/lineup";
+import "../kind-use/matrix";
+import "../kind-use/mind";
+import "../kind-use/pipe";
+import "../kind-use/sankey";
+import "../kind-use/sequence";
+import "../kind-use/state";
+import "../kind-use/time";
+import "../kind-use/tree";
+import "../kind-use/try";
+import "../kind-use/venn";

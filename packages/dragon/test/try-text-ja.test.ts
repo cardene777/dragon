@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { TRY_TEXT } from "../src/try-text";
 import { draw } from "./render-support";
 import { parsedTry } from "./try-support";
+import "../src/kind-use/try";
 
 /** 和文と英数字の間の空白 */
 const GAP = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}] [0-9A-Za-z]|[0-9A-Za-z] [\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;

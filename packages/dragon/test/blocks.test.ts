@@ -21,6 +21,9 @@ import { atLoad } from "./at-load";
 import { api } from "./diagram-support";
 import { casesNamed } from "./export-support";
 import { draw } from "./render-support";
+// 全てのブロックを全ての図の種類で描き、src の全ての file を読んで確かめるので、全ての種類を読む助けの file から読む (#3763)
+import "./all-kinds";
+import { kindLoaded } from "../src/kinds/registry";
 
 const SRC = join(__dirname, "../src");
 const BLOCKS_DIR = join(SRC, "blocks");
@@ -393,7 +396,8 @@ describe("図の種類の置き場 (#3345)", () => {
     expect(dirs(KINDS_DIR), "置き場の無い図の種類").toEqual(expect.arrayContaining(MOVED_KINDS));
     expect(kindFolderProblems(KINDS_DIR), "図の種類の置き場の決まり").toEqual([]);
     expect(Object.keys(kinds).sort(), "定義を読めない図の種類").toEqual(dirs(KINDS_DIR));
-    const laidOut = (kind: Kind): boolean => (kind.later === true ? kind.layout === undefined : typeof kind.layout === "function");
+    // 最初から持つ種類 (時系列図と構成図) の並べ方は、定義でなく種類の登録の file (`kind-use/<種類>.ts`) が登録簿へ登録する (#3763)
+    const laidOut = (kind: Kind): boolean => kind.layout === undefined && (kind.later === true || kindLoaded(kind.name));
     expect(Object.entries(kinds).filter(([folder, kind]) => kind.name !== folder || !laidOut(kind) || (kind.accepts.length === 0 && !kind.fields?.length)).map(([folder]) => folder), "名前か並べ方か付け方を持たない図の種類").toEqual([]);
   });
 

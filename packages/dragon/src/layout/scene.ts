@@ -8,6 +8,7 @@ import type { Family } from "../look/fonts";
 import { APART, COLOR_ORDER, type ColorKey, LOOK, TYPE } from "../look/values";
 import type { Carry, DiagramModel, DiagramEvent, LabelSide } from "../schema";
 import { userBlockReader } from "../user-blocks-registry";
+import { isCodeText, plainText, valueWidth } from "./code-text";
 import { hasWide, textWidth } from "./measure";
 
 export type Point = [number, number];
@@ -75,6 +76,8 @@ export interface SceneEdge {
   wait?: Point;
   /** 線を起こした操作の番号 (#3720)。時系列図の線だけが持ち、描いた線が `data-op` で持つ */
   op?: number;
+  /** 線の太さ (px)。お金の矢印のように呼び出しより太い線だけが持つ (Tracelyth #86) */
+  width?: number;
 }
 
 export interface SceneLabel extends Rect {
@@ -823,7 +826,17 @@ export function nearestLine(rect: Rect, own: Point[], lines: Point[][], offset: 
   return gap <= besideReach(offset) && lines.every((line) => lineGap(line, rect) >= gap * apart);
 }
 
-export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : TYPE.label);
+/** 描く札の字。backtick の囲みは描かない (#3850) */
+export const labelText = plainText;
+
+/**
+ * 線の札の字 (#3850)。コードの札は等幅の字 (`label`) で、英語の地の文の札は日本語の札と同じ字 (`labelJa`) で描く。
+ * 等幅の字は和文を持たないので、日本語を含む札は印があっても `labelJa` で描く
+ */
+export const labelStyle = (text: string) => (hasWide(text) ? TYPE.labelJa : isCodeText(text) ? TYPE.label : TYPE.labelJa);
+
+/** 札の字の幅。囲みを外した字を、描く字で測る (#3850) */
+export const labelWidth = (text: string): number => textWidth(labelText(text), labelStyle(text));
 
 const OPPOSITE: Record<LabelSide, LabelSide> = { above: "below", below: "above", left: "right", right: "left" };
 
@@ -833,7 +846,7 @@ const OPPOSITE: Record<LabelSide, LabelSide> = { above: "below", below: "above",
  * `flip` を立てると、同じ離れで反対の側も探す (#3175)。片側だけを遠くまで探すと、図の端の外へ出るため
  */
 export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLabel {
-  const w = textWidth(request.text, labelStyle(request.text)) + LOOK.label.padX * 2;
+  const w = labelWidth(request.text) + LOOK.label.padX * 2;
   const h = LOOK.label.h;
   const segment = longest(request.points);
   const mx = (segment.a[0] + segment.b[0]) / 2;
@@ -912,7 +925,7 @@ export function placeLabel(request: LabelRequest, obstacles: Obstacles): SceneLa
   const found = obstacles.nearest
     ? (tiers((rect) => free(rect) && clear(rect)) ?? (frames.length > 0 ? tiers(free) : undefined) ?? find(free, searchMax))
     : find((rect) => free(rect) && across(rect), searchMax);
-  return { ...(found ?? first), step: request.step, event: request.event, text: request.text, family: labelStyle(request.text).family, color: request.color };
+  return { ...(found ?? first), step: request.step, event: request.event, text: labelText(request.text), family: labelStyle(request.text).family, color: request.color };
 }
 
 /**
@@ -937,7 +950,7 @@ function fieldWidth(diagram: DiagramModel, name: string): number {
   for (const step of diagram.steps) {
     for (const event of step.events) {
       if (event.type !== "strip" || event.field !== name) continue;
-      if (event.value !== undefined) value = Math.max(value, textWidth(event.value, hasWide(event.value) ? TYPE.fieldValueJa : TYPE.fieldValue));
+      if (event.value !== undefined) value = Math.max(value, valueWidth(event.value));
       if (event.tag !== undefined) tag = Math.max(tag, textWidth(event.tag, TYPE.tag) + LOOK.strip.tagPadX * 2);
     }
   }

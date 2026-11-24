@@ -17,7 +17,7 @@ import { partRadius } from "./corner";
 import { type AreaGlow, drawScatter } from "./matrix-scatter";
 import { ALWAYS } from "./ink";
 import type { Frame } from "./motion";
-import { type Ctx, cssFont as font, esc, r1, write } from "./parts";
+import { type Ctx, cssFont as font, esc, nodeAttr, r1, write } from "./parts";
 
 const S = MATRIX_LOOK.stroke;
 const A = MATRIX_LOOK.area;
@@ -84,7 +84,7 @@ function areaOf(area: MatrixArea, glowAt: AreaGlow, ctx: Ctx): string {
   const nameY = area.y + (area.sub !== undefined ? A.head / 2 - 2 : A.head / 2) + MATRIX_TYPE.area.size * MATRIX_LOOK.baseline;
   const sub = area.sub !== undefined ? write(ctx.ink, "dg-mx-sub", area.x + A.padX, area.y + A.head - 2 + A.subH / 2 + MATRIX_TYPE.sub.size * MATRIX_LOOK.baseline, area.sub, MATRIX_TYPE.sub) : "";
   return (
-    `<g data-matrix-area="${esc(area.id)}" style="${cs(area.color)}"><rect class="dg-mx-area" ${rect}/>${glow}` +
+    `<g data-matrix-area="${esc(area.id)}"${nodeAttr(area.id)} style="${cs(area.color)}"><rect class="dg-mx-area" ${rect}/>${glow}` +
     `${write(ctx.ink, "dg-mx-name", area.x + A.padX, nameY, area.name, MATRIX_TYPE.area, ALWAYS)}${sub}</g>`
   );
 }

@@ -2,6 +2,7 @@
  * `dragon check --layout` の中身 (#3484)。記法から図を描き、崩れを既定の幅と携帯の幅の両方で数えて、知らせる文を作る。
  *
  * 崩れの数え方は `breaks.ts` が持つ。ここは幅ごとに描いて突き合わせ、携帯の幅でだけ出る崩れに幅を付ける。
+ * 描いた結果の字どうしの重なり (`overlaps`) も崩れの1つの種類として足す (#3790)。書き出しの命令が知らせる重なりを、崩れを確かめる命令も知らせるため。
  * 列の図と試す図と配管の図は幅で組み方を変えるので、既定の幅で崩れない図も携帯の幅で崩れることがある。
  */
 import { capital, FIGURE_TEXT, spaced } from "../figure-text";
@@ -14,6 +15,7 @@ import { diamondPoints, type Point } from "../layout/scene";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
+import type { Overlap, OverlapSpot } from "./ink";
 import { EMPTY_BAND } from "./pipe-breaks";
 
 /**
@@ -60,10 +62,34 @@ export function checkLayout(render: (width: number | undefined) => LayoutBreak[]
   return [...wide, ...narrow.filter((b) => !known.has(breakKey(b))).map((b) => ({ ...b, width: NARROW_WIDTH }))];
 }
 
+/** 重なる字の呼び方。段の番号の丸は段の番号で、図の部品は部品の種類で、ほかの字は字そのもので呼ぶ。書き出しの命令の文 (`describeOverlap`) と同じ呼び方 */
+const spotPart = (spot: OverlapSpot): LayoutPart => (spot.badge ? { kind: "badge", step: Number(spot.text) } : (spot.part ?? { kind: "text", text: spot.text }));
+
+/**
+ * 描いた結果の重なり `overlaps` のうち、字どうしの重なりを崩れ (`texts-overlap`) にする (#3790)。段は 1 から数える。
+ * 線が札を持たない字を横切る重なりは、崩れの `line-crosses-text` が既に数えるので足さない。
+ * 同じ 2 つの字が続く段にわたって重なる時は、ほかの崩れと同じく最初に見える段の 1 件にする
+ */
+function textOverlapBreaks(overlaps: readonly Overlap[]): LayoutBreak[] {
+  const lastStep = new Map<string, number>();
+  return overlaps.flatMap((overlap): LayoutBreak[] => {
+    if (overlap.kind !== "texts") return [];
+    const parts: [LayoutPart, LayoutPart] = [spotPart(overlap.spots[0]), spotPart(overlap.spots[1])];
+    const key = JSON.stringify(parts);
+    const step = overlap.step + 1;
+    const last = lastStep.get(key);
+    lastStep.set(key, step);
+    return last === step - 1 ? [] : [{ kind: "texts-overlap", step, parts }];
+  });
+}
+
 /** 読めた図 `diagram` の崩れ。描けない図は描く処理の断りを投げる */
 export function diagramBreaks(diagram: Diagram, lang: NotationLang = DEFAULT_LANG, blocks?: UserBlocks): LayoutBreak[] {
   // 図の頭に書かずに渡した定義 (`dragon check --blocks`、#3508) も描く処理に渡す
-  return checkLayout((width) => drawDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }), ...(blocks === undefined ? {} : { blocks }) }).breaks ?? []);
+  return checkLayout((width) => {
+    const drawn = drawDiagram(diagram, { lang, findBreaks: finder, ...(width === undefined ? {} : { width }), ...(blocks === undefined ? {} : { blocks }) });
+    return [...(drawn.breaks ?? []), ...textOverlapBreaks(drawn.overlaps)];
+  });
 }
 
 /**
@@ -87,6 +113,7 @@ export const stepLines = (text: string): number[] => tokenize(text).flatMap((lin
  * 配管の図の弁と計器と管の呼び方、札が部品に重なる、管が箱の縁の後ろを通る、2 本の管が重なって通る (#3523)。
  * ドーナツの輪の内側の呼び方も持ち、輪の真ん中の段の名前が収まらない崩れは図の枠からのはみ出しと同じ文で知らせる (#3560)。
  * 列の図の札に押した印と時間軸の範囲の囲みの呼び方と、針と囲みが字を横切る文も持つ (#3631)。印が字に重なる崩れは札が重なる文で知らせる。
+ * 字どうしの重なり (#3790) は、書き出しの命令と同じ文 (`FIGURE_TEXT` の `textsOverlap`) で知らせるので、この表に置かない。
  * 崩れを探す処理だけが読むので、描くだけの頁が最初に読む字の表 (`FIGURE_TEXT`) に置かない。置くと見本帳が最初に読む量の上限を超える (#3515)。
  * 線の呼び方と崩れの幅は、字の重なりの文と同じ表に残す
  */
@@ -294,6 +321,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                                     ? w.overText(name(a), name(b2))
                                     : b.kind === "empty-band"
                                       ? w.emptyBand(name(a), name(b2))
-                                      : w.runClose(name(a), name(b2));
+                                      : b.kind === "texts-overlap"
+                                        ? t.textsOverlap(name(a), name(b2))
+                                        : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

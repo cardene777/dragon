@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
+import { KIND_FOLDERS } from "../src/kinds/index";
 
 const ROOT = process.cwd();
 const MARKETPLACE = join(ROOT, ".claude-plugin/marketplace.json");
@@ -18,7 +19,6 @@ const MANIFEST = join(PLUGIN, ".claude-plugin/plugin.json");
 const SKILL = join(PLUGIN, "skills/dragon");
 const MAIN = join(SKILL, "SKILL.md");
 const REFERENCES = join(SKILL, "references");
-const KINDS = join(ROOT, "packages/dragon/src/kinds");
 
 /** `SKILL.md` の行の上限。常に読まれる本文を短く保つ */
 const MAIN_LINES = 200;
@@ -86,7 +86,8 @@ const localLinks = (text: string): string[] =>
   [...outsideFences(text).matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/gu)].map((m) => m[1] ?? "").filter((to) => !/^[a-z]+:/u.test(to));
 
 /** 図の種類の置き場の dir の名前。置き場の一覧から導き、手で並べない */
-const kindNames = (): string[] => readdirSync(KINDS).filter((name) => statSync(join(KINDS, name)).isDirectory()).sort();
+/** 図の種類の置き場の名前。置き場の dir を歩くと、関係する検査を選ぶ命令がこの検査を全ての種類の描く部品へ結ぶので、書き出した一覧から引く (#3763) */
+const kindNames = (): string[] => Object.keys(KIND_FOLDERS).sort();
 
 describe("dragon記法の skill を配るプラグイン (#3455)", () => {
   it("marketplace-lists-dragon-plugin", () => {
@@ -379,6 +380,16 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     expect(missing, "崩れの参照が書かない事").toEqual([]);
   });
 
+  it("skill-layout-names-text-overlaps", () => {
+    // `dragon check --layout`は字どうしの重なりも崩れとして知らせる (#3790)。崩れの種類の表に行を持ち、記法で直す手を書く
+    const text = read(join(REFERENCES, "layout.md"));
+    expect(text, "references/layout.md が無い").not.toBe("");
+    const row = text.split("\n").find((line) => line.startsWith("| `texts-overlap` |"));
+    expect(row, "崩れの種類の表に字どうしの重なり (texts-overlap) の行が無い").toBeDefined();
+    const fix = text.split("\n").find((line) => line.startsWith("- `texts-overlap`"));
+    expect(fix, "記法で直す手の一覧に字どうしの重なり (texts-overlap) の直し方が無い").toBeDefined();
+  });
+
   it("skill-layout-no-reply-workaround", () => {
     // 行きと帰りの線は dragon が崩れの下限より広く離して描くので (#3521)、記法で避ける手と、描き方の側の崩れとして伝える案内を書かない
     const layout = read(join(REFERENCES, "layout.md"));
@@ -392,5 +403,48 @@ describe("dragon記法の skill を配るプラグイン (#3455)", () => {
     ];
     const said = checks.flatMap(([file, text, words]) => (text.includes(words) ? [`${file}: ${words}`] : []));
     expect(said, "行きと帰りの線の崩れを記法で避ける手か、描き方の側の崩れとして書く").toEqual([]);
+  });
+});
+
+/** ほかのスキルが musubi で従う中身の宣言 (#3807) */
+const MUSUBI = join(SKILL, "musubi.json");
+/** skill の dir から見た参照の file。`/` で区切る */
+const referenceFiles = (): string[] => markdownUnder(REFERENCES).map((path) => relative(SKILL, path).split("\\").join("/")).sort();
+/** 参照の file の中身の名前。図の種類の file は種類の名前、ほかは file の名前 */
+const contentName = (file: string): string => file.replace(/^references\/(?:kinds\/)?/u, "").replace(/\.md$/u, "");
+/** 宣言が出す中身 */
+/** musubi.json が出す中身。名前ごとのバージョンと file */
+const provided = (): Record<string, { version?: string; file?: string }> => (json(MUSUBI).provides ?? {}) as Record<string, { version?: string; file?: string }>;
+
+describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
+  it("skill-musubi-provides-every-reference", () => {
+    const files = referenceFiles();
+    // 走査の空振りを避ける。参照の file は記法と図の種類の分だけある
+    expect(files.length, "参照の file を数えられない").toBeGreaterThan(kindNames().length);
+    expect(json(MUSUBI).musubi, "musubi の定義の版").toBe("2026-11-20");
+    const provides = provided();
+    // 中身のバージョンは中身を変えるたびに musubi の決まりで上がるので、MAJOR.MINOR.PATCH の形だけを見る (#3809)
+    const missing = files.filter((file) => provides[contentName(file)]?.file !== file || !/^\d+\.\d+\.\d+$/u.test(provides[contentName(file)]?.version ?? ""));
+    expect(missing, "MAJOR.MINOR.PATCH のバージョンの中身として出していない参照の file").toEqual([]);
+    const absent = Object.values(provides).map((content) => content.file ?? "").filter((file) => !existsSync(join(SKILL, file)));
+    expect(absent, "中身が名指すのに無い file").toEqual([]);
+  });
+
+  it("skill-musubi-names-only-references", () => {
+    expect(Object.keys(json(MUSUBI)).sort(), "musubi.json の欄").toEqual(["musubi", "provides"]);
+    const provides = provided();
+    const files = new Set(referenceFiles());
+    expect(Object.keys(provides).length, "中身を数えられない").toBeGreaterThan(0);
+    const outside = Object.entries(provides).filter(([, content]) => !files.has(content.file ?? "")).map(([name]) => name);
+    const extra = Object.entries(provides).filter(([, content]) => Object.keys(content).some((key) => key !== "version" && key !== "file")).map(([name]) => name);
+    expect(outside, "references の下に無い file を名指す中身").toEqual([]);
+    expect(extra, "version と file の他の欄を持つ中身").toEqual([]);
+  });
+
+  it("skill-names-musubi-contents", () => {
+    const section = sectionOf(read(MAIN), "## Contents other skills follow");
+    expect(section, "SKILL.md に musubi で従う中身の節が無い").not.toBe("");
+    const unnamed = referenceFiles().map(contentName).filter((name) => !section.includes(`\`${name}\``));
+    expect(unnamed, "節が名を挙げない中身").toEqual([]);
   });
 });

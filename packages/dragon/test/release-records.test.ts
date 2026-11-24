@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -219,6 +220,142 @@ describe("版の記録 (#3151)", () => {
       expect(entry, `${file} の 0.65.0 の節に #3476 の項が無い`).not.toBe("");
       expect(entry, `${file} の 0.65.0 の節の #3476 の項が check を名指さない`).toContain("`check <");
       expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項が残る`).not.toContain("(#3476)");
+    }
+  });
+
+  it("changelog-0-79-7-lists-node-ids-once", () => {
+    // 描いた箱と囲みが記法の id を data-node に持つ形 (#3795) を 0.79.7 で出す (#3865)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 7), `package の版 ${version()} が 0.79.7 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.7\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.7"), "0.79.7");
+      expect(released, `${file} に日付付きの ## [0.79.7] の節が無い`).not.toBe("");
+      expect(released.split("(#3795)").length - 1, `${file} の 0.79.7 の節が (#3795) の項を 1 回だけ持たない`).toBe(1);
+      // 次の版の項は Unreleased に積まれるので、0.79.7 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3795) が残る`).not.toContain("(#3795)");
+    }
+  });
+
+  it("changelog-0-79-6-lists-follow-heads-once", () => {
+    // 窓に図の高さが収まる寄って追う時系列図で、頭の列と図の頭の箱の行を2重に映さない直し (#3834) を 0.79.6 で出す (#3862)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 6), `package の版 ${version()} が 0.79.6 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.6\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.6"), "0.79.6");
+      expect(released, `${file} に日付付きの ## [0.79.6] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.6 の節に (#3834) の項が無い`).toContain("(#3834)");
+      // 次の版の項は Unreleased に積まれるので、0.79.6 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3834) が残る`).not.toContain("(#3834)");
+    }
+  });
+
+  it("changelog-0-79-5-lists-mesh-gap-steady", () => {
+    // 網型の箱と人の間を全ての道で決め、呼び方を切り替えても箱と人を動かさない直し (#3826) を 0.79.5 で出す (#3828)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 5), `package の版 ${version()} が 0.79.5 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.5\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.5"), "0.79.5");
+      expect(released, `${file} に日付付きの ## [0.79.5] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.5 の節に (#3826) の項が無い`).toContain("(#3826)");
+      // 次の版の項は Unreleased に積まれるので、0.79.5 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3826) が残る`).not.toContain("(#3826)");
+    }
+  });
+
+  it("changelog-0-79-4-lists-mesh-ticket-room", () => {
+    // 網型で券を人の上に置いて線で結ぶ直し (#3819) を 0.79.4 で出す (#3821)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 4), `package の版 ${version()} が 0.79.4 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.4\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.4"), "0.79.4");
+      expect(released, `${file} に日付付きの ## [0.79.4] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.4 の節に (#3819) の項が無い`).toContain("(#3819)");
+      // 次の版の項は Unreleased に積まれるので、0.79.4 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3819) が残る`).not.toContain("(#3819)");
+    }
+  });
+
+  it("changelog-0-79-3-lists-mesh-call-middle", () => {
+    // 網型の呼び出しの管を箱の辺の真ん中へ少ない曲がりで入れる直し (#3813) を 0.79.3 で出す (#3814)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 3), `package の版 ${version()} が 0.79.3 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.3\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.3"), "0.79.3");
+      expect(released, `${file} に日付付きの ## [0.79.3] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.3 の節に (#3813) の項が無い`).toContain("(#3813)");
+      // 次の版の項は Unreleased に積まれるので、0.79.3 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3813) が残る`).not.toContain("(#3813)");
+    }
+  });
+
+  it("changelog-0-79-2-lists-pipe-top-look", () => {
+    // Tracelyth のトップページの図の良い所を配管の図へ取り込んだ変更 (#3783) を 0.79.2 で出す (#3793)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 2), `package の版 ${version()} が 0.79.2 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.2\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.2"), "0.79.2");
+      expect(released, `${file} に日付付きの ## [0.79.2] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.2 の節に (#3783) の項が無い`).toContain("(#3783)");
+      // 次の版の項は Unreleased に積まれるので、0.79.2 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3783) が残る`).not.toContain("(#3783)");
+    }
+  });
+
+  it("changelog-0-79-1-lists-side-port", () => {
+    // 網型で隣り合わない槽を繋ぐ管を槽の側面に付けた直し (#3775) を 0.79.1 で出す (#3776)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 79 || (minor === 79 && patch >= 1), `package の版 ${version()} が 0.79.1 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.1"), "0.79.1");
+      expect(released, `${file} に日付付きの ## [0.79.1] の節が無い`).not.toBe("");
+      expect(released, `${file} の 0.79.1 の節に (#3775) の項が無い`).toContain("(#3775)");
+      // 次の版の項は Unreleased に積まれるので、0.79.1 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3775) が残る`).not.toContain("(#3775)");
+    }
+  });
+
+  it("changelog-0-79-0-lists-tracelyth-patch", () => {
+    // Tracelyth が当てていたパッチの直しを取り込んだ変更 (#3761) を 0.79.0 で出す (#3771)。最初の項は再生の部品の `canvas` と `fitNarrow`
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 79, `package の版 ${version()} が 0.79.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.79\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.79.0"), "0.79.0");
+      expect(released, `${file} に日付付きの ## [0.79.0] の節が無い`).not.toBe("");
+      const entry = released.split("\n- ").find((item) => item.includes("(#3761)")) ?? "";
+      expect(entry, `${file} の 0.79.0 の節に (#3761) の項が無い`).not.toBe("");
+      expect(entry, `${file} の 0.79.0 の節の最初の (#3761) の項が \`canvas\` を名指さない`).toContain("`canvas`");
+      // 次の版の項は Unreleased に積まれるので、0.79.0 で出した項が残っていないことだけを見る
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3761) が残る`).not.toContain("(#3761)");
+    }
+  });
+
+  it("changelog-0-78-0-lists-page-export", () => {
+    // md から頁を書き出す命令と入口 (#3755) と、書き出した頁と埋めた頁に配管の図の並べ方を収めた変更 (#3748) を 0.78.0 で出す (#3760)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 78, `package の版 ${version()} が 0.78.0 より前`).toBe(true);
+    const named = [
+      ["(#3755)", "`exportPage`"],
+      ["(#3748)", "`dragon embed`"],
+    ] as const;
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.78\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.78.0"), "0.78.0");
+      expect(released, `${file} に日付付きの ## [0.78.0] の節が無い`).not.toBe("");
+      for (const [issue, word] of named) {
+        const entry = released.split("\n- ").find((item) => item.includes(issue)) ?? "";
+        expect(entry, `${file} の 0.78.0 の節に ${issue} の項が無い`).not.toBe("");
+        expect(entry, `${file} の 0.78.0 の節の ${issue} の項が ${word} を名指さない`).toContain(word);
+        // 次の版の項は Unreleased に積まれるので、0.78.0 で出した項が残っていないことだけを見る
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
     }
   });
 
@@ -1031,11 +1168,45 @@ describe("版の記録 (#3151)", () => {
   });
 });
 
+// GitHub Release の本文は scripts/release-notes.mjs が CHANGELOG.md の版の節から作る
+const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
+const notes = (version: string, file?: string): string =>
+  execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
+
+// 件の中で本文を作る命令を子の process で起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。
+// 件ごとの命令を file を読み込む段で 1 つずつ順に起こし、件はその結果を読む
+
+const MISSING_VERSION = await atLoad("節の無い版で本文を作る命令を起こす", () => {
+  const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
+  return { status: run.status, stdout: run.stdout };
+});
+
+const ABSOLUTE_LINKS = await atLoad("相対 link を持つ節から本文を作る命令を起こす", () => {
+  const dir = mkdtempSync(join(tmpdir(), "release-notes-"));
+  try {
+    const file = join(dir, "CHANGELOG.md");
+    writeFileSync(
+      file,
+      [
+        "# Changelog",
+        "",
+        "## [1.2.3] - 2026-11-03",
+        "",
+        "- See [the guide](docs/guide.md), [the readme](./README.md), [the site](https://example.invalid/x), and [below](#notes).",
+        "",
+        "## [1.2.2] - 2026-11-02",
+        "",
+        "- Older",
+        "",
+      ].join("\n"),
+    );
+    return notes("1.2.3", file);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 describe("Release の本文 (#3335)", () => {
-  // GitHub Release の本文は scripts/release-notes.mjs が CHANGELOG.md の版の節から作る
-  const SCRIPT = join(ROOT, "scripts/release-notes.mjs");
-  const notes = (version: string, file?: string): string =>
-    execFileSync("node", [SCRIPT, version, ...(file ? [file] : [])], { encoding: "utf8" });
   /**
    * 全ての版の本文。版ごとに命令を起こすので、順に起こすと版が増えるほど遅くなり、1 件の上限 (10 秒) に近づいていた (#3381)。
    * 一度に起こすのは 8 つまでにする
@@ -1082,39 +1253,18 @@ describe("Release の本文 (#3335)", () => {
   });
 
   it("release-notes-missing-version-fails", () => {
-    const run = spawnSync("node", [SCRIPT, "9.9.9"], { encoding: "utf8" });
+    const run = MISSING_VERSION.get();
     expect(run.status, "節の無い版で 1 以外を返した").toBe(1);
     expect(run.stdout, "節の無い版で本文を出した").toBe("");
   });
 
   it("release-notes-absolute-links", () => {
-    // 節の中の相対 link は Release の頁では切れるので、repo の main を指す link に直す
-    const dir = mkdtempSync(join(tmpdir(), "release-notes-"));
-    try {
-      const file = join(dir, "CHANGELOG.md");
-      writeFileSync(
-        file,
-        [
-          "# Changelog",
-          "",
-          "## [1.2.3] - 2026-11-03",
-          "",
-          "- See [the guide](docs/guide.md), [the readme](./README.md), [the site](https://example.invalid/x), and [below](#notes).",
-          "",
-          "## [1.2.2] - 2026-11-02",
-          "",
-          "- Older",
-          "",
-        ].join("\n"),
-      );
-      const text = notes("1.2.3", file);
-      expect(text).toContain("[the guide](https://github.com/cardene777/dragon/blob/main/docs/guide.md)");
-      expect(text).toContain("[the readme](https://github.com/cardene777/dragon/blob/main/README.md)");
-      expect(text, "絶対 URL を書き換えた").toContain("[the site](https://example.invalid/x)");
-      expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
-      expect(text, "次の版の節まで出した").not.toContain("Older");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    // 節の中の相対 link は Release の頁では切れるので、repo の main を指す link に直す。本文は読み込む段で一時の CHANGELOG.md から作った
+    const text = ABSOLUTE_LINKS.get();
+    expect(text).toContain("[the guide](https://github.com/cardene777/dragon/blob/main/docs/guide.md)");
+    expect(text).toContain("[the readme](https://github.com/cardene777/dragon/blob/main/README.md)");
+    expect(text, "絶対 URL を書き換えた").toContain("[the site](https://example.invalid/x)");
+    expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
+    expect(text, "次の版の節まで出した").not.toContain("Older");
   });
 });

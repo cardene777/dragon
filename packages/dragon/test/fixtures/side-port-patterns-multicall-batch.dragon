@@ -1,0 +1,40 @@
+pipe USDC.multicallを実行
+layout mesh
+
+box alice as Alice
+box usdc as USDC
+box ecrecover as ecrecover
+box bob as Bob
+box carol as Carol
+
+hold alice: 1000 USDC
+hold bob: 0 USDC
+hold carol: 0 USDC
+hold usdc: "_nonces[Alice]" 0 [on: alice]
+hold usdc: "_allowances[Alice][Bob]" 0 [from: alice, to: bob, unit: USDC]
+
+step BobがUSDCのmulticallを呼ぶ
+  say BobがUSDC.multicallを呼び出します。multicallは、渡した呼び出しを1つのトランザクションの中で順に呼ぶ仕組みです。トークンは自分の処理を借りて呼ぶので、呼ばれた関数から見た呼び出した人は変わりません。1つでも失敗すると、前の呼び出しの書き換えも全部戻ります。
+  bob -> usdc: "multicall(data: [permit(…), transferFrom(…)])"
+
+step USDCの_nonces[Alice]など2つの値が書き換わる
+  say USDCがUSDCのpermitの処理を借りて、自分の_nonces[Alice]を0から1に書き換えます。自分の_allowances[Alice][Bob]も0から100 USDCに書き換えます。途中でUSDCがecrecoverに署名と署名したハッシュを渡し、署名した人としてAliceを受け取ります。
+  usdc -> usdc: permit(owner: alice, spender: bob, value: 100 USDC, deadline: 1893456000, v: 28, r: 0x6635…041f, s: 0x53c1…7988) [call: delegate]
+  write usdc: "_nonces[Alice]" 1
+  usdc -> ecrecover: ecrecover(hash: 0x8a05…0687, v: 28, r: 0x6635…041f, s: 0x53c1…7988)
+  return ecrecover: Alice
+  write usdc: "_allowances[Alice][Bob]" 100
+  emit usdc: Approval(owner: alice, spender: bob, value: 100 USDC)
+  return usdc: ok
+
+step 100 USDCがAliceからBobへ移る
+  say USDCがUSDCのtransferFromの処理を借りて、自分の_allowances[Alice][Bob]を100から0 USDCに書き換えます。100 USDCがAliceからBobへ移動します。
+  usdc -> usdc: transferFrom(from: alice, to: bob, value: 100 USDC) [call: delegate]
+  write usdc: "_allowances[Alice][Bob]" 0
+  move usdc: 100 alice -> bob
+  emit usdc: Transfer(from: alice, to: bob, value: 100 USDC)
+  return usdc
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。_nonces[Alice]は0から1になりました。
+  return usdc: ok
