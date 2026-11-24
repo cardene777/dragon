@@ -10,16 +10,58 @@
  * 知らないボタンの名前と、2 度書いたボタンと、`;` `<` `>` `{` `}` `"` `\` を含む色の値と、知らない `header-` の行は、行の番号つきで断る。ほかの行は読まない。
  *
  * 場所の名前は見出しの字から作る。項目は頁の中で、タブは同じ所に並ぶタブの中で重ならないよう分ける。
+ *
+ * 説明の頁 (`layout: guide`、#3876) は、`##` を話題のタブ、`###` をタブの中に縦に積む節にし、`####` から下は中身の見出しのまま残す。
+ * 節の題の直後の引用 (`>`、GitHub の注意書きを除く) は節の答えにし、ほかの引用は中身に残す。
+ * 最初の `##` より前に 1 行だけ書いた `![名前](path.md)` は用語の file を読み込む行にし、`名前` のタブにする。
+ * 場所の名前は、話題のタブと節と用語のタブで頁の中で重ならないよう分ける。
  */
 import { NOTE_MODES } from "../blocks/pop/block";
 import { BUILTIN_BUTTONS, HEADER_COLOR_KEYS } from "../frame/names";
-import { fenceCloses, fenceOpen, headingOf, type Line } from "./markdown";
+import { fenceCloses, fenceOpen, headingOf, includeOf, isAlert, type Line, quoteOf } from "./markdown";
 import { slugger } from "./slug";
 import type { PageMessages } from "./text";
 
-/** 頁の組み立て。`entry` は全体の図を入口にし、`sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブ */
-export type Layout = "entry" | "sidebar" | "tabs";
-export const LAYOUTS: readonly Layout[] = ["entry", "sidebar", "tabs"];
+/**
+ * 頁の組み立て。`entry` は全体の図を入口にし、`sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブ。
+ * `guide` は話題のタブと、タブの中に縦に積む問いの節 (#3876)
+ */
+export type Layout = "entry" | "sidebar" | "tabs" | "guide";
+export const LAYOUTS: readonly Layout[] = ["entry", "sidebar", "tabs", "guide"];
+
+/** 説明の頁の節。`answer` は題の直後の引用の行 (`>` を外した字) */
+export interface Section {
+  id: string;
+  name: string;
+  line: number;
+  answer?: Line[];
+  body: Line[];
+}
+
+/** 説明の頁の話題のタブ。`lead` は最初の節より前の中身 */
+export interface Topic {
+  id: string;
+  name: string;
+  line: number;
+  lead: Line[];
+  sections: Section[];
+}
+
+/** 頁の頭で読み込む用語の file。`name` はタブの名前、`id` はタブの場所の名前 */
+export interface GlossaryInclude {
+  id: string;
+  name: string;
+  target: string;
+  line: number;
+}
+
+/** 説明の頁の組み立て。`ids` は頁の中で配った場所の名前 */
+export interface Guide {
+  lead: Line[];
+  topics: Topic[];
+  glossaries: GlossaryInclude[];
+  ids: string[];
+}
 
 /** 見出しで分けた所。`body` はその見出しの下の中身の行 */
 export interface Tab {
@@ -70,6 +112,8 @@ export interface Outline {
   header?: PageHeader;
   entry: Part;
   groups: Group[];
+  /** `layout: guide` の頁だけが持つ。`entry` と `groups` は空 */
+  guide?: Guide;
 }
 
 export interface OutlineError {
@@ -122,6 +166,91 @@ function frontMatter(lines: readonly Line[]): { values: Map<string, Line>; next:
   return { values, next: end + 1 };
 }
 
+/** 用語の file を読み込める行き先。scheme を持たず、頁の中の場所でも `/` で始まる path でもない `.md` */
+const GLOSSARY_TARGET = /^(?![a-z][a-z0-9+.-]*:)(?![#/])[^#?]*\.md$/iu;
+
+/** 節の中身の頭の引用を答えに分ける。注意書きの引用と、頭が引用でない節は答えを持たない */
+function splitAnswer(section: Section): void {
+  const start = section.body.findIndex((line) => line.text.trim() !== "");
+  const first = start < 0 ? undefined : quoteOf(section.body[start]?.text ?? "");
+  if (first === undefined || isAlert(first)) return;
+  let end = start;
+  const answer: Line[] = [];
+  for (; end < section.body.length; end++) {
+    const row = section.body[end] as Line;
+    const text = quoteOf(row.text);
+    if (text === undefined) break;
+    answer.push({ text, line: row.line });
+  }
+  section.answer = answer;
+  section.body = section.body.slice(end);
+}
+
+/** 説明の頁の見出しを読む (#3876)。`title` は頭の `title` の値 */
+function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError[], title: string | undefined): { title: string | undefined; guide: Guide } {
+  let titled = false;
+  const lead: Line[] = [];
+  const topics: Topic[] = [];
+  const glossaries: GlossaryInclude[] = [];
+  let topic: Topic | undefined;
+  let section: Section | undefined;
+  let fence: string | undefined;
+  const sink = (): Line[] => section?.body ?? topic?.lead ?? lead;
+  for (const line of lines) {
+    if (fence !== undefined) {
+      if (fenceCloses(line.text, fence)) fence = undefined;
+      sink().push(line);
+      continue;
+    }
+    const open = fenceOpen(line.text);
+    if (open) {
+      fence = open.mark;
+      sink().push(line);
+      continue;
+    }
+    const heading = headingOf(line.text);
+    if (!heading || heading.level > 3) {
+      const include = topic ? undefined : includeOf(line.text);
+      if (include && GLOSSARY_TARGET.test(include.target)) glossaries.push({ id: "", name: include.name || include.target, target: include.target, line: line.line });
+      else sink().push(line);
+      continue;
+    }
+    if (heading.level === 1) {
+      if (titled || topic) errors.push({ line: line.line, message: m.extraTitle });
+      else {
+        title = heading.text;
+        titled = true;
+      }
+    } else if (heading.level === 2) {
+      topic = { id: "", name: heading.text, line: line.line, lead: [], sections: [] };
+      topics.push(topic);
+      section = undefined;
+    } else if (!topic) {
+      errors.push({ line: line.line, message: m.sectionBeforeTopic });
+    } else {
+      section = { id: "", name: heading.text, line: line.line, body: [] };
+      topic.sections.push(section);
+    }
+  }
+  // 場所の名前は、話題のタブとその節を書いた順に配り、用語のタブを最後に配る
+  const ids: string[] = [];
+  const id = slugger();
+  const named = (text: string): string => {
+    const name = id(text);
+    ids.push(name);
+    return name;
+  };
+  for (const t of topics) {
+    t.id = named(t.name);
+    for (const s of t.sections) {
+      s.id = named(s.name);
+      splitAnswer(s);
+    }
+  }
+  for (const g of glossaries) g.id = named(g.name);
+  return { title, guide: { lead, topics, glossaries, ids } };
+}
+
 /** mdの行の並びを頁の組み立てに分ける。誤りがあれば全ての誤りを返す */
 export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true; outline: Outline } | { ok: false; errors: OutlineError[] } {
   const errors: OutlineError[] = [];
@@ -138,6 +267,12 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
   if (noteLine && !(NOTE_MODES as readonly string[]).includes(noteLine.text)) errors.push({ line: noteLine.line, message: m.badNote(noteLine.text, NOTE_MODES.join(" / ")) });
   const note = noteLine?.text === "pop" ? "pop" : undefined;
   let title = head.values.get("title")?.text || undefined;
+  const extra: Pick<Outline, "note" | "header"> = { ...(note ? { note } : {}), ...(header ? { header } : {}) };
+  if (layout === "guide") {
+    const read = readGuide(lines.slice(head.next), m, errors, title);
+    if (errors.length > 0) return { ok: false, errors };
+    return { ok: true, outline: { title: read.title, layout, ...extra, entry: { lead: [], tabs: [] }, groups: [], guide: read.guide } };
+  }
   let titled = false;
   const entry: Part = { lead: [], tabs: [] };
   const groups: Group[] = [];
@@ -211,12 +346,16 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
     }
   }
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, outline: { title, layout, ...(note ? { note } : {}), ...(header ? { header } : {}), entry, groups } };
+  return { ok: true, outline: { title, layout, ...extra, entry, groups } };
 }
 
-/** 頁の中の場所の名前の並び (`項目/タブ/中のタブ`) が、頁に在る場所か */
-export function placeExists(outline: Outline, path: readonly string[]): boolean {
+/**
+ * 頁の中の場所の名前の並び (`項目/タブ/中のタブ`) が、頁に在る場所か。
+ * 説明の頁では、話題のタブか節か用語のタブの場所の名前 1 つか、`extra` に渡した場所の名前 (用語の説明) を受ける
+ */
+export function placeExists(outline: Outline, path: readonly string[], extra: readonly string[] = []): boolean {
   const [id, ...tabs] = path;
+  if (outline.guide) return tabs.length === 0 && id !== undefined && (outline.guide.ids.includes(id) || extra.includes(id));
   const item = outline.groups.flatMap((g) => g.items).find((i) => i.id === id);
   if (!item) return false;
   let level: readonly Tab[] = item.tabs;
