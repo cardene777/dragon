@@ -91,6 +91,17 @@ const withoutFences = (text: string): string => {
 };
 const withoutCode = (text: string): string => withoutFences(text).replace(/(`+).*?\1/gu, "");
 
+/**
+ * 地の文の中の、30語を超える文。codeの囲み、表、HTMLの行、見出し、絵の行は数えない。
+ * 英語のREADMEと英語の手引きの図の種類の節が同じ数え方を使う (#3881、#3884)
+ */
+const longSentences = (text: string): string[] =>
+  withoutFences(text)
+    .split("\n")
+    .filter((line) => line.trim() !== "" && !/^\s*(#|\||<|>|!\[)/u.test(line))
+    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z`(])/u))
+    .filter((sentence) => sentence.split(/\s+/u).filter(Boolean).length > 30);
+
 /** 本文が指す絵の置き場 (`<img src>`、`<source srcset>`、`![](...)`) */
 const pictureRefs = (text: string): string[] => {
   const body = withoutCode(text);
@@ -252,12 +263,16 @@ describe("公開できる形の README (#3881)", () => {
 
   it("readme-english-short-lines", () => {
     // 英語版の 2 つの README は、30 語を超える文を持たない。code の囲み、表、HTML の行、見出しは数えない
+    // 仕様の変更 (#3884): 数え方を longSentences に出し、英語の手引きの検査と共有する。READMEへの判定は変わらない
     for (const readme of READMES.filter((r) => r.lang === "en")) {
-      const prose = withoutFences(read(readme.path))
-        .split("\n")
-        .filter((line) => line.trim() !== "" && !/^\s*(#|\||<|>|!\[)/u.test(line));
-      const long = prose.flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z`(])/u)).filter((sentence) => sentence.split(/\s+/u).filter(Boolean).length > 30);
-      expect(long, `${readme.path} に 30 語を超える文が在る`).toEqual([]);
+      expect(longSentences(read(readme.path)), `${readme.path} に 30 語を超える文が在る`).toEqual([]);
     }
+  });
+
+  it("guide-english-short-lines", () => {
+    // 英語の手引きの図の種類の節は、英語のREADMEと同じ数え方で30語を超える文を持たない (#3884)
+    const section = sectionOf(read(GUIDES.en), KINDS_HEADING.en.guide);
+    expect(section, `${GUIDES.en} に図の種類の節 (## ${KINDS_HEADING.en.guide}) が無い`).not.toBe("");
+    expect(longSentences(section), `${GUIDES.en} の図の種類の節に30語を超える文が在る`).toEqual([]);
   });
 });
