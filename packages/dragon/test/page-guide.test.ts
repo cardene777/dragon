@@ -21,9 +21,8 @@ import { withSite } from "./cdn-page-support";
 import { expectWritten, exportPageTool, tempDir, writeFiles } from "./page-export-support";
 import { ACTION_LIMIT_MS, inOrder, PAGE_LIMIT_MS, readUntil, within } from "./page-wait";
 
-const ROOT = join(process.cwd(), "packages/dragon");
-/** 説明の頁の見本の置き場。英語と日本語の頁と、それぞれが読み込む用語のfile */
-const EXAMPLES = join(ROOT, "examples/guide");
+/** 説明の頁の見本の置き場。英語と日本語の頁と、それぞれが読み込む用語のfile。package の根を歩かないよう、置き場を 1 つの字で書く */
+const EXAMPLES = join(process.cwd(), "packages/dragon/examples/guide");
 const EXAMPLE_PAGES = ["guide.en.md", "guide.md"];
 const EXAMPLE_GLOSSARIES = ["glossary.en.md", "glossary.md"];
 
