@@ -6,11 +6,11 @@
  * 版2 (#3346) は図の宣言を `blocks` のブロックの名前ごとの欄に持つ。版1の原本は読む時に版2へ移し、移したことを警告で返す。
  * 版の番号と、版1と版2の欄の対応は `model.ts` が持つ。
  */
-import { FIELD_MESSAGES } from "./field-messages";
 import { readyParts } from "./kinds/registry";
 import { FORMAT_VERSION, fromModel, isVersion1, toModel, upgrade } from "./model";
-import { LINK_URL } from "./blocks/link/block";
+import { LINK_MESSAGES, LINK_URL } from "./blocks/link/block";
 import { isParsed } from "./parsed";
+import { READ_MESSAGES } from "./read-messages";
 import { type CheckOptions, type Diagram, type FieldError, validateDiagram } from "./schema";
 import { isUserPath, userBlockUseMessages } from "./user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "./words";
@@ -28,7 +28,7 @@ function newerThanTool(input: unknown): number | undefined {
 
 const newerError = (version: number, lang: NotationLang): FieldError => ({
   pointer: "/version",
-  message: FIELD_MESSAGES[lang].newer(version, FORMAT_VERSION),
+  message: READ_MESSAGES[lang].newer(version, FORMAT_VERSION),
 });
 
 const SAFE_URL = new RegExp(LINK_URL, "u");
@@ -43,9 +43,9 @@ function unsafeValues(diagram: Diagram, lang: NotationLang): FieldError[] {
   const bad = (value: unknown, ok: (text: string) => boolean): boolean => value !== undefined && (typeof value !== "string" || !ok(value));
   const url = (text: string): boolean => SAFE_URL.test(text);
   for (const [i, b] of (diagram.define?.blocks ?? []).entries()) if (bad(b.path, isUserPath)) errors.push({ pointer: `/define/blocks/${i}/path`, message: userBlockUseMessages(lang).badPath });
-  for (const [i, box] of (diagram.blocks.box ?? []).entries()) if (bad(box.link, url)) errors.push({ pointer: `/blocks/box/${i}/link`, message: FIELD_MESSAGES[lang].url });
+  for (const [i, box] of (diagram.blocks.box ?? []).entries()) if (bad(box.link, url)) errors.push({ pointer: `/blocks/box/${i}/link`, message: LINK_MESSAGES[lang].url });
   for (const [s, step] of diagram.steps.entries()) {
-    for (const [k, source] of (step.sources ?? []).entries()) if (bad(source.url, url)) errors.push({ pointer: `/steps/${s}/sources/${k}/url`, message: FIELD_MESSAGES[lang].url });
+    for (const [k, source] of (step.sources ?? []).entries()) if (bad(source.url, url)) errors.push({ pointer: `/steps/${s}/sources/${k}/url`, message: LINK_MESSAGES[lang].url });
   }
   return errors;
 }
@@ -68,5 +68,5 @@ export function readDiagram(input: unknown, options: CheckOptions = {}): Read {
   if (!checked.ok) return checked;
   if (!isVersion1(input)) return { ok: true, diagram: input as Diagram, warnings: [] };
   const diagram = fromModel(toModel(upgrade(input, FORMAT_VERSION) as unknown as Diagram), FORMAT_VERSION);
-  return { ok: true, diagram, warnings: [FIELD_MESSAGES[lang].upgraded(1, FORMAT_VERSION)] };
+  return { ok: true, diagram, warnings: [READ_MESSAGES[lang].upgraded(1, FORMAT_VERSION)] };
 }

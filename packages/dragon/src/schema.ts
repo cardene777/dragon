@@ -5,16 +5,14 @@
  * `schemas/diagram.schema.json` は、骨組み (`schemas/base.schema.json`) とブロックの形の欠片を build の時に束ねて書き出した物 (#3346)。
  * 版1の原本は検査の前に版2の形へ移して検査し、誤りの場所は版1の欄の場所へ戻して返す。検査の関数を 1 つにして、見本帳が読む量を増やさない。
  * 誤りは JSON Pointer で場所を示す。欄が足りない時と知らない欄がある時は、その欄の場所まで示す。
- * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持つ (#2999)。
+ * 誤りの文は呼ぶ側が渡した言葉 (渡さなければ英語) で出す。文の表は `field-messages.ts` が持ち、原本の検査の塊が一緒に運ぶ (#2999、#3846)。
  *
  * 検査の関数は schema から前もって書き出した物 (`schemas/validate-diagram.js`) を使う。
  * ajv に schema をその場で組み立てさせると `new Function` を使い、`eval` を許さない頁の CSP で止まる。
  * 書き出しは `scripts/build-validator.mjs` が ajv の設定 `{ allErrors: true, discriminator: true, strictTypes: false, messages: false }` で行う。
  * ajv の英語の文は書き出さないので、誤りの `message` は持たない。
  */
-import { readyParts } from "./kinds/registry";
 import type { UserBlocks } from "./user-blocks";
-import type { ErrorObject } from "ajv";
 import type { GitBranch } from "./blocks/branch/block";
 import type { ChartItem } from "./blocks/chart-item/block";
 import type { ChartSet } from "./blocks/chart-set/block";
@@ -25,7 +23,6 @@ import type { GitCommit } from "./blocks/commit/block";
 import type { GitDelete } from "./blocks/delete/block";
 import type { LabelSide } from "./blocks/edge-label/block";
 import { ICON_NAMES } from "./blocks/icon/block";
-import type { TablerMessages } from "./blocks/icon/sets";
 import type { LineupItem } from "./blocks/item/block";
 import type { LineupShape } from "./blocks/item/limits";
 import type { MindIdea } from "./blocks/idea/block";
@@ -53,10 +50,8 @@ import type { LineupStamp } from "./blocks/stamp/block";
 import type { ErCell, ErField, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
 import type { VennCount, VennNone, VennSet } from "./blocks/circle/block";
 import type { CardDelete, CardItem, CardMake, CardMove, CardRefuse } from "./blocks/card/block";
-import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
-import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
-import { nearest } from "./nearest";
-import { DEFAULT_LANG, type NotationLang, STATE_ENDS } from "./words";
+import { READ_MESSAGES } from "./read-messages";
+import { DEFAULT_LANG, type NotationLang } from "./words";
 
 /** 色の役の型と一覧は色の役のブロック、アイコン名の一覧は絵のブロックが持つ (#3311、#3345) */
 export { type Color, COLORS, ICON_NAMES };
@@ -505,86 +500,6 @@ export interface CheckOptions {
   lang?: NotationLang;
 }
 
-/** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula", "count", "none", "card", "card-move", "card-delete", "refuse"] as const satisfies readonly DiagramEvent["type"][];
-/** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
-const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
-
-/**
- * その種類の図に書けない根の欄を書いた時の決まりの場所 (#3164)。根の欄に `not: {}` を置く決まり (`absent`) を指し、
- * 誤りの場所の最後の欄が書いた欄になる。種類の欄は、その欄と同じ名前の図の種類だけが書ける
- */
-const ABSENT = "#/definitions/absent/not";
-/**
- * 種類の欄でない欄を書ける図の種類。区画は枝分かれの図と時間軸の図に書けない。
- * 線の列 (`at` と `into`)、節目の丸の色 (`color`)、物差し (`meters`) は時間軸の図だけが書ける (#3165)
- */
-const ABSENT_KINDS: Record<string, string> = {
-  regions: "sequence / architecture / state",
-  group: "sequence / architecture / state",
-  path: "state / flow",
-  choice: "flow",
-  branch: "git",
-  scale: "time",
-  period: "time",
-  row: "time",
-  task: "time",
-  point: "time",
-  zoom: "time",
-  item: "lineup / try",
-  role: "lineup",
-  part: "try",
-  check: "try",
-  values: "try",
-  hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / matrix / sankey / cards",
-  order: "lineup",
-  limit: "lineup",
-  at: "time",
-  into: "time",
-  color: "time",
-  meters: "time",
-  region: "sequence / architecture / state",
-  icon: "sequence / architecture / state / git / time / tree / pipe / flow / cycle",
-  link: "sequence / architecture / state / git / time / tree / flow / cycle",
-  gist: "pipe",
-  chart: "chart",
-  matrix: "matrix",
-  table: "er",
-  circle: "venn",
-  card: "cards",
-  mark: "cards",
-};
-/** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
-const NOT_ALLOWED: Record<string, Allowed> = {
-  carry: { field: "text", kind: "tag" },
-};
-
-/** 状態遷移図と手順の図 (#3561) の箱と判断の名札に予約の名前を書いた時の決まりの場所 */
-const RESERVED_ID = /\/(?:box|choice)\/items\/properties\/id\/not$/u;
-/** 枝分かれの図でない図に、枝分かれの図だけの出来事を書いた時の決まりの場所 (#3164) */
-const GIT_EVENT = /\/events\/items\/properties\/type\/not$/u;
-/** 枝分かれの図だけが書ける出来事 */
-const GIT_EVENTS = ["commit", "branch", "delete"] as const satisfies readonly DiagramEvent["type"][];
-/** 時間軸の図でない図に、時間軸の図だけの出来事を書いた時の決まりの場所 (#3165)。出来事に `not` を置く */
-const TIME_EVENT = /\/events\/items\/not$/u;
-/** 時間軸の図だけが書ける出来事 */
-const TIME_EVENTS = ["now", "mark", "span"] as const satisfies readonly DiagramEvent["type"][];
-/** 木の図でない図に、木の図だけの出来事を書いた時の決まりの場所 (#3233)。出来事の `allOf` の中に `not` を置く */
-const TREE_EVENT = /\/events\/items\/allOf\/0\/not$/u;
-/** 木の図だけが書ける出来事 */
-const TREE_EVENTS = ["leaf", "node"] as const satisfies readonly DiagramEvent["type"][];
-/** 列の図でない図に、列の図だけの出来事を書いた時の決まりの場所 (#3239) */
-const LINEUP_EVENT = "#/definitions/notLineupEvent/not";
-/** 列の図だけが書ける出来事 */
-const LINEUP_EVENTS = ["line", "seal", "open", "pick", "stamp", "role"] as const satisfies readonly DiagramEvent["type"][];
-/** 試す図でない図に、試す図だけの出来事を書いた時の決まりの場所 (#3337) */
-const TRY_EVENT = "#/definitions/notTryEvent/not";
-/** 試す図だけが書ける出来事 */
-const TRY_EVENTS = ["ask", "press", "item"] as const satisfies readonly DiagramEvent["type"][];
-/** 配管の図でない図に、配管の図だけの出来事を書いた時の決まりの場所 (#3389) */
-const PIPE_EVENT = "#/definitions/notPipeEvent/not";
-/** 配管の図だけが書ける出来事 */
 /**
  * パイプ図の置き方の名前 (Tracelyth #165、#166、#168)。`auto` は形を機械に任せる名前で、`top` と `bottom` と箱の並びから点数の低い組を選ぶ。
  * `ledger` (帳簿型) と `mesh` (網型) と `bus` (母線型) は、槽をトークンごとの行に並べる形
@@ -599,191 +514,12 @@ export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
 export const SEQUENCE_SHAPES = ["pipe"] as const;
 export type SequenceShape = (typeof SEQUENCE_SHAPES)[number];
 
+/** 配管の図だけが書ける出来事 */
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];
-/** 量の図でない図に、量の図だけの出来事を書いた時の決まりの場所 (#3560) */
-const CHART_EVENT = "#/definitions/notChartEvent/not";
-/** 量の図だけが書ける出来事 */
-const CHART_EVENTS = ["set"] as const satisfies readonly DiagramEvent["type"][];
-/** 考えを広げる地図でない図に、考えを広げる地図だけの出来事を書いた時の決まりの場所 (#3619) */
-const MIND_EVENT = "#/definitions/notMindEvent/not";
-/** 考えを広げる地図だけが書ける出来事 */
-const MIND_EVENTS = ["idea"] as const satisfies readonly DiagramEvent["type"][];
-/** 表どうしの関係の図でない図に、表どうしの関係の図だけの出来事を書いた時の決まりの場所 (#3618) */
-const ER_EVENT = "#/definitions/notErEvent/not";
-/** 表どうしの関係の図だけが書ける出来事 */
-const ER_EVENTS = ["lookup", "cell", "formula"] as const satisfies readonly DiagramEvent["type"][];
-/** 集合の重なりの図でない図に、集合の重なりの図だけの出来事を書いた時の決まりの場所 (#3620) */
-const VENN_EVENT = "#/definitions/notVennEvent/not";
-/** 集合の重なりの図だけが書ける出来事 */
-const VENN_EVENTS = ["count", "none"] as const satisfies readonly DiagramEvent["type"][];
-/** 持ち主ごとのカードの図でない図に、持ち主ごとのカードの図だけの出来事を書いた時の決まりの場所 (#3846) */
-const CARDS_EVENT = "#/definitions/notCardsEvent/not";
-/** 持ち主ごとのカードの図だけが書ける出来事 */
-const CARDS_EVENTS = ["card", "card-move", "card-delete", "refuse"] as const satisfies readonly DiagramEvent["type"][];
-/** 試す図の部品の種類の決まりの場所 (#3337) */
-const PART_TAG = "#/definitions/part/discriminator";
-/** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
-const WIRED_EVENT = "#/definitions/notWiredEvent/not";
-/** 列の図が書けない、箱と線の図の出来事 */
-const WIRED_EVENTS = ["edge", "action"] as const satisfies readonly DiagramEvent["type"][];
-/** 時間軸の図の目盛りの長さの決まり (`^[0-9]+(\.[0-9]+)?(<単位>|<単位>)$`)。書ける単位を読む */
-const DURATION = /^\^\[0-9\]\+\(\\\.\[0-9\]\+\)\?\(([a-z|]+)\)\$$/u;
-/** 割合の決まり。百分率の `%` を持つ */
-const RATIO = /%\)\$$/u;
 
-const escape = (key: string): string => key.replaceAll("~", "~0").replaceAll("/", "~1");
-
-/** JSON Pointer `pointer` が指す `input` の中の値。辿れない時は `undefined` */
-function valueAt(input: unknown, pointer: string): unknown {
-  let value = input;
-  for (const raw of pointer.split("/").slice(1)) {
-    if (typeof value !== "object" || value === null) return undefined;
-    value = (value as Record<string, unknown>)[raw.replaceAll("~1", "/").replaceAll("~0", "~")];
-  }
-  return value;
-}
-
-/** 箱の飛び先と段の出典の URL の決まりの場所 (#3199) */
-const URL_RULE = "#/definitions/url/pattern";
-
-/** 箱と区画のアイコン名の決まりの場所 (#3311)。近い名前が在れば一覧の代わりにそれを示す (#3315) */
-const ICON_RULE = "#/definitions/icon/enum";
-
-/** commit の hash の決まり (`^[0-9a-f]{<最小>,<最大>}$`)。字の数の幅を読む */
-const HEX = /^\^\[0-9a-f\]\{(\d+),(\d+)\}\$$/u;
-
-/** `^[^…]+$` の形の決まりから書けない字を読む。違う形の決まりでは `undefined` */
-function forbiddenOf(pattern: string): Forbidden | undefined {
-  const inside = /^\^\[\^(.+)\]\+\$$/u.exec(pattern)?.[1];
-  if (inside === undefined) return undefined;
-  const chars: string[] = inside.match(/\\.|[^\\]/gu) ?? [];
-  return { space: chars.includes("\\s"), chars: chars.filter((char) => char !== "\\s").map((char) => char.replace(/^\\/u, "")) };
-}
-
-/** `anyOf` の中の決まりが出した誤り。`anyOf` の誤り 1 つにまとめて出す */
-const branchesOf = (anyOf: ErrorObject, errors: readonly ErrorObject[]): ErrorObject[] =>
-  errors.filter(
-    (error) =>
-      error !== anyOf &&
-      error.schemaPath.startsWith(`${anyOf.schemaPath}/`) &&
-      (error.instancePath === anyOf.instancePath || error.instancePath.startsWith(`${anyOf.instancePath}/`)),
-  );
-
-function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: FieldMessages, input: unknown): FieldError {
-  const params = error.params as Record<string, unknown>;
-  const at = error.instancePath;
-  switch (error.keyword) {
-    case "additionalProperties": {
-      const key = String(params.additionalProperty);
-      return { pointer: `${at}/${escape(key)}`, message: m.additionalProperties(key) };
-    }
-    case "required": {
-      const key = String(params.missingProperty);
-      return { pointer: `${at}/${escape(key)}`, message: m.required(key) };
-    }
-    case "not": {
-      if (RESERVED_ID.test(error.schemaPath)) return { pointer: at, message: (input as { kind?: unknown }).kind === "flow" ? m.flowReserved(STATE_ENDS) : m.reserved(STATE_ENDS) };
-      if (GIT_EVENT.test(error.schemaPath)) return { pointer: at, message: m.kindOnly(GIT_EVENTS, "git") };
-      if (TIME_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TIME_EVENTS, "time") };
-      if (TREE_EVENT.test(error.schemaPath)) return { pointer: `${at}/type`, message: m.kindOnly(TREE_EVENTS, "tree") };
-      if (error.schemaPath === LINEUP_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(LINEUP_EVENTS, "lineup") };
-      if (error.schemaPath === TRY_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(TRY_EVENTS, "try") };
-      if (error.schemaPath === PIPE_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(PIPE_EVENTS, "pipe") };
-      if (error.schemaPath === CHART_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CHART_EVENTS, "chart") };
-      if (error.schemaPath === MIND_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(MIND_EVENTS, "mind") };
-      if (error.schemaPath === ER_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(ER_EVENTS, "er") };
-      if (error.schemaPath === VENN_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(VENN_EVENTS, "venn") };
-      if (error.schemaPath === CARDS_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CARDS_EVENTS, "cards") };
-      if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
-      const last = at.slice(at.lastIndexOf("/") + 1);
-      if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };
-      const allowed = NOT_ALLOWED[last];
-      return { pointer: allowed ? `${at}/${allowed.field}` : at, message: m.not(allowed) };
-    }
-    case "anyOf": {
-      const branches = branchesOf(error, errors);
-      const missing = branches.every((branch) => branch.keyword === "required") ? branches.map((branch) => String(branch.params.missingProperty)) : [];
-      return { pointer: at, message: m.anyOf(missing) };
-    }
-    case "discriminator": {
-      const tag = String(params.tag);
-      return { pointer: `${at}/${escape(tag)}`, message: m.discriminator(tag, error.schemaPath === PART_TAG ? PART_TYPES : EVENT_TYPES) };
-    }
-    case "enum": {
-      const written = error.schemaPath === ICON_RULE ? valueAt(input, at) : undefined;
-      const near = typeof written === "string" ? nearest(written, ICON_NAMES) : undefined;
-      if (typeof written === "string" && near !== undefined) return { pointer: at, message: m.unknownIcon(written, near) };
-      return { pointer: at, message: m.enum((params.allowedValues as unknown[]).map(String)) };
-    }
-    case "type":
-      return { pointer: at, message: m.type(String(params.type)) };
-    case "minLength":
-      return { pointer: at, message: m.minLength(Number(params.limit)) };
-    case "maxLength":
-      return { pointer: at, message: m.maxLength(Number(params.limit)) };
-    case "pattern": {
-      if (error.schemaPath === URL_RULE) return { pointer: at, message: m.url };
-      const pattern = String(params.pattern);
-      const hex = HEX.exec(pattern);
-      if (hex) return { pointer: at, message: m.hex(Number(hex[1]), Number(hex[2])) };
-      const duration = DURATION.exec(pattern);
-      if (duration) return { pointer: at, message: m.duration((duration[1] ?? "").split("|")) };
-      if (RATIO.test(pattern)) return { pointer: at, message: m.ratio };
-      return { pointer: at, message: m.pattern(forbiddenOf(pattern)) };
-    }
-    case "minItems":
-      return { pointer: at, message: m.minItems(Number(params.limit)) };
-    case "maxItems":
-      return { pointer: at, message: m.maxItems(Number(params.limit)) };
-    case "minimum":
-      return { pointer: at, message: m.minimum(Number(params.limit)) };
-    case "exclusiveMinimum":
-      return { pointer: at, message: m.exclusiveMinimum(Number(params.limit)) };
-    case "maximum":
-      return { pointer: at, message: m.maximum(Number(params.limit)) };
-    case "const":
-      return { pointer: at, message: m.const(String(params.allowedValue)) };
-    case "oneOf":
-      return { pointer: at, message: m.oneOf };
-    default:
-      return { pointer: at, message: error.keyword };
-  }
-}
-
-const unescape = (key: string): string => key.replaceAll("~1", "/").replaceAll("~0", "~");
-
-/**
- * 版2へ移した版1の原本の誤りを、版1の欄の場所の誤りにする。図の種類が書けない欄は、版1の図の種類の欄 (`/git` など) の場所にする。
- * 欄が足りない時と知らない欄がある時は、欄の名前も版1の名前にする
- */
-function toVersion1Error(error: ErrorObject): ErrorObject {
-  const section = error.schemaPath === ABSENT ? version1SectionOf(error.instancePath) : undefined;
-  if (section !== undefined) return { ...error, instancePath: section };
-  const param = error.keyword === "required" ? "missingProperty" : error.keyword === "additionalProperties" ? "additionalProperty" : undefined;
-  if (param === undefined) return { ...error, instancePath: toVersion1Pointer(error.instancePath) };
-  const full = toVersion1Pointer(`${error.instancePath}/${escape(String(error.params[param as keyof typeof error.params]))}`);
-  const cut = full.lastIndexOf("/");
-  return { ...error, instancePath: full.slice(0, cut), params: { ...error.params, [param]: unescape(full.slice(cut + 1)) } };
-}
-
-/**
- * build の時に原本の形の決まりから書き出した検査の関数の形 (`schemas/validate-diagram.js`)。
- * 誤りの中身は ajv の形 (`ErrorObject`) で、読む時に形を決める。登録する口の型に ajv の型を出さないため、ここでは object として持つ
- */
-interface Validate {
-  (input: unknown): boolean;
-  errors?: readonly object[] | null;
-}
-
-/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査の関数と、Tabler の絵柄が表に在るかの検査 (#3493) と、量の図の漏斗 (#3621) と折れ線 (#3802) の見た目の値の検査 */
+/** 原本の検査の塊 (`schemas/validator.ts`)。形の検査と、形に書けない決まりの検査と、誤りを欄の場所と文にする処理を持つ (#3400、#3846) */
 interface Validator {
-  shape: Validate;
-  tablerErrors: (input: unknown, m: TablerMessages) => FieldError[];
-  chartErrors: (input: unknown, lang: NotationLang) => FieldError[];
-  /** 値の持ち分の線が同じ人どうしを結ぶかの検査 (Tracelyth #133)。形の決まりは2つの欄の値を比べられないため */
-  holdLinkErrors: (input: unknown, message: string) => FieldError[];
-  /** 配管の図の名前の下の字 (`sub`) がトークンの箱だけに在るかの検査 (#3803)。トークンの箱かは残高の欄と比べて決まるため */
-  holdNoteErrors: (input: unknown, lang: NotationLang) => FieldError[];
+  check: (input: unknown, lang: NotationLang) => Checked;
 }
 
 /**
@@ -806,26 +542,8 @@ export const validatorLoaded = (): boolean => validator !== undefined;
  * 版1の原本は版2の形へ移して検査し、誤りは版1の欄の場所で返す。同じ場所の同じ文の誤りは 1 つにまとめる
  */
 export function validateDiagram(input: unknown, options: CheckOptions = {}): Checked {
-  if (validator === undefined) throw new Error(FIELD_MESSAGES[options.lang ?? DEFAULT_LANG].validatorNotLoaded);
-  const { shape: validate, tablerErrors, chartErrors, holdLinkErrors, holdNoteErrors } = validator;
-  const version1 = isVersion1(input);
   const lang = options.lang ?? DEFAULT_LANG;
-  const m = FIELD_MESSAGES[lang];
-  // 絵柄集の絵柄は、形が名前の書き方だけを決めるので、絵柄集に在るかをここで確かめる (#3493)。
-  // 原本を書いた形 (版1か版2) のまま辿るので、誤りの場所は書いた原本の欄になる。
-  // 量の図の漏斗の見た目の値が段を進むほど減るかと、折れ線の見た目の段の数と値を書かない項目も、形に書けないのでここで確かめる (#3621、#3802)。
-  // 値の持ち分の線が別の2人を結ぶかと、配管の図の名前の下の字がトークンの箱だけに在るかも、形が2つの欄を比べられないのでここで確かめる (Tracelyth #133、#3803)
-  const sets = [...tablerErrors(input, m), ...chartErrors(input, lang), ...holdLinkErrors(input, m.oneOf), ...holdNoteErrors(input, lang)];
-  if (typeof input === "object" && input !== null && (input as Diagram).kind) {
-    const native = readyParts((input as Diagram).kind)?.validate;
-    if (native) sets.push(...native(input as Diagram).map(message => ({pointer:"/blocks",message})));
-  }
-  if (validate(version1 ? upgrade(input, FORMAT_VERSION) : input)) return sets.length === 0 ? { ok: true } : { ok: false, errors: sets };
-  const all = ((validate.errors ?? []) as ErrorObject[]).map((error) => (version1 ? toVersion1Error(error) : error));
-  const inBranch = new Set(all.filter((error) => error.keyword === "anyOf").flatMap((anyOf) => branchesOf(anyOf, all)));
-  // 条件付きの決まり (if / then) は中で落ちた決まりの誤りを別に出すので、包む側の if の誤りは出さない
-  const found = all.filter((error) => error.keyword !== "if" && !inBranch.has(error)).map((error) => toFieldError(error, all, m, input));
-  const errors = [...found, ...sets];
-  return { ok: false, errors: errors.filter((error, i) => errors.findIndex((other) => other.pointer === error.pointer && other.message === error.message) === i) };
+  if (validator === undefined) throw new Error(READ_MESSAGES[lang].validatorNotLoaded);
+  return validator.check(input, lang);
 }
 
