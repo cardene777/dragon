@@ -28,6 +28,7 @@ import { atLoad } from "./at-load";
 import { ACTION_LIMIT_MS, readUntil, within } from "./page-wait";
 import { formatOf, readGif, runCli } from "./export-support";
 import { fileChromium } from "./page-needs";
+import { embedPageWith } from "../src/export/embed";
 // 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
 // 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
 import type {} from "./all-kinds";
@@ -1378,6 +1379,44 @@ describe("dragon embed の止めて置く図 (#3801)", () => {
       expect(name, `${id} の名前`).not.toBeNull();
       const [top, bottom, base] = [Number(seg?.[1]), Number(seg?.[2]), Number(name?.[1])];
       expect(base > top && base < bottom, `${id} の名前の基準線 ${String(base)} が山形の上の縁 ${String(top)} と下の縁 ${String(bottom)} の間に在る`).toBe(true);
+    }
+  });
+});
+
+/**
+ * `dragon embed` で書き出した 1 枚の HTML でも、描いた箱と囲みが記法の id を `data-node` に持つ (#3795)。
+ *
+ * 止めて置く塊 (`data-still`) は、書き出す時に最後の段の形を描いた SVG に置き換わるので、ブラウザを開かずに中身を読める。
+ * 動く塊は埋めた script が同じ描く処理で描くので、描いた要素の件は `examples.test.ts` が持つ。
+ * 埋める処理は全ての種類を読むので、別の file に置くとどの種類を変えてもその file が選ばれ、種類ごとに選ぶ検査の数の上限
+ * (`related-by-kind.test.ts`) を超える。頁の塊と `dragon embed` の件を確かめるこの file に置く (#3868)。
+ */
+describe("書き出した 1 枚の HTML", () => {
+  const NODE_IDS_PAGE = [
+    "<!doctype html>",
+    '<html lang="ja"><body>',
+    "<pre class=\"dragon\" data-still>",
+    "architecture 送る仕組み",
+    "",
+    "group src as 送る側",
+    "  box app as アプリ",
+    "end",
+    "box db as 記録",
+    "",
+    "step 送る",
+    "  say アプリが記録へ書く。",
+    "  app -> db: 書く",
+    "</pre>",
+    '<script src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon/dist/cdn/dragon.js"></script>',
+    "</body></html>",
+  ].join("\n");
+
+  it("embed-html-keeps-node-ids", () => {
+    const page = embedPageWith(NODE_IDS_PAGE, "");
+    expect(page, "dragon embed が頁を書き出さない").toBeDefined();
+    const ids = [...(page ?? "").matchAll(/\sdata-node="([^"]*)"/gu)].map((m) => m[1]);
+    for (const id of ["app", "db", "src"]) {
+      expect(ids, `書き出した HTML の箱か囲み ${id} が data-node を持たない`).toContain(id);
     }
   });
 });
