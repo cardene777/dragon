@@ -22,8 +22,8 @@ describe("試す図の部品を横に並べる書き方の文書 (#3429)", () =>
       return text.slice(start, next < 0 ? undefined : next);
     };
     for (const [path, heading] of [
-      ["packages/dragon/README.ja.md", "### 試す図"],
-      ["packages/dragon/README.md", "### Try diagram"],
+      ["packages/dragon/examples/quick-start.md", "### 試す図"],
+      ["packages/dragon/examples/quick-start.en.md", "### Try diagram"],
     ] as const) {
       const section = sectionOf(readRepo(path), heading);
       expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");

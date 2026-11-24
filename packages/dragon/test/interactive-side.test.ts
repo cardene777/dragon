@@ -319,12 +319,13 @@ describe("試す図の記録の列を横に並べる (#3506)", () => {
 
   it("docs-side-gives-rest-to-log", () => {
     const line = (path: string, head: string): string => readRepo(path).split("\n").find((l) => l.startsWith(head)) ?? "";
-    const en = line("packages/dragon/README.md", "- `side <part>, <part>, ...`");
-    const ja = line("packages/dragon/README.ja.md", "- `side <部品>, <部品>, ...`");
-    expect(en, "README.md に side の行の説明が無い").not.toBe("");
-    expect(ja, "README.ja.md に side の行の説明が無い").not.toBe("");
-    expect(en, "README.md の side の行の説明が、待ち列の残りの幅を記録の列 (log) にも渡すと書かない").toMatch(/rest goes to the route, chain, and log/u);
-    expect(ja, "README.ja.md の side の行の説明が、待ち列の残りの幅を記録の列にも渡すと書かない").toContain("残りの幅を網と機械の列と記録の列に渡す");
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    const en = line("packages/dragon/examples/quick-start.en.md", "- `side <part>, <part>, ...`");
+    const ja = line("packages/dragon/examples/quick-start.md", "- `side <部品>, <部品>, ...`");
+    expect(en, "quick-start.en.md に side の行の説明が無い").not.toBe("");
+    expect(ja, "quick-start.md に side の行の説明が無い").not.toBe("");
+    expect(en, "quick-start.en.md の side の行の説明が、待ち列の残りの幅を記録の列 (log) にも渡すと書かない").toMatch(/rest goes to the route, chain, and log/u);
+    expect(ja, "quick-start.md の side の行の説明が、待ち列の残りの幅を記録の列にも渡すと書かない").toContain("残りの幅を網と機械の列と記録の列に渡す");
   });
 });
 

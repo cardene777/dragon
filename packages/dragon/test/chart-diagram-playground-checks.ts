@@ -65,11 +65,12 @@ describe("量の図の書き方の文書 (#3560)", () => {
         const parsed = parse(fence.source);
         return parsed.ok && (parsed.diagram as unknown as Source).kind === "chart";
       }).length;
-    for (const path of ["README.md", "packages/dragon/README.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       describes(path, text);
-      if (path !== "README.md") expect(chartFences(text), `${path} に量の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
+      expect(chartFences(text), `${path} に量の図として読める dragon の囲みが無い`).toBeGreaterThan(0);
     }
     // 使い方の頁は節の本文 (content.ts)、節の記法の例 (docs/examples)、ブロックの段落 (gallery/docs.ts) から組む
     const content = repoText("apps/playground-spa/src/docs/content.ts");

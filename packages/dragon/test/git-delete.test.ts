@@ -244,10 +244,18 @@ describe("見本と書き方の文書 (#3632)", () => {
     expect(paragraphs.some((text) => text.includes("`delete <枝>`")), "使い方の頁の枝分かれの図の日本語の段落に delete <枝> の行が無い").toBe(true);
     expect(paragraphs.some((text) => text.includes("`delete <branch>`")), "使い方の頁の枝分かれの図の英語の段落に delete <branch> の行が無い").toBe(true);
 
-    const readme = repoText("packages/dragon/README.md");
-    const git = readme.slice(readme.indexOf("### Git graph"), readme.indexOf("### Time diagram"));
-    expect(git.length, "packages/dragon/README.md に枝分かれの図の節が無い").toBeGreaterThan(0);
-    expect(git, "packages/dragon/README.md の枝分かれの図の節に delete <branch> の行が無い").toContain("`delete <branch>`");
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const [path, heading, form] of [
+      ["packages/dragon/examples/quick-start.en.md", "### Git graph", "`delete <branch>`"],
+      ["packages/dragon/examples/quick-start.md", "### 枝分かれの図", "`delete <枝>`"],
+    ] as const) {
+      const guide = repoText(path);
+      const start = guide.indexOf(`\n${heading}\n`);
+      expect(start, `${path} に枝分かれの図の節が無い`).toBeGreaterThan(0);
+      const next = guide.indexOf("\n### ", start + heading.length + 2);
+      const git = guide.slice(start, next < 0 ? undefined : next);
+      expect(git, `${path} の枝分かれの図の節に ${form} の行が無い`).toContain(form);
+    }
 
     // 見本帳の部品の図は、ブロックの置き場の gallery に置いた枝分かれの図の記法
     const figures = readdirSync(BLOCKS).flatMap((name) => {

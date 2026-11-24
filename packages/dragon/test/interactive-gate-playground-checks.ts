@@ -27,8 +27,8 @@ describe("書き方の文書 (#3476)", () => {
       en: "check <node>: <field> <op> <value> [no: <error>, retry, into: <log>]",
     } as const;
     for (const [path, heading, form] of [
-      ["packages/dragon/README.ja.md", "### 試す図", forms.ja],
-      ["packages/dragon/README.md", "### Try diagram", forms.en],
+      ["packages/dragon/examples/quick-start.md", "### 試す図", forms.ja],
+      ["packages/dragon/examples/quick-start.en.md", "### Try diagram", forms.en],
     ] as const) {
       const section = sectionOf(readRepo(path), heading);
       expect(section, `${path} に試す図の小節 (${heading}) が無い`).not.toBe("");

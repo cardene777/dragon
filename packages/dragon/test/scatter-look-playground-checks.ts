@@ -229,7 +229,8 @@ describe("点数で点を打つ見た目の書き方の文書 (#3637)", () => {
         const read = parse(fence.source);
         return read.ok && (read.diagram as unknown as Source).matrix?.shape === "scatter";
       }).length;
-    for (const path of ["packages/dragon/README.md", "packages/dragon/README.ja.md", "packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
+    // 種類ごとの書き方は README から記法の手引きへ移した (#3881)
+    for (const path of ["packages/dragon/examples/quick-start.md", "packages/dragon/examples/quick-start.en.md"]) {
       const text = repoText(path);
       expect(text, `${path} が無い`).not.toBe("");
       expect(head.test(text), `${path} に matrix <題> [shape: scatter] の書き方が無い`).toBe(true);
