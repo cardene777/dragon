@@ -913,6 +913,43 @@ describe("軽い入口の頁の帯つきの図 (#3789)", () => {
   });
 });
 
+/** 1 行目に `[note: pop]` を書いた時系列図。店の箱だけが note を持つ */
+const NOTE_POP = "sequence 注文 [note: pop]\n\nbox shop as 店 [note: 注文を受けて倉庫に出荷を頼む]\nbox store as 倉庫\n\nstep 頼む\n  say 店が倉庫に頼む。\n  shop -> store: 出荷\n";
+
+// 札の層を作る処理 (#3877) は軽い入口の最初に読む量に入れず、札で見せる図を置いた時に後から読む。
+// 読み込みの記録が残らない新しい Node で、置いた直後に層が無く、読み終わった後に層を置いて印を押すと札が開くかを、file を読み込む段で確かめる
+const NOTE_CARDS = await atLoad("札で見せる図を軽い入口で新しい Node に置く", () =>
+  inFreshNode<{ before?: boolean; after?: boolean; opened?: string[]; error?: string }>(`
+    const { JSDOM } = await import("jsdom");
+    const dom = new JSDOM("<!doctype html><html><body><div id=host></div></body></html>", { pretendToBeVisual: true });
+    for (const key of ["window", "document", "Node", "Element", "HTMLElement", "SVGElement", "Event", "MouseEvent", "getComputedStyle", "requestAnimationFrame", "cancelAnimationFrame"]) globalThis[key] ??= key === "window" ? dom.window : dom.window[key];
+    const host = dom.window.document.getElementById("host");
+    const layer = () => host.querySelector('[data-dragon="notes"]') !== null;
+    let player;
+    try {
+      const parsed = light.parseNotation(${JSON.stringify(NOTE_POP)}, { lang: "ja" });
+      player = light.mountDiagram(host, parsed.diagram, { lang: "ja" });
+      out.before = layer();
+      for (let i = 0; i < 100 && !layer(); i++) await new Promise((done) => setTimeout(done, 20));
+      out.after = layer();
+      host.querySelector('[data-note="shop"]').dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true }));
+      out.opened = [...host.querySelectorAll('[data-dragon="note-card"][data-open]')].map((el) => el.getAttribute("data-box"));
+    } catch (e) { out.error = e.message; }
+    player?.destroy();
+    dom.window.close();
+  `),
+);
+
+describe("札の層を後から読む軽い入口 (#3877)", () => {
+  it("light-loads-note-cards-after-mount", () => {
+    const seen = NOTE_CARDS.get();
+    expect(seen.error, "札で見せる図を軽い入口で置けない").toBeUndefined();
+    expect(seen.before, "軽い入口が札の層を作る処理を最初から持っていた").toBe(false);
+    expect(seen.after, "札で見せる図を置いた後に、札の層を読んで置かない").toBe(true);
+    expect(seen.opened, "札の層を置いた後に店の箱の印を押して開いた札").toEqual(["shop"]);
+  });
+});
+
 describe("見本ごとに分けた件が子の Node を起こさない (#3580)", () => {
   // このfileの最後の件として、分けた件が起こした子の Node を数える
   it("light-split-cases-start-no-node", () => {

@@ -29,7 +29,7 @@
  * ただし狭い枠に収めると槽の残高の字が `PIPE_FIRST.narrowPx` に届かない図は、字が届く幅で置いて横に送る (#3450)。
  */
 import { drawGist } from "./blocks/gist/draw";
-import { mountNoteCards, type NoteCards } from "./blocks/pop/draw";
+import { type NoteCards, withNoteCards } from "./blocks/pop/cards-store";
 import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import type { Styles } from "./adopt-css";
@@ -1039,13 +1039,23 @@ export function mountDiagram(
     show();
   };
 
-  /** 札で見せる図 (#3877) の箱の札。札の層は図の後ろに置き、頁が `svg` を探すと図を見つけるようにする */
+  /**
+   * 札で見せる図 (#3877) の箱の札。札の層は図の後ろに置き、頁が `svg` を探すと図を見つけるようにする。
+   * 札の層を作る処理を持たない軽い入口では、後から読み終わった時に置く。置く前に外した図には置かない
+   */
   let notes: NoteCards | undefined;
+  let gone = false;
   controls?.arrange(mode, width);
   place(markup());
   show();
-  notes = mountNoteCards(doc, frame, row, rendered.layout, words);
-  if (notes) root.dataset.notes = "";
+  if ((rendered.layout.noteCards ?? []).length > 0)
+    withNoteCards((made) => {
+      if (gone) return;
+      notes = made(doc, frame, row, rendered.layout, words);
+      if (!notes) return;
+      frame.insertBefore(notes.layer, svg?.nextSibling ?? null);
+      root.dataset.notes = "";
+    });
   if (controls) frame.append(controls.layer);
 
   const timer = win?.setInterval(() => {
@@ -1238,6 +1248,7 @@ export function mountDiagram(
       frame.removeEventListener("click", onFigure);
       frame.removeEventListener("scroll", onPan);
       frame.removeEventListener("keydown", onNoteKey);
+      gone = true;
       notes?.destroy();
       unbindZoom?.();
       root.remove();
