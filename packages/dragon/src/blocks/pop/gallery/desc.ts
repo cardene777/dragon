@@ -2,6 +2,6 @@
 import type { BlockDesc } from "../../gallery";
 
 export const desc: BlockDesc = {
-  ja: "図の1行目に [note: pop] を書くと、箱の note を名前の下に描かず、i の印の付いた箱を押すとすぐ下に出る札で見せる。example を書くと札の下に例の帯が出る。",
+  ja: "図の1行目に[note: pop]を書くと、箱のnoteを名前の下に描かず、iの印の付いた箱を押すとすぐ下に出る札で見せる。exampleを書くと札の下に例の帯が出る。",
   en: "With [note: pop] on the first line, a box's note is not drawn under its name but shown on a card that opens just below the box when you click its i mark. example adds an example band at the bottom of the card.",
 };

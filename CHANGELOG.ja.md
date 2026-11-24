@@ -8,6 +8,7 @@ dragon DSL の主要変更履歴。
 
 ### Added
 
+- 時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、手順の図で、1行目に`[note: pop]`を書くと、箱の`note`を名前の下に描かず札で見せられるようにした。`note`を持つ箱だけが右上に丸いiの印を持ち、長い説明を書いても箱は広がらず、箱を押すとそのすぐ下に箱の名前と`note`の全文を持つ札が出る。箱に`example: <例>`を書くと札の下に灰色の帯で例が出る。札は札の外か閉じるのアイコンを押すか段を送ると閉じ、印刷すると全ての札が箱の下に開いて描かれる。`[note: under]`は名前の下の字のままで、`note`のほかの値と、`[note: pop]`を書かない図か`note`を持たない箱の`example`は、行を名指して断る。`dragon export`のMarkdownの頁は頭の行に`note: pop`を書くと頁の全ての図を札で見せ、1行目に`[note: under]`を書いた図だけは名前の下の字で見せる (#3877)
 - 配管の図 (`pipe`) のトークンの箱の名前の下の字を、`box usdc as USDC [note: Holding]`のように`note`で替えられるようにした。書かない箱は今どおり`balanceOf`を描くので、EVMの外の資産を描く図ではその資産を持つ形の名前を出せる。長い字では箱が字の収まる幅に広がる。`note`は`hold`の行で量の単位に名前を書いたトークンの箱にだけ書け、人の箱と契約の箱に書いた行はエディタと`dragon check`が誤りとして止め、原本のJSONの`sub`も同じに断る (#3803)
 - `dragon embed`の頁の`data-header`の塊の帯のエクスポートの窓に、jsDelivrの1行の頁と同じPNG、SVG、HTML、GIF、MP4、dragon記法、JSONの7つを並べ、通信を止めても7つとも保存できるようにした。束ねたscriptがGIFとMP4を詰める道具を持ち、保存したHTMLは頁に埋めた自分のscriptを再生のscriptとして埋めるので、通信の無い所で開け、頁と同じく端末の字で描く。絵柄集の表を束ねず頁が使う絵柄だけを持つので、束ねたscriptの増えは約266KB (gzipで約78KB) に収まる (#3792)
 - 軽い入口だけを読む頁が帯つきの図を置く入口`@cardenelabs/dragon/light/frame`を足した。`@cardenelabs/dragon/frame`と同じ名前を出し、記法を読む処理と図の再生の部品は軽い入口から読むので、既定の入口を頁に入れない。`loadFor`を待った後に置き、読んでいない種類の記法は種類の名前を挙げて断る。jsDelivrの1行の頁は、頁に置く帯の設定の塊`<script type="application/json" id="dragon-header">`に、SDKの`mountDragon`と同じ鍵 (`buttons`と`look`) で帯のボタンの並びと見た目を書け、読めない塊は`data-header`の塊を誤りの文にする。`dragon export`のmdは、頭の`header-buttons`と`header-<色の欄>`の行から帯の設定の塊を書き、知らないボタンの名前と`;`か`<`を含む色は行を名指して断る (#3789)

@@ -188,11 +188,16 @@ The color fields are `surface`, `background`, `foreground`, `muted`, `border`, `
 The export writes these lines into the page's bar settings block (`<script type="application/json" id="dragon-header">`, see [One script line with the bar](#one-script-line-with-the-bar)), which applies to the bars of every diagram on the page.
 An unknown button name, a button written twice, a color value with `;` or `<`, and an unknown `header-` line stop the export with the line named.
 
+A `note: pop` line shows the box notes of every diagram on the page on cards that open on a click (see [Note cards](#note-cards)), and a diagram with `[note: under]` on its first line keeps its notes under the names.
+On such a page, a box of a diagram with nothing about `note` on its first line can also take `example`.
+`note: under` is the same as leaving the line out, and another value stops the export with the line named.
+
 ```md
 ---
 layout: tabs
 header-buttons: code, export
 header-accent: "#c0392b"
+note: pop
 ---
 ```
 
@@ -618,6 +623,28 @@ step Pass to shipping
 Error messages are in the language you pass, as in `parseNotation(text, { lang: "ja" })`, and are in English when you pass none.
 The old form of the notation (starting with `時系列図` or `構成図`) is not read, and stops with an error that shows the new form of that line.
 The table from the old form to the new one is in [`CHANGELOG.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.md).
+
+### Note cards
+
+In sequence, architecture, state, git, time, tree and flow diagrams, `[note: pop]` on the first line shows each box's `note` on a card instead of under its name.
+Only a box with `note` gets a round i mark at its top right, and a long note no longer widens the box.
+Clicking the box opens a card just below it with the box name and the whole `note`.
+The card closes when you click outside it or its close icon, and when you move to another step.
+A box in such a diagram also takes `example: <example>`, shown as a gray band at the bottom of the card.
+`[note: under]` draws the note under the name, the same as writing nothing.
+Another value of `note`, and `example` on a box without `note` or in a diagram without `[note: pop]`, are refused with the line named.
+When the page is printed, every card is drawn open below its box.
+
+```dragon
+sequence Take an order [note: pop]
+
+box shop as Shop [note: Takes the order and checks the stock before it asks the warehouse to ship, example: Three orders on one day go to the warehouse together]
+box store as Warehouse [note: Keeps the goods and ships them]
+
+step Ask
+  say The shop asks the warehouse to ship.
+  shop -> store: ship
+```
 
 ### State diagram
 
