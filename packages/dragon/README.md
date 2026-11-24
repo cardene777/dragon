@@ -160,7 +160,7 @@ The block turns into a diagram that plays.
 There is nothing to install or build.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -457,7 +457,7 @@ Custom buttons need a click handler, so they cannot go here.
 If the settings block is not valid JSON or names an unknown button, every `data-header` block shows that error instead.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order
