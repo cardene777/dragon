@@ -224,6 +224,29 @@ const MARKS = [
   "",
 ].join("\n");
 
+/** 列を断る図。段2でカードを持たないCarolの列を断り、段3でカードを持つAliceの列を断る。どちらもカードを変えない */
+const REFUSE_COLUMN = [
+  "cards 列で断る",
+  "",
+  "box alice as Alice",
+  "box bob as Bob",
+  "box carol as Carol",
+  "",
+  "item n1 as 証書#1 in alice, bob [amount: 100 USDC]",
+  "",
+  "step 置く",
+  "  say まだ断らない。",
+  "",
+  "step Carolを断る",
+  "  say Carolはまだ証書を持てない。",
+  "  refuse carol: 口座が無い",
+  "",
+  "step Aliceを断る",
+  "  say Aliceの送りを止める。",
+  "  refuse alice: 止めている",
+  "",
+].join("\n");
+
 /** 見本のfileの中身。無ければ`undefined` */
 const fileText = (name: string): string | undefined => {
   const path = join(EXAMPLES, name);
@@ -338,6 +361,8 @@ interface Board {
   reasons: { text: string; column: string | null; note: boolean }[];
   /** 列の中の見えている字 */
   columnText: string;
+  /** 列ごとの、列の中の見えている字 */
+  columnTexts: Record<string, string>;
 }
 
 function board(host: HTMLElement): Board {
@@ -366,6 +391,7 @@ function board(host: HTMLElement): Board {
       note: reason.closest("[data-note]") !== null,
     })),
     columnText: columns.map((c) => shownText(c)).join(" "),
+    columnTexts: Object.fromEntries(columns.map((c) => [c.getAttribute("data-node") ?? "", shownText(c)])),
   };
 }
 
@@ -463,13 +489,18 @@ describe("持ち主ごとのカードの図の記法 (#3846)", () => {
     const base = ["cards 知らない名札", "", "box a as A", "box b as B", "", "item k1 as 券1 in a [amount: 1 USDC]", "", "step 動かす", "  say 動かす。"];
     const read = parse(base.join("\n"));
     expect(read.ok, `知らない名札を書かない記法が読めない: ${read.ok ? "" : JSON.stringify(read.errors)}`).toBe(true);
+    // refuseはカードも列も断れる
+    for (const target of ["k1", "b"]) {
+      const known = parse([...base, `  refuse ${target}: 足りない`].join("\n"));
+      expect(known.ok, `在る名札${target}を断る行が読めない: ${known.ok ? "" : JSON.stringify(known.errors)}`).toBe(true);
+    }
     /** 段より前に書く行と、段の中に書く行。どちらも知らない名札 zz を書く */
     const cases: [string, string, boolean][] = [
       ["知らない列に置くカード", "item k2 as 券2 in a, zz [amount: 1 USDC]", false],
       ["段の中で知らない列に置くカード", "item k2 as 券2 in zz", true],
       ["知らないカードを消す行", "delete zz", true],
       ["知らないカードを動かす行", "item zz in b", true],
-      ["知らないカードを断る行", "refuse zz: 足りない", true],
+      ["カードでも列でもない名札を断る行", "refuse zz: 足りない", true],
       ["知らないカードを呼ぶ行", "a -> zz: 呼ぶ", true],
     ];
     for (const [name, bad, inStep] of cases) {
@@ -679,6 +710,38 @@ describe("持ち主ごとのカードの図の並べ方と段 (#3846)", () => {
         expect(["bob", "usdc"], `断った段 (${lang}) の理由の札が、断られた証書#2の載る列に無い`).toContain(reason.column);
       }
       expect(word.test(after.columnText), `断った段 (${lang}) に断られた札が無い: ${after.columnText}`).toBe(true);
+    }
+    // 列を断る行 (`refuse <列>: <理由>`) も、カードを1枚も変えず、合計も変えず、断られた札と理由の札をその列の中に出す。
+    // カードを持たない列 (まだカードができる前の断り) とカードを持つ列の両方で確かめる
+    const refusals = [
+      { step: 1, column: "carol", reason: "口座が無い" },
+      { step: 2, column: "alice", reason: "止めている" },
+    ];
+    for (const [lang, word] of [
+      ["ja", /断られた/u],
+      ["en", /refused/iu],
+    ] as const) {
+      const { host, player } = mount(parsed(REFUSE_COLUMN), lang);
+      player.goTo(0);
+      const first = board(host);
+      expect(stacks(first), `列を断る図の段1 (${lang}) の列ごとのカード`).toEqual({ alice: ["n1"], bob: ["n1"], carol: [] });
+      expect(first.reasons, `列を断る前の段 (${lang}) に出た理由の札`).toEqual([]);
+      expect(word.test(first.columnText), `列を断る前の段 (${lang}) に断られた札が出ている`).toBe(false);
+      for (const refusal of refusals) {
+        const what = `段${refusal.step + 1}で${refusal.column}の列を断った図 (${lang})`;
+        player.goTo(refusal.step - 1);
+        const before = board(host);
+        player.goTo(refusal.step);
+        const after = board(host);
+        expect(stacks(after), `${what}の列ごとのカード`).toEqual(stacks(first));
+        expect(states(after), `${what}の写しの状態 (data-state)`).toEqual(states(before));
+        expect(cardsOf(after), `${what}の写しの名前と量と状態`).toEqual(cardsOf(before));
+        expect(pick(after.totals, ["alice", "bob"]), `${what}の合計`).toEqual({ alice: ["100 USDC"], bob: ["100 USDC"] });
+        const own = after.reasons.filter((r) => r.text === refusal.reason);
+        expect(own.length, `${what}に理由の札「${refusal.reason}」が無い`).toBeGreaterThan(0);
+        for (const reason of own) expect(reason.column, `${what}の理由の札が断った列の中に無い`).toBe(refusal.column);
+        expect(word.test(after.columnTexts[refusal.column] ?? ""), `${what}の断られた札が断った列の中に無い: ${after.columnTexts[refusal.column] ?? ""}`).toBe(true);
+      }
     }
   });
 
