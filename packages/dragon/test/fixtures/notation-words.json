@@ -83,7 +83,8 @@
       "shape",
       "unit",
       "turn",
-      "table"
+      "table",
+      "note"
     ],
     "group": [
       "note",
@@ -96,7 +97,8 @@
       "icon",
       "link",
       "order",
-      "limit"
+      "limit",
+      "example"
     ],
     "source": [
       "url"
