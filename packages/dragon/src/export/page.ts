@@ -11,7 +11,7 @@ import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { type Palette, paletteVars, resolvePalette, type Theme } from "../look/values";
 import { FORMAT_VERSION, fromModel } from "../model";
 import { pipeTexts } from "../pipe-player";
-import { BUTTON_TEXT, stepNo, ZOOM_TEXT } from "../player";
+import { stepNo } from "../player";
 import { drawSvg, type Rendered, redrawWithBlocks, renderDiagram } from "../render/svg";
 // 書き出しは命令とブラウザの書き出す入口の両方で、手描きの線の処理 (#3643) とパイプ図の部品で描く時系列図の見た目 (#3720) を初めから持つ
 import "../render/pen-all";
@@ -74,9 +74,10 @@ const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g,
 const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => unescape((m[1] ?? "").replace(/<[^>]+>/g, "")));
 
 /**
- * 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、釦と段の番号の字も含む。
+ * 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、再生の釦の名前と段の番号の字も含む。
+ * 段を送る釦と拡大の釦の絵柄はCSSの形で描き、字を使わない (#3752)。
  * 試す図は、頁の入力の帯の欄の名前と釦の字と、押せない訳と読み手が足す段の題と本文の字も含む (#3337)。
- * 配管の図は、図の下の段の矢印と呼び出しの結果の字と、拡大と縮小の釦と拡大の度合いの札の字も含む (#3418、#3450)
+ * 配管の図は、図の下の段の矢印と呼び出しの結果の字と、拡大の度合いの札の字も含む (#3418、#3450)
  */
 function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: NotationLang): string[] {
   const { diagram } = rendered;
@@ -85,12 +86,11 @@ function drawnTexts(rendered: Rendered, followSvg: string | undefined, lang: Not
   return [
     ...svgs.flatMap(svgTexts),
     ...diagram.steps.flatMap((step, s) => [step.title, step.body, stepNo(s, count)]),
-    ...Object.values(BUTTON_TEXT),
     // 再生の釦は名前も字で出す (#3398)
     FIGURE_TEXT[lang].play,
     FIGURE_TEXT[lang].pause,
     ...(diagram.kind === "try" ? tryTexts(diagram, lang) : []),
-    ...(diagram.kind === "pipe" ? [...pipeTexts(diagram, lang), ...Object.values(ZOOM_TEXT)] : []),
+    ...(diagram.kind === "pipe" ? pipeTexts(diagram, lang) : []),
   ];
 }
 
