@@ -284,9 +284,8 @@ describe("公開できる形の README (#3881)", () => {
   });
 
   it("guide-english-short-lines", () => {
-    // 英語の手引きの図の種類の節は、英語のREADMEと同じ数え方で30語を超える文を持たない (#3884)
-    const section = sectionOf(read(GUIDES.en), KINDS_HEADING.en.guide);
-    expect(section, `${GUIDES.en} に図の種類の節 (## ${KINDS_HEADING.en.guide}) が無い`).not.toBe("");
-    expect(longSentences(section), `${GUIDES.en} の図の種類の節に30語を超える文が在る`).toEqual([]);
+    // 英語の手引きは、英語のREADMEと同じ数え方で30語を超える文を持たない (#3884)
+    // 仕様の変更 (#3889): 図の種類の節だけでなく、手引きの全ての節を見る
+    expect(longSentences(read(GUIDES.en)), `${GUIDES.en} に30語を超える文が在る`).toEqual([]);
   });
 });
