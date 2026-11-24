@@ -15,7 +15,7 @@ step main にある
   commit A on main [hash: 3fa0c19, note: 最初の形]
   commit B on main [hash: 8b04f71, note: 一覧を足す]
   set main: B 8b04f71
-  set HEAD: main
+  set HEAD: `main`
   set 履歴の形: 一直線
 
 step 枝を切る
@@ -23,7 +23,7 @@ step 枝を切る
   code git switch -c feature
   feature from B
   set feature: B 8b04f71
-  set HEAD: feature
+  set HEAD: `feature`
 
 step 作業を積む
   say feature に C と D を積む。commit のたびに feature が新しい commit へ進み、HEAD も付いていく。main は B のまま。
@@ -63,7 +63,7 @@ step D を当て直す
   commit D' on main copy D [hash: f1e7d28, note: 送料を足す]
   feature -> D'
   set feature: D' f1e7d28
-  set HEAD: feature
+  set HEAD: `feature`
   set 履歴の形: 早送りできる
 
 step 検査が通る
@@ -76,7 +76,7 @@ step main を早送り
   code git switch main → git merge --ff-only feature
   main -> D': git merge --ff-only feature
   set main: D' f1e7d28
-  set HEAD: main
+  set HEAD: `main`
   set 履歴の形: 一直線
 
 step 一直線の履歴

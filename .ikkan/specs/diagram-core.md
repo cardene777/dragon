@@ -418,7 +418,6 @@
 | 日本語を含む札を、今と同じ字 (`TYPE.labelJa`) で描く | `pnpm test`の検査`japanese-label-stays-sans`が通る | #3850 |
 | 札の幅を、選んだ字の幅で見積もる。地の文の札は等幅でない字の幅、backtickで囲んだ札は囲みを外した字の幅で計る | `pnpm test`の検査`label-width-measured-in-chosen-font`が通る | #3850 |
 | 時系列図、構成図、流れ図、状態遷移図、木の図、枝分かれの図の線の札と、流れ図と状態遷移図の側道の札が、同じ決まりで字を選ぶ | `pnpm test`の検査`label-font-rule-in-every-kind`が通る | #3850 |
-| `strip`の値は、英語の普通の文の値 (`refunded`、`back on shelf`) も今と同じ等幅の字で描く | `pnpm test`の検査`strip-values-stay-mono`が通る | #3850 |
 | 配管の図の置き場所は今と変わらない | `pnpm test`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3850 |
 | 見本の`git rebase main`の札4件と`git switch main`の札2件をbacktickで囲み、等幅の字のまま描く | `pnpm test`の検査`examples-git-commands-stay-mono`が通る | #3850 |
 | 記法の説明 (`plugins/dragon/skills/dragon/references/notation.md`、`packages/dragon/README.md`、`packages/dragon/README.ja.md`、`docs/design/base/GRAMMAR.md`) に、札の字の決まりと、backtickで囲むと等幅で描くことを書く | `pnpm test`の検査`docs-explain-label-font`が通る | #3850 |

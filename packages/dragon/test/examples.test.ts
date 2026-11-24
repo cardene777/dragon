@@ -173,13 +173,6 @@ describe("線の札の字を地の文とコードで分ける (#3850)", () => {
     expect(drawn, "種類ごとに描いた札の字").toEqual(wanted);
   });
 
-  it("strip-values-stay-mono", () => {
-    const { svg } = render(exampleText("order.en.dragon"));
-    const values = [...svg.matchAll(/<text class="(dg-fvj?)\b[^"]*"[^>]*>([^<]*)<\/text>/gu)];
-    const fontOfValue = (text: string): string[] => [...new Set(values.filter((m) => m[2] === text).map((m) => m[1] ?? ""))];
-    expect({ refunded: fontOfValue("refunded"), shelf: fontOfValue("back on shelf") }, "strip の英語の普通の文の値を描いた字").toEqual({ refunded: ["dg-fv"], shelf: ["dg-fv"] });
-  });
-
   it("examples-git-commands-stay-mono", () => {
     const wanted: [string, string][] = [
       ["rebase.dragon", "git rebase main"],

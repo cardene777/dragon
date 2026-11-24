@@ -31,7 +31,7 @@ step Make the seed and master key
   say Turn the 12 saved words into the seed, and derive the master key from the seed. As long as the words survive, every key can be made again.
   phrase -> seed: Make
   seed -> master [tag: 12fd]
-  set Path: m
+  set Path: `m`
   set Derived key: 12fd
 
 step Follow purpose, coin type and account
