@@ -394,7 +394,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
    * 図の種類だけの行の頭の語を、ほかの種類の図に書いた時の誤りの文。
    * 区画の行のように、図の種類だけのブロックが読む処理で自分で断る語の図の種類は持たない
    */
-  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly, matrix: m.matrixOnly, er: m.erOnly };
+  const onlyIn: Partial<Record<KindName, (word: string) => string>> = { git: m.gitOnly, time: m.timeOnly, tree: m.treeOnly, lineup: m.lineupOnly, try: m.tryOnly, pipe: m.pipeOnly, flow: m.flowOnly, mind: m.mindOnly, matrix: m.matrixOnly, er: m.erOnly, cards: m.cardsOnly };
   /** 線の列。持つ図の種類 (時間軸の図) のブロックが読み、ほかの種類の図に書いた列は誤りで止める */
   const columns: ParseState["columns"] = (source, from, to, attrs, end) => {
     const [read] = hooks("columns");

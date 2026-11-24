@@ -180,6 +180,10 @@ import revenueJa from "../../../packages/dragon/examples/revenue.dragon?raw";
 import revenueEn from "../../../packages/dragon/examples/revenue.en.dragon?raw";
 import dayHoursJa from "../../../packages/dragon/examples/day-hours.dragon?raw";
 import dayHoursEn from "../../../packages/dragon/examples/day-hours.en.dragon?raw";
+import noteTransferJa from "../../../packages/dragon/examples/note-transfer.dragon?raw";
+import noteTransferEn from "../../../packages/dragon/examples/note-transfer.en.dragon?raw";
+import bookClubJa from "../../../packages/dragon/examples/book-club.dragon?raw";
+import bookClubEn from "../../../packages/dragon/examples/book-club.en.dragon?raw";
 import phoneStorageJa from "../../../packages/dragon/examples/phone-storage.dragon?raw";
 import phoneStorageEn from "../../../packages/dragon/examples/phone-storage.en.dragon?raw";
 
@@ -276,6 +280,8 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
   "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
   "photo-delivery": { ja: photoDeliveryJa, en: photoDeliveryEn },
+  "note-transfer": { ja: noteTransferJa, en: noteTransferEn },
+  "book-club": { ja: bookClubJa, en: bookClubEn },
 };
 
 /**

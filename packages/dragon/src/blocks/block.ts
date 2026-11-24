@@ -26,6 +26,7 @@ import type { ErTable } from "./table/block";
 import type { MatrixAxis, MatrixShape } from "./axis/block";
 import type { MatrixItem } from "./matrix-item/block";
 import type { VennSet } from "./circle/block";
+import type { CardItem } from "./card/block";
 import type { TryRun } from "../try-state";
 import type { SourceLine } from "../tokenize";
 
@@ -65,7 +66,7 @@ export interface FigureDraft {
    * 量の図は項目のブロック、表どうしの関係の図は表のブロック、2つの軸で置く図は軸のブロック、集合の重なりの図は集まりの円のブロック、
    * 回り続ける図の見た目と向き (#3638) は輪のブロックが置く。ブロックは前に置かれた欄を残して足す
    */
-  root?: Partial<Pick<DiagramModel, "chart" | "er" | "matrix" | "venn" | "cycle" | "sankey">>;
+  root?: Partial<Pick<DiagramModel, "chart" | "er" | "matrix" | "venn" | "cycle" | "sankey" | "cards">>;
   /** 宣言した区画。区画のブロックが `group` の行で足す */
   regions: Region[];
   /** 宣言した箱。箱のブロックが `box` の行で足す */
@@ -158,6 +159,12 @@ export interface FigureDraft {
    * 記法を読む処理は最初に読む script に入るので、ほかの図の種類の下ごしらえと違い、量の行き先の図を読む時だけ後から読む読み方が作る
    */
   sankey?: { flows: { from: string; to: string; amount: number; source: SourceLine; at: number }[] };
+  /**
+   * 持ち主ごとのカードの図の、最初の段より前に書いたカードと、今在るカードと消したカードの名札 (#3846)。
+   * 持ち主ごとのカードのブロックがカードの行で積み、消す行と断る行と線の受ける側の名札を確かめる。
+   * 量の行き先の図と同じく、持ち主ごとのカードの図を読む時だけ後から読む読み方が作る
+   */
+  cards?: { items: CardItem[]; live: Set<string>; gone: Set<string> };
 }
 
 /** ブロックの読む処理が受ける、読んでいる記法の状態 */

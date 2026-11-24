@@ -12,6 +12,11 @@ export { type PrintOptions, printNotation } from "./printer";
 export { type NotationLang, NOTATION_WORDS } from "./words";
 export {
   type Box,
+  type CardDelete,
+  type CardItem,
+  type CardMake,
+  type CardMove,
+  type CardRefuse,
   type Carry,
   type ChartItem,
   type ChartSet,

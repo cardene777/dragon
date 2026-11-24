@@ -1,0 +1,31 @@
+// A book club lends books. Book cards sit in the shelf and member columns, a loan moves a book to the member, and a loan over the limit is refused.
+cards Book club loans
+
+box shelf as Shelf [note: Book club]
+box aki as Aki [note: Member]
+box ben as Ben [note: Member]
+
+item b1 as The Little Prince in shelf [amount: 1 vol.]
+item b2 as Botchan in shelf [amount: 1 vol.]
+item b3 as Night Train in aki [amount: 1 vol.]
+
+step Borrow
+  say Aki borrows The Little Prince from the shelf.
+  aki -> b1: Borrow
+  item b1 in aki
+
+step Over the limit
+  say Aki already has two books, so a third is not lent.
+  aki -> b2: Borrow
+  refuse b2: Two books at most
+
+step Return and borrow
+  say Aki returns Night Train, and Ben borrows Botchan.
+  item b3 in shelf
+  ben -> b2: Borrow
+  item b2 in ben
+
+step Swap books
+  say The worn copy of Night Train is removed, and a donated book goes on the shelf.
+  delete b3
+  item b4 as I Am a Cat in shelf [amount: 1 vol.]

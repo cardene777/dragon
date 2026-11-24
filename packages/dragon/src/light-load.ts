@@ -31,6 +31,7 @@ export { definesBlocks, iconSetLoaded, kindLoaded, LATER_KINDS, type LaterKind }
 registerNoteCardsLoader(async () => (await import("./blocks/pop/cards")).mountNoteCards);
 
 const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
+  cards: () => import("./kinds/cards"),
   checkout: () => import("./kinds/checkout"),
   chart: () => import("./kinds/chart"),
   cycle: () => import("./kinds/cycle"),
