@@ -1,9 +1,9 @@
 /**
  * 判定の表 (#3879) の描く部品の組。記法を読む処理と書き戻す処理と原本の形との行き来は `judge/read.ts`、並べ方は `kinds/judge/layout.ts`、
- * HTML の表の描き方と段ごとに列を照らす処理は `judge/draw.ts` が持つ。
+ * HTML の表の描き方と段ごとに列を照らす処理は `render/judge.ts` が持つ。
  * 表は SVG でなく HTML で描くので (`html`)、描く本体は SVG を描かず、再生の部品は表を縮めずに枠へ置く
  */
-import { judgeMarkup, showJudge } from "../judge/draw";
+import { judgeMarkup, showJudge } from "../render/judge";
 import { isJudgeNotation, judgeDiagram, judgeErrors, judgeModel, printJudge, readJudge } from "../judge/read";
 import { JUDGE_WORDS, type JudgeLayout, layoutJudge } from "./judge/layout";
 import type { KindParts } from "./parts";

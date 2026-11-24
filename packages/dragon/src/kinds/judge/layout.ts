@@ -10,9 +10,9 @@ import type { NotationLang } from "../../words";
 import type { KindOptions } from "../parts";
 
 /** 頁の言葉ごとの、表の見出しと判定の既定の語。判定の語は 1 行目の `[pass: <語>, block: <語>]` で替えられる */
-export const JUDGE_WORDS: Record<NotationLang, { case: string; verdict: string; pass: string; block: string; verdictBody: (pass: string, block: string) => string }> = {
-  ja: { case: "例", verdict: "判定", pass: "通す", block: "止める", verdictBody: (pass, block) => `例ごとに${pass}か${block}かを出す` },
-  en: { case: "Case", verdict: "Verdict", pass: "pass", block: "block", verdictBody: (pass, block) => `Each case gets ${pass} or ${block}` },
+export const JUDGE_WORDS: Record<NotationLang, { case: string; verdict: string; pass: string; block: string; sep: string; verdictBody: (pass: string, block: string) => string }> = {
+  ja: { case: "例", verdict: "判定", pass: "通す", block: "止める", sep: "、", verdictBody: (pass, block) => `例ごとに${pass}か${block}かを出す` },
+  en: { case: "Case", verdict: "Verdict", pass: "pass", block: "block", sep: ", ", verdictBody: (pass, block) => `Each case gets ${pass} or ${block}` },
 };
 
 /** セルの印。`pass` は✓、`fail` は✕、`skip` は照らせない「—」 */
@@ -35,12 +35,12 @@ export interface JudgeRow {
   why: number[];
 }
 
-/** 判定の表の並べ方。`words` は頁の言葉の見出しと、替えた後の判定の語 */
+/** 判定の表の並べ方。`words` は頁の言葉の見出しと、替えた後の判定の語と、止める理由に並べる規則の区切り */
 export interface JudgeLayout extends Layout {
   judge: {
     rules: JudgeRule[];
     rows: JudgeRow[];
-    words: { case: string; verdict: string; pass: string; block: string };
+    words: { case: string; verdict: string; pass: string; block: string; sep: string };
   };
 }
 
@@ -80,7 +80,7 @@ export function layoutJudge(diagram: DiagramModel, lang: NotationLang, options: 
     judge: {
       rules: spec.rules,
       rows,
-      words: { case: base.case, verdict: base.verdict, pass: spec.pass ?? base.pass, block: spec.block ?? base.block },
+      words: { case: base.case, verdict: base.verdict, pass: spec.pass ?? base.pass, block: spec.block ?? base.block, sep: base.sep },
     },
   };
 }

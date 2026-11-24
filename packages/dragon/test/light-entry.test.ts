@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { casesNamed } from "./export-support";
+import { HTML_KINDS } from "./html-kinds";
 import { KIND_FOLDERS } from "../src/kinds/index";
 // 既定の入口 (`dist`) で全ての種類の図を描くので、全ての種類を読む助けの file に型だけでつなぐ (#3763)。
 // 関係する検査を選ぶ命令は、どの種類の描く所を変えてもこの検査を選ぶ。型だけなので、検査の中で src を読み込まない
@@ -778,7 +779,9 @@ describe("図の種類の部品を後から読む軽い入口 (#3248)", () => {
       const { diagram } = example(whole, file);
       // bitsumi と同じ呼び方。読んだ後に待たずに続けて描き、SVG と段の時刻と見せ方を読む
       const rendered = whole.renderDiagram(diagram, { palette: "night", theme: "dark", still: true });
-      expect(rendered.svg, `${file} の SVG`).toContain('data-dragon="figure"');
+      // HTML の表で描く種類 (判定の表、#3879) は、SVG の図の代わりに種類の名前を名乗る表の根を描く
+      const kind = (diagram as { kind?: string }).kind ?? "";
+      expect(rendered.svg, `${file} の SVG`).toContain(HTML_KINDS.includes(kind) ? `data-dragon="${kind}"` : 'data-dragon="figure"');
       expect(rendered.timeline.stills.length, `${file} の段の時刻`).toBeGreaterThan(0);
       expect(["fixed", "follow"], `${file} の見せ方`).toContain(whole.chooseView(rendered, 1280).mode);
     });

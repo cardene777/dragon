@@ -5581,7 +5581,7 @@
                                       "properties": {
                                         "blocks": {
                                           "description": "判定の表はブロックの宣言を持たず、規則と例を根の judge の欄に持つ",
-                                          "maxProperties": 0
+                                          "additionalProperties": false
                                         },
                                         "steps": {
                                           "items": {
