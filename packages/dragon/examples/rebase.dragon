@@ -41,7 +41,7 @@ step main が進む
 step rebase を始める
   say Git は分かれ目の B まで戻って C と D を控え、HEAD を E へ移す。HEAD は枝を通さず E を直接指す (切り離し)。ここから 1 つずつ当て直す。
   code git rebase main
-  HEAD -> E: git rebase main
+  HEAD -> E: `git rebase main`
   set HEAD: E (切り離し)
   set 履歴の形: 当て直し中
 

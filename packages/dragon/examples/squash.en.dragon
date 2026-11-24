@@ -36,7 +36,7 @@ step main moves on
 step Squash into one
   say Switch back to main and squash-merge feature to make one commit S that holds every change from C1 to C3. S has only E at the tip of main as its parent, and no line joins it to feature.
   code git switch main → git merge --squash feature → git commit
-  HEAD -> E: git switch main
+  HEAD -> E: `git switch main`
   main -> E
   commit S on main [hash: 7d3a5e2, note: Squash C1 to C3]
   note remote: main now has S

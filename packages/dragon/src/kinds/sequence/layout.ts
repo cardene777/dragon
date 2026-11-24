@@ -17,7 +17,7 @@ import {
   cornerBadge,
   boxWidth,
   edgeColor,
-  labelStyle,
+  labelWidth,
   type Layout,
   lineBadges,
   layoutStrip,
@@ -53,7 +53,7 @@ export function layoutSequence(diagram: DiagramModel): Layout {
       if (event.type !== "edge" || event.label === undefined) continue;
       const a = column.get(event.from) ?? 0;
       const b = column.get(event.to) ?? 0;
-      const w = textWidth(event.label, labelStyle(event.label)) + L.padX * 2;
+      const w = labelWidth(event.label) + L.padX * 2;
       if (a === b) {
         // 自分へ戻る線は名前を右に置くので、右の生存線までに輪と名前が収まる幅を取る
         if (a < spacing.length) needs.push({ from: a, to: a + 1, need: Q.selfW + L.side + w + Q.labelRoom });

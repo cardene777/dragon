@@ -213,3 +213,26 @@ describe("カタログの部品の頁 (#3166)", () => {
     }
   });
 });
+
+/** 部品のidを確かめる処理の置き場。経路を確かめる最初の画面が、部品の表を読まずに使う (#3868)。無い間も file を読み込めるよう、名前を値にして読む */
+const PART_IDS_MODULE = "../catalog/part-ids";
+
+describe("部品のidの確かめ (#3868)", () => {
+  // 最初の画面は部品の頁の経路が部品を指すかだけを知ればよい。部品の表を読むと使い方の表 (`gallery/uses.ts`) まで
+  // 最初に読む script に入るので、id の表だけで答える処理を置き、部品の表と同じ答えを返すことを確かめる
+  it("part-ids-match-parts-table", async () => {
+    const mod = (await import(/* @vite-ignore */ PART_IDS_MODULE).catch(() => undefined)) as { isPartId?: (id: string | undefined) => boolean } | undefined;
+    const isPartId = mod?.isPartId;
+    expect(isPartId, "部品のidを確かめる処理 (`catalog/part-ids.ts` の `isPartId`) が無い").toBeTypeOf("function");
+    if (isPartId === undefined) return;
+    expect(
+      PART_CASES.map((part) => part.id).filter((id) => !isPartId(id)),
+      "部品の表に在るのに部品と答えないid",
+    ).toEqual([]);
+    // 表に無い名前、空、無い経路、全ての物が持つ鍵の名前は部品でない
+    expect(
+      ["no-such-part", "", undefined, "toString", "__proto__", "constructor"].filter((id) => isPartId(id)),
+      "部品の表に無いのに部品と答えるid",
+    ).toEqual([]);
+  });
+});

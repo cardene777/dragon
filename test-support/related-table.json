@@ -34,7 +34,8 @@
         "packages/dragon/src/script-offline.ts",
         "packages/dragon/src/frame/index.ts",
         "packages/dragon/src/frame/header.ts",
-        "packages/dragon/src/embed/index.ts"
+        "packages/dragon/src/embed/index.ts",
+        "packages/dragon/src/light-frame.ts"
       ]
     },
     {

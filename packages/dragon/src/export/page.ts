@@ -21,6 +21,7 @@ import type { Diagram } from "../schema";
 import { tryTexts } from "../try-player";
 import type { UserBlocks } from "../user-blocks";
 import { readDiagram } from "../version";
+import { staysFixed } from "../view";
 import { DEFAULT_LANG, type NotationLang, textLang } from "../words";
 import { pipeLayouts } from "./layouts";
 
@@ -145,17 +146,18 @@ export function planPage(input: unknown, options: PageOptions): PagePlan {
   const { diagram, layout, timeline, theme } = rendered;
   const palette = resolvePalette(rendered.palette);
   const vars = paletteVars(palette, theme);
-  const width = options.width ?? (rendered.view === "follow" ? FOLLOW_WIDTH : layout.width);
+  // 寄って追う形にしない図 (書き手が止めると決めた図と配管の図) は、幅を渡されても寄って追う絵を描かない (#3852)
+  const fixed = staysFixed(rendered);
+  const width = options.width ?? (rendered.view === "follow" && !fixed ? FOLLOW_WIDTH : layout.width);
   // 寄って見せる図は動画と字の file の両方に使うので 1 度だけ描き、2 つの全体図の札の言葉を揃える。
   // 描き直す間も足したブロックの定義を有効にし、足した箱の形と線の模様を止め絵と同じに描く (#3606)
   const line = options.line ?? "ruler";
-  const followSvg =
-    rendered.view === "fixed"
-      ? undefined
-      : redrawWithBlocks(input, { ...blocks, lang }, () => {
-          const svg = drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
-          return drawLines(svg, line, lang);
-        });
+  const followSvg = fixed
+    ? undefined
+    : redrawWithBlocks(input, { ...blocks, lang }, () => {
+        const svg = drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
+        return drawLines(svg, line, lang);
+      });
   const texts = [...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang)];
   // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
   // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)

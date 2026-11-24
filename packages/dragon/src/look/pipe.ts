@@ -41,7 +41,7 @@ export const PIPE_TYPE = {
   cardTitle: text(10.5, 600),
   cardValue: text(14, 700, "mono"),
   fold: text(12.5, 700),
-  // トークンの箱の見出しの下の字と残高の行 (Tracelyth #175)。`boxSub` は見出しの下の `balanceOf` と値の行の頭の字、`badge` は行の頭の印の頭文字、
+  // トークンの箱の見出しの下の字と残高の行 (Tracelyth #175)。`boxSub` は見出しの下の `note` か `balanceOf` の字と値の行の頭の字、`badge` は行の頭の印の頭文字、
   // `rowName` は持つ人の名前、`rowValue` は今の値、`rowWas` は線を引いた前の値と矢印、`rowNow` は変わった後の値
   boxSub: text(11, 500, "mono"),
   badge: text(11, 700, "mono"),

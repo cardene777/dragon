@@ -116,7 +116,7 @@ step ログインを押す
 
 script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.57`) で読む。
 後の直しの版は頁を直さずに届き、記法を変える版は届かない。
-最初に読むのは `sequence` と `architecture` の描く部品で、ほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
+最初に読むのは `sequence` の描く部品で、`architecture` を含むほかの種類の部品は、頁の塊がその種類を使う時だけ読む。
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
 頁を読み終えた時に在る塊を全て描き、後から足した塊は描かない。
 読み終えた時に幅を持たない塊 (`display: none` で隠したタブの中など) は、幅を持った時に描く。
@@ -127,11 +127,45 @@ script は jsDelivr から、版の真ん中の数まで固定した URL (`@0.57
 
 通信の無い所で開ける 1 file にするには、頁を `dragon embed` に渡す。
 script の 1 行を、全ての図の種類を持つ束ねた script に置き換え、頁の隣に `page.offline.html` を書く (`--out <file>` で書く file を選ぶ)。
-この file は外から何も読まず、同梱の字を埋めないので端末の字で描く。
+この file は外から何も読まない。
+同梱の字を埋めないので、同梱の字の後に並べた端末のsans-serifの字で描く。
+`data-header`の塊の帯のエクスポートは、jsDelivrの頁と同じPNG、SVG、HTML、GIF、MP4、dragon記法、JSONの7つを外から読まずに保存する。
+保存したHTMLも、埋めた頁と同じく端末のsans-serifの字で描く。
 
 ```sh
 dragon embed page.html
 ```
+
+### 止めて置く図
+
+レポートや説明の頁のように、図を段で送らずに最後の段の形を 1 枚で見せたい時は、塊に属性 `data-still` を付ける。
+
+```html
+<pre class="dragon" data-still>
+chart 商品ごとの売り上げ (千円) [shape: bar]
+
+item croissant as クロワッサン
+item melon as メロンパン
+
+step 今週
+  set croissant: 129
+  set melon: 82
+</pre>
+```
+
+`data-still` を持つ塊は、再生の部品 (釦、段の番号、段の題と本文、進みの帯) を置かず、最後の段の形を描いた SVG (`<div class="dragon-figure dragon-still">`) に置き換わる。
+量の図は値まで描き、段の名前の所に図の題を出す。
+手順の図は、段が通った線を全て実線で描く。
+字は同梱の字の後に端末の sans-serif を持つので、同梱の字を読まない頁でも明朝に落ちない。
+色味は既定で頁の白い地に馴染む `clear` を使い、頁の `<html>` が `data-theme="dark"` を持つ時と、`data-theme="light"` でない頁で端末が暗い表示の時に、暗い色に変わる。
+図の地を頁の色に合わせる時は、図かその親に `--dragon-figure-background` を渡す (例 `.card { --dragon-figure-background: var(--surface); }`)。
+図の地と、線の縁取りと札の地がその色になり、明るい頁でも暗い頁でも頁の枠と同じ色に見える。
+ドーナツは輪の内側に 1 行で収まらない真ん中の名前を 2 行に折り、手順の帯 (`cycle` の `[shape: band]`) は手順の名前を山形の中に書く。
+図は自分の幅より広く伸ばさず、枠が狭い時は縦横の比を保って縮める。
+
+止めて置く塊だけの頁を `dragon embed` に渡すと、塊を SVG に描いて置き換え、束ねた script を入れない。
+動く塊が混ざる頁では、止めて置く塊だけを SVG に描き、動く塊のために束ねた script を入れる。
+package から描く時は、`renderDiagram` に `figure: true` を渡すと同じ SVG を返す。
 
 ## mdから頁を書き出す
 
@@ -153,6 +187,20 @@ dragon embed page.html
 ほかの組み立ては、頭の `---` の行の間の `layout` の行で選ぶ。
 `layout: sidebar` は左に目次を置き、`layout: tabs` は上に段のタブを、その下に段の項目のタブを置く。
 既定は `layout: entry` になる。
+
+頭の行には、図の帯のボタンの並び`header-buttons`と帯の色`header-<色の欄>`も1行ずつ書ける。
+`header-buttons`は、ボタンの名前 (`code`、`editor`、`copy`、`export`、`expand`) を書いた順に`,`で区切って並べ、書かなかったボタンを帯から外す。
+色の欄は`surface`、`background`、`foreground`、`muted`、`border`、`accent`、`hover`の7つで、色の値の`#`は`"`で囲む。
+書き出しはこれらの行を頁の帯の設定の塊 (`<script type="application/json" id="dragon-header">`、[scriptの1行で帯を付ける](#scriptの1行で帯を付ける)) にして頁に入れ、頁の全ての図の帯に効かせる。
+知らないボタンの名前と、2度書いたボタンと、`;`か`<`を含む色の値と、知らない`header-`の行は、行を名指して書き出しを止める。
+
+```md
+---
+layout: tabs
+header-buttons: code, export
+header-accent: "#c0392b"
+---
+```
 
 図の箱は、飛び先に項目の場所の名前を `[link: #<場所の名前>]` と書くと、押した時にその項目へ移る。
 場所の名前は GitHub が見出しに付ける名前と同じ作り方で見出しの字から作り、英字を小文字にして約物を外し、空白を `-` にする。
@@ -236,7 +284,8 @@ const player = mountDiagram(host, parsed.diagram);
 ```
 
 字の入口は、同梱の 2 つの字 (Noto Sans JP と JetBrains Mono) の CSS を読み込むだけで、何も出さない。
-図は同梱の字で測った字の幅で組むため、読み込まないと端末の字で描かれ、札から字がはみ出すことがある。
+図は同梱の字で測った字の幅で組む。
+読み込まないと同梱の字の後に並べた端末のsans-serifの字で描かれ、字の幅が測った幅より数px広くなることがある。
 CSS と字の file は、束ねる道具 (Vite など) が頁へ運ぶ。
 この入口は Node の組み込みの module を読まないため、Next.js の Turbopack のように頁を束ねる道具でもそのまま読める。
 再生の部品が出す字 (釦の読み上げの名前、全体図の札) は英語で出る。
@@ -298,7 +347,15 @@ mountDiagram(host, parsed.diagram, {
 
 `<pre class="dragon">` の塊に属性 `data-header` を付けると、scriptの1行の入口はその塊に帯を付ける。
 属性を持たない塊は帯の無い図のまま。
-入口は図を先に描いてから帯を後から読むので、`data-header` の無い頁が最初に読む量は増えない。
+入口は`data-header`の塊が在る頁でだけ、記法が使う部品と同時に帯の部品を読み、帯の内側に図を1度だけ描く。
+帯の部品が届くまで塊は記法のまま残り、帯の無い図を描いてから描き直すことはしない。
+`data-header`の無い頁は帯の部品を読まないので、最初に読む量は増えない。
+
+帯のボタンの並びと見た目は、頁に置く帯の設定の塊`<script type="application/json" id="dragon-header">`に書く。
+鍵はSDKの`mountDragon`と同じ`buttons`と`look`で、頁の全ての`data-header`の塊の帯に効く。
+例えば塊の中身を`{ "buttons": ["code", "export"], "look": { "colors": { "accent": "#c0392b" } } }`にすると、帯はコードとエクスポートの2つのボタンを並べ、差し色を赤にする。
+`buttons`に書けるのは初めから在る5つのボタンの名前だけで、押した時の関数が要る置く側のボタンは書けない。
+JSONとして読めない塊と、知らないボタンの名前を書いた塊は、`data-header`の塊をその誤りの文に置き換える。
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
@@ -310,6 +367,22 @@ box api as Order API
 step Place the order
   shop -> api: Send the order
 </pre>
+```
+
+### 押した箱を見分ける
+
+描いた箱と囲みは、記法のidを`data-node`に持つ。
+例えば`box api as API server`は`data-node="api"`を持つ要素になる。
+箱を押した時に何かを出すには、押された要素から`closest('[data-node]')`でidを読む。
+囲みの中の箱を押すと囲みでなく箱が返り、線と札はidを持たない。
+
+```html
+<script>
+document.addEventListener("click", (event) => {
+  const node = event.target.closest('[data-node]');
+  if (node) showNote(node.getAttribute("data-node"));
+});
+</script>
 ```
 
 ### SDKの関数
@@ -334,6 +407,7 @@ host.addEventListener("dragon-export", (event) => console.log(event.detail.forma
 `buttons` は帯のボタンを並べる順に書き、書かなかった初めからのボタンは外れ、物を書くと置く側のボタンを足す。足したボタンの `onClick` は置いた図を受け取る。
 `header`を`false`にすると帯を出さずに図だけを置き、返した物でエクスポート (`export`)、エディタで開く (`openEditor`)、コピー (`copy`) を呼べる。
 `lang` は帯の言葉 (`ja` か `en`) を決め、書かない時は要素から上で最も近い `lang` 属性に従い、それも無い時は英語にする。
+記法の誤りの文も帯と同じ言葉で出し、`<html lang="ja">`の頁では日本語になる。
 `nonce` は、`adoptedStyleSheets` を持たないブラウザで作る style要素に付ける。
 置いた要素は、描けた・描けなかった (`dragon-render`)、段が変わった (`dragon-step`)、エクスポートした (`dragon-export`)、エディタで開いた・コピーした (`dragon-share`) の4つを `bubbles` と `composed` で知らせる。
 
@@ -383,22 +457,6 @@ iframeの中でコピーのボタンを使えるよう、`clipboard-write` を�
 </script>
 ```
 
-## 押した箱を見分ける
-
-描いた箱と囲みは、記法のidを`data-node`に持つ。
-例えば`box api as API server`は`data-node="api"`を持つ要素になる。
-箱を押した時に何かを出すには、押された要素から`closest('[data-node]')`でidを読む。
-囲みの中の箱を押すと囲みでなく箱が返り、線と札はidを持たない。
-
-```html
-<script>
-document.addEventListener("click", (event) => {
-  const node = event.target.closest('[data-node]');
-  if (node) showNote(node.getAttribute("data-node"));
-});
-</script>
-```
-
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
@@ -424,6 +482,19 @@ if (parsed.ok) mountDiagram(host, parsed.diagram);
 `sequence` と `architecture` は描く部品とブロックの読み方を初めから持つので、記法の図は何も待たずに読んで描ける。
 ただし時系列図の配管の見た目 (`[shape: pipe]`) は `loadFor` が読む。先に読む時は `loadLook("pipe")` を待つ。読む前に描くと、`loadLook` を待つよう告げる誤りで止まる。
 1 つの頁で既定の入口と混ぜると、全ての種類の部品が頁に入る。
+
+軽い入口の頁で帯つきの図を置く時は、`@cardenelabs/dragon/frame`の代わりに`@cardenelabs/dragon/light/frame`から読む。
+`@cardenelabs/dragon/frame`と同じ名前 (`mountFramedDiagram`、`createDragonFrame`、`createFigureHeader`、`diagramEditorUrl`) を出し、記法を読む処理と図の再生の部品は軽い入口から読むので、既定の入口を頁に入れない。
+`loadFor`を待った後に、待たずに帯つきの図を置く。
+読んでいない種類の記法を置くと、種類の名前を挙げて`loadFor`を待つよう告げる誤りで止まり、置き先に帯を残さない。
+
+```ts
+import { loadFor } from "@cardenelabs/dragon/light";
+import { mountFramedDiagram } from "@cardenelabs/dragon/light/frame";
+
+await loadFor(text);
+mountFramedDiagram(host, text);
+```
 
 ## ブロックを足す
 
@@ -527,6 +598,7 @@ if (read.ok) {
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
+線の名前の札は、語を並べた地の文なら本文の字で描き、コードの印 (`()`、`_`、`/`、`0x`、語の中の大文字) を持つ札と数で始まる札は等幅の字で描く。印の無いコマンドを等幅で描く時は、札全体をbacktickで囲む (`` `git rebase main` ``)。囲みのbacktickは描かない。
 箱の行の属性 `link` に飛び先を書くと、描いた図でその箱が飛び先への link になる。
 段の中の `source <名前> [url: <URL>]` の行は段の出典になり、1 つの段に何行でも書け、読み上げの段の一覧に名前の link で出る。
 飛び先と出典の URL には、`/` で始まる path か、`http://` か `https://` で始まる URL か、`#` で始まる頁の中の場所だけを書ける。
@@ -899,7 +971,7 @@ step ブロックを作る
 - NFT と ERC-1155 は `#` の後をトークンの番号、前を数にして、`move art: #1 alice -> bob`、`move items: 2 #1 alice -> bob`、`mint art: #3 -> alice`、`hold alice: 5 #1 ITEMS` のように書く。数を省くと 1 つで、番号ごとに槽を持つ。`#` の後に番号の無い行は誤りとして止まる
 - `check <者>: <左> <比べ方> <右>` は確認で、比べ方は `>=`、`<=`、`==`、`!=`、`>`、`<`。両側が数なら dragon が比べ、数でない確認は `[fail]` を書いた時だけ落ちる
 - `emit <者>: <名前>(<引数>, ...)` はイベントで、`calc <者>: <入る値> -> <出る値>` は換算
-- 最初の段より前の `layout <形>` は、トークンの箱と槽の置き方を選ぶ。`top` と `bottom` はトークンの箱を人の列の上か下に置き、`ledger`、`mesh`、`bus` は槽をトークンごとの行に並べ、`auto` はトークンの箱が4つまでの図で `top` と `bottom` と箱の並びを試し、線の交わりが最も少ない形を選ぶ。置き場所は `box` と `hold` の行だけで決まるので、呼ぶ人や引数を替えても箱と槽は動かず、呼び出しに関わらない人と箱は薄く描く
+- 最初の段より前の `layout <形>` は、トークンの箱と槽の置き方を選ぶ。`top` と `bottom` はトークンの箱を人の列の上か下に置き、`ledger`、`mesh`、`bus` は槽をトークンごとの行に並べ、`auto` はトークンの箱が4つまでの図で `top` と `bottom` と箱の並びを試し、線の交わりが最も少ない形を選ぶ。置き場所は `box` と `hold` の行だけで決まるので、呼ぶ人や引数を替えても箱と槽は動かず、呼び出しに関わらない人と箱は薄く描く。トークンの箱が無い図は人の上に箱と札入れの高さを空けないので、呼び出しの札が出る図では札の高さの分だけ人と槽が下に来る
 - `gist <要点>` はその段の要点で、図の下の段の矢印の後ろに要点の札を出す。配管の図は段の本文を図の下に出さないので、本文だけで伝えていた要点はここに書く。1 つの段に 1 行まで書け、配管の図でない図には書けない
 
 槽の水位はトークンごとに量に比例して描く。変更は一番外の呼び出しが戻るまで斜線の暫定で描き、戻った段で全て確定の緑に替わる。`revert` で戻した変更には赤の取り消しの印が付く。
@@ -1029,7 +1101,7 @@ step 買う
 1点が何件かは、点が100個ほどになる数 (1か2か5に10の累乗を掛けた数) を図が選び、箱の上に全体の件数と並べて出す。
 最初の行を `chart <題> [shape: dots, unit: <数>]` と書くと1点の件数を決められ、1つの段で点が200個を超える値は記法を読む時に誤りになる。
 ドーナツと横棒と点で数える見た目は、段の中の `set none: <数>` でどの項目にも入らない数を書ける。
-点で数える見た目ではその点が灰色のまま箱に残り、ドーナツと横棒では項目の後ろに灰色の弧か棒で描く。漏斗は `set none` を断る。
+点で数える見た目ではその点が灰色のまま箱に残り、ドーナツと横棒では項目の後ろに灰色の弧か棒で描く。漏斗と折れ線は `set none` を断る。
 
 ```dragon
 chart 1,000人に聞いた端末 [shape: dots]
@@ -1058,6 +1130,34 @@ step Mac
 step どれも使わない
   say どれも使わない50人は、点が灰色のまま全体の箱に残る。
   set none: 50
+```
+
+`chart <題> [shape: line]` は時間につれて量がどう変わったかを折れ線で描く。
+`item` の行が色の違う1本の線になって図の上の凡例に名前が出て、`step` の行が時間の軸の点の1つになり、段の題が横の軸の名前になる。
+`set <名札>: <値>` はその段の項目の値で、`set` を書かない段は前の段の値を保つ。
+縦の軸は0から、一番大きい値を1か2か2.5か5に10の累乗を掛けた刻みで切り上げた上端までにする。
+段を送ると、線が前の段の点から新しい段の点へ伸び、その段の値が点の近くの線に掛からない所に出る。
+段は2つ以上書き、どの段にも値を書かない項目と `set none` は記法を読む時に誤りになる。
+
+```dragon
+chart ベーカリーの1週間の売り上げ (円) [shape: line]
+
+item shop as 店頭 [color: amber]
+item online as 通販 [color: blue]
+
+step 月
+  say 週の初めは、店頭が42,000円、通販が12,000円だった。
+  set shop: 42000
+  set online: 12000
+
+step 火
+  say 雨の火曜は、店頭が38,000円に減り、通販が15,000円に増えた。
+  set shop: 38000
+  set online: 15000
+
+step 水
+  say 水曜は、店頭が45,000円に戻った。
+  set shop: 45000
 ```
 
 ```dragon
@@ -1342,6 +1442,7 @@ step 数を増やす
 - `item <名札> as <名前> [x: <横>, y: <縦>]` は課題に0から10の点数を小数1桁まで書く。段の中の `line: <課題>` は区画を書かずに、点数から決まる区画へ課題を置き、軸ごとに5以上を大きい側に数える。点数を持つ課題を `line <区画>: <課題>` で置く行は、点数の区画と同じ時だけ読む。0から10の外の点数と、片方だけの点数は誤りで止まる
 - 軸の行に `reverse: yes` を足して `axis <名前> [from: <小さい側>, to: <大きい側>, reverse: yes]` と書くと、その軸は大きい値を左か下に置き、矢印の先も左か下になる
 - 最初の行を `matrix <題> [shape: scatter]` にすると、札を動かす代わりに課題を点数どおりの所の点で打つ。0から10の目盛りの軸の左に課題と点数の表が並び、課題を打った段に両方の軸から点まで線を引いて点数を出し、点が入った区画を光らせる。同じ点数の課題は1つの点にまとめる。`[shape: scatter, table: none]` で表を出さず、狭い枠では表を上に、点の図を下に積む
+- 打った段の軸の点数の札が、その時に見える点の名前に触れる時は、その段だけ縦の軸の札を軸の左へ、横の軸の札を軸の下へ出し、端を軸の線に付ける。点の名前は動かさず、札の大きさも変えない
 
 ```dragon
 matrix 仕事を手間と効き目で分ける
@@ -1475,6 +1576,7 @@ step 残り
 - 線を読むたびに、出どころの区画の幅の内の左から、行き先の区画を書いた順に切り出す。出どころの無い箱のまだ分けていない残りは、灰色の帯に `残り16時間` の形で出る
 - その段で新しく分かれた区画と最後の行の区画に名前と量が出て、前の段から続いている区画は字を出さない薄い帯になる
 - 上の行から下りる帯と量の札は、その段で新しく分かれた区画にだけ引く
+- 同じ段の量の札が携帯の幅のように狭い枠で重なる時は、後の札を1段上で止め、その段の上の下りる帯の間を札1段分伸ばす。札の大きさは変えず、札は自分の区画の真上に残る
 - 名前が区画に入らない時は区画に量だけを書き、その行の帯の下に色の印と名前が並ぶ。携帯の幅でも帯は幅いっぱいのまま
 
 ```dragon
@@ -1592,7 +1694,7 @@ dragon export ccip.json --out out
 | 設定 | 意味 |
 |---|---|
 | `--out <dir>` | 書き出す先。無ければ作る (既定は今の dir) |
-| `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる |
+| `--width <px>` | 枠の幅。見せ方 (全体を止める / 寄って追う) を選び、寄って追う窓の幅になる。配管の図は幅に依らず全体を止める |
 | `--palette <名前>` | 色味 (`clear` / `paper` / `night` / `arcade` / `sea`、既定は `paper` で、配管の図は `sea`)。`arcade` は図の箱の右上と左下を落として描く |
 | `--line <名前>` | 線の描き方 (`ruler` / `pen`、既定は `ruler`)。`pen` は箱の縁と線と矢印と輪をゆるく揺れる手描きのペンの線で描き、絵柄と字と図の地の枠はそのまま描く |
 | `--theme <明暗>` | `light` か `dark` |

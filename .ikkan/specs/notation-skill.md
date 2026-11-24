@@ -91,3 +91,8 @@
 | 常に、足したブロックを使う図を`--blocks`無しで書き出すと、ブロックが定義されていない誤りを出して終わり方 1 で終える | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts packages/dragon/test/export-blocks.test.ts packages/dragon/test/notation-skill.test.ts`の検査`export-without-blocks-reports-undefined-block`が通る | #3606 |
 | 評価の記録の script が頁の絵を書き出す時と段を数える時、同じ実行で保存した定義のブロックを使う図には、その定義の file を渡す | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts packages/dragon/test/export-blocks.test.ts packages/dragon/test/notation-skill.test.ts`の検査`plugin-eval-gallery-exports-with-saved-blocks`が通る | #3606 |
 | skill の参照 (`plugins/dragon/skills/dragon/references/blocks.md`) が、足したブロックの見本を`dragon export --blocks`で書き出して見る手順を書く | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts packages/dragon/test/export-blocks.test.ts packages/dragon/test/notation-skill.test.ts`の検査`skill-blocks-export-with-definitions`が通る | #3606 |
+| dragonのスキルの`musubi.json`は、定義の版`2026-11-20`で、`references/`の下の全てのfileを1つずつ中身として版`1.0.0`で出し、名指したfileが全て在る | `pnpm exec vitest run`の検査`skill-musubi-provides-every-reference`が通る | #3807 |
+| dragonのスキルの`musubi.json`は、`references/`の下に無いfileと、定義に無い欄を出さない | `pnpm exec vitest run`の検査`skill-musubi-names-only-references`が通る | #3807 |
+| `SKILL.md`は、ほかのスキルがmusubiで従う中身の名前を全て挙げる | `pnpm exec vitest run`の検査`skill-names-musubi-contents`が通る | #3807 |
+| `SKILL.md`は、行の上限200を超えない | `pnpm exec vitest run`の検査`skill-main-stays-short`が通る | #3807 |
+| `SKILL.md`の繋ぎは、全て在るfileを指す | `pnpm exec vitest run`の検査`skill-links-resolve`が通る | #3807 |

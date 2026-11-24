@@ -8,7 +8,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import * as dragon from "./all-kinds";
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { fileChromium } from "./page-needs";
 import { draw, type Rendered, type RenderOptions } from "./render-support";
 
@@ -107,19 +108,25 @@ async function painted(figures: Rendered[]): Promise<Painted[][]> {
   }
 }
 
-describe("手描きの線の色 (#3643)", () => {
-  let cases: Drawn[] = [];
-  // 見本を読んで描くのは件の外の前処理で済ませる
-  beforeAll(() => {
-    cases = samples().map((sample) => ({ file: sample.file, ruler: render(sample), pen: render(sample, "pen") }));
-  });
+// 描いた図を頁で開いて色を読む件は、混んだ機械で 1 件の上限 (10 秒) を超えた (#3815)。前処理 (`beforeAll`) で描く仕事も前処理の上限に掛かる。
+// 描くのと頁で開くのは file を読み込む段で 1 つずつ順に済ませ、件は読んだ塗りと線を比べる
 
-  it("pen-line-keeps-colors", async () => {
+const DRAWN = await atLoad("図の種類ごとの見本を定規の線と手描きの線で描く", (): Drawn[] =>
+  samples().map((sample) => ({ file: sample.file, ruler: render(sample), pen: render(sample, "pen") })),
+);
+
+const PAINTED = await atLoad("描いた見本を Chromium で開き、形の塗りと線を読む", async () => {
+  const cases = DRAWN.get();
+  // 定規の線と手描きの線の図は、同じ図の名前の class を持ちうるので別の頁で開く
+  return { rulers: await painted(cases.map((c) => c.ruler)), pens: await painted(cases.map((c) => c.pen)) };
+});
+
+describe("手描きの線の色 (#3643)", () => {
+  it("pen-line-keeps-colors", () => {
+    const cases = DRAWN.get();
     // 走査の空振りを避ける。図の種類は 15 を超える
     expect(cases.length, "図の種類ごとの見本の数").toBeGreaterThan(15);
-    // 定規の線と手描きの線の図は、同じ図の名前の class を持ちうるので別の頁で開く
-    const rulers = await painted(cases.map((c) => c.ruler));
-    const pens = await painted(cases.map((c) => c.pen));
+    const { rulers, pens } = PAINTED.get();
     const differ: string[] = [];
     let compared = 0;
     cases.forEach(({ file }, k) => {

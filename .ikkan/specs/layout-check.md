@@ -82,7 +82,7 @@
 | 1つの箱の下の同じ所から別々の箱へ3本の線が出る図 (2本は行の下を回り、1本は下の行の箱へ行く) を描いた時、どの2本の線もどこでも`APART.line`以上離れ、`dragon check --layout`が`warning`の行を出さない | `pnpm exec vitest run packages/dragon/test/arch-fan-lines.test.ts`の検査`three-fan-lines-apart`が通る | #3549 |
 | 常に、2本の線が箱の同じ所から出て重なって走り、その先で分かれる姿を組んで崩れの検査に渡した時、段と2本の線を名指す`lines-close`を返す | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-lines-leaving-one-spot`が通る | #3549 |
 | 常に、`dragon check --layout`は並んで近すぎる線を見つけ、知らせの行とJSONに段の番号と線の名前を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-finds-crowded-lines`と`layout-check-line-names-step-and-parts`と`layout-check-prints-json`が通る | #3549 |
-| 常に、見本を描いた時、記録の一覧に無い崩れを出さず、見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`は空のままである | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-examples-match-recorded`と`layout-breaks-record-is-empty`が通る | #3549 #3552 #3554 |
+| 常に、見本を描いた時、記録の一覧に無い崩れを出さず、見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`は空のままである | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts packages/dragon/test/git-branch-lines.test.ts`の検査`layout-check-examples-match-recorded`と`layout-breaks-record-is-empty`が通る | #3549 #3552 #3554 #3790 #3791 |
 | 常に、構成図で同じ2つの箱を行きと帰りで結ぶ線は、`APART.line`より広く離れて引かれる | `pnpm exec vitest run packages/dragon/test/return-lines.test.ts`の検査`return-lines-architecture-apart`と`return-lines-bent-pair-apart`が通る | #3549 |
 | 常に、評価の頁の道具が、崩れを持つ図から崩れの段の番号と図の段の数を読む | `pnpm exec vitest run packages/dragon/test/plugin-eval.test.ts`の検査`plugin-eval-gallery-cli-tools-read-breaks-and-steps`が通る | #3549 |
 | 常に、見本帳が最初に読む script に崩れの種類の名前が入らず、最初に読む量が上限を上げずに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3549 #3552 #3554 |
@@ -145,3 +145,29 @@
 | 命令`dragon check --layout`は、足した崩れを日本語と英語の文で印、囲み、針と名指して出す | `pnpm exec vitest run packages/dragon/test/kind-cli.test.ts`の検査`layout-check-names-stamp-span-needle`が通る | #3631 |
 | 今の見本 (`packages/dragon/examples/`) の崩れは記録した崩れから増えない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3631 |
 | 見本帳の部品の図は崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3631 |
+| 字どうしが重なる図に`dragon check --layout`を打つと、重なる2つの字を名指す知らせが、重なりが見え始める段の`step`の行に`warning`で出て、終わり方は0のまま | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`check-layout-reports-text-overlaps`が通る | #3790 #3837 |
+| `checkLayoutText`は、字どうしの重なりを種類`texts-overlap`の崩れとして返し、その崩れを`describeBreak`で書いた文は`dragon export`が同じ重なりに出す文 (`describeOverlap`) と同じになる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`layout-check-reports-text-overlaps`が通る | #3790 #3837 |
+| `dragon check`の使い方の`--layout`の説明が、知らせる崩れに字どうしの重なりを挙げる | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`check-layout-usage-names-text-overlaps`が通る | #3790 #3837 |
+| 線が札を持たない字を横切る所は、`line-crosses-text`の1件だけで知らせ、字どうしの重なりとして重ねて知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-line-over-text-reported-once`が通る | #3790 |
+| 見本の崩れの検査が、今の2つの置き場に加えて、使い方の頁の`.dragon`52と`packages/dragon/examples`の下のフォルダの`.dragon`3と`packages/dragon/examples`のmdの中の図58を、見本ごとの件として持つ | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-cover-all-places`が通る | #3790 |
+| 記録を書き直す`scripts/layout-breaks-record.mjs`は、見本の崩れの検査と同じ1つのfileから見本の一覧を読む | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-record-reads-same-examples`が通る | #3790 |
+| 全ての見本の件で、崩れの記録に無い崩れが出ない。#3790で見つかった重なり2件 (`day-hours.dragon`の段4の「3時間」と「3時間」、`quick-start.md`の779行目の図の段3の「7.5」と「ログインを速く」、どちらも幅390) は#3791が直し、記録に載らない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`と`layout-check-cases-follow-examples`が通る | #3790 #3791 |
+| 使い方の頁のJSONの2つ (`json.json`と`json.en.json`) は、原本から描いて崩れを1件も出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-json-examples-have-no-breaks`が通る | #3790 |
+| 見本帳の354の図は、字どうしの重なりを含めて崩れを1件も出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`と`gallery-warn-cases-follow-gallery`が通る | #3790 |
+| 量の行き先の図の見本は、日本語と英語で崩れを1件も出さない | `pnpm exec vitest run apps/playground-spa/src/lib/sankey-examples.test.ts`の検査`sankey-examples-have-no-breaks`が通る | #3790 #3791 |
+| 確かめる幅は既定の幅と幅390のままで、幅390でだけ出る崩れは知らせの行に幅を書く | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-names-narrow-width`が通る | #3790 |
+| skillの崩れの参照`plugins/dragon/skills/dragon/references/layout.md`が、種類`texts-overlap`の意味と記法での直し方を書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts`の検査`skill-layout-names-text-overlaps`が通る | #3790 |
+| 書き出しの命令が出す字の重なりの知らせは、今と同じ文で出る | `pnpm exec vitest run packages/dragon/test/overlap-cli.test.ts`の検査`export-warns-overlaps`と`export-warns-overlaps-without-lang`が通る | #3790 |
+| 量の行き先の図`day-hours.dragon`と`day-hours.en.dragon`を幅390と幅326で描いた時、同じ段の量の札の四角どうしが重ならず、どの段でも字どうしの重なりが0件になる | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-keep-apart-narrow`が通る | #3791 |
+| 段ごとの帯の見た目で、同じ段の量の札の四角が重なる時、後の札は先の札の1段上 (札の高さと札の隙間の分) で止まり、その段の上の下りる帯の間が同じ分だけ伸び、札は自分の区画の真ん中の真上に残る | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-step-up-when-crowded`が通る | #3791 |
+| 段ごとの帯の見た目で、1段上で止まる量の札は、上の行の帯の下の縁と帯の下の名前より上へ出られない | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-step-up-when-crowded`が通る | #3791 |
+| 2つの軸の図`quick-start.md`と`quick-start.en.md`の779行目の点の図を幅390と幅326で描いた時、字どうしの重なりが0件になる | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-clear-names-narrow`が通る | #3791 |
+| 点数で点を打つ見た目で、軸の点数の札の四角が同じ時に見える点の名前に触れる段だけ、縦の軸の札は右の端を軸の線に付けて軸の左へ出て、横の軸の札は上の端を軸の線に付けて軸の下へ出る | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-step-outside-names`が通る | #3791 |
+| 点数で点を打つ見た目で、点の名前に触れない軸の点数の札は、今どおり軸の線の上に札の真ん中を置く。点の図の見本4件 (`feature-scores`の日本語と英語、`quick-start`の779行目の図の日本語と英語) を既定の幅で描いた時、全ての札が軸の線の上に在る | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-axis-chips-stay-on-axis-at-default-width`が通る | #3791 |
+| 幅390と幅326で描いた量の札と軸の点数の札は、既定の幅と同じ字の大きさと札の高さで描かれ、小さくして重なりを避けることはできない (量の行き先の図) | `pnpm exec vitest run packages/dragon/test/sankey-rows.test.ts`の検査`sankey-rows-chips-keep-size-narrow`が通る | #3791 |
+| 幅390と幅326で描いた量の札と軸の点数の札は、既定の幅と同じ字の大きさと札の高さで描かれ、小さくして重なりを避けることはできない (2つの軸の図) | `pnpm exec vitest run packages/dragon/test/scatter-look.test.ts`の検査`scatter-chips-keep-size-narrow`が通る | #3791 |
+| 既定の幅で描いた見本の、描いたSVGと置き場所と時刻が今と変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3791 |
+| 見本の崩れの記録`packages/dragon/test/fixtures/layout-breaks.json`が空になり、記録に字どうしの重なりの行が残らない | `pnpm exec vitest run packages/dragon/test/git-branch-lines.test.ts`の検査`layout-breaks-record-is-empty`が通る | #3791 |
+| 全ての見本 (`day-hours.dragon`と`quick-start.md`の779行目の図を含む) に`dragon check --layout`と同じ検査を回した時、空の記録と合い、字どうしの重なりを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3791 |
+| 量の行き先の図の見本の日本語と英語で、既定の幅と幅390の崩れが0件で、許す重なりを1件も持たない | `pnpm exec vitest run apps/playground-spa/src/lib/sankey-examples.test.ts`の検査`sankey-examples-have-no-breaks`が通る | #3791 |
+| 届く検査が選んだ検査が全て通る | `pnpm build:packages && pnpm typecheck && pnpm test:related`が終了0 | #3791 |

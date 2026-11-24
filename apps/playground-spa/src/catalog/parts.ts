@@ -29,10 +29,10 @@ import { blockKinds, type Diagram, type DiagramEvent, type LineupItem, parseNota
 import type { BlockUses, SampleView } from "../../../../packages/dragon/src/blocks/gallery";
 
 import { EXAMPLE_KEYS, type ExampleKey, exampleText, LATER_EXAMPLES } from "../examples";
-import { laterChunk } from "../site/later";
 import type { Lang } from "../text";
 import { BLOCK_ORDER, BLOCK_TEXT } from "./blocks.gen";
 import { BLOCK_USES } from "./blocks-uses.gen";
+import { LATER_SNIPPETS } from "./later-snippets";
 import { KINDS, type Kind } from "./catalog";
 
 /** 部品の名札。ブロックの置き場の dir の名前で、名前は `TEXT.<言葉>.site.catalog.parts` が、説明は部品の頁だけが読む `BLOCK_DESC` が持つ (#3531) */
@@ -59,14 +59,17 @@ export const PARTS: readonly Part[] = BLOCK_ORDER.map(partOfBlock);
 /** コアブロックか。図の種類を 2 つ以上持つ。個別ブロックは付け方の `only` で図の種類を 1 つだけ持つ */
 export const isCommon = (part: Part): boolean => part.kinds.length > 1;
 
-/** 名札の部品。表に無ければ `undefined` */
-export const partOf = (id: string | undefined): Part | undefined => PARTS.find((part) => part.id === id);
+/** 名札ごとの部品。表は全ての名札から作るので、どの名札も引ける */
+const PART_BY_ID = Object.fromEntries(PARTS.map((part) => [part.id, part])) as Readonly<Record<PartId, Part>>;
+
+/** 名札の部品。経路の名札は、最初の画面が部品の表を読まずに `isPartId` で確かめてから渡す (#3868) */
+export const partOf = (id: PartId): Part => PART_BY_ID[id];
 
 /** その図の種類で使える部品。部品の表の並び */
 export const partsOf = (kind: Kind): Part[] => PARTS.filter((part) => part.kinds.includes(kind));
 
-/** 部品の図の記法の塊。`snippets.ts` を 1 つの塊にして後から読む (#3246) */
-export const LATER_SNIPPETS = laterChunk(() => import("./snippets").then((m) => m.SNIPPETS));
+/** 部品の図の記法の塊。最初の画面が部品の表を読まずに名指せるよう、`later-snippets.ts` に置く (#3868) */
+export { LATER_SNIPPETS };
 
 /** 部品をその図の種類で描いた図の記法。部品の図の塊がまだ届いていないか読めなかった時は `undefined` */
 export function snippetOf(id: PartId, kind: Kind, lang: Lang): string | undefined {

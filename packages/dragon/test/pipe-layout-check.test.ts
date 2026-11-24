@@ -77,6 +77,7 @@ type Part =
   | { kind: "line"; from: string; to: string; step: number }
   | { kind: "valve"; from: string; to?: string }
   | { kind: "gauge"; box: string }
+  | { kind: "tank"; name: string }
   | { kind: "pipe"; from: string; to: string; step: number };
 interface LayoutBreak {
   kind: string;
@@ -307,5 +308,66 @@ describe("dragon check --layout が配管の図の重なりを知らせる (#352
     const nearBreak = near.find((b) => b.kind === "valve-near-pipe");
     expect(said(nearBreak, "ja"), "弁が管に近すぎる文").toMatch(/Pool1 → USDC.*弁.*Pool1 → WETH/u);
     expect(said(nearBreak, "en"), "弁が管に近すぎる英語の文").toMatch(/valve.*Pool1 → USDC.*Pool1 → WETH/u);
+  });
+});
+
+/** 字を字の記録に残さない札 (線の札、ログの札、呼び出しの札)。`shown` は札が見える時刻の区間 */
+const card = (text: string, x: number, y: number, w: number, h: number, shown: [number, number][] = ALWAYS) => ({ kind: "card" as const, text, rect: { x, y, w, h }, shown });
+const FROM_3 = Number.POSITIVE_INFINITY;
+
+describe("dragon check --layout が字を記録しない札の重なりを知らせる (#3854)", () => {
+  it("layout-check-finds-card-over-part", () => {
+    // 見本`vault-proxy`の最後の段で、処理を借りる呼び出しの線の札`delegatecall()`の上の縁が VaultProxy の箱に隠れ、右の端がログの札に隠れた。
+    // 線の札とログの札と呼び出しの札は字を字の記録に残さないため、字どうしの重なりの確かめに乗らなかった。
+    // 相手の部品ごとに 1 組ずつ、互いに 200px 以上離して並べる
+    const proxy = box("VaultProxy", 100, 100, 160, 56);
+    const tag = card("delegatecall()", 140, 150, 108, 22, [[2, 3]]);
+    const tank = { kind: "tank" as const, name: "proxy/ETH", rect: { x: 400, y: 100, w: 112, h: 200 }, shown: ALWAYS };
+    const log = card("VaultProxy.Deposited", 480, 280, 120, 60, [[3, FROM_3]]);
+    const gauge = { kind: "gauge" as const, box: "VaultLogic", rects: [{ x: 700, y: 100, w: 48, h: 48 }], shown: ALWAYS };
+    const call = card("VaultLogic.deposit", 730, 120, 172, 36, [[1, 2]]);
+    const [body, ...lever] = valveRects(1000, 200, false, false);
+    const tokenValve = { kind: "valve" as const, from: "USDC", body: body as Rect, lever, shown: ALWAYS };
+    const onValve = card("Transfer", (body as Rect).x, (body as Rect).y, (body as Rect).w, (body as Rect).h, [[4, FROM_3]]);
+    const chip = { kind: "chip" as const, text: "true", rect: { x: 1200, y: 100, w: 52, h: 24 }, shown: [[2, 3]] as [number, number][] };
+    const onChip = card("Withdrawn", 1230, 110, 120, 40, [[2, FROM_3]]);
+    const price = card("PriceOracle.price", 1500, 100, 164, 36, [[1, 3]]);
+    const deposited = card("Deposited", 1600, 120, 250, 82, [[2, FROM_3]]);
+    const found = run([proxy, tag, tank, log, gauge, call, tokenValve, onValve, chip, onChip, price, deposited]).filter((b) => b.kind === "chip-over-part");
+    const want: LayoutBreak[] = [
+      { kind: "chip-over-part", step: 2, parts: [{ kind: "text", text: "delegatecall()" }, { kind: "box", name: "VaultProxy" }] },
+      { kind: "chip-over-part", step: 3, parts: [{ kind: "text", text: "VaultProxy.Deposited" }, { kind: "tank", name: "proxy/ETH" }] },
+      { kind: "chip-over-part", step: 1, parts: [{ kind: "text", text: "VaultLogic.deposit" }, { kind: "gauge", box: "VaultLogic" }] },
+      { kind: "chip-over-part", step: 4, parts: [{ kind: "text", text: "Transfer" }, { kind: "valve", from: "USDC" }] },
+      { kind: "chip-over-part", step: 2, parts: [{ kind: "text", text: "Withdrawn" }, { kind: "text", text: "true" }] },
+      { kind: "chip-over-part", step: 2, parts: [{ kind: "text", text: "PriceOracle.price" }, { kind: "text", text: "Deposited" }] },
+    ];
+    // 札と相手を名指し、揃って見え始める段に知らせる。相手ごとに 1 件ずつで、ほかの組を知らせない
+    for (const b of want) expect(found, "札が部品に重なる形を知らせない").toContainEqual(b);
+    expect(found, "知らせた件数").toHaveLength(want.length);
+    // 知らせる文は札の字と相手を名指す
+    const onBox = found.find((b) => b.parts[1]?.kind === "box");
+    expect(said(onBox, "ja"), "線の札が箱に重なる文").toMatch(/delegatecall\(\).*VaultProxy/u);
+    expect(said(onBox, "en"), "線の札が箱に重なる英語の文").toMatch(/delegatecall\(\).*VaultProxy/u);
+  });
+
+  it("layout-check-skips-card-clear-of-parts", () => {
+    const proxy = box("VaultProxy", 100, 100, 160, 56);
+    const logic = box("VaultLogic", 100, 300, 160, 56);
+    const delegate = pipe("VaultProxy", "VaultLogic", 1, [[180, 156], [180, 300]]);
+    // 呼び出しの管の弁は描かないので、札が重なっても崩れではない
+    const callValve = valve("VaultProxy", "VaultLogic", 1, 180, 200);
+    const [body] = valveRects(180, 200, true, false);
+    const onCallValve = card("delegatecall()", (body as Rect).x, (body as Rect).y, (body as Rect).w, (body as Rect).h);
+    // 横に置ける所が無い時は、線の札を自分の管の上に重ねて置く (#3854)。管は相手の部品に入らない
+    const onPipe = card("delegatecall()", 126, 217, 108, 22);
+    // 箱から離れた札
+    const apart = card("VaultProxy.Deposited", 400, 100, 250, 82, [[2, FROM_3]]);
+    for (const [name, pieces] of [
+      ["描かない呼び出しの管の弁に重なる札", [proxy, logic, delegate, callValve, onCallValve]],
+      ["自分の管の上に重ねた札", [proxy, logic, delegate, onPipe]],
+      ["部品から離れた札", [proxy, logic, delegate, apart]],
+    ] as [string, unknown[]][])
+      expect(run(pieces).filter((b) => b.kind === "chip-over-part"), `${name}を知らせる`).toEqual([]);
   });
 });

@@ -14,10 +14,11 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 | Line | Meaning |
 |---|---|
 | `box <id> as <name>` | A party: a sender, a contract, a token contract or an account. The role comes from the lines, so it is not written |
+| `box <id> as <name> [note: <text>]` | The small text under a token box's name, in place of `balanceOf` (`box usdc as USDC [note: Holding]`). Use it when the asset is not an ERC-20 token, such as a Daml `Holding`. Only a token party takes it |
 | `hold <owner>: <amount> <token>, <amount> <token>` | Starting balances. Name a token by the shown name of its party (`box usdc as USDC`, then `hold alice: 100 USDC`). `ETH` needs no party |
 | `hold <owner>: <count> #<id> <token>` | A starting balance of an NFT or ERC-1155 token ID. Without a count it is one (`hold alice: #1 ART`, `hold alice: 5 #1 ITEMS`). Each ID gets its own tank, shown as `ART #1` |
 | `hold <contract>: <name> <value>` | A stored value plate. Wrap names that read as amounts, start with `#` or contain `[` in `"` (`hold usdc: "allowance[alice][router]" 100`) |
-| `layout <shape>` | How to place the token boxes and tanks, at most one line before the first step. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. Without it the diagram keeps the current placement |
+| `layout <shape>` | How to place the token boxes and tanks, at most one line before the first step. `top` and `bottom` put the token boxes above or below the row of people, `ledger`, `mesh` and `bus` set the tanks in one row per token, and `auto` tries `top` and `bottom` and the box orders (up to 4 token boxes) and picks the one with the fewest crossing lines. Without token boxes, `top`, `bottom` and `ledger` keep no space above the people, and a call card moves the people and tanks down by its height. Without it the diagram keeps the current placement |
 | `route <person> -> <contract>` | A call path that `layout top` and `layout bottom` keep open, one pair per line after the `layout` line (`route bob -> usdc`). Both names must be declared parties. Without route lines the placement keeps open only the calls from people that appear in the steps, so list every pair a set of diagrams uses to keep the boxes and tanks in the same places across them |
 
 ## Lines in a step
@@ -47,6 +48,7 @@ Pick `architecture` instead when the explanation is about which contracts exist 
 - An owner needs a tank before a `move`, `mint` or `burn` touches it. Declare `hold <owner>: 0 <token>`, or `hold <owner>: 0 #<id> <token>` for a token ID.
 - An owner cannot send or burn more than it holds.
 - `move`, `mint` and `burn` start with a token party: a party whose shown name is a unit on a `hold` line.
+- `[note: <text>]` goes only on a token party's `box` line. A `note` on a person or a contract is refused.
 - A `#` must be followed by a token ID written as digits. `move art: # alice -> bob` is refused.
 - Write a mint or burn as `mint` or `burn`, not as a move from or to a zero address party.
 - Inside a `[call: static]` call, no balance, value, event or ETH can change.

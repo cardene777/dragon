@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
+import { BLOCK_USES } from "../catalog/blocks-uses.gen";
 import { KINDS } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
 import { EMBED_PATH, EMBEDDING_PATH, PATHS } from "../site/routes";
@@ -80,6 +81,8 @@ describe("公開する頁 (#2995)", () => {
     // 編集画面の欄の境目のつまみ (#3612) は編集画面を開いた時から要り、181.9KB から 183.3KB になったので、本人が選んで上限を 184KB に上げた
     // 英語の画面の字と最初の見本 3 枚の英語の記法と編集画面の棚の雛形を後から読む塊へ移し (#3646)、183.9KB から 177.1KB になった
     // Tracelythが使う再生の部品のキャンバス式の窓 (Tracelyth #197) を取り込み (#3761)、185.3KB になったので、本人が選んで上限を 186KB に上げた
+    // その後の取り込みで186.2KBになって上限を超えたので、最初の表示に要らない更新履歴の頁と見つからない頁を後から読む塊へ移し、185.4KBにした (#3832)
+    // その後の取り込みで再び186.2KBになったので、部品の頁の経路を確かめるだけで最初の script に入っていた部品の表と使い方の表をカタログの頁の塊へ移した (#3868)
     expect(loaded, report).toBeLessThanOrEqual(186 * 1024);
     // 分ける前は最初に読む量が全部の合計と同じだった (0.44.0 の後の main で 277.59KB)。見本と部品の図の記法は gzip で 20KB を超えるので、
     // 外せば全部の合計より 20KB 以上小さくなる
@@ -120,6 +123,19 @@ describe("公開する頁 (#2995)", () => {
     expect(
       kinds.filter((kind) => first.includes(`"${kind}"`) || first.includes(`'${kind}'`) || first.includes(`\`${kind}\``)),
       "最初に読む script に在る崩れの種類の名前",
+    ).toEqual([]);
+  });
+
+  // 部品の使い方の表 (各ブロックの `gallery/uses.ts`) はカタログの頁だけが見本を探すのに使う。最初に読む script に入ると、
+  // 67 件の表が gzip で約 3KB 上の上限を押し上げるので、表の鍵 (`head:axis` など) が最初の script に無いことを確かめる (#3868)
+  it("first-load-skips-part-uses", () => {
+    const { first } = PART_DESCS.get();
+    const keys = Object.values(BLOCK_USES).flatMap((uses) => Object.keys(uses));
+    expect(keys.length, "部品の使い方の表の鍵を数えられない").toBeGreaterThan(0);
+    expect(first.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    expect(
+      keys.filter((key) => first.includes(JSON.stringify(key))),
+      "最初に読む script に在る部品の使い方の表の鍵",
     ).toEqual([]);
   });
 

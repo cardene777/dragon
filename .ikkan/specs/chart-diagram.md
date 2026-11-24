@@ -39,3 +39,21 @@
 | 見本帳が最初に読む script と CSS は gzip で184KB以下のまま | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3621 |
 | 描き方の file は色と字の大きさを値の表から読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`renderers-read-values-from-one-table`が通る | #3621 |
 | 今ある見本の描いた結果の指紋は変わらず、足した見本の行だけが増える | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3621 |
+| 量の図の原本のJSONで種類の欄`chart`の`shape`に`line`を書き、2つの段で項目に値を書いた時、原本の検査が通る | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`schema-accepts-chart-line`が通る | #3802 |
+| `chart <題> [shape: line]`と`item`と段の中の`set`で書いた記法を`parseNotation`が読み、見た目`line`の原本を返し、書き戻すと同じ記法を返す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-roundtrip-keeps-notation`が通る | #3802 |
+| 折れ線の見た目の図を描いた時、縦の軸が0から、一番大きい値を1か2か2.5か5に10の累乗を掛けた刻みで切り上げた上端までの刻みの線と値を描き、横の軸が段の題を段の順に点の下へ並べる | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-draws-both-axes`が通る | #3802 |
+| 項目を2つ以上書いた時、項目ごとに色の違う線を1本ずつ引き、図の上の凡例に宣言した順で項目の名前を出す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-draws-one-colored-line-per-item`が通る | #3802 |
+| 段を送った時、各段の止め絵の時刻で、線が前の段の点から新しい段の点まで伸びて先へは伸びておらず、着いた点に丸が出て、その段の値の字が点の近くに出る | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-grows-from-the-previous-point`が通る | #3802 |
+| 値を書かない段で項目が前の段の値の高さに点を置き、最初に値を書いた段より前は点も線も出さない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-keeps-values-and-starts-late`が通る | #3802 |
+| 止めて置く図 (`figure: true`) で描いた時、全ての線を最後の点まで描き、図の上の行に図の題を出し、横の軸の名前は段の題のまま残す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-still-figure-draws-every-line`が通る | #3802 |
+| 折れ線の見た目の規則 (CSS) は折れ線の図のSVGにだけ書き、ドーナツと横棒と漏斗と点の図のSVGには書かない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-css-stays-in-line-charts`が通る | #3802 |
+| 記法の誤りを`dragon check`と同じ検査で読んだ時、数でない値、どの段にも値を書かない項目、`set none`、段が1つだけの図を拒み、日本語と英語の文と行と列で示す | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-rejects-notation-errors`が通る | #3802 |
+| 原本のJSONで、どの段にも値を書かない項目、`none`の値、段が1つだけの図を検査が拒み、誤った欄の場所をJSON Pointerで示し、英語の文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/chart-line.test.ts`の検査`chart-line-schema-rejects-errors`が通る | #3802 |
+| 折れ線の見本の日本語版と英語版が`packages/dragon/examples`に在り、記法として読め、既定の幅と幅390で描いて崩れの知らせが0件で、両方の項目と段と段ごとの`set`の数が同じで、見本帳の見本の一覧と量の図の頁に並ぶ | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-examples-in-both-langs-have-no-breaks`が通る | #3802 |
+| 棚の記法の早見に`chart <題> [shape: line]`の頭の行が在り、量の図の見本の束に折れ線の見本が在って折れ線の図として読める | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-shelf-template-reads`が通る | #3802 |
+| 根のREADMEとpackageのREADMEと使い方の頁と手引きとスキルの`chart.md`が`[shape: line]`の書き方を持ち、変更履歴のAddedに日本語と英語で載る | `pnpm exec vitest run packages/dragon/test/kind-playground.test.ts`の検査`chart-line-docs-describe-the-shape`が通る | #3802 |
+| 今の見本の描いたSVGの指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3802 |
+| 止めて置く図の横棒とドーナツが段の名前の所に図の題を出す | `pnpm exec vitest run packages/dragon/test/still-figure.test.ts`の検査`still-figure-bar-chart-shows-title`と`still-figure-donut-shows-title`が通る | #3802 |
+| 描く本体 (`render/draw.ts`) が後から読む種類の名前を持たない | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`draw-names-no-later-kind`が通る | #3802 |
+| 見本帳が最初に読むscriptとCSSがgzipで上限186KBに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3802 |
+| 見本帳の字の切り出しが、見本帳の全ての字を持つ | `pnpm exec vitest run apps/playground-spa/src/lib/site-font.test.ts`の検査`site-font-covers-every-word`が通る | #3802 |

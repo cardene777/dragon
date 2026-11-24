@@ -49,6 +49,16 @@
         "default": "./dist/light/index.cjs"
       }
     },
+    "./light/frame": {
+      "import": {
+        "types": "./dist/light-frame.d.ts",
+        "default": "./dist/light-frame.js"
+      },
+      "require": {
+        "types": "./dist/light-frame.d.cts",
+        "default": "./dist/light-frame.cjs"
+      }
+    },
     "./fonts": {
       "import": "./dist/fonts.js",
       "require": "./dist/fonts.cjs"

@@ -19,7 +19,8 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 
 interface Mutant {
   id: string;
@@ -69,7 +70,8 @@ const FAIL = [
 ].join("\n");
 
 const made: string[] = [];
-afterEach(() => {
+// 一時の repo と file は file を読み込む段で作るので、全ての件の後にまとめて消す
+afterAll(() => {
   for (const dir of made.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
@@ -102,11 +104,14 @@ interface Call {
   seen: Record<string, string>;
 }
 
+/** 一時の repo の、今の `FILES` の中身 */
+const contents = (root: string): Record<string, string> => Object.fromEntries(Object.keys(FILES).map((path) => [path, readFileSync(join(root, path), "utf8")]));
+
 /** 命令を差し替え、呼ばれた順に残す。検査には `output` が返す出力を返し、Error なら投げる。build は `buildStatus` で終わる */
 function fakeExec(root: string, output: (run: number) => string | Error = () => PASS, buildStatus = 0): { exec: Exec; calls: Call[] } {
   const calls: Call[] = [];
   const exec: Exec = (_cmd, args) => {
-    const seen = Object.fromEntries(Object.keys(FILES).map((path) => [path, readFileSync(join(root, path), "utf8")]));
+    const seen = contents(root);
     const test = args.includes("vitest");
     calls.push({ what: test ? "vitest" : args.join(" "), args, seen });
     if (!test) return { status: buildStatus, stdout: "", stderr: "" };
@@ -129,21 +134,135 @@ const rowsOf = (out: string): Row[] =>
 const mutant = (id: string, file: string, old: string, next: string, names: string | null = null): Mutant => ({ id, file, old, new: next, tests: ["apps/x.test.ts"], names });
 const quiet = (): void => undefined;
 
+/** 一時の repo で変異を回した後の様子 */
+interface Mutated {
+  /** 差し替えた命令が呼ばれた順 */
+  calls: Call[];
+  /** 結果の file の行 */
+  rows: Row[];
+  /** 回した後の `FILES` の中身 */
+  files: Record<string, string>;
+  /** 回した後の作業場所の差分 (`git status --porcelain`) */
+  status: string;
+}
+
+/** `FILES` を commit した一時の repo で、差し替えた命令を `go` に渡して変異を回し、回した後の様子を残す。`output` と `buildStatus` は `fakeExec` へ渡す */
+function mutated(go: (root: string, out: string, exec: Exec) => void, output?: (run: number) => string | Error, buildStatus?: number): Mutated {
+  const { root, out } = repo();
+  const { exec, calls } = fakeExec(root, output, buildStatus);
+  go(root, out, exec);
+  return { calls, rows: rowsOf(out), files: contents(root), status: git(root, "status", "--porcelain") };
+}
+
+/** `run` が投げた物。投げなかった時は undefined */
+function thrownBy(run: () => unknown): Error | undefined {
+  try {
+    run();
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+/** 読み込む段で回した関数が投げた物を、件の中で投げ直す関数。投げなかった時は何もしない */
+const replay =
+  (error: Error | undefined) =>
+  (): void => {
+    if (error !== undefined) throw error;
+  };
+
+/** 変異を回した後に HEAD の中身へ戻すかを確かめる、検査の終わり方 */
+const RESTORE_OUTPUTS = [
+  ["検査が通った時", PASS],
+  ["検査が落ちた時", FAIL],
+  ["検査を起こせなかった時", new Error("vitest を起こせない")],
+] as const;
+
+// 端末の Ctrl-C で止めた検査は集計の行を出さずに終わる。落ちた検査が無いと残すと、どの検査にも捕まらない変異と見分けられない。
+// 検査の前の build が止まると、書き換えを build しないまま検査が回り、変異が穴に見える
+const UNFINISHED_RUNS = [
+  {
+    label: "検査が集計の行を出さずに終わった時",
+    first: mutant("m1", "apps/a.ts", "1.2", "2"),
+    output: " ✓ apps/x.test.ts > 群 > kept-test 12ms",
+    buildStatus: 0,
+    unfinished: "検査が集計の行を出さずに終わった (終わり方 1)",
+    commands: ["vitest"],
+  },
+  {
+    label: "検査の前の build が落ちた時",
+    first: mutant("pkg", "packages/dragon/src/b.ts", "10", "20"),
+    output: PASS,
+    buildStatus: 130,
+    unfinished: "検査の前の build が終わらなかった (終わり方 130)",
+    commands: ["build:packages", "build:packages"],
+  },
+];
+
+// 一時の repo を作る git は子の process で起こし、混んだ機械で 1 件 10 秒の上限を超えた (#3815)。
+// 一時の repo で変異を回す仕事は、件ごとに file を読み込む段で 1 つずつ順に済ませ、件はその結果を読む
+
+const APPLIES = await atLoad("1 つの変異を回す", () =>
+  mutated((root, out, exec) => runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2")], out, exec, log: quiet })),
+);
+
+const RECORDS = await atLoad("1 つ目の変異で検査が落ちる 2 つの変異を回す", () =>
+  mutated(
+    (root, out, exec) => runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2"), mutant("m2", "apps/a.ts", "1.2", "3")], out, exec, log: quiet }),
+    (run) => (run === 1 ? FAIL : PASS),
+  ),
+);
+
+const RESTORES = await atLoad("検査の終わり方ごとに変異を回して戻す", () =>
+  RESTORE_OUTPUTS.map(([label, output]) => {
+    const { root, out } = repo();
+    const { exec, calls } = fakeExec(root, () => output);
+    const error = thrownBy(() => runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2")], out, exec, log: quiet }));
+    return { label, output, error, calls, files: contents(root), status: git(root, "status", "--porcelain") };
+  }),
+);
+
+const UNFINISHED = await atLoad("止まった検査と止まった build の後に続く変異を回す", () =>
+  UNFINISHED_RUNS.map((c) => ({
+    ...c,
+    ...mutated((root, out, exec) => runMutants({ root, mutants: [c.first, mutant("next", "apps/a.ts", "1.2", "3")], out, exec, log: quiet }), () => c.output, c.buildStatus),
+  })),
+);
+
+const SKIPS = await atLoad("書き換える所が 1 か所に決まらない変異を含む 3 つの変異を回す", () =>
+  mutated((root, out, exec) =>
+    runMutants({
+      root,
+      mutants: [mutant("none", "apps/a.ts", "9.9", "1"), mutant("twice", "apps/twice.ts", "= 1;", "= 2;"), mutant("ok", "apps/a.ts", "1.2", "2")],
+      out,
+      exec,
+      log: quiet,
+    }),
+  ),
+);
+
+const REBUILDS = await atLoad("package の source の変異と apps の変異を回す", () =>
+  mutated((root, out, exec) => runMutants({ root, mutants: [mutant("pkg", "packages/dragon/src/b.ts", "10", "20"), mutant("app", "apps/a.ts", "1.2", "2")], out, exec, log: quiet })),
+);
+
+const NARROWS = await atLoad("名前で絞る変異を、絞って回してから --wide で回す", () => {
+  const mutants = [mutant("named", "apps/a.ts", "1.2", "2", "a-test|b-test"), mutant("plain", "apps/a.ts", "1.2", "3")];
+  return mutated((root, out, exec) => {
+    runMutants({ root, mutants, out, exec, log: quiet });
+    runMutants({ root, mutants: [mutants[0] as Mutant], out, wide: true, exec, log: quiet });
+  });
+});
+
 describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる道具 (#3107)", () => {
   it("mutate-values-applies-before-running", () => {
-    const { root, out } = repo();
-    const { exec, calls } = fakeExec(root);
-    runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2")], out, exec, log: quiet });
+    const { calls } = APPLIES.get();
     const run = calls.find((c) => c.what === "vitest");
     expect(run?.seen["apps/a.ts"], "書き換え後の字に替えてから検査を回していない").toBe("export const STEP = 2;\n");
     expect(run?.args, "変異が名指した検査の file を回していない").toContain("apps/x.test.ts");
   });
 
   it("mutate-values-records-failed-names", () => {
-    const { root, out } = repo();
-    const { exec } = fakeExec(root, (run) => (run === 1 ? FAIL : PASS));
-    runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2"), mutant("m2", "apps/a.ts", "1.2", "3")], out, exec, log: quiet });
-    const rows = rowsOf(out).map(({ id, failed, summary, messages }) => ({ id, failed, summary, messages }));
+    const rows = RECORDS.get().rows.map(({ id, failed, summary, messages }) => ({ id, failed, summary, messages }));
     expect(rows, "変異ごとに落ちた検査の名前と集計を 1 行で残していない").toEqual([
       { id: "m1", failed: ["caught-test"], summary: "Tests  1 failed | 1 passed (2)", messages: ["拡大の上限が違う"] },
       { id: "m2", failed: [], summary: "Tests  1 passed (1)", messages: [] },
@@ -151,76 +270,36 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
   });
 
   it("mutate-values-restores-from-head", () => {
-    for (const [label, output] of [
-      ["検査が通った時", PASS],
-      ["検査が落ちた時", FAIL],
-      ["検査を起こせなかった時", new Error("vitest を起こせない")],
-    ] as const) {
-      const { root, out } = repo();
-      const { exec, calls } = fakeExec(root, () => output);
-      const run = (): Row[] => runMutants({ root, mutants: [mutant("m1", "apps/a.ts", "1.2", "2")], out, exec, log: quiet });
-      if (output instanceof Error) expect(run, `${label}、止まった理由を投げ直していない`).toThrow("vitest を起こせない");
-      else run();
+    for (const { label, output, error, calls, files, status } of RESTORES.get()) {
+      if (output instanceof Error) expect(replay(error), `${label}、止まった理由を投げ直していない`).toThrow("vitest を起こせない");
+      else replay(error)();
       expect(calls.find((c) => c.what === "vitest")?.seen["apps/a.ts"], `${label}、検査の前に書き換えていない`).toBe("export const STEP = 2;\n");
-      expect(readFileSync(join(root, "apps/a.ts"), "utf8"), `${label}、書き換えた file が HEAD の中身に戻らない`).toBe(FILES["apps/a.ts"]);
-      expect(git(root, "status", "--porcelain"), `${label}、作業場所に差分が残る`).toBe("");
+      expect(files["apps/a.ts"], `${label}、書き換えた file が HEAD の中身に戻らない`).toBe(FILES["apps/a.ts"]);
+      expect(status, `${label}、作業場所に差分が残る`).toBe("");
     }
   });
 
   it("mutate-values-stops-on-unfinished-run", () => {
-    // 端末の Ctrl-C で止めた検査は集計の行を出さずに終わる。落ちた検査が無いと残すと、どの検査にも捕まらない変異と見分けられない。
-    // 検査の前の build が止まると、書き換えを build しないまま検査が回り、変異が穴に見える
-    const cases = [
-      {
-        label: "検査が集計の行を出さずに終わった時",
-        first: mutant("m1", "apps/a.ts", "1.2", "2"),
-        output: " ✓ apps/x.test.ts > 群 > kept-test 12ms",
-        buildStatus: 0,
-        unfinished: "検査が集計の行を出さずに終わった (終わり方 1)",
-        commands: ["vitest"],
-      },
-      {
-        label: "検査の前の build が落ちた時",
-        first: mutant("pkg", "packages/dragon/src/b.ts", "10", "20"),
-        output: PASS,
-        buildStatus: 130,
-        unfinished: "検査の前の build が終わらなかった (終わり方 130)",
-        commands: ["build:packages", "build:packages"],
-      },
-    ];
-    for (const c of cases) {
-      const { root, out } = repo();
-      const { exec, calls } = fakeExec(root, () => c.output, c.buildStatus);
-      runMutants({ root, mutants: [c.first, mutant("next", "apps/a.ts", "1.2", "3")], out, exec, log: quiet });
-      expect(rowsOf(out), `${c.label}、測れなかったと記録していないか、落ちた検査の名前を残した`).toEqual([{ id: c.first.id, wide: false, unfinished: c.unfinished }]);
-      expect(calls.map((call) => call.what), `${c.label}、次の変異へ進んだか、build し直さなかった`).toEqual(c.commands);
-      expect(git(root, "status", "--porcelain"), `${c.label}、作業場所に差分が残る`).toBe("");
+    for (const c of UNFINISHED.get()) {
+      expect(c.rows, `${c.label}、測れなかったと記録していないか、落ちた検査の名前を残した`).toEqual([{ id: c.first.id, wide: false, unfinished: c.unfinished }]);
+      expect(c.calls.map((call) => call.what), `${c.label}、次の変異へ進んだか、build し直さなかった`).toEqual(c.commands);
+      expect(c.status, `${c.label}、作業場所に差分が残る`).toBe("");
     }
   });
 
   it("mutate-values-skips-ambiguous-target", () => {
-    const { root, out } = repo();
-    const { exec, calls } = fakeExec(root);
-    runMutants({
-      root,
-      mutants: [mutant("none", "apps/a.ts", "9.9", "1"), mutant("twice", "apps/twice.ts", "= 1;", "= 2;"), mutant("ok", "apps/a.ts", "1.2", "2")],
-      out,
-      exec,
-      log: quiet,
-    });
-    expect(rowsOf(out).map(({ id, skipped }) => ({ id, skipped })), "1 か所に決まらない変異を、理由を残して飛ばしていない").toEqual([
+    const { rows, calls, status } = SKIPS.get();
+    expect(rows.map(({ id, skipped }) => ({ id, skipped })), "1 か所に決まらない変異を、理由を残して飛ばしていない").toEqual([
       { id: "none", skipped: "書き換える所が 1 か所に決まらない (0 か所)" },
       { id: "twice", skipped: "書き換える所が 1 か所に決まらない (2 か所)" },
       { id: "ok", skipped: undefined },
     ]);
     expect(calls.filter((c) => c.what === "vitest").map((c) => c.seen["apps/a.ts"]), "飛ばした変異で検査を回したか、次の変異へ進んでいない").toEqual(["export const STEP = 2;\n"]);
-    expect(git(root, "status", "--porcelain"), "飛ばした変異の file に差分が残る").toBe("");
+    expect(status, "飛ばした変異の file に差分が残る").toBe("");
   });
 
   it("mutate-values-rebuilds-package-sources", () => {
-    const { root, out } = repo();
-    const { exec, calls } = fakeExec(root);
-    runMutants({ root, mutants: [mutant("pkg", "packages/dragon/src/b.ts", "10", "20"), mutant("app", "apps/a.ts", "1.2", "2")], out, exec, log: quiet });
+    const { calls } = REBUILDS.get();
     expect(
       calls.map((c) => [c.what, c.seen["packages/dragon/src/b.ts"]]),
       "package の source の変異の前と戻した後に build し直していないか、それ以外の変異で build した",
@@ -233,14 +312,10 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
   });
 
   it("mutate-values-narrows-by-names", () => {
-    const { root, out } = repo();
-    const { exec, calls } = fakeExec(root);
-    const mutants = [mutant("named", "apps/a.ts", "1.2", "2", "a-test|b-test"), mutant("plain", "apps/a.ts", "1.2", "3")];
-    runMutants({ root, mutants, out, exec, log: quiet });
-    runMutants({ root, mutants: [mutants[0] as Mutant], out, wide: true, exec, log: quiet });
+    const { calls, rows } = NARROWS.get();
     const tail = (c: Call): string[] => c.args.slice(c.args.indexOf("apps/x.test.ts") + 1);
     expect(calls.filter((c) => c.what === "vitest").map(tail), "名前に絞らないか、--wide で絞った").toEqual([["-t", " (a-test|b-test)$"], [], []]);
-    expect(rowsOf(out).map(({ id, wide }) => ({ id, wide })), "--wide で回したかを結果に残していない").toEqual([
+    expect(rows.map(({ id, wide }) => ({ id, wide })), "--wide で回したかを結果に残していない").toEqual([
       { id: "named", wide: false },
       { id: "plain", wide: false },
       { id: "named", wide: true },
@@ -270,6 +345,40 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
   });
 });
 
+/** 表を作る呼び方へ渡す、壊した所の説明の付いた変異 */
+const named = (id: string, what: string): Mutant => ({ ...mutant(id, "apps/a.ts", "1.2", "2"), what });
+/** 表を作る呼び方へ渡す、回した変異の結果の行 */
+const ran = (id: string, failed: string[], wide = false): Row => ({ id, wide, summary: "Tests  1 passed (1)", failed, messages: [] });
+
+/** 表を作る呼び方 (`--table`) を子の process で起こした時の、終わり方と出力 */
+function runTable(args: string[]): { status: number | null; stdout: string; stderr: string } {
+  const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", ...args], { cwd: REPO, encoding: "utf8" });
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
+}
+
+// 表を作る呼び方は子の process で起こすので、件ごとに file を読み込む段で 1 つずつ順に済ませ、件はその結果を読む (#3815)
+
+const TABLE_RUN = await atLoad("表を作る呼び方で 1 つの変異の表を作る", () => {
+  const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
+  return runTable([list, out, "--step", "10"]);
+});
+
+const BAD_TABLE_INPUTS = await atLoad("表を作る呼び方へ崩れた入力を渡す", () => {
+  const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
+  const ghost = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"]), ran("ghost", [])]);
+  const cases: [string, string[]][] = [
+    ["file が 1 つの時", [list, "--step", "10"]],
+    ["file が 3 つの時", [list, out, out, "--step", "10"]],
+    ["--step が無い時", [list, out]],
+    ["--step の後に数が無い時", [list, out, "--step"]],
+    ["--step が数でない時", [list, out, "--step", "x"]],
+    ["--step が 0 の時", [list, out, "--step", "0"]],
+    ["知らない札が在る時", [list, out, "--step", "10", "--wide"]],
+    ["結果に一覧に無い変異の行が在る時", [ghost.list, ghost.out, "--step", "10"]],
+  ];
+  return cases.map(([label, args]) => ({ label, r: runTable(args) }));
+});
+
 /**
  * 変異の結果から、ikkan の関門が読む壊して測った結果の表を作る (#3130)。
  *
@@ -277,8 +386,6 @@ describe("値を 1 つずつ書き換えて検査が落ちるかを確かめる�
  * 落ちなかった変異と測れなかった変異は、関門が断れる形 (件数 0 か、数字で始まらない件数) で表に出す。
  */
 describe("変異の結果から壊して測った結果の表を作る (#3130)", () => {
-  const named = (id: string, what: string): Mutant => ({ ...mutant(id, "apps/a.ts", "1.2", "2"), what });
-  const ran = (id: string, failed: string[], wide = false): Row => ({ id, wide, summary: "Tests  1 passed (1)", failed, messages: [] });
   const heading = (step: number): string[] => [`## 壊して測った結果 (step ${step})`, "", "| 壊した所 | 落ちた判定の件数 |", "|---|---|"];
   /** ikkan の関門と同じく、逃がしていない縦線で列を分ける */
   const cellsOf = (line: string): string[] => line.trim().slice(1, -1).split(/(?<!\\)\|/).map((cell) => cell.trim());
@@ -380,27 +487,13 @@ describe("変異の結果から壊して測った結果の表を作る (#3130)",
   it("mutation-table-is-a-package-script", () => {
     const pkg = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8")) as { scripts: Record<string, string> };
     expect(pkg.scripts["test:mutation:table"], "pnpm test:mutation:table が表を作る呼び方を起こさない").toBe("node scripts/mutate-values.mjs --table");
-    const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
-    const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", list, out, "--step", "10"], { cwd: REPO, encoding: "utf8" });
+    const r = TABLE_RUN.get();
     expect(r.status, `表を作る呼び方が終わり方 0 で終わらない: ${r.stderr}`).toBe(0);
     expect(r.stdout, "表を作る呼び方が、変異の一覧と結果から作った表を出さない").toBe(`${[...heading(10), "| `r1` 刻みを 3 に (落ちた検査 a-test、全部の検査で回した回) | 1 |"].join("\n")}\n`);
   });
 
   it("mutation-table-refuses-bad-input", () => {
-    const { list, out } = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"])]);
-    const ghost = tableInput([named("r1", "刻みを 3 に")], [ran("r1", ["a-test"]), ran("ghost", [])]);
-    const cases: [string, string[]][] = [
-      ["file が 1 つの時", [list, "--step", "10"]],
-      ["file が 3 つの時", [list, out, out, "--step", "10"]],
-      ["--step が無い時", [list, out]],
-      ["--step の後に数が無い時", [list, out, "--step"]],
-      ["--step が数でない時", [list, out, "--step", "x"]],
-      ["--step が 0 の時", [list, out, "--step", "0"]],
-      ["知らない札が在る時", [list, out, "--step", "10", "--wide"]],
-      ["結果に一覧に無い変異の行が在る時", [ghost.list, ghost.out, "--step", "10"]],
-    ];
-    for (const [label, args] of cases) {
-      const r = spawnSync(process.execPath, ["scripts/mutate-values.mjs", "--table", ...args], { cwd: REPO, encoding: "utf8" });
+    for (const { label, r } of BAD_TABLE_INPUTS.get()) {
       expect(r.status, `${label}、終わり方 2 で止まらない`).toBe(2);
       expect(r.stdout, `${label}、表を出した`).toBe("");
       expect(r.stderr, `${label}、止めた理由を出していない`).not.toBe("");

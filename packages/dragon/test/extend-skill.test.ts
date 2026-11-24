@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as blockIndex from "../src/blocks/index";
+import { atLoad } from "./at-load";
 // src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
 import type {} from "./all-kinds";
 
@@ -62,14 +63,15 @@ function rowsOf(title: string): string[] {
 /**
  * 過去の取り込みが変えた file のうち、登録先の一覧のどの行にも当たらない物。
  * 今の repo に無い file は数えない。後の取り込みが置き場を移した file (見本帳の部品の図はブロックの置き場の `gallery/` へ移った、#3348) は、
- * 足す時に触る登録先ではなくなっている。一覧は今在る path だけを名指す (`extend-skill-names-existing-paths`)
+ * 足す時に触る登録先ではなくなっている。一覧は今在る path だけを名指す (`extend-skill-names-existing-paths`)。
+ * `changes` は取り込みごとに変えた file、`tracked` は git が追跡する file で、どちらも file を読み込む段で git から読んだ物
  */
-function uncovered(commits: string[], rows: string[]): string[] {
+function uncovered(changes: readonly (readonly [string, readonly string[]])[], tracked: readonly string[], rows: string[]): string[] {
   const patterns = rows.map(patternOf);
-  const tracked = new Set(git("ls-files"));
-  return commits.flatMap((commit) =>
-    git("show", "--name-only", "--format=", commit)
-      .filter((file) => tracked.has(file) && !patterns.some((p) => p.test(file)))
+  const known = new Set(tracked);
+  return changes.flatMap(([commit, files]) =>
+    files
+      .filter((file) => known.has(file) && !patterns.some((p) => p.test(file)))
       .map((file) => `${commit} ${file}`),
   );
 }
@@ -112,6 +114,13 @@ function skillTexts(): [string, string][] {
 
 /** 空白を除いた字。決まりの言い回しは、空白の置き方の違いで落とさない */
 const squash = (text: string): string => text.replace(/\s+/gu, "");
+
+// 件ごとに git を起こすと、混んだ機械で 1 件 10 秒の上限を超えうる (#3816)。file を読み込む段で 1 度ずつ起こし、件はその結果を読む
+const TRACKED = await atLoad("git が追跡する file を挙げる", () => git("ls-files"));
+const KIND_CHANGES = await atLoad("図の種類を足した取り込みで変えた file を git で挙げる", () =>
+  KIND_COMMITS.map((commit): [string, string[]] => [commit, git("show", "--name-only", "--format=", commit)]),
+);
+const HAND_LISTS = await atLoad("個別ブロックを並べて持つ file を git で挙げて読む", handLists);
 
 describe("記法と図の種類とブロックを足す skill (#3245)", () => {
   it("extend-skill-has-frontmatter", () => {
@@ -172,7 +181,7 @@ describe("記法と図の種類とブロックを足す skill (#3245)", () => {
   });
 
   it("extend-skill-names-existing-paths", () => {
-    const tracked = git("ls-files");
+    const tracked = TRACKED.get();
     const named = skillTexts().flatMap(([file, text]) =>
       [...text.matchAll(/`([^`\s]+)`/gu)].flatMap((m) => (m[1] && PATH_HEAD.test(m[1]) ? [[file, m[1]] as [string, string]] : [])),
     );
@@ -186,7 +195,7 @@ describe("記法と図の種類とブロックを足す skill (#3245)", () => {
   it("extend-registry-covers-kind-additions", () => {
     const rows = rowsOf(KIND_TABLE);
     expect(rows.length, `登録先の一覧に「${KIND_TABLE}」の表の行が無い`).toBeGreaterThan(0);
-    expect(uncovered(KIND_COMMITS, rows), "図の種類を足した取り込みで変えたが、図の種類の表に無い file").toEqual([]);
+    expect(uncovered(KIND_CHANGES.get(), TRACKED.get(), rows), "図の種類を足した取り込みで変えたが、図の種類の表に無い file").toEqual([]);
   });
 
   it("extend-registry-rows-stay-narrow", () => {
@@ -204,11 +213,11 @@ describe("ブロックを足す時の登録先 (#3350)", () => {
     const rows = rowsOf(BLOCK_TABLE);
     expect(rows.length, `登録先の一覧に「${BLOCK_TABLE}」の表の行が無い`).toBeGreaterThan(0);
     expect(rows.length, "ブロックを足す時の表の行の数").toBeLessThanOrEqual(BLOCK_ROWS_MOST);
-    const tracked = git("ls-files");
+    const tracked = TRACKED.get();
     const absent = rows.filter((path) => (/<[^>]+>/u.test(path) ? !tracked.some((file) => patternOf(path).test(file)) : !existsSync(join(ROOT, path))));
     expect(absent, "ブロックを足す時の表が名指すが repo に無い path").toEqual([]);
     // 個別ブロックを並べて持つ file は、ブロックを足す時に触るので、表のどれかの行に当たる
-    const lists = handLists();
+    const lists = HAND_LISTS.get();
     expect(lists.length, "個別ブロックを並べて持つ file が無い (走査の空振り)").toBeGreaterThan(0);
     const patterns = rows.map(patternOf);
     expect(lists.filter((file) => !patterns.some((p) => p.test(file))), "個別ブロックを並べて持つが、表のどの行にも当たらない file").toEqual([]);

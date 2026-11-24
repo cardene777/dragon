@@ -595,6 +595,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         ...(layout.tanks ?? []),
         ...layout.parties.filter((q) => q !== box),
         ...layout.parties.filter((q) => q !== box).flatMap((q) => (q.label ? [q.label] : [])),
+        ...(layout.callTags ?? []),
         ...wires,
         ...(meshBox ? [...cards, ...(layout.chips ?? []).filter((c) => c.w > 0 && c.kind !== "return"), ...meshGaugeRects()] : []),
       ].filter((o) => !holds2(o));
@@ -676,6 +677,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   const TAGS: string[] = [];
   const GULPS: string[] = [];
   const LOGS = new Map<number, PipeLogCard>();
+  /** 崩れを数える部品に足したログの札。鍵は札の番号と描いた所 */
+  const LOG_PIECES = new Map<string, { kind: "card"; text: string; rect: Rect; shown: Shown[] }>();
   const HANDED: PipeGulp[] = [];
   {
     const tsp = (cls: string, t: string): string => `<tspan class="${cls}">${esc(t)}</tspan>`;
@@ -714,7 +717,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       keep(p.x, p.y, p.w, p.h);
       if (p.label) keep(p.label.x, p.label.y, p.label.w, p.label.h);
     }
-    for (const r of [...layout.housings ?? [], ...layout.glasses ?? [], ...layout.plates ?? [], ...layout.gauges ?? [], ...layout.folds ?? []]) keep(r.x, r.y, r.w, r.h);
+    for (const r of [...layout.housings ?? [], ...layout.glasses ?? [], ...layout.plates ?? [], ...layout.gauges ?? [], ...layout.folds ?? [], ...layout.callTags ?? []]) keep(r.x, r.y, r.w, r.h);
     timeline.steps.forEach((_, s) => {
       const st = stackOf(s);
       for (const k of st.map.keys()) movedKeys.add(k);
@@ -1359,11 +1362,6 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
     ...layout.mains.map((main) => callCase(main, ctx.corner)),
     // 名前のすぐ下に入れ物が在る時の短い線は、切れ端に見えるので描かない (Tracelyth #221)
     ...layout.ties.filter((t) => t.y2 - t.y1 >= 24).map((t) => `<path class="dg-pp-tie" d="M ${r1(t.x)} ${r1(t.y1)} V ${r1(t.y2)}"/>`),
-    // 処理を借りる呼び出しの線の札 (Tracelyth #207)
-    ...(layout.callTags ?? []).map(
-      (t) =>
-        `<g class="dg-pp-ctag" data-pipe-calltag="${esc(t.from)}>${esc(t.to)}" style="${cs("blue")}"><rect x="${r1(t.x)}" y="${r1(t.y)}" width="${r1(t.w)}" height="${r1(t.h)}" rx="${partRadius(ctx.corner, 5)}"/><text x="${r1(t.x + t.w / 2)}" y="${r1(t.y + t.h / 2 + PIPE_TYPE.chip.size * 0.36)}" text-anchor="middle">${esc(t.text)}</text></g>`,
-    ),
   ];
 
   // 光る呼び出しの管。全ての段の分を値の管より先に描き、値の管の下をくぐらせる
@@ -1718,6 +1716,17 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       const state = LOG_STATE[e.state];
       if (state && card.states[card.states.length - 1] !== state) card.states.push(state);
       LOGS.set(e.id, card);
+      // ログの札は字を字の記録に残さないので、描いた所と見える間を崩れを数える部品に足す (#3854)。
+      // 同じ札が同じ所に続く段で出る時は 1 つの部品の見える間を延ばし、続く段ごとに同じ崩れを数えない
+      const at = { x: e.x + (o?.dx ?? 0), y: e.y + (o?.dy ?? 0), w: size.w, h: size.h };
+      const logKey = `${e.id}|${r1(at.x)}|${r1(at.y)}`;
+      const seen = LOG_PIECES.get(logKey);
+      if (seen) seen.shown.push([Math.max(a, t ?? a), b]);
+      else if (ctx.pieces) {
+        const piece = { kind: "card" as const, text: card.title, rect: at, shown: [[Math.max(a, t ?? a), b]] as Shown[] };
+        LOG_PIECES.set(logKey, piece);
+        ctx.pieces.push(piece);
+      }
     }
     // 図の中の札。流れた量と計器の式は変えた出来事の時刻に出す。済んだ段の流れた量は薄くする
     for (const c of layout.chips.filter((x) => x.step === s && x.kind !== "event" && x.kind !== "return")) {
@@ -1790,7 +1799,17 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   });
   out.push(...GULPS);
   out.push(...TAGS);
+  // 処理を借りる呼び出しの線の札 (Tracelyth #207)。管の上に重ねて置く札が光る管に隠れないよう、全ての段の絵より後に描く (#3854)
+  for (const t of layout.callTags ?? [])
+    out.push(
+      `<g class="dg-pp-ctag" data-pipe-calltag="${esc(t.from)}>${esc(t.to)}" style="${cs("blue")}"><rect x="${r1(t.x)}" y="${r1(t.y)}" width="${r1(t.w)}" height="${r1(t.h)}" rx="${partRadius(ctx.corner, 5)}"/><text x="${r1(t.x + t.w / 2)}" y="${r1(t.y + t.h / 2 + PIPE_TYPE.chip.size * 0.36)}" text-anchor="middle">${esc(t.text)}</text></g>`,
+    );
   layout.logCards = [...LOGS.values()];
+  // 字を字の記録に残さない札を、崩れを数える部品に足す (#3854)。線の札はいつも、呼び出しの札は出ている間だけ見える。ログの札は段ごとに足してある
+  if (ctx.pieces) {
+    for (const t of layout.callTags ?? []) ctx.pieces.push({ kind: "card", text: t.text, rect: { x: t.x, y: t.y, w: t.w, h: t.h }, shown: ALWAYS });
+    for (const c of layout.callCards ?? []) ctx.pieces.push({ kind: "card", text: c.title, rect: { x: c.x, y: c.y, w: c.w, h: c.h }, shown: c.shown });
+  }
   layout.gulps = HANDED;
   const body = fadeParts(out.join(""), layout.fixed?.faded ?? []);
   return { base: `<g class="dg-pp">${body}</g>`, css: PIPE_CSS + FLOW_CSS.join("") + (layout.fixed !== undefined ? FADED_CSS : "") };

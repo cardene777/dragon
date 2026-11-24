@@ -34,6 +34,7 @@ const SANKEY: Readonly<Record<string, Field>> = {
 };
 
 const LANGS: readonly Lang[] = ["ja", "en"];
+
 const EXAMPLES_DIR = join(root, "packages/dragon/examples");
 const registered = (key: string): boolean => (EXAMPLE_KEYS as readonly string[]).includes(key);
 

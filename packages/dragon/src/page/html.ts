@@ -10,9 +10,9 @@
  * 見せる頁とタブを選ぶ処理 (`RUNTIME`) は頁に埋めた短い script で、外へ通信しない。
  * 色と字は dragon の図と同じ紙の色味 (`paper` の明るい色) と同梱の字を使う。
  */
-import { PALETTES, COLOR_ORDER, FONT_STACK_VARS } from "../look/values";
+import { PALETTES, COLOR_ORDER, FONT_VARS } from "../look/values";
 import { escapeHtml } from "./markdown";
-import type { Layout } from "./read";
+import type { Layout, PageHeader } from "./read";
 import { type PageLang, WORDS } from "./text";
 
 /** package の版。build が入れる (`tsup.config.ts`) */
@@ -53,6 +53,8 @@ export interface RenderedPage {
   title: string;
   titleText: string;
   layout: Layout;
+  /** 頁の帯の設定。mdの頭に `header-` の行を書いた時だけ持つ (#3789) */
+  header?: PageHeader;
   lang: PageLang;
   entry: RenderedPart;
   groups: RenderedGroup[];
@@ -78,7 +80,7 @@ const groupColor = (n: number): string => {
 };
 
 const STYLE = `
-:root{color-scheme:light;${COLORS};${FONT_STACK_VARS};--r:12px}
+:root{color-scheme:light;${COLORS};${FONT_VARS};--r:12px}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--pg-bg);color:var(--pg-ink);font:15px/1.8 var(--sans);overflow-wrap:break-word}
@@ -328,6 +330,13 @@ function tabsLayout(page: RenderedPage, counter: { n: number }): string {
   return `<div class="pg-wrap"><header class="pg-top"><h1>${page.title}</h1>${page.entry.lead ? `<div class="pg-lead">${page.entry.lead}</div>` : ""}</header>${nav}${entry}${items}</div>`;
 }
 
+/**
+ * 頁の帯の設定の塊 (`<script type="application/json" id="dragon-header">`、#3789)。設定が無い頁には書かない。
+ * 値に `<` が混ざっても塊を閉じないよう、JSON の字の `<` を逃がす
+ */
+const headerBlock = (header: PageHeader | undefined): string =>
+  header ? `<script type="application/json" id="dragon-header">${JSON.stringify(header).replaceAll("<", "\\u003c")}</script>\n` : "";
+
 /** 頁の HTML の全文 */
 export function pageHtml(page: RenderedPage): string {
   const counter = { n: 1 };
@@ -335,7 +344,7 @@ export function pageHtml(page: RenderedPage): string {
   const style = STYLE + (page.layout === "sidebar" ? STYLE_SIDEBAR : page.layout === "tabs" ? STYLE_TABS : "");
   return (
     `<!doctype html>\n<html lang="${page.lang}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n` +
-    `<title>${escapeHtml(page.titleText)}</title>\n<style>${style.trim()}</style>\n<script type="module" src="${cdnScript()}"></script>\n</head>\n` +
+    `<title>${escapeHtml(page.titleText)}</title>\n<style>${style.trim()}</style>\n${headerBlock(page.header)}<script type="module" src="${cdnScript()}"></script>\n</head>\n` +
     `<body class="pg pg-layout-${page.layout}">\n${body}\n<script>${RUNTIME}</script>\n</body>\n</html>\n`
   );
 }
