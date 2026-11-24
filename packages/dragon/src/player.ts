@@ -270,7 +270,7 @@ function playerCss(): string {
     `.dg-nc-x:hover{color:var(--ink);background:var(--sunk)}.dg-nc-x:focus-visible{outline:${px(P.focus)} solid var(--c-blue)}`,
     `.dg-nc-x svg{width:${px(N.icon)};height:${px(N.icon)};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`,
     // 印刷の形では全ての札を開き、図の幅と高さに対する箱の真ん中と下端の割合の所に置く。閉じるのアイコンと影は描かない
-    `@media print{.dg-player[data-notes] .dg-nc{display:block;left:clamp(0px,calc(var(--nx) - ${px(N.card / 2)}),calc(100% - ${px(N.card)}));top:calc(var(--ny) + ${px(N.gap)});box-shadow:none}.dg-player[data-notes] .dg-nc-x{display:none}}`,
+    `@media print{.dg-player[data-notes] .dg-nc{display:block;left:clamp(${px(0)},calc(var(--nx) - ${px(N.card / 2)}),calc(100% - ${px(N.card)}));top:calc(var(--ny) + ${px(N.gap)});box-shadow:none}.dg-player[data-notes] .dg-nc-x{display:none}}`,
   ].join("");
 }
 
