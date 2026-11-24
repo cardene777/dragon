@@ -1,0 +1,14 @@
+cards 線
+
+box alice as Alice
+box shop as 店
+
+item p1 as 支払い#1 in alice, shop [amount: "3,000円"]
+
+step 呼ぶ
+  say 線は列の名札からカードの名札へ->で引き、:の後ろに名前を書く。
+  alice -> p1: 払う
+
+step 受け取る
+  say 線は列の見出しから出て、呼んだカードの縁を光らせる。
+  shop -> p1: 受け取る

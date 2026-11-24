@@ -8,6 +8,7 @@
  * 件は種類ごとの助けのfile (`<種類の検査>-playground-checks.ts`) に、元の名前と確かめのまま置く
  */
 import "./band-look-playground-checks";
+import "./cards-diagram-playground-checks";
 import "./chart-diagram-playground-checks";
 import "./chart-funnel-playground-checks";
 import "./chart-line-playground-checks";

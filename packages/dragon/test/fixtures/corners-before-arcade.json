@@ -335,6 +335,38 @@
     "dg-strip rx=14": 1,
     "dg-tree-card rx=9": 8
   },
+  "note-transfer.en.json": {
+    "dg-bg rx=14": 1,
+    "dg-cd-band rx=12": 1,
+    "dg-cd-call rx=11": 2,
+    "dg-cd-card rx=10": 24,
+    "dg-cd-cell dg-a rx=7": 2,
+    "dg-cd-empty rx=10": 3,
+    "dg-cd-lane rx=16": 4,
+    "dg-cd-mark rx=10": 12,
+    "dg-cd-on dg-a rx=10": 6,
+    "dg-cd-ref rx=12": 2,
+    "dg-cd-tag rx=10": 6,
+    "dg-cd-veil dg-a rx=10": 2,
+    "dg-cd-veil rx=10": 4,
+    "dg-cd-why rx=12": 2
+  },
+  "note-transfer.json": {
+    "dg-bg rx=14": 1,
+    "dg-cd-band rx=12": 1,
+    "dg-cd-call rx=11": 2,
+    "dg-cd-card rx=10": 24,
+    "dg-cd-cell dg-a rx=7": 2,
+    "dg-cd-empty rx=10": 3,
+    "dg-cd-lane rx=16": 4,
+    "dg-cd-mark rx=10": 12,
+    "dg-cd-on dg-a rx=10": 6,
+    "dg-cd-ref rx=12": 2,
+    "dg-cd-tag rx=10": 6,
+    "dg-cd-veil dg-a rx=10": 2,
+    "dg-cd-veil rx=10": 4,
+    "dg-cd-why rx=12": 2
+  },
   "oauth.en.json": {
     "(none) rx=10": 12,
     "(none) rx=11": 4,

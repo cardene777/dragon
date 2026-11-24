@@ -1,0 +1,27 @@
+// A transfer where balances are held as notes. Alice spends her 1000 USDC note and gets a 900 USDC change note, and Bob gets a new 100 USDC note.
+// The amounts are sample values that show the shape.
+cards Send 100 USDC with notes
+
+box alice as Alice [note: Sender]
+box bob as Bob [note: Receiver]
+box carol as Carol [note: No notes yet]
+box usdc as USDC ledger [mark: Signed]
+
+item n1 as Note #1 in alice, usdc [amount: 1000 USDC, mark: usdc]
+item n2 as Note #2 in bob, usdc [amount: 200 USDC, mark: usdc]
+
+step Alice sends 100 to Bob
+  say Note #1 is spent and replaced by two new notes. The ledger total stays the same.
+  alice -> n1: Send 100
+  delete n1
+  item n3 as Note #3 in alice, usdc [amount: 900 USDC, mark: usdc]
+  item n4 as Note #4 in bob, usdc [amount: 100 USDC, mark: usdc]
+
+step Bob tries to send 500
+  say His note is too small, so nothing changes.
+  bob -> n2: Send 500
+  refuse n2: Not enough balance
+
+step Someone tries to pay Carol
+  say Carol has no account on the ledger, so she cannot receive a note.
+  refuse carol: No account

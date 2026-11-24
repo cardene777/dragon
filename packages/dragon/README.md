@@ -146,6 +146,9 @@ Select a kind to read how to write it.
 <tr>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#set-overlap-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn.png" alt="A set overlap diagram" width="260"></picture><br>Set overlap diagram</a></td>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#sankey-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey.png" alt="A Sankey diagram" width="260"></picture><br>Sankey diagram</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#owner-card-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cards-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cards.png" alt="An owner card diagram" width="260"></picture><br>Owner card diagram</a></td>
+</tr>
+<tr>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#checkout-diagram">Checkout diagram</a><br>A purchase model the reader can change</td>
 </tr>
 </table>
@@ -619,7 +622,7 @@ Allow `clipboard-write` so the Copy button works inside the iframe.
 
 To keep a page's initial load small, import from `@cardenelabs/dragon/light`.
 It exports the same functions as the default entry.
-It leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, and `sankey`.
+It leaves out the renderers for `chart`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `state`, `time`, `tree`, `try`, `venn`, `sankey`, and `cards`.
 It also leaves out the blocks that only those kinds use.
 Before reading a diagram, await `loadFor` with its notation or JSON.
 It loads only that kind's renderer and the blocks the diagram uses.
@@ -771,7 +774,7 @@ Every line follows these four rules.
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
 4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey`. They also include `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code`. The rest are `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set`, and a line is written as `id -> id`.
+The words that start a line are `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `cards`. They also include `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code`. The rest are `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set` `refuse`, and a line is written as `id -> id`.
 Sequence, architecture, and state diagrams can omit the title on the first line, the box declarations, the steps, and the step bodies.
 A diagram with no `box` lines makes a box for each name on its lines, in the order the names appear.
 It still draws the diagram, but it points out box names that differ by one character.
@@ -824,6 +827,7 @@ A flow diagram's choices go in `blocks.choice`, and the paths it does not take i
 A table relation diagram's tables and their fields go in `blocks.table`.
 A set overlap diagram's sets go in `blocks.circle`.
 A Sankey diagram keeps its sources and targets in `blocks.box`, and each band is a line in a step's `events` with the amount as its label.
+An owner card diagram keeps its owner columns in `blocks.box` and the cards there from the start in `blocks.card`.
 What happens in a step (lines and actions inside a box) goes in each step's `events`.
 
 ```json
