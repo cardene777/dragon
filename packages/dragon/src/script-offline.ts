@@ -11,6 +11,8 @@
  * 書き出した HTML の頁はこの script の `DragonPlayer.mountDiagram` で図を置くので、build は `DragonPlayer` の名前で出す。
  */
 import "./kinds/all";
+// 押すと出る札の層を作る処理 (#3877)。外を読めない頁で開くので、読み込みの時に置く
+import "./blocks/pop/cards-all";
 
 import { registerPageIcons } from "./blocks/icon/page-icons";
 import { offlineCapture } from "./capture/offline";

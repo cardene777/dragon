@@ -923,11 +923,13 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 |---|---|---|
 | Kind and title | `view` | The view. `fixed` or `follow` |
 | Kind and title | `shape` | The shape of a chart. `donut` or `bar`. Only in a chart, where it is required |
+| Kind and title | `note` | How box notes show. `pop` shows them on cards that open on a click, and `under` under the names (see [Note cards](#note-cards)) |
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |
 | Idea | `color` | The colour of an idea in a mind map, from the same roles as regions and boxes. On a branch, its lines and leaves take the colour, and a branch without one gets a colour no other branch has taken |
 | Axis | `from`, `to` | The two ends of an axis in a two-axis matrix. `from` is the low end (left on the horizontal axis, bottom on the vertical one) and `to` the high end. Leave them out and no end text shows |
+| Box | `example` | An example shown at the bottom of the box's note card. Only on a box with `note` in a diagram whose notes show on cards |
 | Box | `link` | Where the box leads. The box becomes a link in the drawn diagram. A path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#` |
 | Source of a step | `url` | Where the source is. Takes the same forms as `link` |
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |
@@ -936,6 +938,29 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 
 Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as `\"` and `\\`.
 Lines starting with `//` and empty lines are not read.
+
+## Note cards
+
+In sequence, architecture, state, git, time, tree and flow diagrams, `[note: pop]` on the first line shows each box's `note` on a card instead of under its name.
+Only a box with `note` gets a round i mark at its top right, and a long note no longer widens the box.
+Clicking the box opens a card just below it with the box name and the whole `note`.
+The card closes when you click outside it or its close icon, and when you move to another step.
+A box in such a diagram also takes `example: <example>`, shown as a gray band at the bottom of the card.
+`[note: under]` draws the note under the name, the same as writing nothing.
+Another value of `note`, and `example` on a box without `note` or in a diagram without `[note: pop]`, are refused with the line named.
+When the page is printed, every card is drawn open below its box.
+On a Markdown page, a `note: pop` line at the top makes cards the default for every diagram on the page.
+
+```dragon
+sequence Take an order [note: pop]
+
+box shop as Shop [note: Takes the order and checks the stock before it asks the warehouse to ship, example: Three orders on one day go to the warehouse together]
+box store as Warehouse [note: Keeps the goods and ships them]
+
+step Ask
+  say The shop asks the warehouse to ship.
+  shop -> store: ship
+```
 
 ## Errors
 

@@ -1,0 +1,8 @@
+flow 押すと出る札 [note: pop]
+
+box stock as 在庫を見る [note: 注文の品が倉庫に残っているかを数える, example: 残り 1 個なら売れる]
+box sell as 売る [note: 代金を受けて出荷を頼む]
+
+step 見る
+  say note を持つ箱は右上に i の印を持つ。押すと箱のすぐ下に札が出て、note の全文と例の帯を読める。
+  stock -> sell: 残っている

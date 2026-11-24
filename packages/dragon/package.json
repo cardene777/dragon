@@ -147,6 +147,7 @@
     "./src/blocks/icon/sets-all.ts",
     "./src/render/pen-all.ts",
     "./src/render/look-all.ts",
+    "./src/blocks/pop/cards-all.ts",
     "./src/render/svg.ts"
   ],
   "scripts": {

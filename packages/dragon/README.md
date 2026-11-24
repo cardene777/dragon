@@ -262,11 +262,17 @@ The export writes these lines into the page's bar settings block (`<script type=
 That block applies to the bar of every diagram on the page.
 An unknown button name, a duplicate button, a color value with `;` or `<`, or an unknown `header-` line stops the export, and the error names the line.
 
+A `note: pop` line shows the box notes of every diagram on the page on cards that open on a click ([Note cards](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#note-cards)).
+A diagram with `[note: under]` on its first line keeps its notes under the names.
+On such a page, a box of a diagram with nothing about `note` on its first line can also take `example`.
+`note: under` is the same as leaving the line out, and another value stops the export with the line named.
+
 ```md
 ---
 layout: tabs
 header-buttons: code, export
 header-accent: "#c0392b"
+note: pop
 ---
 ```
 

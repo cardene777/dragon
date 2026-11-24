@@ -44,6 +44,7 @@ import { shape as opShape } from "./op/shape";
 import { shape as orderShape } from "./order/shape";
 import { shape as pickShape } from "./pick/shape";
 import { shape as pointShape } from "./point/shape";
+import { shape as popShape } from "./pop/shape";
 import { shape as pressShape } from "./press/shape";
 import { shape as queueShape } from "./queue/shape";
 import { shape as returnShape } from "./return/shape";
@@ -114,6 +115,7 @@ export const SHAPES = {
   "order": orderShape,
   "pick": pickShape,
   "point": pointShape,
+  "pop": popShape,
   "press": pressShape,
   "queue": queueShape,
   "return": returnShape,

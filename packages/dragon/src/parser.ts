@@ -5,6 +5,7 @@
  * 図の種類と題と区画と箱と帯を宣言し、`step` ごとに、その段で起きることを起きる順に並べる。
  *
  *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ。図の種類は sequence と architecture と state
+ *   sequence <題> [note: pop か under]                   pop は箱の note を押すと出る札で見せる (#3877)。箱の札を描く図の種類 (`blockKinds("pop")`) だけが書ける
  *   group <名札> as <名前> [note: <添え書き>, color: <色>, icon: <印>]
  *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>, link: <飛び先>]
  *   end                                                  同じ名札の group はもう一度開ける
@@ -120,8 +121,10 @@ import { EDGE, EDGE_WITHOUT_TARGET, type EdgeEvent } from "./blocks/edge/block";
 import { readEdgeLine } from "./blocks/edge/read";
 import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
+import type { NoteMode } from "./blocks/pop/block";
+import { noteModeOf } from "./blocks/pop/read";
 import { stepOf, viewOf } from "./blocks/step/read";
-import { fits } from "./blocks/usable";
+import { blockKinds, fits } from "./blocks/usable";
 import { kindNeeds, lineNeeds, lineView, matches } from "./blocks/used";
 import { TIME_EDGE_ATTRS } from "./blocks/zoom/block";
 import { KIND_FOLDERS } from "./kinds/index";
@@ -157,6 +160,11 @@ export interface ParseOptions {
   lang?: NotationLang;
   /** 図の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物 */
   blocks?: UserBlocks;
+  /**
+   * 1 行目に `note` を書かない図の、箱の説明の見せ方 (#3877)。Markdown の頁の上の行の `note: pop` が頁の全ての図に渡す。
+   * 1 行目の `[note: pop]` と `[note: under]` がこれに勝ち、札で見せられない図の種類には効かない
+   */
+  note?: NoteMode;
 }
 
 /** 段の中の、足した線のブロックで結ぶ線の行。名札、`+<名前>`、名札 (#3399) */
@@ -209,13 +217,17 @@ const LINEUP_OR_TRY = ["item", "line"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
+/** 箱の説明を押すと出る札で見せられる図の種類 (#3877)。札のブロックの付け方から導く */
+const POP_KINDS: readonly string[] = blockKinds("pop");
+
 /**
  * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
- * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)
+ * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)、
+ * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"] };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: POP_KINDS };
 
-function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[]): DiagramModel {
+function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[], defaultNote?: NoteMode): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
   const head = lines[headAt];
   if (!head) throw new NotationError(1, 1, m.noHead);
@@ -245,6 +257,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   }
   const shape = headAttrs.get("shape");
   const unit = headAttrs.get("unit");
+  // 箱の説明を札で見せるか (#3877)。1 行目の値が頁の既定に勝ち、札で見せられない種類の図には頁の既定が効かない
+  const pop = POP_KINDS.includes(kind) && (noteModeOf(head, headAttrs.get("note"), m) ?? defaultNote) === "pop";
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));
@@ -392,7 +406,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (given) throw fail(source, given.attr.at, m.timeOnly(given.name));
     return {};
   };
-  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure, reader: (word) => headReaders().get(word) };
+  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, pop, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure, reader: (word) => headReaders().get(word) };
   /** 行が使うブロックの読み方を持っているか確かめる。持っていなければ、ブロックの名前を名指して止める */
   const needed = (source: SourceLine, line: LineView): void => {
     const missing = lineNeeds(line, kind).find((name) => !readingLoaded(name));
@@ -520,6 +534,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     kind,
     title,
     ...(view ? { view } : {}),
+    ...(pop ? { note: "pop" as const } : {}),
     ...(define.length > 0 ? { define: { format: 1, blocks: define } } : {}),
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
@@ -574,7 +589,7 @@ export function parseNotation(notation: string, options: ParseOptions = {}): Par
     // 知らせ (#3438) は図を描いたまま返し、無ければ欄を持たない
     const notices: LineError[] = [];
     return withUserBlocks([options.blocks], (): Parsed => {
-      const diagram = markParsed(fromModel(parseLines(tokenize(notation), messagesFor(lang), lang, notices), FORMAT_VERSION));
+      const diagram = markParsed(fromModel(parseLines(tokenize(notation), messagesFor(lang), lang, notices, options.note), FORMAT_VERSION));
       return notices.length > 0 ? { ok: true, diagram, notices } : { ok: true, diagram };
     });
   } catch (error) {

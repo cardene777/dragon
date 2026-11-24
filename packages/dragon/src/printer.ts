@@ -222,6 +222,8 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
       ["table", diagram.matrix?.table],
       ["turn", diagram.cycle?.turn],
       ["view", diagram.view],
+      // 箱の説明を押すと出る札で見せる図 (#3877)
+      ["note", diagram.note],
     ])}${diagram.layout !== undefined ? `\nlayout ${diagram.layout}` : ""}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
     ...(diagram.define ? [defineLines(diagram.define)] : []),

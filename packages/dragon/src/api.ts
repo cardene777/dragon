@@ -6,6 +6,8 @@
 export { EDITOR_PASTE_HASH, EDITOR_URL_LIMIT, editorHashKind, editorPasteUrl, editorUrl, embedUrl, packedEditorUrl, readEditorHash, readPackedEditorHash, type EditorUrlOptions, type EmbedUrlOptions } from "./editor-url";
 export { extractDiagrams, type Fence } from "./markdown";
 export { type LineError, type ParseOptions, type Parsed, parseNotation } from "./parser";
+// 箱の説明の見せ方 (#3877)。`parseNotation` の `note` に渡す値
+export type { NoteMode } from "./blocks/pop/block";
 export { type PrintOptions, printNotation } from "./printer";
 export { type NotationLang, NOTATION_WORDS } from "./words";
 export {
@@ -110,6 +112,7 @@ export type {
   SceneField,
   SceneLabel,
   SceneLifeline,
+  SceneNote,
   ScenePath,
   SceneRegion,
   SceneSide,

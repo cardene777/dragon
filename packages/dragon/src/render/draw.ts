@@ -24,6 +24,7 @@ import { band } from "../blocks/group/draw";
 import { lifeline } from "../blocks/lifeline/draw";
 import { linkTo } from "../blocks/link/draw";
 import { subChanges } from "../blocks/note/draw";
+import { NOTE_CSS, noteMark, placeNotes, takeNotes } from "../blocks/pop/draw";
 import { ghostCard, path, side } from "../blocks/side-path/draw";
 import { endMark } from "../blocks/start-finish/draw";
 import { fieldChanges, strip } from "../blocks/strip/draw";
@@ -521,6 +522,12 @@ export function drawSvg(
     ),
   );
   const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
+  // 札で見せる図 (#3877) の札を持つ箱は、箱の札ごと押せる組で包み、右上に i の印を描く
+  const notes = new Map((layout.noteCards ?? []).map((note) => [note.box, note]));
+  const noted = (id: string, markup: string, y?: number): string => {
+    const note = notes.get(id);
+    return note ? noteMark(note, markup, y) : markup;
+  };
   for (const box of parts?.ownBoxes || look ? [] : layout.boxes) {
     if (box.ghost) {
       L.node.push(linked(box.id, ghostCard(box, ink, ctx.corner)));
@@ -530,12 +537,15 @@ export function drawSvg(
     L.node.push(
       linked(
         box.id,
-        card(
-          box,
-          ctx,
-          on.get(box.id) ?? [],
-          subs.get(box.id) ?? [],
-          isState ? (state?.lit ?? []) : undefined,
+        noted(
+          box.id,
+          card(
+            box,
+            ctx,
+            on.get(box.id) ?? [],
+            subs.get(box.id) ?? [],
+            isState ? (state?.lit ?? []) : undefined,
+          ),
         ),
       ),
     );
@@ -579,7 +589,8 @@ export function drawSvg(
       : layout.kind === "sequence"
       ? layout.boxes
           .map((box) =>
-            linked(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? [])),
+            // 頭の列の箱の印は、頭の箱の上端から同じ間の所に置く (#3877)
+            linked(box.id, noted(box.id, headCard(box, ctx, on.get(box.id) ?? [], subs.get(box.id) ?? []), LOOK.follow.head.pad + LOOK.note.inset)),
           )
           .join("")
       : "";
@@ -603,7 +614,8 @@ export function drawSvg(
     ? followView(layout, timeline, diagram, m, id, content, under, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height, css: "" };
   const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  // 印の見た目の規則は札で見せる図にだけ書き、ほかの図の SVG を変えない (#3877)
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${notes.size > 0 ? NOTE_CSS : ""}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${monoDots(view.body, css)}</svg>`
@@ -1059,15 +1071,19 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   const given = toModel(read.diagram);
   const parts = partsOf(given.kind, lang);
   const model = options.figure === true ? (parts?.figure?.(given) ?? given) : given;
-  const diagram = parts?.fold?.(model, options, lang) ?? model;
+  // 札で見せる図 (#3877) は、箱の説明を名前の下の字から札へ移してから並べる。箱は説明の字の幅まで広がらない
+  const { diagram, notes } = takeNotes(parts?.fold?.(model, options, lang) ?? model);
   // 後から読む図の種類 (#3347) は部品の組の並べ方で並べ、時系列図は登録簿に登録した並べ方で並べ (#3345、#3763)、
   // 構成図と知らない種類は構成図の並べ方で並べる。種類の行に `[shape: pipe]` を書いた時系列図は、見た目の部品の組の並べ方で並べる (#3720)
   const look = sequenceLookFor(diagram, lang);
-  const layout = look
+  const laid = look
     ? look.layout(diagram, lang)
     : parts
       ? parts.layout(diagram, lang, options)
       : eagerLayout(diagram.kind === "sequence" ? "sequence" : "architecture", lang)(diagram, lang);
+  // 札を持つ箱の印は、並べた箱の右上に置く (#3877)
+  const placed = placeNotes(notes, laid.boxes);
+  const layout = placed.length > 0 ? { ...laid, noteCards: placed } : laid;
   // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
   // 頁に止めて置く図 (#3801) は、頁の白い地に馴染む澄んだ色味 (`clear`) を既定にする
   const kindPalette = options.palette === undefined ? (KIND_PALETTE[diagram.kind] ?? (options.figure === true ? "clear" : undefined)) : undefined;

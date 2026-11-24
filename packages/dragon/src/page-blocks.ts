@@ -14,6 +14,8 @@
  * 頁の `<script type="application/json" id="dragon-header">` (帯の設定の塊) は、SDK の `mountDragon` と同じ鍵 (`buttons` と `look`) で
  * 帯のボタンの並びと見た目を持ち、頁の全ての `data-header` の塊に効く (#3789)。読めない時は、`data-header` の塊をその誤りの文に置き換える。
  * 属性 `data-still` を持つ塊は、再生の部品を置かず、最後の段の形を描いた SVG (`div.dragon-figure.dragon-still`) に置き換える (#3801)。
+ * 属性 `data-note="pop"` を持つ塊は、1 行目に `note` を書かない図を、箱の説明を押すと出る札で見せる (#3877)。
+ * 1 行目に `[note: under]` を書いた図は名前の下の字で見せる。mdから書き出した頁の頭の `note: pop` が全ての塊に付ける。
  *
  * 頁の `<link rel="dragon-blocks" href="…">` が指す file は、使う人が足すブロックの定義として 1 度だけ読み、頁の全ての塊に渡す (#3399)。
  * file は記法 (`blocks 1` で始まる) か JSON (`"format": 1`) で書く。読む file は頁を書いた人が指した所だけで、定義は外の物を読ませない。
@@ -146,7 +148,8 @@ async function drawBlock(
     block.replaceWith(errorBox(doc, [detail(error)]));
     return;
   }
-  const parsed = parseNotation(text, { lang, ...(blocks ? { blocks } : {}) });
+  // `data-note="pop"` を持つ塊は、1 行目に note を書かない図を箱の説明を押すと出る札で見せる。mdから書き出した頁の頭の `note: pop` が付ける (#3877)
+  const parsed = parseNotation(text, { lang, ...(blocks ? { blocks } : {}), ...(block.getAttribute("data-note") === "pop" ? { note: "pop" as const } : {}) });
   if (!parsed.ok) {
     block.replaceWith(errorBox(doc, parsed.errors.map((error) => `${error.line}: ${error.message}`)));
     return;

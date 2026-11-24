@@ -19,3 +19,14 @@
 | `docs/design/base/GRAMMAR.md` の部品の表はブロックの使い方の決まりから作られ、食い違うと落ちる | `pnpm exec vitest run`の検査`grammar-parts-table-from-blocks`が通る | #3350 |
 | 前提の `## 部品の考え方` の節が、ブロック、コアブロック、個別ブロック、接続ブロック、付け方、図、図の種類の言葉で書かれ、ブロックと図の種類の置き場の dir を名指し、名指す path が全て在る | `pnpm exec vitest run`の検査`parts-concept-names-block-and-kind-folders`が通る | #3350 |
 | 前提の `## 目的` の節が、mermaid と同じ手軽さで書けて表示まで出ることを理念として書き、script の1行の入口の課題 #3343 を名指す | `pnpm exec vitest run`の検査`premise-purpose-names-script-entry`が通る | #3350 |
+| 図の1行目に`[note: pop]`を書いた時、`note`を持つ箱だけが右上にiの印を持ち、名前の下に`note`の字を描かない | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-badge-only-on-boxes-with-note` passes | #3877 |
+| 印の付いた箱を押した時、その箱のすぐ下に、箱の名前と`note`の全文を持つ札が出る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-opens-card-under-box` passes | #3877 |
+| 箱に`[example: …]`を書いた時だけ、札の下に例の帯が出る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-example-band-only-when-written` passes | #3877 |
+| 札の外か閉じるのアイコンを押した時、札が閉じる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-closes-outside` passes | #3877 |
+| 札を開いたまま段を送った時、札が閉じる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-closes-on-step` passes | #3877 |
+| sequence、architecture、flowの3種類で、同じ書き方で印と札が出る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-same-in-three-kinds` passes | #3877 |
+| Markdownの頁の上の行に`note: pop`を書いた時、頁の全ての図が札で見せ、1行目に`[note: under]`を書いた図だけは名前の下の字で見せる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `page-note-pop-default-and-override` passes | #3877 |
+| 印刷の形で、全ての札が箱の下に開いて描かれる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-print-opens-all-cards` passes | #3877 |
+| 図の1行目の`note`に`pop`と`under`の外の値を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mode-unknown-refused` passes | #3877 |
+| 札で見せない図の箱に`[example: …]`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `example-without-pop-refused` passes | #3877 |
+| `[note: pop]`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3877 |

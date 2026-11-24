@@ -170,6 +170,11 @@ export interface ParseState {
   readonly attrs: Readonly<Record<string, readonly string[]>>;
   /** 図の種類の行の属性。図の種類だけが使う属性は、その図の種類のブロックが読んで確かめる (#3637) */
   readonly head: ReadonlyMap<string, Attr>;
+  /**
+   * 箱の説明を押すと出る札で見せる図か (#3877)。1 行目の `[note: pop]` か、読む時に渡した既定 (Markdown の頁の `note: pop`) で決まる。
+   * 箱の行の `example` は札で見せる図にだけ書ける
+   */
+  readonly pop: boolean;
   /** 段の中に書く行の書き先の段。最初の `step` より前に書いた行は誤りで止める */
   readonly inStep: (source: SourceLine) => StepDraft;
   /** 書いている段。最初の `step` より前は `undefined` (#3348) */

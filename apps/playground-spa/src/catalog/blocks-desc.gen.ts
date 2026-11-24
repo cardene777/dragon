@@ -44,6 +44,7 @@ import { desc as opDesc } from "../../../../packages/dragon/src/blocks/op/galler
 import { desc as orderDesc } from "../../../../packages/dragon/src/blocks/order/gallery/desc";
 import { desc as pickDesc } from "../../../../packages/dragon/src/blocks/pick/gallery/desc";
 import { desc as pointDesc } from "../../../../packages/dragon/src/blocks/point/gallery/desc";
+import { desc as popDesc } from "../../../../packages/dragon/src/blocks/pop/gallery/desc";
 import { desc as pressDesc } from "../../../../packages/dragon/src/blocks/press/gallery/desc";
 import { desc as queueDesc } from "../../../../packages/dragon/src/blocks/queue/gallery/desc";
 import { desc as returnDesc } from "../../../../packages/dragon/src/blocks/return/gallery/desc";
@@ -114,6 +115,7 @@ export const BLOCK_DESC = {
   "order": orderDesc,
   "pick": pickDesc,
   "point": pointDesc,
+  "pop": popDesc,
   "press": pressDesc,
   "queue": queueDesc,
   "return": returnDesc,

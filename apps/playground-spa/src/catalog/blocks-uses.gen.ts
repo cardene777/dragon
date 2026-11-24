@@ -44,6 +44,7 @@ import { uses as opUses } from "../../../../packages/dragon/src/blocks/op/galler
 import { uses as orderUses } from "../../../../packages/dragon/src/blocks/order/gallery/uses";
 import { uses as pickUses } from "../../../../packages/dragon/src/blocks/pick/gallery/uses";
 import { uses as pointUses } from "../../../../packages/dragon/src/blocks/point/gallery/uses";
+import { uses as popUses } from "../../../../packages/dragon/src/blocks/pop/gallery/uses";
 import { uses as pressUses } from "../../../../packages/dragon/src/blocks/press/gallery/uses";
 import { uses as queueUses } from "../../../../packages/dragon/src/blocks/queue/gallery/uses";
 import { uses as returnUses } from "../../../../packages/dragon/src/blocks/return/gallery/uses";
@@ -114,6 +115,7 @@ export const BLOCK_USES = {
   "order": orderUses,
   "pick": pickUses,
   "point": pointUses,
+  "pop": popUses,
   "press": pressUses,
   "queue": queueUses,
   "return": returnUses,

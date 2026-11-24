@@ -72,6 +72,8 @@ export interface Box {
   id: string;
   name: string;
   sub?: string;
+  /** 札で見せる図 (根の `note` が `pop`) の札の下に、灰色の帯で出す例 (#3877)。`sub` を持つ箱だけが持てる */
+  example?: string;
   color?: Color;
   icon?: string;
   region?: string;
@@ -382,6 +384,11 @@ export interface Diagram {
   checkout?: Omit<import("./checkout/read").CheckoutDefinition, "blocks">;
   title: string;
   view?: ViewMode;
+  /**
+   * 箱の説明の見せ方 (#3877)。`pop` は箱の `sub` を名前の下に描かず、押すと箱のすぐ下に出る札で見せる。
+   * 箱の札を描く図の種類 (`blockKinds("pop")`) だけが持て、書かない図は名前の下の字で見せる
+   */
+  note?: "pop";
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
   /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */
@@ -417,6 +424,8 @@ export interface DiagramModel {
   checkout?: import("./checkout/read").CheckoutDefinition;
   title: string;
   view?: ViewMode;
+  /** 箱の説明の見せ方 (#3877)。版2の原本の根の `note` の欄をそのまま持つ */
+  note?: "pop";
   /** パイプ図の置き方 (Tracelyth #165、#166、#168)。パイプ図だけが持つ */
   layout?: PipeLayoutName;
   /** パイプ図の置き方が通り道を空ける、人から箱への呼び出しの組 (`route` の行、#3721)。パイプ図だけが持つ */

@@ -6,6 +6,8 @@
 import "./kinds/all";
 import "./render/pen-all";
 import "./render/look-all";
+// 押すと出る札の層を作る処理 (#3877)。書き出した頁は外を読めないので、読み込みの時に置く
+import "./blocks/pop/cards-all";
 
 import { registerPageIcons } from "./blocks/icon/page-icons";
 

@@ -190,6 +190,23 @@ export interface Layout {
   ends: SceneEnd[];
   /** 状態遷移図の脇道の囲み。通らない状態が無ければ無い */
   side?: SceneSide;
+  /** 箱の説明を押すと出る札で見せる図 (#3877) の、札を持つ箱の印と札の中身。札で見せない図と、`note` を持つ箱の無い図は持たない */
+  noteCards?: SceneNote[];
+}
+
+/** 札で見せる図の、札を持つ箱 1 つの印と札の中身 (#3877) */
+export interface SceneNote {
+  /** 箱の名札 */
+  box: string;
+  /** 札の上に小さく書く箱の名前 */
+  name: string;
+  /** 札の本文。箱の `note` の全文 */
+  text: string;
+  /** 札の下の灰色の帯の例。箱に `example` を書いた時だけ持つ */
+  example?: string;
+  /** 箱の右上の内側に描く印の丸の真ん中 */
+  x: number;
+  y: number;
 }
 
 export type EdgeEvent = Extract<DiagramEvent, { type: "edge" }>;

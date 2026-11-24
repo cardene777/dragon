@@ -41,6 +41,8 @@ export interface BoxMessages {
 const declareBox = (b: Box): string =>
   `${b.block ?? "box"} ${b.id}${shown(b.id, b.name)}${attrs([
     ["note", b.sub],
+    // 札で見せる図の札の下の例 (#3877)
+    ["example", b.example],
     ["color", b.color],
     ["icon", b.icon],
     ["link", b.link],
@@ -98,6 +100,9 @@ export const reading: BlockReading<BoxMessages> = {
       const { note, ...look } = readLook(source, declared.attrs, state.m);
       const noteAttr = declared.attrs.get("note");
       if (noteAttr && state.kind === "pipe") (state.figure.pipe.notes ??= []).push({ source, id: declared.id, at: noteAttr.at });
+      // 札の下の例 (#3877) は、札で見せる図の note を持つ箱にだけ書ける。札を持たない箱の例は描く所が無いので断る
+      const example = declared.attrs.get("example");
+      if (example && !(state.pop && note !== undefined)) throw fail(source, example.at, state.m.exampleWithoutPop);
       const link = declared.attrs.get("link");
       const order = declared.attrs.get("order");
       if (order && state.kind !== "lineup") throw fail(source, order.at, state.m.lineupOnlyAttr("order"));
@@ -113,6 +118,7 @@ export const reading: BlockReading<BoxMessages> = {
         id: declared.id,
         name: declared.name ?? declared.id,
         ...(note !== undefined ? { sub: note } : {}),
+        ...(example ? { example: example.value } : {}),
         ...look,
         ...(group ? { region: group.id } : {}),
         ...(link ? { link: urlOf(source, "link", link, state.m) } : {}),

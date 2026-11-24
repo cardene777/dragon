@@ -1,0 +1,9 @@
+git Note card [note: pop]
+
+branch main
+
+box worktree as Worktree [note: Holds the files changed by hand and not committed yet, example: Two files changed]
+
+step Commit
+  say A box with note gets an i mark at its top right. Click it and a card with the whole note and an example band opens just below.
+  commit A on main
