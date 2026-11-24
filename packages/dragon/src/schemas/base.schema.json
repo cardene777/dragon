@@ -36,8 +36,7 @@
         "matrix",
         "venn",
         "sankey",
-        "checkout",
-        "cards"
+        "checkout"
       ]
     },
     "title": {
@@ -671,49 +670,6 @@
           },
           "venn": {
             "$ref": "#/definitions/absent"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "required": [
-          "kind"
-        ],
-        "properties": {
-          "kind": {
-            "const": "cards"
-          }
-        }
-      },
-      "else": {
-        "properties": {
-          "blocks": {
-            "properties": {
-              "card": {
-                "$ref": "#/definitions/absent"
-              },
-              "box": {
-                "items": {
-                  "properties": {
-                    "mark": {
-                      "$ref": "#/definitions/absent"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "steps": {
-            "items": {
-              "properties": {
-                "events": {
-                  "items": {
-                    "$ref": "#/definitions/notCardsEvent"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -1853,24 +1809,6 @@
             "enum": [
               "count",
               "none"
-            ]
-          }
-        }
-      }
-    },
-    "notCardsEvent": {
-      "description": "持ち主ごとのカードの図だけが書ける出来事を書けない",
-      "not": {
-        "required": [
-          "type"
-        ],
-        "properties": {
-          "type": {
-            "enum": [
-              "card",
-              "card-move",
-              "card-delete",
-              "refuse"
             ]
           }
         }
@@ -3277,179 +3215,67 @@
                                     }
                                   },
                                   "else": {
-                                    "if": {
-                                      "required": [
-                                        "kind"
-                                      ],
-                                      "properties": {
-                                        "kind": {
-                                          "const": "cards"
-                                        }
-                                      }
-                                    },
-                                    "then": {
-                                      "properties": {
-                                        "blocks": {
-                                          "required": [
-                                            "box"
-                                          ],
-                                          "properties": {
-                                            "box": {
-                                              "description": "持ち主の列。1 つ以上で、書いた順に左から並べ、カードを列の中に上から積む。名前の脇の添え書きと印の語のほかを持たない",
-                                              "minItems": 1,
-                                              "items": {
-                                                "properties": {
-                                                  "example": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "color": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "icon": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "region": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "link": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "block": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "order": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "limit": {
-                                                    "$ref": "#/definitions/absent"
-                                                  },
-                                                  "time": {
-                                                    "$ref": "#/definitions/absent"
-                                                  }
-                                                }
-                                              }
-                                            },
-                                            "group": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "strip": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "path": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "choice": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "branch": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "scale": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "period": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "row": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "task": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "point": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "zoom": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "item": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "role": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "part": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "hold": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "side": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "check": {
-                                              "$ref": "#/definitions/absent"
-                                            }
+                                    "properties": {
+                                      "blocks": {
+                                        "required": [
+                                          "box"
+                                        ],
+                                        "properties": {
+                                          "box": {
+                                            "minItems": 1
+                                          },
+                                          "strip": {
+                                            "$ref": "#/definitions/plainStrip"
+                                          },
+                                          "path": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "branch": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "scale": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "period": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "row": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "task": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "point": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "zoom": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "item": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "role": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "part": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "hold": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "side": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "check": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "choice": {
+                                            "$ref": "#/definitions/absent"
                                           }
-                                        },
-                                        "steps": {
-                                          "$ref": "#/definitions/plainSteps"
                                         }
-                                      }
-                                    },
-                                    "else": {
-                                      "properties": {
-                                        "blocks": {
-                                          "required": [
-                                            "box"
-                                          ],
-                                          "properties": {
-                                            "box": {
-                                              "minItems": 1
-                                            },
-                                            "strip": {
-                                              "$ref": "#/definitions/plainStrip"
-                                            },
-                                            "path": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "branch": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "scale": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "period": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "row": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "task": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "point": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "zoom": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "item": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "role": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "part": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "hold": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "side": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "check": {
-                                              "$ref": "#/definitions/absent"
-                                            },
-                                            "choice": {
-                                              "$ref": "#/definitions/absent"
-                                            }
-                                          }
-                                        },
-                                        "steps": {
-                                          "$ref": "#/definitions/plainSteps"
-                                        }
+                                      },
+                                      "steps": {
+                                        "$ref": "#/definitions/plainSteps"
                                       }
                                     }
                                   }

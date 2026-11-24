@@ -52,7 +52,6 @@ import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
 import type { ErCell, ErField, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
 import type { VennCount, VennNone, VennSet } from "./blocks/circle/block";
-import type { CardDelete, CardItem, CardMake, CardMove, CardRefuse } from "./blocks/card/block";
 import { type Allowed, FIELD_MESSAGES, type FieldMessages, type Forbidden } from "./field-messages";
 import { FORMAT_VERSION, isVersion1, toVersion1Pointer, upgrade, version1SectionOf } from "./model";
 import { nearest } from "./nearest";
@@ -91,8 +90,6 @@ export interface Box {
   time?: string;
   /** 使う人が足した、箱を元にしたブロックの名前 (#3399)。形と色はその定義から読む */
   block?: string;
-  /** 持ち主ごとのカードの図の列で出す印の語 (#3846)。カードの `mark` でこの列を選ぶと、この列に載るそのカードの写しにこの語の札を出す */
-  mark?: string;
 }
 
 /** 見せ方。`fixed` は全体を止めて中だけ動かし、`follow` は寄って動かし全体図で今どこかを示す。 */
@@ -136,11 +133,7 @@ export type DiagramEvent =
   | ErCell
   | ErFormula
   | VennCount
-  | VennNone
-  | CardMake
-  | CardMove
-  | CardDelete
-  | CardRefuse;
+  | VennNone;
 
 /**
  * 時間軸の図 (#3165) の印の色を変える出来事と範囲の括弧の出来事と、目盛りと区切りと印の列と節目の型は、
@@ -175,9 +168,6 @@ export type { ErCell, ErField, ErFormula, ErLookup, ErTable };
 
 /** 集合の重なりの図 (#3620) の集まりと、段の中の数の出来事の型は集まりの円のブロックが持つ */
 export type { VennCount, VennNone, VennSet };
-
-/** 持ち主ごとのカードの図 (#3846) のカードと、段の中のカードの出来事の型は持ち主ごとのカードのブロックが持つ */
-export type { CardDelete, CardItem, CardMake, CardMove, CardRefuse };
 
 /** 木の図 (#3233) の葉を出す出来事と親を組む出来事の型は、葉と組んだ親のブロックが持つ (#3348) */
 export type { TreeLeaf, TreeNode };
@@ -340,7 +330,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" | "cards";
+export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -382,8 +372,6 @@ export interface DiagramBlocks {
   table?: ErTable[];
   /** 集合の重なりの図 (#3620) の集まり。宣言した順に円を置く */
   circle?: VennSet[];
-  /** 持ち主ごとのカードの図 (#3846) の、最初の段より前から在るカード。書いた順に列の上から積む */
-  card?: CardItem[];
 }
 
 /**
@@ -476,8 +464,6 @@ export interface DiagramModel {
   cycle?: CycleLook;
   /** 量の行き先の図の見た目 (#3641)。版1の原本に無かった欄なので、版2の原本の根の `sankey` の欄をそのまま持つ */
   sankey?: SankeyLook;
-  /** 持ち主ごとのカードの図 (#3846) の、最初の段より前から在るカード。版1の原本に無かった種類なので、版2の原本の `card` をそのまま持つ */
-  cards?: { items: CardItem[] };
 }
 
 /**
@@ -506,7 +492,7 @@ export interface CheckOptions {
 }
 
 /** 段の中で起きることの種類。schema の event の `discriminator` が見る `type` の値 */
-const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula", "count", "none", "card", "card-move", "card-delete", "refuse"] as const satisfies readonly DiagramEvent["type"][];
+const EVENT_TYPES = ["edge", "action", "swap", "strip", "commit", "branch", "delete", "now", "mark", "span", "leaf", "node", "line", "seal", "open", "pick", "stamp", "ask", "press", "item", "call", "return", "revert", "move", "write", "check", "emit", "calc", "set", "lookup", "cell", "formula", "count", "none"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類。schema の part の `discriminator` が見る `type` の値 (#3337) */
 const PART_TYPES = ["route", "queue", "chain", "log", "ask", "press"] as const satisfies readonly TryPart["type"][];
 
@@ -537,7 +523,7 @@ const ABSENT_KINDS: Record<string, string> = {
   check: "try",
   values: "try",
   hold: "pipe",
-  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / matrix / sankey / cards",
+  box: "sequence / architecture / state / git / time / tree / lineup / pipe / flow / cycle / matrix / sankey",
   order: "lineup",
   limit: "lineup",
   at: "time",
@@ -552,8 +538,6 @@ const ABSENT_KINDS: Record<string, string> = {
   matrix: "matrix",
   table: "er",
   circle: "venn",
-  card: "cards",
-  mark: "cards",
 };
 /** 運ぶ物の書けない組み合わせ (`not: { required: [欄] }`)。誤りの場所の最後の欄で引く */
 const NOT_ALLOWED: Record<string, Allowed> = {
@@ -616,10 +600,6 @@ const ER_EVENTS = ["lookup", "cell", "formula"] as const satisfies readonly Diag
 const VENN_EVENT = "#/definitions/notVennEvent/not";
 /** 集合の重なりの図だけが書ける出来事 */
 const VENN_EVENTS = ["count", "none"] as const satisfies readonly DiagramEvent["type"][];
-/** 持ち主ごとのカードの図でない図に、持ち主ごとのカードの図だけの出来事を書いた時の決まりの場所 (#3846) */
-const CARDS_EVENT = "#/definitions/notCardsEvent/not";
-/** 持ち主ごとのカードの図だけが書ける出来事 */
-const CARDS_EVENTS = ["card", "card-move", "card-delete", "refuse"] as const satisfies readonly DiagramEvent["type"][];
 /** 試す図の部品の種類の決まりの場所 (#3337) */
 const PART_TAG = "#/definitions/part/discriminator";
 /** 列の図に、線と処理の出来事を書いた時の決まりの場所 (#3239) */
@@ -693,7 +673,6 @@ function toFieldError(error: ErrorObject, errors: readonly ErrorObject[], m: Fie
       if (error.schemaPath === MIND_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(MIND_EVENTS, "mind") };
       if (error.schemaPath === ER_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(ER_EVENTS, "er") };
       if (error.schemaPath === VENN_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(VENN_EVENTS, "venn") };
-      if (error.schemaPath === CARDS_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(CARDS_EVENTS, "cards") };
       if (error.schemaPath === WIRED_EVENT) return { pointer: `${at}/type`, message: m.kindOnly(WIRED_EVENTS, "sequence / architecture / state / git / time / tree") };
       const last = at.slice(at.lastIndexOf("/") + 1);
       if (error.schemaPath === ABSENT) return { pointer: at, message: m.not({ field: last, kind: ABSENT_KINDS[last] ?? last }) };

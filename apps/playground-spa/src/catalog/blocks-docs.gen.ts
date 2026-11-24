@@ -7,7 +7,6 @@ import { docs as boxDocs } from "../../../../packages/dragon/src/blocks/box/gall
 import { docs as branchDocs } from "../../../../packages/dragon/src/blocks/branch/gallery/docs";
 import { docs as calcDocs } from "../../../../packages/dragon/src/blocks/calc/gallery/docs";
 import { docs as callDocs } from "../../../../packages/dragon/src/blocks/call/gallery/docs";
-import { docs as cardDocs } from "../../../../packages/dragon/src/blocks/card/gallery/docs";
 import { docs as carryDocs } from "../../../../packages/dragon/src/blocks/carry/gallery/docs";
 import { docs as chainDocs } from "../../../../packages/dragon/src/blocks/chain/gallery/docs";
 import { docs as chartItemDocs } from "../../../../packages/dragon/src/blocks/chart-item/gallery/docs";
@@ -79,7 +78,6 @@ export const BLOCK_DOCS = {
   "branch": branchDocs,
   "calc": calcDocs,
   "call": callDocs,
-  "card": cardDocs,
   "carry": carryDocs,
   "chain": chainDocs,
   "chart-item": chartItemDocs,

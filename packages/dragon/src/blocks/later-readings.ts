@@ -9,7 +9,6 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "branch": () => import("./branch/read").then((m): BlockReading => m.reading),
   "calc": () => import("./calc/read").then((m): BlockReading => m.reading),
   "call": () => import("./call/read").then((m): BlockReading => m.reading),
-  "card": () => import("./card/read").then((m): BlockReading => m.reading),
   "chain": () => import("./chain/read").then((m): BlockReading => m.reading),
   "chart-item": () => import("./chart-item/read").then((m): BlockReading => m.reading),
   "chart-set": () => import("./chart-set/read").then((m): BlockReading => m.reading),

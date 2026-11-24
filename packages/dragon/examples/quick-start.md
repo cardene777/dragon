@@ -915,35 +915,6 @@ step アプリの内訳
   app -> work: 12GB
 ```
 
-持ち主ごとのカードの図 (`cards <題>`) は、最初の`step`の行より前に`box <名札> as <名前>`で持ち主の列を、`item <名札> as <名前> in <列>, <列>`でカードを書く。
-カードは`in`に書いた全ての列に写しが1枚ずつ載る。段の中の`item`はその段でカードを作り、在るカードの`item <名札> in <列>`はカードをその列へ動かす。
-`delete <カード>`はカードを消し線で残し、`refuse <カードか列>: <理由>`は何も変えずに断られた札を出す。
-
-```dragon
-cards 商品券で払う
-
-box aki as Aki [note: 客]
-box shop as 店 [mark: 受け取り]
-
-item g1 as 商品券#1 in aki [amount: 500円, mark: shop]
-item g2 as 商品券#2 in aki [amount: 500円, mark: shop]
-item c1 as 割引券 in aki [amount: 100円, total: none]
-
-step 払う
-  say Akiが商品券#1で払う。券は店の列へ動き、店の印が付く。
-  aki -> g1: 払う
-  item g1 in shop
-
-step 断られる
-  say 割引券は期限が切れているので使えない。
-  aki -> c1: 使う
-  refuse c1: 期限切れ
-
-step 捨てる
-  say 期限の切れた割引券を捨てる。合計に足さない券なので、合計は変わらない。
-  delete c1
-```
-
 ## 属性
 
 行の終わりの `[ ]` の中に `<鍵>: <値>` を `,` で区切って並べ、見た目と運ぶ物を指定する。
@@ -2049,44 +2020,6 @@ step アプリの内訳
   say アプリの32GBを遊びと仕事に分ける。
   app -> game: 20GB
   app -> work: 12GB
-```
-
-### 持ち主ごとのカードの図
-
-`cards <題>`で始めると、持ち主ごとの縦の列にカードを積み、段でカードができ、消え、動き、断られる様子を追う持ち主ごとのカードの図になる。
-列は`box`を書いた順に左から並び、列の中はカードを作った順に上から積む。
-
-- `box <名札> as <名前>`は持ち主の列で、最初の`step`より前に書く。`[note: <添え書き>]`は名前の脇の添え書き、`[mark: <印の語>]`はその列で出す印の語になる。箱に`color`と`icon`と`link`は書けない
-- `item <名札> as <名前> in <列>, <列> [amount: <量>]`はカードで、`in`に書いた全ての列に写しが1枚ずつ載る。量は`1000 USDC`のように数と単位で書き、`,`を含む量は`"`で囲む
-- `[total: none]`のカードは量をカードに出すが、列の合計に足さない。`[mark: <列>]`は印を出す列を選び、選ぶ列は`mark`の語を持つ。`mark`はカードの行でだけ繰り返せる
-- 最初の`step`より前のカードは初めから在る。段の中の`item`はその段でカードを作り、緑の縁と「できた」の札を出す
-- 段の中で在るカードの`item <名札> in <列>`を書くと、カードがその列へ動く。動かす行に名前と属性は書けない
-- `delete <カード>`はカードを消し線で残し、列の合計から外す。消したカードは後の段でも消し線のまま残る
-- `refuse <カードか列>: <理由>`は何も変えずに、断られた札と理由の札を出す。札は、カードを呼んだ列 (呼び出しが無ければカードが載る最初の列) か、断られた列のカードの下に出る
-- `<列> -> <カード>: <名前>`の線は、列の見出しからカードへの呼び出しになる。線に`tag`と`carry`と`side`は書けない。`group`と`strip`と`act`と`note`と`set`の行も書けない
-- 列の下の帯に、列ごとの合計が単位ごとに出る。段で変わった合計は、前の量を消し線で添える
-
-```dragon
-cards 証書で100 USDCを送る
-
-box alice as Alice [note: 送る人]
-box bob as Bob [note: 受け取る人]
-box usdc as USDCの台帳 [mark: 署名]
-
-item n1 as 証書#1 in alice, usdc [amount: 1000 USDC, mark: usdc]
-item n2 as 証書#2 in bob, usdc [amount: 200 USDC, mark: usdc]
-
-step AliceがBobへ100を送る
-  say 証書#1を使い切り、新しい証書2枚に替わる。
-  alice -> n1: 100を送る
-  delete n1
-  item n3 as 証書#3 in alice, usdc [amount: 900 USDC, mark: usdc]
-  item n4 as 証書#4 in bob, usdc [amount: 100 USDC, mark: usdc]
-
-step Bobが500を送ろうとする
-  say 証書の額が足りないので、何も変わらない。
-  bob -> n2: 500を送る
-  refuse n2: 残高が足りない
 ```
 
 ### 購入操作図

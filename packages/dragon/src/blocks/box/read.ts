@@ -18,12 +18,6 @@ import { urlOf } from "../link/read";
  */
 export const PARTY_ATTRS = ["icon", "note"] as const;
 
-/**
- * 持ち主ごとのカードの図 (#3846) の箱は持ち主の列で、書ける属性は見出しの名前の脇に出す `note` と、列で出す印の語 `mark`。
- * `mark` はほかの種類の図の箱には書けない
- */
-export const COLUMN_ATTRS = ["note", "mark"] as const;
-
 /** 列の図の箱の `order` に書ける並べ方。`none` は順番の無い置き場 (#3351) */
 export const ORDERS = ["none"] as const;
 
@@ -41,8 +35,6 @@ export interface BoxMessages {
   orderNone: string;
   /** 箱の `limit` に 1 から `most` までの整数でない値を書いた (#3624) */
   limitRange: (most: number) => string;
-  /** 持ち主ごとのカードの図の箱だけの属性 (`mark`) を、別の種類の図の箱に書いた (#3846) */
-  cardsOnlyAttr: (key: string) => string;
 }
 
 /** 箱の宣言の行。使う人が足した箱のブロックの箱は、行の頭にそのブロックの名前 (`+<名前>`) を書く (#3399) */
@@ -58,8 +50,6 @@ const declareBox = (b: Box): string =>
     ["limit", num(b.limit)],
     // 回り続ける図の手順の長さ (#3638) と、列の図の階段の見た目の層の時間 (#3640)
     ["time", b.time],
-    // 持ち主ごとのカードの図の列で出す印の語 (#3846)
-    ["mark", b.mark],
   ])}`;
 
 /**
@@ -104,7 +94,7 @@ export const reading: BlockReading<BoxMessages> = {
     // `box` の行。開いている `group` の中なら、その区画に置く
     box: (source, state) => {
       state.beforeSteps(source);
-      const declared = readDeclared(source, "box", state.kind === "lineup" ? LANE_ATTRS : state.kind === "pipe" ? PARTY_ATTRS : state.kind === "cards" ? COLUMN_ATTRS : (state.attrs.box ?? []), state.m);
+      const declared = readDeclared(source, "box", state.kind === "lineup" ? LANE_ATTRS : state.kind === "pipe" ? PARTY_ATTRS : (state.attrs.box ?? []), state.m);
       state.claim(source, declared.id, declared.idAt);
       state.figure.firstBox ??= source;
       const { note, ...look } = readLook(source, declared.attrs, state.m);
@@ -124,8 +114,6 @@ export const reading: BlockReading<BoxMessages> = {
       const group = state.figure.group;
       // 層の時間か手順の長さ (#3640、#3638)。書ける図の見た目と値は、列の図はチップのブロックが、回り続ける図は輪のブロックが確かめる
       const time = declared.attrs.get("time");
-      const mark = declared.attrs.get("mark");
-      if (mark && state.kind !== "cards") throw fail(source, mark.at, state.m.cardsOnlyAttr("mark"));
       state.figure.boxes.push({
         id: declared.id,
         name: declared.name ?? declared.id,
@@ -137,7 +125,6 @@ export const reading: BlockReading<BoxMessages> = {
         ...(order ? { order: order.value as (typeof ORDERS)[number] } : {}),
         ...(limit ? { limit: Number(limit.value) } : {}),
         ...(time ? { time: time.value } : {}),
-        ...(mark ? { mark: mark.value } : {}),
       });
     },
   },
@@ -150,7 +137,6 @@ export const reading: BlockReading<BoxMessages> = {
       lineupOnlyAttr: (key) => `${key} は lineup (列の図) の box にだけ書ける`,
       orderNone: "order には none だけを書ける。順番の無い置き場にする箱に書く",
       limitRange: (most) => `limit には 1 から ${most} までの整数を書く。その箱に並べられる札の数の上限になる`,
-      cardsOnlyAttr: (key) => `${key} は cards (持ち主ごとのカードの図) の box にだけ書ける`,
     },
     en: {
       undeclaredBox: (id) => `No box named ${id} is declared`,
@@ -159,7 +145,6 @@ export const reading: BlockReading<BoxMessages> = {
       lineupOnlyAttr: (key) => `${key} can be written only on box lines of lineup diagrams`,
       orderNone: "order takes only none. Write it on a box that holds chips in no order",
       limitRange: (most) => `limit takes a whole number from 1 to ${most}, the most chips the box holds`,
-      cardsOnlyAttr: (key) => `${key} can be written only on box lines of owner card diagrams (cards)`,
     },
   },
 };

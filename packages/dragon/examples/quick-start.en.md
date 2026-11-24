@@ -915,36 +915,6 @@ step Inside the apps
   app -> work: 12GB
 ```
 
-In an owner card diagram (`cards <title>`), write the owner columns with `box <id> as <name>` before the first `step` line.
-Write each card with `item <id> as <name> in <column>, <column>`, and every column in `in` gets its own copy.
-An `item` line in a step makes a card, and `item <id> in <column>` on an existing card moves it to those columns.
-`delete <card>` strikes a card through and keeps it, and `refuse <card or column>: <reason>` shows a refused panel and changes nothing.
-
-```dragon
-cards Pay with gift cards
-
-box aki as Aki [note: Customer]
-box shop as Shop [mark: Received]
-
-item g1 as Gift card #1 in aki [amount: 5 USD, mark: shop]
-item g2 as Gift card #2 in aki [amount: 5 USD, mark: shop]
-item c1 as Coupon in aki [amount: 1 USD, total: none]
-
-step Pay
-  say Aki pays with gift card #1. It moves to the shop column and gets the shop's mark.
-  aki -> g1: Pay
-  item g1 in shop
-
-step Refused
-  say The coupon has expired, so it cannot be used.
-  aki -> c1: Use
-  refuse c1: Expired
-
-step Throw away
-  say The expired coupon is thrown away. It is not added to the total, so the total stays the same.
-  delete c1
-```
-
 ## Attributes
 
 Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by `,` to set how it looks and what it carries.
@@ -2051,44 +2021,6 @@ step Inside the apps
   say Split the 32GB of apps into games and work.
   app -> game: 20GB
   app -> work: 12GB
-```
-
-### Owner card diagram
-
-Start with `cards <title>` to draw an owner card diagram. It stacks cards in a column per owner and follows cards being made, deleted, moved and refused, step by step.
-Columns sit from left to right in the order of their `box` lines, and each column stacks its cards from the top in the order made.
-
-- `box <id> as <name>` declares an owner column before the first `step`. `[note: <caption>]` is the caption next to the name, and `[mark: <word>]` is the mark word shown in that column. A box takes no `color`, `icon` or `link`
-- `item <id> as <name> in <column>, <column> [amount: <amount>]` declares a card, and every column in `in` gets its own copy. Write an amount as a number and a unit, like `1000 USDC`, and wrap an amount with `,` in `"`
-- A `[total: none]` card shows its amount but stays out of the column total. `[mark: <column>]` picks a column to show the mark in, and that column needs a `mark` word. Only card lines can repeat `mark`
-- Cards written before the first `step` are there from the start. An `item` line in a step makes a card in that step, with a green edge and a New tag
-- `item <id> in <column>` on an existing card in a step moves it to those columns. A move line takes no name and no attributes
-- `delete <card>` strikes a card through and keeps it, and the card leaves the column total. A deleted card stays struck through in later steps
-- `refuse <card or column>: <reason>` shows a refused panel with the reason and changes nothing. The panel goes under the cards of the calling column, the card's first column, or the refused column
-- A `<column> -> <card>: <name>` line is a call from the column head to the card. A line takes no `tag`, `carry` or `side`. `group`, `strip`, `act`, `note` and `set` lines are refused
-- The band under the columns shows each column's total, unit by unit. A total that changed in a step keeps its old amount struck through
-
-```dragon
-cards Send 100 USDC with notes
-
-box alice as Alice [note: Sender]
-box bob as Bob [note: Receiver]
-box usdc as USDC ledger [mark: Signed]
-
-item n1 as Note #1 in alice, usdc [amount: 1000 USDC, mark: usdc]
-item n2 as Note #2 in bob, usdc [amount: 200 USDC, mark: usdc]
-
-step Alice sends 100 to Bob
-  say Note #1 is spent and replaced by two new notes.
-  alice -> n1: Send 100
-  delete n1
-  item n3 as Note #3 in alice, usdc [amount: 900 USDC, mark: usdc]
-  item n4 as Note #4 in bob, usdc [amount: 100 USDC, mark: usdc]
-
-step Bob tries to send 500
-  say His note is too small, so nothing changes.
-  bob -> n2: Send 500
-  refuse n2: Not enough balance
 ```
 
 ### Checkout diagram

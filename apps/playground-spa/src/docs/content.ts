@@ -16,7 +16,7 @@ import type { Lang } from "../text";
  * 節の並び。最初の図の後に宣言と段を省いた短い書き方 (#3438) を置き、記法の決まりの後に記法の要素を書く順に並べ、
  * 図を外で使う形 (頁に置く、他のツールに組み込む、書き出す) を続け、前の形から書き直す人の対応表を最後に置く
  */
-export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "cards", "pipe", "extend", "steps", "strip", "carry", "json", "place", "embed", "export", "line", "migrate"] as const;
+export const SECTIONS = ["start", "short", "rules", "boxes", "edges", "regions", "state", "git", "time", "tree", "lineup", "try", "chart", "flow", "cycle", "mind", "er", "matrix", "venn", "sankey", "pipe", "extend", "steps", "strip", "carry", "json", "place", "embed", "export", "line", "migrate"] as const;
 export type SectionId = (typeof SECTIONS)[number];
 
 /** その節に置くブロックの段落。段落の `section` がその節のブロックを、ブロックの並びの順に */
@@ -31,7 +31,7 @@ function blockParagraphs(section: SectionId, lang: Lang): string[] {
 export const CARDS = ["start", "boxes", "regions", "steps", "json", "export"] as const satisfies readonly SectionId[];
 
 /** 節の出口。同じ頁の節か、サイトの画面か、カタログの分類 */
-export type Exit = { section: SectionId } | { screen: "editor" | "catalog" | "embedding" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" | "cards" };
+export type Exit = { section: SectionId } | { screen: "editor" | "catalog" | "embedding" } | { kind: "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "chart" | "pipe" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" };
 
 export const EXITS: Record<SectionId, Exit> = {
   start: { screen: "editor" },
@@ -54,7 +54,6 @@ export const EXITS: Record<SectionId, Exit> = {
   matrix: { kind: "matrix" },
   venn: { kind: "venn" },
   sankey: { kind: "sankey" },
-  cards: { kind: "cards" },
   pipe: { kind: "pipe" },
   extend: { screen: "editor" },
   steps: { section: "strip" },
@@ -361,11 +360,6 @@ export const DOCS: Record<Lang, DocsText> = {
         text: [...blockParagraphs("sankey", "ja")],
         exit: "量の行き先の図の見本を見る →",
       },
-      cards: {
-        title: "持ち主ごとのカードの図",
-        text: [...blockParagraphs("cards", "ja")],
-        exit: "持ち主ごとのカードの図の見本を見る →",
-      },
       pipe: {
         title: "配管の図",
         text: [...blockParagraphs("pipe", "ja")],
@@ -660,11 +654,6 @@ export const DOCS: Record<Lang, DocsText> = {
         title: "Sankey diagrams",
         text: [...blockParagraphs("sankey", "en")],
         exit: "See the Sankey diagram samples →",
-      },
-      cards: {
-        title: "Owner card diagrams",
-        text: [...blockParagraphs("cards", "en")],
-        exit: "See the owner card diagram samples →",
       },
       pipe: {
         title: "Pipe diagrams",
