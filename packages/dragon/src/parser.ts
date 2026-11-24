@@ -539,6 +539,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     ...(regions.length > 0 ? { regions } : {}),
     boxes,
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
+    // 量の目盛り (#3880) は目盛りのブロックが確かめてから宣言の順に積んだ
+    ...(figure.gauge && figure.gauge.length > 0 ? { gauge: figure.gauge.map((draft) => draft.gauge) } : {}),
     steps,
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(kind === "flow" ? { flow: { choices: figure.flow.choices, paths: figure.flow.paths } } : {}),

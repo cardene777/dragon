@@ -1,0 +1,24 @@
+flow Stop payments at the daily budget
+
+box agent as AI agent
+box vi as VeriIntent
+box signer as Signer
+
+gauge budget as Daily budget [on: vi, limit: 100, unit: USDC, over: Over the limit, so it stops]
+
+step Send the first
+  say gauge places a gauge under the box that holds the amount, and set writes the total of the step.
+  agent -> vi: 40 USDC
+  vi -> signer: Ask to sign
+  set budget: 40
+
+step Send the second
+  say A step that changes the value shows the change in a tag beside the bar.
+  agent -> vi: 40 USDC
+  vi -> signer: Ask to sign
+  set budget: 80
+
+step Stop at the third
+  say The part over the limit grows in red, and the over text shows under the gauge.
+  agent -> vi: 40 USDC
+  set budget: 120
