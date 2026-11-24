@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-11-25
+
 ### Added
 
 - An owner card diagram (`cards`) stacks cards in a column per owner and follows cards being made, deleted, moved and refused, step by step. `item <id> as <name> in <column>, <column>` puts a copy of a card in every column listed, `delete` strikes a card through and keeps it, and `refuse <card or column>: <reason>` shows a refused panel and changes nothing. A column's `[mark: <word>]` and a card's `[mark: <column>]` show a mark in chosen columns, and the band under the columns shows each column's total by unit, with `[total: none]` cards left out and the old amount struck through when a total changes (#3846)
