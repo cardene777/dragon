@@ -251,3 +251,14 @@
 | Tracelythのカタログを写した網型の14枚で、管の口は今どおり槽の側面の平らな所に在り、槽と残高の字を横切らない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-side-port-on-flat-side`と`pipe-side-port-under-clears-tanks-and-text`が通る | #3781 |
 | 見本と検査の記法と見本帳の部品の図の指紋の記録 (`examples-svg.json`、6382件) は、足した記法3件の鍵30件を除いて変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3781 |
 | 配管の図の見本の置き場所の指紋 (`pipe-layout-fingerprints.json`) は変わらない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3781 |
+| 見本帳のETHの送金の図 (AliceがVaultへ1ETHを送る) を上の型 (`layout top`) で描く記法 (`bottom-port-eth`の型の行を替えた物) で、どの段でも、図の上の縁から一番上に描く部品までが48px以下になる | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-no-token-box-room-top`が通る | #3860 |
+| 同じ図を帳簿型 (`layout ledger`) で描くと、どの段でも、図の上の縁から一番上に描く部品までが48px以下になる | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-no-token-box-room-ledger`が通る | #3860 |
+| 同じ図を下の型 (`layout bottom`) で描くと、どの段でも、図の上の縁から一番上に描く部品までが48px以下になる | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-no-token-box-room-bottom`が通る | #3860 |
+| 同じ図を型の行`layout auto`で描くと、トークンの箱が無いので下の型を選び、どの段でも、図の上の縁から一番上に描く部品までが48px以下になる | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-no-token-box-room-auto`が通る | #3860 |
+| その4つの型で、呼び出しの札`Vault.預ける`は人の丸と箱と名前と槽と入れ物と管のどれにも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-no-token-box-card-clears-parts`が通る | #3860 |
+| ETHの送金の図を帳簿型、母線型、上、下の型で描く記法で、管の両端は今どおり槽の底の平らな所に在り、管は槽と槽の下の字に重ならない | `pnpm exec vitest run packages/dragon/test/pipe-side-port.test.ts`の検査`pipe-bottom-port-other-shapes-on-flat`と`pipe-bottom-port-other-shapes-clears-text`が通る | #3860 |
+| 見本と検査の記法と見本帳の部品の図の指紋の記録 (`examples-svg.json`、6382件) は、トークンの箱を持たない検査の記法`bottom-port-eth`の鍵6件 (3通りの描き方の`svg`と`layout`) を書き直すほかは変わらない。トークンの箱を持つ図の指紋は1件も変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3860 |
+| 配管の図の見本の置き場所の指紋の記録 (`pipe-layout-fingerprints.json`、28件) は変わらない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3860 |
+| 見本帳の頁が最初に読むscriptとCSSは、gzipで今の上限の中に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3860 |
+| jsDelivrの1行の入口が最初に読むscriptは、gzipで90,000byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3860 |
+| 配管の図の描く所 (`render/pipe.ts`) を変えた時に選ぶ検査のfileは130以下のまま | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3860 |
