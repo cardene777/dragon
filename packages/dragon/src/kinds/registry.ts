@@ -17,7 +17,7 @@ import { DEFAULT_LANG, type NotationLang } from "../words";
 import type { KindParts } from "./parts";
 
 /** 後から読む種類の名前。部品の型から導くと、部品の型が軽い入口の型の file へ漏れるので字で書く */
-export type LaterKind = "checkout" | "chart" | "cycle" | "er" | "flow" | "git" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
+export type LaterKind = "checkout" | "chart" | "cycle" | "er" | "flow" | "git" | "judge" | "lineup" | "matrix" | "mind" | "pipe" | "sankey" | "state" | "time" | "tree" | "try" | "venn";
 
 /**
  * 後から読む種類の名前と、その種類の描く部品の file (`kinds/<種類>.ts`) が出す物の型。
@@ -28,7 +28,7 @@ export interface LaterKinds {
 }
 
 /** 後から読む種類 */
-export const LATER_KINDS: readonly LaterKind[] = ["checkout", "chart", "cycle", "er", "flow", "git", "lineup", "matrix", "mind", "pipe", "sankey", "state", "time", "tree", "try", "venn"];
+export const LATER_KINDS: readonly LaterKind[] = ["checkout", "chart", "cycle", "er", "flow", "git", "judge", "lineup", "matrix", "mind", "pipe", "sankey", "state", "time", "tree", "try", "venn"];
 
 export function notationReader(text: string): KindParts["notation"] {
   return [...notations.values()].find(n => n.matches(text));

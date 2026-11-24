@@ -617,7 +617,10 @@ export function mountDiagram(
   let width = frameWidth();
   let height = frameHeight();
   let visible = overviewHeight();
-  let svg: SVGSVGElement | null = null;
+  /** 枠に置いた図。HTML で描く種類 (判定の表、#3879) は、描いた HTML の表の根 */
+  let svg: SVGSVGElement | HTMLElement | null = null;
+  /** HTML で描く種類の、段ごとに今の段を図に書く部品。SVG で描く種類は持たない */
+  const htmlKind = partsOf(rendered.diagram.kind)?.html;
   // 止めて置く段を渡された図は、動きを嫌う人と同じく止め絵で置く。試す図は読み手が押すまで流さない。
   // 止め絵は段を描き終えた後の絵なので、段 1 で変わる前の値を見せる時は段 1 の始まりで止めて置く。
   // 段 1 の始まりは図を描き終えた時刻 (MOTION.intro) で、時刻 0 では図をまだ描いていない (Tracelyth #131)
@@ -640,7 +643,8 @@ export function mountDiagram(
    * 囲みは字の四角より `LOOK.mark.pad` だけ広げ、字の縁に線が掛からないようにする
    */
   const drawMarks = (): void => {
-    if (!svg) return;
+    // HTML で描く表は図の座標を持たないので、点線の四角を描かない
+    if (!svg || htmlKind) return;
     for (const old of svg.querySelectorAll(".dg-spots")) old.remove();
     if (marked.length === 0) return;
     const M = LOOK.mark;
@@ -884,7 +888,7 @@ export function mountDiagram(
    * 前に流れた時間を残したまま `--at` だけを替えると、残った時間の分だけ別の段の絵になる (#3445)。
    * 動きを持たない環境 (`getAnimations` の無い jsdom など) では何もしない
    */
-  const rewind = (figure: SVGSVGElement): void => {
+  const rewind = (figure: SVGSVGElement | HTMLElement): void => {
     if (typeof figure.getAnimations !== "function") return;
     for (const animation of figure.getAnimations({ subtree: true })) animation.currentTime = 0;
   };
@@ -895,11 +899,12 @@ export function mountDiagram(
    * 段を送るたびに図を写して置き直すと、大きな図では写す手間が段の送りの大半を占める (#3445)
    */
   const place = (markup?: string): void => {
-    let next: SVGSVGElement | null;
+    let next: SVGSVGElement | HTMLElement | null;
     if (markup !== undefined) {
       const holder = doc.createElement("div");
       holder.innerHTML = styles ? styles.markup(markup) : markup;
-      next = holder.querySelector("svg");
+      // HTML で描く種類 (判定の表、#3879) は、描いた HTML の根を図として置く。中の絵柄の svg を図と取り違えない
+      next = htmlKind ? (holder.firstElementChild as HTMLElement | null) : holder.querySelector("svg");
     } else {
       next = svg;
     }
@@ -918,7 +923,10 @@ export function mountDiagram(
         box.setAttribute("tabindex", "0");
         box.setAttribute("aria-label", words.openNote(name));
       }
-      if (next.querySelector("a[href],[data-note]")) {
+      // HTML の表は読み上げの道具が行と列で読めるので、隠さない (#3879)
+      if (htmlKind) {
+        next.removeAttribute("aria-hidden");
+      } else if (next.querySelector("a[href],[data-note]")) {
         next.removeAttribute("aria-hidden");
         next.setAttribute("role", "group");
       } else {
@@ -938,8 +946,12 @@ export function mountDiagram(
     rewind(next);
     born = Date.now();
     if (fresh) drawMarks();
-    controls?.fit(frame, next);
-    controls?.mark(next, step);
+    // HTML で描く表は、置き直した表にも今の段までの列を照らす
+    if (htmlKind) htmlKind.show(next as HTMLElement, step);
+    else {
+      controls?.fit(frame, next as SVGSVGElement);
+      controls?.mark(next as SVGSVGElement, step);
+    }
     settle();
     panTo();
   };
@@ -989,7 +1001,8 @@ export function mountDiagram(
     }
     fillNow();
     panTo();
-    if (svg) controls?.mark(svg, step);
+    if (svg && htmlKind) htmlKind.show(svg as HTMLElement, step);
+    else if (svg) controls?.mark(svg as SVGSVGElement, step);
     calls?.show(rendered.diagram, step);
     // 段が替わると箱の位置と中身が替わるので、開いた札を閉じる (#3877)
     notes?.stepped(step);
@@ -1229,7 +1242,7 @@ export function mountDiagram(
         controls?.arrange(chosen, w);
         if (!rearranged && chosen === mode && (mode === "fixed" || (w === width && h === height && v === visible))) {
           if (reshown) restart(now(), playing);
-          else if (svg) controls?.fit(frame, svg);
+          else if (svg && !htmlKind) controls?.fit(frame, svg as SVGSVGElement);
           // 枠の幅が変わらない時は送り位置を残す。読み手が引いて動かした所と拡大した所を、高さの変わりで戻さない
           settle();
           follow();

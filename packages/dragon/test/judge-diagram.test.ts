@@ -16,13 +16,14 @@
  * ✕のセルは外れた値 (`judge-value`) を持つ。判定のセル (`judge-verdict`) は判定の語 (`judge-word`、`data-verdict` は `pass` か `block`) と、
  * 止める例だけ外れた規則の並び (`judge-why`) を持つ。再生の部品は段を送るたびに表の根へ `data-play` を、照らした列のセルへ `data-on` を書く。
  *
- * 判定の表の入口がまだ無い間も、この file を読み込んだ所で落とさず、無い物を名指して落とす。
+ * 検査は種類を登録しない入口 (`src/core.ts`) と、判定の表の種類の登録の file だけを読む (#3763)。
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import "./built-globals";
 import * as dragon from "../src/core";
+import "../src/kind-use/judge";
 
 const ROOT = process.cwd();
 /** 束ねて書き出す原本の形 */
@@ -30,16 +31,6 @@ const SCHEMA = join(ROOT, "packages/dragon/src/schemas/diagram.schema.json");
 
 /** 仮名と漢字 */
 const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
-
-/** 判定の表の種類の登録の file。まだ無い間は読めずに `false` のまま、描けない判定で落とす */
-let loaded = false;
-beforeAll(async () => {
-  const entry = ["..", "src", "kind-use", "judge"].join("/");
-  loaded = await import(/* @vite-ignore */ entry).then(
-    () => true,
-    () => false,
-  );
-});
 
 /** 規則 5 つと例 6 つの表。外れる規則を持たない例が 1 つ、外れる規則を 1 つ持つ例が 4 つ、2 つ持つ例が 1 つ */
 const BASIC = `judge どの送金を止めるのか
@@ -98,7 +89,6 @@ const wide = (count: number): string =>
 
 /** 記法を読んだ原本。読めない時は判定の文で落とし、`undefined` を返す */
 function diagramOf(text: string, lang: "ja" | "en" = "ja"): Record<string, unknown> | undefined {
-  expect(loaded, "判定の表の種類の登録の file (src/kind-use/judge.ts) が無い").toBe(true);
   const parsed = dragon.parseNotation(text, { lang });
   expect(parsed.ok, `判定の表の記法を読めない: ${parsed.ok ? "" : parsed.errors.map((e) => `${e.line}:${e.column} ${e.message}`).join(" / ")}`).toBe(true);
   return parsed.ok ? (parsed.diagram as unknown as Record<string, unknown>) : undefined;
@@ -435,8 +425,7 @@ describe("判定の表 (#3879)", () => {
   });
 
   it("judge-fail-unknown-or-twice-refused", () => {
-    expect(loaded, "判定の表の種類の登録の file (src/kind-use/judge.ts) が無い").toBe(true);
-    const unknown = BASIC.replace("  fail to: 0x9999\ncase 0x2222…へ35", "  fail dest: 0x9999\ncase 0x2222…へ35");
+      const unknown = BASIC.replace("  fail to: 0x9999\ncase 0x2222…へ35", "  fail dest: 0x9999\ncase 0x2222…へ35");
     const twice = BASIC.replace("  fail day: 計120", "  fail day: 計120\n  fail day: 計130");
     /** 誤りの行の番号。`text` の中で `line` の字を持つ行 */
     const lineOf = (text: string, line: string, nth = 0): number => text.split("\n").flatMap((l, i) => (l.trim() === line ? [i + 1] : []))[nth] ?? -1;
@@ -458,8 +447,7 @@ describe("判定の表 (#3879)", () => {
   });
 
   it("judge-fail-before-case-or-empty-refused", () => {
-    expect(loaded, "判定の表の種類の登録の file (src/kind-use/judge.ts) が無い").toBe(true);
-    const early = BASIC.replace("rule until as 期限 [value: 12/31まで]\n", "rule until as 期限 [value: 12/31まで]\n  fail to: 0x9999\n");
+      const early = BASIC.replace("rule until as 期限 [value: 12/31まで]\n", "rule until as 期限 [value: 12/31まで]\n  fail to: 0x9999\n");
     const noRules = "judge 規則の無い表\n\ncase 0x2222…へ20 USDC\n";
     const noCases = "judge 例の無い表\n\nrule to as 宛先 [value: 0x2222…]\n";
     const earlyLine = early.split("\n").findIndex((l) => l.trim() === "fail to: 0x9999") + 1;

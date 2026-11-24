@@ -37,6 +37,7 @@ const LOADERS: { [K in LaterKind]: () => Promise<LaterKinds[K]> } = {
   er: () => import("./kinds/er"),
   flow: () => import("./kinds/flow"),
   git: () => import("./kinds/git"),
+  judge: () => import("./kinds/judge"),
   lineup: () => import("./kinds/lineup"),
   matrix: () => import("./kinds/matrix"),
   mind: () => import("./kinds/mind"),

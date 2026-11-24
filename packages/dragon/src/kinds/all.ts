@@ -11,6 +11,7 @@ import "../kind-use/cycle";
 import "../kind-use/er";
 import "../kind-use/flow";
 import "../kind-use/git";
+import "../kind-use/judge";
 import "../kind-use/lineup";
 import "../kind-use/matrix";
 import "../kind-use/mind";

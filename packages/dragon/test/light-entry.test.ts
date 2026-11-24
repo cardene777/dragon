@@ -87,6 +87,7 @@ const LATER_SAMPLES: Record<string, string> = {
   er: "order-total.dragon",
   flow: "login-check.dragon",
   git: "rebase.dragon",
+  judge: "transfer-check.dragon",
   lineup: "auction.dragon",
   matrix: "task-priority.dragon",
   mind: "budget-app.dragon",

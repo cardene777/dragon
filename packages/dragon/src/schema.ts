@@ -330,7 +330,7 @@ export interface Step {
 }
 
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
-export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey";
+export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" | "judge";
 
 /** 中身の帯。題と欄の名前の並び。物差しの欄は時間軸の図だけが書ける */
 export interface Strip {
@@ -409,6 +409,8 @@ export interface Diagram {
   sankey?: SankeyLook;
   /** 時系列図の見た目 (#3720)。時系列図だけが書き、書かない図は今の見た目で描く */
   sequence?: { shape: SequenceShape };
+  /** 判定の表 (#3879) の規則と例と判定の語。判定の表だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
+  judge?: import("./judge/types").JudgeSpec;
   blocks: DiagramBlocks;
   steps: Step[];
 }
@@ -464,6 +466,8 @@ export interface DiagramModel {
   cycle?: CycleLook;
   /** 量の行き先の図の見た目 (#3641)。版1の原本に無かった欄なので、版2の原本の根の `sankey` の欄をそのまま持つ */
   sankey?: SankeyLook;
+  /** 判定の表 (#3879) の規則と例と判定の語。版1の原本に無かった種類なので、版2の原本の根の `judge` の欄をそのまま持つ */
+  judge?: import("./judge/types").JudgeSpec;
 }
 
 /**

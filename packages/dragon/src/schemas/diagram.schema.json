@@ -1,6 +1,6 @@
 {
   "title": "dragon の図の原本 (版2)",
-  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。階段の見た目 (stairs) の列の図は層の見た目と同じ決まりを持ち、層の時間 (time) を全ての箱に持つかどの箱にも持たない。ほかの列の図の箱は time を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図と、根の sequence の欄に見た目を書いたシーケンス図が持ち、置き方 (layout) は配管の図だけが持つ。シーケンス図は見た目を根の sequence の欄に持てる。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。",
+  "description": "図の宣言を blocks のブロックの名前ごとの欄に置き、段ごとに起きることを steps に置く。座標は持たない。ブロックの欄の形はブロックの置き場が持ち、build の時に scripts/build-validator.mjs がこの骨組みに束ねて diagram.schema.json を書き出す。箱は枝分かれの図と時間軸の図と木の図だけが持たなくてよく、試す図は持たない。列の図の箱は列になり、並べられる札の数の上限 (limit) を 1 から 12 まで持てて、見た目を根の lineup の欄に持てる。層の見た目 (layers) の列の図は箱を 8 つまで持ち、順番の無い置き場と上限と役と、封と開けると選ぶと札の出来事を持たない。流れの線の見た目 (stations) の列の図は封と開けると選ぶと札の出来事を持たない。階段の見た目 (stairs) の列の図は層の見た目と同じ決まりを持ち、層の時間 (time) を全ての箱に持つかどの箱にも持たない。ほかの列の図の箱は time を持たない。配管の図の箱は関係者になり、始めの値 (hold) は配管の図と、根の sequence の欄に見た目を書いたシーケンス図が持ち、置き方 (layout) は配管の図だけが持つ。シーケンス図は見た目を根の sequence の欄に持てる。量の図は箱を持たず、見た目と項目を根の chart の欄に持つ。表どうしの関係の図は箱を持たず、表を blocks.table に持つ。2つの軸で置く図は箱をちょうど 4 つ持ち、書いた順に左上、右上、左下、右下の区画にし、軸と課題を根の matrix の欄に持つ。集合の重なりの図は箱を持たず、集まりを blocks.circle に、見た目を根の venn の欄に持つ。判定の表は箱を持たず、規則と例を根の judge の欄に持ち、段を規則の列ごとに 1 つと判定の 1 つで持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -36,7 +36,8 @@
         "matrix",
         "venn",
         "sankey",
-        "checkout"
+        "checkout",
+        "judge"
       ]
     },
     "title": {
@@ -117,6 +118,10 @@
     "sequence": {
       "description": "時系列図の見た目。時系列図だけが書け、pipe はパイプ図の部品で並べて描く。書いた図だけが始めの値 (blocks.hold) を持てる",
       "$ref": "#/definitions/sequenceLook"
+    },
+    "judge": {
+      "description": "判定の表の規則と例と判定の語 (#3879)。判定の表だけが書け、ブロックの宣言の欄 (blocks) を使わない",
+      "$ref": "#/definitions/judge"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -896,6 +901,25 @@
       "else": {
         "properties": {
           "sequence": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "judge"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "judge": {
             "$ref": "#/definitions/absent"
           }
         }
@@ -2893,6 +2917,109 @@
           "additionalProperties": {
             "type": "string"
           }
+        }
+      }
+    },
+    "judge": {
+      "description": "判定の表の規則と例。例に書いた外れる規則 (fails) だけを✕にし、書かない規則を✓にする。dragon は値を比べない",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rules",
+        "cases"
+      ],
+      "properties": {
+        "pass": {
+          "description": "外れる規則を持たない例の判定の語。書かない時は頁の言葉の既定の語 (通す、pass)",
+          "$ref": "#/definitions/text"
+        },
+        "block": {
+          "description": "外れる規則を持つ例の判定の語。書かない時は頁の言葉の既定の語 (止める、block)",
+          "$ref": "#/definitions/text"
+        },
+        "rules": {
+          "description": "列の規則。書いた順に左から並べる",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/judgeRule"
+          }
+        },
+        "cases": {
+          "description": "行の例。書いた順に上から並べる",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/judgeCase"
+          }
+        }
+      }
+    },
+    "judgeRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "description": "外れる規則 (fails の rule) が名指す名札",
+          "$ref": "#/definitions/id"
+        },
+        "name": {
+          "description": "見出しの名前",
+          "$ref": "#/definitions/text"
+        },
+        "value": {
+          "description": "見出しの名前の下に出す値",
+          "$ref": "#/definitions/text"
+        }
+      }
+    },
+    "judgeCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "例の名前",
+          "$ref": "#/definitions/text"
+        },
+        "note": {
+          "description": "例の名前の下に出す添え書き",
+          "$ref": "#/definitions/text"
+        },
+        "fails": {
+          "description": "例が外れる規則。書いた規則のセルだけが✕になる",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/judgeFail"
+          }
+        }
+      }
+    },
+    "judgeFail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule"
+      ],
+      "properties": {
+        "rule": {
+          "description": "外れる規則の名札",
+          "$ref": "#/definitions/id"
+        },
+        "value": {
+          "description": "✕の下に出す外れた値",
+          "$ref": "#/definitions/text"
+        },
+        "stop": {
+          "description": "照らせない印。この規則の後の列のセルを照らさず「—」にする",
+          "const": true
         }
       }
     },
@@ -5437,67 +5564,100 @@
                                     }
                                   },
                                   "else": {
-                                    "properties": {
-                                      "blocks": {
-                                        "required": [
-                                          "box"
-                                        ],
-                                        "properties": {
-                                          "box": {
-                                            "minItems": 1
-                                          },
-                                          "strip": {
-                                            "$ref": "#/definitions/plainStrip"
-                                          },
-                                          "path": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "branch": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "scale": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "period": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "row": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "task": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "point": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "zoom": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "item": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "role": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "part": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "hold": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "side": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "check": {
-                                            "$ref": "#/definitions/absent"
-                                          },
-                                          "choice": {
-                                            "$ref": "#/definitions/absent"
+                                    "if": {
+                                      "required": [
+                                        "kind"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "const": "judge"
+                                        }
+                                      }
+                                    },
+                                    "then": {
+                                      "required": [
+                                        "judge"
+                                      ],
+                                      "properties": {
+                                        "blocks": {
+                                          "description": "判定の表はブロックの宣言を持たず、規則と例を根の judge の欄に持つ",
+                                          "maxProperties": 0
+                                        },
+                                        "steps": {
+                                          "items": {
+                                            "properties": {
+                                              "events": {
+                                                "description": "判定の表の段は規則の列ごとに 1 つと判定の 1 つで、段の中で起きることを持たない",
+                                                "maxItems": 0
+                                              }
+                                            }
                                           }
                                         }
-                                      },
-                                      "steps": {
-                                        "$ref": "#/definitions/plainSteps"
+                                      }
+                                    },
+                                    "else": {
+                                      "properties": {
+                                        "blocks": {
+                                          "required": [
+                                            "box"
+                                          ],
+                                          "properties": {
+                                            "box": {
+                                              "minItems": 1
+                                            },
+                                            "strip": {
+                                              "$ref": "#/definitions/plainStrip"
+                                            },
+                                            "path": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "branch": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "scale": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "period": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "row": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "task": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "point": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "zoom": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "item": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "role": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "part": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "hold": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "side": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "check": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "choice": {
+                                              "$ref": "#/definitions/absent"
+                                            }
+                                          }
+                                        },
+                                        "steps": {
+                                          "$ref": "#/definitions/plainSteps"
+                                        }
                                       }
                                     }
                                   }
