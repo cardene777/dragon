@@ -22,6 +22,7 @@ import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
 import sampleJa from "./sample.dragon?raw";
 import sampleEn from "./sample.en.dragon?raw";
+import { EMBEDDING_TEXT } from "./text";
 import "./embed-sample.css";
 
 /** 見本帳の置き場 */
@@ -193,7 +194,7 @@ function FigureOf({ way, source, lang }: { way: Way; source: string; lang: Lang 
 }
 
 export function EmbedSample({ lang }: { lang: Lang }): ReactElement {
-  const t = TEXT[lang].site.embedding;
+  const t = EMBEDDING_TEXT[lang];
   const source = sampleOf(lang);
   return (
     <div className="embedding">

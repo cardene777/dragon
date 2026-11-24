@@ -94,34 +94,7 @@ const JA = {
       embedding: { title: "組み込みの見本" },
       "not-found": { title: "そこは、まだ書かれていない。" },
     },
-    releaseNotes: {
-      crumb: "道筋",
-      eyebrow: (version: string) => `公開の記録 · ${version} が最新`,
-      /** 見出しの終わりの差し色の語 */
-      accent: "履歴",
-      lead: "dragon の今の版を示す。版ごとの詳しい変更は GitHub 上の CHANGELOG.ja.md で読める。",
-      changelog: "変更の記録を GitHub で見る",
-    },
-    notFound: {
-      /** 見出しの頭の強める語 */
-      em: "そこは",
-      lead: (entries: number) => `お探しの頁は移動または削除されたか、そもそも存在しません。dragon の ${entries} つの入口から探してみてください。`,
-      catalog: "カタログを見る",
-      docs: "使い方を読む",
-    },
-    /** 組み込みの見本の頁 (#3701) */
-    embedding: {
-      eyebrow: "組み込み",
-      lead: "下の記法の図を、外の頁に置く4つの置き方で並べた。どの図も帯からコード、エディタ、コピー、エクスポート、拡大を使える。",
-      back: "← 使い方の組み込みの節に戻る",
-      notation: "見本の記法",
-      ways: {
-        script: { name: "scriptの1行", note: "<pre class=\"dragon\">の塊に属性data-headerを付けると、入口がその塊に帯を付ける。" },
-        npm: { name: "SDKの関数", note: "SDKの関数mountDragonが、要素に帯つきの図を置く。" },
-        element: { name: "Web Component", note: "defineDragonElementで登録した要素<dragon-diagram>が、中の字を記法として読んで図を置く。" },
-        iframe: { name: "iframe", note: "embedUrlが作った埋め込みの頁のURLを、iframeで開く。" },
-      },
-    },
+    // 更新履歴の頁と見つからない頁と組み込みの見本の頁だけが使う字は、各頁の `text.ts` が持つ (#3880)
   },
   notation: "記法",
   editor: "図の記法を書く欄",
