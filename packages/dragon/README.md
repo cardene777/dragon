@@ -590,6 +590,7 @@ Sequence, architecture and state diagrams can leave out the title on the first l
 A diagram with no `box` line makes a box of each name on the lines in the order they appear, and points out box names that differ by one character while still drawing the diagram.
 A diagram with no `step` line makes each line one step, and a step without `say` uses the line label as its body.
 A line label made of words is drawn in the text font, and a label with a code sign (`()`, `_`, `/`, `0x`, or a capital inside a word) or one that starts with a digit is drawn in the monospace font. Wrap the whole label in backticks (`` `git rebase main` ``) to draw a command with no sign in the monospace font; the backticks are not drawn.
+A value written with `set` in the strip under the diagram follows the same rule. A hash or another word mixing lowercase letters and digits (`8b04f71`), a value cut short with `…`, a version starting with `v` (`v2.4.0`), and a path such as `m/44'/60'` also stay monospace, and a name with no sign, such as a branch name, is wrapped in backticks (`` set HEAD: `main` ``).
 A destination in the `link` attribute of a box line makes that box a link in the drawn diagram.
 A `source <name> [url: <URL>]` line inside a step is a source of that step; a step can have any number, and they are listed as links in the step list that screen readers read.
 A destination or source URL is a path that starts with `/`, a URL that starts with `http://` or `https://`, or a place on the page that starts with `#`.

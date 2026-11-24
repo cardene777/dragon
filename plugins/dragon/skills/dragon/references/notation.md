@@ -82,6 +82,7 @@ strip <title>: <field>, <field>, <field>
 
 Declare a strip before the first step to show values that change over the steps. Inside a step, `set <field>: <value>` fills a field and `set <field> [tag: <text>]` adds a tag to it.
 A strip works in every kind except `pipe`, `try` and `chart`. In `chart`, `set <id>: <value>` is the value of an item instead.
+A strip value picks its font by the same rule as a line label. A value made of words, such as `refunded`, is drawn in the text font. A value with a code sign, one that starts with a digit, a word mixing lowercase letters and digits such as a hash (`8b04f71`, `tx3`), a value cut short with `…`, a version starting with `v` (`v2.4.0`), and a path with `/` between a letter and a digit (`m/44'/60'`) are drawn in the monospace font. To draw a name with no sign, such as a branch name, in the monospace font, wrap the whole value in backticks (`` set HEAD: `main` ``); the backticks are not drawn.
 
 ## Attribute values
 
