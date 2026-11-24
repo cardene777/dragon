@@ -422,3 +422,14 @@
 | 見本の`git rebase main`の札4件と`git switch main`の札2件をbacktickで囲み、等幅の字のまま描く | `pnpm test`の検査`examples-git-commands-stay-mono`が通る | #3850 |
 | 記法の説明 (`plugins/dragon/skills/dragon/references/notation.md`、`packages/dragon/README.md`、`packages/dragon/README.ja.md`、`docs/design/base/GRAMMAR.md`) に、札の字の決まりと、backtickで囲むと等幅で描くことを書く | `pnpm test`の検査`docs-explain-label-font`が通る | #3850 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`に#3850の項がある | `pnpm test`の検査`changelog-lists-label-font`が通る | #3850 |
+| 日本語を含まない`strip`の値のうち、コードの印を持たず数で始まらない値(`refunded`、`back on shelf`、`Stopped on a conflict`)を、日本語の値と同じ字(`TYPE.fieldValueJa`)で描く | `pnpm test`の検査`prose-strip-value-drawn-in-sans`が通る | #3856 |
+| 英字と数字が混ざる3字以上の語を持つ値(`B 8b04f71`、`e5f8, 7a21, 6f53`、`tx3`)と、途中で切った値(`Splx…`)を、今と同じ等幅の字(`TYPE.fieldValue`)で描く | `pnpm test`の検査`hash-strip-value-stays-mono`が通る | #3856 |
+| `v`で始まる版(`v2.4.0`)と、英字と数に挟まれた`/`を持つ道(`m/44'/60'/0'`)を、今と同じ等幅の字で描く | `pnpm test`の検査`version-and-path-strip-value-stay-mono`が通る | #3856 |
+| 線の札の印を持つ値(`C' (detached)`、`0x9f3c…a1`、`SUCCESS`)と数で始まる値(`4,980 yen`、`0 min`)を、今と同じ等幅の字で描く | `pnpm test`の検査`code-strip-value-stays-mono`が通る | #3856 |
+| backtickで囲んだ値(例えば`main`を囲んだ値)を、印の有無に依らず等幅の字で描き、囲みのbacktickを描かない | `pnpm test`の検査`backticked-strip-value-drawn-mono-without-backticks`が通る | #3856 |
+| 日本語を含む値を、印があっても今と同じ字(`TYPE.fieldValueJa`)で描く | `pnpm test`の検査`japanese-strip-value-stays-sans`が通る | #3856 |
+| 値の欄の幅と、値の右に置く札(`tag`)の位置を、選んだ字の幅で見積もる。backtickで囲んだ値は囲みを外した字の幅で計る | `pnpm test`の検査`strip-value-width-measured-in-chosen-font`が通る | #3856 |
+| 足した4つの印で線の札の字は変わらず、見本の`send 0.05 WETH`と`passed 2/3`の札は地の文の字のまま描く | `pnpm test`の検査`added-signs-keep-label-fonts`が通る | #3856 |
+| 見本の値をbacktickで囲み、等幅の字のまま描く。枝の付け替えの図の`HEAD`の`main`と`feature`(16か所)、まとめる図のcommitの名前(6か所)、HDウォレットの図の道の始まりの`m`(2か所)、部品の図の`HEAD`の`main`(2か所)の26か所 | `pnpm test`の検査`examples-strip-names-stay-mono`が通る | #3856 |
+| 記法の説明(`plugins/dragon/skills/dragon/references/notation.md`、`packages/dragon/README.md`、`packages/dragon/README.ja.md`、`docs/design/base/GRAMMAR.md`)に、`strip`の値の字の決まりと、backtickで囲むと等幅で描くことを書く | `pnpm test`の検査`docs-explain-strip-value-font`が通る | #3856 |
+| `CHANGELOG.md`と`CHANGELOG.ja.md`に#3856の項がある | `pnpm test`の検査`changelog-lists-strip-value-font`が通る | #3856 |
