@@ -34,8 +34,8 @@ const GUIDES: Record<Lang, string> = { en: "packages/dragon/examples/quick-start
 
 /** 図の種類の名前。README の一覧と手引きの節の見出しに同じ名前を使う */
 const KIND_LABELS: Record<Lang, Record<string, string>> = {
-  ja: { architecture: "構成図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
-  en: { architecture: "Architecture diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
+  ja: { architecture: "構成図", cards: "持ち主ごとのカードの図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
+  en: { architecture: "Architecture diagram", cards: "Owner card diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
 };
 
 /** 書き出しが箱を並べるだけの種類。絵を持たず、一覧には名前と手引きへの繋ぎだけを置く */
@@ -43,7 +43,7 @@ const WITHOUT_PICTURE = new Set(["checkout"]);
 
 /** 種類の頭の語で、手引きの種類の節がその種類の書き方を持つと読める字 */
 const KIND_WORDS: Record<string, string> = {
-  architecture: "architecture", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn",
+  architecture: "architecture", cards: "cards", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn",
 };
 
 /** mermaid と比べる表の節の見出しと、表の 4 つの行の頭 */
