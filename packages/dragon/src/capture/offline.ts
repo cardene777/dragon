@@ -7,11 +7,12 @@
  * 埋める script は `DragonPlayer.mountDiagram` を出すので、書き出した頁はこの script で図を置ける。
  * 埋める script は字を読み込まないので、書き出した頁も字を埋めず端末の字で描く。
  *
- * PNG と SVG は帯が書き出す部品を読まずに作るので、書き出す部品の PNG を作る処理 (`picture.ts`) は束ねない。
+ * PNG と SVG は帯が書き出す部品を読まずに作る。判定の表だけは書き出す絵の形 (例を帯に置いた SVG、#3945) を、
+ * 書き出す部品と同じ`capturePng`と`captureSvg`と`captureFilm`で撮る。埋めた頁は字を読み込まないので、絵にも字を埋めない。
  */
 import type { CaptureLoader } from "../frame/diagram-actions.mjs";
 import type { NotationLang } from "../words";
-import { captureFrames } from "./index";
+import { captureFilm, captureFrames, capturePng, captureSvg } from "./index";
 import { notationPage } from "./page-html";
 
 /** 断りの文 */
@@ -24,6 +25,9 @@ const TEXT: Record<NotationLang, string> = {
 export function offlineCapture(script: string): CaptureLoader {
   const parts = {
     captureFrames,
+    capturePng,
+    captureSvg,
+    captureFilm,
     captureHtml: (source: string) => notationPage(source, {}, (said) => (script ? Promise.resolve(script) : Promise.reject(new Error(TEXT[said])))),
   };
   return () => Promise.resolve(parts);

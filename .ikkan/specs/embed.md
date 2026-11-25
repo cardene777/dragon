@@ -119,3 +119,10 @@
 | 組み込みの文書 (`plugins/dragon/skills/dragon/references/embed.md`と`packages/dragon/README.md`と`packages/dragon/README.ja.md`) が、箱と囲みのidを持つ属性`data-node`と、押した箱のidを`closest('[data-node]')`で読む書き方を持つ | `pnpm exec vitest run`の検査`embed-docs-name-node-attribute`が通る | #3795 |
 | 線と札を描いた要素は`data-node`を持たない | `pnpm exec vitest run`の検査`lines-and-labels-carry-no-node-id`が通る | #3795 |
 | 量の帯の図の棒は、今と同じく`data-node`に記法のidを持つ | `pnpm exec vitest run`の検査`sankey-band-grows-at-its-step`が通る | #3795 |
+| 帯つきの図の帯の書き出す窓で判定の表のSVGを保存すると、例の名前を行の上の帯 (`data-dragon="judge-band"`) に置いた帯の形の表のSVGを書き、`foreignObject`を持たず、字の書体を`data:`で埋める | `pnpm exec vitest run packages/dragon/test/frame-judge-picture.test.ts`の検査`frame-judge-svg-draws-band-table`が通る | #3945 |
+| 同じ窓で判定の表のPNGを保存すると、読み手が2番目の段まで送った後でも列を照らさない帯の形の表を撮る。PNGの幅は選んだ倍率を掛けた728px以下で、見出しの番号の丸は規則の数だけ写り、最初の丸は左の端から倍率を掛けた100px以内に在り、判定の札は例の数だけ写る | `pnpm exec vitest run packages/dragon/test/frame-judge-picture.test.ts`の検査`frame-judge-png-draws-band-table`が通る | #3945 |
+| 帯のコピーの窓で判定の表の画像を写すと、帯の形の表を列を照らさずに撮ったPNGを写す | `pnpm exec vitest run packages/dragon/test/frame-judge-picture.test.ts`の検査`frame-judge-copy-draws-band-table`が通る | #3945 |
+| 帯の書き出す窓で判定の表のGIFとmp4を保存すると、帯の形の表で規則の列を1段ずつ照らす1周を撮る。GIFのコマの幅は728px以下で、最初のコマは判定の札を見せず、最後の段のコマは判定の札を見せ、mp4は`video/mp4`のfileになる | `pnpm exec vitest run packages/dragon/test/frame-judge-picture.test.ts`の検査`frame-judge-film-lights-columns-by-step`が通る | #3945 |
+| `mountDragon`に`header: false`を渡して帯を出さずに置いた判定の表の`export("svg")`も、帯の形の表のSVGを書き、`foreignObject`を持たない | `pnpm exec vitest run packages/dragon/test/frame-judge-picture.test.ts`の検査`sdk-headless-judge-svg-draws-band-table`が通る | #3945 |
+| 判定の表でない図の帯のPNGは、今どおり選んだ大きさと地 (透明か塗るか) で撮る | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`export-options-scale-and-transparent-png`が通る | #3945 |
+| script の1行で置いた頁が最初に読む script の合計は、gzip した後で90,000バイトを超えない | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3945 |

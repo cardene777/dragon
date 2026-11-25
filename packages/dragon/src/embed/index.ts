@@ -11,7 +11,7 @@
  * 出す名前は`src/embed/names.json`が持ち、検査`sdk-entry-matches-name-list`が突き合わせる。
  * 名前を変える時は一覧と版の真ん中の数と変更の一覧を同じPRで直す (`docs/adr/0001-sdk-entry-names.md`)。
  */
-import { parseNotation, mountDiagram, type Diagram, type Player, type PlayerOptions } from '@cardenelabs/dragon';
+import { parseNotation, mountDiagram, renderDiagram, type Diagram, type Player, type PlayerOptions } from '@cardenelabs/dragon';
 import { stylesFor } from '../adopt-css';
 import { loadCapture } from '../frame/capture-load.mjs';
 import { createDiagramActions, type DiagramActions } from '../frame/diagram-actions.mjs';
@@ -170,7 +170,11 @@ export function mountDragon(host: HTMLElement, source: string, options: EmbedOpt
       stage.remove();
       throw error;
     }
-    const headlessActions = createDiagramActions(host.ownerDocument, stage, source, diagram, notify, loadCapture);
+    // 判定の表の書き出す絵の形は、再生の部品と同じ色味と明るさと言葉で描く (#3945)
+    const { palette, theme, colors } = playerOptions;
+    const lang = frameLang(options.lang, host);
+    const drawPicture = () => renderDiagram(diagram, { palette, theme, colors, lang, picture: true });
+    const headlessActions = createDiagramActions(host.ownerDocument, stage, source, diagram, notify, loadCapture, drawPicture);
     headlessActions.connect();
     let disposed = false;
     return {

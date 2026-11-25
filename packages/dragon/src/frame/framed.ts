@@ -5,10 +5,11 @@
  * script の1行の入口は本体の物を渡すので、帯の塊は再生の部品の写しを持たず、本体が登録した図の種類をそのまま描ける。
  * 既定の入口の帯 (`@cardenelabs/dragon/frame`) と軽い入口の帯 (`@cardenelabs/dragon/light/frame`) は、それぞれの入口の記法を読む処理を渡す (#3789)。
  * 書き出す部品を読む処理 (`capture`) も呼ぶ側から受け取る (#3786)。`dragon embed`が埋める script は、頁に束ねた書き出す部品を渡す (#3792)。
+ * 判定の表の書き出す絵の形を描く処理 (`picture`) も呼ぶ側の`renderDiagram`を受け取り、本体が登録した判定の表の部品で描く (#3945)。
  */
 import type { Diagram, Parsed, ParseOptions, Player, PlayerOptions } from "@cardenelabs/dragon";
 import { stylesFor } from "../adopt-css";
-import type { CaptureLoader } from "./diagram-actions.mjs";
+import type { CaptureLoader, PictureDrawer } from "./diagram-actions.mjs";
 import { createDragonFrame } from "./dragon-frame.mjs";
 import { frameLang } from "./frame-text.mjs";
 import type { DiagramFrame, FrameOptions } from "./index";
@@ -23,10 +24,10 @@ type Parse = (text: string, options?: ParseOptions) => Parsed;
 type Framed = { player: Player; frame: DiagramFrame; destroy(): void };
 
 /** `host`に帯を置き、帯の内側に図を描く。描けない時は帯を外して誤りを投げる */
-export function mountInFrame(host: HTMLElement, source: string, diagram: Diagram, options: PlayerOptions & FrameOptions, mount: Mount, words: Words, capture?: CaptureLoader): Framed {
+export function mountInFrame(host: HTMLElement, source: string, diagram: Diagram, options: PlayerOptions & FrameOptions, mount: Mount, words: Words, capture?: CaptureLoader, picture?: PictureDrawer): Framed {
   // 帯と再生の部品は同じ言葉で出す。設定が無い時は置いた所から上の`lang`属性で決める (#3695)
   const shown = { ...options, lang: frameLang(options.lang, host) };
-  const controls = createDragonFrame(host.ownerDocument, source, diagram, { ...shown, words, capture });
+  const controls = createDragonFrame(host.ownerDocument, source, diagram, { ...shown, words, capture, picture });
   host.append(controls.frame);
   let player: Player;
   try {
@@ -47,8 +48,8 @@ export function mountInFrame(host: HTMLElement, source: string, diagram: Diagram
  * 記法`source`を読み、`host`に帯を置いて帯の内側に図を描く。記法は帯と同じ言葉で読み、誤りの文もその言葉で出す (#3789)。
  * 記法に誤りが在る時は、帯を置かずに行ごとの誤りの文を投げる
  */
-export function mountNotationInFrame(host: HTMLElement, source: string, options: PlayerOptions & FrameOptions, parse: Parse, mount: Mount, words: Words, capture?: CaptureLoader): Framed {
+export function mountNotationInFrame(host: HTMLElement, source: string, options: PlayerOptions & FrameOptions, parse: Parse, mount: Mount, words: Words, capture?: CaptureLoader, picture?: PictureDrawer): Framed {
   const parsed = parse(source, { lang: frameLang(options.lang, host) });
   if (!parsed.ok) throw new Error(parsed.errors.map((e) => `${e.line}: ${e.message}`).join("\n"));
-  return mountInFrame(host, source, parsed.diagram, options, mount, words, capture);
+  return mountInFrame(host, source, parsed.diagram, options, mount, words, capture, picture);
 }

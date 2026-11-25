@@ -1,10 +1,10 @@
 /** Article chrome shared by embedders; the native player owns diagram inputs. */
-import { parseNotation, mountDiagram, NOTATION_WORDS, type Diagram, type PlayerOptions, type Player } from '@cardenelabs/dragon';
+import { parseNotation, mountDiagram, NOTATION_WORDS, renderDiagram, type Diagram, type PlayerOptions, type Player } from '@cardenelabs/dragon';
 import { loadCapture } from './capture-load.mjs';
 import { createDragonFrame as createFrame, diagramEditorUrl as editorUrl } from './dragon-frame.mjs';
 import { mountNotationInFrame } from './framed';
 import type { HeaderColors, FigureHeader } from './header';
-import type { ActionNotify, DiagramActions } from './diagram-actions.mjs';
+import type { ActionNotify, DiagramActions, PictureDrawer } from './diagram-actions.mjs';
 import type { FrameButton } from './dragon-frame.mjs';
 import type { BuiltinButton, EmbedLook } from './types';
 export { createFigureHeader } from './header';
@@ -39,7 +39,10 @@ export interface DiagramFrame {
   connect(): void;
   destroy(): void;
 }
-export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame => createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture });
+/** 判定の表の書き出す絵の形を描く処理 (#3945)。帯は本体の`renderDiagram`で描き、本体が登録した判定の表の部品を使う */
+export const drawPicture: PictureDrawer = (diagram, options) => renderDiagram(diagram, { ...options, picture: true });
+
+export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame => createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture, picture: drawPicture });
 export const diagramEditorUrl: (source: string) => string = editorUrl;
 
 /**
@@ -47,5 +50,5 @@ export const diagramEditorUrl: (source: string) => string = editorUrl;
  * 記法の誤りの文は帯と同じ言葉 (設定`lang`、置いた所から上の`lang`属性、英語の順) で出す (#3789)
  */
 export function mountFramedDiagram(host: HTMLElement, source: string, options: PlayerOptions & FrameOptions = {}): { player: Player; frame: DiagramFrame; destroy(): void } {
-  return mountNotationInFrame(host, source, options, parseNotation, mountDiagram, NOTATION_WORDS, loadCapture);
+  return mountNotationInFrame(host, source, options, parseNotation, mountDiagram, NOTATION_WORDS, loadCapture, drawPicture);
 }

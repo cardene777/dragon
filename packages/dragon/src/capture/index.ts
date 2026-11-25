@@ -115,6 +115,8 @@ export interface StillOptions extends CaptureOptions {
   at?: number;
   /** CSS の 1px を何画素で撮るか。既定は 2 */
   scale?: number;
+  /** 先に塗る地の色 (#3945)。書かなければ地を塗らず、図の外は透明にする */
+  background?: string;
 }
 
 export interface FilmOptions extends CaptureOptions {
@@ -162,13 +164,13 @@ export async function canCaptureMp4(): Promise<boolean> {
  */
 export async function capturePng(svg: CaptureFigure, options: StillOptions = {}): Promise<Blob> {
   const lang = options.lang ?? DEFAULT_LANG;
-  if (!isSvg(svg) || stepParts(svg, lang)) return pngOf(await (await stillOf(svg, lang)).draw(0, options.scale ?? FILM_SCALE));
+  if (!isSvg(svg) || stepParts(svg, lang)) return pngOf(await (await stillOf(svg, lang)).draw(0, options.scale ?? FILM_SCALE, options.background));
   const at = options.at ?? shownAt(svg);
   const shot = await picture(svg, lang);
   const style = svg.ownerDocument.defaultView?.getComputedStyle(svg);
   // 時刻が読めない図 (動きの無い図) は、写した `--at` のまま止める
   const t = at ?? (Number.parseFloat(style?.getPropertyValue("--at") ?? "") || 0);
-  return pngOf(await shot.draw(t, options.scale ?? FILM_SCALE));
+  return pngOf(await shot.draw(t, options.scale ?? FILM_SCALE, options.background));
 }
 
 /**
