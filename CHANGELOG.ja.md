@@ -9,6 +9,7 @@ dragon DSL の主要変更履歴。
 ### Fixed
 
 - 判定の表を`dragon export`で書き出すと`Cannot take screenshot with 0 width`で止まり、何も書かなかった。PNGは描いた表の大きさを測って撮り、`--width`に依らず全ての列と判定を写す。`--step`を選ぶとその段までの列を照らした形を撮る。GIFとmp4は段ごとに規則の列を1つずつ照らし、最後に判定の列を照らす (#3923)
+- 見本帳と編集画面の書き出す窓で判定の表を書き出すと、どの形でもfileが1つもできなかった。PNGとSVGは列を照らさない表の全体を写し、SVGは表を`foreignObject`に包む。GIFとmp4は段ごとに列を1つずつ照らす。`@cardenelabs/dragon/capture`はSVGのほかに判定の表の根の要素も受ける (#3937)
 
 ## [0.80.0] - 2026-11-25
 

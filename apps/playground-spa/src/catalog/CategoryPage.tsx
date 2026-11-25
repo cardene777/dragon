@@ -18,7 +18,7 @@ import { type Diagram, PALETTES, parseNotation, readDiagram, renderDiagram, type
 import { type CSSProperties, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { ExportMenu } from "../editor/ExportMenu";
+import { type ExportFigure, ExportMenu, figureIn } from "../editor/ExportMenu";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "../editor/fit";
 import { useFittedFigure } from "../editor/useFittedFigure";
 import { type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
@@ -335,8 +335,8 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
     );
   };
   const editorHref = `${PATHS.editor}${toHash(text)}`;
-  /** 今描いている図の SVG。帯の書き出す窓と画像のコピーが撮る */
-  const figure = (): SVGSVGElement | null => host.current?.querySelector<SVGSVGElement>('svg[data-dragon="figure"]') ?? null;
+  /** 今描いている図の SVG か、HTML で描く図 (判定の表) の根の要素。帯の書き出す窓と画像のコピーが撮る */
+  const figure = (): ExportFigure | null => figureIn(host.current);
 
   // 帯の頭は図を組み込んだ先と同じ物を package に作らせ、印と題を描かせる。ボタンと 2 行目の中身は下で差し込む (#3713)
   const barHost = useRef<HTMLDivElement>(null);
@@ -498,8 +498,8 @@ interface CopyMenuProps {
   text: string;
   /** 見本の記法を入れたエディタの経路 */
   editorHref: string;
-  /** 今描いている図の SVG。画像のコピーが撮る */
-  figure: () => SVGSVGElement | null;
+  /** 今描いている図の SVG か、HTML で描く図の根の要素。画像のコピーが撮る */
+  figure: () => ExportFigure | null;
 }
 
 /**

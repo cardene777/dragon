@@ -279,8 +279,14 @@ describe("編集画面の判定の表を書き出す (#3937)", () => {
       await wait(10);
       expect(fn, `${format} を選んでも書き出す入口の関数を呼ばない`).toHaveBeenCalledTimes(1);
       const given = fn.mock.calls[0]?.[0];
-      if (format === "HTML") expect(typeof given === "string" && parseNotation(given).ok ? given : "", "HTML の書き出しに今の記法を渡さない").toBe(JUDGE_TEXT);
-      else expect(given, `${format} の書き出しに判定の表の要素を渡さない`).toBe(table);
+      if (format === "HTML") {
+        // 編集画面は記法を書く欄の中身を渡す。見本の注釈の行は書く欄に入らないので、読んだ図の種類と題で比べる
+        const read = typeof given === "string" ? parseNotation(given) : undefined;
+        const want = parseNotation(JUDGE_TEXT);
+        expect(read?.ok ? { kind: read.diagram.kind, title: read.diagram.title } : undefined, "HTML の書き出しに今の記法を渡さない").toEqual(
+          want.ok ? { kind: want.diagram.kind, title: want.diagram.title } : { kind: "judge" },
+        );
+      } else expect(given, `${format} の書き出しに判定の表の要素を渡さない`).toBe(table);
       expect(saved[before]?.name ?? "", `${format} を保存させた file の拡張子`).toMatch(new RegExp(`\\.${ext}$`, "u"));
       fn.mockReset();
     }

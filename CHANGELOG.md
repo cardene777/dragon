@@ -9,6 +9,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Fixed
 
 - `dragon export` of a judge table stopped with `Cannot take screenshot with 0 width` and wrote nothing. The PNG now measures the drawn table and shows every column and verdict, at any `--width`. `--step` lights the columns up to the chosen step. The GIF and mp4 light one rule column per step and the verdict column last (#3923)
+- Exporting a judge table from the export menu of the playground editor or the catalog saved no file for any format. PNG and SVG now show the whole table with no column lit, the SVG wraps the table in a `foreignObject`, and the GIF and mp4 light one column per step. `@cardenelabs/dragon/capture` takes the root element of a judge table as well as an SVG (#3937)
 
 ## [0.80.0] - 2026-11-25
 

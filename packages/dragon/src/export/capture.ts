@@ -15,7 +15,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import type { Browser, Page } from "playwright-core";
 import type { NotationLang } from "../words";
-import { FILM_SCALE, type FilmBox, type FilmPlan, type FilmSize, makeFilm } from "./film";
+import { FILM_SCALE, type FilmBox, type FilmPlan, type FilmSize, makeFilm, stepAt } from "./film";
 
 const require_ = createRequire(import.meta.url);
 /** 頁に読ませる詰める道具。どちらも 1 file の ES module */
@@ -83,15 +83,6 @@ export interface Stage {
   height: number;
   /** HTML で描く図の時だけ持つ */
   html?: HtmlFigure;
-}
-
-/** 時刻 `t` の段。再生の部品と同じく、始まりが `t` 以前の最後の段 (`player.ts` の `stepAt`) */
-function stepAt(starts: number[], t: number): number {
-  let found = 0;
-  starts.forEach((start, i) => {
-    if (start <= t) found = i;
-  });
-  return found;
 }
 
 /** HTML で描く図を置く頁の地。中身の幅に縮めて描いた大きさを測り、印の移り変わりを止める */
