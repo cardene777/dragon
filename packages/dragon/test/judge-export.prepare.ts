@@ -2,11 +2,10 @@
  * `judge-export.test.ts` の書き出しを、1 回の実行の準備の段で済ませる (#3923、#3734)。
  *
  * 判定の表 (#3879) は SVG でなく HTML で描くので、書き出しは撮る頁で表を描いた大きさを測って撮る。
- * 見本の PNG、段と幅を渡した PNG、形を選ばない命令の書き出し、GIF のコマの読み戻し、SVG の図の PNG を並べて済ませる。
+ * 見本の PNG、段と幅を渡した PNG、形を選ばない命令の書き出し、SVG の図の PNG を並べて済ませる。GIF のコマの読み戻しは検査の file の読み込む段が行う。
  * 判定の表の書き出しが落ちても準備を止めず、落ちた理由を残す。件はその理由を挙げて落ち、ほかの件は回る。
  * 件は書き出した file の画素を、表の色の値 (描いた HTML の根の `style` の色) で数えて確かめる。
  */
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { EXAMPLES, exportIn, type Ran, runCli, scratch } from "../../../test-support/prepare-tools";
@@ -75,48 +74,14 @@ export interface GifShot {
   rgba: string;
 }
 
-/** GIF を画面なしの Chromium の `ImageDecoder` で読み戻し、`indexes` 番目のコマを重ねて描き終えた絵で返す */
-async function gifFrames(gif: Buffer, indexes: number[]): Promise<GifShot[]> {
-  const { chromium } = await import("playwright-core");
-  const browser = await chromium.launch();
-  try {
-    const page = await browser.newPage();
-    await page.route("http://localhost/**", (route) =>
-      new URL(route.request().url()).pathname === "/film.gif"
-        ? route.fulfill({ contentType: "image/gif", body: gif })
-        : route.fulfill({ contentType: "text/html", body: "<!doctype html><p>gif</p>" }),
-    );
-    await page.goto("http://localhost/");
-    const shots = await page.evaluate(async (indexes) => {
-      const data = await (await fetch("/film.gif")).arrayBuffer();
-      const decoder = new ImageDecoder({ data, type: "image/gif" });
-      await decoder.tracks.ready;
-      const out: { width: number; height: number; rgba: string }[] = [];
-      for (const frameIndex of indexes) {
-        const { image } = await decoder.decode({ frameIndex });
-        const canvas = new OffscreenCanvas(image.displayWidth, image.displayHeight);
-        const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
-        context.drawImage(image, 0, 0);
-        image.close();
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        let text = "";
-        for (let i = 0; i < pixels.length; i += 0x8000)
-          text += String.fromCharCode(...pixels.subarray(i, i + 0x8000));
-        out.push({ width: canvas.width, height: canvas.height, rgba: btoa(text) });
-      }
-      return out;
-    }, indexes);
-    return shots;
-  } finally {
-    await browser.close();
-  }
-}
-
-/** 形を選ばずに命令で書き出した結果と、GIF の最初のコマと最後の段の止め絵の時刻のコマ */
+/**
+ * 形を選ばずに命令で書き出した結果と、書き出した GIF の path と最後の段の止め絵の時刻のコマの番号。
+ * GIF のコマの読み戻しは Chromium を使うので、検査の file の読み込む段が file で 1 つの Chromium で行う (#3424、#3940)
+ */
 export interface Filmed {
   ran: Ran;
   out: string;
-  frames?: { first: GifShot; last: GifShot; lastIndex: number };
+  gif?: { path: string; lastIndex: number };
 }
 
 async function filmed(facts: JudgeFacts): Promise<Filmed> {
@@ -135,11 +100,7 @@ async function filmed(facts: JudgeFacts): Promise<Filmed> {
   if (ran.code !== 0) return { ran, out };
   // GIF の k 番目のコマは k / gifFps 秒の絵。最後の段 (判定の列) の止め絵の時刻に最も近いコマを読む
   const lastIndex = Math.round((facts.stills.at(-1) ?? 0) * FILM_RATES.gifFps);
-  const [first, last] = await gifFrames(
-    readFileSync(join(out, FILMED.replace(/\.dragon$/u, ".gif"))),
-    [0, lastIndex],
-  );
-  return { ran, out, ...(first && last ? { frames: { first, last, lastIndex } } : {}) };
+  return { ran, out, gif: { path: join(out, FILMED.replace(/\.dragon$/u, ".gif")), lastIndex } };
 }
 
 /** SVG で描く図の PNG と、描いた SVG の `width` と `height` */

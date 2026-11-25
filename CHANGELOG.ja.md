@@ -12,12 +12,14 @@ dragon DSL の主要変更履歴。
 - 判定の表の絵は、例の列の代わりに例の名前と添え書きをその例の✓と✕の行の上の帯に置き、どの字も10.5px以上のまま幅728pxに収める。帯の形でも収まらない表は規則の列を分けて縦に積み、どの段にも例の帯を置いて、判定の列を最後の段に置く。`dragon export`のPNG、GIF、mp4、SVGと、見本帳と編集画面の書き出す窓と画像のコピーがこの形を使う。SVGの要素だけで描き`foreignObject`を使わないので、ブラウザでない道具でも描ける。`renderDiagram(diagram, { picture: true })`がこの形を描き、`@cardenelabs/dragon/capture`はその根も受ける (#3891)
 - 埋めた図の帯 (`dragon embed`が作る頁、jsDelivrの1行の入口、`mountDragon`、`@cardenelabs/dragon/frame`、`@cardenelabs/dragon/light/frame`) の書き出す窓と画像のコピーと、`header: false`の`mountDragon`の書き出しも、判定の表を帯の形で描く。PNG、GIF、mp4、SVGが幅728pxに収まる。GIFとmp4は読み手の再生を記録せず、規則の列を1段ずつ照らす。`@cardenelabs/dragon/capture`の`capturePng`は、絵の下に塗る地の色`background`を受ける (#3945)
 
+## [0.80.1] - 2026-11-25
+
 ### Fixed
 
 - 判定の表を`dragon export`で書き出すと`Cannot take screenshot with 0 width`で止まり、何も書かなかった。PNGは描いた表の大きさを測って撮り、`--width`に依らず全ての列と判定を写す。`--step`を選ぶとその段までの列を照らした形を撮る。GIFとmp4は段ごとに規則の列を1つずつ照らし、最後に判定の列を照らす (#3923)
-- 見本帳と編集画面の書き出す窓で判定の表を書き出すと、どの形でもfileが1つもできなかった。PNGとSVGは列を照らさない表の全体を写し、GIFとmp4は段ごとに列を1つずつ照らす。`@cardenelabs/dragon/capture`はSVGのほかに判定の表の根の要素も受け、SVGでは表を`foreignObject`に包む (#3937)
-- 場面を持つ図 (`[scenes: stack]`と`[scenes: pick]`) の場面ごとの図も元の幅より大きく描かず、幅728pxの頁で場面を持つ縦に長い手順の図の箱の名前が13pxの字のままになるようにした。
-- 止めて見せる (`fixed`) 図は、枠が元の幅より広い時も元の幅より大きく描かず、枠の真ん中に置くようにした。幅728pxの頁で縦に長い手順の図が拡がり、箱の名前の字が30px近くになっていたのが、ほかの図の種類と同じ13pxの字で描かれる。`dragon embed`と`data-still`の塊が置く止めた図も同じく元の幅で止め、`chooseView`が返す字の大きさも箱の名前の元の字の大きさを超えない。
+- 見本帳と編集画面の書き出す窓で判定の表を書き出すと、どの形でもfileが1つもできなかった。PNGとSVGは列を照らさない表の全体を写し、SVGは表を`foreignObject`に包む。GIFとmp4は段ごとに列を1つずつ照らす。`@cardenelabs/dragon/capture`はSVGのほかに判定の表の根の要素も受ける (#3937)
+- 場面を持つ図 (`[scenes: stack]`と`[scenes: pick]`) の場面ごとの図も元の幅より大きく描かず、幅728pxの頁で場面を持つ縦に長い手順の図の箱の名前が13pxの字のままになるようにした。 (#3938)
+- 止めて見せる (`fixed`) 図は、枠が元の幅より広い時も元の幅より大きく描かず、枠の真ん中に置くようにした。幅728pxの頁で縦に長い手順の図が拡がり、箱の名前の字が30px近くになっていたのが、ほかの図の種類と同じ13pxの字で描かれる。`dragon embed`と`data-still`の塊が置く止めた図も同じく元の幅で止め、`chooseView`が返す字の大きさも箱の名前の元の字の大きさを超えない。 (#3934)
 
 ## [0.80.0] - 2026-11-25
 
