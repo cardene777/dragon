@@ -257,6 +257,7 @@ An item page links back to the entry and to the previous and next items.
 To choose another layout, add a `layout` line between `---` lines at the top of the file.
 `layout: sidebar` keeps a table of contents on the left.
 `layout: tabs` puts the groups in tabs along the top, with each group's items in tabs below them.
+`layout: guide` makes a guide page that answers questions, as [Guide page](#guide-page) shows.
 `layout: entry` is the default.
 
 The lines between `---` can also set the bar's button order with `header-buttons` and its colors with `header-<color field>`, one line per setting.
@@ -346,6 +347,59 @@ Took 12 orders.
 ```sh
 dragon export notes.md
 dragon embed notes.html
+```
+
+### Guide page
+
+`layout: guide` turns each `##` into a topic tab and each `###` into a numbered section stacked in that tab.
+The top of each tab lists the questions the tab answers, made from its `###` titles.
+Clicking a question scrolls to its section.
+A quote (`>`) right after a `###` title is shown under the title as the one-sentence answer.
+Other quotes stay quotes.
+A `<details>` block with a `<summary>` line becomes a check question.
+Its answer stays hidden until the button is clicked, and a second click hides it again.
+Other raw HTML is still shown as text.
+
+Write the terms in a Markdown file of their own, such as `glossary.md`.
+Each `###` heading is a term, the paragraph after it is the meaning, and a quote after that is an example.
+A `![Terms](glossary.md)` line before the first `##` loads the file and adds a tab named `Terms` with one card per term.
+In the text, a link such as `[order](glossary.md#order)` is underlined.
+Clicking it opens a card just below it with the term, its meaning, and a gray example band.
+The card closes on a click outside it, on its close icon, or on the term again.
+A term written twice, or a link to a term the file does not have, stops the export with the file and line named.
+When the page is printed, every term card, box card, and check answer is drawn open.
+The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).
+
+````md
+---
+layout: guide
+note: pop
+---
+
+# From order to delivery
+
+![Terms](glossary.md)
+
+## Take the order
+
+### Which orders does the shop take?
+
+> The shop takes an [order](glossary.md#order) only when every item is in stock.
+
+<details>
+<summary>What happens to an order with one item out of stock?</summary>
+
+The shop turns it down.
+
+</details>
+````
+
+```md
+### Order
+
+The items a user picks and the address to send them to.
+
+> Three apples to a house in Tokyo
 ```
 
 ## Put it on a page
