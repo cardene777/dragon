@@ -484,7 +484,7 @@ export const DOCS: Record<Lang, DocsText> = {
       "行の種類は行の頭の英語の語で決まる。矢印の行だけは箱の名札から始まる",
       "鍵と値はコロンで区切り、属性は `[ ]` の中に `,` で並べる",
       "空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `\"` で囲む",
-      "入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする",
+      "入れ子は `group … end` と場面の `scene … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする",
     ],
     migration: {
       head: ["前の形", "新しい形"],
@@ -784,7 +784,7 @@ export const DOCS: Record<Lang, DocsText> = {
       "The first English word of a line decides its kind. Only arrow lines start with a box id",
       "A colon separates a key from its value, and attributes go inside `[ ]`, separated by `,`",
       'Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`',
-      "The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`",
+      "The only nesting is `group … end` and the scene's `scene … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`",
     ],
     migration: {
       head: ["Old form", "New form"],

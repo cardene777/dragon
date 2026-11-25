@@ -43,7 +43,7 @@ Every line follows these four rules.
 1. The first English word of a line decides its kind. Only arrow lines start with a box id
 2. A colon separates a key from its value, and attributes go inside `[ ]`, separated by `,`
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
-4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
+4. The only nesting is `group … end` and the scene's `scene … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 ## Line forms
 
@@ -1004,7 +1004,8 @@ Shared steps draw their lines in gray, a scene's own steps in the scene's color,
 `pick` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene.
 With `[note: pop]` on the first line too, a card opens just below the box clicked in that scene.
 When the page is printed, both show every scene at its last step, stacked.
-A fourth `scene`, a `scenes` value other than `stack` and `pick`, `scene` in another kind of diagram, `stop` in a step outside a scene, and a `scene` not closed with `end` are refused with the line named.
+A fourth `scene` and a `scenes` value other than `stack` and `pick` are refused with the line named.
+So are `scene` in another kind of diagram, `stop` in a step outside a scene, and a `scene` not closed with `end`.
 
 ```dragon
 flow Two scenes of a transfer [scenes: stack]
