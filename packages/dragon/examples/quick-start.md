@@ -1094,6 +1094,26 @@ sequence ログインを頼む
 ```
 ````
 
+## HTMLで書く
+
+1枚のHTMLで書く資料では、記法の1行を1つの要素にしたHTMLの形でも書ける。
+図は`<dg-`と図の種類の名前の要素で包み、宣言の行はブロックの名前の要素に、`step`は`<dg-step>`に、`say`は`<dg-body>`に、段の中の線は`<dg-edge>`になる。
+
+```html
+<dg-sequence title="注文を受ける">
+  <dg-box id="shop">店</dg-box>
+  <dg-box id="api">注文のAPI</dg-box>
+
+  <dg-step title="注文を出す">
+    <dg-body>店が注文をAPIへ送る。</dg-body>
+    <dg-edge from="shop" to="api">注文を送る</dg-edge>
+  </dg-step>
+</dg-sequence>
+```
+
+`dragon convert diagram.dragon`は記法からHTMLの形を出し、`dragon convert diagram.html`はHTMLの形から記法を出す。
+要素と属性の名前の決まりと、mdの頁をHTMLの頁に変える書き方は、[`packages/dragon/README.ja.md`](../README.ja.md)の「HTMLで書く」の節にある。
+
 ## JSON との行き来
 
 記法と JSON は行き来できる。

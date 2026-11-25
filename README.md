@@ -165,6 +165,7 @@ Select a kind to read how to write it.
 | Renderer | Draws the source on a page and plays it one step at a time |
 | Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, owner card diagram, checkout diagram, judge table |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
+| HTML form | A diagram can also be written in HTML, one element per notation line, such as `<dg-sequence>` and `<dg-box>`. The `dragon convert` command turns notation and Markdown pages into HTML and back |
 
 ## Notation
 
@@ -182,7 +183,7 @@ A full example of each kind is in [`packages/dragon/examples`](packages/dragon/e
 
 | Read | For |
 |---|---|
-| [`packages/dragon/README.md`](packages/dragon/README.md) | Putting a diagram on a page, embedding it in other tools, loading diagram kinds on demand, adding your own blocks, and exporting |
+| [`packages/dragon/README.md`](packages/dragon/README.md) | Putting a diagram on a page, writing it in HTML, embedding it in other tools, loading diagram kinds on demand, adding your own blocks, and exporting |
 | [Notation guide](packages/dragon/examples/quick-start.en.md) | Every line form, attribute, and diagram kind |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version, and how to rewrite diagrams written for older versions |
 

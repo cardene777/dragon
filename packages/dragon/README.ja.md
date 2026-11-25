@@ -390,6 +390,77 @@ note: pop
 > りんごを3つ、東京の家へ
 ```
 
+## HTMLで書く
+
+1枚のHTMLで書く資料では、図もHTMLで書ける。
+記法の1行が1つの要素になり、`<pre class="dragon">`の塊と同じscriptの1行が、置いた所に同じ帯と段の図を描く。
+
+| 記法の行 | HTMLの要素 |
+|---|---|
+| 1行目 (`sequence 注文を受ける`) | `<dg-`と図の種類の名前の要素。`<dg-sequence title="注文を受ける">`が図の全体を包む |
+| 宣言の行 (`box shop as 店`) | ブロックの名前の要素。`<dg-box id="shop">店</dg-box>` |
+| `step 注文を出す` | `<dg-step title="注文を出す">`。段の行を中に持つ |
+| `say` | `<dg-body>` |
+| 段の中の行 (`shop -> api: 注文を送る`) | `<dg-edge from="shop" to="api">注文を送る</dg-edge>` |
+
+要素と属性の名前は、原本のJSONの欄の名前から作る。
+語と数は属性に、箱の名前と線の名札は要素の字に書く。
+小さな組を1つ持つ欄は`-`でつないだ属性 (`carry-kind="coin"`) にし、大文字を含む欄の名前は`-`でつないだ小文字の属性 (`labelSide`は`label-side`) にする。
+記法に語が増えると次の版で要素も増えるので、どの図のHTMLの形も`dragon convert diagram.dragon`で出せる。
+HTMLは`<dg-box/>`を閉じないので、全ての要素を終わりのタグで閉じる。
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+
+<dg-sequence title="注文を受ける">
+  <dg-box id="shop">店</dg-box>
+  <dg-box id="api">注文のAPI</dg-box>
+
+  <dg-step title="注文を出す">
+    <dg-body>店が注文をAPIへ送る。</dg-body>
+    <dg-edge from="shop" to="api">注文を送る</dg-edge>
+  </dg-step>
+</dg-sequence>
+```
+
+同じ頁の`<pre class="dragon">`の塊も、今までどおり描ける。
+図の要素の`class`と`style`と`data-`で始まる属性は頁が使う物として、原本に読まない。
+
+`dragon export`で書き出すmdの頁は、`<dragon-page>`で包む1枚のHTMLの頁に変えられる。
+頭の行は属性に、`##`と`###`は見出しを持つ`<section>`に、引用は`<blockquote>`に、`<details>`は`<details>`のまま、用語のリンクは`<a>`に、`dragon`の囲みは図のHTMLの形になる。
+説明の頁 (`layout: guide`) も変えられる。
+問いを1つ持つ説明の頁は、次の形になる。
+
+```html
+<dragon-page layout="guide">
+  <h1>注文を届けるまでの手引き</h1>
+  <section>
+    <h2>注文を受ける</h2>
+    <section>
+      <h3>店はどの注文を受けるのか</h3>
+      <blockquote>
+        <p>店は、品物が全て在庫に在る時だけ<a href="glossary.md#注文">注文</a>を受ける。</p>
+      </blockquote>
+      <details>
+        <summary>品物が1つ在庫に無い注文はどうなるか</summary>
+        <p>店は断る。</p>
+      </details>
+    </section>
+  </section>
+</dragon-page>
+```
+
+| 命令 | すること |
+|---|---|
+| `dragon convert diagram.dragon` | 図のHTMLの形を出す |
+| `dragon convert page.md` | `<dragon-page>`のHTMLの頁を出す |
+| `dragon convert page.html` | 最初の`<dg-...>`の図の記法か、`<dragon-page>`のmdの頁を出す |
+| `dragon check page.html` | 全ての`<dg-...>`の図と`<pre class="dragon">`の塊を確かめ、誤りをHTMLの行と要素の名前で出す。`--layout`も使える |
+
+`--out <file>`を付けると、出す物をfileに書く。
+記法へ書き戻すと原本のJSONが同じになる整えた記法になり、空行と字下げは残らない。
+codeからは、`@cardenelabs/dragon`の`notationToHtml`、`htmlToNotation`、`htmlToDiagram`、`diagramToHtml`、`markdownToHtml`、`htmlToMarkdown`が同じことをする。
+
 ## 頁に置く
 
 頁で 1 度だけ字の入口 `@cardenelabs/dragon/fonts` を import し、記法を読んだ原本を `mountDiagram` に渡す。
