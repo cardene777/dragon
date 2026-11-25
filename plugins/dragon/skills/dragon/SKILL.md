@@ -1,12 +1,12 @@
 ---
 name: dragon
-description: Draw diagrams that play step by step in the dragon notation (@cardenelabs/dragon). Use when the user asks for a diagram, a flow, a sequence diagram, an architecture or system diagram, a state machine, a git history (merge, rebase), a timeline, a tree such as a Merkle tree, a pipeline or token flow between contracts, a lineup of queues or bids, or an interactive diagram readers can try, when the user wants to define blocks of their own or add one to dragon's shared block collection with a pull request, or when the user mentions dragon or `.dragon` files.
+description: Draw diagrams that play step by step in the dragon notation (@cardenelabs/dragon), and build one HTML page that answers a topic's questions with several diagrams. Use when the user asks for a diagram, a flow, a sequence diagram, an architecture or system diagram, a state machine, a git history (merge, rebase), a timeline, a tree such as a Merkle tree, a pipeline or token flow between contracts, a lineup of queues or bids, cases checked against rules, an explainer page or report made of several diagrams, or an interactive diagram readers can try, when the user wants to define blocks of their own or add one to dragon's shared block collection with a pull request, or when the user mentions dragon or `.dragon` files.
 ---
 
 # dragon
 
 dragon (`@cardenelabs/dragon`) draws a diagram from a short text notation and plays it one step at a time.
-You write the notation, check it with the `dragon` command, and show it where the user needs it.
+You plan the figures a topic needs, write them in the notation, check them with the `dragon` command, look at them, and show them where the user needs them.
 This file is the workflow. Details live in `references/`. Read only the files the task needs.
 
 ## 1. Check the setup
@@ -25,35 +25,16 @@ npx @cardenelabs/dragon --version
 
 ## 2. Pick the kind
 
-Pick the kind from what the user wants to explain, then read [notation](references/notation.md) and that one kind's reference. Do not read the other kind files.
+Plan the figures before you write any. One diagram of one kind rarely answers a whole topic.
 
-| Kind | Use it when the explanation is about | Reference |
-|---|---|---|
-| `sequence` | Messages between parties in time order: requests, API calls, sign-in, protocols | [sequence](references/kinds/sequence.md) |
-| `architecture` | The parts of a system, where they live (groups), and what flows between them | [architecture](references/kinds/architecture.md) |
-| `state` | One thing moving between states: an order, a ticket, a connection | [state](references/kinds/state.md) |
-| `git` | Commits, branches, merges, rebases, cherry-picks, moving refs | [git](references/kinds/git.md) |
-| `time` | When events happen on evenly spaced time: slots, epochs, waiting periods | [time](references/kinds/time.md) |
-| `tree` | Values that fold up into one root: Merkle trees and proofs | [tree](references/kinds/tree.md) |
-| `lineup` | Items that line up and move between lanes: queues, bids, block building | [lineup](references/kinds/lineup.md) |
-| `try` | A model the reader drives by typing values and pressing buttons | [try](references/kinds/try.md) |
-| `checkout` | Change purchase terms, approve the latest quote and try payment outcomes | [checkout](references/kinds/checkout.md) |
-| `pipe` | One transaction through contracts: calls, balances, stored values, reverts | [pipe](references/kinds/pipe.md) |
-| `chart` | Comparing the sizes of a few items step by step: shares as a donut, amounts as bars | [chart](references/kinds/chart.md) |
-| `flow` | A procedure that branches at yes/no choices: a login check, a review, a deploy gate | [flow](references/kinds/flow.md) |
-| `cycle` | Steps that go around again and again and start the next round: a slot, a sprint, a PDCA loop | [cycle](references/kinds/cycle.md) |
-| `mind` | Ideas spread out from one topic, branch by branch: features to build, a plan, a brainstorm | [mind](references/kinds/mind.md) |
-| `er` | Rows of tables that point at each other by keys, and how one value goes through them: an order total, a loan, a sale | [er](references/kinds/er.md) |
-| `matrix` | Items sorted into four areas by two measures: priorities, risks, choosing between options | [matrix](references/kinds/matrix.md) |
-| `venn` | How two or three groups overlap and how many fall in each region: how a wallet is used, hobbies, skills | [venn](references/kinds/venn.md) |
-| `sankey` | Where one amount goes and how much goes to each place: a token allocation, a fee split, where a salary goes | [sankey](references/kinds/sankey.md) |
-| `judge` | Cases checked rule by rule with ✓ and ✕, each getting a pass or block verdict: transfers a wallet blocks, refused sign-ups | [judge](references/kinds/judge.md) |
-| `cards` | Who holds which card and how much, as cards are made, deleted, moved and refused: notes spent in a transfer, tickets changing hands, books a club lends | [cards](references/kinds/cards.md) |
+1. Read [cheatsheet](references/cheatsheet.md) first. It has the smallest form of every kind and part on one page.
+2. Split the topic into the questions a reader asks: how it works, what passes and what is blocked, what differs between cases, how one case goes, how much.
+3. Look up each question's type in [plan](references/plan.md), and pick 2 to 4 figures for each question with the parts that help: `[note: pop]` cards, scenes, judge tables, gauges. When the user asks for one diagram, the plan is that one figure.
+4. Write the plan down before the first figure: each question, and one line per figure saying what it shows. The plan changes with the topic, so do not reach for the same kinds every time.
+5. Write the figures one at a time (steps 3 to 6). Open a kind's own file only when the cheatsheet is not enough: [architecture](references/kinds/architecture.md), [cards](references/kinds/cards.md), [chart](references/kinds/chart.md), [checkout](references/kinds/checkout.md), [cycle](references/kinds/cycle.md), [er](references/kinds/er.md), [flow](references/kinds/flow.md), [git](references/kinds/git.md), [judge](references/kinds/judge.md), [lineup](references/kinds/lineup.md), [matrix](references/kinds/matrix.md), [mind](references/kinds/mind.md), [pipe](references/kinds/pipe.md), [sankey](references/kinds/sankey.md), [sequence](references/kinds/sequence.md), [state](references/kinds/state.md), [time](references/kinds/time.md), [tree](references/kinds/tree.md), [try](references/kinds/try.md), [venn](references/kinds/venn.md).
 
-When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`), one case going down a procedure past choices (`flow`), the same steps coming round again (`cycle`), ideas growing out of one topic (`mind`), one value looked up across tables by keys (`er`), items sorted by two measures (`matrix`), how many fall in two or three overlapping groups (`venn`), how one amount splits into where it goes (`sankey`), who holds which card as cards change hands (`cards`).
-
-When no kind fits, do not force the explanation into one, and do not open an issue yet.
-Write down what the diagram must show (the parts, what moves, how many steps), write it in the closest kind, add your own blocks where they help (step 8), and run `dragon check` and `dragon check --layout` until they pass.
+When no kind fits, do not refuse, do not force the explanation into one kind, and do not open an issue yet.
+Write down what the diagram must show (the parts, what moves, how many steps), then combine kinds and parts, or write it in the closest kind and add your own blocks where they help (step 8), and run `dragon check` and `dragon check --layout` until they pass.
 Export it (`dragon export <file> --format png`; without Chromium, `--format html` writes a page that opens in a browser), show the user the picture, and name the parts it could not draw.
 Then the user decides whether it is enough or whether to ask the dragon repo for a new kind of diagram through an issue ([blocks](references/blocks.md)).
 Mermaid syntax (`graph TD`, `participant`, `-->|text|`) is not dragon notation. Do not convert it line by line; rewrite it in the notation.
@@ -138,23 +119,30 @@ Repeat this loop.
 
 In code, `parseNotation(text, { lang: "en" })` returns the same problems: `errors` (each with `line`, `column`, `message`) and `notices` for the warnings.
 
-## 6. Check the layout
+## 6. Check the layout and look at it
 
 A diagram that passes `dragon check` can still look broken once drawn: step numbers piled up, two lines running side by side too close, or a slot or label sticking out of a shaped box.
-After the notation is clean, draw it and look for breaks.
+After the notation is clean, draw it, look for breaks, and then look at it yourself 728px and 390px wide.
 
 ```sh
 dragon check --layout order.dragon
+dragon export order.dragon --format html --out shots
+npx playwright-core screenshot --viewport-size 728,900 --full-page shots/order.html shots/order-728.png
+npx playwright-core screenshot --viewport-size 390,900 --full-page shots/order.html shots/order-390.png
 ```
 
 1. Each break is a `warning` line that names the step and the two parts, for example `order.dragon:18:1 warning Step 3: Step number 2 and step number 3 are too close`.
 2. Fix what the notation can fix (reorder the boxes, shorten names, use a plain box), one break at a time, and run `dragon check --layout` again. [layout](references/layout.md) lists the kinds and the fixes.
-3. Report every break left in your reply by its step number and the parts it names. Do not say the diagram has no breaks unless the command printed none.
-4. Attach the step where a break shows: `dragon export order.dragon --format png --step 3`. Exporting needs Chromium; when it is not installed, report in words only.
+3. Look at both screenshots, which show the player as a reader sees it on a wide screen and on a phone. Fix breaks, text that sticks out of its box, and thin explanations (a `say` that repeats the line label, a figure that answers no question of the plan) before you hand them over. Take the narrow picture from the HTML: the PNG export is the same picture at any `--width`.
+4. Report every break left in your reply by its step number and the parts it names. Do not say the diagram has no breaks unless the command printed none.
+5. Attach the step where a break shows: `dragon export order.dragon --format png --step 3`. Exporting and screenshots need Chromium (`playwright-core`, see [setup](references/setup.md)); when it is not installed, report in words only.
 
 ## 7. Show it
 
-Pick the way the destination supports. Details and code are in [setup](references/setup.md).
+When the plan has several figures, put them on one HTML page: write a guide page in Markdown with `layout: guide`, one `###` per question with its figures under it, and run `dragon export page.md`, which writes `page.html`.
+Check the page with `dragon check --layout page.md`, and take screenshots of it 728px and 390px wide as with one figure. See [page](references/page.md).
+
+For one figure, pick the way the destination supports. Details and code are in [setup](references/setup.md).
 
 | Destination | How |
 |---|---|
@@ -165,7 +153,7 @@ Pick the way the destination supports. Details and code are in [setup](reference
 | A report or explainer page that shows the last step as one picture | `data-still` on the `<pre class="dragon">` block, then `dragon embed page.html`, which draws it as an SVG with no player. See [embed](references/embed.md) |
 | A file that opens offline | `dragon embed page.html` |
 | A report written as one HTML file | Write the diagrams as `<dg-<kind>>` elements and the page as `<dragon-page>`, or turn notation and Markdown into them with `dragon convert`. See [embed](references/embed.md) |
-| An explanation with several diagrams, split into pages and tabs | Write it in Markdown (`#` title, `##` groups, `###` items, `####` tabs, `[link: #<item>]` on overview boxes, `![name](file to include)` alone on a line to include a file) and run `dragon export notes.md`. Pick `layout: sidebar` or `layout: tabs` at the top; the default is `entry`. See the package README |
+| Many diagrams split into pages and tabs rather than questions | Write it in Markdown (`#` title, `##` groups, `###` items, `####` tabs) with `layout: sidebar` or `layout: tabs` at the top, and run `dragon export notes.md`. See the package README |
 
 Keep the `.dragon` file next to any exported image so the diagram can be edited and exported again.
 
@@ -177,13 +165,13 @@ Read [blocks](references/blocks.md). It also covers how to offer a reusable bloc
 ## Contents other skills follow
 
 Other skills follow this skill's files through musubi, by the content names in `musubi.json`.
-The contents `notation`, `embed`, `layout`, `blocks`, and `setup` are the files of the same name linked above.
-Each kind is a content named after it, and its file is the one in the table in step 2: `architecture`, `cards`, `chart`, `checkout`, `cycle`, `er`, `flow`, `git`, `judge`, `lineup`, `matrix`, `mind`, `pipe`, `sankey`, `sequence`, `state`, `time`, `tree`, `try`, and `venn`.
+The contents `notation`, `cheatsheet`, `plan`, `page`, `embed`, `layout`, `blocks`, and `setup` are the files of the same name linked above, and `example-library-loans` and `example-support-desk` are the worked examples [plan](references/plan.md) links.
+Each kind is a content named after it, and its file is the one linked in step 2: `architecture`, `cards`, `chart`, `checkout`, `cycle`, `er`, `flow`, `git`, `judge`, `lineup`, `matrix`, `mind`, `pipe`, `sankey`, `sequence`, `state`, `time`, `tree`, `try`, and `venn`.
 
 ## Common mistakes
 
 - Declarations (`box`, `group`, `strip`, `branch`, `scale`, `row`, `item`, `hold`, ...) after the first `step`. Write them before it.
-- Lines, `act`, `note` or `set` before the first `step` in a diagram that has steps. Only a state diagram takes lines there, as dotted paths not taken.
+- Lines, `act`, `note` or `set` before the first `step` in a diagram that has steps. Only state and flow diagrams take lines there, as dotted paths not taken.
 - An id on a line that no `box` line declares, in a diagram that declares boxes.
 - An arrow other than `->`. `=>`, `-->` and `->>` make the line unreadable.
 - An attribute value with `,` or `]` not wrapped in `"`. Write `[tag: "#42, #43"]`.

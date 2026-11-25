@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- The dragon skill now plans the figures before it writes any. It splits the topic into the questions a reader asks, picks 2 to 4 figures for each question from a table of question types (how it works, pass or block, difference, one case step by step, amount) with the kinds and parts that answer them, and writes the figures one at a time. A new cheatsheet holds the smallest form of every kind and of note cards, scenes, judge tables and gauges on one page, and the table of kinds moves there from `SKILL.md`. The skill builds one HTML page from a guide page (`layout: guide`) with `dragon export`, takes screenshots of each figure and of the page 728px and 390px wide and fixes what they show before handing them over, and keeps two worked example pages that pass `dragon check --layout` with nothing printed. The skill adds the contents `cheatsheet`, `plan`, `page`, `example-library-loans` and `example-support-desk`, and raises the version of `notation` (#3909)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added

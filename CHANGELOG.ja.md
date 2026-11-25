@@ -6,6 +6,10 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- dragonのskillは、図を書く前に構成案を立てるようにした。題材を読み手の問いに分け、問いの型の表 (仕組み、通るか止めるか、違い、1件の進み、量) から問いごとに2〜4枚の図とそれに足す部品を選び、図を1枚ずつ書く。全ての図の種類と、札、場面、判定の表、目盛りの最小の書き方を1枚に持つ早見表を足し、図の種類の表を`SKILL.md`から早見表へ移した。説明の頁 (`layout: guide`) を書いて`dragon export`で1枚のHTMLにする手順と、図と頁を幅728pxと幅390pxで撮った画像で見て直してから渡す手順を足し、`dragon check --layout`を何も出さずに通る資料の例を2件残した。skillの中身に`cheatsheet`、`plan`、`page`、`example-library-loans`、`example-support-desk`を足し、`notation`の版を上げた (#3909)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added
