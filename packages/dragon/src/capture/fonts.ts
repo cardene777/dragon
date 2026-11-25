@@ -120,7 +120,7 @@ function pageFaces(doc: Document): Face[] {
 }
 
 /** SVG が描く字を、要素ごとの字の名前の並びと斜めかで分けて集める。`<style>` などの描かない字は数えない */
-function drawnTexts(svg: SVGSVGElement): { families: string[]; italic: boolean; chars: Set<string> }[] {
+function drawnTexts(svg: Element): { families: string[]; italic: boolean; chars: Set<string> }[] {
   const view = svg.ownerDocument.defaultView;
   const groups = new Map<string, { families: string[]; italic: boolean; chars: Set<string> }>();
   const walker = svg.ownerDocument.createTreeWalker(svg, NodeFilter.SHOW_TEXT);
@@ -152,7 +152,7 @@ const hiddenName = (face: FontFace): string => `"${face.family.replace(/^["']|["
  * 描く字が要る `@font-face` と、頁が字を持つのに読める `@font-face` が無い字の範囲。
  * 字の名前の並びの前から、その字を範囲に持つ `@font-face` が在る名前を選ぶ。斜めかが合う物が無い時は、斜めかを問わない
  */
-function neededFaces(svg: SVGSVGElement, faces: Face[]): { needed: Face[]; hidden: string[] } {
+function neededFaces(svg: Element, faces: Face[]): { needed: Face[]; hidden: string[] } {
   const needed = new Set<Face>();
   const hidden = new Set<string>();
   for (const { families, italic, chars } of drawnTexts(svg)) {
@@ -268,10 +268,10 @@ async function embedFaces({ needed, hidden }: { needed: Face[]; hidden: string[]
 }
 
 /**
- * SVG が描く字の `@font-face` を、字の file を `data:` で埋めた CSS にする。
+ * SVG か HTML で描いた図 (判定の表、#3937) が描く字の `@font-face` を、字の file を `data:` で埋めた CSS にする。
  * 読めない字の file が 1 つでも在る時は、読めない字の名前と範囲を `lang` の言葉で名指して断る
  */
-export async function embeddedFontCss(svg: SVGSVGElement, lang: NotationLang): Promise<string> {
+export async function embeddedFontCss(svg: Element, lang: NotationLang): Promise<string> {
   return embedFaces(neededFaces(svg, pageFaces(svg.ownerDocument)), lang, "image");
 }
 

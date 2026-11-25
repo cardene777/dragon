@@ -110,12 +110,5 @@ export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme)
   );
 }
 
-/** 段 `step` までの列を照らす。段は規則の列ごとに 1 つで、最後の段は判定の列。再生の部品が段を送るたびに呼ぶ */
-export function showJudge(figure: HTMLElement, step: number): void {
-  figure.dataset.play = "";
-  for (const cell of figure.querySelectorAll<HTMLElement>("[data-col]")) {
-    const col = Number(cell.dataset.col);
-    cell.toggleAttribute("data-on", col <= step);
-    cell.toggleAttribute("data-now", col === step);
-  }
-}
+/** 段の印を書く処理は、書き出す入口も表の描き方を読まずに使えるよう別の file に置く (#3937) */
+export { showJudge } from "./judge-show";

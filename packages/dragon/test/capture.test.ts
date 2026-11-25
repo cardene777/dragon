@@ -28,6 +28,9 @@ import { exporter, readGif } from "./export-support";
 import { fileChromium } from "./page-needs";
 import "../src/kind-use/architecture";
 import "../src/kind-use/sequence";
+// 判定の表 (#3937) を描く部品を読む
+import "../src/kind-use/judge";
+import { clusters, colorsOf, marks, type Picture, SCALE, spots, toGifBox, verdictBox, vivid } from "./judge-pixels";
 
 /** package の package.json。package の根を字で書くと、関係する検査を選ぶ命令が package の全ての code へたどり着くので、package.json から根を引く (#3763) */
 const MANIFEST = join(process.cwd(), "packages/dragon/package.json");
@@ -471,5 +474,151 @@ describe("ブラウザで書き出す HTML (#3667)", () => {
   it("capture-html-loads-player-on-call", () => {
     const reads = captured(PLAYER_READS.get());
     expect(reads, "再生の部品を読んだ回数 (入口を読んだ時、1 度呼んだ後、2 度呼んだ後)").toEqual({ before: 0, once: 1, twice: 1 });
+  });
+});
+
+/** 判定の表 (#3937) の見本。規則 5 つと例 6 つを持ち、通す例と止める例の両方を持つ */
+const JUDGE_FILE = "transfer-check.en.dragon";
+
+/** 頁で回した 1 つの書き出しの結果か、断った理由 */
+type Tried<T> = { value?: T; error?: string };
+
+/** 判定の表を書き出す入口に渡して返った物。GIF は最初のコマと最後の段の止め絵の時刻のコマを読み戻す */
+interface JudgeShot {
+  png: Tried<string>;
+  svg: Tried<string>;
+  film: Tried<{ gif: string; mp4Type: string }>;
+  frames?: { width: number; height: number; rgba: string }[];
+  /** 書き出した後も、頁の表が再生の部品の書いた段の印を持つ */
+  live: boolean;
+}
+
+const JUDGE = await atLoad("判定の表を書き出す入口で PNG と SVG と GIF と mp4 に書き出す", async () => {
+  const parsed = parseNotation(readFileSync(join(ROOT, "examples", JUDGE_FILE), "utf8"));
+  if (!parsed.ok) throw new Error(`${JUDGE_FILE} を読めない`);
+  const rendered = renderDiagram(parsed.diagram);
+  const spec = (parsed.diagram as { judge: { rules: unknown[]; cases: { fails?: unknown[] }[] } }).judge;
+  const facts = {
+    rules: spec.rules.length,
+    verdicts: spec.cases.map((one) => ((one.fails?.length ?? 0) > 0 ? "block" : "pass")),
+    colors: colorsOf(rendered.svg),
+  };
+  const { total, stills, steps } = rendered.timeline;
+  const timeline = { total, stills, steps: steps.map((step) => ({ start: step.start, end: step.end })) };
+  // GIF の k 番目のコマは k / gifFps 秒の絵。最後の段 (判定の列) の止め絵の時刻に最も近いコマを読む
+  const lastIndex = Math.round((stills.at(-1) ?? 0) * RATES.gifFps);
+  const shot = await withCapturePage({ head: FONT_LINKS, body: rendered.svg }, (page) =>
+    page.evaluate(
+      async ({ timeline, rates, lastIndex }): Promise<JudgeShot> => {
+        const capture = (window as unknown as { capture: Record<string, ((...args: unknown[]) => Promise<unknown>) | undefined> }).capture;
+        const figure = document.querySelector<HTMLElement>('[data-dragon="judge"]') as HTMLElement;
+        // 再生の部品が 2 番目の段を見せている形にする。印は再生の部品が段を送る時に書く物と同じ (`render/judge.ts` の `showJudge`)
+        figure.dataset.play = "";
+        for (const cell of figure.querySelectorAll<HTMLElement>("[data-col]")) {
+          const col = Number(cell.dataset.col);
+          cell.toggleAttribute("data-on", col <= 1);
+          cell.toggleAttribute("data-now", col === 1);
+        }
+        const base64 = async (blob: unknown): Promise<string> => {
+          if (!(blob instanceof Blob)) return "";
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          let text = "";
+          for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+          return btoa(text);
+        };
+        const tried = async <T>(run: () => Promise<T>): Promise<Tried<T>> => {
+          try {
+            return { value: await run() };
+          } catch (error) {
+            return { error: error instanceof Error ? error.message : String(error) };
+          }
+        };
+        const png = await tried(async () => base64(await capture.capturePng?.(figure)));
+        const svg = await tried(async () => String(await capture.captureSvg?.(figure)));
+        let gifBlob: Blob | undefined;
+        const film = await tried(async () => {
+          const made = (await capture.captureFilm?.(figure, { formats: ["mp4", "gif"], ...rates, timeline })) as { gif?: Blob; mp4?: Blob } | undefined;
+          gifBlob = made?.gif;
+          return { gif: await base64(made?.gif), mp4Type: made?.mp4?.type ?? "" };
+        });
+        let frames: { width: number; height: number; rgba: string }[] | undefined;
+        if (gifBlob) {
+          const decoder = new ImageDecoder({ data: await gifBlob.arrayBuffer(), type: "image/gif" });
+          await decoder.tracks.ready;
+          frames = [];
+          for (const frameIndex of [0, lastIndex]) {
+            const { image } = await decoder.decode({ frameIndex });
+            const canvas = new OffscreenCanvas(image.displayWidth, image.displayHeight);
+            const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+            context.drawImage(image, 0, 0);
+            image.close();
+            const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            let text = "";
+            for (let i = 0; i < pixels.length; i += 0x8000) text += String.fromCharCode(...pixels.subarray(i, i + 0x8000));
+            frames.push({ width: canvas.width, height: canvas.height, rgba: btoa(text) });
+          }
+        }
+        return { png, svg, film, ...(frames ? { frames } : {}), live: figure.hasAttribute("data-play") };
+      },
+      { timeline, rates: RATES, lastIndex },
+    ),
+  );
+  return { facts, shot, lastIndex };
+});
+
+/** 書き出す入口が返した PNG の絵。断った時は理由を挙げて落とす */
+function judgePng(shot: JudgeShot): Picture {
+  expect(shot.png.error, "判定の表の PNG を断った").toBeUndefined();
+  const png = PNG.sync.read(blobBytes(shot.png.value ?? ""));
+  return { width: png.width, height: png.height, data: png.data };
+}
+
+describe("ブラウザで書き出す判定の表 (#3937)", () => {
+  it("capture-judge-png-shows-every-column", () => {
+    const { facts, shot: opened } = JUDGE.get();
+    const shot = captured(opened);
+    const picture = judgePng(shot);
+    const { pass, block, badge, now } = marks(facts);
+    // 見出しの番号の丸は規則の列ごとに 1 つ。全ての規則の列が写れば、丸の塊の数が規則の数になる
+    expect(clusters(spots(picture, badge).map((p) => p.x), 4 * SCALE).length, "見出しの番号の丸の数").toBe(facts.rules);
+    expect(spots(picture, pass).length > 0, "通す札が写る").toBe(true);
+    expect(spots(picture, block).length > 0, "止める札が写る").toBe(true);
+    const box = verdictBox(picture, facts);
+    expect(box.rows, "判定の札の行の数").toBe(facts.verdicts.length);
+    // 判定の列は右端の列。札の右に表の枠の内側の余白 (8px 以上) が残れば、判定の列は切れていない
+    expect(picture.width - 1 - box.right, "判定の札の右の余白 (画素)").toBeGreaterThanOrEqual(8 * SCALE);
+    // 再生の部品が 2 番目の段を照らしていても、照らした列の色の帯を写さない
+    expect(spots(picture, now).length, "照らした列の見出しの色の画素").toBe(0);
+    expect(shot.live, "書き出した後に、頁の表から再生の部品の書いた段の印が消えた").toBe(true);
+  });
+
+  it("capture-judge-svg-wraps-table", () => {
+    const shot = captured(JUDGE.get().shot);
+    expect(shot.svg.error, "判定の表の SVG を断った").toBeUndefined();
+    const svg = shot.svg.value ?? "";
+    expect(svg.startsWith("<svg"), "書き出した SVG の頭").toBe(true);
+    expect(svg.includes("<foreignObject"), "表を foreignObject に包んでいない").toBe(true);
+    expect(svg.includes('data-dragon="judge"'), "包んだ中に判定の表が無い").toBe(true);
+    expect(embeddedFaces(svg).map((face) => face.family), "書き出した SVG に埋めた字").toContain("Noto Sans JP Variable");
+    expect(svg.match(/\sdata-(?:play|on|now)(?:=|\s|>)/g) ?? [], "書き出した SVG に残る段の印").toEqual([]);
+    const picture = judgePng(shot);
+    const size = /^<svg\b[^>]*?\swidth="(\d+)"[^>]*?\sheight="(\d+)"/.exec(svg);
+    expect([Number(size?.[1]) * SCALE, Number(size?.[2]) * SCALE], "SVG の縦横の 2 倍").toEqual([picture.width, picture.height]);
+  });
+
+  it("capture-judge-film-lights-columns-by-step", () => {
+    const { facts, shot: opened, lastIndex } = JUDGE.get();
+    const shot = captured(opened);
+    expect(shot.film.error, "判定の表の GIF と mp4 を断った").toBeUndefined();
+    expect(shot.film.value?.mp4Type, "mp4 の Blob の形").toBe("video/mp4");
+    expect(shot.frames, "GIF のコマを読み戻せない").toBeDefined();
+    const [first, last] = (shot.frames ?? []).map((frame) => ({ width: frame.width, height: frame.height, data: blobBytes(frame.rgba) }));
+    const picture = judgePng(shot);
+    // GIF は CSS の 1px を 1 画素で撮り、PNG は 2 画素で撮る
+    expect([(first?.width ?? 0) * SCALE, (first?.height ?? 0) * SCALE], "GIF のコマの大きさの 2 倍").toEqual([picture.width, picture.height]);
+    // 判定の札の囲みは、照らさない PNG の札の画素で決める。GIF は色を減らすので、コマでは色の濃い画素 (判定の語の色) を数える
+    const box = toGifBox(verdictBox(picture, facts));
+    expect(vivid(first as Picture, box), "最初のコマの判定の札の所の色の濃い画素").toBe(0);
+    expect(vivid(last as Picture, box), `${lastIndex} 番目のコマ (最後の段) の判定の札の所の色の濃い画素`).toBeGreaterThan(0);
   });
 });

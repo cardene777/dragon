@@ -9,6 +9,10 @@
  * 字は頁が読み込んだ `@font-face` から、描いた字の範囲に当たる字の file だけを丸ごと埋める (`fonts.ts`)。
  * 字の file を読めない時は、読めない字の名前と範囲を名指して断り、字の無い画像を返さない。
  *
+ * HTML で描く図 (判定の表、#3879) の根を受けた時は、写しを SVG の `foreignObject` に包んで同じ形にする (#3937)。
+ * PNG と SVG は頁で照らしている段に依らず全ての段を照らさずに見せ、GIF と mp4 は `timeline` の段の始まりの時刻ごとに列を照らす。
+ * 図の根の `data-dragon` の値で、段の印を書く処理と消す処理を引く (`HTML_PARTS`)。
+ *
  * 記法を受けて、1 file で開ける HTML の頁の文字列も返す (`captureHtml`、#3667)。頁の組み方は `dragon export --format html` と同じ物を使う (`html.ts`)。
  *
  * mp4 は WebCodecs の H.264 で詰めるので、WebCodecs を持たないブラウザでは作れない。呼ぶ前に `canCaptureMp4` で確かめ、
@@ -18,8 +22,9 @@
 import * as gifencModule from "gifenc";
 import { BufferTarget, CanvasSource, canEncodeVideo, Mp4OutputFormat, Output, QUALITY_MEDIUM } from "mediabunny";
 import { FILM_SCALE, makeFilm, planFilm } from "../export/film";
+import { clearJudge, showJudge } from "../render/judge-show";
 import { DEFAULT_LANG, type NotationLang } from "../words";
-import { cycleOf, picture, shownAt } from "./picture";
+import { cycleOf, type HtmlParts, htmlPicture, picture, type Picture, shownAt } from "./picture";
 
 export { captureHtml, type HtmlOptions } from "./html";
 
@@ -63,16 +68,39 @@ export async function captureFrames(options: {
 }
 
 /** 断りの文 */
-const TEXT: Record<NotationLang, { noCycle: string; noMp4: string }> = {
+const TEXT: Record<NotationLang, { noCycle: string; noMp4: string; noSteps: string; notFigure: string }> = {
   ja: {
     noCycle: "図の 1 周の長さ (`--T`) を SVG から読めない。timeline に 1 周の秒を渡す",
     noMp4: "このブラウザは mp4 を作れない (WebCodecs の H.264 が無い)",
+    noSteps: "HTML で描く図の動画には、timeline の 1 周の秒 (total) と段の始まりの時刻 (steps) が要る。renderDiagram が返す timeline を渡す",
+    notFigure: "SVG か、HTML で描く図 (判定の表) の根の要素を渡す",
   },
   en: {
     noCycle: "Cannot read the cycle length (`--T`) from the SVG. Pass the seconds of one cycle in timeline",
     noMp4: "This browser cannot make mp4 (no H.264 in WebCodecs)",
+    noSteps: "A film of an HTML diagram needs the cycle seconds (total) and step starts (steps) in timeline. Pass the timeline renderDiagram returns",
+    notFigure: "Pass an SVG, or the root element of an HTML diagram (a judge table)",
   },
 };
+
+/** 書き出す図。頁に描いた SVG か、HTML で描く図 (判定の表) の根の要素 */
+export type CaptureFigure = SVGSVGElement | HTMLElement;
+
+/** HTML で描く図の種類ごとの、段の印を書く処理と消す処理。図の根の `data-dragon` の値で引く */
+const HTML_PARTS: Record<string, HtmlParts> = { judge: { show: showJudge, clear: clearJudge } };
+
+const isSvg = (figure: CaptureFigure): figure is SVGSVGElement => figure.namespaceURI === "http://www.w3.org/2000/svg";
+
+/** HTML で描く図の段の印の処理。知らない要素は断る */
+function htmlParts(figure: HTMLElement, lang: NotationLang): HtmlParts {
+  const parts = HTML_PARTS[figure.getAttribute("data-dragon") ?? ""];
+  if (!parts) throw new Error(TEXT[lang].notFigure);
+  return parts;
+}
+
+/** 止め絵を撮る写し。HTML で描く図は全ての段を照らさずに見せる */
+const stillOf = (figure: CaptureFigure, lang: NotationLang): Promise<Picture> =>
+  isSvg(figure) ? picture(figure, lang) : htmlPicture(figure, lang, htmlParts(figure, lang));
 
 export interface CaptureOptions {
   /** 断りの文の言葉。既定は英語 */
@@ -94,11 +122,12 @@ export interface FilmOptions extends CaptureOptions {
   /** GIF の 1 秒のコマの数。既定は 10 */
   gifFps?: number;
   /**
-   * 図の 1 周の秒 (`total`) と段ごとの止め絵の時刻 (`stills`)。`renderDiagram` が返す `timeline` をそのまま渡せる。
+   * 図の 1 周の秒 (`total`) と段ごとの止め絵の時刻 (`stills`) と段の始まりの時刻 (`steps`)。`renderDiagram` が返す `timeline` をそのまま渡せる。
    * 書かなければ 1 周の秒は SVG の `--T` から読み、GIF の色の表は 1 周を 8 つに分けた時刻の絵から作る。
-   * 渡すと GIF の色の表を `dragon export` と同じ絵 (最初の絵と段ごとの止め絵) から作る
+   * 渡すと GIF の色の表を `dragon export` と同じ絵 (最初の絵と段ごとの止め絵) から作る。
+   * HTML で描く図 (判定の表) は時刻で動かないので、`total` と `steps` が要り、コマごとにその時刻の段を図に書いて撮る (#3937)
    */
-  timeline?: { total: number; stills: readonly number[] };
+  timeline?: { total: number; stills: readonly number[]; steps?: readonly { start: number }[] };
 }
 
 /** 書き出した動画。`frames` は撮ったコマの数、`width` と `height` はコマの大きさ (CSS の px、mp4 はこの 2 倍) */
@@ -124,33 +153,43 @@ export async function canCaptureMp4(): Promise<boolean> {
   }
 }
 
-/** 頁に描いた SVG の、今の時刻 (`at` を渡せばその時刻) の止め絵の PNG。縦横は SVG の `scale` 倍 (既定は 2 倍) */
-export async function capturePng(svg: SVGSVGElement, options: StillOptions = {}): Promise<Blob> {
+/**
+ * 頁に描いた SVG の、今の時刻 (`at` を渡せばその時刻) の止め絵の PNG。縦横は SVG の `scale` 倍 (既定は 2 倍)。
+ * HTML で描く図 (判定の表) は、頁で照らしている段に依らず、全ての段を照らさずに見せた表を描いた大きさの `scale` 倍で撮る (#3937)
+ */
+export async function capturePng(svg: CaptureFigure, options: StillOptions = {}): Promise<Blob> {
+  const lang = options.lang ?? DEFAULT_LANG;
+  if (!isSvg(svg)) return pngOf(await (await stillOf(svg, lang)).draw(0, options.scale ?? FILM_SCALE));
   const at = options.at ?? shownAt(svg);
-  const shot = await picture(svg, options.lang ?? DEFAULT_LANG);
+  const shot = await picture(svg, lang);
   const style = svg.ownerDocument.defaultView?.getComputedStyle(svg);
   // 時刻が読めない図 (動きの無い図) は、写した `--at` のまま止める
   const t = at ?? (Number.parseFloat(style?.getPropertyValue("--at") ?? "") || 0);
   return pngOf(await shot.draw(t, options.scale ?? FILM_SCALE));
 }
 
-/** 頁に描いた SVG を、描いた字の file を `data:` で埋めた SVG の文字列にする */
-export async function captureSvg(svg: SVGSVGElement, options: CaptureOptions = {}): Promise<string> {
-  return (await picture(svg, options.lang ?? DEFAULT_LANG)).svg();
+/**
+ * 頁に描いた SVG を、描いた字の file を `data:` で埋めた SVG の文字列にする。
+ * HTML で描く図 (判定の表) は、全ての段を照らさずに見せた表の写しを `foreignObject` に包む (#3937)。ブラウザでない道具は `foreignObject` を描かない
+ */
+export async function captureSvg(svg: CaptureFigure, options: CaptureOptions = {}): Promise<string> {
+  return (await stillOf(svg, options.lang ?? DEFAULT_LANG)).svg();
 }
 
 /** 頁に描いた dragon の図の動きを 1 周撮り、mp4 と GIF に詰める。地は図の地の色 (`--bg`) で塗る */
-export async function captureFilm(svg: SVGSVGElement, options: FilmOptions = {}): Promise<Film> {
+export async function captureFilm(svg: CaptureFigure, options: FilmOptions = {}): Promise<Film> {
   const lang = options.lang ?? DEFAULT_LANG;
   const formats = options.formats ?? ["mp4", "gif"];
   const mp4 = formats.includes("mp4");
   const gif = formats.includes("gif");
   if (mp4 && !(await canCaptureMp4())) throw new Error(TEXT[lang].noMp4);
-  const total = options.timeline?.total ?? cycleOf(svg);
+  const steps = options.timeline?.steps;
+  if (!isSvg(svg) && !steps?.length) throw new Error(TEXT[lang].noSteps);
+  const total = options.timeline?.total ?? (isSvg(svg) ? cycleOf(svg) : undefined);
   if (total === undefined) throw new Error(TEXT[lang].noCycle);
   const stills = options.timeline?.stills ?? Array.from({ length: 7 }, (_, k) => (total * (k + 1)) / 8);
   const plan = planFilm({ total, stills }, { mp4, gif, fps: options.fps, gifFps: options.gifFps });
-  const shot = await picture(svg, lang, true);
+  const shot = isSvg(svg) ? await picture(svg, lang, true) : await htmlPicture(svg, lang, htmlParts(svg, lang), steps?.map((step) => step.start));
   const background = svg.ownerDocument.defaultView?.getComputedStyle(svg).getPropertyValue("--bg").trim() || "#ffffff";
   const box = await makeFilm(TOOLS, { width: shot.width, height: shot.height, scale: FILM_SCALE, fps: plan.fps, mp4: plan.mp4, gifEvery: plan.gifEvery });
   if (plan.gifEvery) {
@@ -169,11 +208,11 @@ export async function captureFilm(svg: SVGSVGElement, options: FilmOptions = {})
 }
 
 /** 頁に描いた dragon の図の動きを 1 周撮った GIF。`dragon export --format gif` と同じコマの数と縦横 */
-export async function captureGif(svg: SVGSVGElement, options: Omit<FilmOptions, "formats"> = {}): Promise<Blob> {
+export async function captureGif(svg: CaptureFigure, options: Omit<FilmOptions, "formats"> = {}): Promise<Blob> {
   return (await captureFilm(svg, { ...options, formats: ["gif"] })).gif as Blob;
 }
 
 /** 頁に描いた dragon の図の動きを 1 周撮った mp4。`dragon export --format mp4` と同じコマの数と縦横 (2 倍)。作れないブラウザでは断る */
-export async function captureMp4(svg: SVGSVGElement, options: Omit<FilmOptions, "formats"> = {}): Promise<Blob> {
+export async function captureMp4(svg: CaptureFigure, options: Omit<FilmOptions, "formats"> = {}): Promise<Blob> {
   return (await captureFilm(svg, { ...options, formats: ["mp4"] })).mp4 as Blob;
 }
