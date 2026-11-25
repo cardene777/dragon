@@ -29,7 +29,7 @@ const JA_USAGE = [
   "  --lang <言葉>      図の中の字の言葉 (ja か en)。既定は記法の file の言葉で、JSON は ja",
   "  --fps <数>         mp4 の 1 秒のコマの数 (既定 30)",
   "  --gif-fps <数>     GIF の 1 秒のコマの数 (既定 10)",
-  "  --format <形>      書き出す形を , で区切る (既定 mp4,gif,html,png)",
+  "  --format <形>      書き出す形 (mp4,gif,html,png,svg) を , で区切る (既定 mp4,gif,html,png)",
   "  --step <段>        png に撮る段 (1 から数える。既定は最後の段)",
   "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
 ];
