@@ -57,6 +57,8 @@ export interface StepDraft {
   sources: NonNullable<Step["sources"]>;
   /** 段の要点。配管の図の `gist` の行を読むまで無い (#3464) */
   gist?: string;
+  /** 場面が止まる理由 (#3878)。場面の中の段の `stop` の行を読むまで無い */
+  stop?: string;
   events: DiagramEvent[];
 }
 
@@ -189,6 +191,12 @@ export interface ParseState {
   readonly inStep: (source: SourceLine) => StepDraft;
   /** 書いている段。最初の `step` より前は `undefined` (#3348) */
   readonly current: () => StepDraft | undefined;
+  /** 書いている場面の名前 (#3878)。`scene` の行から `end` の行までの間だけ持ち、外では `undefined` */
+  readonly scene: () => string | undefined;
+  /** `scene <名前>` の行で場面を書き始める (#3878)。書いている段を閉じ、図の種類が段を読みながら積む状態を共通の段の終わりに戻す */
+  readonly openScene: (source: SourceLine, name: string) => void;
+  /** `end` の行で書いている場面を閉じる (#3878)。書いている段を閉じて場面の段に足す */
+  readonly closeScene: () => void;
   /**
    * 書いている段を閉じて、原本の段の並びへ足す。段の無い時は何もしない。
    * 開いたままの区画と、時間軸の図の宣言の目盛りを先に確かめ、誤りで止める

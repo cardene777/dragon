@@ -30,6 +30,20 @@
 | 図の1行目の`note`に`pop`と`under`の外の値を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mode-unknown-refused` passes | #3877 |
 | 札で見せない図の箱に`[example: …]`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `example-without-pop-refused` passes | #3877 |
 | `[note: pop]`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3877 |
+| `scene`を2つ書いた図を並べる見せ方で描いた時、2つの場面が縦に並び、同じ箱が全ての場面で同じ横の位置に描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stack-same-box-positions` passes | #3878 |
+| 共通の段の線は全ての場面に描かれ、`scene`と`end`の間の段の線は、その場面にだけ描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-own-steps-only-in-their-scene` passes | #3878 |
+| 並べる見せ方で段を送った時、全ての場面が同じ段へ同時に進み、`stop <理由>`を書いた段に着いた場面は、そこで止まって理由の文を出し、後の段を進めない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-holds-and-shows-reason` passes | #3878 |
+| 並べる見せ方で、共通の段の線は灰色、`scene`の中の段の線は場面の色で描き、分かれる位置に縦の点線を引く | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fork-line-and-colors` passes | #3878 |
+| 図の1行目に`[scenes: pick]`を書いた時、場面の名前の釦が出て、釦を押すとその場面の1段目に戻り、段を送ると選んだ場面の段だけを進める | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-pick-buttons-follow-one-scene` passes | #3878 |
+| flowとlineupの2種類で、同じ書き方の`scene`と`stop`で場面を持てる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-same-in-flow-and-lineup` passes | #3878 |
+| 印刷の形では、並べる見せ方でも選ぶ見せ方でも、全ての場面を最後の段まで進めて縦に並べる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-print-stacks-all-at-last-step` passes | #3878 |
+| 幅728pxの枠で、場面の図の字が10.5px以上で描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-text-readable-at-728` passes | #3878 |
+| 1行目に`[note: pop]`を書いた場面の図で箱を押した時、押した場面の箱のすぐ下に札が開く | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-note-card-opens-under-pressed-scene` passes | #3878 |
+| 4つ目の`scene`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fourth-refused` passes | #3878 |
+| 図の1行目の`scenes`に`stack`と`pick`の外の値を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-unknown-mode-refused` passes | #3878 |
+| `try`の図に`scene`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-in-try-refused` passes | #3878 |
+| `scene`の外の段に`stop`を書いた時と、`end`で閉じない`scene`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-outside-and-unclosed-refused` passes | #3878 |
+| `scene`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3878 |
 | `gauge budget as 1日の予算 [on: vi, limit: 100, unit: USDC]`を宣言し、段で`set budget: 20`を書いた時、棒が上限の2割まで動き、「20 / 100 USDC」の字が出る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-bar-moves-to-value` passes | #3880 |
 | 目盛りは`on`で指した箱のすぐ下に描かれ、`on`を書かない目盛りは図の上の帯に描かれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-under-its-box-or-top-band` passes | #3880 |
 | 同じ箱を指す目盛りは、宣言した順に箱の下に縦に積まれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-stacks-in-declared-order` passes | #3880 |

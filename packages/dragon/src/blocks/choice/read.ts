@@ -98,9 +98,9 @@ export const reading: BlockReading<ChoiceMessages> = {
   beginStep: (state) => {
     state.figure.flow.forked.length = 0;
   },
-  // 手順の図は箱を区画にまとめない
+  // 手順の図は箱を区画にまとめない。場面 (#3878) を閉じる `end` だけを書ける
   checkHead: (source, word, state) => {
-    if (word === "group" || word === "end") throw fail(source, 0, state.m.flowNoGroup);
+    if (word === "group" || (word === "end" && state.scene() === undefined)) throw fail(source, 0, state.m.flowNoGroup);
   },
   // 線の送る側に始まりの印 `start`、受ける側に終わりの印 `finish` を書ける。判断も線の端に書ける
   endAt: (source, id, at, side, state) => {
