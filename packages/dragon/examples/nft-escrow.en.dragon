@@ -1,0 +1,26 @@
+// Selling an NFT ticket through an escrow contract. A listed ticket sits in the escrow contract and the listings, and moves to the buyer once paid.
+// The amounts are sample values that show the shape.
+cards Sell an NFT ticket through escrow
+
+box seller as Seller [note: Aoi]
+box escrow as Escrow contract [mark: Held]
+box buyer as Buyer [note: Sora]
+box market as Listings [mark: Listed]
+
+item t7 as Ticket #7 in seller [amount: 1 NFT, mark: escrow, mark: market]
+item u1 as Payment in buyer [amount: 50 USDC]
+
+step List
+  say The seller hands the ticket to the escrow contract, and it shows up in the listings.
+  seller -> t7: Deposit
+  item t7 in escrow, market
+
+step Buy
+  say The buyer pays 50 USDC and gets the ticket, and the payment moves to the seller.
+  buyer -> t7: Buy
+  item t7 in buyer
+  item u1 in seller
+
+step Withdraw
+  say Once sold, the ticket cannot be withdrawn by the seller.
+  refuse t7: Sold tickets cannot be withdrawn

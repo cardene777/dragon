@@ -1,0 +1,24 @@
+// Points and coupons at a coffee shop. Points add up to each customer's total, and a coupon is shown until used but not added to the total.
+cards Coffee shop points and coupons
+
+box shop as Coffee shop [note: Issuer]
+box mina as Mina [note: Member]
+box ken as Ken [note: Not a member]
+
+item p1 as Stamps in mina [amount: 120 pt]
+item c1 as Next-visit coupon in mina [amount: 200 yen, total: none]
+
+step Use points
+  say Mina spends 100 pt on a coffee. The other 20 pt move to a new card.
+  shop -> p1: Take 100 pt
+  delete p1
+  item p2 as Stamps in mina [amount: 20 pt]
+
+step Use the coupon
+  say A used coupon is gone. It was not in the total, so Mina's total stays the same.
+  mina -> c1: Use
+  delete c1
+
+step Send Ken a coupon
+  say Ken is not a member, so he cannot receive a coupon.
+  refuse ken: Not a member

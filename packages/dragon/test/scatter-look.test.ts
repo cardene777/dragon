@@ -615,12 +615,15 @@ interface DrawnOverlap {
   spots: { text: string }[];
 }
 
-/** 使い方の頁 `quick-start.md` (英語は `quick-start.en.md`) の、点数で点を打つ見た目の図の記法 */
+/**
+ * 使い方の頁 `quick-start.md` (英語は `quick-start.en.md`) の、点数で点を打つ見た目の図の記法。
+ * 頁は行の形の節と図の種類の節 (#3881) に同じ図を載せるので、同じ字の囲みは 1 つと数える (#3912)。片方だけを書き換えると 2 つになって落ちる
+ */
 function quickStart(lang: Lang): string {
   const file = lang === "ja" ? "quick-start.md" : "quick-start.en.md";
-  const found = extractDiagrams(readFileSync(join(EXAMPLES, file), "utf8")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]"));
-  expect(found.length, `${file} の点数で点を打つ見た目の図の数`).toBe(1);
-  return found[0]?.source ?? "";
+  const found = [...new Set(extractDiagrams(readFileSync(join(EXAMPLES, file), "utf8")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]")).map((fence) => fence.source))];
+  expect(found.length, `${file} の点数で点を打つ見た目の図の数 (同じ字の囲みは 1 つと数える)`).toBe(1);
+  return found[0] ?? "";
 }
 
 /** 見本帳の点数で点を打つ見た目の見本 `feature-scores` の記法 */
