@@ -7,6 +7,7 @@ import { reading as boxReading } from "./box/read";
 import { reading as branchReading } from "./branch/read";
 import { reading as calcReading } from "./calc/read";
 import { reading as callReading } from "./call/read";
+import { reading as cardReading } from "./card/read";
 import { reading as carryReading } from "./carry/read";
 import { reading as chainReading } from "./chain/read";
 import { reading as chartItemReading } from "./chart-item/read";
@@ -78,6 +79,7 @@ export const READINGS = {
   "branch": branchReading,
   "calc": calcReading,
   "call": callReading,
+  "card": cardReading,
   "carry": carryReading,
   "chain": chainReading,
   "chart-item": chartItemReading,

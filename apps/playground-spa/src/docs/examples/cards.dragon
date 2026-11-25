@@ -1,0 +1,22 @@
+cards 商品券で払う
+
+box aki as Aki [note: 客]
+box shop as 店 [mark: 受け取り]
+
+item g1 as 商品券#1 in aki [amount: 500円, mark: shop]
+item g2 as 商品券#2 in aki [amount: 500円, mark: shop]
+item c1 as 割引券 in aki [amount: 100円, total: none]
+
+step 払う
+  say Akiが商品券#1で払う。券は店の列へ動き、店の印が付く。
+  aki -> g1: 払う
+  item g1 in shop
+
+step 断られる
+  say 割引券は期限が切れているので使えない。
+  aki -> c1: 使う
+  refuse c1: 期限切れ
+
+step 捨てる
+  say 期限の切れた割引券を捨てる。合計に足さない券なので、合計は変わらない。
+  delete c1

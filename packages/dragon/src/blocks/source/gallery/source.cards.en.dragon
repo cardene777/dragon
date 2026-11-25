@@ -1,0 +1,17 @@
+cards Sources
+
+box alice as Alice
+box bob as Bob
+
+item n1 as Note #1 in alice [amount: 100 USDC]
+
+step Hand over
+  say source puts the name and url of a source on a step. A step takes any number of them.
+  source dragon README [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  item n1 in bob
+
+step Keep
+  say Sources show neither in the figure nor in the narration, only as name links in the list of steps read aloud.
+  source How to write the notation [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md]
+  source dragon repo [url: https://github.com/cardene777/dragon]
+  delete n1

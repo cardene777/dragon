@@ -1,0 +1,22 @@
+cards Pay with gift cards
+
+box aki as Aki [note: Customer]
+box shop as Shop [mark: Received]
+
+item g1 as Gift card #1 in aki [amount: 5 USD, mark: shop]
+item g2 as Gift card #2 in aki [amount: 5 USD, mark: shop]
+item c1 as Coupon in aki [amount: 1 USD, total: none]
+
+step Pay
+  say Aki pays with gift card #1. It moves to the shop column and gets the shop's mark.
+  aki -> g1: Pay
+  item g1 in shop
+
+step Refused
+  say The coupon has expired, so it cannot be used.
+  aki -> c1: Use
+  refuse c1: Expired
+
+step Throw away
+  say The expired coupon is thrown away. It is not added to the total, so the total stays the same.
+  delete c1

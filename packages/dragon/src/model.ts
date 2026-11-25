@@ -36,6 +36,7 @@ export const HOMES = [
   ["hold", "pipe.holds"],
   ["table", "er.tables"],
   ["circle", "venn.sets"],
+  ["card", "cards.items"],
 ] as const satisfies readonly (readonly [keyof DiagramBlocks, string])[];
 
 type Obj = Record<string, unknown>;
@@ -113,7 +114,8 @@ export const isVersion1 = (input: unknown): input is Obj =>
  * (版、種類、題、見せ方、区画、箱、帯、段、生存線、移れる道、枝、チップ、配管の図の始めの値、時間軸の図の欄)。
  * 時系列図の生存線は、箱の並びのまま左から組む。試す図 (#3337) は部品とチップと関門 (#3476) を試す図の欄 (`try`) に持つ。
  * 手順の図 (#3561) は判断と今回は通らない道を手順の図の欄 (`flow`) に持つ。表どうしの関係の図 (#3618) は表を表どうしの関係の図の欄 (`er`) に持つ。
- * 集合の重なりの図 (#3620) は集まりと見た目 (#3635) を集合の重なりの図の欄 (`venn`) に持つ
+ * 集合の重なりの図 (#3620) は集まりと見た目 (#3635) を集合の重なりの図の欄 (`venn`) に持つ。
+ * 持ち主ごとのカードの図 (#3846) は最初の段より前から在るカードを持ち主ごとのカードの図の欄 (`cards`) に持つ
  */
 export function toModel(diagram: Diagram): DiagramModel {
   const own = readyParts(diagram.kind)?.model;
@@ -175,6 +177,8 @@ export function toModel(diagram: Diagram): DiagramModel {
     ...(b.hold !== undefined ? { pipe: { holds: b.hold } } : {}),
     ...(b.table !== undefined ? { er: { tables: b.table } } : {}),
     ...(b.circle !== undefined || diagram.venn !== undefined ? { venn: { sets: b.circle ?? [], ...(diagram.venn ?? {}) } } : {}),
+    // 持ち主ごとのカードの図 (#3846) の、最初の段より前から在るカード
+    ...(b.card !== undefined ? { cards: { items: b.card } } : {}),
     ...(b.scale !== undefined || b.row !== undefined || b.task !== undefined
       ? {
           time: {

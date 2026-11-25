@@ -10,11 +10,16 @@
  * - 図の種類の一覧の絵 (`kinds/<種類>.png` と `kinds/<種類>-dark.png`)。最後の段の PNG
  * - 札 (`badges/npm.svg`、`badges/license.svg`、`badges/catalog.svg`)。外の札の service を読まないため repo の中に置く
  *
+ * 先頭の絵と一覧の絵は、英語のREADMEに英語の見本 (`<見本>.en.dragon`) から描いた絵を`docs/readme`の下に、
+ * 日本語のREADMEに日本語の見本 (`<見本>.dragon`) から描いた絵を`docs/readme/ja`の下に、同じ名前で置く (#3887)。
+ * 札は言葉で分けない。
+ *
  * `--badges` を付けると札だけを書き直す。版を上げた時は札だけで足りる。
+ * `--lang ja` か `--lang en` を付けると、その言葉の絵だけを描き直す。
  * 1 枚ずつ順に書き出すのは、ブラウザを同時に何個も起こして機械の負荷を上げないため。
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -55,22 +60,30 @@ export const README_KINDS = [
   { kind: "matrix", example: "task-priority" },
   { kind: "venn", example: "hobbies" },
   { kind: "sankey", example: "salary" },
+  { kind: "cards", example: "book-club" },
 ];
 
-/** 見本の file の置き場 */
-const exampleOf = (example) => join(ROOT, `packages/dragon/examples/${example}.en.dragon`);
+/** 絵を描く言葉。英語の絵は英語のREADMEが、日本語の絵は日本語のREADMEが指す */
+export const LANGS = ["en", "ja"];
+
+/** 見本の file の置き場。英語の見本は`.en.dragon`、日本語の見本は`.dragon`で終わる */
+const exampleOf = (example, lang) =>
+  join(ROOT, `packages/dragon/examples/${example}${lang === "en" ? ".en" : ""}.dragon`);
+
+/** 言葉ごとの絵の置き場 */
+const outOf = (lang) => (lang === "en" ? OUT : join(OUT, lang));
 
 /** 暗い表示の絵の file の名前に付ける印 */
 const suffixOf = (theme) => (theme === "dark" ? "-dark" : "");
 
-/** 1 つの見本を 1 つの形で書き出し、書き出した file の置き場を返す */
-const exportOne = (example, theme, format, dir) => {
+/** 1 つの見本を 1 つの言葉と形で書き出し、書き出した file の置き場を返す。図の中の字と再生の帯の字はその言葉で描く */
+const exportOne = (example, lang, theme, format, dir) => {
   execFileSync(
     process.execPath,
     [
       CLI,
       "export",
-      exampleOf(example),
+      exampleOf(example, lang),
       "--out",
       dir,
       "--format",
@@ -81,10 +94,16 @@ const exportOne = (example, theme, format, dir) => {
       PALETTE,
       "--theme",
       theme,
+      "--lang",
+      lang,
     ],
     { stdio: ["ignore", "ignore", "inherit"] },
   );
-  return join(dir, `${example}.en.${format}`);
+  // 書き出した file の名前は見本の名前から決まるので、空のフォルダに書いた 1 つを探す
+  const written = readdirSync(dir).filter((name) => name.endsWith(`.${format}`));
+  if (written.length !== 1)
+    throw new Error(`${dir} に書き出した .${format} が 1 つでない: ${written.join(", ")}`);
+  return join(dir, written[0]);
 };
 
 /** 図の種類の一覧の絵の枠 (px)。縦に長い図も横に長い図も同じ枠に収め、一覧の行の高さを揃える */
@@ -94,14 +113,15 @@ const FRAME = { width: 960, height: 600 };
  * 図の種類の一覧の絵を書く。書き出した PNG を、地の透けた同じ大きさの枠の真ん中に、縦横の比を保って収める。
  * 枠の地を透かすので、GitHub の明るい表示でも暗い表示でも枠の縁が見えない
  */
-const writeKinds = async (work, browser) => {
-  mkdirSync(join(OUT, "kinds"), { recursive: true });
+const writeKinds = async (work, browser, lang) => {
+  const out = outOf(lang);
+  mkdirSync(join(out, "kinds"), { recursive: true });
   const tab = await browser.newPage({ viewport: FRAME, deviceScaleFactor: 1 });
   try {
     for (const { kind, example } of README_KINDS) {
       for (const theme of THEMES) {
-        const dir = join(work, `${kind}-${theme}`);
-        const png = exportOne(example, theme, "png", dir);
+        const dir = join(work, `${lang}-${kind}-${theme}`);
+        const png = exportOne(example, lang, theme, "png", dir);
         const page = join(dir, "frame.html");
         writeFileSync(
           page,
@@ -110,10 +130,10 @@ const writeKinds = async (work, browser) => {
         await tab.goto(pathToFileURL(page).href);
         await tab.locator("img").evaluate((img) => img.decode());
         await tab.locator("div").screenshot({
-          path: join(OUT, "kinds", `${kind}${suffixOf(theme)}.png`),
+          path: join(out, "kinds", `${kind}${suffixOf(theme)}.png`),
           omitBackground: true,
         });
-        console.log(`kinds/${kind}${suffixOf(theme)}.png`);
+        console.log(`${lang} kinds/${kind}${suffixOf(theme)}.png`);
       }
     }
   } finally {
@@ -122,18 +142,21 @@ const writeKinds = async (work, browser) => {
 };
 
 /** 先頭の絵を書く。書き出した HTML を開いて流れを止め、最後の段の再生の部品を帯ごと撮る */
-const writeHero = async (work, browser) => {
+const writeHero = async (work, browser, lang) => {
   for (const theme of THEMES) {
-    const html = exportOne(HERO.example, theme, "html", join(work, `hero-${theme}`));
+    const html = exportOne(HERO.example, lang, theme, "html", join(work, `${lang}-hero-${theme}`));
     const tab = await browser.newPage({
       viewport: { width: WIDTH + 60, height: 900 },
       deviceScaleFactor: 2,
     });
     await tab.goto(pathToFileURL(html).href);
     await tab.waitForSelector(".dg-player button");
-    const pause = tab.locator(".dg-player button[aria-label='Pause']");
+    // 釦は読み上げの名前でなく`data-dragon`で探す。名前は言葉で変わるため (#3887)
+    const pause = tab.locator(
+      ".dg-player button[data-dragon='toggle']:has(.dg-btn-ic[data-icon='pause'])",
+    );
     if (await pause.count()) await pause.first().click();
-    const next = tab.locator(".dg-player button[aria-label='Next step']").first();
+    const next = tab.locator(".dg-player button[data-dragon='next']").first();
     // 最後の段まで送る。送れなくなった釦は押せないので、押せる間だけ押す
     for (let i = 0; i < 40 && (await next.isEnabled()); i++) await next.click();
     // 塗りを伸ばす動きと線の動きが止まるのを待つ
@@ -141,9 +164,9 @@ const writeHero = async (work, browser) => {
     await tab
       .locator(".dg-player")
       .first()
-      .screenshot({ path: join(OUT, `hero${suffixOf(theme)}.png`) });
+      .screenshot({ path: join(outOf(lang), `hero${suffixOf(theme)}.png`) });
     await tab.close();
-    console.log(`hero${suffixOf(theme)}.png`);
+    console.log(`${lang} hero${suffixOf(theme)}.png`);
   }
 };
 
@@ -181,10 +204,18 @@ const main = async () => {
   const work = mkdtempSync(join(tmpdir(), "dragon-readme-"));
   // repo の根の依存に在る `playwright` を読む。`playwright-core` は package の依存にしか無い
   const { chromium } = await import("playwright");
+  // `--lang <言葉>` が在ればその言葉だけ、無ければ全ての言葉の絵を描く
+  const at = process.argv.indexOf("--lang");
+  const langs = at < 0 ? LANGS : [process.argv[at + 1]];
+  const unknown = langs.filter((lang) => !LANGS.includes(lang));
+  if (unknown.length > 0)
+    throw new Error(`--lang は ${LANGS.join(" か ")} を取る: ${unknown.join(", ")}`);
   const browser = await chromium.launch();
   try {
-    await writeKinds(work, browser);
-    await writeHero(work, browser);
+    for (const lang of langs) {
+      await writeKinds(work, browser, lang);
+      await writeHero(work, browser, lang);
+    }
   } finally {
     await browser.close();
     rmSync(work, { recursive: true, force: true });

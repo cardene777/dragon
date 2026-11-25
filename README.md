@@ -146,6 +146,9 @@ Select a kind to read how to write it.
 <tr>
 <td align="center"><a href="packages/dragon/examples/quick-start.en.md#set-overlap-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/venn-dark.png"><img src="docs/readme/kinds/venn.png" alt="A set overlap diagram" width="260"></picture><br>Set overlap diagram</a></td>
 <td align="center"><a href="packages/dragon/examples/quick-start.en.md#sankey-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/sankey-dark.png"><img src="docs/readme/kinds/sankey.png" alt="A Sankey diagram" width="260"></picture><br>Sankey diagram</a></td>
+<td align="center"><a href="packages/dragon/examples/quick-start.en.md#owner-card-diagram"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/kinds/cards-dark.png"><img src="docs/readme/kinds/cards.png" alt="An owner card diagram" width="260"></picture><br>Owner card diagram</a></td>
+</tr>
+<tr>
 <td align="center"><a href="packages/dragon/examples/quick-start.en.md#checkout-diagram">Checkout diagram</a><br>A purchase model the reader can change</td>
 </tr>
 </table>
@@ -157,7 +160,7 @@ Select a kind to read how to write it.
 | Source | JSON with a skeleton of kind, title, and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation. The first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, checkout diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, owner card diagram, checkout diagram |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation

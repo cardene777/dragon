@@ -99,7 +99,7 @@ function headerSettings(doc: Document, lang: NotationLang): { ok: true; settings
   if (unknownKey !== undefined) return { ok: false, message: words.field(unknownKey) };
   if (read.buttons !== undefined && !(Array.isArray(read.buttons) && read.buttons.every((name) => typeof name === "string"))) return { ok: false, message: words.buttons };
   if (read.look !== undefined && !isRecord(read.look)) return { ok: false, message: words.look };
-  return { ok: true, settings: read as HeaderSettings };
+  return { ok: true, settings: read };
 }
 
 /**

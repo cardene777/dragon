@@ -34,8 +34,8 @@ const GUIDES: Record<Lang, string> = { en: "packages/dragon/examples/quick-start
 
 /** 図の種類の名前。README の一覧と手引きの節の見出しに同じ名前を使う */
 const KIND_LABELS: Record<Lang, Record<string, string>> = {
-  ja: { architecture: "構成図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
-  en: { architecture: "Architecture diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
+  ja: { architecture: "構成図", cards: "持ち主ごとのカードの図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
+  en: { architecture: "Architecture diagram", cards: "Owner card diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
 };
 
 /** 書き出しが箱を並べるだけの種類。絵を持たず、一覧には名前と手引きへの繋ぎだけを置く */
@@ -43,7 +43,7 @@ const WITHOUT_PICTURE = new Set(["checkout"]);
 
 /** 種類の頭の語で、手引きの種類の節がその種類の書き方を持つと読める字 */
 const KIND_WORDS: Record<string, string> = {
-  architecture: "architecture", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn",
+  architecture: "architecture", cards: "cards", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn",
 };
 
 /** mermaid と比べる表の節の見出しと、表の 4 つの行の頭 */
@@ -91,6 +91,17 @@ const withoutFences = (text: string): string => {
 };
 const withoutCode = (text: string): string => withoutFences(text).replace(/(`+).*?\1/gu, "");
 
+/**
+ * 地の文の中の、30語を超える文。codeの囲み、表、HTMLの行、見出し、絵の行は数えない。
+ * 英語のREADMEと英語の手引きの図の種類の節が同じ数え方を使う (#3881、#3884)
+ */
+const longSentences = (text: string): string[] =>
+  withoutFences(text)
+    .split("\n")
+    .filter((line) => line.trim() !== "" && !/^\s*(#|\||<|>|!\[)/u.test(line))
+    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z`(])/u))
+    .filter((sentence) => sentence.split(/\s+/u).filter(Boolean).length > 30);
+
 /** 本文が指す絵の置き場 (`<img src>`、`<source srcset>`、`![](...)`) */
 const pictureRefs = (text: string): string[] => {
   const body = withoutCode(text);
@@ -110,6 +121,12 @@ const linkRefs = (text: string): string[] => {
 /** README の置き場から見た `docs/readme` の下の file の書き方。npm の README は絶対 URL、repo の README は相対パス */
 const docsRef = (readme: Readme, file: string): string => (readme.npm ? `${RAW}docs/readme/${file}` : `docs/readme/${file}`);
 
+/**
+ * README の置き場から見た図の絵の書き方。日本語のREADMEは日本語の見本から描いた`docs/readme/ja`の下の絵を指す (#3887)。
+ * 札は言葉で分けないので`docsRef`で指す
+ */
+const pictureRef = (readme: Readme, file: string): string => docsRef(readme, readme.lang === "ja" ? `ja/${file}` : file);
+
 /** README の置き場から見た手引きの書き方 */
 const guideRef = (readme: Readme): string => (readme.npm ? `${BLOB}${GUIDES[readme.lang]}` : GUIDES[readme.lang]);
 
@@ -121,7 +138,7 @@ const hasPicture = (text: string, light: string, dark: string): boolean =>
   });
 
 /** 絵を作り直す script が持つ一覧。まだ無い時は undefined */
-type ImagesModule = { README_KINDS: { kind: string; example: string }[]; HERO: { example: string }; PALETTE: string; THEMES: string[] };
+type ImagesModule = { README_KINDS: { kind: string; example: string }[]; HERO: { example: string }; PALETTE: string; THEMES: string[]; LANGS?: string[] };
 const loadImagesModule = async (): Promise<ImagesModule | undefined> => {
   const path = join(ROOT, "scripts/readme-images.mjs");
   if (!existsSync(path)) return undefined;
@@ -133,7 +150,8 @@ describe("公開できる形の README (#3881)", () => {
     // 4 つの README は、最初の `##` の節より前に先頭の絵を持ち、暗い表示では暗い意匠の絵を出す
     for (const readme of READMES) {
       const lead = leadOf(read(readme.path));
-      expect(hasPicture(lead, docsRef(readme, "hero.png"), docsRef(readme, "hero-dark.png")), `${readme.path} の冒頭に、暗い表示の絵も持つ先頭の絵 (<picture>) が無い`).toBe(true);
+      // 仕様の変更 (#3887): 日本語のREADMEは日本語の見本から描いた絵を指す
+      expect(hasPicture(lead, pictureRef(readme, "hero.png"), pictureRef(readme, "hero-dark.png")),`${readme.path} の冒頭に、暗い表示の絵も持つ先頭の絵 (<picture>) が無い`).toBe(true);
     }
   });
 
@@ -175,7 +193,8 @@ describe("公開できる形の README (#3881)", () => {
         expect(section, `${readme.path} の図の種類の一覧に ${name} が無い`).toContain(name);
         expect(links, `${readme.path} の ${name} が手引きの ${name} の節へ繋がない`).toContain(`${guideRef(readme)}#${anchorOf(name)}`);
         if (WITHOUT_PICTURE.has(kind)) continue;
-        expect(hasPicture(section, docsRef(readme, `kinds/${kind}.png`), docsRef(readme, `kinds/${kind}-dark.png`)), `${readme.path} の ${name} に明るい表示と暗い表示の絵が無い`).toBe(true);
+        // 仕様の変更 (#3887): 日本語のREADMEは日本語の見本から描いた絵を指す
+        expect(hasPicture(section, pictureRef(readme, `kinds/${kind}.png`), pictureRef(readme, `kinds/${kind}-dark.png`)),`${readme.path} の ${name} に明るい表示と暗い表示の絵が無い`).toBe(true);
       }
     }
   });
@@ -218,8 +237,11 @@ describe("公開できる形の README (#3881)", () => {
     if (!images) return;
     const pictured = kinds().filter((kind) => !WITHOUT_PICTURE.has(kind));
     expect(images.README_KINDS.map((entry) => entry.kind).sort(), "絵を作る種類が README の一覧と合わない").toEqual(pictured);
+    // 仕様の変更 (#3887): 英語と日本語の2つの言葉で絵を描く。日本語の絵は日本語の見本 (`<見本>.dragon`) から描く
+    expect(images.LANGS, "絵が英語と日本語の2つの言葉で描かれない").toEqual(["en", "ja"]);
     for (const { kind, example } of [...images.README_KINDS, { kind: "hero", example: images.HERO.example }]) {
       expect(existsSync(join(ROOT, `packages/dragon/examples/${example}.en.dragon`)), `${kind} の絵の見本 ${example}.en.dragon が無い`).toBe(true);
+      expect(existsSync(join(ROOT, `packages/dragon/examples/${example}.dragon`)), `${kind} の絵の日本語の見本 ${example}.dragon が無い`).toBe(true);
     }
     expect(images.PALETTE, "絵が既定の意匠で描かれない").toBe("paper");
     expect(images.THEMES, "絵が明るい表示と暗い表示の 2 つで描かれない").toEqual(["light", "dark"]);
@@ -252,12 +274,15 @@ describe("公開できる形の README (#3881)", () => {
 
   it("readme-english-short-lines", () => {
     // 英語版の 2 つの README は、30 語を超える文を持たない。code の囲み、表、HTML の行、見出しは数えない
+    // 仕様の変更 (#3884): 数え方を longSentences に出し、英語の手引きの検査と共有する。READMEへの判定は変わらない
     for (const readme of READMES.filter((r) => r.lang === "en")) {
-      const prose = withoutFences(read(readme.path))
-        .split("\n")
-        .filter((line) => line.trim() !== "" && !/^\s*(#|\||<|>|!\[)/u.test(line));
-      const long = prose.flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z`(])/u)).filter((sentence) => sentence.split(/\s+/u).filter(Boolean).length > 30);
-      expect(long, `${readme.path} に 30 語を超える文が在る`).toEqual([]);
+      expect(longSentences(read(readme.path)), `${readme.path} に 30 語を超える文が在る`).toEqual([]);
     }
+  });
+
+  it("guide-english-short-lines", () => {
+    // 英語の手引きは、英語のREADMEと同じ数え方で30語を超える文を持たない (#3884)
+    // 仕様の変更 (#3889): 図の種類の節だけでなく、手引きの全ての節を見る
+    expect(longSentences(read(GUIDES.en)), `${GUIDES.en} に30語を超える文が在る`).toEqual([]);
   });
 });

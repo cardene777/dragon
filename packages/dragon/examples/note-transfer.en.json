@@ -1,0 +1,133 @@
+{
+  "version": 2,
+  "kind": "cards",
+  "title": "Send 100 USDC with notes",
+  "blocks": {
+    "box": [
+      {
+        "id": "alice",
+        "name": "Alice",
+        "sub": "Sender"
+      },
+      {
+        "id": "bob",
+        "name": "Bob",
+        "sub": "Receiver"
+      },
+      {
+        "id": "carol",
+        "name": "Carol",
+        "sub": "No notes yet"
+      },
+      {
+        "id": "usdc",
+        "name": "USDC ledger",
+        "mark": "Signed"
+      }
+    ],
+    "card": [
+      {
+        "id": "n1",
+        "name": "Note #1",
+        "in": [
+          "alice",
+          "usdc"
+        ],
+        "amount": "1000 USDC",
+        "mark": [
+          "usdc"
+        ]
+      },
+      {
+        "id": "n2",
+        "name": "Note #2",
+        "in": [
+          "bob",
+          "usdc"
+        ],
+        "amount": "200 USDC",
+        "mark": [
+          "usdc"
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "title": "Alice sends 100 to Bob",
+      "body": "Note #1 is spent and replaced by two new notes. The ledger total stays the same.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "alice",
+          "to": "n1",
+          "label": "Send 100",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "card-delete",
+          "card": "n1"
+        },
+        {
+          "type": "card",
+          "id": "n3",
+          "name": "Note #3",
+          "in": [
+            "alice",
+            "usdc"
+          ],
+          "amount": "900 USDC",
+          "mark": [
+            "usdc"
+          ]
+        },
+        {
+          "type": "card",
+          "id": "n4",
+          "name": "Note #4",
+          "in": [
+            "bob",
+            "usdc"
+          ],
+          "amount": "100 USDC",
+          "mark": [
+            "usdc"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Bob tries to send 500",
+      "body": "His note is too small, so nothing changes.",
+      "events": [
+        {
+          "type": "edge",
+          "from": "bob",
+          "to": "n2",
+          "label": "Send 500",
+          "carry": {
+            "kind": "envelope"
+          }
+        },
+        {
+          "type": "refuse",
+          "target": "n2",
+          "reason": "Not enough balance"
+        }
+      ]
+    },
+    {
+      "title": "Someone tries to pay Carol",
+      "body": "Carol has no account on the ledger, so she cannot receive a note.",
+      "events": [
+        {
+          "type": "refuse",
+          "target": "carol",
+          "reason": "No account"
+        }
+      ]
+    }
+  ]
+}

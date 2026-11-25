@@ -341,6 +341,8 @@ skill は使う人の dragon の版を `dragon --version` で確かめ、プラ�
 図の見た目を変えた PR では、`pnpm build:packages` の後に `pnpm readme:images` を回し、README の先頭の絵と図の種類の一覧の絵 (`docs/readme`) を今の見た目に揃える (#3881)。
 絵は `scripts/readme-images.mjs` が挙げた見本を、既定の意匠 `paper` の明るい表示と暗い表示で書き出す。
 GitHub と npm の頁は `dragon` の囲みを字のまま出すので、README を開いた人が見る図は、この絵だけになる。
+英語のREADMEの絵は英語の見本 (`<見本>.en.dragon`) から`docs/readme`の下に、日本語のREADMEの絵は日本語の見本 (`<見本>.dragon`) から`docs/readme/ja`の下に描く (#3887)。
+片方の言葉の見本だけを直した時は、`pnpm readme:images --lang ja`か`--lang en`でその言葉の絵だけを描き直せる。
 
 ## 版を出す前に同じ版が出ていないか確かめる
 

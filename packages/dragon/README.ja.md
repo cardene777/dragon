@@ -11,8 +11,8 @@
 </p>
 
 <picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/hero-dark.png">
-<img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/hero.png" alt="写真を届ける構成図を最後の段で止め、下に再生の帯を出した絵">
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/hero-dark.png">
+<img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/hero.png" alt="写真を届ける構成図を最後の段で止め、下に再生の帯を出した絵">
 </picture>
 
 dragon は、短い文の file から段ごとに動く図を描く。
@@ -122,33 +122,36 @@ step ログインを押す
 
 <table>
 <tr>
-<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#時系列図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sequence-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sequence.png" alt="時系列図" width="260"></picture><br>時系列図</a></td>
-<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#構成図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/architecture-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/architecture.png" alt="構成図" width="260"></picture><br>構成図</a></td>
-<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#状態遷移図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/state-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/state.png" alt="状態遷移図" width="260"></picture><br>状態遷移図</a></td>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#時系列図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/sequence-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/sequence.png" alt="時系列図" width="260"></picture><br>時系列図</a></td>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#構成図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/architecture-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/architecture.png" alt="構成図" width="260"></picture><br>構成図</a></td>
+<td align="center" width="33%"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#状態遷移図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/state-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/state.png" alt="状態遷移図" width="260"></picture><br>状態遷移図</a></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#枝分かれの図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/git-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/git.png" alt="枝分かれの図" width="260"></picture><br>枝分かれの図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#時間軸の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/time-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/time.png" alt="時間軸の図" width="260"></picture><br>時間軸の図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#木の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/tree-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/tree.png" alt="木の図" width="260"></picture><br>木の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#枝分かれの図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/git-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/git.png" alt="枝分かれの図" width="260"></picture><br>枝分かれの図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#時間軸の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/time-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/time.png" alt="時間軸の図" width="260"></picture><br>時間軸の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#木の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/tree-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/tree.png" alt="木の図" width="260"></picture><br>木の図</a></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#列の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/lineup-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/lineup.png" alt="列の図" width="260"></picture><br>列の図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#試す図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/try-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/try.png" alt="試す図" width="260"></picture><br>試す図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#配管の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/pipe-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/pipe.png" alt="配管の図" width="260"></picture><br>配管の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#列の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/lineup-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/lineup.png" alt="列の図" width="260"></picture><br>列の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#試す図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/try-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/try.png" alt="試す図" width="260"></picture><br>試す図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#配管の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/pipe-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/pipe.png" alt="配管の図" width="260"></picture><br>配管の図</a></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#量の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/chart-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/chart.png" alt="量の図" width="260"></picture><br>量の図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#手順の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/flow-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/flow.png" alt="手順の図" width="260"></picture><br>手順の図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#回り続ける図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cycle-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/cycle.png" alt="回り続ける図" width="260"></picture><br>回り続ける図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#量の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/chart-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/chart.png" alt="量の図" width="260"></picture><br>量の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#手順の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/flow-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/flow.png" alt="手順の図" width="260"></picture><br>手順の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#回り続ける図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/cycle-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/cycle.png" alt="回り続ける図" width="260"></picture><br>回り続ける図</a></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#考えを広げる地図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/mind-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/mind.png" alt="考えを広げる地図" width="260"></picture><br>考えを広げる地図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#表どうしの関係の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/er-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/er.png" alt="表どうしの関係の図" width="260"></picture><br>表どうしの関係の図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#2つの軸で置く図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/matrix-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/matrix.png" alt="2つの軸で置く図" width="260"></picture><br>2つの軸で置く図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#考えを広げる地図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/mind-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/mind.png" alt="考えを広げる地図" width="260"></picture><br>考えを広げる地図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#表どうしの関係の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/er-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/er.png" alt="表どうしの関係の図" width="260"></picture><br>表どうしの関係の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#2つの軸で置く図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/matrix-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/matrix.png" alt="2つの軸で置く図" width="260"></picture><br>2つの軸で置く図</a></td>
 </tr>
 <tr>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#集合の重なりの図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/venn.png" alt="集合の重なりの図" width="260"></picture><br>集合の重なりの図</a></td>
-<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#量の行き先の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/kinds/sankey.png" alt="量の行き先の図" width="260"></picture><br>量の行き先の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#集合の重なりの図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/venn-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/venn.png" alt="集合の重なりの図" width="260"></picture><br>集合の重なりの図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#量の行き先の図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/sankey-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/sankey.png" alt="量の行き先の図" width="260"></picture><br>量の行き先の図</a></td>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#持ち主ごとのカードの図"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/cards-dark.png"><img src="https://raw.githubusercontent.com/cardene777/dragon/main/docs/readme/ja/kinds/cards.png" alt="持ち主ごとのカードの図" width="260"></picture><br>持ち主ごとのカードの図</a></td>
+</tr>
+<tr>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#購入操作図">購入操作図</a><br>読む人が条件を変えられる購入の模型</td>
 </tr>
 </table>
@@ -159,7 +162,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -423,7 +426,7 @@ mountDiagram(host, parsed.diagram, {
 JSONとして読めない塊と、知らないボタンの名前を書いた塊は、`data-header`の塊をその誤りの文に置き換える。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.79/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order
@@ -525,7 +528,7 @@ iframeの中でコピーのボタンを使えるよう、`clipboard-write` を�
 ## 図の種類の部品を後から読む
 
 頁が最初に読む量を抑えたい時は、`@cardenelabs/dragon/light` から読む。
-既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`matrix`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn`、`sankey` の描く部品と、その種類だけが使うブロックの読み方を持たない。
+既定の入口と同じ部品を出すが、`chart`、`cycle`、`er`、`flow`、`git`、`lineup`、`matrix`、`mind`、`pipe`、`state`、`time`、`tree`、`try`、`venn`、`sankey`、`cards` の描く部品と、その種類だけが使うブロックの読み方を持たない。
 これから読む記法か JSON を渡して `loadFor` を待つと、その図の種類の描く部品と、その図が使うブロックの読み方だけを読む。
 `parseNotation` で記法から読んだ図は描く時に原本の形の検査を省くので、記法の図を描く頁は検査を読まない。JSON を渡した時は `loadFor` が原本の形の検査も読み、読む前に JSON を読むか描くと `loadFor` を待つよう示す誤りで止まる。
 読んだ後は既定の入口と同じ関数で、待たずに同じ図を読み、描き、書き戻す。
@@ -659,7 +662,7 @@ if (read.ok) {
 3. 空白を含む名前と文は、行末か `[` の前に置く。`,` か `]` を含む値と、`[` を含む名前だけを `"` で囲む
 4. 入れ子は `group … end` だけ。段は次の `step` までで、字下げは読みやすさのために付ける。`say` の続きの行だけは `say` より深く字下げする
 
-行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set` で、線の行は `名札 -> 名札` と書く。
+行の頭の語は `sequence` `architecture` `state` `git` `time` `tree` `flow` `cycle` `mind` `er` `matrix` `venn` `sankey` `cards` `group` `end` `box` `choice` `branch` `scale` `period` `row` `task` `point` `zoom` `strip` `step` `say` `code` `source` `commit` `delete` `mark` `span` `leaf` `node` `idea` `table` `field` `axis` `pick` `act` `note` `set` `refuse` で、線の行は `名札 -> 名札` と書く。
 時系列図と構成図と状態遷移図は、1 行目の題と、箱の宣言と、段と、段の本文を省ける。
 `box` の行を書かない図は線に出た名前を出た順に箱にし、1 字だけ違う名前の箱を、図を描いたまま知らせる。
 `step` の行を書かない図は線 1 本を 1 段にし、`say` を書かない段は線の名前を本文にする。
@@ -703,6 +706,7 @@ step 出荷に回す
 表どうしの関係の図の表と項目は `blocks.table` に書く。
 集合の重なりの図の集まりは `blocks.circle` に書く。
 量の行き先の図の出どころと行き先は `blocks.box` に書き、帯は段の `events` の線で、量を線の名前に書く。段ごとの帯の見た目は根の `sankey` の欄に `{ "shape": "rows" }` を書く。
+持ち主ごとのカードの図の持ち主の列は`blocks.box`に、初めから在るカードは`blocks.card`に書く。
 段の中で起きること (線や箱の中の処理) は、段ごとの `events` に書く。
 
 ```json
