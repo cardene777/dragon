@@ -82,6 +82,7 @@ const STATE_NO_PATH = "state 注文\n\nbox 受付\nbox 発送\n\nstep 受け付�
 
 /** 後から読む種類ごとの見本の記法 */
 const LATER_SAMPLES: Record<string, string> = {
+  cards: "note-transfer.dragon",
   checkout: "purchase-shoes.dragon",
   chart: "os-share.dragon",
   cycle: "eth-slot.dragon",
@@ -546,6 +547,7 @@ describe("書いた図が使う個別ブロックだけを読む軽い入口 (#3
   ])("$name", ({ kind, file }) => {
     it("light-entry-draws-each-later-kind-after-load-for", async () => {
       const whole = await wholeEntry();
+      expect(existsSync(join(EXAMPLES, file)), `${file} (${kind}) の見本がpackages/dragon/examplesに無い`).toBe(true);
       const text = readFileSync(join(EXAMPLES, file), "utf8");
       const light = await freshLight<CaseLight & { kindLoaded(kind: string): boolean }>();
       expect(light.kindLoaded(kind), `${file} の種類 (${kind}) を loadFor の前に読んでいたか`).toBe(!(kind in LATER_SAMPLES));

@@ -41,6 +41,10 @@ export const shape: BlockShape = {
           description: "回り続ける図の時計の文字盤の見た目 (shape: clock) と輪を開いた帯の見た目 (shape: band) の手順の長さと、列の図の階段の見た目 (shape: stairs) の層の時間",
           $ref: "#/definitions/boxTime",
         },
+        mark: {
+          description: "持ち主ごとのカードの図の列で出す印の語。カードの mark でこの列を選ぶと、この列に載るそのカードの写しにこの語の札を出す",
+          $ref: "#/definitions/text",
+        },
       },
     },
   },

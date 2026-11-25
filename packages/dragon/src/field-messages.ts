@@ -5,9 +5,11 @@
  * 文は schema が使う決まり (JSON Schema の keyword) ごとに持ち、ajv の英語の文はそのまま出さない。
  * schema に決まりを足して文が無い時は、`every-schema-keyword-has-messages` の検査が落ちる。
  * ブロックの形の決まりに当てる文はブロックが日英で持ち (`blocks/<名前>/block.ts` の `fieldMessages`)、ここで 1 つの表に束ねる (#3345)。
+ * 表は原本の形の検査の塊 (`schemas/validator.ts`) が持ち、最初に読む束に入れない (#3846)。検査を読む前から要る文は `read-messages.ts` が持つ
  */
 import { ranked } from "./blocks/block";
 import { BLOCKS } from "./blocks/index";
+import { READ_MESSAGES, type ReadMessages } from "./read-messages";
 import type { NotationLang } from "./words";
 
 type Blocks = typeof BLOCKS;
@@ -33,7 +35,7 @@ export interface Allowed {
 }
 
 /** schema が使う決まりごとの、ブロックが持たない誤りの文 */
-export interface CoreFieldMessages {
+export interface CoreFieldMessages extends ReadMessages {
   additionalProperties: (key: string) => string;
   required: (key: string) => string;
   enum: (values: readonly string[]) => string;
@@ -61,12 +63,6 @@ export interface CoreFieldMessages {
   anyOf: (fields: readonly string[]) => string;
   oneOf: string;
   discriminator: (tag: string, values: readonly string[]) => string;
-  /** 道具より新しい版の図 */
-  newer: (version: number, tool: number) => string;
-  /** 古い版の図を今の版の形に移して読んだ時の警告 (#3346) */
-  upgraded: (version: number, tool: number) => string;
-  /** 軽い入口で原本の形の検査を読む前に原本を読んだ時 (#3400) */
-  validatorNotLoaded: string;
 }
 
 const TYPES_JA: Record<string, string> = {
@@ -92,6 +88,7 @@ const TYPES_EN: Record<string, string> = {
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
 
 const ja: CoreFieldMessages = {
+  ...READ_MESSAGES.ja,
   additionalProperties: (key) => `${key} という欄は書けない`,
   required: (key) => `${key} の欄が要る`,
   enum: (values) => `${values.join(" / ")} のどれかにする`,
@@ -114,12 +111,10 @@ const ja: CoreFieldMessages = {
     fields.length > 0 ? `${fields.join(" か ")} の${fields.length === 2 ? "どちらか" : "どれか"}の欄が要る` : "書ける形のどれにも合わない",
   oneOf: "書ける形のどれか 1 つだけに合わせる",
   discriminator: (tag, values) => `${tag} は ${values.join(" / ")} のどれかにする`,
-  newer: (version, tool) => `版 ${version} の図は、この道具 (版 ${tool}) より新しいので読めない。道具を新しくする`,
-  upgraded: (version, tool) => `版 ${version} の図を版 ${tool} の形に移して読んだ。file を書き換えるには migrateFile を使う`,
-  validatorNotLoaded: "原本の形の検査 (schema check) を読んでいない。原本の JSON を読む前に、loadFor にその原本を渡して待つ",
 };
 
 const en: CoreFieldMessages = {
+  ...READ_MESSAGES.en,
   additionalProperties: (key) => `The ${key} field is not allowed`,
   required: (key) => `The ${key} field is required`,
   enum: (values) => `Use one of ${values.join(" / ")}`,
@@ -143,9 +138,6 @@ const en: CoreFieldMessages = {
   anyOf: (fields) => (fields.length > 0 ? `Write one of the ${fields.join(" or ")} fields` : "Does not match any of the allowed shapes"),
   oneOf: "Match exactly one of the allowed shapes",
   discriminator: (tag, values) => `${tag} is one of ${values.join(" / ")}`,
-  newer: (version, tool) => `Version ${version} diagrams are newer than this tool (version ${tool}) and cannot be read. Update the tool`,
-  upgraded: (version, tool) => `Read a version ${version} diagram by moving it to the version ${tool} shape. Use migrateFile to rewrite the file`,
-  validatorNotLoaded: "The schema check for diagram JSON is not loaded. Await loadFor with the JSON before reading it",
 };
 
 /** ブロックが持つ `lang` の原本の誤りの文を 1 つの表に束ねる */

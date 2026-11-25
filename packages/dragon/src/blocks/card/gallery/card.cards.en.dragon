@@ -1,0 +1,22 @@
+cards Owner cards
+
+box alice as Alice
+box bob as Bob
+box bank as Bank [mark: Booked]
+
+item c1 as Note #1 in alice, bank [amount: 500 USDC, mark: bank]
+
+step Hand over
+  say Writing the item line of an existing card again moves it to those columns.
+  alice -> c1: Hand over
+  item c1 in bob, bank
+
+step Refuse
+  say refuse shows a refused panel with the reason and changes nothing.
+  bob -> c1: Again
+  refuse c1: Already handed over
+
+step Replace
+  say delete strikes a card through and keeps it, and an item line in a step makes a card.
+  delete c1
+  item c2 as Note #2 in bob, bank [amount: 500 USDC, mark: bank]

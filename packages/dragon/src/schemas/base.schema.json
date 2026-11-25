@@ -37,6 +37,7 @@
         "venn",
         "sankey",
         "checkout",
+        "cards",
         "judge"
       ]
     },
@@ -118,10 +119,6 @@
     "sequence": {
       "description": "時系列図の見た目。時系列図だけが書け、pipe はパイプ図の部品で並べて描く。書いた図だけが始めの値 (blocks.hold) を持てる",
       "$ref": "#/definitions/sequenceLook"
-    },
-    "judge": {
-      "description": "判定の表の規則と例と判定の語 (#3879)。判定の表だけが書け、ブロックの宣言の欄 (blocks) を使わない",
-      "$ref": "#/definitions/judge"
     },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
@@ -248,6 +245,10 @@
           "type": "string"
         }
       }
+    },
+    "judge": {
+      "description": "判定の表の規則と例と判定の語 (#3879)。判定の表だけが書け、ブロックの宣言の欄 (blocks) を使わない",
+      "$ref": "#/definitions/judge"
     }
   },
   "allOf": [
@@ -675,6 +676,49 @@
           },
           "venn": {
             "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "cards"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "blocks": {
+            "properties": {
+              "card": {
+                "$ref": "#/definitions/absent"
+              },
+              "box": {
+                "items": {
+                  "properties": {
+                    "mark": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "steps": {
+            "items": {
+              "properties": {
+                "events": {
+                  "items": {
+                    "$ref": "#/definitions/notCardsEvent"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1833,6 +1877,24 @@
             "enum": [
               "count",
               "none"
+            ]
+          }
+        }
+      }
+    },
+    "notCardsEvent": {
+      "description": "持ち主ごとのカードの図だけが書ける出来事を書けない",
+      "not": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "card",
+              "card-move",
+              "card-delete",
+              "refuse"
             ]
           }
         }
@@ -3348,32 +3410,11 @@
                                       ],
                                       "properties": {
                                         "kind": {
-                                          "const": "judge"
+                                          "const": "cards"
                                         }
                                       }
                                     },
                                     "then": {
-                                      "required": [
-                                        "judge"
-                                      ],
-                                      "properties": {
-                                        "blocks": {
-                                          "description": "判定の表はブロックの宣言を持たず、規則と例を根の judge の欄に持つ",
-                                          "additionalProperties": false
-                                        },
-                                        "steps": {
-                                          "items": {
-                                            "properties": {
-                                              "events": {
-                                                "description": "判定の表の段は規則の列ごとに 1 つと判定の 1 つで、段の中で起きることを持たない",
-                                                "maxItems": 0
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "else": {
                                       "properties": {
                                         "blocks": {
                                           "required": [
@@ -3381,12 +3422,50 @@
                                           ],
                                           "properties": {
                                             "box": {
-                                              "minItems": 1
+                                              "description": "持ち主の列。1 つ以上で、書いた順に左から並べ、カードを列の中に上から積む。名前の脇の添え書きと印の語のほかを持たない",
+                                              "minItems": 1,
+                                              "items": {
+                                                "properties": {
+                                                  "example": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "color": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "icon": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "region": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "link": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "block": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "order": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "limit": {
+                                                    "$ref": "#/definitions/absent"
+                                                  },
+                                                  "time": {
+                                                    "$ref": "#/definitions/absent"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "group": {
+                                              "$ref": "#/definitions/absent"
                                             },
                                             "strip": {
-                                              "$ref": "#/definitions/plainStrip"
+                                              "$ref": "#/definitions/absent"
                                             },
                                             "path": {
+                                              "$ref": "#/definitions/absent"
+                                            },
+                                            "choice": {
                                               "$ref": "#/definitions/absent"
                                             },
                                             "branch": {
@@ -3427,14 +3506,109 @@
                                             },
                                             "check": {
                                               "$ref": "#/definitions/absent"
-                                            },
-                                            "choice": {
-                                              "$ref": "#/definitions/absent"
                                             }
                                           }
                                         },
                                         "steps": {
                                           "$ref": "#/definitions/plainSteps"
+                                        }
+                                      }
+                                    },
+                                    "else": {
+                                      "if": {
+                                        "required": [
+                                          "kind"
+                                        ],
+                                        "properties": {
+                                          "kind": {
+                                            "const": "judge"
+                                          }
+                                        }
+                                      },
+                                      "then": {
+                                        "required": [
+                                          "judge"
+                                        ],
+                                        "properties": {
+                                          "blocks": {
+                                            "description": "判定の表はブロックの宣言を持たず、規則と例を根の judge の欄に持つ",
+                                            "additionalProperties": false
+                                          },
+                                          "steps": {
+                                            "items": {
+                                              "properties": {
+                                                "events": {
+                                                  "description": "判定の表の段は規則の列ごとに 1 つと判定の 1 つで、段の中で起きることを持たない",
+                                                  "maxItems": 0
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "else": {
+                                        "properties": {
+                                          "blocks": {
+                                            "required": [
+                                              "box"
+                                            ],
+                                            "properties": {
+                                              "box": {
+                                                "minItems": 1
+                                              },
+                                              "strip": {
+                                                "$ref": "#/definitions/plainStrip"
+                                              },
+                                              "path": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "branch": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "scale": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "period": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "row": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "task": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "point": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "zoom": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "item": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "role": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "part": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "hold": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "side": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "check": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "choice": {
+                                                "$ref": "#/definitions/absent"
+                                              }
+                                            }
+                                          },
+                                          "steps": {
+                                            "$ref": "#/definitions/plainSteps"
+                                          }
                                         }
                                       }
                                     }

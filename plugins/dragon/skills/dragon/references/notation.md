@@ -23,7 +23,7 @@ Lines starting with `//` and blank lines are not read.
 
 ## Head line
 
-`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn`, `matrix` and `sankey`.
+`<kind> <title>`. The kinds are `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `lineup`, `try`, `pipe`, `chart`, `flow`, `cycle`, `er`, `mind`, `venn`, `matrix`, `sankey` and `cards`.
 
 - Only `sequence`, `architecture` and `state` can leave out the title. Write a title anyway unless it is a short-form draft.
 - `chart` needs its shape on the head line: `chart <title> [shape: donut]`, `chart <title> [shape: bar]`, `chart <title> [shape: funnel]`, `chart <title> [shape: dots]` or `chart <title> [shape: line]`. `lineup` can take `[shape: layers]` to draw its boxes as stacked layers, `[shape: stairs]` to set those layers as stairs with a scale of the time spent from the `[time: <length>]` of each box, or `[shape: stations]` to lay its lanes out as stops on one line ([lineup](kinds/lineup.md)), `venn` can take `[shape: dots]` to count with dots ([venn](kinds/venn.md)), `matrix` can take `[shape: scatter]` to plot scored items as dots, with `table: none` to leave out its table ([matrix](kinds/matrix.md)), and `cycle` can take `[shape: clock]` to set its steps on a clock dial by their `[time: <length>]`, with `turn: left` to turn it counterclockwise, or `[shape: band]` to run its steps left to right on a band per round ([cycle](kinds/cycle.md)), and `sankey` can take `[shape: rows]` to stack one full-width bar per step, split into the sections the lines so far have cut, or `[shape: treemap]` to cut one square of the whole into areas by amount ([sankey](kinds/sankey.md)), and `sequence` can take `[shape: pipe]` to draw its lifelines as pipes with the parts of the pipe diagram ([sequence](kinds/sequence.md)). Only `chart`, `lineup`, `venn`, `matrix`, `cycle`, `sankey` and `sequence` take `shape` here, only `chart` and `venn` with `[shape: dots]` take `unit` ([chart](kinds/chart.md)), only `matrix` with `[shape: scatter]` takes `table`, and only `cycle` with `[shape: clock]` takes `turn`.
@@ -119,12 +119,13 @@ Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as
 | `step`, `say`, `code`, `source` | all |
 | `gist` | `pipe` |
 | `box` | all except `try` (which declares its own parts), `chart` (which declares items), `er` (which declares tables), `mind` (which writes ideas) and `venn` (which declares sets) |
-| `note` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind`, `venn` and `sankey` |
+| `note` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind`, `venn` and `sankey` (in `cards` it is the caption next to the column name) |
 | `act`, `link`, `carry`, `->` lines between boxes | `architecture`, `flow`, `git`, `sequence`, `state`, `time`, `tree` |
 | `link`, `carry`, `->` lines to the next step on the ring (no `act`) | `cycle` |
 | `->` lines with the amount as the label (no `act`, `link`, `carry`, `tag` or `side`) | `sankey` |
-| `icon` | all except `lineup`, `try`, `chart`, `er`, `mind`, `venn`, `matrix` and `sankey` |
-| `color` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind`, `venn` and `matrix` |
+| `item <id> as <name> in <column>, <column>`, `item <id> in <column>` to move, `delete <card>`, `refuse <card or column>: <reason>`, `mark` on boxes and cards, `->` calls from a column to a card (no `act`, `link`, `carry`, `tag` or `side`) | `cards` |
+| `icon` | all except `lineup`, `try`, `chart`, `er`, `mind`, `venn`, `matrix`, `sankey` and `cards` |
+| `color` on boxes | all except `pipe`, `try`, `chart`, `er`, `mind`, `venn`, `matrix` and `cards` |
 | `strip` and `set` | `architecture`, `cycle`, `flow`, `git`, `lineup`, `sequence`, `state`, `time`, `tree` |
 | `choice` | `flow` |
 | `idea` (with its own `color`) | `mind` |
