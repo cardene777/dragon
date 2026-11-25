@@ -29,8 +29,10 @@ export function readCarry(source: SourceLine, attrs: Map<string, Attr>, from: st
 
 /** 線の行に書く運ぶ物の属性。書かない時に運ぶ物 (枝分かれの図は送る側の名前の札、ほかの図は封筒) なら何も書かない */
 export function carryAttrs(e: Extract<DiagramEvent, { type: "edge" }>, kind: KindName): [string, string][] {
-  const plain = kind === "git" ? e.carry.kind === "tag" && e.carry.text === e.from : e.carry.kind === "envelope";
-  return plain ? [] : e.carry.kind === "tag" ? [["tag", e.carry.text]] : [["carry", e.carry.kind]];
+  // 運ぶ物を持たない線は、記法が足す既定の運ぶ物の線と同じに書く。HTMLの形の図は既定の運ぶ物を書かない (#3908)
+  const carry = (e.carry as typeof e.carry | undefined) ?? (kind === "git" ? { kind: "tag" as const, text: e.from } : { kind: "envelope" as const });
+  const plain = kind === "git" ? carry.kind === "tag" && carry.text === e.from : carry.kind === "envelope";
+  return plain ? [] : carry.kind === "tag" ? [["tag", carry.text]] : [["carry", carry.kind]];
 }
 
 export const reading: BlockReading<CarryMessages> = {

@@ -7,6 +7,8 @@
  * `dragon check <file>` の命令は、記法を描かずに確かめ、誤りと知らせを `<file>:<行>:<列> <重さ> <文>` の 1 件 1 行で出す (#3455)。
  * 誤りがあれば終わり方 1、知らせだけなら 0 で終わる。`dragon --version` は package の版を出す。
  * `dragon icon <file.svg>` の命令は、書き手が持つ色付きの SVG を、色付きの絵柄の印のブロックの定義の行にして出す (#3633)。
+ * `dragon convert <file>` の命令は、記法 (`.dragon`) をHTMLの形の図に、mdの頁を `<dragon-page>` のHTMLの頁に、HTMLをその逆に変えて出す (#3908)。
+ * `dragon check` はHTMLのfileも読み、HTMLの形の図の誤りを要素の行と名前で出す。
  * 1 色で塗っていない形と変形と線を持つ要素は、要素を名指して断り、終わり方 1 で終わる。
  * 図に字の重なりがある時は、書き出したうえで重なりを段と文で 1 件 1 行ずつ標準エラーに出し、終わり方は 0 のままにする (#3178)。
  * 重なりは描けない誤りではなく、止めると避けられない重なりを持つ図を書き出せなくなるため。
@@ -18,10 +20,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { CHECKED_FILES, checkText, isBlocksFile, type Problem, problemLine, readBlocksFile } from "./check";
+import { CHECKED_FILES, type CheckedForm, checkText, isBlocksFile, type Problem, problemLine, readBlocksFile } from "./check";
 import { embedPage } from "./export/embed";
 import { type ExportFormat, exportDiagram, FORMATS, NoSuchStep } from "./export/index";
 import { exportPage } from "./page/export";
+import { htmlToNotation, notationToHtml } from "./html-form/convert";
+import { htmlToMarkdown, markdownToHtml } from "./html-form/page";
+import { PAGE_TAG } from "./html-form/shape";
+import { formMessage } from "./html-form/figure";
 import { PALETTES, type Theme } from "./look/values";
 import { iconDefinition, iconNameOf, type SvgIconRefusal, svgIcon } from "./svg-icon";
 import { parseNotation } from "./parser";
@@ -49,6 +55,9 @@ const EMBED_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as c
 
 /** `dragon check` の設定 */
 const CHECK_OPTIONS = { json: { type: "boolean" }, layout: { type: "boolean" }, lang: { type: "string" }, blocks: { type: "string" } } as const;
+
+/** `dragon convert` の設定 (#3908) */
+const CONVERT_OPTIONS = { out: { type: "string" }, lang: { type: "string" } } as const;
 
 /** `dragon icon` の設定 (#3633) */
 const ICON_OPTIONS = { name: { type: "string" }, lang: { type: "string" } } as const;
@@ -82,6 +91,9 @@ interface CliText {
   notBlocksFile: (path: string) => string;
   /** `dragon --version` の使い方 */
   versionUsage: string;
+  /** `dragon convert` の使い方と、変えられない拡張子のfile (#3908) */
+  convertUsage: string;
+  cannotConvert: (path: string) => string;
   /** `dragon icon` の使い方と誤りの文 (#3633) */
   iconUsage: string;
   icon: { noFile: (path: string) => string; badName: (name: string) => string; refused: (path: string, refusal: SvgIconRefusal) => string };
@@ -136,16 +148,23 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       noEntry: (path) => `入口の1行 (src が dist/cdn/dragon.js で終わる script) が無い: ${path}`,
     },
     checkUsage: [
-      "使い方: dragon check <記法の file (.dragon か .md) か -> [設定]",
+      "使い方: dragon check <記法の file (.dragon か .md か .html) か -> [設定]",
       "  --json             誤りと知らせを JSON で出す",
       "  --layout           図を描き、崩れ (丸や線の詰まり、字を横切る線、字どうしの重なり、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
       "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
     ].join("\n"),
-    cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md の file か、標準入力の - を渡す)`,
+    cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md か .html の file か、標準入力の - を渡す)`,
     noBlocksFile: (path) => `足したブロックの定義の file が無い: ${path}`,
     notBlocksFile: (path) => `足したブロックの定義の file でない: ${path} (注釈の後の最初の行を blocks 1 にする)`,
     versionUsage: "使い方: dragon --version (版を出す)",
+    convertUsage: [
+      "使い方: dragon convert <file (.dragonか.mdか.html)> [設定]",
+      "  .dragonの記法はHTMLの形の図に、.mdの頁は<dragon-page>のHTMLの頁に、.htmlは記法かmdの頁に変える",
+      "  --out <file>       書き出すfile (既定は標準出力)",
+      "  --lang <言葉>      誤りの文の言葉 (jaかen)。既定はen",
+    ].join("\n"),
+    cannotConvert: (path) => `変えられないfile: ${path} (.dragonか.mdか.htmlのfileを渡す)`,
     iconUsage: [
       "使い方: dragon icon <SVG の file> [設定]",
       "  書き手が持つ色付きの SVG を、色付きの絵柄の印のブロックの定義の行 (blocks 1 から end まで) にして出す",
@@ -220,16 +239,23 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       noEntry: (path) => `No entry line (a script whose src ends with dist/cdn/dragon.js): ${path}`,
     },
     checkUsage: [
-      "Usage: dragon check <notation file (.dragon or .md) or -> [options]",
+      "Usage: dragon check <notation file (.dragon, .md or .html) or -> [options]",
       "  --json             Print the errors and warnings as JSON",
       "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, lines crossing text, overlapping texts, parts sticking out of a box shape or the diagram frame) per step",
       "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
       "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
     ].join("\n"),
-    cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon or .md file, or - for stdin)`,
+    cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon, .md or .html file, or - for stdin)`,
     noBlocksFile: (path) => `No such block definitions file: ${path}`,
     notBlocksFile: (path) => `Not a block definitions file: ${path} (start it with blocks 1 after any comments)`,
     versionUsage: "Usage: dragon --version (prints the version)",
+    convertUsage: [
+      "Usage: dragon convert <file (.dragon, .md or .html)> [options]",
+      "  Turns .dragon notation into an HTML-form diagram, an .md page into a <dragon-page> HTML page, and .html back into notation or an .md page",
+      "  --out <file>       Where to write (default: standard output)",
+      "  --lang <lang>      Language of the error messages (ja or en). Defaults to en",
+    ].join("\n"),
+    cannotConvert: (path) => `Cannot convert this file: ${path} (pass a .dragon, .md or .html file)`,
     iconUsage: [
       "Usage: dragon icon <SVG file> [options]",
       "  Print a colored SVG you have as the definition lines of a colored icon block (from blocks 1 to end)",
@@ -292,7 +318,7 @@ function langOf(args: string[]): string | undefined {
  * 設定の誤りを、Node の文ではなく命令の言葉で返す。誤りが無ければ `undefined`。
  * 値の要る設定の後ろに `-` で始まる語が続く時は、その語を値と取り違えずに値が無いとみなす (Node も同じ形を断る)。
  */
-function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS | typeof CHECK_OPTIONS | typeof ICON_OPTIONS = OPTIONS): string | undefined {
+function optionProblem(args: string[], text: CliText, options: typeof OPTIONS | typeof EMBED_OPTIONS | typeof CHECK_OPTIONS | typeof ICON_OPTIONS | typeof CONVERT_OPTIONS = OPTIONS): string | undefined {
   const { tokens } = parseArgs({ args, options, allowPositionals: true, strict: false, tokens: true });
   const types: Readonly<Record<string, { type: string }>> = options;
   for (const token of tokens) {
@@ -417,7 +443,7 @@ function check(args: string[], text: CliText): number {
     return 2;
   }
   const lang = values.lang ?? DEFAULT_LANG;
-  const sources: { file: string; source: string; form: "notation" | "markdown" }[] = [];
+  const sources: { file: string; source: string; form: CheckedForm }[] = [];
   for (const file of positionals) {
     const form = file === "-" ? "notation" : CHECKED_FILES[extname(file).toLowerCase()];
     if (form === undefined) {
@@ -467,6 +493,76 @@ function report(problems: Problem[], json: boolean): number {
   if (json) console.log(JSON.stringify(problems, null, 2));
   else for (const found of problems) console.log(problemLine(found));
   return problems.some((found) => found.severity === "error") ? 1 : 0;
+}
+
+/**
+ * `dragon convert <file>` (#3908)。記法はHTMLの形の図に、mdの頁は `<dragon-page>` のHTMLの頁に、
+ * `<dragon-page>` を持つHTMLはmdの頁に、ほかのHTMLは最初のHTMLの形の図を記法に変え、`--out` のfileか標準出力に書く。
+ * 変えられない時は `<file>:<行> <文>` を1件1行で標準エラーに出し、終わり方1で終わる。HTMLの誤りの文は要素の名前で始める
+ */
+function convert(args: string[], text: CliText): number {
+  const problem = optionProblem(args, text, CONVERT_OPTIONS);
+  if (problem !== undefined) {
+    console.error(`${problem}\n${text.convertUsage}`);
+    return 2;
+  }
+  const { values, positionals } = parseArgs({ args, options: CONVERT_OPTIONS, allowPositionals: true });
+  if (values.lang !== undefined && !isLang(values.lang)) {
+    console.error(`${text.badValue("--lang", values.lang, text.allowed.lang)}\n${text.convertUsage}`);
+    return 2;
+  }
+  const [file, ...extra] = positionals;
+  if (file === undefined || extra.length > 0) {
+    console.error(extra.length > 0 ? `${text.extraFiles(extra)}\n${text.convertUsage}` : text.convertUsage);
+    return 2;
+  }
+  const ext = extname(file).toLowerCase();
+  if (![".dragon", ".md", ".markdown", ".html", ".htm"].includes(ext)) {
+    console.error(text.cannotConvert(file));
+    return 2;
+  }
+  let source: string;
+  try {
+    source = readFileSync(file, "utf8");
+  } catch (error) {
+    const missing = error instanceof Error && "code" in error && error.code === "ENOENT";
+    console.error(missing ? text.noFile(file) : text.unreadable(file, detail(error)));
+    return 2;
+  }
+  const options = { lang: values.lang ?? DEFAULT_LANG };
+  type Converted = { ok: true; text: string } | { ok: false; errors: { line: number; message: string; element?: string }[] };
+  const converted = ((): Converted => {
+    if (ext === ".dragon") {
+      const done = notationToHtml(source, options);
+      return done.ok ? { ok: true, text: done.html } : done;
+    }
+    if (ext === ".md" || ext === ".markdown") {
+      const done = markdownToHtml(source, options);
+      return done.ok ? { ok: true, text: done.html } : done;
+    }
+    if (new RegExp(`<${PAGE_TAG}[\\s>]`, "iu").test(source)) {
+      const done = htmlToMarkdown(source, options);
+      return done.ok ? { ok: true, text: done.markdown } : done;
+    }
+    const done = htmlToNotation(source, options);
+    return done.ok ? { ok: true, text: done.notation } : done;
+  })();
+  if (!converted.ok) {
+    for (const error of converted.errors) console.error(`${file}:${error.line} ${formMessage({ line: error.line, column: 0, element: error.element ?? "", message: error.message })}`);
+    return 1;
+  }
+  if (values.out === undefined) {
+    console.log(converted.text.replace(/\n$/u, ""));
+    return 0;
+  }
+  const out = resolve(values.out);
+  try {
+    writeFileSync(out, converted.text);
+  } catch (error) {
+    throw new Error(text.cannotWrite(out, detail(error)));
+  }
+  console.log(out);
+  return 0;
 }
 
 /** `dragon icon <file.svg>`。色付きの SVG を印のブロックの定義の行にして標準出力に出す (#3633) */
@@ -539,8 +635,9 @@ async function main(argv: string[]): Promise<number> {
   if (command === "embed") return embed(rest, early);
   if (command === "check") return check(rest, early);
   if (command === "icon") return icon(rest, early);
+  if (command === "convert") return convert(rest, early);
   if (command !== "export") {
-    console.error(`${early.usage}\n\n${early.pageUsage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.iconUsage}\n\n${early.versionUsage}`);
+    console.error(`${early.usage}\n\n${early.pageUsage}\n\n${early.embedUsage}\n\n${early.checkUsage}\n\n${early.convertUsage}\n\n${early.iconUsage}\n\n${early.versionUsage}`);
     return 2;
   }
   const problem = optionProblem(rest, early);

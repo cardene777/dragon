@@ -20,7 +20,7 @@
 import "./kind-use/sequence";
 import { loadCapture } from "./frame/capture-load.mjs";
 import { kindLoaded, partsOf } from "./kinds/registry";
-import { diagramKind, loadFor } from "./light-load";
+import { diagramKind, loadFor, loadReadings } from "./light-load";
 import { toModel } from "./model";
 import { drawPageBlocks, type FramedBlock } from "./page-blocks";
 import { mountDiagram } from "./player";
@@ -45,11 +45,12 @@ function addFontLinks(doc: Document): void {
 
 /**
  * 塊の記法を描く前に、描くのに要る部品を読む。構成図の塊の時は、構成図の並べ方の登録の file も後から読む (#3782)。
- * 構成図を後から読むのはこの入口だけで、軽い入口と共に使う読む処理 (`light-load.ts`) には置かない (理由はそちらの file の頭に在る)
+ * 構成図を後から読むのはこの入口だけで、軽い入口と共に使う読む処理 (`light-load.ts`) には置かない (理由はそちらの file の頭に在る)。
+ * HTMLの形の図 (#3908) から読んだ原本は、記法へ書き戻す前に書き戻すのに要る読み方だけを読み、原本の形の検査は読まない
  */
-async function prepare(text: string): Promise<void> {
-  const layout = diagramKind(text) === "architecture" && !kindLoaded("architecture") ? import("./kind-use/architecture") : undefined;
-  await Promise.all([loadFor(text), layout]);
+async function prepare(source: string | object): Promise<void> {
+  const layout = diagramKind(source) === "architecture" && !kindLoaded("architecture") ? import("./kind-use/architecture") : undefined;
+  await Promise.all([typeof source === "string" ? loadFor(source) : loadReadings(source), layout]);
 }
 
 addFontLinks(document);

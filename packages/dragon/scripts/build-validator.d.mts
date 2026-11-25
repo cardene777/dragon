@@ -10,5 +10,5 @@ export declare const OUT: string;
 /** 骨組みとブロックの形の欠片を束ねた原本の形。`blocks` を渡さなければ置き場の全てのブロック */
 export declare function compose(blocks?: unknown): Record<string, unknown>;
 
-/** 書き出す 2 つの file の中身 (原本の形の JSON と、検査の関数の JS) */
-export declare function generate(blocks?: unknown): { schema: string; validator: string };
+/** 書き出す3つのfileの中身 (原本の形のJSONと、検査の関数のJSと、HTMLの形の名前の表のTS、#3908) */
+export declare function generate(blocks?: unknown): { schema: string; validator: string; vocabulary: string };

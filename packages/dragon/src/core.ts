@@ -15,3 +15,6 @@ export { readBlocks } from "./user-blocks-read";
 export { resumeFrom } from "./player";
 // 寄って追う形の SVG を画面を開かずに描く (Tracelyth #91)。置いた側が狭い枠の図の全体図の小窓と列の頭の留め方を確かめる
 export { type FollowFrame, followSvg } from "./render/draw";
+// dragonの記法とHTMLの形、Markdownの頁とHTMLの頁を相互に変換する (#3908)。名前の表と変換の処理は軽い入口と見本帳の最初の画面に入れないため、全部を持つ入口だけが出す
+export { type ConvertOptions, diagramToHtml, type FormError, htmlToDiagram, htmlToNotation, notationToHtml } from "./html-form/convert";
+export { htmlToMarkdown, markdownToHtml } from "./html-form/page";
