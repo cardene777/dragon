@@ -6,10 +6,6 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
-### Added
-
-- dragonのskillは、図を書く前に構成案を立てるようにした。題材を読み手の問いに分け、問いの型の表 (仕組み、通るか止めるか、違い、1件の進み、量) から問いごとに2〜4枚の図とそれに足す部品を選び、図を1枚ずつ書く。全ての図の種類と、札、場面、判定の表、目盛りの最小の書き方を1枚に持つ早見表を足し、図の種類の表を`SKILL.md`から早見表へ移した。説明の頁 (`layout: guide`) を書いて`dragon export`で1枚のHTMLにする手順と、図と頁を幅728pxと幅390pxで撮った画像で見て直してから渡す手順を足し、`dragon check --layout`を何も出さずに通る資料の例を2件残した。skillの中身に`cheatsheet`、`plan`、`page`、`example-library-loans`、`example-support-desk`を足し、`notation`の版を上げた (#3909)
-
 ## [0.80.0] - 2026-11-25
 
 ### Added
@@ -28,6 +24,7 @@ dragon DSL の主要変更履歴。
 - 手順の図と列の図で、最初の段の前に`gauge <名札> as <名前> [on: <箱>, limit: <上限>, unit: <単位>]`を書くと、上限のある量を棒で見せられるようにした。段の中の`set <目盛り>: <合計>`で棒が動き、書かない段は値を保つ。目盛りは`on`の箱のすぐ下に、`on`を書かない時は図の上の帯に、宣言した順に縦に積む。値が変わった段は`+40`や`−20`の札が出る。上限を超えた段は上限の位置に破線を引き、超えた分を赤で伸ばし、目盛りの下に「上限を超えた」の札を出す。札の字は`[over: <字>]`で替えられる。`limit`を書かない目盛りは値と単位だけを出す。ほかの種類の図と、`[shape: layers]`か`[shape: stairs]`の列の図は`gauge`を断る (#3880)
 - 手順の図 (`flow`) と列の図 (`lineup`) で、1つの図に場面を3つまで持てるようにした。箱と全ての場面に共通の段は1回だけ書き、`scene <名前>`と`end`の間に分かれる所から先のその場面だけの段を書き、段の中の`stop <理由>`で場面をその段で止めて理由の文を出す。1行目の`[scenes: stack]` (書かない時の既定) は場面を縦に並べ、同じ箱を全ての場面で同じ横の位置に描いて全ての場面を同時に送り、共通の段の線を灰色、場面の段の線を場面の色で描いて、分かれる所に縦の点線を引く。`[scenes: pick]`は場面の名前の釦を出し、押した場面の1段目に戻ってその場面の段だけを送る。印刷するとどちらも全ての場面を最後の段まで進めて縦に並べ、`[note: pop]`の札は押した場面の箱のすぐ下に開く。4つ目の`scene`、`stack`と`pick`の外の`scenes`の値、ほかの図の種類の`scene`、`scene`の外の段の`stop`、`end`で閉じない`scene`は、行を名指して断る。原本のJSONは根の`scenes`に見せ方と場面を持ち、`renderDiagram`の結果は場面ごとの図を`scenes`に持つ。型`DiagramScene`、`DiagramScenes`、`SceneShow`、`SceneMark`、`RenderedScene`も入口から出す。場面を描く処理と再生の部品は手順の図と列の図の部品と一緒に後から読み、最初に読む量を増やさない (#3878)
 - 図と頁を最初からHTMLで書けるようにした。記法の1行を1つの要素にし、図を`<dg-<種類>>`で包む。要素と属性の名前は原本のJSONの欄の名前から作り、大文字を含む欄は`label-side`のように`-`でつないだ小文字の属性にする。`dragon convert`の命令と、`notationToHtml`、`htmlToNotation`、`htmlToDiagram`、`diagramToHtml`、`markdownToHtml`、`htmlToMarkdown`の関数が、記法とHTMLを相互に変換する。mdの頁は頭の行を属性に持つ`<dragon-page>`に、`##`と`###`は見出しを持つ`<section>`になり、説明の頁 (`layout: guide`) も変換できる。scriptの1行の入口はHTMLの形の図も描き、読む処理を後から読む塊に置くので、記法の塊だけの頁が最初に読む量は増えない。`dragon check`と`dragon check --layout`はHTMLのfileを読み、誤りをHTMLの行と要素の名前で出す。図の要素の`class`と`style`と`data-`で始まる属性は、頁が使う属性として原本に読まない (#3908)
+- dragonのskillは、図を書く前に構成案を立てるようにした。題材を読み手の問いに分け、問いの型の表 (仕組み、通るか止めるか、違い、1件の進み、量) から問いごとに2〜4枚の図とそれに足す部品を選び、図を1枚ずつ書く。全ての図の種類と、札、場面、判定の表、目盛りの最小の書き方を1枚に持つ早見表を足し、図の種類の表を`SKILL.md`から早見表へ移した。説明の頁 (`layout: guide`) を書いて`dragon export`で1枚のHTMLにする手順と、図と頁を幅728pxと幅390pxで撮った画像で見て直してから渡す手順を足し、`dragon check --layout`を何も出さずに通る資料の例を2件残した。skillの中身に`cheatsheet`、`plan`、`page`、`example-library-loans`、`example-support-desk`を足し、`notation`の版を上げた (#3909)
 
 ### Changed
 
