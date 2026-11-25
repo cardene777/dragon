@@ -414,12 +414,12 @@ describe("判定の表 (#3879)", () => {
       expect(diagramOf(printed), "書き戻した記法を読んだ原本").toEqual(read);
     }
     // 宣言していない規則を外れる規則に書いた原本と、規則の名札を持たない原本は断る
-    const cases = json.judge as { rules: { id?: string }[]; cases: { fails?: { rule: string }[] }[] };
-    const unknown = structuredClone(json) as typeof json & { judge: typeof cases };
+    type JudgeTable = { rules: { id?: string }[]; cases: { fails?: { rule: string }[] }[] };
+    const unknown = structuredClone(json) as typeof json & { judge: JudgeTable };
     const failing = unknown.judge.cases.find((c) => (c.fails?.length ?? 0) > 0);
     if (failing?.fails?.[0]) failing.fails[0].rule = "nowhere";
     expect(validate(unknown).ok, "宣言していない規則を外れる規則に書いた原本を受け付けた").toBe(false);
-    const nameless = structuredClone(json) as typeof json & { judge: typeof cases };
+    const nameless = structuredClone(json) as typeof json & { judge: JudgeTable };
     delete nameless.judge.rules[0]?.id;
     expect(validate(nameless).ok, "規則の名札を持たない原本を受け付けた").toBe(false);
   });
