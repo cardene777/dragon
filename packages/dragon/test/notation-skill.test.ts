@@ -10,7 +10,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
-// 判定の表 (#3879) は種類の読み方が記法を読むので、参照の囲みを読む前にその種類を登録する
+// 判定の表 (#3879) と購入の図は種類の読み方が記法を読むので、参照の囲みを読む前にその種類を登録する。購入の図の囲みは早見表が持つ (#3909)
+import "../src/kind-use/checkout";
 import "../src/kind-use/judge";
 // 資料の例の図を描いて崩れを数える (#3909)。例が載せる図の種類だけを登録する
 import "../src/kind-use/architecture";
@@ -586,14 +587,16 @@ describe("題材に合う図の種類と部品を選び、複数の図を組ん�
     expect({ step: stepMissing, page: pageMissing }, "1 枚の HTML にする手順に足りない事").toEqual({ step: [], page: [] });
   });
 
-  // 図の質を上げるため、描いた図を記法と崩れの確かめに通した後、幅 728px と幅 390px の画像で見て直してから渡させる
+  // 図の質を上げるため、描いた図を記法と崩れの確かめに通した後、幅 728px と幅 390px の画像で見て直してから渡させる。
+  // PNG の書き出しは `--width` を渡しても同じ止めた絵を撮るので、幅ごとの画像は書き出した HTML を幅を決めて撮る
   it("skill-review-exports-two-widths", () => {
-    const section = sectionWith(read(MAIN), "--width 728");
-    expect(section, "SKILL.md に幅 728px の画像に書き出す節が無い").not.toBe("");
+    const section = sectionWith(read(MAIN), "--viewport-size 728,");
+    expect(section, "SKILL.md に幅 728px の画像を撮る節が無い").not.toBe("");
     const missing = absent(section, {
       "崩れを確かめる": /dragon check --layout/u,
-      "幅 728px の画像": /dragon export \S+ --format png --width 728/u,
-      "幅 390px の画像": /dragon export \S+ --format png --width 390/u,
+      "HTML に書き出す": /dragon export \S+ --format html/u,
+      "幅 728px の画像": /npx playwright-core screenshot --viewport-size 728,\d+ /u,
+      "幅 390px の画像": /npx playwright-core screenshot --viewport-size 390,\d+ /u,
       "崩れを直す": /\bbreaks\b/u,
       "字のはみ出しを直す": /text that sticks out/u,
       "薄い説明を直す": /thin explanations/u,
