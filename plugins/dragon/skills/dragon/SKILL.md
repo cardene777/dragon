@@ -47,6 +47,7 @@ Pick the kind from what the user wants to explain, then read [notation](referenc
 | `matrix` | Items sorted into four areas by two measures: priorities, risks, choosing between options | [matrix](references/kinds/matrix.md) |
 | `venn` | How two or three groups overlap and how many fall in each region: how a wallet is used, hobbies, skills | [venn](references/kinds/venn.md) |
 | `sankey` | Where one amount goes and how much goes to each place: a token allocation, a fee split, where a salary goes | [sankey](references/kinds/sankey.md) |
+| `judge` | Cases checked rule by rule with ✓ and ✕, each getting a pass or block verdict: transfers a wallet blocks, refused sign-ups | [judge](references/kinds/judge.md) |
 | `cards` | Who holds which card and how much, as cards are made, deleted, moved and refused: notes spent in a transfer, tickets changing hands, books a club lends | [cards](references/kinds/cards.md) |
 
 When two kinds fit, follow what moves: messages between parties (`sequence`), things flowing between places (`architecture`), one thing changing state (`state`), money and values inside one transaction (`pipe`), how big items are next to each other (`chart`), one case going down a procedure past choices (`flow`), the same steps coming round again (`cycle`), ideas growing out of one topic (`mind`), one value looked up across tables by keys (`er`), items sorted by two measures (`matrix`), how many fall in two or three overlapping groups (`venn`), how one amount splits into where it goes (`sankey`), who holds which card as cards change hands (`cards`).
@@ -176,7 +177,7 @@ Read [blocks](references/blocks.md). It also covers how to offer a reusable bloc
 
 Other skills follow this skill's files through musubi, by the content names in `musubi.json`.
 The contents `notation`, `embed`, `layout`, `blocks`, and `setup` are the files of the same name linked above.
-Each kind is a content named after it, and its file is the one in the table in step 2: `architecture`, `cards`, `chart`, `checkout`, `cycle`, `er`, `flow`, `git`, `lineup`, `matrix`, `mind`, `pipe`, `sankey`, `sequence`, `state`, `time`, `tree`, `try`, and `venn`.
+Each kind is a content named after it, and its file is the one in the table in step 2: `architecture`, `cards`, `chart`, `checkout`, `cycle`, `er`, `flow`, `git`, `judge`, `lineup`, `matrix`, `mind`, `pipe`, `sankey`, `sequence`, `state`, `time`, `tree`, `try`, and `venn`.
 
 ## Common mistakes
 

@@ -151,6 +151,9 @@ Select a kind to read how to write it.
 <tr>
 <td align="center"><a href="packages/dragon/examples/quick-start.en.md#checkout-diagram">Checkout diagram</a><br>A purchase model the reader can change</td>
 </tr>
+<tr>
+<td align="center"><a href="packages/dragon/examples/quick-start.en.md#judge-table">Judge table</a><br>A table that checks each case against the rules</td>
+</tr>
 </table>
 
 ## What it does
@@ -160,7 +163,7 @@ Select a kind to read how to write it.
 | Source | JSON with a skeleton of kind, title, and steps, and a field for each block name (`blocks`). It carries a format version, and older versions are converted when read |
 | Notation | The dragon notation. The first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
-| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, owner card diagram, checkout diagram |
+| Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, owner card diagram, checkout diagram, judge table |
 | Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
 
 ## Notation

@@ -1116,9 +1116,12 @@ export function renderLayout(
   // 止めて置く図 (#3801) は、最後の段の止め絵の時刻と、頁が暗い時の色味を渡す
   const figure: StillFigure | undefined =
     options.figure === true ? { at: timeline.stills[timeline.steps.length - 1] ?? 0, dark: paletteOf(options, "dark") } : undefined;
-  const drawn = drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes, figure);
+  // HTML で描く種類 (判定の表、#3879) は SVG を描かず、種類の部品が HTML の字を返す。字を記録しないので、重なりと崩れも数えない
+  const html = partsOf(layout.kind)?.html;
   // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない
-  const svg = drawLines(drawn, options.line, options.lang ?? DEFAULT_LANG);
+  const svg = html
+    ? html.markup(layout, palette, theme)
+    : drawLines(drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes, figure), options.line, options.lang ?? DEFAULT_LANG);
   // 箱の札を種類の部品の組が描く図の種類 (時間軸の図と列の図) は、崩れの確かめも共通の描き方が箱の札を描いた図の種類の箱だけを見る
   const carded = partsOf(layout.kind)?.ownBoxes ? [] : layout.boxes.filter((box) => !box.ghost);
   const breaks = options.findBreaks?.({

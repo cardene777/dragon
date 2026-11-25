@@ -7,6 +7,7 @@
  * 1行だけに書いた `![名前](path)` は、呼ぶ側 (`include`) が文字のfileの中身を返せばそれを載せ、返さなければ画像にする。
  *
  * mdに書いたHTMLのタグは字のまま出し、頁の要素にしない。書いた人の外から渡ったmdが頁で script を動かさないため。
+ * 説明の頁 (`layout: guide`、#3876) だけは、`<details>` と `<summary>` の行を確かめる問いとして読む (`quiz`)。ほかのタグは字のまま出す。
  * link と画像の行き先は、`http:` と `https:` と `mailto:` と頁の中の場所と相対の path だけを受け、ほかの形 (`javascript:` など) は字にする。
  */
 
@@ -31,6 +32,22 @@ export interface RenderHooks {
   alerts: Readonly<Record<AlertKind, string>>;
   /** 頭に `note: pop` を書いた頁 (#3877)。図の塊に `data-note="pop"` を付け、1 行目に `note` を書かない図を札で見せる */
   note?: "pop";
+  /** link の HTML を呼ぶ側が決める (#3876)。`label` は link の字の HTML。今の link のまま出す時は `undefined` */
+  link?(href: string, label: string): string | undefined;
+  /** 説明の頁 (#3876)。渡した時だけ `<details>` と `<summary>` の行を確かめる問いにする */
+  quiz?: QuizHooks;
+}
+
+/** 確かめる問いに書く字と、答えの要素に配る番号 */
+export interface QuizHooks {
+  /** 確かめる問いの枠の見出し */
+  heading: string;
+  /** 答えを開く釦の字 */
+  show: string;
+  /** 答えを隠す釦の字 */
+  hide: string;
+  /** 頁の中で重ならない番号 */
+  next(): number;
 }
 
 /** HTMLの字と属性の値として書けるよう逃がす */
@@ -48,6 +65,12 @@ const LIST = /^( *)([-*+]|\d{1,9}[.)])( +|$)(.*)$/u;
 const ALERT = /^\[!(note|tip|important|warning|caution)\][ \t]*(.*)$/iu;
 const INCLUDE = /^ {0,3}!\[([^\]]*)\]\(\s*<?([^\s<>()]+)>?\s*\)\s*$/u;
 const DELIMITER = /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/u;
+/** 確かめる問いの開きの行。同じ行に `<summary>` を書いてもよい */
+const DETAILS = /^ {0,3}<details>\s*(?:<summary>(.*)<\/summary>\s*)?$/iu;
+const SUMMARY = /^ {0,3}<summary>(.*)<\/summary>\s*$/iu;
+const DETAILS_END = /^ {0,3}<\/details>\s*$/iu;
+/** 字の中の link。画像 (`![`) は数えない */
+const LINK = /(?<!!)\[([^\]]+)\]\(\s*<?([^\s<>()]+)>?(?:\s+"[^"]*")?\s*\)/gu;
 /** 仮名と漢字と全角の約物。段落の改行をこれらの字の間では詰め、ほかの字の間では空白にする */
 const WIDE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u30fc\u3000-\u303f\uff00-\uffef]/u;
 
@@ -72,6 +95,22 @@ export function headingOf(text: string): { level: number; text: string } | undef
   if (!found) return undefined;
   return { level: (found[1] ?? "").length, text: (found[2] ?? "").replace(/\s+#+$/u, "").trim() };
 }
+
+/** 引用の行なら、`>` の後ろの字 */
+export const quoteOf = (text: string): string | undefined => QUOTE.exec(text)?.[1];
+
+/** 引用の 1 行目が GitHub の注意書き (`[!NOTE]` など) か */
+export const isAlert = (text: string): boolean => ALERT.test(text);
+
+/** 1 行だけに書いた `![名前](path)` なら、名前と path */
+export function includeOf(text: string): { name: string; target: string } | undefined {
+  const found = INCLUDE.exec(text);
+  return found ? { name: found[1] ?? "", target: found[2] ?? "" } : undefined;
+}
+
+/** 行の中の link の字と行き先。code の中の link は数えない */
+export const linksIn = (text: string): { label: string; href: string }[] =>
+  [...text.replace(/(`+)[\s\S]*?\1/gu, "").matchAll(LINK)].map((found) => ({ label: found[1] ?? "", href: found[2] ?? "" }));
 
 /** 段落と箇条書きの続きにならない、別の塊を始める行か */
 const startsBlock = (text: string): boolean => fenceOpen(text) !== undefined || headingOf(text) !== undefined || RULE.test(text) || QUOTE.test(text) || LIST.test(text);
@@ -131,7 +170,7 @@ export function joinLines(lines: readonly string[]): string {
  * 字の中の書き方をHTMLにする。code の中は書き方を読まない。
  * 置き換えた所は印 (`\uE000<番号>\uE000`) にして並びに預け、ほかの置き換えが中を読まないようにし、最後に戻す
  */
-export function renderInline(text: string, hooks?: Pick<RenderHooks, "image">): string {
+export function renderInline(text: string, hooks?: Pick<RenderHooks, "image" | "link">): string {
   const slots: string[] = [];
   const hold = (html: string): string => `\uE000${slots.push(html) - 1}\uE000`;
   const pass = (source: string, links: boolean): string => {
@@ -145,6 +184,8 @@ export function renderInline(text: string, hooks?: Pick<RenderHooks, "image">): 
     if (links) {
       s = s.replace(/\[([^\]]+)\]\(\s*<?([^\s<>()]+)>?(?:\s+"([^"]*)")?\s*\)/gu, (whole: string, label: string, href: string, title?: string) => {
         if (!safeUrl(href)) return hold(escapeHtml(whole));
+        const custom = hooks?.link?.(href, pass(label, false));
+        if (custom !== undefined) return hold(custom);
         const outside = /^https?:/iu.test(href) ? ' target="_blank" rel="noopener"' : "";
         return hold(`<a href="${escapeHtml(href)}"${title ? ` title="${escapeHtml(title)}"` : ""}${outside}>${pass(label, false)}</a>`);
       });
@@ -242,6 +283,56 @@ function readList(lines: readonly Line[], start: number): { ordered: boolean; fi
   return { ordered, first, items, next: i };
 }
 
+/**
+ * `start` から始まる `<details>` の塊を読み、問いと答えの行と、次に読む行の番号を返す。
+ * `<summary>` の行か `</details>` の行を持たない塊は問いと読まず、今どおり字のまま出す
+ */
+function readQuiz(lines: readonly Line[], start: number): { question: string; body: Line[]; next: number } | undefined {
+  const open = DETAILS.exec(lines[start]?.text ?? "");
+  if (!open) return undefined;
+  let i = start + 1;
+  let question: string | undefined = open[1];
+  if (question === undefined) {
+    while (i < lines.length && blank(lines[i]?.text ?? "")) i++;
+    question = SUMMARY.exec(lines[i]?.text ?? "")?.[1];
+    if (question === undefined) return undefined;
+    i++;
+  }
+  const body: Line[] = [];
+  let fence: string | undefined;
+  for (; i < lines.length; i++) {
+    const row = lines[i] as Line;
+    if (fence === undefined && DETAILS_END.test(row.text)) return { question: question.trim(), body, next: i + 1 };
+    if (fence !== undefined) {
+      if (fenceCloses(row.text, fence)) fence = undefined;
+    } else fence = fenceOpen(row.text)?.mark;
+    body.push(row);
+  }
+  return undefined;
+}
+
+/** 続けて書いた `<details>` の塊を 1 つの確かめる問いの枠にする。読めなければ `undefined` */
+function quizHtml(lines: readonly Line[], start: number, hooks: RenderHooks & { quiz: QuizHooks }): { html: string; next: number } | undefined {
+  const rows: string[] = [];
+  let i = start;
+  for (;;) {
+    const quiz = readQuiz(lines, i);
+    if (!quiz) break;
+    const n = hooks.quiz.next();
+    rows.push(
+      `<div class="pg-q"><p class="pg-q-text">${renderInline(quiz.question, hooks)}</p>` +
+        `<button type="button" class="pg-q-btn" aria-expanded="false" aria-controls="Q-${n}" data-show="${escapeHtml(hooks.quiz.show)}" data-hide="${escapeHtml(hooks.quiz.hide)}">${escapeHtml(hooks.quiz.show)}</button>` +
+        `<div class="pg-q-a" id="Q-${n}" hidden>${renderBlocks(quiz.body, hooks)}</div></div>`,
+    );
+    i = quiz.next;
+    let j = i;
+    while (j < lines.length && blank(lines[j]?.text ?? "")) j++;
+    if (!DETAILS.test(lines[j]?.text ?? "")) break;
+    i = j;
+  }
+  return rows.length === 0 ? undefined : { html: `<div class="pg-quiz"><p class="pg-quiz-h">${escapeHtml(hooks.quiz.heading)}</p>${rows.join("")}</div>`, next: i };
+}
+
 /** mdの行の並びをHTMLにする */
 export function renderBlocks(lines: readonly Line[], hooks: RenderHooks): string {
   const out: string[] = [];
@@ -250,6 +341,12 @@ export function renderBlocks(lines: readonly Line[], hooks: RenderHooks): string
     const { text, line } = lines[i] as Line;
     if (blank(text)) {
       i++;
+      continue;
+    }
+    const quiz = hooks.quiz && DETAILS.test(text) ? quizHtml(lines, i, { ...hooks, quiz: hooks.quiz }) : undefined;
+    if (quiz) {
+      out.push(quiz.html);
+      i = quiz.next;
       continue;
     }
     const fence = fenceOpen(text);

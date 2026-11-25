@@ -14,6 +14,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { atLoad } from "./at-load";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed, runCli } from "./export-support";
+import { HTML_KINDS } from "./html-kinds";
 import { draw, type Player, type Rendered, type RenderOptions } from "./render-support";
 
 const ROOT = process.cwd();
@@ -63,6 +64,8 @@ function samples(): Sample[] {
   const byKind = new Map<string, string>();
   for (const name of readdirSync(EXAMPLES).filter((f) => f.endsWith(".dragon") && !f.endsWith(".en.dragon")).sort()) {
     const word = kindWord(readFileSync(join(EXAMPLES, name), "utf8"));
+    // HTML の表で描く種類 (判定の表、#3879) は SVG の線と字を持たず、手描きの線で揺らす形が無いので外す
+    if (HTML_KINDS.includes(word)) continue;
     if (!byKind.has(word)) byKind.set(word, join(EXAMPLES, name));
   }
   const picked = [...byKind.values()].map((file) => {

@@ -7,6 +7,7 @@ import { kind as cycleKind } from "./cycle/kind";
 import { kind as erKind } from "./er/kind";
 import { kind as flowKind } from "./flow/kind";
 import { kind as gitKind } from "./git/kind";
+import { kind as judgeKind } from "./judge/kind";
 import { kind as lineupKind } from "./lineup/kind";
 import { kind as matrixKind } from "./matrix/kind";
 import { kind as mindKind } from "./mind/kind";
@@ -29,6 +30,7 @@ export const KIND_FOLDERS = {
   "er": erKind,
   "flow": flowKind,
   "git": gitKind,
+  "judge": judgeKind,
   "lineup": lineupKind,
   "matrix": matrixKind,
   "mind": mindKind,

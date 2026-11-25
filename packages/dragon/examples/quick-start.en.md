@@ -2136,3 +2136,36 @@ step Bob tries to send 500
 ### Checkout diagram
 
 Start with `checkout <title>` to draw a checkout diagram, a purchase model the reader can change. Its blocks for parties, order flow, product, delivery, budget, approval, payment, order, and scenarios are described in [`src/checkout/README.md`](https://github.com/cardene777/dragon/blob/main/packages/dragon/src/checkout/README.md). The examples are the `examples/purchase-*.en.dragon` files.
+
+### Judge table
+
+Start with `judge <title>` to draw a judge table.
+Cases go in rows and rules go in columns.
+Each step checks one rule column with ✓ and ✕, and the last step shows the verdict of each row.
+The table is an HTML table, so its text never shrinks.
+A table wider than its frame scrolls sideways and keeps the case column on the left.
+
+- `rule <id> as <name> [value: <value>]` is a column rule. Write the rules before the first `case`. The heading shows the rule number, name, and value
+- `case <name> [note: <note>]` is a row case, listed from the top in the order written. The note appears under the case name
+- `fail <rule>: <failed value>` under a case names a rule that the case fails. Only those cells get ✕ and the failed value, and the other cells get ✓
+- dragon does not compare values. It shows only the failures you write
+- A case with a failed rule gets the verdict `block`, with the numbers and names of the failed rules under it. A case with none gets `pass`
+- `[stop]` on a `fail` line leaves the later columns of that case unchecked, shown as "—"
+- `[pass: <word>, block: <word>]` on the first line replaces the verdict words. Without it, English pages show `pass` and `block`, and Japanese pages show their own words
+- Playing checks one rule column per step, and the last step shows the verdicts. Printing fills every cell and verdict
+- The reader refuses a `fail` for an undeclared rule, a rule failed twice in one case, a `fail` before the first `case`, and a table without rules or cases. Each error names its line
+
+```dragon
+judge Which transfers to block
+
+rule chain as Chain [value: USDC on 31337]
+rule to as Recipient [value: 0x2222…]
+rule once as Per transfer [value: up to 30]
+
+case 20 USDC to 0x2222… [note: first of the day]
+case 35 USDC to 0x9999… [note: wrong recipient and amount]
+  fail to: 0x9999
+  fail once: 35
+case Unreadable Tx [note: unknown action]
+  fail chain: ? [stop]
+```

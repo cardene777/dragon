@@ -12,6 +12,8 @@ import { api, exampleText, type LineError, type Parsed } from "./diagram-support
 import type {} from "./all-kinds";
 import "../src/kind-use/flow";
 import "../src/kind-use/git";
+// 記法の手引きの判定の表の囲み (#3879) は、判定の表の読み方で読む
+import "../src/kind-use/judge";
 import "../src/kind-use/sequence";
 import "../src/kind-use/state";
 import "../src/kind-use/time";

@@ -1,0 +1,124 @@
+{
+  "version": 2,
+  "kind": "judge",
+  "title": "どの送金を止めるのか",
+  "judge": {
+    "rules": [
+      {
+        "id": "chain",
+        "name": "チェーン",
+        "value": "31337のUSDC"
+      },
+      {
+        "id": "to",
+        "name": "宛先",
+        "value": "0x2222…"
+      },
+      {
+        "id": "once",
+        "name": "1回",
+        "value": "30まで"
+      },
+      {
+        "id": "day",
+        "name": "1日",
+        "value": "計100まで"
+      },
+      {
+        "id": "until",
+        "name": "期限",
+        "value": "12/31まで"
+      }
+    ],
+    "cases": [
+      {
+        "name": "0x2222…へ20 USDC",
+        "note": "11/24 その日1件目"
+      },
+      {
+        "name": "0x9999…へ20 USDC",
+        "note": "11/24 宛先が違う",
+        "fails": [
+          {
+            "rule": "to",
+            "value": "0x9999"
+          }
+        ]
+      },
+      {
+        "name": "0x2222…へ35 USDC",
+        "note": "11/24 額が大きい",
+        "fails": [
+          {
+            "rule": "once",
+            "value": "35"
+          }
+        ]
+      },
+      {
+        "name": "0x2222…へ20 USDC",
+        "note": "11/24 その日6件目",
+        "fails": [
+          {
+            "rule": "day",
+            "value": "計120"
+          }
+        ]
+      },
+      {
+        "name": "0x2222…へ20 USDC",
+        "note": "2027/1/5 期限の後",
+        "fails": [
+          {
+            "rule": "until",
+            "value": "1/5"
+          }
+        ]
+      },
+      {
+        "name": "読み解けないTx",
+        "note": "何をするか分からない",
+        "fails": [
+          {
+            "rule": "chain",
+            "value": "?",
+            "stop": true
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": {},
+  "steps": [
+    {
+      "title": "チェーン",
+      "body": "31337のUSDC",
+      "events": []
+    },
+    {
+      "title": "宛先",
+      "body": "0x2222…",
+      "events": []
+    },
+    {
+      "title": "1回",
+      "body": "30まで",
+      "events": []
+    },
+    {
+      "title": "1日",
+      "body": "計100まで",
+      "events": []
+    },
+    {
+      "title": "期限",
+      "body": "12/31まで",
+      "events": []
+    },
+    {
+      "title": "どの送金を止めるのか",
+      "body": "どの送金を止めるのか",
+      "events": []
+    }
+  ]
+}

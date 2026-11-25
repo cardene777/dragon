@@ -9,14 +9,18 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "vitest";
+import { drawnAsHtml } from "./html-kinds";
 import { draw, type Theme } from "./render-support";
 // 全ての種類の見本を描くので、全ての種類を読む (#3763)
 import "./all-kinds";
 
 export const EXAMPLES = join(process.cwd(), "packages/dragon/examples");
-/** 確かめる見本。英語の見本は日本語の見本と同じ線を、字の言葉だけ替えて描くので外す (#3381) */
+/**
+ * 確かめる見本。英語の見本は日本語の見本と同じ線を、字の言葉だけ替えて描くので外す (#3381)。
+ * HTML の表で描く種類 (判定の表、#3879) は SVG の線を持たないので外す
+ */
 export const FILES = readdirSync(EXAMPLES)
-  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"))
+  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json") && !drawnAsHtml(join(EXAMPLES, file)))
   .sort();
 export const THEMES: readonly Theme[] = ["light", "dark"];
 /** 角を落とさない色味 */

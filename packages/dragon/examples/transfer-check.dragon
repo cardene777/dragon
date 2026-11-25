@@ -1,0 +1,21 @@
+// 送金の決まりを列に、試す送金を行に並べ、決まりを1つずつ照らしてどの送金を止めるかを出す。
+// 外れる送金の下に、外れた決まりと値を書く。
+judge どの送金を止めるのか
+
+rule chain as チェーン [value: 31337のUSDC]
+rule to as 宛先 [value: 0x2222…]
+rule once as 1回 [value: 30まで]
+rule day as 1日 [value: 計100まで]
+rule until as 期限 [value: 12/31まで]
+
+case 0x2222…へ20 USDC [note: 11/24 その日1件目]
+case 0x9999…へ20 USDC [note: 11/24 宛先が違う]
+  fail to: 0x9999
+case 0x2222…へ35 USDC [note: 11/24 額が大きい]
+  fail once: 35
+case 0x2222…へ20 USDC [note: 11/24 その日6件目]
+  fail day: 計120
+case 0x2222…へ20 USDC [note: 2027/1/5 期限の後]
+  fail until: 1/5
+case 読み解けないTx [note: 何をするか分からない]
+  fail chain: ? [stop]

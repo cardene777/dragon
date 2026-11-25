@@ -1,0 +1,18 @@
+// Put the refund rules in columns and the returned items in rows, check the rules one by one, and show which refunds to accept.
+// The verdict words are accept and refuse, and a return with no receipt is not checked past it.
+judge Which refunds to accept [pass: accept, block: refuse]
+
+rule receipt as Receipt [value: has one]
+rule days as Period [value: within 30 days]
+rule used as Condition [value: not used]
+rule item as Item [value: can be returned]
+
+case Shoes [note: bought 3 days ago]
+case Shirt [note: worn and washed]
+  fail used: washed
+case Underwear [note: bought 5 days ago]
+  fail item: hygiene item
+case Bag [note: lost the receipt]
+  fail receipt: none [stop]
+case Watch [note: bought 45 days ago]
+  fail days: 45 days

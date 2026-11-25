@@ -324,6 +324,37 @@ export const LOOK = {
     shadow: 24,
     shadowMix: 22,
   },
+  /**
+   * 判定の表 (#3879) の HTML の表の寸法 (px)。字は縮めずにこの大きさで描くので、どの字も読める大きさ (`READABLE_PX`) を下回らない。
+   * `text` は表の字、`caseName` は例の名前の字、`small` は規則の値と添え書きと外れた値と外れた規則の字、`verdict` は判定の語の字、
+   * `no` は規則の番号の字、`whyNo` は外れた規則の番号の字、`dash` は照らせない「—」の字。
+   * `padY` と `padX` はセルの内側の余白、`radius` は表の枠の角の丸み、`line` は枠と区切りの線の太さ、`icon` は✓と✕の升の縦横、`mark` は印のセルの幅の下限。
+   * `badge` と `badgeX` と `badgeGap` は規則の番号の丸の高さと左右の余白と名前との間、`whyBadge` と `whyGap` は外れた規則の番号の丸の高さと名前との間。
+   * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み
+   */
+  judge: {
+    text: 14,
+    caseName: 13.5,
+    small: 12,
+    no: 12,
+    whyNo: 11,
+    verdict: 13,
+    dash: 16,
+    padY: 8,
+    padX: 10,
+    radius: 10,
+    icon: 20,
+    badge: 20,
+    badgeX: 5,
+    badgeGap: 5,
+    whyBadge: 18,
+    whyGap: 2,
+    pillY: 3,
+    pillX: 12,
+    pill: 999,
+    mark: 28,
+    line: 1,
+  },
   region: {
     pad: 18,
     gap: 10,

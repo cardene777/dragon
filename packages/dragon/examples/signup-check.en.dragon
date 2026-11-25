@@ -1,0 +1,17 @@
+// Put the sign-up rules in columns and the sign-up forms in rows, check the rules one by one, and show which forms to refuse.
+// Under a failing form, write the rule it fails and the value typed in.
+judge Which sign-ups to refuse
+
+rule mail as Email [value: has @]
+rule pw as Password [value: 8 or more letters]
+rule age as Age [value: 13 or over]
+rule terms as Terms [value: agreed]
+
+case Sato [note: everything filled in]
+case Suzuki [note: short password]
+  fail pw: 5 letters
+case Takahashi [note: typo in the email]
+  fail mail: takahashi.example.jp
+case Tanaka [note: 12 and did not agree]
+  fail age: 12
+  fail terms: not agreed
