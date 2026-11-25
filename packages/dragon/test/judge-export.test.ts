@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
+import { atLoad } from "./at-load";
 import { formatOf } from "./export-support";
 import prepare, {
   FILMED,
@@ -21,10 +22,56 @@ import prepare, {
   type Settled,
   STEPPED,
 } from "./judge-export.prepare";
+import { fileChromium } from "./page-needs";
 import { prepared } from "./prepared";
 
 /** 準備の段が書き出した結果 */
 const done = (): Awaited<ReturnType<typeof prepare>> => prepared(import.meta.url);
+
+/** GIF を file で 1 つの Chromium (#3424) の `ImageDecoder` で読み戻し、`indexes` 番目のコマを重ねて描き終えた絵で返す */
+async function gifFrames(gif: Buffer, indexes: number[]): Promise<GifShot[]> {
+  const context = await (await fileChromium()).newContext();
+  try {
+    const page = await context.newPage();
+    await page.route("http://localhost/**", (route) =>
+      new URL(route.request().url()).pathname === "/film.gif"
+        ? route.fulfill({ contentType: "image/gif", body: gif })
+        : route.fulfill({ contentType: "text/html", body: "<!doctype html><p>gif</p>" }),
+    );
+    await page.goto("http://localhost/");
+    const shots = await page.evaluate(async (indexes) => {
+      const data = await (await fetch("/film.gif")).arrayBuffer();
+      const decoder = new ImageDecoder({ data, type: "image/gif" });
+      await decoder.tracks.ready;
+      const out: { width: number; height: number; rgba: string }[] = [];
+      for (const frameIndex of indexes) {
+        const { image } = await decoder.decode({ frameIndex });
+        const canvas = new OffscreenCanvas(image.displayWidth, image.displayHeight);
+        const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+        context.drawImage(image, 0, 0);
+        image.close();
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let text = "";
+        for (let i = 0; i < pixels.length; i += 0x8000)
+          text += String.fromCharCode(...pixels.subarray(i, i + 0x8000));
+        out.push({ width: canvas.width, height: canvas.height, rgba: btoa(text) });
+      }
+      return out;
+    }, indexes);
+    return shots;
+  } finally {
+    await context.close();
+  }
+}
+
+/** 命令で書き出した GIF の最初のコマと、最後の段の止め絵の時刻のコマ。頁を開く仕事なので件の中でなく読み込む段で読む (#3940) */
+const FRAMES = await atLoad("GIF のコマを読み戻す", async () => {
+  const film = done().film;
+  const gif = film.ok ? film.value.gif : undefined;
+  if (!gif) return undefined;
+  const [first, last] = await gifFrames(readFileSync(gif.path), [0, gif.lastIndex]);
+  return first && last ? { first, last, lastIndex: gif.lastIndex } : undefined;
+});
 
 /** 撮る画素の細かさ (CSS の 1px あたりの画素)。書き出しの `FILM_SCALE` */
 const SCALE = 2;
@@ -266,12 +313,13 @@ describe("判定の表の命令の書き出しと動画 (#3923)", () => {
 
   it("judge-film-lights-columns-by-step", () => {
     const film = value(done().film, `${FILMED} の命令の書き出し`);
-    expect(film.frames, `GIF のコマを読めない: ${film.ran.stderr}`).toBeDefined();
-    if (!film.frames) return;
+    const frames = FRAMES.get();
+    expect(frames, `GIF のコマを読めない: ${film.ran.stderr}`).toBeDefined();
+    if (!frames) return;
     const facts = factsOf(FILMED);
     const whole = readPng(value(done().pngs[FILMED], FILMED));
-    const first = fromGif(film.frames.first);
-    const last = fromGif(film.frames.last);
+    const first = fromGif(frames.first);
+    const last = fromGif(frames.last);
     // GIF は CSS の 1px を 1 画素で撮り、PNG は 2 画素で撮る
     expect([first.width * SCALE, first.height * SCALE], "GIF のコマの大きさの 2 倍").toEqual([
       whole.width,
@@ -288,7 +336,7 @@ describe("判定の表の命令の書き出しと動画 (#3923)", () => {
     expect(vivid(first, box), "最初のコマの判定の札の所の色の濃い画素").toBe(0);
     expect(
       vivid(last, box),
-      `${film.frames.lastIndex} 番目のコマ (最後の段) の判定の札の所の色の濃い画素`,
+      `${frames.lastIndex} 番目のコマ (最後の段) の判定の札の所の色の濃い画素`,
     ).toBeGreaterThan(0);
   });
 });
