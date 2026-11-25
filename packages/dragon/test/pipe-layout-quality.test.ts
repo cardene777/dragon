@@ -1145,7 +1145,7 @@ interface CallPipe {
   points: Point[];
 }
 type GapTag = CallTag & { call: number };
-type GapLayout = TagLayout & { calls?: CallPipe[]; callTags?: GapTag[] };
+type GapLayout = Omit<TagLayout, "callTags"> & { calls?: CallPipe[]; callTags?: GapTag[] };
 /** 2 つの四角の隙間。離れる向きの隙間のうち最も大きい値で、重なる時は負になる */
 const gapOf = (a: Rect, b: Rect): number => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
 const rounded = (r: Rect): number[] => [r.x, r.y, r.w, r.h].map(Math.round);
@@ -1247,10 +1247,10 @@ step トランザクションが成功する
   return diamond: ok
 `;
 // 図は file を読み込む段で描き、件は描いた物を読む (#3738)
-const DIAMOND = await atLoad("Diamond.diamondCut の図を描く", () => {
+const DIAMOND = await atLoad<GapLayout>("Diamond.diamondCut の図を描く", () => {
   const parsed = api.parseNotation(DIAMOND_CUT, { lang: "ja" });
   if (!parsed.ok) throw new Error(`Diamond.diamondCut を読めない: ${parsed.errors.map((e) => `${e.line}行目 ${e.message}`).join(" / ")}`);
-  return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout as GapLayout;
+  return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout;
 });
 const diamondTag = (): GapTag => {
   const tag = (DIAMOND.get().callTags ?? []).find((t) => t.from === "diamond" && t.to === "cut");

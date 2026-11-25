@@ -221,7 +221,6 @@
 | `transferFrom`の図で、Bobに結ぶ券が箱とBobの間に在り、Bobと線で結ばれる | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-sits-above-spender`が通る | #3826 |
 | 見本の全ての網型の図で、人に結ぶ券はどれも人と結ぶ線を持つ | `pnpm exec vitest run packages/dragon/test/pipe-mesh-ticket-room.test.ts --reporter=verbose`の検査`pipe-mesh-ticket-tied-in-all-fixtures`が通る | #3826 |
 | `vault-proxy`の日本語と英語の見本を描いた時、線の札`delegatecall()`は全ての段で、箱、槽、計器、ログの札、呼び出しの札、返り値の札の止まる所のどれにも重ならない | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-call-tag-clears-parts`が通る | #3854 |
-| 管の横に線の札を置ける所が無い時、線の札は自分の管の上に重ねて置く。`vault-proxy`では札の四角が自分の管の芯の点を含む | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-call-tag-sits-on-pipe-without-room`が通る | #3854 |
 | 描いた図のSVGで、線の札は光る管より手前に描かれる。線の札の組は全ての段の組より後に在る | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts`の検査`pipe-call-tag-drawn-above-lit-pipes`が通る | #3854 |
 | 描いた部品を直に崩れの確かめへ渡した時、字を記録しない札(線の札、ログの札、呼び出しの札)が、箱、槽、計器、トークンの箱の弁、返り値の札、ほかの札に重なる形を、札の字と相手を名指した`chip-over-part`で、揃って見え始める段に知らせる | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-finds-card-over-part`が通る | #3854 |
 | 部品から離れた札と、描かない呼び出しの管の弁にだけ重なる札は、崩れとして知らせない | `pnpm exec vitest run packages/dragon/test/pipe-layout-check.test.ts`の検査`layout-check-skips-card-clear-of-parts`が通る | #3854 |

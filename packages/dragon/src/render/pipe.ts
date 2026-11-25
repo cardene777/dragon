@@ -1251,6 +1251,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         ...(layout.folds ?? []),
         ...(layout.wallets ?? []),
         ...(layout.links ?? []).flatMap((l) => (l.delta ? [l.label, l.delta] : [l.label])),
+        // 線の札も避ける。並べ方の段の線の札はログの札の仮の置き場を避けないので、置き直す札が線の札から離れる (#3949)
+        ...(layout.callTags ?? []),
       ].filter((r) => r && [r.x, r.y, r.w, r.h].every((v) => Number.isFinite(v)));
       const cardsAt = (s: number): CallCard[] => (layout.callCards ?? []).filter((c) => meets(c.shown, [[spanOf(s).a, spanOf(s).b]]));
       // 横へ動かすより縦へ動かす方を少し嫌い、出した箱の生存線から離れすぎない所を先に試す
