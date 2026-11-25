@@ -152,7 +152,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --json             誤りと知らせを JSON で出す",
       "  --layout           図を描き、崩れ (丸や線の詰まり、字を横切る線、字どうしの重なり、箱の形や図の枠からのはみ出し) も段ごとに知らせる",
       "  --blocks <file>    足したブロックの定義の file を読み、その定義を図に渡して確かめる",
-      "  --lang <言葉>      命令の文の言葉 (ja か en)。既定は en",
+      "  --lang <言葉>      命令の文と、--layout で描く図の中の字の言葉 (ja か en)。無ければ命令の文は en、図の中の字は書き出しと同じく file から決める",
     ].join("\n"),
     cannotCheck: (path) => `確かめられない file: ${path} (.dragon か .md か .html の file か、標準入力の - を渡す)`,
     noBlocksFile: (path) => `足したブロックの定義の file が無い: ${path}`,
@@ -243,7 +243,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --json             Print the errors and warnings as JSON",
       "  --layout           Draw the diagram and also warn about layout breaks (crowded badges or lines, lines crossing text, overlapping texts, parts sticking out of a box shape or the diagram frame) per step",
       "  --blocks <file>    Read the block definitions in this file and check the diagrams with them",
-      "  --lang <lang>      Language of the command messages (ja or en). Defaults to en",
+      "  --lang <lang>      Language of the command messages and of the diagram text --layout draws (ja or en). Without it, messages are in en and the diagram text follows the file, as export does",
     ].join("\n"),
     cannotCheck: (path) => `Cannot check this file: ${path} (pass a .dragon, .md or .html file, or - for stdin)`,
     noBlocksFile: (path) => `No such block definitions file: ${path}`,
@@ -462,8 +462,10 @@ function check(args: string[], text: CliText): number {
   if (typeof blocks === "number") return blocks;
   if (blocks !== undefined && !blocks.ok) return report(blocks.problems, values.json === true);
   const layout = values.layout ? CLI_TEXT[lang].overlap : undefined;
+  // `--lang` の無い時は、崩れを測る図を書き出しと同じく file の言語で描く (#3943)。知らせの文は既定の英語のまま
+  const figureLang = values.lang === undefined ? { figureLang: "file" as const } : {};
   return report(
-    sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang, { ...(layout !== undefined ? { layout } : {}), ...(blocks !== undefined ? { blocks: blocks.blocks } : {}) })),
+    sources.flatMap(({ file, source, form }) => checkText(file, source, form, lang, { ...(layout !== undefined ? { layout } : {}), ...(blocks !== undefined ? { blocks: blocks.blocks } : {}), ...figureLang })),
     values.json === true,
   );
 }

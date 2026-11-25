@@ -5,6 +5,7 @@
  * Markdown の file は dragon の囲み (```dragon) だけを読み、行は囲みの中の行でなく元の file の行で返す。
  * 図の頭に定義の無い `+名前` は、読む処理と同じく共有のブロック集から引く。
  * 崩れを確かめる時 (`--layout`、#3484) だけ、誤りの無い図を描き、崩れを段を始める `step` の行の知らせとして足す。
+ * 描く図の言語は、命令が `--lang` を渡さない時、書き出しと同じく確かめる file から決める (#3943)。図の中で dragon が足す字 (始まりの札など) を、書き出す図と同じ字で測るため。
  * 注釈を除いた最初の行が `blocks` の版の行の記法は、図ではなく足したブロックの定義の file として読む (#3508)。
  * 共有のブロック集へ PR を出す前に、組み立て直していない `dragon` で定義と、定義を渡した見本を確かめるため。
  * HTMLのfile (#3908) は、HTMLの形の図 (`<dg-<種類>>`) と、記法の塊 (`<pre class="dragon">` と `<pre><code class="language-dragon">`) を読む。
@@ -21,7 +22,8 @@ import { describeBreak, diagramBreaks, stepLines } from "./render/layout-check";
 import { isBlankOrComment, tokenize } from "./tokenize";
 import { type UserBlocks, versionLine } from "./user-blocks";
 import { readBlocks } from "./user-blocks-read";
-import type { NotationLang } from "./words";
+import type { Diagram } from "./schema";
+import { hasKanaKanji, type NotationLang, textLang } from "./words";
 
 export interface Problem {
   file: string;
@@ -48,6 +50,12 @@ export interface CheckTextOptions {
   layout?: StepNote;
   /** 図の頭に書かずに渡す足したブロックの定義 (`--blocks`、#3508) */
   blocks?: UserBlocks;
+  /**
+   * 崩れを確かめる時に描く図の言語 (#3943)。渡さない時は知らせの文と同じ `lang` で描く。
+   * `"file"` は書き出しと同じく確かめる file から決める。記法の file は図の題と `say` の行 (`textLang`)、Markdown の file は本文に仮名か漢字があるか (`dragon export` の頁)、
+   * HTML の file は `<html lang>` が `ja` で始まるか (頁の中の再生の部品)
+   */
+  figureLang?: "file";
 }
 
 /** 注釈と空の行を除いた最初の行が `blocks` の版の行なら、足したブロックの定義の file (#3508)。図は最初の行に図の種類を書く */
@@ -75,12 +83,20 @@ export function checkText(file: string, text: string, form: CheckedForm, lang: N
   }
   if (form === "html") return checkHtml(file, text, lang, options);
   const pieces = form === "markdown" ? extractDiagrams(text) : [{ source: text, line: 1 }];
-  return notationProblems(file, pieces, lang, options);
+  const page: NotationLang = hasKanaKanji(text) ? "ja" : "en";
+  return notationProblems(file, pieces, lang, options, form === "markdown" ? () => page : textLang);
 }
 
-/** 記法の塊ごとの誤りと知らせ。`line` は塊の1行目のfileの行 */
-function notationProblems(file: string, pieces: readonly { source: string; line: number }[], lang: NotationLang, options: CheckTextOptions): Problem[] {
+/** 図を受けて、図を描く言語を返す形。file から決めない時は知らせの文の言語を返す */
+type DrawnLang = (diagram: Diagram) => NotationLang;
+
+/** `fromFile` は file から決める時の言語の決め方。`figureLang` を渡さない時は知らせの文と同じ `lang` で描く */
+const drawnLangOf = (options: CheckTextOptions, lang: NotationLang, fromFile: DrawnLang): DrawnLang => (options.figureLang === "file" ? fromFile : () => lang);
+
+/** 記法の塊ごとの誤りと知らせ。`line` は塊の1行目のfileの行。`fromFile` は file から決める時の図の言語の決め方 */
+function notationProblems(file: string, pieces: readonly { source: string; line: number }[], lang: NotationLang, options: CheckTextOptions, fromFile: DrawnLang): Problem[] {
   const { layout, blocks } = options;
+  const drawn = drawnLangOf(options, lang, fromFile);
   return pieces.flatMap(({ source, line }) => {
     const parsed = parseNotation(source, { lang, ...(blocks !== undefined ? { blocks } : {}) });
     const found = parsed.ok ? (parsed.notices ?? []).map((n) => ({ ...n, severity: "warning" as const })) : parsed.errors.map((e) => ({ ...e, severity: "error" as const }));
@@ -88,7 +104,7 @@ function notationProblems(file: string, pieces: readonly { source: string; line:
     if (layout === undefined || !parsed.ok) return problems;
     let breaks: LayoutBreak[];
     try {
-      breaks = diagramBreaks(parsed.diagram, lang, blocks);
+      breaks = diagramBreaks(parsed.diagram, drawn(parsed.diagram), blocks);
     } catch (error) {
       return [...problems, { file, line, column: 1, severity: "error", message: error instanceof Error ? error.message : String(error) }];
     }
@@ -118,15 +134,20 @@ function pageFigures(node: HtmlElement): ({ form: HtmlElement } | { source: stri
 /** HTMLのfileを確かめる (#3908)。HTMLの形の図は要素の行と名前で、記法の塊は塊の中の記法の行をfileの行に直して返す */
 function checkHtml(file: string, text: string, lang: NotationLang, options: CheckTextOptions): Problem[] {
   const { layout, blocks } = options;
-  return pageFigures(parseHtml(text)).flatMap((figure): Problem[] => {
-    if (!("form" in figure)) return notationProblems(file, [figure], lang, options);
+  const root = parseHtml(text);
+  // 頁の中の再生の部品と同じく、`<html lang>` が `ja` で始まる頁の図を日本語で描く (#3943)
+  const html = elementsOf(root).find((element) => element.name === "html");
+  const page: NotationLang = (attrOf(html ?? root, "lang") ?? "").toLowerCase().startsWith("ja") ? "ja" : "en";
+  const drawn = drawnLangOf(options, lang, () => page);
+  return pageFigures(root).flatMap((figure): Problem[] => {
+    if (!("form" in figure)) return notationProblems(file, [figure], lang, options, () => page);
     const read = readFigureElement(figure.form, { lang, ...(blocks !== undefined ? { blocks } : {}) });
     if (!read.ok) return read.errors.map((error) => formProblem(file, error, "error"));
     const problems = read.notices.map((notice) => formProblem(file, notice, "warning"));
     if (layout === undefined) return problems;
     let breaks: LayoutBreak[];
     try {
-      breaks = diagramBreaks(read.diagram, lang, blocks);
+      breaks = diagramBreaks(read.diagram, drawn(read.diagram), blocks);
     } catch (error) {
       return [...problems, formProblem(file, { line: read.root.line, column: read.root.column, element: read.root.name, message: error instanceof Error ? error.message : String(error) }, "error")];
     }

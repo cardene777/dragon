@@ -171,3 +171,8 @@
 | 全ての見本 (`day-hours.dragon`と`quick-start.md`の779行目の図を含む) に`dragon check --layout`と同じ検査を回した時、空の記録と合い、字どうしの重なりを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3791 |
 | 量の行き先の図の見本の日本語と英語で、既定の幅と幅390の崩れが0件で、許す重なりを1件も持たない | `pnpm exec vitest run apps/playground-spa/src/lib/sankey-examples.test.ts`の検査`sankey-examples-have-no-breaks`が通る | #3791 |
 | 届く検査が選んだ検査が全て通る | `pnpm build:packages && pnpm typecheck && pnpm test:related`が終了0 | #3791 |
+| 題と`say`の行が日本語の状態の図の記法のfileを、`--lang`を付けずに`dragon check --layout --json`にかけた時、崩れの一覧 (`layout`の欄) が`--lang ja`を付けた時と同じになる | `pnpm exec vitest run packages/dragon/test/cli-check.test.ts` check `check-layout-draws-notation-in-its-text-lang` passes | #3943 |
+| 本文が日本語のMarkdownのfileに、題と`say`の行が英語の状態の図を置き、`--lang`を付けずに`dragon check --layout --json`にかけた時、崩れの一覧が`--lang ja`を付けた時と同じになる | `pnpm exec vitest run packages/dragon/test/cli-check.test.ts` check `check-layout-draws-markdown-in-page-lang` passes | #3943 |
+| `<html lang="ja">`のHTMLのfileに、題と`say`の行が英語の状態の図を記法の塊 (`<pre class="dragon">`) で置き、`--lang`を付けずに`dragon check --layout --json`にかけた時、崩れの一覧が`--lang ja`を付けた時と同じになる | `pnpm exec vitest run packages/dragon/test/cli-check.test.ts` check `check-layout-draws-html-in-page-lang` passes | #3943 |
+| 題と`say`の行が英語の状態の図の記法のfileを、`--lang`を付けずに`dragon check --layout`にかけた時、英語の始まりの札 (`Start`) で測った崩れを英語の文で返す | `pnpm exec vitest run packages/dragon/test/cli-check.test.ts` check `check-layout-keeps-english-figures-and-text` passes | #3943 |
+| 題と`say`の行が日本語の状態の図の記法のfileを、`--lang en`を付けて`dragon check --layout`にかけた時、渡した英語で図を描いて`Start`で測った崩れを返す | `pnpm exec vitest run packages/dragon/test/cli-check.test.ts` check `check-layout-draws-in-given-lang` passes | #3943 |

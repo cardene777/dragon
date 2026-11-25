@@ -456,3 +456,122 @@ describe("定義の file と --blocks (#3508)", () => {
     expect(ja.stderr, "日本語の使い方が --blocks を挙げない").toMatch(/^\s+--blocks /mu);
   });
 });
+
+/**
+ * 脇道の線を持つ状態の図 (#3943)。題と `say` を `title` と `says` で入れ替える。
+ * 箱の下に `note` を書くと、英語の始まりの札 (`Start`) で描いた時だけ、脇道の線 CREATED → unsupported が段 1 の札を横切る
+ */
+const stateFigure = (title: string, says: readonly string[]): string =>
+  lines(
+    `state ${title}`,
+    "",
+    "box created as CREATED [note: 受付が依頼を受け取った所で、全ての依頼がここから始まる, color: slate, icon: doc]",
+    "box normalized as NORMALIZED [note: 中身を読み解き、どの品を誰にいくつ送るかが分かった所, color: blue, icon: code]",
+    "box evaluated as EVALUATED [note: 審査が判定を返した所で、通った時だけ先へ進む, color: blue, icon: check]",
+    "box simulated as SIMULATED [note: 倉庫で試しに詰め、結果を記録した所, color: blue, icon: exe]",
+    "box authorized as AUTHORIZED [note: 在庫を押さえ、控えを出した所で、送ってよいと言えるのはここからである, color: green, icon: sign]",
+    "box unsupported as UNSUPPORTED [note: 中身を安全に読み解けず、審査に渡さずに止めた所, color: rose, icon: x]",
+    "",
+    "created -> unsupported: 読めない依頼",
+    "",
+    "step 受け取る",
+    `  say ${says[0]}`,
+    "  start -> created: 依頼",
+    "",
+    "step 読み解く",
+    `  say ${says[1]}`,
+    "  created -> normalized: 読み解けた",
+    "",
+    "step 判定する",
+    `  say ${says[2]}`,
+    "  normalized -> evaluated: 判定",
+    "",
+    "step 試す",
+    `  say ${says[3]}`,
+    "  evaluated -> simulated: 通った",
+    "",
+    "step 予約する",
+    `  say ${says[4]}`,
+    "  simulated -> authorized: 押さえた",
+    "  authorized -> finish",
+  );
+/** 題と `say` が日本語の状態の図 */
+const STATE_JA = stateFigure("依頼が移る状態", [
+  "依頼を受け取り、状態はCREATEDから始まる。",
+  "中身を読めたので、NORMALIZEDへ移る。",
+  "審査が通り、EVALUATEDへ移る。",
+  "倉庫で試しに詰め、SIMULATEDへ移る。",
+  "在庫を押さえて控えを出したので、AUTHORIZEDへ移る。",
+]);
+/** 同じ図の題と `say` を英語にした物。図の言語は題と `say` で決まるので、記法の file では英語の図になる */
+const STATE_EN = stateFigure("Request states", [
+  "The request arrives and starts at CREATED.",
+  "Its contents read well, so it moves to NORMALIZED.",
+  "The review passes, so it moves to EVALUATED.",
+  "A trial packing runs, so it moves to SIMULATED.",
+  "Stock is held and a slip is issued, so it moves to AUTHORIZED.",
+]);
+const escapeHtml = (text: string): string => text.replace(/&/gu, "&amp;").replace(/</gu, "&lt;").replace(/>/gu, "&gt;");
+
+/** 確かめる file。日本語と英語の記法の file と、英語の図を置いた日本語の Markdown の頁と HTML の頁 */
+const FIGURE_FILES = await atLoad("図の言語の違う状態の図を置く", () => ({
+  notationJa: place("state-ja.dragon", STATE_JA),
+  notationEn: place("state-en.dragon", STATE_EN),
+  markdown: place("page-ja.md", lines("# 依頼の状態", "", "依頼が移る状態を図で示す。", "", "```dragon", STATE_EN.trimEnd(), "```")),
+  html: place("page-ja.html", lines("<!doctype html>", '<html lang="ja">', "<body>", '<pre class="dragon">', escapeHtml(STATE_EN).trimEnd(), "</pre>", "</body>", "</html>")),
+}));
+
+/** `--lang` を付けない時と `--lang ja` を付けた時の `--json` の崩れを比べる file と、文で読む命令の引数の組 */
+const figureArgs = (files: Record<"notationJa" | "notationEn" | "markdown" | "html", string>): string[][] => [
+  ...[files.notationJa, files.markdown, files.html].flatMap((file) => [
+    ["check", file, "--layout", "--json"],
+    ["check", file, "--layout", "--json", "--lang", "ja"],
+  ]),
+  ["check", files.notationEn, "--layout"],
+  ["check", files.notationJa, "--layout", "--lang", "en"],
+];
+
+const FIGURE_LANG_CHECKED = await atLoad("図の言語の違う状態の図を、--lang を付けずと ja と en で形まで確かめる", () => runEach(figureArgs(FIGURE_FILES.get())));
+
+/** `--json` の出力の崩れの一覧 (`layout` の欄) */
+const breaksOf = (ran: Ran): unknown[] => (JSON.parse(ran.stdout) as { layout?: unknown }[]).flatMap((found) => (found.layout === undefined ? [] : [found.layout]));
+
+/** `file` を `--lang` を付けずと `--lang ja` で確かめた `--json` の崩れ */
+function breaksByLang(name: "notationJa" | "markdown" | "html"): { none: unknown[]; ja: unknown[] } {
+  const file = FIGURE_FILES.get()[name];
+  const runs = FIGURE_LANG_CHECKED.get();
+  return {
+    none: breaksOf(ranWith(runs, ["check", file, "--layout", "--json"])),
+    ja: breaksOf(ranWith(runs, ["check", file, "--layout", "--json", "--lang", "ja"])),
+  };
+}
+
+describe("dragon check --layout が描く図の言語 (#3943)", () => {
+  it("check-layout-draws-notation-in-its-text-lang", () => {
+    const { none, ja } = breaksByLang("notationJa");
+    expect(ja, "--lang ja で崩れがある (見本の図が崩れの無い形でない)").toEqual([]);
+    expect(none, "--lang を付けない時に、日本語の図を日本語の字で描いて測らない").toEqual(ja);
+  });
+
+  it("check-layout-draws-markdown-in-page-lang", () => {
+    const { none, ja } = breaksByLang("markdown");
+    expect(none, "--lang を付けない時に、本文が日本語の頁の図を頁の言語で描いて測らない").toEqual(ja);
+  });
+
+  it("check-layout-draws-html-in-page-lang", () => {
+    const { none, ja } = breaksByLang("html");
+    expect(none, "--lang を付けない時に、<html lang=\"ja\"> の頁の図を頁の言語で描いて測らない").toEqual(ja);
+  });
+
+  it("check-layout-keeps-english-figures-and-text", () => {
+    const text = ranWith(FIGURE_LANG_CHECKED.get(), ["check", FIGURE_FILES.get().notationEn, "--layout"]);
+    expect(text.code, `英語の図の確かめが通らない ${text.stderr}`).toBe(0);
+    expect(outputLines(text.stdout), "英語の図を英語の始まりの札で測り、英語の文で返さない").toEqual([expect.stringMatching(/:\d+:1 warning Step 1: The line CREATED → unsupported crosses "Start"$/u)]);
+  });
+
+  it("check-layout-draws-in-given-lang", () => {
+    const en = ranWith(FIGURE_LANG_CHECKED.get(), ["check", FIGURE_FILES.get().notationJa, "--layout", "--lang", "en"]);
+    expect(en.code, `--lang en の確かめが通らない ${en.stderr}`).toBe(0);
+    expect(outputLines(en.stdout), "--lang en を付けた時に、日本語の図も英語の字で描いて測らない").toEqual([expect.stringMatching(/:\d+:1 warning Step 1: The line CREATED → unsupported crosses "Start"$/u)]);
+  });
+});
