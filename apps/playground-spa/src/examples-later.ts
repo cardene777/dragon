@@ -186,6 +186,14 @@ import bookClubJa from "../../../packages/dragon/examples/book-club.dragon?raw";
 import bookClubEn from "../../../packages/dragon/examples/book-club.en.dragon?raw";
 import phoneStorageJa from "../../../packages/dragon/examples/phone-storage.dragon?raw";
 import phoneStorageEn from "../../../packages/dragon/examples/phone-storage.en.dragon?raw";
+import transferCheckJa from "../../../packages/dragon/examples/transfer-check.dragon?raw";
+import transferCheckEn from "../../../packages/dragon/examples/transfer-check.en.dragon?raw";
+import signupCheckJa from "../../../packages/dragon/examples/signup-check.dragon?raw";
+import signupCheckEn from "../../../packages/dragon/examples/signup-check.en.dragon?raw";
+import refundCheckJa from "../../../packages/dragon/examples/refund-check.dragon?raw";
+import refundCheckEn from "../../../packages/dragon/examples/refund-check.en.dragon?raw";
+import airdropCheckJa from "../../../packages/dragon/examples/airdrop-check.dragon?raw";
+import airdropCheckEn from "../../../packages/dragon/examples/airdrop-check.en.dragon?raw";
 
 import type { LaterExampleKey } from "./examples";
 import type { Lang } from "./text";
@@ -280,6 +288,10 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "device-dots": { ja: deviceDotsJa, en: deviceDotsEn },
   "wallet-dots": { ja: walletDotsJa, en: walletDotsEn },
   "photo-delivery": { ja: photoDeliveryJa, en: photoDeliveryEn },
+  "transfer-check": { ja: transferCheckJa, en: transferCheckEn },
+  "signup-check": { ja: signupCheckJa, en: signupCheckEn },
+  "refund-check": { ja: refundCheckJa, en: refundCheckEn },
+  "airdrop-check": { ja: airdropCheckJa, en: airdropCheckEn },
   "note-transfer": { ja: noteTransferJa, en: noteTransferEn },
   "book-club": { ja: bookClubJa, en: bookClubEn },
 };

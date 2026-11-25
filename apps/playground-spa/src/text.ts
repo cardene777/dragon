@@ -94,34 +94,7 @@ const JA = {
       embedding: { title: "組み込みの見本" },
       "not-found": { title: "そこは、まだ書かれていない。" },
     },
-    releaseNotes: {
-      crumb: "道筋",
-      eyebrow: (version: string) => `公開の記録 · ${version} が最新`,
-      /** 見出しの終わりの差し色の語 */
-      accent: "履歴",
-      lead: "dragon の今の版を示す。版ごとの詳しい変更は GitHub 上の CHANGELOG.ja.md で読める。",
-      changelog: "変更の記録を GitHub で見る",
-    },
-    notFound: {
-      /** 見出しの頭の強める語 */
-      em: "そこは",
-      lead: (entries: number) => `お探しの頁は移動または削除されたか、そもそも存在しません。dragon の ${entries} つの入口から探してみてください。`,
-      catalog: "カタログを見る",
-      docs: "使い方を読む",
-    },
-    /** 組み込みの見本の頁 (#3701) */
-    embedding: {
-      eyebrow: "組み込み",
-      lead: "下の記法の図を、外の頁に置く4つの置き方で並べた。どの図も帯からコード、エディタ、コピー、エクスポート、拡大を使える。",
-      back: "← 使い方の組み込みの節に戻る",
-      notation: "見本の記法",
-      ways: {
-        script: { name: "scriptの1行", note: "<pre class=\"dragon\">の塊に属性data-headerを付けると、入口がその塊に帯を付ける。" },
-        npm: { name: "SDKの関数", note: "SDKの関数mountDragonが、要素に帯つきの図を置く。" },
-        element: { name: "Web Component", note: "defineDragonElementで登録した要素<dragon-diagram>が、中の字を記法として読んで図を置く。" },
-        iframe: { name: "iframe", note: "embedUrlが作った埋め込みの頁のURLを、iframeで開く。" },
-      },
-    },
+    // 更新履歴の頁と見つからない頁と組み込みの見本の頁だけが使う字は、各頁の `text.ts` が持つ (#3880)
   },
   notation: "記法",
   editor: "図の記法を書く欄",
@@ -146,7 +119,7 @@ const JA = {
     filter: "絞り込む…",
     filterLabel: "一覧を絞り込む",
     nothing: "当てはまる物が無い",
-    kinds: { checkout: "購入を試す図", sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図", matrix: "2つの軸で置く図", venn: "集合の重なりの図", sankey: "量の行き先の図", cards: "持ち主ごとのカードの図" },
+    kinds: { checkout: "購入を試す図", sequence: "時系列図", architecture: "構成図", state: "状態遷移図", git: "枝分かれの図", time: "時間軸の図", tree: "木の図", lineup: "列の図", try: "試す図", pipe: "配管の図", chart: "量の図", flow: "手順の図", cycle: "回り続ける図", mind: "考えを広げる地図", er: "表どうしの関係の図", matrix: "2つの軸で置く図", venn: "集合の重なりの図", sankey: "量の行き先の図", cards: "持ち主ごとのカードの図", judge: "判定の表" },
     partsHint: "押すと書く欄に足す。宣言の行は最初の段の前、段の中の行は最後の段に入る",
     notationHint: "行の形。書く欄の記法と同じ言葉の語で出す",
     parts: shelfTexts("ja"),

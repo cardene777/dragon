@@ -203,9 +203,15 @@ describe("カタログの部品の頁 (#3166)", () => {
     expect(PART_CASES.filter(isCommon).length, "部品の表にどの図でも使える部品が無い").toBeGreaterThan(0);
     expect(PART_CASES.filter((part) => !isCommon(part)).length, "部品の表に図の種類だけの部品が無い").toBeGreaterThan(0);
     // どの図でも使える部品は、状態遷移図と枝分かれの図と時間軸の図と木の図でも描く (#3163、#3164、#3165、#3233)。
+    // 量の目盛り (#3880) は、flow と lineup の 2 種類だけに置くと決めた部品なので、この確かめから外し、2 種類のままかを別に確かめる
+    const narrow: Readonly<Record<string, readonly Kind[]>> = { gauge: ["flow", "lineup"] };
+    for (const [id, kinds] of Object.entries(narrow)) {
+      expect([...(PART_CASES.find((part) => part.id === id)?.kinds ?? [])].sort(), `${id} を描く図の種類`).toEqual([...kinds].sort());
+    }
     for (const kind of ["state", "git", "time", "tree"] as const) {
       expect(
         PART_CASES.filter(isCommon)
+          .filter((part) => narrow[part.id] === undefined)
           .filter((part) => !part.kinds.includes(kind))
           .map((part) => part.id),
         `${kind} の図を描かない、どの図でも使える部品がある`,

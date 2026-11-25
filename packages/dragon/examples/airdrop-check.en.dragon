@@ -1,0 +1,18 @@
+// Put the airdrop rules in columns and the addresses that applied in rows, check the rules one by one, and show which addresses get nothing.
+// Under a failing address, write the rule it fails and the value of that address.
+judge Which addresses get no airdrop
+
+rule hold as Holding [value: 100 DRG or more]
+rule since as Held since [value: before Mar 1]
+rule sign as Signature [value: by the owner]
+rule once as Claim [value: not claimed yet]
+
+case 0xa1…f3 [note: 250 DRG since February]
+case 0xb2…07 [note: only 40 DRG]
+  fail hold: 40 DRG
+case 0xc3…9e [note: bought on Mar 5]
+  fail since: from Mar 5
+case 0xd4…2c [note: signed with another key]
+  fail sign: signed by 0x77…41
+case 0xa1…f3 [note: second claim from one address]
+  fail once: already claimed

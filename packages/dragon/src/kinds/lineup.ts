@@ -2,6 +2,7 @@
  * 列の図の描く部品の組 (#3248、#3656)。並べ方は図の種類の置き場 (`kinds/lineup/layout.ts`、#3348)、列とチップと封と札と見た目の規則は `render/lineup.ts` が持つ (#3239)。
  * 見た目の規則は列の図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない (#3351)
  */
+import { drawGauges, gaugeCss } from "../blocks/gauge/draw";
 import { drawLineup } from "../render/lineup";
 import { layoutLineup, type LineupLayout } from "./lineup/layout";
 import type { KindParts } from "./parts";
@@ -12,10 +13,13 @@ export const parts: KindParts<LineupLayout> = {
   draw: (layout, diagram, ctx, _subs, follow) => {
     const lineup = drawLineup(layout, diagram, ctx.t, ctx);
     // 寄って追う窓は見出しの文 (図の題、段の題、説明) を描かない。図の幅で組んだ文は窓で切れ、段の題と説明は部品の帯が出すため (#3365)
+    // 量の目盛り (#3880) は列の図の部品の後に描き、目盛りを持たない図の SVG と動きの名前を変えない
+    const gauges = drawGauges(layout.gauges, diagram, ctx);
     return {
       base: `${follow ? "" : lineup.heading}${lineup.lanes}`,
       node: lineup.chips,
-      css: lineup.css,
+      ...(gauges ? { top: gauges } : {}),
+      css: `${lineup.css}${gaugeCss(layout.gauges)}`,
       attrs: ` data-lineup-arrangement="${layout.arrangement}"`,
     };
   },

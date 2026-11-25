@@ -231,7 +231,7 @@
 | 見本帳の図は、配管の図も含めて崩れを知らせない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`gallery-warns-nothing`が通る | #3854 |
 | 配管の図の見本は、決まりの表への違反を持たない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-rules-zero-violations-in-every-example`が通る | #3854 |
 | 配管の図の見本の置き場所の指紋が記録と合う。線の札が動く`vault-proxy`の4件だけ記録を書き直し、ほかの見本の記録は変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3854 |
-| 配管の図を描く所を変えた時に選ぶ検査のfileは130以下のままである | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3854 #3803 |
+| 配管の図を描く所を変えた時に選ぶ検査のfileは131以下のままである | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-131`が通る | #3854 #3803 #3876 |
 | 記法で`box usdc as USDC [note: Holding]`と書いたトークンの箱は、名前の下に`balanceOf`の代わりに`Holding`を描く | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-draws-under-name`が通る | #3803 |
 | トークンの箱の`note`の字が`balanceOf`より長い時、箱はその字が収まる幅に広がり、字は箱の中に収まる | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-widens-box`が通る | #3803 |
 | `note`を書いたトークンの箱の図は原本の検査を通り、記法へ書き戻すと`[note: Holding]`が残る | `pnpm exec vitest run packages/dragon/test/pipe-token-notation.test.ts`の検査`pipe-token-note-round-trip`が通る | #3803 |
@@ -261,4 +261,4 @@
 | 配管の図の見本の置き場所の指紋の記録 (`pipe-layout-fingerprints.json`、28件) は変わらない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3860 |
 | 見本帳の頁が最初に読むscriptとCSSは、gzipで今の上限の中に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3860 |
 | jsDelivrの1行の入口が最初に読むscriptは、gzipで90,000byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3860 |
-| 配管の図の描く所 (`render/pipe.ts`) を変えた時に選ぶ検査のfileは130以下のまま | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-130`が通る | #3860 |
+| 配管の図の描く所 (`render/pipe.ts`) を変えた時に選ぶ検査のfileは131以下のまま | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts`の検査`related-pipe-draw-picks-at-most-131`が通る | #3860 #3876 |

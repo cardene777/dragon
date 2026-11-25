@@ -1,0 +1,21 @@
+// Put the transfer rules in columns and the trial transfers in rows, check the rules one by one, and show which transfers to block.
+// Under a failing transfer, write the rule it fails and the value.
+judge Which transfers to block
+
+rule chain as Chain [value: USDC on 31337]
+rule to as Recipient [value: 0x2222…]
+rule once as Per transfer [value: up to 30]
+rule day as Per day [value: up to 100 in total]
+rule until as Valid until [value: Dec 31]
+
+case 20 USDC to 0x2222… [note: first of the day on Nov 24]
+case 20 USDC to 0x9999… [note: wrong recipient on Nov 24]
+  fail to: 0x9999
+case 35 USDC to 0x2222… [note: amount too large on Nov 24]
+  fail once: 35
+case 20 USDC to 0x2222… [note: sixth of the day on Nov 24]
+  fail day: 120 in total
+case 20 USDC to 0x2222… [note: after the limit on Jan 5 2027]
+  fail until: Jan 5
+case Unreadable Tx [note: unknown action]
+  fail chain: ? [stop]

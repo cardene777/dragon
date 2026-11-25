@@ -12,6 +12,7 @@ import type { ReactElement } from "react";
 
 import { follow, PATHS } from "../site/routes";
 import { type Lang, TEXT } from "../text";
+import { NOT_FOUND_TEXT } from "./text";
 import "./not-found.css";
 
 /** 行き先。釦の並びと、説明が言う入口の数の両方がここから出る。最初の 1 つを強い釦にする */
@@ -22,7 +23,7 @@ const TICKS = 4;
 
 export function NotFound({ lang, path }: { lang: Lang; path: string }): ReactElement {
   const t = TEXT[lang].site;
-  const n = t.notFound;
+  const n = NOT_FOUND_TEXT[lang];
   const title = t.screens["not-found"].title;
   const names = { editor: t.openEditor, catalog: n.catalog, docs: n.docs };
   return (

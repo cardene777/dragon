@@ -38,6 +38,7 @@ import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
 import { hasWide, textWidth } from "../../layout/measure";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
+import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
 
 const L = LINEUP_LOOK;
 const Y = L.layers;
@@ -331,6 +332,8 @@ export interface LineupLayout extends Layout {
   backs: LineupBack[];
   /** 流れの線の線と駅。流れの線だけが持つ */
   stations?: LineupStations;
+  /** 量の目盛り (#3880)。目盛りを宣言した図だけが持つ */
+  gauges?: SceneGauge[];
 }
 
 export interface LineupOptions {
@@ -487,7 +490,9 @@ export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {})
   }
   const look = shape === "stations" ? "stations" : "board";
   const row = arrange(diagram, words, look, false);
-  if (width === undefined || (width / row.width) * TYPE.boxName.size >= READABLE_PX) return row;
+  // 量の目盛り (#3880) を持つ図は、目盛りの字が箱の名前より小さいので、目盛りの字も読める幅でだけ横に並べる
+  const smallest = (diagram.gauge ?? []).length > 0 ? Math.min(TYPE.boxName.size, GAUGE_TEXT_MIN) : TYPE.boxName.size;
+  if (width === undefined || (width / row.width) * smallest >= READABLE_PX) return row;
   return arrange(diagram, words, look, true);
 }
 
@@ -549,6 +554,16 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   const limitOf = (lane: string): number | undefined => boxOf.get(lane)?.limit;
   const mostOf = (lane: string): number => Math.max(1, walk.most.get(lane) ?? 0, stations ? (limitOf(lane) ?? 0) : 0);
 
+  // 量の目盛り (#3880)。帯の下に宣言した順に積み、図の上の帯の目盛りは帯の並びの上に置く。
+  // 札を押した帯は札が帯の下の端からはみ出すので、目盛りを札の下から始める
+  const GA = LOOK.gauge;
+  const plans = planGauges(diagram, order, words.gaugeOver);
+  const stamped = new Set(diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "stamp" && "box" in e ? [e.box] : []))));
+  const gaugeGap = (lane: string): number => (stamped.has(lane) ? L.stamp.h - L.stamp.drop + GA.below : GA.below);
+  const gaugeRoom = (lane: string): number => roomUnder(plans.under.get(lane), gaugeGap(lane));
+  const gaugeNeed = (lane: string): number => (plans.under.has(lane) ? widest(plans.under.get(lane)) + B.padX * 2 : 0);
+  const gaugeWide = Math.max(widest(plans.top), ...order.map(gaugeNeed));
+
   // 字の幅
   const widthOf = (text: string, style: TextStyle): number => layerWidth(text, style);
   const styleOf = (text: string, style: TextStyle): TextStyle => (style.family === "mono" && hasWide(text) ? { ...style, family: "sans" } : style);
@@ -591,7 +606,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   );
 
   // ボードの帯の幅。名前と札の数が 1 行に収まらない帯が 1 つでもあれば、どの帯も札の数を 2 行目の左に置く
-  let laneW = Math.max(B.minW, cardNeed + B.padX * 2, ...order.map((l) => B.nameX + nameW(l) + B.dotX), ...order.map((l) => B.dotX * 2 + row2W(l, false)));
+  let laneW = Math.max(B.minW, cardNeed + B.padX * 2, ...order.map((l) => B.nameX + nameW(l) + B.dotX), ...order.map((l) => B.dotX * 2 + row2W(l, false)), ...order.map(gaugeNeed));
   const countBelow = !stacked && !stations && order.some((l) => B.nameX + nameW(l) + B.count.gap + countMost(l) + B.dotX > laneW);
   if (countBelow) laneW = Math.max(laneW, ...order.map((l) => B.dotX * 2 + row2W(l, true)));
 
@@ -602,7 +617,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     const parts = [...(pools.has(lane) ? [noOrderW] : []), ...(valuesIn(lane).length > 0 ? [valueMost(lane)] : [])];
     return parts.reduce((sum, w, k) => sum + w + (k > 0 ? ST.rowGap : 0), 0);
   };
-  const blockOf = (lane: string): number => Math.max(nameBlock(lane), row2Block(lane), stopCard);
+  const blockOf = (lane: string): number => Math.max(nameBlock(lane), row2Block(lane), stopCard, gaugeNeed(lane));
   const stepX = Math.max(ST.step, ...order.map((l) => blockOf(l) + ST.laneGap));
   const first = order[0] ?? "";
   const last = order.at(-1) ?? "";
@@ -615,7 +630,12 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   const rolesW = roleDecl.length * Math.max(L.role.w, roleNeed) + Math.max(0, roleDecl.length - 1) * L.role.gap;
   const n = order.length;
   const rowSpan = stations ? before + (n - 1) * stepX + after : n * laneW + (n - 1) * B.gap;
-  const width = Math.max(stacked ? Math.max(N.width, roleNeed + margin * 2) : Math.max(rowSpan, rolesW) + margin * 2, stripNeed(diagram) + margin * 2);
+  // 目盛りは縦に組んだ形の帯の幅にも収める。帯は図の左の端から、流れの線は線の右の札の列から始まる
+  const gaugeLeft = stations ? ST.narrowCards : margin + (hasBack ? N.rail : 0);
+  const width = Math.max(
+    stacked ? Math.max(N.width, roleNeed + margin * 2, gaugeWide > 0 ? gaugeLeft + gaugeWide + margin : 0) : Math.max(rowSpan, rolesW, widest(plans.top)) + margin * 2,
+    stripNeed(diagram) + margin * 2,
+  );
   const inner = width - margin * 2;
 
   // 図の上の題。段の題と文は折った行の数が段で違うので、最も低い段に合わせて役の札を置く
@@ -649,7 +669,10 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     roles = roleDecl.map((decl, k) => roleOf(decl, left + k * (w + L.role.gap), roleTop, w, L.role.h));
   }
   // 差し戻しの在るボードは、戻りの線と札を通す所を帯の上に空ける
-  const laneTop = (roles.length > 0 ? Math.max(...roles.map(bottomOf)) + L.role.below : headBottom + H.below) + (hasBack && !stacked && !stations ? B.return.room : 0);
+  // 図の上の帯の目盛りは、役の札か見出しの下、帯の並びと戻りの線の通り道の上に置く
+  const bandTop = roles.length > 0 ? Math.max(...roles.map(bottomOf)) + L.role.below : headBottom + H.below;
+  const band = plans.top.length > 0 ? stackHeight(plans.top) + GA.band : 0;
+  const laneTop = bandTop + band + (hasBack && !stacked && !stations ? B.return.room : 0);
 
   /** 札の下の一言が、幅 `w` の帯の下に要る高さ。段ごとの一言は別の段に出るので、最も高い段に合わせる */
   const remarkRoom = (id: string, w: number): number => {
@@ -766,7 +789,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
       const track = { x: x + B.padX, y: y + head, w: w - B.padX * 2, h: rows * pitch - card.gap };
       laneOf(id, rect, title, track, extra);
       seatsOf.set(id, { x: track.x, y: track.y, cols: 2, w: cw });
-      y += rect.h + remarkRoom(id, w);
+      y += rect.h + gaugeRoom(id) + remarkRoom(id, w);
     });
   } else if (!stacked) {
     // 流れの線は帯を 1 本の横の線の上の駅にし、駅の上に名前と札の数を、その下に順番なしと値の札を置き、札を駅の下に積む
@@ -818,13 +841,20 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
       const slots = limit === undefined ? [] : Array.from({ length: limit }, (_, j) => ({ x: x + (j % 2) * (cw + N.colGap), y: track.y + Math.floor(j / 2) * pitch, w: cw, h: card.h }));
       laneOf(id, rect, title, track, extra, slots);
       stops.push({ lane: id, cx: lineAt, cy: sy, r: ST.narrowR });
-      y += rect.h + remarkRoom(id, w);
+      y += rect.h + gaugeRoom(id) + remarkRoom(id, w);
     });
     const top = (stops[0]?.cy ?? laneTop) - ST.narrowTop - 2;
     const end = Math.max(...lanes.map(bottomOf)) + 4;
     line = { x: lineAt - ST.line / 2, y: top, w: ST.line, h: end + ST.head - top };
   }
   const laneById = new Map(lanes.map((lane) => [lane.id, lane]));
+  const gauges = [
+    ...topBand(plans.top, margin, bandTop),
+    ...lanes.flatMap((lane) => {
+      const own = plans.under.get(lane.id);
+      return own ? underBox(own, lane, lane.x + B.padX, gaugeGap(lane.id), lane.w - B.padX * 2) : [];
+    }),
+  ];
 
   /** 帯 `lane` の `index` 番目の席の四角 */
   const seatRect = (lane: string, index: number): Rect => {
@@ -941,7 +971,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     const mine = remarkSpecs.filter((r) => r.lane === lane.id);
     const tops = new Map<number, number>();
     for (const spec of mine) {
-      const y = tops.get(spec.step) ?? bottomOf(lane) + L.remark.top;
+      const y = tops.get(spec.step) ?? bottomOf(lane) + gaugeRoom(lane.id) + L.remark.top;
       const textX = lane.x + L.remark.bar + L.remark.gap;
       const text = wrapped(spec.text, textX, y + L.remark.barH / 2 + TYPE.remark.size * 0.3, TYPE.remark, lane.w - L.remark.bar - L.remark.gap, L.remark.line);
       remarks.push({ step: spec.step, event: spec.event, lane: lane.id, ...(spec.color ? { color: spec.color } : {}), bar: { x: lane.x, y, w: L.remark.bar, h: L.remark.barH }, text });
@@ -1004,7 +1034,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   }
 
   // 「この先」の帯。後の段の題を左から並べ、図の幅で折り返す
-  const above = Math.max(...lanes.map(bottomOf), ...remarks.map((r) => bottomOf(r.text)), ...stamps.map(bottomOf), ...(line ? [bottomOf(line)] : []));
+  const above = Math.max(...lanes.map(bottomOf), ...remarks.map((r) => bottomOf(r.text)), ...stamps.map(bottomOf), ...(line ? [bottomOf(line)] : []), ...gauges.map(bottomOf));
   const A = L.ahead;
   const { inset } = L.arrow;
   const aheadTop = above + A.top;
@@ -1097,6 +1127,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     backs,
     ...(line ? { stations: { line, stops, runs } } : {}),
   };
+  withGauges(layout, gauges);
   const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;

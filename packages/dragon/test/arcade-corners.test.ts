@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { changelogEntry } from "./changelog-support";
 import { casesNamed } from "./export-support";
+import { drawnAsHtml } from "./html-kinds";
 import { draw, type Player, type Rect, type Theme } from "./render-support";
 // 全ての種類の見本を描くので、全ての種類を読む (#3763)
 import "./all-kinds";
@@ -70,7 +71,8 @@ const FRAMES = [
  * 検査は見本ごとに分ける (#3410)。全ての見本を 1 件で描くと、混んだ機械で 1 件の上限を超えた
  */
 const FILES = readdirSync(EXAMPLES)
-  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json"))
+  // HTML の表で描く種類 (判定の表、#3879) は SVG の箱と囲みを持たないので外す
+  .filter((file) => file.endsWith(".json") && !file.endsWith(".en.json") && !drawnAsHtml(join(EXAMPLES, file)))
   .sort();
 const diagramOf = (file: string): Record<string, unknown> =>
   JSON.parse(readFileSync(join(EXAMPLES, file), "utf8")) as Record<string, unknown>;

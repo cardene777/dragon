@@ -267,6 +267,14 @@ export const TYPE = {
   noteName: text(11, 650),
   noteBody: text(14, 500),
   noteExample: text(12.5, 500),
+  /**
+   * 量の目盛り (#3880)。目盛りの名前、「値 / 上限 単位」の字、増えた量の札の字、上限を超えた札の字。
+   * 列の図は箱の名前 (`boxName`) が読める幅で横に並べるので、目盛りの字はその幅の縮みでも 10.5 を下回らない大きさにする
+   */
+  gaugeName: text(11.5, 600),
+  gaugeValue: text(12, 700, "mono"),
+  gaugeTag: text(11.5, 700, "mono"),
+  gaugeOver: text(11.5, 700),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -315,6 +323,37 @@ export const LOOK = {
     shadowY: 8,
     shadow: 24,
     shadowMix: 22,
+  },
+  /**
+   * 判定の表 (#3879) の HTML の表の寸法 (px)。字は縮めずにこの大きさで描くので、どの字も読める大きさ (`READABLE_PX`) を下回らない。
+   * `text` は表の字、`caseName` は例の名前の字、`small` は規則の値と添え書きと外れた値と外れた規則の字、`verdict` は判定の語の字、
+   * `no` は規則の番号の字、`whyNo` は外れた規則の番号の字、`dash` は照らせない「—」の字。
+   * `padY` と `padX` はセルの内側の余白、`radius` は表の枠の角の丸み、`line` は枠と区切りの線の太さ、`icon` は✓と✕の升の縦横、`mark` は印のセルの幅の下限。
+   * `badge` と `badgeX` と `badgeGap` は規則の番号の丸の高さと左右の余白と名前との間、`whyBadge` と `whyGap` は外れた規則の番号の丸の高さと名前との間。
+   * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み
+   */
+  judge: {
+    text: 14,
+    caseName: 13.5,
+    small: 12,
+    no: 12,
+    whyNo: 11,
+    verdict: 13,
+    dash: 16,
+    padY: 8,
+    padX: 10,
+    radius: 10,
+    icon: 20,
+    badge: 20,
+    badgeX: 5,
+    badgeGap: 5,
+    whyBadge: 18,
+    whyGap: 2,
+    pillY: 3,
+    pillX: 12,
+    pill: 999,
+    mark: 28,
+    line: 1,
   },
   region: {
     pad: 18,
@@ -591,6 +630,32 @@ export const LOOK = {
     valueY: 43,
     trail: { r: 5.4, step: 16 },
     now: { r: 3, gap: 7 },
+  },
+  /**
+   * 量の目盛り (#3880)。`below` は箱の下の端から 1 つ目の目盛りまで、`stack` は積んだ目盛りの間、`band` は図の上の帯の下の空き、
+   * `clear` は手順の図で箱の真ん中から下りる線と目盛りの左の端の間 (線の上の段の番号の丸に掛けない)。
+   * 1 行目は名前と「値 / 上限 単位」の字 (`textH`)、2 行目は棒 (`barH`) と増えた量の札 (`chipH`)、超える段が在る目盛りは 3 行目に上限を超えた札 (`overH`) を置く。
+   * `minBar` は棒の最も短い長さ、`limitOver` は上限の点線が棒の上下にはみ出す長さ
+   */
+  gauge: {
+    below: 8,
+    stack: 8,
+    band: 18,
+    clear: 16,
+    textH: 16,
+    rowGap: 4,
+    barH: 8,
+    chipH: 18,
+    chipPadX: 6,
+    chipGap: 6,
+    nameGap: 12,
+    minBar: 96,
+    overGap: 4,
+    overH: 18,
+    overPadX: 7,
+    limitOver: 3,
+    radius: 4,
+    stroke: 1.2,
   },
   /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
   stroke: {

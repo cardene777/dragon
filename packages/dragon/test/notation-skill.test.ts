@@ -10,6 +10,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
+// 判定の表 (#3879) は種類の読み方が記法を読むので、参照の囲みを読む前にその種類を登録する
+import "../src/kind-use/judge";
 import { KIND_FOLDERS } from "../src/kinds/index";
 
 const ROOT = process.cwd();

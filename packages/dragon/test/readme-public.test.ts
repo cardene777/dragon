@@ -34,16 +34,19 @@ const GUIDES: Record<Lang, string> = { en: "packages/dragon/examples/quick-start
 
 /** 図の種類の名前。README の一覧と手引きの節の見出しに同じ名前を使う */
 const KIND_LABELS: Record<Lang, Record<string, string>> = {
-  ja: { architecture: "構成図", cards: "持ち主ごとのカードの図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図" },
-  en: { architecture: "Architecture diagram", cards: "Owner card diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram" },
+  ja: { architecture: "構成図", cards: "持ち主ごとのカードの図", chart: "量の図", checkout: "購入操作図", cycle: "回り続ける図", er: "表どうしの関係の図", flow: "手順の図", git: "枝分かれの図", lineup: "列の図", matrix: "2つの軸で置く図", mind: "考えを広げる地図", pipe: "配管の図", sankey: "量の行き先の図", sequence: "時系列図", state: "状態遷移図", time: "時間軸の図", tree: "木の図", try: "試す図", venn: "集合の重なりの図", judge: "判定の表" },
+  en: { architecture: "Architecture diagram", cards: "Owner card diagram", chart: "Chart", checkout: "Checkout diagram", cycle: "Cycle diagram", er: "Table relation diagram", flow: "Flow diagram", git: "Git graph", lineup: "Lineup diagram", matrix: "Two-axis matrix", mind: "Mind map", pipe: "Pipe diagram", sankey: "Sankey diagram", sequence: "Sequence diagram", state: "State diagram", time: "Time diagram", tree: "Tree diagram", try: "Try diagram", venn: "Set overlap diagram", judge: "Judge table" },
 };
 
-/** 書き出しが箱を並べるだけの種類。絵を持たず、一覧には名前と手引きへの繋ぎだけを置く */
-const WITHOUT_PICTURE = new Set(["checkout"]);
+/**
+ * 絵を持たず、一覧には名前と手引きへの繋ぎだけを置く種類。購入操作図は書き出しが箱を並べるだけで、
+ * 判定の表 (#3879) は HTML の表で描き、静止画の書き出しは別の課題 (#3891) で作る
+ */
+const WITHOUT_PICTURE = new Set(["checkout", "judge"]);
 
 /** 種類の頭の語で、手引きの種類の節がその種類の書き方を持つと読める字 */
 const KIND_WORDS: Record<string, string> = {
-  architecture: "architecture", cards: "cards", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn",
+  architecture: "architecture", cards: "cards", chart: "chart", checkout: "checkout", cycle: "cycle", er: "er", flow: "flow", git: "git", lineup: "lineup", matrix: "matrix", mind: "mind", pipe: "pipe", sankey: "sankey", sequence: "sequence", state: "state", time: "time", tree: "tree", try: "try", venn: "venn", judge: "judge",
 };
 
 /** mermaid と比べる表の節の見出しと、表の 4 つの行の頭 */
@@ -183,7 +186,7 @@ describe("公開できる形の README (#3881)", () => {
   });
 
   it("readme-public-kinds-gallery", () => {
-    // 4 つの README の図の種類の一覧は 18 種類を全て挙げ、申し込みの図を除く 17 種類は明るい表示と暗い表示の絵を持ち、手引きのその種類の節へ繋ぐ
+    // 4 つの README の図の種類の一覧は 19 種類を全て挙げ、申し込みの図と判定の表を除く 17 種類は明るい表示と暗い表示の絵を持ち、手引きのその種類の節へ繋ぐ
     for (const readme of READMES) {
       const section = sectionOf(read(readme.path), KINDS_HEADING[readme.lang].readme);
       expect(section, `${readme.path} に図の種類の一覧の節が無い`).not.toBe("");
@@ -248,7 +251,7 @@ describe("公開できる形の README (#3881)", () => {
   });
 
   it("guide-has-a-section-per-kind", () => {
-    // 記法の手引き 2 つは図の種類ごとの節を 18 持ち、各節はその種類の頭の語の書き方を持つ
+    // 記法の手引き 2 つは図の種類ごとの節を 19 持ち、各節はその種類の頭の語の書き方を持つ
     for (const lang of ["en", "ja"] as const) {
       const guide = read(GUIDES[lang]);
       const section = sectionOf(guide, KINDS_HEADING[lang].guide);

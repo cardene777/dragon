@@ -11,6 +11,7 @@ import type { ReactElement } from "react";
 import { follow, PATHS, REPO } from "../site/routes";
 import { VERSION } from "../site/version";
 import { type Lang, TEXT } from "../text";
+import { RELEASE_NOTES_TEXT } from "./text";
 import "./release-notes.css";
 
 /** 変更の記録。repo の root の、日本語は `CHANGELOG.ja.md`、英語は `CHANGELOG.md` (#3321) */
@@ -18,7 +19,7 @@ const CHANGELOG: Record<Lang, string> = { ja: `${REPO}/blob/main/CHANGELOG.ja.md
 
 export function ReleaseNotes({ lang }: { lang: Lang }): ReactElement {
   const t = TEXT[lang].site;
-  const r = t.releaseNotes;
+  const r = RELEASE_NOTES_TEXT[lang];
   const title = t.screens["release-notes"].title;
   return (
     <section className="release" data-release="hero">
