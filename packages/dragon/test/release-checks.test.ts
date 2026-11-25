@@ -18,6 +18,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 interface ReleaseChecks {
   previousVersion: (tags: string[], version: string) => string | undefined;
   judgeTarget: (input: { version: string; published: string[]; tagged: boolean }) => string[];
+  judgeChangelog: (input: { features: { subject: string; files: string[] }[]; changelogs: { file: string; text: string }[] }) => string[];
   secretFiles: (files: string[]) => string[];
   judgeSecurity: (input: { vulnerabilityExit: number; leakExit: number; packedFiles: string[] }) => string[];
   judgeRollback: (input: { previous: string | undefined; info: { version?: string; tarball?: string; deprecated?: string } | undefined }) => string[];
@@ -53,6 +54,52 @@ describe("版を出す前と出した後の確かめ (#3589)", () => {
     expect(judgeTarget({ version: "0.70.0", published: ["0.69.0"], tagged: true }).join("\n"), "GitHub に印が在る版を通した").toContain("v0.70.0");
     // 0.7.0 は 0.70.0 の一部の字だが、別の版
     expect(judgeTarget({ version: "0.7.0", published: ["0.70.0"], tagged: false }), "版の字の一部が重なるだけの版を落とした").toEqual([]);
+  });
+
+  describe("変更の一覧の漏れ (#3932)", () => {
+    /** 版の節に `items` の項を持つ変更の一覧。`unreleased` は Unreleased の節の項 */
+    const log = (items: string[], unreleased: string[] = []): string =>
+      ["# Changelog", "", "## [Unreleased]", "", ...unreleased, "", "## [0.80.0] - 2026-11-25", "", "### Added", "", ...items, "", "## [0.79.7] - 2026-11-24", "", "- Old (#3795)", ""].join("\n");
+    const both = (text: string) => [
+      { file: "CHANGELOG.md", text },
+      { file: "CHANGELOG.ja.md", text },
+    ];
+    const html = { subject: "✨ feat(記法): dragonの記法とHTMLを相互に変換する (#3908) (#3921)", files: ["packages/dragon/src/html-form/convert.ts", "packages/dragon/test/html-form.test.ts"] };
+    const skill = { subject: "✨ feat(skill): 図の構成案を立てる (#3909) (#3915)", files: ["plugins/dragon/skills/dragon/SKILL.md"] };
+
+    it("release-changelog-lists-shipped-features", async () => {
+      const judgeChangelog = await pick("judgeChangelog");
+      expect(judgeChangelog({ features: [html, skill], changelogs: both(log(["- HTML form (#3908)", "- Skill plans (#3909)"])) }), "版の節に項が在る機能を落とした").toEqual([]);
+      const missing = judgeChangelog({ features: [html, skill], changelogs: both(log(["- Skill plans (#3909)"])) });
+      expect(missing, "項の無い機能を、変更の一覧ごとに 1 件ずつ挙げない").toHaveLength(2);
+      expect(missing.join("\n"), "落とした理由が変更の一覧の file と課題の番号を名指さない").toMatch(/CHANGELOG\.ja\.md.*#3908/u);
+      // 前の版の印を分けた枝で出した版の節に在る項は足りる
+      const old = { subject: "✨ feat(埋め込み): 押された箱を見分ける (#3795) (#3864)", files: ["packages/dragon/src/player.ts"] };
+      expect(judgeChangelog({ features: [old], changelogs: both(log([])) }), "前の版の節に在る項を落とした").toEqual([]);
+    });
+
+    it("release-changelog-refuses-unreleased-items", async () => {
+      const judgeChangelog = await pick("judgeChangelog");
+      const left = judgeChangelog({ features: [skill], changelogs: both(log([], ["### Added", "", "- Skill plans (#3909)"])) });
+      expect(left.join("\n"), "Unreleased に残る項を落とさない").toContain("Unreleased");
+      expect(left.join("\n"), "Unreleased にだけ在る項を、版の節に在ると数えた").toContain("#3909");
+      expect(judgeChangelog({ features: [], changelogs: both(log([], ["### Added"])) }), "項の無い Unreleased の見出しを落とした").toEqual([]);
+    });
+
+    it("release-changelog-skips-unshipped-changes", async () => {
+      const judgeChangelog = await pick("judgeChangelog");
+      const testOnly = { subject: "✨ feat(検査): 上限に近い件を知らせる (#3740) (#3780)", files: ["scripts/near-limit-reporter.mjs", "packages/dragon/test/test-limits.test.ts"] };
+      const fix = { subject: "🐛 fix(検査): 塊の検査を直す (#3920) (#3922)", files: ["packages/dragon/src/kinds/cards.ts"] };
+      expect(judgeChangelog({ features: [testOnly, fix], changelogs: both(log([])) }), "配る物を変えない機能と、機能でない取り込みを数えた").toEqual([]);
+    });
+
+    it("release-changelog-reads-issue-not-pr-number", async () => {
+      const judgeChangelog = await pick("judgeChangelog");
+      // 件名の末尾の 2 つの番号は課題と PR。項は課題の番号を書く
+      expect(judgeChangelog({ features: [html], changelogs: both(log(["- HTML form (#3921)"])) }), "PR の番号だけの項を、課題の項と数えた").toHaveLength(2);
+      // 番号の頭が同じ別の課題の項を、その課題の項と数えない
+      expect(judgeChangelog({ features: [html], changelogs: both(log(["- Other (#39081)"])) }), "#39081 を #3908 の項と数えた").toHaveLength(2);
+    });
   });
 
   it("release-security-refuses-secret-files", async () => {

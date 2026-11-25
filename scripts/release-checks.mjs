@@ -7,7 +7,7 @@
  *
  * | 欄 | 命令 | 落とす時 |
  * |---|---|---|
- * | 配る先との整合 | `node scripts/release-checks.mjs target` | 包む版が npm の版の一覧か GitHub の印に既に在る |
+ * | 配る先との整合 | `node scripts/release-checks.mjs target` | 包む版が npm の版の一覧か GitHub の印に既に在る。前の版の印から先の機能の項が変更の一覧の版の節に無いか、Unreleased に項が残る (#3932) |
  * | 配る前のセキュリティ | `node scripts/release-checks.mjs security` | 依存の脆弱性、前の版からの差分の秘密の値 (`gitleaks`)、包む物の `.env` や `.npmrc` や鍵 |
  * | 戻す確かめ | `node scripts/release-checks.mjs rollback` | 前の版が npm に無いか取り下げられている |
  * | 配った後の確かめ | `node scripts/release-checks.mjs after` | npm の最新、npm から入れた `dragon --version`、GitHub Pages の頁の応答のどれかが違う |
@@ -71,6 +71,56 @@ export function judgeTarget({ version, published, tagged }) {
     problems.push(
       `GitHub に印 v${version} が既に在る。印が取り込んだ commit を指すかを git ls-remote で確かめる`,
     );
+  return problems;
+}
+
+/** 変更の一覧に項が要る、配る物の file の頭。npm の package の src と、dragon のプラグインと、見本帳の頁の src (#3932) */
+export const SHIPPED_PATHS = ["packages/dragon/src/", "plugins/dragon/", "apps/playground-spa/src/"];
+
+/** `## [Unreleased]` の節の項の数 */
+function unreleasedItems(text) {
+  const start = text.indexOf("## [Unreleased]");
+  if (start < 0) return 0;
+  const rest = text.slice(start + "## [Unreleased]".length);
+  const end = rest.search(/^## \[/mu);
+  return (end < 0 ? rest : rest.slice(0, end)).split("\n").filter((line) => line.startsWith("- ")).length;
+}
+
+/** 版の節 (`## [<版>]` から後) の字 */
+function versionSections(text) {
+  const start = text.search(/^## \[\d+\.\d+\.\d+\]/mu);
+  return start < 0 ? "" : text.slice(start);
+}
+
+/** 取り込みの件名の課題の番号。squash の件名は `<題> (#<課題>) (#<PR>)` で終わるので、末尾の 2 つのうち前を取る */
+function issueOf(subject) {
+  return /\(#(\d+)\) \(#\d+\)$/u.exec(subject)?.[1] ?? /\(#(\d+)\)/u.exec(subject)?.[1];
+}
+
+/**
+ * 変更の一覧の漏れ (#3932)。この欄は印を付ける前に回すので、前の版の印から先の取り込みは全て包む版に入る。
+ * 件名が `✨ feat` で配る物の file を変えた取り込みの課題の番号が、どの変更の一覧の版の節にも無い時と、Unreleased に項が残る時に落とす。
+ * 前の版の印を分けた枝で出した版 (0.79.1 から 0.79.7) の項はその版の節に在るので、包む版の節に限らず版の節のどこかに在れば足りる。
+ * 検査と script と文書だけを変えた `✨ feat` は配る物を変えないので数えない
+ *
+ * @param {{ features: { subject: string, files: string[] }[], changelogs: { file: string, text: string }[] }} input
+ * @returns {string[]} 落とした理由
+ */
+export function judgeChangelog({ features, changelogs }) {
+  const shipped = features.filter(
+    ({ subject, files }) => /^✨ feat\b/u.test(subject) && files.some((file) => SHIPPED_PATHS.some((path) => file.startsWith(path))),
+  );
+  const problems = [];
+  for (const { file, text } of changelogs) {
+    const left = unreleasedItems(text);
+    if (left > 0) problems.push(`${file} の Unreleased に項が ${left} 件残る。印を付ける commit に入るので、包む版の節へ移す`);
+    const sections = versionSections(text);
+    for (const { subject } of shipped) {
+      const issue = issueOf(subject);
+      if (issue === undefined) problems.push(`機能の取り込み「${subject}」の件名に課題の番号が無い`);
+      else if (!new RegExp(`#${issue}(?!\\d)`, "u").test(sections)) problems.push(`${file} の版の節に「${subject}」の項 (#${issue}) が無い`);
+    }
+  }
   return problems;
 }
 
@@ -193,6 +243,21 @@ function previousTag(version) {
   return previousVersion(tags.stdout.split("\n"), version);
 }
 
+/** 前の版の印から HEAD までの取り込みの件名と変えた file (#3932) */
+function featuresSince(version) {
+  const previous = previousTag(version);
+  if (previous === undefined) throw new Unchecked(`${version} より小さい版の印が無く、変更の一覧を突き合わせる範囲が決まらない`);
+  const log = run("git", ["log", "--format=%x1e%s", "--name-only", `v${previous}..HEAD`]);
+  if (log.status !== 0) throw new Unchecked(`git log が終わり方 ${log.status} で終わった`);
+  return log.stdout
+    .split("\x1e")
+    .filter((record) => record.trim() !== "")
+    .map((record) => {
+      const [subject = "", ...files] = record.split("\n");
+      return { subject: subject.trim(), files: files.map((file) => file.trim()).filter(Boolean) };
+    });
+}
+
 const MODES = {
   target() {
     const version = packageVersion();
@@ -200,7 +265,10 @@ const MODES = {
     const tag = run("git", ["ls-remote", "--tags", "origin", `refs/tags/v${version}`]);
     if (tag.status !== 0) throw new Unchecked(`git ls-remote が終わり方 ${tag.status} で終わった`);
     console.log(`配る先との整合 ${PACKAGE}@${version} (npm の版 ${published.length} 件)`);
-    return judgeTarget({ version, published, tagged: tag.stdout.trim() !== "" });
+    const features = featuresSince(version);
+    console.log(`変更の一覧 前の版の印から先の取り込み ${features.length} 件`);
+    const changelogs = ["CHANGELOG.md", "CHANGELOG.ja.md"].map((file) => ({ file, text: readFileSync(join(ROOT, file), "utf8") }));
+    return [...judgeTarget({ version, published, tagged: tag.stdout.trim() !== "" }), ...judgeChangelog({ features, changelogs })];
   },
 
   security() {
