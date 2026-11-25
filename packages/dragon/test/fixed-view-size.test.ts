@@ -14,7 +14,6 @@ import { api, exampleJson, type Json } from "./diagram-support";
 import { draw, type Player } from "./render-support";
 import "../src/kind-use/architecture";
 import "../src/kind-use/flow";
-import "../src/kind-use/sequence";
 
 type Diagramish = { [key: string]: Json };
 
@@ -37,7 +36,6 @@ function tallFlow(): Diagramish {
 function samples(): [string, Diagramish, number][] {
   return [
     ["library-loans の手順の図", tallFlow(), PAGE_WIDTH],
-    ["oauth", exampleJson("oauth.json") as Diagramish, 1600],
     ["ccip", exampleJson("ccip.json") as Diagramish, 2400],
   ];
 }
