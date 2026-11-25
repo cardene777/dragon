@@ -1,0 +1,2 @@
+import{a as n}from"./chunk-IZ5UZRE2.js";import"./chunk-S7JLLFAB.js";import{a as t}from"./chunk-M4ENUNU5.js";import"./chunk-AQPBCXBX.js";var a={read:{pick:(e,p)=>{p.inStep(e).events.push({type:"pick",box:n(e,"pick",p).box})}},print:{events:{pick:e=>`${e.type} ${e.box}`}},messages:t("\u5217\u3092\u540D\u6307\u3059\u884C\u306E\u5F62\u306E\u8AA4\u308A\u306E\u6587\u306F\u3001\u5C01\u306E\u30D6\u30ED\u30C3\u30AF\u304C\u6301\u3064")};export{a as reading};
+//# sourceMappingURL=read-R7VDVXT6.js.map

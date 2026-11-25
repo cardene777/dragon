@@ -1,0 +1,2 @@
+var o=/^(\d+(?:,\d{3})*(?:\.\d+)?)(\s*)([^\s\d.,]\S*)?$/u;function i(u){let n=o.exec(u),t=n?.[1];if(!n||t===void 0)return;let e=n[3]??"";return{value:Number(t.replaceAll(",","")),unit:e,gap:e===""?"":n[2]??"",comma:t.includes(","),places:t.split(".")[1]?.length??0}}function a(u,n){let[t="0",e]=u.toFixed(n.places).split(".");return`${n.comma?t.replace(/\B(?=(\d{3})+(?!\d))/gu,","):t}${e===void 0?"":`.${e}`}${n.unit===""?"":`${n.gap}${n.unit}`}`}export{i as a,a as b};
+//# sourceMappingURL=chunk-4TVL6JIO.js.map
