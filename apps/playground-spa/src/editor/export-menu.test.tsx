@@ -10,6 +10,8 @@
  * jsdom は画像を描けないので、書き出す入口は代わりの物に替え、渡された物と保存させた file を確かめる。
  * 画像を描くことは書き出す入口の検査 (`packages/dragon/test/capture.test.ts`) が Chromium で確かめる。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { parseNotation } from "@cardenelabs/dragon";
@@ -17,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { atLoad } from "../../../../packages/dragon/test/at-load";
 
 import { Playground } from "../Playground";
+import { toHash } from "../share";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -237,5 +240,49 @@ describe("編集画面の図を書き出す (#3644)", () => {
     const hint = host.querySelector(".pg-hint");
     expect(hint?.textContent ?? "", "図の下の書き出しの案内").toContain("同じ図を書き出す");
     expect(hint?.querySelector("code")?.textContent ?? "", "案内の命令").toMatch(/^dragon export \S+\.dragon$/u);
+  });
+});
+
+/** 判定の表 (#3937) の見本の記法。HTML の表で描く図の種類 */
+const JUDGE_TEXT = readFileSync(join(process.cwd(), "packages/dragon/examples/transfer-check.en.dragon"), "utf8");
+
+/** 判定の表の記法を URL の `#` に入れて編集画面を開き、表を置き終えるまで待つ */
+async function openJudge(): Promise<HTMLElement> {
+  location.hash = toHash(JUDGE_TEXT);
+  host = document.createElement("div");
+  document.body.append(host);
+  mounted = createRoot(host);
+  act(() => mounted?.render(<Playground lang="ja" theme="light" palette="paper" onBeforeLang={() => undefined} />));
+  const table = (): HTMLElement | null => host.querySelector<HTMLElement>('[data-playground="figure"] [data-dragon="judge"]');
+  // 判定の表の部品の塊が届くまで待つ。1 件の上限 (10 秒) の内の 6 秒まで待つ
+  for (let i = 0; i < 300 && !table(); i++) await wait(20);
+  expect(table(), "編集画面に判定の表を置かない").not.toBeNull();
+  return table() as HTMLElement;
+}
+
+describe("編集画面の判定の表を書き出す (#3937)", () => {
+  afterEach(() => {
+    location.hash = "";
+  });
+
+  it("editor-export-judge-saves-file", async () => {
+    const table = await openJudge();
+    const cases = [
+      { format: "PNG", fn: capture.capturePng, made: new Blob(["png"], { type: "image/png" }), ext: "png" },
+      { format: "HTML", fn: capture.captureHtml, made: "<!doctype html><title>表</title>", ext: "html" },
+    ] as const;
+    for (const { format, fn, made, ext } of cases) {
+      (fn as unknown as { mockResolvedValue(value: Blob | string): void }).mockResolvedValue(made);
+      const before = saved.length;
+      await press(exportButton());
+      await choose(format);
+      await wait(10);
+      expect(fn, `${format} を選んでも書き出す入口の関数を呼ばない`).toHaveBeenCalledTimes(1);
+      const given = fn.mock.calls[0]?.[0];
+      if (format === "HTML") expect(typeof given === "string" && parseNotation(given).ok ? given : "", "HTML の書き出しに今の記法を渡さない").toBe(JUDGE_TEXT);
+      else expect(given, `${format} の書き出しに判定の表の要素を渡さない`).toBe(table);
+      expect(saved[before]?.name ?? "", `${format} を保存させた file の拡張子`).toMatch(new RegExp(`\\.${ext}$`, "u"));
+      fn.mockReset();
+    }
   });
 });

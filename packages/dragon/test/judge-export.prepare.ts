@@ -11,6 +11,7 @@ import { join } from "node:path";
 import * as dragon from "@cardenelabs/dragon";
 import { EXAMPLES, exportIn, type Ran, runCli, scratch } from "../../../test-support/prepare-tools";
 import { exampleText, type Json, smallSequence } from "./diagram-data";
+import { colorsOf } from "./judge-pixels";
 // 既定の入口 (`dist`) で判定の表と時系列図を書き出すので、全ての種類を読む助けの file に型だけでつなぐ (#3763)
 import type {} from "./all-kinds";
 
@@ -48,17 +49,6 @@ export interface JudgeFacts {
   colors: Record<string, string>;
   /** 段ごとの止め絵の時刻 (秒) */
   stills: number[];
-}
-
-/** 描いた HTML の根の `style` に書いた色の値 (`--surf` など) */
-function colorsOf(markup: string): Record<string, string> {
-  const style = /style="([^"]*)"/.exec(markup)?.[1]?.replace(/&quot;/g, '"') ?? "";
-  return Object.fromEntries(
-    [...style.matchAll(/(--[\w-]+):(#[0-9a-f]{6,8})/gi)].map(([, name, value]) => [
-      name as string,
-      value as string,
-    ]),
-  );
 }
 
 function judgeOf(file: string): { diagram: unknown; facts: JudgeFacts } {
