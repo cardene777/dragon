@@ -45,7 +45,7 @@ export const GAUGE_ATTRS: readonly string[] = ["on", "limit", "unit", "over"];
 export const block: Block = {
   name: "gauge",
   rank: 31,
-  attach: { how: "attach-to-figure", except: ["architecture", "chart", "checkout", "cycle", "er", "git", "matrix", "mind", "pipe", "sankey", "sequence", "state", "time", "tree", "try", "venn"] },
+  attach: { how: "attach-to-figure", except: ["architecture", "cards", "chart", "checkout", "cycle", "er", "git", "matrix", "mind", "pipe", "sankey", "sequence", "state", "time", "tree", "try", "venn"] },
   words: { heads: ["gauge"], attrs: { gauge: GAUGE_ATTRS } },
   // 目盛りの名札を書いた `set` の行は、中身の帯の欄の値でなく目盛りの値として読む
   lines: [{ heads: ["set"] }],
