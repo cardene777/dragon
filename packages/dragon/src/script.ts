@@ -24,6 +24,7 @@ import { diagramKind, loadFor, loadReadings } from "./light-load";
 import { toModel } from "./model";
 import { drawPageBlocks, type FramedBlock } from "./page-blocks";
 import { mountDiagram } from "./player";
+import { renderDiagram } from "./render/draw";
 import { withUserBlocks } from "./user-blocks";
 import { readDiagram } from "./version";
 import { NOTATION_WORDS } from "./words";
@@ -60,7 +61,8 @@ drawPageBlocks(
   // 帯のHTMLとGIFとMP4は、入口の隣の書き出す部品 (`dist/cdn/capture.js`) を読んで作る (#3786)
   () =>
     import("./frame/framed").then(({ mountInFrame }): FramedBlock => (host, source, diagram, options) => {
-      mountInFrame(host, source, diagram, options, mountDiagram, NOTATION_WORDS, loadCapture);
+      // 判定の表の書き出す絵の形は、本体の描く処理で描く (#3945)
+      mountInFrame(host, source, diagram, options, mountDiagram, NOTATION_WORDS, loadCapture, (shown, opts) => renderDiagram(shown, { ...opts, picture: true }));
     }),
   // 配管の図は、描いた後の空いた時間に畳んだ箱を 1 つだけ開いた形を先に組み、箱を押した時に道を探さない (#3753)
   (diagram, options) => {

@@ -1,7 +1,8 @@
 import type { Diagram } from '../schema';
 import type { FigureHeader, HeaderColors } from './header';
 import type { NotationLang } from '../words';
-import type { ActionNotify, CaptureLoader, DiagramActions } from './diagram-actions.mjs';
+import type { ActionNotify, CaptureLoader, DiagramActions, PictureDrawer } from './diagram-actions.mjs';
+import type { RenderOptions } from '../render/draw';
 import type { BuiltinButton, EmbedLook } from './types';
 
 /** 帯に足す置く側のボタン。押すと`onClick`が図の処理を受け取る (#3698) */
@@ -15,7 +16,9 @@ export function createDragonFrame(document: Document, source: string, diagram: D
   words: { readonly kinds: readonly string[]; readonly heads: readonly string[] };
   /** 書き出す部品を読む処理 (`capture-load.mjs`、#3786)。渡さない時はエクスポートの窓からHTMLとGIFとMP4を外す */
   capture?: CaptureLoader;
-}): {
+  /** 判定の表の書き出す絵の形を描く処理 (#3945)。渡さない時は判定の表も頁の表を写す */
+  picture?: PictureDrawer;
+} & Pick<RenderOptions, 'palette' | 'theme' | 'colors'>): {
   header: FigureHeader; lang: NotationLang; actions: DiagramActions; setHeaderColors(colors: HeaderColors): void;
   frame: HTMLElement; host: HTMLElement; connect(): void; destroy(): void;
 };

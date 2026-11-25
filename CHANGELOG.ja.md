@@ -10,6 +10,7 @@ dragon DSL の主要変更履歴。
 
 - `dragon export --format svg`で、どの図もSVGに書き出せるようにした。最後の段の止め絵を書き、描いた字の書体を`data:`で埋める。`--format`を書かない書き出しは今どおりmp4、GIF、HTML、PNGを書く (#3891)
 - 判定の表の絵は、例の列の代わりに例の名前と添え書きをその例の✓と✕の行の上の帯に置き、どの字も10.5px以上のまま幅728pxに収める。帯の形でも収まらない表は規則の列を分けて縦に積み、どの段にも例の帯を置いて、判定の列を最後の段に置く。`dragon export`のPNG、GIF、mp4、SVGと、見本帳と編集画面の書き出す窓と画像のコピーがこの形を使う。SVGの要素だけで描き`foreignObject`を使わないので、ブラウザでない道具でも描ける。`renderDiagram(diagram, { picture: true })`がこの形を描き、`@cardenelabs/dragon/capture`はその根も受ける (#3891)
+- 埋めた図の帯 (`dragon embed`が作る頁、jsDelivrの1行の入口、`mountDragon`、`@cardenelabs/dragon/frame`、`@cardenelabs/dragon/light/frame`) の書き出す窓と画像のコピーと、`header: false`の`mountDragon`の書き出しも、判定の表を帯の形で描く。PNG、GIF、mp4、SVGが幅728pxに収まる。GIFとmp4は読み手の再生を記録せず、規則の列を1段ずつ照らす。`@cardenelabs/dragon/capture`の`capturePng`は、絵の下に塗る地の色`background`を受ける (#3945)
 
 ### Fixed
 

@@ -6,6 +6,8 @@ export const PAPER = '#fffefa';
 const FORMATS = ['png', 'svg', 'html', 'gif', 'mp4', 'dragon', 'json'];
 /** 作る時に書き出す部品 (`capture.js`) を読む形式 (#3786) */
 export const CAPTURE_FORMATS = ['html', 'gif', 'mp4'];
+/** 帯が作る GIF と MP4 の 1 秒のコマの数。書き出す部品の`captureFrames`と同じ */
+const FILM = { gif: 8, mp4: 24 };
 const KINDS = ['source', 'json', 'image', 'url'];
 
 /**
@@ -14,8 +16,11 @@ const KINDS = ['source', 'json', 'image', 'url'];
  * `notify`はエクスポートした時 (`export`) とエディタで開いた・コピーした時 (`share`) に呼ぶ。
  * エディタの URL は記法を縮めて詰め、縮めても`EDITOR_URL_LIMIT`を超える記法は写してから貼るよう頼むエディタを開く (#3697)。
  * `loadCapture`は書き出す部品を読む処理で、入口が渡す (`capture-load.mjs`、#3786)。渡さない時は`CAPTURE_FORMATS`の形式を断る。
+ * `drawPicture`は書き出す絵の形 (`renderDiagram`の`picture`) を描く処理で、入口が再生の部品と同じ色味と明るさと言葉に結んで渡す (#3945)。
+ * 頁が判定の表を描いている時は、SVG と PNG と画像のコピーと GIF と MP4 を、頁の表を写さずに例を帯に置いた絵から書き出す部品で作る。
+ * PNG と画像は列を照らさずに撮り、GIF と MP4 は読み手の記録でなく、規則の列を 1 段ずつ照らす 1 周を撮る。
  */
-export function createDiagramActions(document, host, source, diagram, notify, loadCapture) {
+export function createDiagramActions(document, host, source, diagram, notify, loadCapture, drawPicture) {
   const environment = document.defaultView;
   const sourceText = { dragon: source, json: JSON.stringify(diagram, null, 2) };
   /** 縮めたエディタの URL と、上限を超えるか */
@@ -24,15 +29,39 @@ export function createDiagramActions(document, host, source, diagram, notify, lo
   const history = [];
   let disposed = false, busy = false, observer, queued = false;
 
+  /** 書き出す部品を読む。読む処理を渡さない置き方では、形式`format`を作れないと断る */
+  const captureFor = format => {
+    if (!loadCapture) throw new Error(`この頁は${format}を作る書き出す部品を読めません`);
+    return loadCapture();
+  };
+  /**
+   * 頁が判定の表を描いている時の、書き出す絵の形の根と段の時刻。ほかの図では undefined。
+   * 根は頁の文書の要素にし、書き出す部品が頁の読み込んだ字を絵に埋められるようにする
+   */
+  const pictureOf = () => {
+    if (!drawPicture || !(host.shadowRoot ?? host).querySelector('[data-dragon="judge"]')) return undefined;
+    const drawn = drawPicture();
+    const root = new environment.DOMParser().parseFromString(drawn.svg, 'image/svg+xml').querySelector('svg');
+    return root ? { svg: document.importNode(root, true), timeline: drawn.timeline } : undefined;
+  };
   /** 図を`scale`倍の画素の PNG にする。`transparent`の時は地を塗らない */
   const png = async (scale, transparent) => {
+    const picture = pictureOf();
+    if (picture) return (await captureFor('png')).capturePng(picture.svg, { scale, ...(transparent ? {} : { background: PAPER }) });
     const canvas = await snapshotCanvas(snapshotDiagram(host, { transparent }), 0, scale, transparent ? null : PAPER);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('PNGを作成できませんでした');
     return blob;
   };
-  /** 記録した図の動きを GIF か MP4 にする */
+  /** 記録した図の動きを GIF か MP4 にする。判定の表は、書き出す絵の形で規則の列を 1 段ずつ照らす 1 周を撮る */
   const motion = async (format, onProgress) => {
+    const picture = pictureOf();
+    if (picture) {
+      const capture = await captureFor(format);
+      const made = await capture.captureFilm(picture.svg, { formats: [format], fps: FILM.mp4, gifFps: FILM.gif, timeline: picture.timeline });
+      onProgress?.(1);
+      return made[format];
+    }
     const current = snapshotDiagram(host);
     const capture = await loadCapture();
     const frames = history.length ? [...history] : [{ shot: current, time: 0 }];
@@ -61,7 +90,11 @@ export function createDiagramActions(document, host, source, diagram, notify, lo
       return new environment.Blob([await capture.captureHtml(source)], { type: 'text/html;charset=utf-8' });
     }
     const transparent = background === 'transparent';
-    if (format === 'svg') return new environment.Blob([snapshotText(snapshotDiagram(host, { transparent }))], { type: 'image/svg+xml' });
+    if (format === 'svg') {
+      const picture = pictureOf();
+      const text = picture ? await (await captureFor('svg')).captureSvg(picture.svg) : snapshotText(snapshotDiagram(host, { transparent }));
+      return new environment.Blob([text], { type: 'image/svg+xml' });
+    }
     if (format === 'png') return png(scale, transparent);
     return motion(format, onProgress);
   }

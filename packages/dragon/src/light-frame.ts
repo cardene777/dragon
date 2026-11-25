@@ -13,7 +13,8 @@
  * mountFramedDiagram(host, source);
  * ```
  */
-import { diagramKind, kindLoaded, mountDiagram, NOTATION_WORDS, parseNotation, type Diagram, type Player, type PlayerOptions } from "@cardenelabs/dragon/light";
+import { diagramKind, kindLoaded, mountDiagram, NOTATION_WORDS, parseNotation, renderDiagram, type Diagram, type Player, type PlayerOptions } from "@cardenelabs/dragon/light";
+import type { PictureDrawer } from "./frame/diagram-actions.mjs";
 import { loadCapture } from "./frame/capture-load.mjs";
 import { createDragonFrame as createFrame, diagramEditorUrl as editorUrl } from "./frame/dragon-frame.mjs";
 import { frameLang } from "./frame/frame-text.mjs";
@@ -28,8 +29,11 @@ export type { BuiltinButton, CopyKind, EmbedLook, ExportDetail, ExportFormat, Ex
 export type { DiagramFrame, FrameOptions };
 
 /** 記法`source`と図`diagram`の帯を作る。`@cardenelabs/dragon/frame`の`createDragonFrame`と同じ */
+/** 判定の表の書き出す絵の形を描く処理 (#3945)。軽い入口の`renderDiagram`で描く */
+const drawPicture: PictureDrawer = (diagram, options) => renderDiagram(diagram, { ...options, picture: true });
+
 export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame =>
-  createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture });
+  createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture, picture: drawPicture });
 /** 見本帳のエディタで記法`source`を開く URL */
 export const diagramEditorUrl: (source: string) => string = editorUrl;
 
@@ -46,5 +50,5 @@ const KIND_NOT_LOADED = {
 export function mountFramedDiagram(host: HTMLElement, source: string, options: PlayerOptions & FrameOptions = {}): { player: Player; frame: DiagramFrame; destroy(): void } {
   const kind = diagramKind(source);
   if (kind !== undefined && !kindLoaded(kind)) throw new Error(KIND_NOT_LOADED[frameLang(options.lang, host)](kind));
-  return mountNotationInFrame(host, source, options, parseNotation, mountDiagram, NOTATION_WORDS, loadCapture);
+  return mountNotationInFrame(host, source, options, parseNotation, mountDiagram, NOTATION_WORDS, loadCapture, drawPicture);
 }

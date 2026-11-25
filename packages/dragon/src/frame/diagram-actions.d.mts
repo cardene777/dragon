@@ -1,3 +1,4 @@
+import type { RenderOptions } from '../render/draw';
 import type { Diagram } from '../schema';
 import type { CopyKind, ExportDetail, ExportFormat, ExportOptions, ShareDetail } from './types';
 
@@ -30,7 +31,20 @@ export interface DiagramActions {
   destroy(): void;
 }
 
-/** 書き出す部品 (`capture.js`) のうち、エクスポートが使う関数 (#3786) */
+/** 書き出す部品が撮る段の時刻。`renderDiagram`が返す`timeline` */
+interface PictureTimeline {
+  total: number;
+  stills: readonly number[];
+  steps: readonly { start: number }[];
+}
+
+/**
+ * 書き出す絵の形 (`renderDiagram`の`picture`、#3945) を描く処理。入口が渡す。
+ * 帯は再生の部品と同じ色味と明るさと言葉を渡し、頁が判定の表を描いている時だけ呼ぶ
+ */
+export type PictureDrawer = (diagram: Diagram, options: Pick<RenderOptions, 'palette' | 'theme' | 'colors' | 'lang'>) => { svg: string; timeline: PictureTimeline };
+
+/** 書き出す部品 (`capture.js`) のうち、エクスポートが使う関数 (#3786)。判定の表の絵は`capturePng`と`captureSvg`と`captureFilm`で作る (#3945) */
 export interface CaptureParts {
   captureFrames(options: {
     width: number; height: number; total: number; format: 'gif' | 'mp4';
@@ -38,6 +52,9 @@ export interface CaptureParts {
     signal?: AbortSignal; onProgress?: (fraction: number) => void;
   }): Promise<Blob>;
   captureHtml(source: string): Promise<string>;
+  capturePng(figure: SVGSVGElement, options?: { scale?: number; background?: string }): Promise<Blob>;
+  captureSvg(figure: SVGSVGElement): Promise<string>;
+  captureFilm(figure: SVGSVGElement, options: { formats: readonly ('gif' | 'mp4')[]; fps?: number; gifFps?: number; timeline: PictureTimeline }): Promise<{ gif?: Blob; mp4?: Blob }>;
 }
 /** 書き出す部品を読む処理。入口が渡す (`capture-load.mjs`) */
 export type CaptureLoader = () => Promise<CaptureParts>;
@@ -45,5 +62,5 @@ export type CaptureLoader = () => Promise<CaptureParts>;
 export const PAPER: string;
 /** 作る時に書き出す部品を読む形式 */
 export const CAPTURE_FORMATS: readonly ExportFormat[];
-/** `loadCapture`を渡さない時は、`CAPTURE_FORMATS`の形式のエクスポートを断る */
-export function createDiagramActions(document: Document, host: HTMLElement, source: string, diagram: Diagram, notify?: ActionNotify, loadCapture?: CaptureLoader): DiagramActions;
+/** `loadCapture`を渡さない時は、`CAPTURE_FORMATS`の形式のエクスポートを断る。`drawPicture`は再生の部品と同じ設定に結んだ書き出す絵の形を描く処理 (#3945) */
+export function createDiagramActions(document: Document, host: HTMLElement, source: string, diagram: Diagram, notify?: ActionNotify, loadCapture?: CaptureLoader, drawPicture?: () => ReturnType<PictureDrawer>): DiagramActions;
