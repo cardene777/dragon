@@ -1,0 +1,27 @@
+flow Two scenes of a transfer [scenes: stack]
+
+box ask as Ask to transfer
+box look as Check the payee
+box send as Send
+box back as Send back
+
+step Ask
+  say A user asks to transfer money. Every scene shares the steps up to here.
+  start -> ask
+
+step Check
+  say Checks whether the payee is registered. The scenes split from here.
+  ask -> look: payee
+
+scene Transfer goes through
+  step Send
+    say The payee is right, so the money is sent.
+    look -> send: right
+end
+
+scene Wrong payee
+  step Send back
+    say The payee is wrong, so the transfer is sent back. This scene stops here.
+    look -> back: wrong
+    stop The payee is not registered
+end

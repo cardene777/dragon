@@ -46,8 +46,13 @@ export const reading: BlockReading<GroupMessages> = {
       }
       figure.group = { source, id: declared.id };
     },
+    // `end` は開いた区画を閉じ、区画を開いていない時は書いている場面を閉じる (#3878)
     end: (source, state) => {
       if (source.text !== "end") throw fail(source, "end".length, state.m.endTakesNothing);
+      if (!state.figure.group && state.scene() !== undefined) {
+        state.closeScene();
+        return;
+      }
       if (!state.figure.group) throw fail(source, 0, state.m.strayEnd);
       state.figure.group = undefined;
     },

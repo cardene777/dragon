@@ -61,7 +61,7 @@ import {
 } from "../look/values";
 import { readDiagram } from "../version";
 import { toModel } from "../model";
-import type { Diagram, DiagramModel, ViewMode } from "../schema";
+import type { Diagram, DiagramModel, SceneShow, ViewMode } from "../schema";
 import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
@@ -164,6 +164,21 @@ export interface Rendered {
   overlaps: Overlap[];
   /** 描いた図の崩れ (#3484)。`findBreaks` を渡して描いた時だけ持つ */
   breaks?: LayoutBreak[];
+  /**
+   * 場面を書いた図 (#3878) の、場面ごとに描いた図。書いた順に並べ、場面を書かない図は持たない。
+   * 場面を書いた図の `svg` と `layout` は、場面ごとの図を場面の名前と止まる理由と一緒に上から縦に並べた図
+   */
+  scenes?: RenderedScene[];
+  /** 場面の見せ方 (#3878)。場面を書いた図だけが持つ */
+  sceneShow?: SceneShow;
+}
+
+/** 場面ごとに描いた図 (#3878)。場面の名前と止まる理由と場面の色と、全ての場面に共通の段の数を持つ */
+export interface RenderedScene extends Rendered {
+  name: string;
+  stop?: string;
+  color: ColorKey;
+  common: number;
 }
 
 const S = LOOK.stroke;
@@ -470,6 +485,9 @@ export function drawSvg(
     top: [] as string[],
   };
   for (const region of layout.regions) L.band.push(band(region, ink, ctx.corner));
+  // 並べる見せ方の場面の図 (#3878) は、分かれる位置の縦の点線を箱と線より下の層に引く
+  const fork = layout.scene?.fork;
+  if (fork) L.band.push(`<line class="dg-scene-fork" data-dragon="scene-fork" x1="${r1(fork.x)}" y1="${r1(fork.y1)}" x2="${r1(fork.x)}" y2="${r1(fork.y2)}" stroke-dasharray="${LOOK.scene.dash}"/>`);
   const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
   if (layout.side) L.band.push(side(layout.side, ghostColor, ink, ctx.corner));
   // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
@@ -509,7 +527,8 @@ export function drawSvg(
     // 種類の部品は、共通の線を描かない線と、線を出し始める時刻を決められる
     const since = drawn?.edge ? drawn.edge(e) : 0;
     if (!time || since === undefined) continue;
-    const line = edge(e, time, ctx, isState, since);
+    // 並べる見せ方の場面の図 (#3878) は、段が済んだ線も灰に替えず、共通の段の灰色と場面の色のまま残す
+    const line = edge(e, time, ctx, isState && layout.scene === undefined, since);
     L.base.push(line.base);
     L.lit.push(line.lit);
   }
@@ -614,8 +633,9 @@ export function drawSvg(
     ? followView(layout, timeline, diagram, m, id, content, under, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height, css: "" };
   const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
-  // 印の見た目の規則は札で見せる図にだけ書き、ほかの図の SVG を変えない (#3877)
-  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${notes.size > 0 ? NOTE_CSS : ""}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
+  // 印の見た目の規則は札で見せる図にだけ書き、ほかの図の SVG を変えない (#3877)。分かれる位置の点線の規則も、点線を引く場面の図にだけ書く (#3878)
+  const forkCss = fork ? `.dg-scene-fork{fill:none;stroke:var(--mute);stroke-width:${S.edge}}` : "";
+  const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${notes.size > 0 ? NOTE_CSS : ""}${forkCss}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +
     `<style>${css}</style><defs>${shadow}</defs>${monoDots(view.body, css)}</svg>`
@@ -1070,6 +1090,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 止めて置く図 (#3801) は、種類の部品の組が持つ止めて置く時の直し (量の図は段の名前の所に図の題を出す) を、並べる前に当てる
   const given = toModel(read.diagram);
   const parts = partsOf(given.kind, lang);
+  // 場面を書いた図 (#3878) は、場面を書ける種類の部品の組の場面の描き方が、場面ごとの図と縦に並べた図を描く
+  if (given.scenes && parts?.scenes) return parts.scenes.render(given, options, lang);
   const model = options.figure === true ? (parts?.figure?.(given) ?? given) : given;
   // 札で見せる図 (#3877) は、箱の説明を名前の下の字から札へ移してから並べる。箱は説明の字の幅まで広がらない
   const { diagram, notes } = takeNotes(parts?.fold?.(model, options, lang) ?? model);
@@ -1084,16 +1106,23 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
   // 札を持つ箱の印は、並べた箱の右上に置く (#3877)
   const placed = placeNotes(notes, laid.boxes);
   const layout = placed.length > 0 ? { ...laid, noteCards: placed } : laid;
-  // 色味を指定しない図は、図の種類の既定の色味で描く (#3398)
-  // 頁に止めて置く図 (#3801) は、頁の白い地に馴染む澄んだ色味 (`clear`) を既定にする
+  const rendered = drawLaid(diagram, layout, options, lang);
+  return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
+}
+
+/**
+ * 並べた図を、図の種類の既定の色味と札の時刻の直しで描く。場面を書いた図 (#3878) の場面の描き方も、場面ごとの図をここで描く。
+ * 色味を指定しない図は、図の種類の既定の色味で描く (#3398)。頁に止めて置く図 (#3801) は、頁の白い地に馴染む澄んだ色味 (`clear`) を既定にする
+ */
+export function drawLaid(diagram: DiagramModel, layout: Layout, options: DrawOptions, lang: NotationLang): Rendered {
+  const parts = partsOf(diagram.kind, lang);
   const kindPalette = options.palette === undefined ? (KIND_PALETTE[diagram.kind] ?? (options.figure === true ? "clear" : undefined)) : undefined;
   const drawn = kindPalette === undefined ? options : { ...options, palette: kindPalette };
   const timeline = buildTimeline(diagram, options.still === true);
   // 札の時刻は部品の組が直す。手順の図は段の印の点と運ぶ物と光る間を直し (#3561)、
   // 回り続ける図と表どうしの関係の図の札は、走り出しを待たずに出て段の終わりに消える (#3623、#3618)
   const timed = parts?.times?.(diagram, timeline) ?? timeline;
-  const rendered = renderLayout(diagram, layout, timed, drawn);
-  return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
+  return renderLayout(diagram, layout, timed, drawn);
 }
 
 /**
