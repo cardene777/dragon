@@ -4313,7 +4313,9 @@ function finishPipe(out: PipeLayout): PipeLayout {
     ...(out.plates ?? []).filter((p) => !p.row),
     ...out.enclosures,
     ...(out.gauges ?? []).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h })),
-    ...(out.events ?? []).map((e): Rect => ({ x: e.x, y: e.y, ...(({ w, h }) => ({ w, h }))(logCardSize(out, e)) })),
+    // ログの札は札の帯を持つ形 (#3721) の時だけ避ける。ほかの形のログの札はここでは仮の置き場に在り、描く段が線の札を避けて置き直す。
+    // 仮の置き場を避けると、描いた図では空いている管の横まで断り、札が管の上に落ちて戻りの札に重なる (#3949)
+    ...(out.fixed?.band ? (out.events ?? []) : []).map((e): Rect => ({ x: e.x, y: e.y, ...(({ w, h }) => ({ w, h }))(logCardSize(out, e)) })),
   ];
   const lines = [...(out.calls ?? []), ...(out.valuePipes ?? []), ...(out.links ?? []), ...(out.writes ?? [])].flatMap((l) => segsOf(l.points));
   const tieLines = (out.ties ?? []).map((t): [Point, Point] => [[t.x, t.y1], [t.x, t.y2]]);
@@ -4351,6 +4353,22 @@ function finishPipe(out: PipeLayout): PipeLayout {
       const hi2 = level ? Math.max(p[0], q[0]) : Math.max(p[1], q[1]);
       for (let t = lo2 + 4; t <= hi2 - 4 - (level ? w : h); t += 4) for (const d of level ? [-16 - h, 16] : [16, -16 - w]) spots.push(level ? [t, p[1] + d] : [p[0] + d, t]);
     }
+    // それでも置けない時は、管から遠い所 (40pxから64px) と、札が線の端から外へはみ出す所まで広げて試す (#3949)。
+    // 管に近い所から順に、どの線の横も試す。広げた所は今の候補の後に足すので、今の候補に置ける図の置き場は変えない。
+    // 線の端の外も今の候補と同じ4pxの刻みにそろえる
+    const longestFirst = [[a, b] as [Point, Point], ...segsOf(c.points).filter(([p, q]) => p !== a || q !== b)];
+    for (const d of [16, 24, 32, 40, 48, 56, 64])
+      for (const [p, q] of longestFirst) {
+        const level = Math.abs(p[1] - q[1]) < 0.5;
+        const lo2 = level ? Math.min(p[0], q[0]) : Math.min(p[1], q[1]);
+        const hi2 = level ? Math.max(p[0], q[0]) : Math.max(p[1], q[1]);
+        const size2 = level ? w : h;
+        const mid = (lo2 + hi2) / 2;
+        const ts: number[] = [];
+        for (let t = lo2 + 4 - 4 * Math.ceil(size2 / 4); t <= hi2 - 4; t += 4) ts.push(t);
+        ts.sort((u, v) => Math.abs(u + size2 / 2 - mid) - Math.abs(v + size2 / 2 - mid));
+        for (const t of ts) for (const off of level ? [-d - h, d] : [d, -d - w]) spots.push(level ? [t, p[1] + off] : [p[0] + off, t]);
+      }
     const others = lines.filter(([p, q]) => !segsOf(c.points).some(([u, v]) => u === p && v === q));
     // 返り値の札が止まる所からは札どうしの隙間 (8px) を空け、線を戻る間に通る所にも重ねない (Tracelyth #221)
     const backs = (out.chips ?? []).filter((x) => x.kind === "return" && x.w > 0);

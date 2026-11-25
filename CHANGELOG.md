@@ -14,6 +14,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Fixed
 
+- In a pipe diagram, the `delegatecall()` tag of a delegate call (`[call: delegate]`) no longer lands on its pipe over the `ok` chip of the return. Since 0.80.0 the tag avoided the log cards at the spots the layout gives them before drawing moves them, so a tag beside an open pipe fell back onto the pipe; in a Diamond `diamondCut` diagram it covered the `ok` chip by 23px. The tag now avoids log cards only where they stay put, and when the spots beside the pipe are taken it also tries spots 40px to 64px away and past the ends of the pipe before it sits on the pipe. Log cards and call cards moved while drawing keep off the tag, and the tag of the `vault-proxy` sample now sits beside its short pipe (#3949)
 - `dragon check --layout` without `--lang` now draws the diagram text in the language `dragon export` uses: the title and `say` lines for a notation file, the body for a Markdown file, and `<html lang>` for an HTML file. A Japanese diagram used to be measured with the English `Start` label and could get a warning that its export does not have. Messages stay in English (#3943)
 
 ## [0.80.1] - 2026-11-25
