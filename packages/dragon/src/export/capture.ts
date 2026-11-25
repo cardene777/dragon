@@ -6,8 +6,8 @@
  * mp4 は WebCodecs で H.264 にして `mediabunny` で箱に入れ、GIF は `gifenc` で詰める。
  * WebCodecs は安全な頁でしか使えないので、頁は `http://localhost/` に置く。
  *
- * HTML で描く図 (判定の表、#3879) は SVG の大きさを持たないので、撮る頁で描いた大きさを測り、窓をその大きさにする (#3923)。
- * 頁の地を中身の幅 (`max-content`) にして置くので、横に送る枠の中の列も全て写る。
+ * HTML で描く図 (判定の表、#3879) は、書き出す絵の形 (例を帯に置いた SVG、#3891) を撮る頁で描いた大きさを測り、窓をその大きさにする (#3923)。
+ * 絵は時刻で動かず、根の `style` に色の変数を持つので、時刻を止める `style` を足さない。
  * 時刻の代わりに段を図に書き (種類の部品の `html.show`)、印の移り変わり (`transition`) を止めて、撮る時刻で絵がぶれないようにする。
  */
 import { readFileSync } from "node:fs";
@@ -72,7 +72,7 @@ export function sizeOf(svg: string): { width: number; height: number } {
 /** HTML で描く図を撮る時に、段を図に書く処理と段の始まりの時刻 (#3923) */
 export interface HtmlFigure {
   /** 段 `step` (0 から数える) を図の根に書く。種類の部品の `html.show` を字の並びにして撮る頁へ送るので、外の名前を読まない関数にする */
-  show(this: void, figure: HTMLElement, step: number): void;
+  show(this: void, figure: HTMLElement | SVGElement, step: number): void;
   /** 段ごとの始まりの時刻 (秒) */
   starts: number[];
 }
@@ -98,7 +98,7 @@ export async function stage(browser: Browser, svg: string, fontCss: string, body
   // HTML の図は窓の幅に依らず中身の幅で描くので、測るまでの窓の大きさは描き方を変えない
   const { width, height } = figure ? { width: 800, height: 600 } : sizeOf(svg);
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: FILM_SCALE });
-  const paused = svg.replace(/^<svg\b/, '<svg style="--play:paused;--at:0"');
+  const paused = figure ? svg : svg.replace(/^<svg\b/, '<svg style="--play:paused;--at:0"');
   const html =
     `<!doctype html><html><head><meta charset="utf-8"><style>${fontCss}html,body{margin:0}body{${body}}svg{display:block}${figure ? HTML_STAGE : ""}</style>` +
     `<script type="module">import * as mb from "/mediabunny.js";import * as gif from "/gifenc.js";window.__tools={mb,gif};</script></head><body>${paused}</body></html>`;
@@ -139,9 +139,9 @@ async function at(stage: Stage, t: number, step?: number): Promise<void> {
   await stage.page.evaluate(
     ([t, step, html]) =>
       new Promise<void>((done) => {
-        const figure = document.body.firstElementChild as HTMLElement;
+        const figure = document.body.firstElementChild as HTMLElement | SVGElement;
         if (!html) figure.style.setProperty("--at", String(t));
-        else if (step !== undefined) (window as unknown as { __show: (figure: HTMLElement, step: number) => void }).__show(figure, step);
+        else if (step !== undefined) (window as unknown as { __show: (figure: HTMLElement | SVGElement, step: number) => void }).__show(figure, step);
         requestAnimationFrame(() => requestAnimationFrame(() => done()));
       }),
     [t, step, stage.html !== undefined] as const,

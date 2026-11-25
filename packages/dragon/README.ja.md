@@ -71,7 +71,7 @@ npm install @cardenelabs/dragon
 | 原本 | 図の種類と題と段の骨組みに、ブロックの名前ごとの欄 (`blocks`) を持つ JSON (下の節)。版を持ち、古い版は読む時に変換する |
 | 記法 | 行の頭の英語の語で行の種類が決まる dragon記法 (下の節)。JSON と行き来でき、名前と文は日本語でも書ける ([書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md)、[英語の書き方](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
 | 描く部品 | 原本を頁に描き、段ごとに動かす部品。時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図を描く |
-| 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
+| 書き出し | 同じ原本から mp4、GIF、HTML、PNG、SVG を書き出す命令 `dragon export` |
 
 前の版から上げる時に書き直す所は [`CHANGELOG.ja.md`](https://github.com/cardene777/dragon/blob/main/CHANGELOG.ja.md) にある。
 
@@ -889,7 +889,7 @@ dragon export ccip.json --out out
 | `--lang <言葉>` | 図の中の字 (dragonが図に足す字、全体図の札、HTML の読み上げの名前) と、命令が出す文 (使い方の文、誤りの文、描けない時の断りの文) の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に仮名か漢字があれば `ja`、無ければ `en` で、命令が出す文は `en`。記法の file でも JSON の原本でも同じ |
 | `--fps <数>` | mp4 の 1 秒のコマの数 (既定 30) |
 | `--gif-fps <数>` | GIF の 1 秒のコマの数 (既定 10) |
-| `--format <形>` | 書き出す形を `,` で区切る (既定 `mp4,gif,html,png`) |
+| `--format <形>` | 書き出す形 (`mp4`、`gif`、`html`、`png`、`svg`) を `,` で区切る (既定 `mp4,gif,html,png`)。`svg` は最後の段の止め絵を、字の書体を埋めて書く |
 | `--blocks <file>` | 足したブロックの定義の file。その定義で図を描き、HTML にも定義を入れる。頭に定義を書かずに足したブロックを使う図も書き出せる |
 
 PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。

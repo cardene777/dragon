@@ -432,7 +432,7 @@ export const DOCS: Record<Lang, DocsText> = {
       export: {
         title: "書き出し",
         text: [
-          "同じ原本から、mp4、GIF、HTML、PNG を書き出せる。package を入れると `dragon` の命令が使える。",
+          "同じ原本から、mp4、GIF、HTML、PNG、SVG を書き出せる。package を入れると `dragon` の命令が使える。",
           "書き出しは画面なしの Chromium で、頁と同じ描画を 1 コマずつ撮る。Chromium を動かす `playwright-core` は、書き出しを使う時だけ入れる。",
           "原本の JSON (`.json`) か記法 (`.dragon`) を渡すと、同じ名前の 4 つの file を書き出す。PNG は最後の段の止め絵になる。",
         ],
@@ -462,7 +462,7 @@ export const DOCS: Record<Lang, DocsText> = {
       regions: "構成図の箱を、持ち主ごとの区画に分けて置く。",
       steps: "図は段ごとに進み、本文がその段の動きを語る。",
       json: "人は記法で、道具は JSON で、同じ図を持つ。",
-      export: "同じ図を mp4、GIF、HTML、PNG に書き出す。",
+      export: "同じ図を mp4、GIF、HTML、PNG、SVG に書き出す。",
     },
     options: {
       head: ["設定", "意味"],
@@ -475,7 +475,7 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--lang <言葉>", "図の中の字と命令の文の言葉 (`ja` か `en`)。無ければ、図の中の字は図の題か `say` に日本語の字があれば `ja`、無ければ `en` で、命令の文は `en`"],
         ["--fps <数>", "mp4 の 1 秒のコマの数 (既定 30)"],
         ["--gif-fps <数>", "GIF の 1 秒のコマの数 (既定 10)"],
-        ["--format <形>", "書き出す形を `,` で区切る (既定 `mp4,gif,html,png`)"],
+        ["--format <形>", "書き出す形 (`mp4`、`gif`、`html`、`png`、`svg`) を `,` で区切る (既定 `mp4,gif,html,png`)"],
         ["--step <段>", "PNG に撮る段 (1 から数える。既定は最後の段)"],
         ["--blocks <file>", "足したブロックの定義の file。その定義で図を描き、HTML にも定義を入れる"],
       ],
@@ -732,7 +732,7 @@ export const DOCS: Record<Lang, DocsText> = {
       export: {
         title: "Export",
         text: [
-          "The same source can be exported to mp4, GIF, HTML and PNG. Install the package and the `dragon` command is available.",
+          "The same source can be exported to mp4, GIF, HTML, PNG and SVG. Install the package and the `dragon` command is available.",
           "Export uses a headless Chromium and captures the same drawing as the page one frame at a time. Install `playwright-core`, which runs Chromium, only when you use export.",
           "Pass the source JSON (`.json`) or the notation (`.dragon`) and it writes four files with the same name. The PNG is a still of the last step.",
         ],
@@ -762,7 +762,7 @@ export const DOCS: Record<Lang, DocsText> = {
       regions: "Put the boxes of an architecture diagram in regions by owner.",
       steps: "The diagram moves step by step, and the body tells what each step does.",
       json: "People keep the notation, and tools keep the same diagram as JSON.",
-      export: "Export the same diagram to mp4, GIF, HTML and PNG.",
+      export: "Export the same diagram to mp4, GIF, HTML, PNG and SVG.",
     },
     options: {
       head: ["Option", "Meaning"],
@@ -775,7 +775,7 @@ export const DOCS: Record<Lang, DocsText> = {
         ["--lang <lang>", "Language of the diagram text and command messages (`ja` or `en`). Without it, the diagram text is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en`"],
         ["--fps <n>", "Frames per second of the mp4 (default 30)"],
         ["--gif-fps <n>", "Frames per second of the GIF (default 10)"],
-        ["--format <list>", "Formats to write, separated by `,` (default `mp4,gif,html,png`)"],
+        ["--format <list>", "Formats to write (`mp4`, `gif`, `html`, `png`, `svg`), separated by `,` (default `mp4,gif,html,png`)"],
         ["--step <n>", "Step the PNG shows (counted from 1, default: the last step)"],
         ["--blocks <file>", "A file of block definitions. The diagram is drawn with them, and the HTML carries them"],
       ],

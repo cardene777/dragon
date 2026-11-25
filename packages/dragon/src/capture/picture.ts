@@ -6,9 +6,10 @@
  * 時刻は命令の書き出し (`export/capture.ts`) と同じく、`--play` を `paused` にして `--at` に秒を入れて止める。
  * 写しを画像として読み、倍率を掛けた canvas に描く。
  *
- * HTML で描く図 (判定の表、#3937) は、頁の表の写しから段の印を消して頁の外に中身の幅で置き、描いた大きさを測る。
- * 写しを SVG の `foreignObject` に包み、字を埋めた `@font-face` を頭に置く。動画のコマは、時刻の段の印を写しに書いて撮る。
- * `foreignObject` を持つ SVG は、`blob:` の URL で読むと Chromium が canvas を汚れた物として扱い絵を読み出せないので、`data:` の URL で読む。
+ * 段の印で列を照らす図 (判定の表、#3937) は、写しから段の印を消して頁の外に置き、描いた大きさを測る。動画のコマは、時刻の段の印を写しに書いて撮る。
+ * 書き出す絵の形 (例を帯に置いた SVG、#3891) はそのまま SVG にし、字を埋めた `@font-face` を頭に置く。
+ * 頁の表 (HTML の根) は写しを SVG の `foreignObject` に包む。`foreignObject` を持つ SVG は、`blob:` の URL で読むと
+ * Chromium が canvas を汚れた物として扱い絵を読み出せないので、`data:` の URL で読む。
  */
 import { stepAt } from "../export/film";
 import type { NotationLang } from "../words";
@@ -125,22 +126,23 @@ export async function picture(svg: SVGSVGElement, lang: NotationLang, film = fal
   };
 }
 
-/** HTML で描く図の段の印を書く処理と消す処理。種類の部品の `html.show` と同じ形で、外の名前を読まない */
-export interface HtmlParts {
-  show(this: void, figure: HTMLElement, step: number): void;
-  clear(this: void, figure: HTMLElement): void;
+/** 段の印で列を照らす図の、段の印を書く処理と消す処理。種類の部品の `html.show` と同じ形で、外の名前を読まない */
+export interface StepParts {
+  show(this: void, figure: HTMLElement | SVGElement, step: number): void;
+  clear(this: void, figure: HTMLElement | SVGElement): void;
 }
 
 /** 包んだ写しの地。画像の中で印の移り変わり (`transition`) を止め、撮る時刻で絵がぶれないようにする */
 const STILL_CSS = "*{transition:none!important}";
 
 /**
- * 頁に描いた HTML の図 (判定の表) を写し、段の印を消して字を埋める。
+ * 段の印で列を照らす図 (判定の表) を写し、段の印を消して字を埋める。根は書き出す絵の形 (SVG、#3891) か頁の表 (HTML) で、
+ * SVG はそのまま、HTML は `foreignObject` に包んだ SVG にする。
  * `starts` (段ごとの始まりの時刻) を渡すと、`draw` は時刻の段の印を書いた形を描き、渡さない時は全ての段を照らさずに見せた形を描く
  */
-export async function htmlPicture(root: HTMLElement, lang: NotationLang, parts: HtmlParts, starts?: readonly number[]): Promise<Picture> {
+export async function stepPicture(root: HTMLElement | SVGSVGElement, lang: NotationLang, parts: StepParts, starts?: readonly number[]): Promise<Picture> {
   const doc = root.ownerDocument;
-  const base = root.cloneNode(true) as HTMLElement;
+  const base = root.cloneNode(true) as HTMLElement | SVGSVGElement;
   parts.clear(base);
   // 頁の外に中身の幅で置き、横に送る枠の中の列も全て描いた大きさを測る。字を埋める処理も、置いた写しの書体を読む
   const holder = doc.createElement("div");
@@ -158,13 +160,17 @@ export async function htmlPicture(root: HTMLElement, lang: NotationLang, parts: 
   } finally {
     holder.remove();
   }
-  /** 写しを `foreignObject` に包んだ SVG の文字列 */
-  const wrap = (figure: HTMLElement): string => {
+  /** 写しを、字を埋めた SVG の文字列にする。頁の表は `foreignObject` に包む */
+  const wrap = (figure: HTMLElement | SVGSVGElement): string => {
+    const style = doc.createElementNS(SVG_NS, "style");
+    style.textContent = `${css}${STILL_CSS}`;
+    if (figure.namespaceURI === SVG_NS) {
+      figure.insertBefore(style, figure.firstChild);
+      return new XMLSerializer().serializeToString(figure);
+    }
     const svg = doc.createElementNS(SVG_NS, "svg");
     svg.setAttribute("width", String(width));
     svg.setAttribute("height", String(height));
-    const style = doc.createElementNS(SVG_NS, "style");
-    style.textContent = `${css}${STILL_CSS}`;
     const object = doc.createElementNS(SVG_NS, "foreignObject");
     object.setAttribute("width", String(width));
     object.setAttribute("height", String(height));
@@ -176,9 +182,9 @@ export async function htmlPicture(root: HTMLElement, lang: NotationLang, parts: 
   return {
     width,
     height,
-    svg: () => wrap(base.cloneNode(true) as HTMLElement),
+    svg: () => wrap(base.cloneNode(true) as HTMLElement | SVGSVGElement),
     draw(t, scale, background) {
-      const figure = base.cloneNode(true) as HTMLElement;
+      const figure = base.cloneNode(true) as HTMLElement | SVGSVGElement;
       if (starts?.length) parts.show(figure, stepAt(starts, t));
       return paint(canvas, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(wrap(figure))}`, { width, height }, scale, background);
     },

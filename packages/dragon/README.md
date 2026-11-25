@@ -70,7 +70,7 @@ The package has four parts.
 | Source | JSON that holds the kind, title, and steps, plus a field for each block name (`blocks`) (see below). It records a format version, and older versions are converted when read |
 | Notation | The dragon notation, where the first English word of each line sets the line's kind (see below). It converts to and from JSON, and names and text can be in any language ([notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md)) |
 | Renderer | Draws the source on a page and plays it one step at a time. It draws sequence, architecture, state, git, time, tree, lineup, and try diagrams |
-| Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
+| Export | The `dragon export` command writes MP4, GIF, HTML, PNG, and SVG from the same source |
 
 ## Write diagrams with AI
 
@@ -959,7 +959,7 @@ dragon export ccip.json --out out
 | `--lang <lang>` | Language of the text in the diagram (the text dragon adds, overview labels, and the names read in HTML) and of the command's messages (usage, errors, and the message when it cannot draw) (`ja` or `en`). Without it, the text in the diagram is `ja` when the title or a `say` line has kana or kanji and `en` otherwise, and the messages are `en`. The same goes for notation files and source JSON |
 | `--fps <n>` | Frames per second of the MP4 (default 30) |
 | `--gif-fps <n>` | Frames per second of the GIF (default 10) |
-| `--format <formats>` | The formats to write, separated by `,` (default `mp4,gif,html,png`) |
+| `--format <formats>` | The formats to write (`mp4`, `gif`, `html`, `png`, `svg`), separated by `,` (default `mp4,gif,html,png`). `svg` writes the still of the last step with its fonts embedded |
 | `--blocks <file>` | A file of block definitions. The diagram is drawn with them, and the HTML carries them, so a diagram that uses added blocks without defining them at its head can be exported |
 
 The PNG is a still of the last step in the `fixed` view.

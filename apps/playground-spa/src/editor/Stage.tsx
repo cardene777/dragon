@@ -18,7 +18,7 @@ import { type CSSProperties, type ReactElement, useEffect, useRef, useState } fr
 import { FigureWaiting } from "../site/KindState";
 import { usePhone } from "../site/usePhone";
 import { type Lang, TEXT } from "../text";
-import { type ExportFigure, ExportMenu, figureIn } from "./ExportMenu";
+import { type ExportFigure, ExportMenu, exportFigureIn } from "./ExportMenu";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "./fit";
 import { useFittedFigure } from "./useFittedFigure";
 
@@ -123,7 +123,7 @@ export function Stage({ diagram, palette, onPalette, theme, lang, kept, fileName
     setFactor(zoomed(fit.scale, factor * by) / fit.scale);
   };
   /** 今置いている図の SVG か、HTML で描く図 (判定の表) の根の要素。書き出す釦が書き出す入口へ渡す */
-  const figure = (): ExportFigure | null => figureIn(host.current);
+  const figure = (): ExportFigure | null => exportFigureIn(host.current, () => (diagram ? renderDiagram(diagram, { picture: true, palette, theme, lang }).svg : undefined));
   /** 今の図の 1 周の秒と段ごとの止め絵の時刻。GIF の色の表を `dragon export` と同じ絵から作るために渡す */
   const figureTimeline = (): Timeline | undefined => (diagram ? renderDiagram(diagram, { palette, theme, lang }).timeline : undefined);
   const figureStyle = {

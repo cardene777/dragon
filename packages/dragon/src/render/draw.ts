@@ -109,6 +109,11 @@ export interface RenderOptions {
    * 頁が `--dragon-figure-background` を渡すと、図の地をその色で塗る。手順の帯 (`cycle` の `[shape: band]`) は番号の丸の空きを取らず、手順の名前を山形の中に書く (#3809)
    */
   figure?: boolean;
+  /**
+   * 書き出す絵の形で描く (#3891)。HTML で描く種類 (判定の表) は、頁の表の代わりに SVG の要素だけで描いた絵を返す。
+   * 判定の表は例を帯に置き、幅 728px に収まらない表は規則の列を分けて縦に積む。SVG で描く種類はこの指定で変わらない
+   */
+  picture?: boolean;
   /** 原本の頭に書かずに渡す、使う人が足すブロックの定義 (#3399)。`readBlocks` が読んだ物。原本の `define` と同じ名前の定義は原本の物を使う */
   blocks?: UserBlocks;
   /**
@@ -1149,7 +1154,9 @@ export function renderLayout(
   const html = partsOf(layout.kind)?.html;
   // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない
   const svg = html
-    ? html.markup(layout, palette, theme)
+    ? options.picture === true && html.picture
+      ? html.picture(layout, palette, theme)
+      : html.markup(layout, palette, theme)
     : drawLines(drawSvg(diagram, layout, timeline, palette, theme, undefined, ink, traces, framed, pieces, strokes, figure), options.line, options.lang ?? DEFAULT_LANG);
   // 箱の札を種類の部品の組が描く図の種類 (時間軸の図と列の図) は、崩れの確かめも共通の描き方が箱の札を描いた図の種類の箱だけを見る
   const carded = partsOf(layout.kind)?.ownBoxes ? [] : layout.boxes.filter((box) => !box.ghost);

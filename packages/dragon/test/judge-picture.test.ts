@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import { parseNotation, renderDiagram } from "../src/core";
 import "../src/kind-use/judge";
 import { READABLE_PX } from "../src/look/values";
+import { textLang } from "../src/words";
 import { atLoad } from "./at-load";
 import { exampleText } from "./diagram-data";
 import { exporter } from "./export-support";
@@ -73,6 +74,8 @@ async function written(
   if (!parsed.ok) throw new Error(`${name} を読めない`);
   const exportDiagram = await exporter();
   const outDir = mkdtempSync(join(tmpdir(), "dragon-judge-svg-"));
+  // 書き出しは言葉を渡さない時に図の字の言葉で描くので、頁の形も同じ言葉で描いて比べる
+  const lang = textLang(parsed.diagram);
   const result = await exportDiagram(parsed.diagram, {
     outDir,
     name: "judge",
@@ -82,7 +85,7 @@ async function written(
   const file = (result.files as Record<string, string | undefined>).svg;
   return {
     svg: file ? readFileSync(file, "utf8") : "",
-    html: renderDiagram(parsed.diagram, extra).svg,
+    html: renderDiagram(parsed.diagram, { ...extra, lang }).svg,
   };
 }
 
