@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- A diagram shown whole (`fixed`) is no longer drawn wider than its own width when its frame is wider, and sits in the middle of the frame. A tall flow on a 728px page used to grow until its box names were about 30px, and now keeps the same 13px text as the other kinds. Still figures from `dragon embed` and `data-still` blocks keep their own width the same way, and `chooseView` no longer reports text larger than the box name's own size.
+
 ## [0.80.0] - 2026-11-25
 
 ### Added
