@@ -1103,7 +1103,8 @@ sequence Ask to sign in
 ## Writing in HTML
 
 A report written as one HTML file can use the HTML form, where each notation line is one element.
-The diagram is wrapped in `<dg-` and the diagram kind, a declaration line becomes the element named after its block, `step` becomes `<dg-step>`, `say` becomes `<dg-body>`, and a line inside a step becomes `<dg-edge>`.
+The diagram is wrapped in `<dg-` and the diagram kind, and a declaration line becomes the element named after its block.
+`step` becomes `<dg-step>`, `say` becomes `<dg-body>`, and a line inside a step becomes `<dg-edge>`.
 
 ```html
 <dg-sequence title="Take an order">

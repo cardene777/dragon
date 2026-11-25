@@ -439,7 +439,9 @@ HTML does not close `<dg-box/>`, so close every element with its end tag.
 `class`, `style`, and attributes starting with `data-` on a diagram element are left to the page and are not read into the diagram.
 
 A Markdown page for `dragon export` converts to one HTML page in `<dragon-page>`.
-The front matter becomes its attributes, `##` and `###` become `<section>` with the heading, a quote becomes `<blockquote>`, `<details>` stays `<details>`, a glossary link becomes `<a>`, and a `dragon` code block becomes the HTML form of the diagram.
+The front matter becomes its attributes, and `##` and `###` become `<section>` with the heading.
+A quote becomes `<blockquote>`, `<details>` stays `<details>`, and a glossary link becomes `<a>`.
+A `dragon` code block becomes the HTML form of the diagram.
 Guide pages (`layout: guide`) convert too.
 A guide page with one question converts to this.
 
