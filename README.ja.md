@@ -163,6 +163,7 @@ package を import して描く時は、`parseNotation` で読んだ結果を `m
 | 描く部品 | 原本を頁に描き、段ごとに動かす |
 | 描ける図 | 時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、列の図、試す図、配管の図、量の図、手順の図、回り続ける図、考えを広げる地図、表どうしの関係の図、2つの軸で置く図、集合の重なりの図、量の行き先の図、持ち主ごとのカードの図、購入操作図、判定の表 |
 | 書き出し | 同じ原本から mp4、GIF、HTML、PNG を書き出す命令 `dragon export` |
+| HTMLの形 | 図は、記法の1行を`<dg-sequence>`や`<dg-box>`のような1つの要素にしたHTMLでも書ける。命令`dragon convert`が記法とmdの頁をHTMLに変え、HTMLを記法とmdに戻す |
 
 ## dragon記法
 
@@ -181,7 +182,7 @@ package を import して描く時は、`parseNotation` で読んだ結果を `m
 
 | 読む物 | 何が書いてあるか |
 |---|---|
-| [`packages/dragon/README.ja.md`](packages/dragon/README.ja.md) | 頁に置く書き方、他のツールへの組み込み、図の種類の部品を後から読む書き方、ブロックを足す書き方、書き出し |
+| [`packages/dragon/README.ja.md`](packages/dragon/README.ja.md) | 頁に置く書き方、HTMLで書く書き方、他のツールへの組み込み、図の種類の部品を後から読む書き方、ブロックを足す書き方、書き出し |
 | [書き方の手引き](packages/dragon/examples/quick-start.md) | 全ての行の形と属性と、図の種類ごとの書き方 |
 | [`CHANGELOG.ja.md`](CHANGELOG.ja.md) | 版ごとの変更と、前の形の記法を書き直す対応表 |
 

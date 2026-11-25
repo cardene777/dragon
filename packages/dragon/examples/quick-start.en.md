@@ -1100,6 +1100,26 @@ sequence Ask to sign in
 ```
 ````
 
+## Writing in HTML
+
+A report written as one HTML file can use the HTML form, where each notation line is one element.
+The diagram is wrapped in `<dg-` and the diagram kind, a declaration line becomes the element named after its block, `step` becomes `<dg-step>`, `say` becomes `<dg-body>`, and a line inside a step becomes `<dg-edge>`.
+
+```html
+<dg-sequence title="Take an order">
+  <dg-box id="shop">Shop</dg-box>
+  <dg-box id="api">Order API</dg-box>
+
+  <dg-step title="Place the order">
+    <dg-body>The shop sends the order to the API.</dg-body>
+    <dg-edge from="shop" to="api">Send the order</dg-edge>
+  </dg-step>
+</dg-sequence>
+```
+
+`dragon convert diagram.dragon` prints the HTML form of the notation, and `dragon convert diagram.html` prints the notation of the HTML form.
+The rules for element and attribute names, and how a Markdown page becomes an HTML page, are in the "Write the diagram in HTML" section of [`packages/dragon/README.md`](../README.md).
+
 ## Going between the notation and JSON
 
 The notation and JSON convert both ways.
