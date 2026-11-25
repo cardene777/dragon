@@ -14,7 +14,7 @@
  */
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as WORDS from "../src/words";
 import { atLoad } from "./at-load";
@@ -245,13 +245,21 @@ export function galleryRuntimeImports(root: string): string[] {
   );
 }
 
-/** 形の欠片の一覧 (`blocks/shapes.ts`) と各置き場の `shape.ts` のほかで、形の欠片を読む行。`root` は package の src に当たる dir */
+/**
+ * 形の欠片の一覧 (`blocks/shapes.ts`) と各置き場の `shape.ts` のほかで、形の欠片を読む行。`root` は package の src に当たる dir。
+ * 読み込む先は読む側の file の場所から解き、ブロックの置き場の `shape` と `shapes` を指す行だけを挙げる。
+ * 置き場の外の `shape` という名前の file (HTML の形の名前を持つ `html-form/shape.ts`、#3908) は形の欠片ではない (#3928)
+ */
 export function shapeImports(root: string): string[] {
   const all = files(root).filter((file) => file.endsWith(".ts") && file !== "blocks/shapes.ts" && !/^blocks\/[^/]+\/shape\.ts$/u.test(file));
+  const readsShape = (file: string, line: string): boolean => {
+    const from = /from "(\.[^"]*)"/u.exec(line)?.[1];
+    return from !== undefined && /^blocks\/(?:[^/]+\/)?shapes?$/u.test(posix.normalize(posix.join(posix.dirname(file), from)));
+  };
   return all.flatMap((file) =>
     readFileSync(join(root, file), "utf8")
       .split("\n")
-      .filter((line) => /^import\s/u.test(line) && !/^import type\s/u.test(line) && /from "[^"]*\/(shape|shapes)"/u.test(line))
+      .filter((line) => /^import\s/u.test(line) && !/^import type\s/u.test(line) && readsShape(file, line))
       .map((line) => `${file}: ${line}`),
   );
 }
@@ -353,6 +361,11 @@ describe("ブロックの置き場 (#3345)", () => {
       writeFileSync(join(root, "blocks", "w", "shape.ts"), 'import { none } from "../block";\n');
       writeFileSync(join(root, "blocks", "w", "block.ts"), 'import type { BlockShape } from "../shape";\nimport { shape } from "./shape";\n');
       writeFileSync(join(root, "parser.ts"), 'import { SHAPES } from "./blocks/shapes";\n');
+      // 置き場の外の `shape` という名前の file を読む行は挙げない (#3928)
+      mkdirSync(join(root, "form"), { recursive: true });
+      writeFileSync(join(root, "form", "shape.ts"), 'export const TAG = "dg";\n');
+      writeFileSync(join(root, "form", "page.ts"), 'import { TAG } from "./shape";\n');
+      writeFileSync(join(root, "cli.ts"), 'import { TAG } from "./form/shape";\n');
       expect(shapeImports(root)).toEqual(['blocks/w/block.ts: import { shape } from "./shape";', 'parser.ts: import { SHAPES } from "./blocks/shapes";']);
     } finally {
       rmSync(root, { recursive: true, force: true });
