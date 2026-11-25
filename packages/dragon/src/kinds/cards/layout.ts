@@ -6,6 +6,7 @@
  * 消したカードは消し線で同じ席に残り、動かしたカードは前の列から消えて動いた先の列に作った順の席で載る。
  * 断られた札は、断られたカードを呼んだ列 (呼び出しが無ければカードが載る最初の列) か、断られた列の、カードの下に置く。
  * 列の合計は、消えていないカードの量 (`total: none` のカードを除く) を単位ごとに足し、列の下の合計の帯に置く。段で変わった単位は前の量を添える。
+ * 合計の帯は合計に足すカード (量を持ち `total: none` を持たないカード) が在る図だけが持ち、足すカードの無い列の合計はそのうち最初のカードの単位で 0 を出す。
  * 段の中の `<列> -> <カード>` の線は列の見出しの下から出て、列の最初のカードへは真っ直ぐ下り、2 枚目から後のカードへは列の左の端を下りて横から入る。
  * 描き方 (`render/cards.ts`) を読まない
  */
@@ -102,7 +103,7 @@ export interface CardsLayout extends Layout {
   refusals: CardsRefusal[];
   empties: CardsEmpty[];
   calls: CardsCall[];
-  /** 合計の帯。量を持つカードが 1 枚も無い図は持たない */
+  /** 合計の帯。合計に足すカード (量を持ち `total: none` を持たないカード) が 1 枚も無い図は持たない */
   band?: Rect;
   totals: CardsTotal[];
   /** カードの幅 */
@@ -206,7 +207,8 @@ export function layoutCards(diagram: DiagramModel, lang: NotationLang): CardsLay
     return amount ? [amount] : [];
   });
   const units = [...new Set(parsed.map((amount) => amount.unit))];
-  const zero = parsed[0];
+  // 合計の帯と、足すカードの無い列の 0 の単位は、合計に足すカードから決める。足さないカードから決めると、足すカードが無い図にも全員の残高が 0 と読ませる帯が出る (#3944)
+  const zero = everyCard.map((card) => (card.total === "none" || card.amount === undefined ? undefined : amountOf(card.amount))).find((amount) => amount !== undefined);
 
   // 字の幅からカードと列の幅を決める。列は全て同じ幅にする
   const markW = (word: string): number => textWidth(word, T.mark) + L.mark.padX * 2;
