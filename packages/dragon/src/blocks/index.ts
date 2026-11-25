@@ -24,6 +24,7 @@ import { block as edgeBlock } from "./edge/block";
 import { block as edgeLabelBlock } from "./edge-label/block";
 import { block as emitBlock } from "./emit/block";
 import { block as foldBlock } from "./fold/block";
+import { block as gaugeBlock } from "./gauge/block";
 import { block as gistBlock } from "./gist/block";
 import { block as groupBlock } from "./group/block";
 import { block as holdBlock } from "./hold/block";
@@ -97,6 +98,7 @@ export const BLOCKS = {
   "edge-label": edgeLabelBlock,
   "emit": emitBlock,
   "fold": foldBlock,
+  "gauge": gaugeBlock,
   "gist": gistBlock,
   "group": groupBlock,
   "hold": holdBlock,
@@ -145,4 +147,4 @@ export const BLOCKS = {
 } as const;
 
 /** ブロックの名前。置き場の dir の名前の並び */
-export const BLOCK_NAMES = ["act", "ask", "axis", "band", "box", "branch", "calc", "call", "card", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "limit", "line", "link", "log", "matrix-item", "merge", "node", "note", "op", "order", "pick", "point", "pop", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "scene", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;
+export const BLOCK_NAMES = ["act", "ask", "axis", "band", "box", "branch", "calc", "call", "card", "carry", "chain", "chart-item", "chart-set", "chart-shape", "check", "choice", "circle", "color", "commit", "copy", "delete", "edge", "edge-label", "emit", "fold", "gauge", "gist", "group", "hold", "icon", "idea", "item", "leaf", "legend", "lifeline", "limit", "line", "link", "log", "matrix-item", "merge", "node", "note", "op", "order", "pick", "point", "pop", "press", "queue", "return", "revert", "ring", "role", "route", "row", "scale", "scene", "seal", "side", "side-path", "source", "stamp", "start-finish", "step", "strip", "table", "task", "value", "write", "zoom"] as const;

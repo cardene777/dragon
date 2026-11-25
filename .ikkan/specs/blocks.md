@@ -44,3 +44,17 @@
 | `try`の図に`scene`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-in-try-refused` passes | #3878 |
 | `scene`の外の段に`stop`を書いた時と、`end`で閉じない`scene`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-outside-and-unclosed-refused` passes | #3878 |
 | `scene`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3878 |
+| `gauge budget as 1日の予算 [on: vi, limit: 100, unit: USDC]`を宣言し、段で`set budget: 20`を書いた時、棒が上限の2割まで動き、「20 / 100 USDC」の字が出る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-bar-moves-to-value` passes | #3880 |
+| 目盛りは`on`で指した箱のすぐ下に描かれ、`on`を書かない目盛りは図の上の帯に描かれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-under-its-box-or-top-band` passes | #3880 |
+| 同じ箱を指す目盛りは、宣言した順に箱の下に縦に積まれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-stacks-in-declared-order` passes | #3880 |
+| 値を書かない段は前の段の値を保ち、前より小さい値を書いた段で棒が縮む | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-keeps-and-shrinks` passes | #3880 |
+| 値が変わった段で、棒の横に増えた量 (`+20`) か減った量 (`−20`) の札が出る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-delta-chip-on-change` passes | #3880 |
+| 上限を超えた値の段で、上限の位置に点線が引かれ、超えた分だけが赤で伸び、値の字が赤になる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-over-limit-extends-red` passes | #3880 |
+| 上限を超えた段で目盛りのすぐ下に「上限を超えた」の札が出て、宣言に`[over: <字>]`を書いた時はその字に替わる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-over-label-default-and-override` passes | #3880 |
+| 上限を書かない目盛りは、棒を描かず値と単位だけを出す | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-without-limit-shows-value-only` passes | #3880 |
+| flowとlineupの2種類で、同じ書き方で目盛りを置ける | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-same-in-flow-and-lineup` passes | #3880 |
+| 幅728pxの枠で、目盛りの字が10.5px以上で描かれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-text-readable-at-728` passes | #3880 |
+| `on`に宣言していない箱を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-unknown-box-refused` passes | #3880 |
+| 宣言していない目盛りへの`set`と、負の数か数でない値の`set`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-bad-set-refused` passes | #3880 |
+| 目盛りの名札が同じ図の別の名札と同じ時と、`gauge`を段の中に書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-name-clash-or-in-step-refused` passes | #3880 |
+| 目盛りを書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3880 |

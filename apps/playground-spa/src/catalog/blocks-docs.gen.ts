@@ -24,6 +24,7 @@ import { docs as edgeDocs } from "../../../../packages/dragon/src/blocks/edge/ga
 import { docs as edgeLabelDocs } from "../../../../packages/dragon/src/blocks/edge-label/gallery/docs";
 import { docs as emitDocs } from "../../../../packages/dragon/src/blocks/emit/gallery/docs";
 import { docs as foldDocs } from "../../../../packages/dragon/src/blocks/fold/gallery/docs";
+import { docs as gaugeDocs } from "../../../../packages/dragon/src/blocks/gauge/gallery/docs";
 import { docs as gistDocs } from "../../../../packages/dragon/src/blocks/gist/gallery/docs";
 import { docs as groupDocs } from "../../../../packages/dragon/src/blocks/group/gallery/docs";
 import { docs as holdDocs } from "../../../../packages/dragon/src/blocks/hold/gallery/docs";
@@ -97,6 +98,7 @@ export const BLOCK_DOCS = {
   "edge-label": edgeLabelDocs,
   "emit": emitDocs,
   "fold": foldDocs,
+  "gauge": gaugeDocs,
   "gist": gistDocs,
   "group": groupDocs,
   "hold": holdDocs,

@@ -17,7 +17,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { parseNotation, validateDiagram } from "@cardenelabs/dragon";
 import { describe, expect, it } from "vitest";
 
-import { BLOCKS } from "../../../../packages/dragon/src/blocks/index";
 import * as WORDS from "../../../../packages/dragon/src/words";
 import { type Kind } from "../catalog/catalog";
 import { PARTS } from "../catalog/parts";
@@ -204,12 +203,16 @@ describe("カタログの部品の頁 (#3166)", () => {
     expect(PART_CASES.filter(isCommon).length, "部品の表にどの図でも使える部品が無い").toBeGreaterThan(0);
     expect(PART_CASES.filter((part) => !isCommon(part)).length, "部品の表に図の種類だけの部品が無い").toBeGreaterThan(0);
     // どの図でも使える部品は、状態遷移図と枝分かれの図と時間軸の図と木の図でも描く (#3163、#3164、#3165、#3233)。
-    // 付け方の `except` でその図の種類を名指して外したブロックは描かない。場面のブロック (#3878) は手順の図と列の図だけが持つ
-    const excepted = (id: string, kind: string): boolean => ((BLOCKS as Readonly<Record<string, { attach: { except?: readonly string[] } }>>)[id]?.attach.except ?? []).includes(kind);
+    // 量の目盛り (#3880) と場面 (#3878) は、flow と lineup の 2 種類だけに置くと決めた部品なので、この確かめから外し、2 種類のままかを別に確かめる
+    const narrow: Readonly<Record<string, readonly Kind[]>> = { gauge: ["flow", "lineup"], scene: ["flow", "lineup"] };
+    for (const [id, kinds] of Object.entries(narrow)) {
+      expect([...(PART_CASES.find((part) => part.id === id)?.kinds ?? [])].sort(), `${id} を描く図の種類`).toEqual([...kinds].sort());
+    }
     for (const kind of ["state", "git", "time", "tree"] as const) {
       expect(
         PART_CASES.filter(isCommon)
-          .filter((part) => !part.kinds.includes(kind) && !excepted(part.id, kind))
+          .filter((part) => narrow[part.id] === undefined)
+          .filter((part) => !part.kinds.includes(kind))
           .map((part) => part.id),
         `${kind} の図を描かない、どの図でも使える部品がある`,
       ).toEqual([]);

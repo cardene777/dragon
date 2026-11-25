@@ -5,12 +5,15 @@
  * 組み立て `entry` は入口に全体の図と段ごとの項目の札を並べ、札を押すと項目の頁へ移り、項目の頁の戻る link で入口へ戻る。
  * `sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブで項目を選ぶ。
  * 項目の頁の中は `####` の見出しのタブ (`data-level="4"`)、その中は `#####` の見出しのタブ (`data-level="5"`) に分ける。
+ * `guide` (#3876) は上に話題のタブを並べ、タブの頭に節の題を番号つきで並べた問いの一覧を置き、その下に番号つきの節を縦に積む。
+ * 用語の札は押した下線のすぐ下に開き、見た目と開け閉めは図の箱の札 (`blocks/pop/cards.ts`) の値 (`LOOK.note`、`TYPE.note*`) に揃える。
+ * 印刷の形では、用語の札を節の終わりに全て開いて並べ、確かめる問いの答えを全て開く。
  *
  * 図は頁の script の1行の入口が jsDelivr から読む dragon が描き、版の範囲は書き出した dragon の版の上 2 つの数で決める。
  * 見せる頁とタブを選ぶ処理 (`RUNTIME`) は頁に埋めた短い script で、外へ通信しない。
  * 色と字は dragon の図と同じ紙の色味 (`paper` の明るい色) と同梱の字を使う。
  */
-import { PALETTES, COLOR_ORDER, FONT_VARS } from "../look/values";
+import { PALETTES, COLOR_ORDER, FONT_VARS, LOOK, TYPE, type TextStyle } from "../look/values";
 import { escapeHtml } from "./markdown";
 import type { Layout, PageHeader } from "./read";
 import { type PageLang, WORDS } from "./text";
@@ -48,6 +51,41 @@ export interface RenderedGroup {
   items: RenderedItem[];
 }
 
+/** 用語の札の中身 (#3876)。`key` は下線と札を結ぶ名前、`entry` は「用語」のタブの中の場所の名前、`label` は読み上げの名前の字 */
+export interface RenderedTerm {
+  key: string;
+  entry: string;
+  label: string;
+  name: string;
+  text: string;
+  example?: string;
+}
+
+/** 説明の頁の節。`terms` は節の中の下線が開く札 */
+export interface RenderedSection {
+  id: string;
+  name: string;
+  answer?: string;
+  body: string;
+  terms: RenderedTerm[];
+}
+
+/** 説明の頁の話題のタブ。`glossary` を持つタブは用語のタブで、節を持たない */
+export interface RenderedTopic {
+  id: string;
+  name: string;
+  lead: string;
+  leadTerms: RenderedTerm[];
+  sections: RenderedSection[];
+  glossary?: RenderedTerm[];
+}
+
+export interface RenderedGuide {
+  lead: string;
+  leadTerms: RenderedTerm[];
+  topics: RenderedTopic[];
+}
+
 export interface RenderedPage {
   /** 頁の題の HTML と、`<title>` に書く字 */
   title: string;
@@ -58,6 +96,8 @@ export interface RenderedPage {
   lang: PageLang;
   entry: RenderedPart;
   groups: RenderedGroup[];
+  /** `layout: guide` の頁だけが持つ */
+  guide?: RenderedGuide;
 }
 
 /** 頁が読む dragon の入口。版の範囲 (`@0.77`) で読み、同じ範囲の直した版が届く */
@@ -206,6 +246,89 @@ const STYLE_TABS = `
 .pg-chips .pg-card-name{color:var(--pg-ink)}
 `;
 
+/** 用語の札の値。図の箱の札 (`player.ts` の `.dg-nc`) と同じ値から引く */
+const N = LOOK.note;
+const font = (t: TextStyle): string => `font-size:${t.size}px;font-weight:${t.weight}`;
+
+const STYLE_GUIDE = `
+.pg-guide{max-width:980px}
+.pg-top .pg-lead{position:relative}
+.pg-topics{display:flex;gap:4px;border-bottom:1px solid var(--pg-hair);margin:6px 0 18px;overflow-x:auto}
+.pg-topics [role="tab"]{font:inherit;font-size:14.5px;cursor:pointer;color:var(--pg-ink2);border:0;border-bottom:2px solid transparent;background:none;padding:8px 14px;white-space:nowrap}
+.pg-topics [role="tab"]:hover{color:var(--pg-ink)}
+.pg-topics [role="tab"][aria-selected="true"]{color:var(--pg-ink);font-weight:700;border-bottom-color:var(--pg-t-blue)}
+.pg-topics [role="tab"]:focus-visible,.pg-qlist a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
+.pg-topic:not([hidden]){animation:pg-panel .22s ease}
+@media (prefers-reduced-motion:reduce){.pg-topic:not([hidden]){animation:none}}
+.pg-topic-lead{position:relative;margin:0 0 14px}
+.pg-qlist{background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:var(--r);padding:12px 14px;margin:0 0 26px}
+.pg-qlist-h{font-size:13px;color:var(--pg-ink2);margin:0 0 6px}
+.pg-qlist ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:4px 16px}
+.pg-qlist a{display:flex;gap:8px;align-items:flex-start;color:var(--pg-ink);text-decoration:none;font-size:14px;line-height:1.6;padding:4px 6px;border-radius:8px}
+.pg-qlist a:hover{background:var(--pg-sunk)}
+.pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--pg-t-blue);color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;margin-top:1px}
+.pg-sec{position:relative;margin:0 0 34px;scroll-margin-top:12px}
+.pg-sec-title{display:flex;gap:10px;align-items:center;font-size:19px;line-height:1.5;margin:0 0 6px}
+.pg-sec-title .pg-num{min-width:28px;height:28px;font-size:15px;margin-top:0}
+.pg-answer{font-size:15.5px;margin:0 0 14px}
+.pg-term{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;font-weight:600;text-decoration:underline;text-decoration-color:var(--pg-t-blue);text-decoration-thickness:2px;text-underline-offset:4px}
+.pg-term[aria-expanded="true"]{color:var(--pg-t-blue)}
+.pg-tc{display:none;position:absolute;z-index:6;box-sizing:border-box;width:${N.card}px;max-width:100%;padding:${N.padY}px ${N.padX}px;border:1px solid var(--pg-line);border-radius:${N.radius}px;background:var(--pg-surf);color:var(--pg-ink);box-shadow:0 ${N.shadowY}px ${N.shadow}px color-mix(in srgb,var(--pg-ink) ${N.shadowMix}%,transparent);text-align:start;overflow:hidden;line-height:${N.bodyLine}}
+.pg-tc[data-open]{display:block}
+.pg-tc p,.pg-gl p{margin:0;overflow-wrap:anywhere}
+.pg-tc .pg-tc-n,.pg-gl .pg-gl-n{${font(TYPE.noteName)};color:var(--pg-mute);margin:0 ${N.close}px ${N.nameGap}px 0}
+.pg-tc-t,.pg-gl-t{${font(TYPE.noteBody)};overflow-wrap:anywhere}
+.pg-tc-t p+p,.pg-gl-t p+p{margin-top:6px}
+.pg-tc-e,.pg-gl-e{${font(TYPE.noteExample)};margin:${N.exampleGap}px -${N.padX}px -${N.padY}px;padding:${N.exampleGap}px ${N.padX}px;background:var(--pg-sunk);color:var(--pg-ink2);overflow-wrap:anywhere}
+.pg-tc-x{position:absolute;top:${N.padY / 2}px;right:${N.padY / 2}px;width:${N.close}px;height:${N.close}px;padding:0;border:0;border-radius:${N.close / 2}px;background:none;color:var(--pg-mute);cursor:pointer;display:grid;place-items:center}
+.pg-tc-x:hover{color:var(--pg-ink);background:var(--pg-sunk)}
+.pg-tc-x svg{width:${N.icon}px;height:${N.icon}px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pg-glossary{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,${N.card}px),1fr));gap:12px;margin:0 0 24px}
+.pg-gl{background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:${N.radius}px;padding:${N.padY}px ${N.padX}px;overflow:hidden;line-height:${N.bodyLine};scroll-margin-top:12px}
+.pg-gl .pg-gl-n{${font(TYPE.noteBody)};font-weight:700;color:var(--pg-ink);margin-right:0}
+.pg-quiz{background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:var(--r);padding:10px 14px;margin:12px 0}
+.pg-quiz-h{font-size:14px;font-weight:700;margin:0 0 4px}
+.pg-q{display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap;font-size:14px;padding:6px 0;border-top:1px solid var(--pg-hair)}
+.pg-quiz-h+.pg-q{border-top:0}
+.pg-q-text{margin:0;flex:1 1 12em;min-width:0}
+.pg-q-btn{font:inherit;font-size:12.5px;border:1px solid var(--pg-hair);background:var(--pg-sunk);color:var(--pg-ink);border-radius:999px;padding:1px 12px;cursor:pointer}
+.pg-q-a{flex-basis:100%;color:var(--pg-t-green);font-weight:600}
+.pg-q-a p{margin:2px 0}
+@media (max-width:760px){.pg-sec-title{font-size:17px}.pg-answer{font-size:15px}}
+@media print{
+.pg-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:10px 0}
+.pg-tc{display:block;position:static;width:auto!important;max-width:none;box-shadow:none;break-inside:avoid}
+.pg-tc-x,.pg-q-btn{display:none}
+.pg-q-a[hidden]{display:block!important}
+.pg-topic:not([hidden]){animation:none}
+}
+`;
+
+/**
+ * 説明の頁の script (#3876)。頁のURLの `#` の後ろの場所の名前を読み、その場所を持つ話題のタブを開いて場所へ移る。無い名前は最初のタブを開く。
+ * 話題のタブを押すと URL を書き換えて履歴を増やさない。問いの一覧の問いと図の箱の link は URL を変えて節へ移る。
+ * 用語の下線を押すと、その節の札を下線のすぐ下に開き、札の外か閉じるのアイコンか同じ下線を押すと閉じる。確かめる問いの釦は答えを開けて閉じる
+ */
+const RUNTIME_GUIDE = `(()=>{
+const tabs=[...document.querySelectorAll('.pg-topics [role="tab"]')];
+const panels=tabs.map((t)=>document.getElementById(t.getAttribute("aria-controls")));
+const hash=()=>{let h=location.hash.slice(1);try{h=decodeURIComponent(h)}catch(e){}return h};
+const show=(panel)=>{tabs.forEach((t,i)=>{const on=panels[i]===panel;t.setAttribute("aria-selected",String(on));t.tabIndex=on?0:-1;panels[i].hidden=!on})};
+let opened=null;
+const close=()=>{if(!opened)return;opened.card.removeAttribute("data-open");opened.term.setAttribute("aria-expanded","false");opened=null};
+const open=(term)=>{const again=opened&&opened.term===term;close();if(again)return;const box=term.closest("[data-terms]");const card=box&&[...box.querySelectorAll(".pg-tc")].find((c)=>c.dataset.term===term.dataset.term);if(!card)return;const f=box.getBoundingClientRect();const r=term.getBoundingClientRect();const w=Math.min(${N.card},f.width);card.style.width=w+"px";card.style.left=Math.max(0,Math.min(r.left+r.width/2-f.left-w/2,f.width-w))+"px";card.style.top=(r.bottom-f.top+${N.gap})+"px";card.dataset.open="";term.setAttribute("aria-expanded","true");opened={term,card}};
+const route=(first)=>{const h=hash();const target=h?document.getElementById(h):null;const panel=(target&&panels.find((p)=>p&&p.contains(target)))||panels[0];if(!panel)return;const moved=panel.hidden;close();show(panel);if(target&&target!==panel)target.scrollIntoView();else if(moved&&!first)scrollTo(0,0)};
+document.addEventListener("click",(event)=>{const t=event.target;
+const tab=t.closest?.('.pg-topics [role="tab"]');if(tab){close();show(panels[tabs.indexOf(tab)]);history.replaceState(null,"","#"+tab.dataset.topic);return}
+const term=t.closest?.(".pg-term");if(term){open(term);return}
+if(opened&&(t.closest?.(".pg-tc-x")||!opened.card.contains(t)))close();
+const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;return}
+const link=t.closest?.('a[href^="#"]');if(link){let to=link.getAttribute("href").slice(1);try{to=decodeURIComponent(to)}catch(e){}if(to===hash()){event.preventDefault();route(false)}}});
+document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();return}const tab=event.target.closest?.('.pg-topics [role="tab"]');if(!tab)return;const i=tabs.indexOf(tab);const to={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:tabs.length-1}[event.key];if(to===undefined)return;event.preventDefault();const next=tabs[(to+tabs.length)%tabs.length];next.focus();next.click()});
+addEventListener("hashchange",()=>route(false));
+route(true);
+})();`;
+
 /**
  * 見せる頁とタブを選ぶ script。頁のURLの `#` の後ろの `項目/タブ/中のタブ` を読み、無い場所の名前は入口を開く。
  * 頁の link (`href="#…"`) は URL を変えて頁を移り、タブを押すと URL を書き換えて履歴を増やさない。
@@ -330,6 +453,65 @@ function tabsLayout(page: RenderedPage, counter: { n: number }): string {
   return `<div class="pg-wrap"><header class="pg-top"><h1>${page.title}</h1>${page.entry.lead ? `<div class="pg-lead">${page.entry.lead}</div>` : ""}</header>${nav}${entry}${items}</div>`;
 }
 
+/** 閉じるのアイコンの線 (24 の升の中の 2 本の斜めの線)。図の箱の札の閉じるのアイコンと同じ */
+const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+/** 下線が開く用語の札を並べた所。画面では押した札だけを下線の下に開き、印刷の形では全てを並べて開く */
+function termCards(terms: readonly RenderedTerm[], lang: PageLang): string {
+  if (terms.length === 0) return "";
+  const close = escapeHtml(WORDS[lang].close);
+  const cards = terms
+    .map(
+      (term) =>
+        `<div class="pg-tc" role="dialog" aria-label="${escapeHtml(term.label)}" data-term="${escapeHtml(term.key)}">` +
+        `<button type="button" class="pg-tc-x" aria-label="${close}" title="${close}">${CLOSE_ICON}</button>` +
+        `<p class="pg-tc-n">${term.name}</p><div class="pg-tc-t">${term.text}</div>${term.example === undefined ? "" : `<div class="pg-tc-e">${term.example}</div>`}</div>`,
+    )
+    .join("");
+  return `<div class="pg-tcards">${cards}</div>`;
+}
+
+/** 話題のタブの中身。用語のタブは用語ごとの説明と例を並べ、ほかのタブは頭に問いの一覧を置いて番号つきの節を縦に積む */
+function topicHtml(topic: RenderedTopic, lang: PageLang): string {
+  const words = WORDS[lang];
+  if (topic.glossary) {
+    const entries = topic.glossary
+      .map((term) => `<div class="pg-gl" id="${escapeHtml(term.entry)}"><p class="pg-gl-n">${term.name}</p><div class="pg-gl-t">${term.text}</div>${term.example === undefined ? "" : `<div class="pg-gl-e">${term.example}</div>`}</div>`)
+      .join("");
+    return `<div class="pg-glossary">${entries}</div>`;
+  }
+  const list =
+    topic.sections.length === 0
+      ? ""
+      : `<nav class="pg-qlist" aria-label="${escapeHtml(words.questions)}"><p class="pg-qlist-h">${escapeHtml(words.questions)}</p><ol>${topic.sections
+          .map((section, n) => `<li><a href="#${escapeHtml(section.id)}"><span class="pg-num">${n + 1}</span> <span>${withoutLinks(section.name)}</span></a></li>`)
+          .join("")}</ol></nav>`;
+  const lead = topic.lead || topic.leadTerms.length > 0 ? `<div class="pg-topic-lead" data-terms>${topic.lead}${termCards(topic.leadTerms, lang)}</div>` : "";
+  const sections = topic.sections
+    .map(
+      (section, n) =>
+        `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h2 class="pg-sec-title"><span class="pg-num">${n + 1}</span><span>${section.name}</span></h2>` +
+        `${section.answer === undefined ? "" : `<p class="pg-answer">${section.answer}</p>`}${section.body}${termCards(section.terms, lang)}</section>`,
+    )
+    .join("");
+  return list + lead + sections;
+}
+
+/** 説明の頁 (#3876)。頁の題と頭の中身、話題のタブ、タブごとの中身 */
+function guideLayout(page: RenderedPage): string {
+  const guide = page.guide ?? { lead: "", leadTerms: [], topics: [] };
+  const words = WORDS[page.lang];
+  const lead = guide.lead || guide.leadTerms.length > 0 ? `<div class="pg-lead" data-terms>${guide.lead}${termCards(guide.leadTerms, page.lang)}</div>` : "";
+  const tabs = guide.topics
+    .map((topic, i) => `<button type="button" role="tab" id="G-tab-${i + 1}" aria-controls="${escapeHtml(topic.id)}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" data-topic="${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</button>`)
+    .join("");
+  const nav = guide.topics.length === 0 ? "" : `<nav class="pg-topics" role="tablist" aria-label="${escapeHtml(words.topics)}">${tabs}</nav>`;
+  const panels = guide.topics
+    .map((topic, i) => `<section role="tabpanel" class="pg-topic" id="${escapeHtml(topic.id)}" aria-labelledby="G-tab-${i + 1}" data-topic="${escapeHtml(topic.id)}"${i === 0 ? "" : " hidden"}>${topicHtml(topic, page.lang)}</section>`)
+    .join("");
+  return `<div class="pg-wrap pg-guide"><header class="pg-top"><h1>${page.title}</h1>${lead}</header>${nav}${panels}</div>`;
+}
+
 /**
  * 頁の帯の設定の塊 (`<script type="application/json" id="dragon-header">`、#3789)。設定が無い頁には書かない。
  * 値に `<` が混ざっても塊を閉じないよう、JSON の字の `<` を逃がす
@@ -340,11 +522,12 @@ const headerBlock = (header: PageHeader | undefined): string =>
 /** 頁の HTML の全文 */
 export function pageHtml(page: RenderedPage): string {
   const counter = { n: 1 };
-  const body = page.layout === "sidebar" ? sidebarLayout(page, counter) : page.layout === "tabs" ? tabsLayout(page, counter) : entryLayout(page, counter);
-  const style = STYLE + (page.layout === "sidebar" ? STYLE_SIDEBAR : page.layout === "tabs" ? STYLE_TABS : "");
+  const guide = page.layout === "guide";
+  const body = guide ? guideLayout(page) : page.layout === "sidebar" ? sidebarLayout(page, counter) : page.layout === "tabs" ? tabsLayout(page, counter) : entryLayout(page, counter);
+  const style = STYLE + (page.layout === "sidebar" ? STYLE_SIDEBAR : page.layout === "tabs" ? STYLE_TABS : guide ? STYLE_GUIDE : "");
   return (
     `<!doctype html>\n<html lang="${page.lang}">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n` +
     `<title>${escapeHtml(page.titleText)}</title>\n<style>${style.trim()}</style>\n${headerBlock(page.header)}<script type="module" src="${cdnScript()}"></script>\n</head>\n` +
-    `<body class="pg pg-layout-${page.layout}">\n${body}\n<script>${RUNTIME}</script>\n</body>\n</html>\n`
+    `<body class="pg pg-layout-${page.layout}">\n${body}\n<script>${guide ? RUNTIME_GUIDE : RUNTIME}</script>\n</body>\n</html>\n`
   );
 }

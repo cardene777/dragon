@@ -72,32 +72,7 @@ export const EN_TEXT = {
       embedding: { title: "Embedding samples" },
       "not-found": { title: "That page has not been written yet." },
     },
-    releaseNotes: {
-      crumb: "Breadcrumb",
-      // 区切りは `•` にする。`·` は日本語の字の並びに使われ、英語の頁に日本語が残ったように読めるため (前のサイトの #2455)
-      eyebrow: (version: string) => `Release log • ${version} is current`,
-      accent: "notes",
-      lead: "Shows the current dragon version. The detailed record for each version is in CHANGELOG.md on GitHub.",
-      changelog: "See the change log on GitHub",
-    },
-    notFound: {
-      em: "That page",
-      lead: (entries: number) => `The page you are looking for was moved, deleted, or never existed. Try one of dragon's ${entries} entry points.`,
-      catalog: "Browse the catalog",
-      docs: "Read the docs",
-    },
-    embedding: {
-      eyebrow: "Embedding",
-      lead: "The diagram below, placed on a page in each of the four ways. Every one has the bar with Code, Editor, Copy, Export and expand.",
-      back: "← Back to the embedding section of the docs",
-      notation: "Sample notation",
-      ways: {
-        script: { name: "One script line", note: "Add data-header to a <pre class=\"dragon\"> block and the script puts the bar on that block." },
-        npm: { name: "The SDK function", note: "The SDK function mountDragon puts the diagram with its bar in an element." },
-        element: { name: "Web Component", note: "The <dragon-diagram> element registered by defineDragonElement reads the text inside as the notation." },
-        iframe: { name: "iframe", note: "Open the embed page URL made by embedUrl in an iframe." },
-      },
-    },
+    // 更新履歴の頁と見つからない頁と組み込みの見本の頁だけが使う字は、各頁の `text.ts` が持つ (#3880)
   },
   notation: "Notation",
   editor: "Diagram notation",
@@ -121,7 +96,7 @@ export const EN_TEXT = {
     filter: "Filter…",
     filterLabel: "Filter the list",
     nothing: "Nothing matches",
-    kinds: { checkout: "Checkout", sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram", mind: "Mind map", er: "Table relation diagram", matrix: "Two-axis matrix", venn: "Set overlap diagram", sankey: "Sankey diagram", cards: "Owner card diagram" },
+    kinds: { checkout: "Checkout", sequence: "Sequence", architecture: "Architecture", state: "State", git: "Git graph", time: "Time diagram", tree: "Tree diagram", lineup: "Lineup", try: "Try diagram", pipe: "Pipe diagram", chart: "Chart", flow: "Flow diagram", cycle: "Cycle diagram", mind: "Mind map", er: "Table relation diagram", matrix: "Two-axis matrix", venn: "Set overlap diagram", sankey: "Sankey diagram", cards: "Owner card diagram", judge: "Judge table" },
     partsHint: "Click to add to the editor. Declarations go before the first step, step lines go to the last step",
     notationHint: "Line shapes, in the words of the notation you are writing",
     parts: shelfTexts("en"),

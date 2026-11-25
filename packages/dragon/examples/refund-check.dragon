@@ -1,0 +1,18 @@
+// 返品の決まりを列に、持ち込まれた返品を行に並べ、決まりを1つずつ照らしてどの返品を受け付けるかを出す。
+// 判定の語は受け付けると断るにし、レシートの無い返品はその後の決まりを照らさない。
+judge どの返品を受け付けるのか [pass: 受け付ける, block: 断る]
+
+rule receipt as レシート [value: 持っている]
+rule days as 期間 [value: 買って30日以内]
+rule used as 状態 [value: 使っていない]
+rule item as 品目 [value: 返品できる品]
+
+case 靴 [note: 買って3日]
+case シャツ [note: 着て洗った]
+  fail used: 洗濯済み
+case 下着 [note: 買って5日]
+  fail item: 衛生用品
+case 鞄 [note: レシートを無くした]
+  fail receipt: 無し [stop]
+case 時計 [note: 買って45日]
+  fail days: 45日

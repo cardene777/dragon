@@ -13,12 +13,11 @@ import { reading as linkReading } from "./link/read";
 import { reading as noteReading } from "./note/read";
 import { reading as opReading } from "./op/read";
 import { reading as popReading } from "./pop/read";
-import { reading as sceneReading } from "./scene/read";
 import { reading as sourceReading } from "./source/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
 
-/** 入口が初めから持つ読み方。コアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349) */
+/** 入口が初めから持つ読み方。後から読まない図の種類で使えるコアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349、#3880) */
 export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "act": actReading,
   "box": boxReading,
@@ -33,7 +32,6 @@ export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "note": noteReading,
   "op": opReading,
   "pop": popReading,
-  "scene": sceneReading,
   "source": sourceReading,
   "step": stepReading,
   "strip": stripReading,

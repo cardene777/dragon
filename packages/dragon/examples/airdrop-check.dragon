@@ -1,0 +1,18 @@
+// エアドロップを受け取れる決まりを列に、申し込んだアドレスを行に並べ、決まりを1つずつ照らしてどのアドレスに配らないかを出す。
+// 外れるアドレスの下に、外れた決まりとそのアドレスの値を書く。
+judge どのアドレスに配らないのか
+
+rule hold as 保有 [value: 100 DRG以上]
+rule since as 保有の時期 [value: 3/1より前から]
+rule sign as 署名 [value: 本人の署名]
+rule once as 受け取り [value: まだ受け取っていない]
+
+case 0xa1…f3 [note: 250 DRGを2月から]
+case 0xb2…07 [note: 40 DRGしか無い]
+  fail hold: 40 DRG
+case 0xc3…9e [note: 3/5に買った]
+  fail since: 3/5から
+case 0xd4…2c [note: 署名が別の鍵]
+  fail sign: 0x77…41の署名
+case 0xa1…f3 [note: 同じアドレスの2回目]
+  fail once: 受け取り済み

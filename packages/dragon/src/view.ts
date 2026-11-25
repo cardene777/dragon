@@ -14,9 +14,10 @@ import type { ViewMode } from "./schema";
 
 /**
  * 寄って追う形にしない図の種類。配管の図は図を縮めずに置き、枠より広い時は枠の中を横に送る (#3398)。
- * 寄って追うと窓の端で箱の名前と残高が切れ、全体図に描く部品も持たないので、書き出しも止めた形で書く (#3852)
+ * 寄って追うと窓の端で箱の名前と残高が切れ、全体図に描く部品も持たないので、書き出しも止めた形で書く (#3852)。
+ * 判定の表 (#3879) は HTML の表を縮めずに置き、枠より広い時は表の枠の中を横に送るので、寄って追う窓を持たない
  */
-const FIXED_KINDS: readonly string[] = ["pipe"];
+const FIXED_KINDS: readonly string[] = ["pipe", "judge"];
 
 /** 枠の幅に依らず全体を止めて見せる図か。書き手が原本で止めると決めた図と、寄って追う形にしない種類の図 */
 export function staysFixed(rendered: Pick<Rendered, "layout" | "view">): boolean {

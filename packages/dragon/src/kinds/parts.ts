@@ -94,7 +94,16 @@ export interface KindParts<L extends Layout = Layout> {
   notation?: {
     matches(text: string): boolean;
     print?(this: void, diagram: import("../schema").Diagram): string;
-    read(text: string): import("../parser").Parsed;
+    /** 記法を読む。`lang` は誤りの文の言葉 */
+    read(text: string, lang?: NotationLang): import("../parser").Parsed;
+  };
+  /**
+   * 図を SVG でなく HTML で描く種類 (判定の表、#3879)。`markup` は並べた物を HTML の字にし、描く本体はこの種類の SVG を描かない。
+   * 再生の部品は描いた HTML の根を枠に置いて縮めず、段が替わるたびに `show` で今の段を図に書く
+   */
+  html?: {
+    markup(this: void, layout: L, palette: import("../look/values").Palette, theme: import("../look/values").Theme): string;
+    show(this: void, figure: HTMLElement, step: number): void;
   };
   mountInput?(this: void, host: HTMLElement, diagram: import("../schema").Diagram, options: import("../player").PlayerOptions): import("../player").Player;
 
