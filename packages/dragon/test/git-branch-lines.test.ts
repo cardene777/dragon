@@ -222,11 +222,12 @@ describe("同じ commit から分かれる枝の線は別々の道を通る (#35
     const left = Object.entries(recorded).flatMap(([file, breaks]) => breaks.map((b) => `${file}: ${b.kind}`));
     expect(left.sort(), "見本の崩れの記録に残る行").toEqual([]);
     // 記録から外した2件の図は、既定の幅と幅390で描いても字どうしの重なりを出さない
-    const scatter = extractDiagrams(read("quick-start.md")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]"));
-    expect(scatter.length, "quick-start.md の点数で点を打つ見た目の図の数").toBe(1);
+    // 頁は行の形の節と図の種類の節 (#3881) に同じ図を載せるので、同じ字の囲みは 1 つと数える (#3912)
+    const scatter = [...new Set(extractDiagrams(read("quick-start.md")).filter((fence) => fence.source.startsWith("matrix ") && fence.source.includes("[shape: scatter]")).map((fence) => fence.source))];
+    expect(scatter.length, "quick-start.md の点数で点を打つ見た目の図の数 (同じ字の囲みは 1 つと数える)").toBe(1);
     for (const [where, text] of [
       ["day-hours.dragon", read("day-hours.dragon")],
-      ["quick-start.md の点の図", scatter[0]?.source ?? ""],
+      ["quick-start.md の点の図", scatter[0] ?? ""],
     ] as const) {
       const overlaps = checkLayoutText(text, { lang: "ja" }).filter((b) => b.kind === "texts-overlap");
       expect(overlaps.map((b) => JSON.stringify(b)), `記録から外した ${where} の字どうしの重なり`).toEqual([]);
