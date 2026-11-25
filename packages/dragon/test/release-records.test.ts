@@ -232,8 +232,8 @@ describe("版の記録 (#3151)", () => {
       const released = section(text.replace(/^## \[0\.80\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.80.0"), "0.80.0");
       expect(released, `${file} に日付付きの ## [0.80.0] の節が無い`).not.toBe("");
       expect(released.split("(#3846)").length - 1, `${file} の 0.80.0 の節が (#3846) の項を 1 回だけ持たない`).toBe(1);
-      // 既定の枝を全て出すので、0.80.0 を出した時点の Unreleased に項は残らない。次の版の項は後から積まれる
-      if (version() === "0.80.0") expect(section(text, "[Unreleased]").split("\n").filter((line) => line.startsWith("- ")), `${file} の Unreleased に項が残る`).toEqual([]);
+      // 次の版の項は Unreleased に積まれるので、0.80.0 で出した項が残っていないことだけを見る (#3878)
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3846) が残る`).not.toContain("(#3846)");
     }
   });
 
