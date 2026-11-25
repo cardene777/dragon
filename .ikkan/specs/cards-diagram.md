@@ -24,3 +24,4 @@
 | 描く本体は後から読む種類の名前の字を持たない | `pnpm exec vitest run packages/dragon/test/kind-dispatch.test.ts`の検査`draw-names-no-later-kind`が通る | #3846 |
 | 見本のfileの最初の注釈の行は作業の番号を持たない | `pnpm exec vitest run packages/dragon/test/examples.test.ts`の検査`example-descriptions-carry-no-issue-number`が通る | #3846 |
 | 頁が最初に読むscriptとCSSは上限の大きさに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3846 |
+| 持ち主ごとのカードの図の全ての見本で、寄って追う形の全体図に部品が在る | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts --reporter=verbose`の検査`overview-parts-cards`が通る | #3912 |
