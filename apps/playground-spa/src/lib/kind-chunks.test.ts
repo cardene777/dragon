@@ -110,10 +110,17 @@ function readingMarkers(): { block: string; markers: string[] }[] {
 }
 
 const assets = (): string => join(builtDir(), "assets");
-/** その種類の塊の file の名前。無ければ `undefined` */
+/**
+ * その種類の塊の file の名前。無ければ `undefined`。
+ * 種類の名前で始まる塊が 2 つ以上在る時は、名前の順ではなく最も大きい塊を取る。
+ * 持ち主ごとのカードの図は `cards-` で始まる塊を 2 つ持ち、名前の指紋が変わると順が入れ替わって小さい方を読んだ (#3920)
+ */
 const chunkOf = (kind: string): string | undefined => {
   const first = new Set(firstLoadFiles(builtDir()));
-  return readdirSync(assets()).find((name) => name.startsWith(`${kind}-`) && name.endsWith(".js") && !first.has(name));
+  const size = (name: string): number => statSync(join(assets(), name)).size;
+  return readdirSync(assets())
+    .filter((name) => name.startsWith(`${kind}-`) && name.endsWith(".js") && !first.has(name))
+    .sort((a, b) => size(b) - size(a))[0];
 };
 
 /** その種類の塊の名前。無ければ落とす */
