@@ -96,3 +96,13 @@
 | `SKILL.md`は、ほかのスキルがmusubiで従う中身の名前を全て挙げる | `pnpm exec vitest run`の検査`skill-names-musubi-contents`が通る | #3807 |
 | `SKILL.md`は、行の上限200を超えない | `pnpm exec vitest run`の検査`skill-main-stays-short`が通る | #3807 |
 | `SKILL.md`の繋ぎは、全て在るfileを指す | `pnpm exec vitest run`の検査`skill-links-resolve`が通る | #3807 |
+| skillの流れは、図を書く前に題材を問いに分け、問いの型の表で問いごとに2〜4枚の図を決めた構成案を立てる段を持つ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-plans-questions-before-figures` passes | #3909 |
+| 問いの型の表は、仕組み、通るか止めるか、違い、1件の進み、量の型ごとに、使う図の種類と部品 (札、場面、判定の表、目盛り) を挙げる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-question-types-name-kinds-and-parts` passes | #3909 |
+| 早見表は、全ての図の種類と、札、場面、判定の表、目盛りの最小の書き方を1枚に持ち、その記法は全て読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-cheatsheet-covers-every-kind-and-part` passes | #3909 |
+| skillは出来上がりを1枚のHTMLにする道として、説明の頁を書いて`dragon export`で書き出す手順を持つ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-builds-one-html-page` passes | #3909 |
+| skillは描いて直す段で、幅728pxと幅390pxの画像に書き出して見て直す手順を持つ | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-review-exports-two-widths` passes | #3909 |
+| skillの参照に残した資料の例は、`dragon check`と`dragon check --layout`を誤り無しで通る | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-example-pages-check-clean` passes | #3909 |
+| `SKILL.md`は、組み立ての段を足しても今の長さの上限に収まる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-main-stays-short` passes | #3909 |
+| skillは全ての図の種類を挙げる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-covers-every-kind` passes | #3909 |
+| skillの全てのdragonの囲みは読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-fences-parse` passes | #3909 |
+| skillの参照のリンクは全て開ける | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-links-resolve` passes | #3909 |
