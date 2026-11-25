@@ -118,16 +118,18 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // その検査も jsdom で小さな図を数枚描くだけで、ブラウザを読まない
   // 公開する README の検査 (`readme-public.test.ts`、#3881) は、README の図の種類の一覧を `src/kinds/index` と比べるので、どの種類を変えても選ぶ。ベン図と順の図の上限をもう 1 つずつ上げた。
   // その検査は README と種類の一覧の字を比べるだけで、図を描かない
-  it("related-venn-draw-picks-at-most-113", () => {
+  // 持ち主ごとのカードの図の見本帳の検査 (`cards-examples.test.ts`、#3846) は見本帳の全ての見本を読むので、どの種類を変えても選ぶ。ベン図と順の図の上限をもう 1 つずつ上げた。
+  // 順の図は持ち主ごとのカードの図の検査 (`cards-diagram.test.ts`) も選ぶので、もう 1 つ上げた。どちらも jsdom で図を描くだけで、ブラウザを読まない
+  it("related-venn-draw-picks-at-most-114", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/venn.ts`);
-    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(113);
+    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(114);
   });
 
   // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
   // 命令 (`src/cli.ts`) も書き出しから軽い入口を通って時系列図の登録を読むので、命令を包んで走らせる検査は`overlap-cli.test.ts`の1つのfileに集める (#3837)
-  it("related-sequence-layout-picks-at-most-159", () => {
+  it("related-sequence-layout-picks-at-most-161", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(159);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(161);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
