@@ -128,8 +128,8 @@ describe("設定の値 (#3011)", () => {
 
   it("cli-rejects-bad-format", () => {
     const tried = BAD_FORMAT.get();
-    expectRejected(tried, ["--format", "xyz", "--lang", "ja"], "使えない値: --format xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
-    expectRejected(tried, ["--format", "html,xyz", "--lang", "ja"], "使えない値: --format html,xyz (mp4 / gif / html / png を , で区切る)", JA_USAGE);
+    expectRejected(tried, ["--format", "xyz", "--lang", "ja"], "使えない値: --format xyz (mp4 / gif / html / png / svg を , で区切る)", JA_USAGE);
+    expectRejected(tried, ["--format", "html,xyz", "--lang", "ja"], "使えない値: --format html,xyz (mp4 / gif / html / png / svg を , で区切る)", JA_USAGE);
   });
 
   it("cli-rejects-bad-values", () => {

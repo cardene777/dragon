@@ -27,7 +27,8 @@ const EXPORT_THREADS = 2;
 /** 一時フォルダ。準備の段は実行の一時フォルダ (`run-tmp.ts`) の下に作り、実行の終わりに消える */
 export const scratch = (prefix: string): string => mkdtempSync(join(tmpdir(), prefix));
 
-export type Format = "mp4" | "gif" | "html" | "png";
+/** 書き出せる形。SVG は止め絵を書く (#3891) */
+export type Format = "mp4" | "gif" | "html" | "png" | "svg";
 
 export interface ExportOptions {
   outDir: string;

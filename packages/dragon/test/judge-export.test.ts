@@ -75,6 +75,23 @@ describe("判定の表の PNG (#3923)", () => {
     ).toBeGreaterThanOrEqual(8 * SCALE);
   }
 
+  // 絵は例の名前を行の上の帯に置き、幅 728px 以下に収める (#3891)。左に例の列が無いので、最初の規則の番号の丸は左の端に近い
+  it("judge-png-draws-band-table", () => {
+    for (const file of JUDGE_EXAMPLES) {
+      const facts = factsOf(file);
+      const picture = readPng(value(done().pngs[file], file));
+      expect(picture.width, `${file} の PNG の幅 (画素)`).toBeLessThanOrEqual(728 * SCALE);
+      const badges = clusters(
+        spots(picture, marks(facts).badge).map((p) => p.x),
+        4 * SCALE,
+      );
+      expect(
+        badges[0] ?? Number.POSITIVE_INFINITY,
+        `${file} の最初の番号の丸の x (画素)`,
+      ).toBeLessThan(100 * SCALE);
+    }
+  });
+
   it("judge-png-default-shows-all-unlit", () => {
     for (const file of JUDGE_EXAMPLES) {
       const facts = factsOf(file);
@@ -155,6 +172,16 @@ describe("判定の表の命令の書き出しと動画 (#3923)", () => {
       }
       expect(formatOf(bytes), `${file} が ${format} として書かれていない`).toBe(format);
     }
+  });
+
+  // 動画のコマも帯の形の表で、CSS の 1px を 1 画素で撮る GIF の幅が 728 画素以下 (#3891)
+  it("judge-film-draws-band-table", () => {
+    const film = value(done().film, `${FILMED} の命令の書き出し`);
+    expect(film.frames, `GIF のコマを読めない: ${film.ran.stderr}`).toBeDefined();
+    expect(
+      film.frames?.first.width ?? Number.POSITIVE_INFINITY,
+      "GIF のコマの幅",
+    ).toBeLessThanOrEqual(728);
   });
 
   it("judge-film-lights-columns-by-step", () => {
