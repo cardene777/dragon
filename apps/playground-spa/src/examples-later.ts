@@ -184,6 +184,10 @@ import noteTransferJa from "../../../packages/dragon/examples/note-transfer.drag
 import noteTransferEn from "../../../packages/dragon/examples/note-transfer.en.dragon?raw";
 import bookClubJa from "../../../packages/dragon/examples/book-club.dragon?raw";
 import bookClubEn from "../../../packages/dragon/examples/book-club.en.dragon?raw";
+import cafePointsJa from "../../../packages/dragon/examples/cafe-points.dragon?raw";
+import cafePointsEn from "../../../packages/dragon/examples/cafe-points.en.dragon?raw";
+import nftEscrowJa from "../../../packages/dragon/examples/nft-escrow.dragon?raw";
+import nftEscrowEn from "../../../packages/dragon/examples/nft-escrow.en.dragon?raw";
 import phoneStorageJa from "../../../packages/dragon/examples/phone-storage.dragon?raw";
 import phoneStorageEn from "../../../packages/dragon/examples/phone-storage.en.dragon?raw";
 import transferCheckJa from "../../../packages/dragon/examples/transfer-check.dragon?raw";
@@ -294,6 +298,8 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "airdrop-check": { ja: airdropCheckJa, en: airdropCheckEn },
   "note-transfer": { ja: noteTransferJa, en: noteTransferEn },
   "book-club": { ja: bookClubJa, en: bookClubEn },
+  "cafe-points": { ja: cafePointsJa, en: cafePointsEn },
+  "nft-escrow": { ja: nftEscrowJa, en: nftEscrowEn },
 };
 
 /**

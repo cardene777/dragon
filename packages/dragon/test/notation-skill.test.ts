@@ -10,6 +10,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
+// HTMLの形の図を記法へ戻す関数 (#3908)。共有のブロック集を置く助けの file を読んだ後に読む
+import * as dragon from "../src/core";
 // 判定の表 (#3879) と購入の図は種類の読み方が記法を読むので、参照の囲みを読む前にその種類を登録する。購入の図の囲みは早見表が持つ (#3909)
 import "../src/kind-use/checkout";
 import "../src/kind-use/judge";
@@ -621,5 +623,29 @@ describe("題材に合う図の種類と部品を選び、複数の図を組ん�
       return [...shape, ...found.map(problemLine)];
     });
     expect(problems, "資料の例の誤りと知らせと崩れ").toEqual([]);
+  });
+});
+
+/** HTMLの形の図を記法へ戻す関数 (#3908) */
+type HtmlToNotation = (html: string, options?: { lang?: "ja" | "en" }) => { ok: true; notation: string } | { ok: false; errors: unknown[] };
+
+describe("図と頁をHTMLの形で書く書き方 (#3908)", () => {
+  it("skill-describes-html-form", () => {
+    const section = sectionOf(read(join(REFERENCES, "embed.md")), "## Write the diagram and the page in HTML");
+    expect(section, "embed.md にHTMLの形で書く節が無い").not.toBe("");
+    // 図を<dg-<種類>>の要素で書くこと、頁を<dragon-page>で包むこと、記法と行き来する命令、書いた後に確かめる命令を書く
+    const missing = ["<dg-", "<dg-body>", "<dragon-page", "dragon convert", "dragon check"].filter((word) => !section.includes(word));
+    expect(missing, "HTMLの形で書く節が書かない語").toEqual([]);
+    const toNotation = (dragon as unknown as { htmlToNotation?: HtmlToNotation }).htmlToNotation;
+    expect(toNotation, "htmlToNotation が src/core から出ていない").toBeDefined();
+    if (!toNotation) return;
+    // 節の HTML の例のうち、図を持つ物は今の変換で記法へ戻せる
+    const examples = [...section.matchAll(/^```html\n([\s\S]*?)^```$/gmu)].map((m) => m[1] ?? "").filter((html) => /<dg-[a-z]/u.test(html));
+    expect(examples.length, "HTMLの形の図の例が無い").toBeGreaterThan(0);
+    const failed = examples.flatMap((html) => {
+      const read = toNotation(html, { lang: "en" });
+      return read.ok ? [] : [JSON.stringify(read.errors)];
+    });
+    expect(failed, "記法へ戻せないHTMLの形の図の例").toEqual([]);
   });
 });

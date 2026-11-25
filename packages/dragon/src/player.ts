@@ -641,13 +641,14 @@ export function mountDiagram(
   const elapsed = (): number => ((Date.now() - born) / 1000) * speed;
   let marked: readonly Rect[] = [];
 
+  /** 置いた図の段ごとの組 (`data-dg-only` に段の番号を持つ要素)。図を置いた時に 1 度だけ集め、段を送るたびに図の中を全てたどらない (#3912) */
+  let only: Element[] = [];
   /**
-   * 段ごとの組 (`data-dg-only` に段の番号を持つ要素、持ち主ごとのカードの図、#3846) の見え方。
+   * 段ごとの組 (持ち主ごとのカードの図、#3846) の見え方。
    * 止めている間は今の段の組だけを見せてほかの組に `hidden` を付け、流している間は隠さずに図の動きに任せる
    */
   const showOnly = (): void => {
-    if (!svg) return;
-    for (const part of svg.querySelectorAll("[data-dg-only]")) part.toggleAttribute("hidden", !playing && part.getAttribute("data-dg-only") !== String(step));
+    for (const part of only) part.toggleAttribute("hidden", !playing && part.getAttribute("data-dg-only") !== String(step));
   };
 
   /**
@@ -955,6 +956,7 @@ export function mountDiagram(
     if (svg && fresh) svg.replaceWith(next);
     else if (!svg) frame.append(next);
     svg = next;
+    if (fresh) only = [...next.querySelectorAll("[data-dg-only]")];
     rewind(next);
     born = Date.now();
     if (fresh) drawMarks();
