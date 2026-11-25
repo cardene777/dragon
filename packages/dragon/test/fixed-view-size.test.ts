@@ -101,3 +101,54 @@ describe("止めて見せる図を元の幅より大きく描かない (#3934)",
     }
   });
 });
+
+/** 共に始まり、分かれ目の後で2つの場面に分かれる、縦に長い手順の図 (#3938) */
+function sceneFlow(scenes: "stack" | "pick"): Diagramish {
+  const text = [
+    `flow 返す日で分かれる [scenes: ${scenes}]`,
+    "",
+    "box back as 本を返す",
+    "choice late as 期限を過ぎた？",
+    "box take as 受け取る",
+    "box fee as 延滞料を取る",
+    "",
+    "step 返す",
+    "  say 本を返しに来る。",
+    "  start -> back",
+    "  back -> late",
+    "",
+    "scene 期限の内",
+    "  step 受け取る",
+    "    say 期限の内なので受け取る。",
+    "    late -> take: いいえ",
+    "end",
+    "",
+    "scene 期限を過ぎた",
+    "  step 延滞料を取る",
+    "    say 期限を過ぎたので延滞料を取る。",
+    "    late -> fee: はい",
+    "end",
+  ].join("\n");
+  const read = api("parseNotation")(text, { lang: "ja" });
+  expect(read.ok, `場面の図が読めない: ${read.ok ? "" : JSON.stringify(read.errors)}`).toBe(true);
+  return (read.ok ? read.diagram : {}) as Diagramish;
+}
+
+describe("場面を持つ図も元の幅より大きく描かない (#3938)", () => {
+  it("scene-figures-not-wider-than-layout", () => {
+    for (const scenes of ["stack", "pick"] as const) {
+      const host = document.createElement("div");
+      Object.defineProperty(host, "clientWidth", { value: 2400 });
+      document.body.appendChild(host);
+      players.push(draw("mountDiagram")(host, sceneFlow(scenes)));
+      const figures = [...host.querySelectorAll<SVGSVGElement>('[data-dragon="scene"] .dg-frame > svg')];
+      expect(figures.length, `[scenes: ${scenes}] の場面ごとの図の数`).toBe(2);
+      for (const svg of figures) {
+        const width = Number(svg.getAttribute("width"));
+        expect(width, `[scenes: ${scenes}] の場面の図の元の幅が枠より狭くない`).toBeLessThan(2400);
+        expect(svg.getAttribute("data-view"), `[scenes: ${scenes}] の場面の図が止めて見せる図にならない`).toBe("fixed");
+        expect(capOf(svg, 2400), `[scenes: ${scenes}] の場面の図が元の幅より広く描かれる`).toBe(width);
+      }
+    }
+  });
+});
