@@ -6,6 +6,10 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Fixed
+
+- 判定の表を`dragon export`で書き出すと`Cannot take screenshot with 0 width`で止まり、何も書かなかった。PNGは描いた表の大きさを測って撮り、`--width`に依らず全ての列と判定を写す。`--step`を選ぶとその段までの列を照らした形を撮る。GIFとmp4は段ごとに規則の列を1つずつ照らし、最後に判定の列を照らす (#3923)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added

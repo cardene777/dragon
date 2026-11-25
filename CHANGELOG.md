@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- `dragon export` of a judge table stopped with `Cannot take screenshot with 0 width` and wrote nothing. The PNG now measures the drawn table and shows every column and verdict, at any `--width`. `--step` lights the columns up to the chosen step. The GIF and mp4 light one rule column per step and the verdict column last (#3923)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added

@@ -28,8 +28,13 @@ const done = (): Awaited<ReturnType<typeof prepare>> => prepared(import.meta.url
 
 /** 撮る画素の細かさ (CSS の 1px あたりの画素)。書き出しの `FILM_SCALE` */
 const SCALE = 2;
-/** 混ぜた色と書き出した画素の差の許し (色の成分ごと)。混ぜる時と重ねる時の丸めの分 */
-const NEAR = 3;
+/**
+ * 混ぜた色と書き出した画素の差の許し (色の成分ごと)。混ぜる時と重ねる時の丸めの分。
+ * 見出しの番号の丸の地 (青 14%) と照らした見出しの地 (青 16%) は赤の成分で 3.4 しか違わないので、2 より小さくする
+ */
+const NEAR = 1.5;
+/** 塗った地と数える画素の、左右に続く同じ色の画素の数。線の縁が地へ溶ける所 (✓ の縁は緑を地に薄く混ぜた色になる) を数えない */
+const RUN = 2;
 
 type Rgb = [number, number, number];
 interface Picture {
@@ -67,18 +72,32 @@ const fromGif = (shot: GifShot): Picture => ({
   data: Buffer.from(shot.rgba, "base64"),
 });
 
-/** `color` に近い画素の位置 */
+/** `color` で塗った地の画素の位置。左右に `RUN` 画素ずつ同じ色が続く画素だけを数える */
 function spots(picture: Picture, color: Rgb): { x: number; y: number }[] {
+  const near = (x: number, y: number): boolean => {
+    const at = (y * picture.width + x) * 4;
+    return (
+      (picture.data[at + 3] as number) >= 250 &&
+      color.every((v, i) => Math.abs((picture.data[at + i] as number) - v) <= NEAR)
+    );
+  };
   const found: { x: number; y: number }[] = [];
   for (let y = 0; y < picture.height; y++) {
-    for (let x = 0; x < picture.width; x++) {
-      const at = (y * picture.width + x) * 4;
-      if ((picture.data[at + 3] as number) < 250) continue;
-      if (color.every((v, i) => Math.abs((picture.data[at + i] as number) - v) <= NEAR))
-        found.push({ x, y });
+    for (let x = RUN; x < picture.width - RUN; x++) {
+      let run = true;
+      for (let dx = -RUN; dx <= RUN && run; dx++) run = near(x + dx, y);
+      if (run) found.push({ x, y });
     }
   }
   return found;
+}
+
+/** 並んだ値の最小と最大 */
+function span(values: number[]): { min: number; max: number } {
+  return values.reduce((m, v) => ({ min: Math.min(m.min, v), max: Math.max(m.max, v) }), {
+    min: Number.POSITIVE_INFINITY,
+    max: Number.NEGATIVE_INFINITY,
+  });
 }
 
 /** 並んだ値を、`gap` より離れた所で分けた塊の真ん中 */
@@ -125,15 +144,10 @@ function verdictBox(
 ): { left: number; right: number; top: number; bottom: number; rows: number } {
   const { pass, block } = marks(facts);
   const found = [...spots(picture, pass), ...spots(picture, block)];
-  const xs = found.map((p) => p.x);
+  const xs = span(found.map((p) => p.x));
   const ys = found.map((p) => p.y);
-  return {
-    left: Math.min(...xs),
-    right: Math.max(...xs),
-    top: Math.min(...ys),
-    bottom: Math.max(...ys),
-    rows: clusters(ys, 4 * SCALE).length,
-  };
+  const { min: top, max: bottom } = span(ys);
+  return { left: xs.min, right: xs.max, top, bottom, rows: clusters(ys, 4 * SCALE).length };
 }
 
 describe("判定の表の PNG (#3923)", () => {
@@ -195,9 +209,10 @@ describe("判定の表の PNG (#3923)", () => {
     const lit = spots(picture, now).map((p) => p.x);
     expect(lit.length, "照らした列の見出しの色の画素").toBeGreaterThan(0);
     const second = columns[1] as number;
+    const { min, max } = span(lit);
     expect(
-      Math.min(...lit) <= second && second <= Math.max(...lit),
-      `照らした見出し (${Math.min(...lit)} から ${Math.max(...lit)}) が 2 番目の丸 (${second}) を含む`,
+      min <= second && second <= max,
+      `照らした見出し (${min} から ${max}) が 2 番目の丸 (${second}) を含む`,
     ).toBe(true);
     expect(spots(picture, pass).length + spots(picture, block).length, "判定の札の画素").toBe(0);
   });
@@ -257,9 +272,19 @@ describe("判定の表の命令の書き出しと動画 (#3923)", () => {
     const whole = readPng(value(done().pngs[FILMED], FILMED));
     const first = fromGif(film.frames.first);
     const last = fromGif(film.frames.last);
-    expect([first.width, first.height], "GIF のコマの大きさ").toEqual([whole.width, whole.height]);
+    // GIF は CSS の 1px を 1 画素で撮り、PNG は 2 画素で撮る
+    expect([first.width * SCALE, first.height * SCALE], "GIF のコマの大きさの 2 倍").toEqual([
+      whole.width,
+      whole.height,
+    ]);
     // 判定の札の囲みは、照らさない PNG の札の画素で決める。GIF は色を減らすので、コマでは色の濃い画素 (判定の語の色) を数える
-    const box = verdictBox(whole, facts);
+    const pills = verdictBox(whole, facts);
+    const box = {
+      left: Math.floor(pills.left / SCALE),
+      right: Math.ceil(pills.right / SCALE),
+      top: Math.floor(pills.top / SCALE),
+      bottom: Math.ceil(pills.bottom / SCALE),
+    };
     expect(vivid(first, box), "最初のコマの判定の札の所の色の濃い画素").toBe(0);
     expect(
       vivid(last, box),
