@@ -41,7 +41,7 @@ export const EN_TEXT = {
             title: "Motion, step by step",
             text: "Switch steps and envelopes and tags run along the edges while actions play inside the boxes. Order and causality become visible.",
           },
-          { title: "Hand it over by URL or file", text: "Put the notation in a URL to share it, or export it to mp4, GIF, HTML or PNG with the CLI." },
+          { title: "Hand it over by URL or file", text: "Put the notation in a URL to share it, or export it to mp4, GIF, HTML, PNG or SVG with the CLI." },
         ],
       },
       steps: {
@@ -86,7 +86,7 @@ export const EN_TEXT = {
   cannotDraw: (message: string) => `Cannot draw — ${message}`,
   kept: "Showing the last diagram that drew",
   exportLead: "Export the same diagram",
-  exportTail: "to mp4 / GIF / HTML / PNG",
+  exportTail: "to mp4 / GIF / HTML / PNG / SVG",
   shelf: {
     label: "Shelf",
     open: "Open the shelf",

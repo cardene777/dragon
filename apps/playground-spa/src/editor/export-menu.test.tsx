@@ -265,12 +265,10 @@ describe("編集画面の判定の表を書き出す (#3937)", () => {
     location.hash = "";
   });
 
+  // HTML の頁は記法から描き直すので、書き出す窓は今どおり記法を渡す
   it("editor-export-judge-saves-file", async () => {
-    const table = await openJudge();
-    const cases = [
-      { format: "PNG", fn: capture.capturePng, made: new Blob(["png"], { type: "image/png" }), ext: "png" },
-      { format: "HTML", fn: capture.captureHtml, made: "<!doctype html><title>表</title>", ext: "html" },
-    ] as const;
+    await openJudge();
+    const cases = [{ format: "HTML", fn: capture.captureHtml, made: "<!doctype html><title>表</title>", ext: "html" }] as const;
     for (const { format, fn, made, ext } of cases) {
       (fn as unknown as { mockResolvedValue(value: Blob | string): void }).mockResolvedValue(made);
       const before = saved.length;
@@ -286,7 +284,37 @@ describe("編集画面の判定の表を書き出す (#3937)", () => {
         expect(read?.ok ? { kind: read.diagram.kind, title: read.diagram.title } : undefined, "HTML の書き出しに今の記法を渡さない").toEqual(
           want.ok ? { kind: want.diagram.kind, title: want.diagram.title } : { kind: "judge" },
         );
-      } else expect(given, `${format} の書き出しに判定の表の要素を渡さない`).toBe(table);
+      }
+      expect(saved[before]?.name ?? "", `${format} を保存させた file の拡張子`).toMatch(new RegExp(`\\.${ext}$`, "u"));
+      fn.mockReset();
+    }
+  });
+
+  // 絵は頁の表でなく、例を帯に置いた幅 728px 以下の SVG を書き出す入口に渡す (#3891)
+  it("editor-export-judge-passes-band-picture", async () => {
+    const table = await openJudge();
+    const cases = [
+      { format: "PNG", fn: capture.capturePng, made: new Blob(["png"], { type: "image/png" }), ext: "png" },
+      { format: "SVG", fn: capture.captureSvg, made: "<svg></svg>", ext: "svg" },
+      { format: "GIF", fn: capture.captureGif, made: new Blob(["gif"], { type: "image/gif" }), ext: "gif" },
+      { format: "MP4", fn: capture.captureMp4, made: new Blob(["mp4"], { type: "video/mp4" }), ext: "mp4" },
+    ] as const;
+    for (const { format, fn, made, ext } of cases) {
+      (fn as unknown as { mockResolvedValue(value: Blob | string): void }).mockResolvedValue(made);
+      const before = saved.length;
+      await press(exportButton());
+      await choose(format);
+      await wait(10);
+      expect(fn, `${format} を選んでも書き出す入口の関数を呼ばない`).toHaveBeenCalledTimes(1);
+      const given = fn.mock.calls[0]?.[0] as Element | undefined;
+      expect(given, `${format} の書き出しに頁の表の要素を渡した`).not.toBe(table);
+      expect([given?.namespaceURI, given?.localName, given?.getAttribute("data-dragon")], `${format} の書き出しに渡した要素`).toEqual([
+        "http://www.w3.org/2000/svg",
+        "svg",
+        "judge",
+      ]);
+      expect(given?.querySelectorAll('[data-dragon="judge-band"]').length ?? 0, `${format} の書き出しに渡した SVG の例の帯`).toBeGreaterThan(0);
+      expect(Number(given?.getAttribute("width") ?? "Infinity"), `${format} の書き出しに渡した SVG の幅`).toBeLessThanOrEqual(728);
       expect(saved[before]?.name ?? "", `${format} を保存させた file の拡張子`).toMatch(new RegExp(`\\.${ext}$`, "u"));
       fn.mockReset();
     }

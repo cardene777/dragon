@@ -6,6 +6,11 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- `dragon export --format svg` writes an SVG of any diagram: the still of the last step, with the fonts it draws embedded as `data:` URLs. An export without `--format` still writes mp4, GIF, HTML, and PNG (#3891)
+- Pictures of a judge table put each case name and note on a band above its ✓ and ✕ row instead of a case column, so the table fits in 728px with every text at 10.5px or more. A table still wider splits its rule columns into stacked tables, each with the case bands, and the verdict column in the last one. The PNG, GIF, mp4, and SVG of `dragon export`, and of the export menu and image copy in the playground editor and catalog, use this form. It is drawn only with SVG elements and no `foreignObject`, so tools other than browsers show it too. `renderDiagram(diagram, { picture: true })` draws it, and `@cardenelabs/dragon/capture` takes its root (#3891)
+
 ## [0.80.1] - 2026-11-25
 
 ### Fixed

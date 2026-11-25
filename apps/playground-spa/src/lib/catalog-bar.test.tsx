@@ -201,8 +201,8 @@ describe("カタログの札の帯 (#3713)", () => {
 });
 
 describe("判定の表の札の書き出し (#3937)", () => {
-  // 判定の表の札で書き出す窓の PNG を押すと、書き出す入口に札の中の判定の表の要素を渡す
-  it("catalog-export-judge-passes-table", async () => {
+  /** 判定の表の分類の頁を描き、札に判定の表が届くまで待つ */
+  async function openJudge(): Promise<HTMLElement> {
     act(() => mounted?.render(<CategoryPage kind="judge" lang="ja" theme="light" palette="paper" />));
     const table = (): HTMLElement | null => card().querySelector<HTMLElement>('[data-dragon="judge"]');
     // 判定の表の部品の塊が届くまで待つ。1 件の上限 (10 秒) の内の 6 秒まで待つ
@@ -212,6 +212,21 @@ describe("判定の表の札の書き出し (#3937)", () => {
       });
     }
     expect(table(), "判定の表の札に表が無い").not.toBeNull();
+    return table() as HTMLElement;
+  }
+
+  /** 書き出す入口に渡した物が、例を帯に置いた幅 728px 以下の判定の表の SVG か (#3891) */
+  function expectBandPicture(given: unknown, table: HTMLElement, what: string): void {
+    const el = given as Element | undefined;
+    expect(el, `${what}に頁の表の要素を渡した`).not.toBe(table);
+    expect([el?.namespaceURI, el?.localName, el?.getAttribute("data-dragon")], `${what}に渡した要素`).toEqual(["http://www.w3.org/2000/svg", "svg", "judge"]);
+    expect(el?.querySelectorAll('[data-dragon="judge-band"]').length ?? 0, `${what}に渡した SVG の例の帯`).toBeGreaterThan(0);
+    expect(Number(el?.getAttribute("width") ?? "Infinity"), `${what}に渡した SVG の幅`).toBeLessThanOrEqual(728);
+  }
+
+  // 判定の表の札で書き出す窓の PNG を押すと、書き出す入口に帯の形の表の SVG を渡す
+  it("catalog-export-judge-passes-band-picture", async () => {
+    const table = await openJudge();
     capture.capturePng.mockReset();
     capture.capturePng.mockResolvedValue(new Blob(["png"], { type: "image/png" }));
     await press(action("export"));
@@ -222,6 +237,28 @@ describe("判定の表の札の書き出し (#3937)", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
     expect(capture.capturePng, "PNG を押しても書き出す入口の関数を呼ばない").toHaveBeenCalledTimes(1);
-    expect(capture.capturePng.mock.calls[0]?.[0], "PNG の書き出しに判定の表の要素を渡さない").toBe(table());
+    expectBandPicture(capture.capturePng.mock.calls[0]?.[0], table, "PNG の書き出し");
+  });
+
+  // 判定の表の札で画像をコピーすると、帯の形の表の SVG から撮った PNG をコピーする
+  it("catalog-copy-judge-passes-band-picture", async () => {
+    const table = await openJudge();
+    const write = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { write, writeText: vi.fn(() => Promise.resolve()) }, configurable: true });
+    (globalThis as { ClipboardItem?: unknown }).ClipboardItem ??= class {
+      constructor(readonly items: Record<string, unknown>) {}
+    };
+    capture.capturePng.mockReset();
+    capture.capturePng.mockResolvedValue(new Blob(["png"], { type: "image/png" }));
+    await press(action("copy"));
+    const image = card().querySelector<HTMLElement>('[data-menu="copy"] [data-copy="image"]');
+    expect(image, "コピーの窓に画像が無い").not.toBeNull();
+    if (image) await press(image);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(capture.capturePng, "画像のコピーで書き出す入口の関数を呼ばない").toHaveBeenCalledTimes(1);
+    expectBandPicture(capture.capturePng.mock.calls[0]?.[0], table, "画像のコピー");
+    expect(write, "画像をクリップボードに書かない").toHaveBeenCalledTimes(1);
   });
 });

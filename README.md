@@ -19,7 +19,7 @@ dragon turns a short text file into a diagram that plays one step at a time.
 It draws boxes, the lines between them, and what travels along those lines.
 Each step moves the story forward.
 People and AI write the same dragon notation, and the notation converts to and from a JSON source.
-The same source plays on a web page and exports to MP4, GIF, HTML, and PNG.
+The same source plays on a web page and exports to MP4, GIF, HTML, PNG, and SVG.
 
 The catalog at <https://cardene777.github.io/dragon/> shows every kind of diagram, with an editor that plays what you type.
 
@@ -164,7 +164,7 @@ Select a kind to read how to write it.
 | Notation | The dragon notation. The first English word of each line decides its kind. It converts to and from JSON, and names and text can be in any language |
 | Renderer | Draws the source on a page and plays it one step at a time |
 | Diagram kinds | Sequence diagram, architecture diagram, state diagram, git graph, time diagram, tree diagram, lineup diagram, try diagram, pipe diagram, chart, flow diagram, cycle diagram, mind map, table relation diagram, two-axis matrix, set overlap diagram, Sankey diagram, owner card diagram, checkout diagram, judge table |
-| Export | The `dragon export` command writes MP4, GIF, HTML, and PNG from the same source |
+| Export | The `dragon export` command writes MP4, GIF, HTML, PNG, and SVG from the same source |
 | HTML form | A diagram can also be written in HTML, one element per notation line, such as `<dg-sequence>` and `<dg-box>`. The `dragon convert` command turns notation and Markdown pages into HTML and back |
 
 ## Notation

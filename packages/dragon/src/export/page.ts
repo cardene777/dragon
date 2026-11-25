@@ -7,6 +7,7 @@
  * ブラウザも読むので、Node の組み込みの module を読まない。
  */
 import { FIGURE_TEXT } from "../figure-text";
+import { partsOf } from "../kinds/registry";
 import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { type Palette, paletteVars, resolvePalette, type Theme } from "../look/values";
 import { FORMAT_VERSION, fromModel } from "../model";
@@ -66,12 +67,14 @@ export interface PagePlan {
   line: LineStyle;
   /** 頁に収める配管の図の並べ方 (#3748)。頁は道を探さずに最初の形と箱を 1 つ開いた形を描く。配管の図でなければ空 */
   layouts: StoredPipeLayout[];
+  /** HTML で描く図 (判定の表) を書き出す絵の形 (例を帯に置いた SVG、#3891)。PNG と GIF と mp4 と SVG はこの絵を撮る。ほかの図では undefined */
+  picture: string | undefined;
 }
 
 const unescape = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 
 /** SVG の中で描かれる字 (`<text>` の中身) */
-const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => unescape((m[1] ?? "").replace(/<[^>]+>/g, "")));
+export const svgTexts = (svg: string): string[] => [...svg.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g)].map((m) => unescape((m[1] ?? "").replace(/<[^>]+>/g, "")));
 
 /**
  * 頁と書き出しで描かれうる字。寄って見せる時の全体図の題 (`followSvg` の中) と、再生の釦の名前と段の番号の字も含む。
@@ -158,11 +161,13 @@ export function planPage(input: unknown, options: PageOptions): PagePlan {
         const svg = drawSvg(diagram, layout, timeline, palette, theme, { width, lang });
         return drawLines(svg, line, lang);
       });
-  const texts = [...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang)];
+  // HTML で描く図は、書き出す絵の形 (#3891) も描き、その字も埋める
+  const picture = partsOf(layout.kind)?.html?.picture?.(layout, palette, theme);
+  const texts = [...drawnTexts(rendered, followSvg, lang), ...openedTexts(input, rendered, options, lang), ...(picture === undefined ? [] : svgTexts(picture))];
   // 頁は埋めた原本を読み直して描くので、今の版の原本 (版2) に戻して埋める (#3346)。
   // 配管の図は内側の段をまとめる前の形を埋め、頁が箱を押された時に内側の段を開けるようにする (#3398)
   const source = withDefinitions(fromModel(rendered.source ?? diagram, FORMAT_VERSION), options.blocks);
   // 並べ方は頁が描く物と同じ鍵になるよう、頁が読み直す原本を頁と同じ言葉で描いて組む。色味と線の描き方は並べ方を変えない
   const layouts = diagram.kind === "pipe" ? pipeLayouts(source, { lang }) : [];
-  return { rendered, said, lang, palette, vars, width, followSvg, texts, source, line, layouts };
+  return { rendered, said, lang, palette, vars, width, followSvg, texts, source, line, layouts, picture };
 }

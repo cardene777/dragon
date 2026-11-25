@@ -622,3 +622,134 @@ describe("ブラウザで書き出す判定の表 (#3937)", () => {
     expect(vivid(last as Picture, box), `${lastIndex} 番目のコマ (最後の段) の判定の札の所の色の濃い画素`).toBeGreaterThan(0);
   });
 });
+
+/** 帯の形の判定の表 (#3891) を書き出す入口に渡して返った物。頁に帯の形の SVG が無い時は `missing` */
+interface BandShot {
+  missing?: boolean;
+  png: Tried<string>;
+  svg: Tried<string>;
+  film: Tried<{ gif: string; mp4Type: string }>;
+  frames?: { width: number; height: number; rgba: string }[];
+}
+
+const BAND = await atLoad("帯の形の判定の表を書き出す入口で PNG と SVG と GIF と mp4 に書き出す", async () => {
+  const parsed = parseNotation(readFileSync(join(ROOT, "examples", JUDGE_FILE), "utf8"));
+  if (!parsed.ok) throw new Error(`${JUDGE_FILE} を読めない`);
+  // 書き出す窓は、頁の表でなく、書き出す絵の形 (例を帯に置いた SVG) を書き出す入口に渡す
+  const picture = renderDiagram(parsed.diagram, { picture: true });
+  const rendered = renderDiagram(parsed.diagram);
+  const spec = (parsed.diagram as { judge: { rules: unknown[]; cases: { fails?: unknown[] }[] } }).judge;
+  const facts = {
+    rules: spec.rules.length,
+    verdicts: spec.cases.map((one) => ((one.fails?.length ?? 0) > 0 ? "block" : "pass")),
+    colors: colorsOf(rendered.svg),
+  };
+  const { total, stills, steps } = picture.timeline;
+  const timeline = { total, stills, steps: steps.map((step) => ({ start: step.start, end: step.end })) };
+  const lastIndex = Math.round((stills.at(-1) ?? 0) * RATES.gifFps);
+  const shot = await withCapturePage({ head: FONT_LINKS, body: picture.svg }, (page) =>
+    page.evaluate(
+      async ({ timeline, rates, lastIndex }): Promise<BandShot> => {
+        const capture = (window as unknown as { capture: Record<string, ((...args: unknown[]) => Promise<unknown>) | undefined> }).capture;
+        const figure = document.querySelector<SVGSVGElement>('svg[data-dragon="judge"]');
+        const none = { error: "帯の形の SVG が無い" };
+        if (!figure) return { missing: true, png: none, svg: none, film: none };
+        // 再生の部品が 2 番目の段を見せている形にする。書き出す入口は印を外して撮る
+        figure.setAttribute("data-play", "");
+        for (const cell of figure.querySelectorAll("[data-col]")) {
+          const col = Number(cell.getAttribute("data-col"));
+          cell.toggleAttribute("data-on", col <= 1);
+          cell.toggleAttribute("data-now", col === 1);
+        }
+        const base64 = async (blob: unknown): Promise<string> => {
+          if (!(blob instanceof Blob)) return "";
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          let text = "";
+          for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+          return btoa(text);
+        };
+        const tried = async <T>(run: () => Promise<T>): Promise<Tried<T>> => {
+          try {
+            return { value: await run() };
+          } catch (error) {
+            return { error: error instanceof Error ? error.message : String(error) };
+          }
+        };
+        const png = await tried(async () => base64(await capture.capturePng?.(figure)));
+        const svg = await tried(async () => String(await capture.captureSvg?.(figure)));
+        let gifBlob: Blob | undefined;
+        const film = await tried(async () => {
+          const made = (await capture.captureFilm?.(figure, { formats: ["mp4", "gif"], ...rates, timeline })) as { gif?: Blob; mp4?: Blob } | undefined;
+          gifBlob = made?.gif;
+          return { gif: await base64(made?.gif), mp4Type: made?.mp4?.type ?? "" };
+        });
+        let frames: { width: number; height: number; rgba: string }[] | undefined;
+        if (gifBlob) {
+          const decoder = new ImageDecoder({ data: await gifBlob.arrayBuffer(), type: "image/gif" });
+          await decoder.tracks.ready;
+          frames = [];
+          for (const frameIndex of [0, lastIndex]) {
+            const { image } = await decoder.decode({ frameIndex });
+            const canvas = new OffscreenCanvas(image.displayWidth, image.displayHeight);
+            const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+            context.drawImage(image, 0, 0);
+            image.close();
+            const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+            let text = "";
+            for (let i = 0; i < pixels.length; i += 0x8000) text += String.fromCharCode(...pixels.subarray(i, i + 0x8000));
+            frames.push({ width: canvas.width, height: canvas.height, rgba: btoa(text) });
+          }
+        }
+        return { png, svg, film, ...(frames ? { frames } : {}) };
+      },
+      { timeline, rates: RATES, lastIndex },
+    ),
+  );
+  return { facts, shot, lastIndex };
+});
+
+/** 帯の形の判定の表の書き出しの結果。頁に帯の形の SVG が無い時は落とす */
+function band(): { facts: ReturnType<typeof BAND.get>["facts"]; shot: BandShot; lastIndex: number } {
+  const { facts, shot: opened, lastIndex } = BAND.get();
+  const shot = captured(opened);
+  expect(shot.missing ?? false, "書き出す絵の形 (renderDiagram の picture) が帯の形の判定の表の SVG を描かない").toBe(false);
+  return { facts, shot, lastIndex };
+}
+
+describe("ブラウザで書き出す帯の形の判定の表 (#3891)", () => {
+  it("capture-judge-svg-draws-band-table", () => {
+    const { shot } = band();
+    expect(shot.svg.error, "帯の形の判定の表の SVG を断った").toBeUndefined();
+    const svg = shot.svg.value ?? "";
+    expect(svg.startsWith("<svg"), "書き出した SVG の頭").toBe(true);
+    expect(svg.includes("<foreignObject"), "帯の形の表を foreignObject に包んだ").toBe(false);
+    expect(svg.includes('data-dragon="judge-band"'), "書き出した SVG に例の帯が無い").toBe(true);
+    expect(embeddedFaces(svg).map((face) => face.family), "書き出した SVG に埋めた字").toContain("Noto Sans JP Variable");
+    expect(svg.match(/\sdata-(?:play|on|now)(?:=|\s|>)/g) ?? [], "書き出した SVG に残る段の印").toEqual([]);
+  });
+
+  it("capture-judge-png-draws-band-table", () => {
+    const { facts, shot } = band();
+    const picture = judgePng(shot as unknown as JudgeShot);
+    const { pass, block, badge, now } = marks(facts);
+    expect(picture.width, "帯の形の表の PNG の幅 (画素)").toBeLessThanOrEqual(728 * SCALE);
+    const badges = clusters(spots(picture, badge).map((p) => p.x), 4 * SCALE);
+    expect(badges.length, "見出しの番号の丸の数").toBe(facts.rules);
+    expect(badges[0] ?? Number.POSITIVE_INFINITY, "最初の番号の丸の x (画素、左に例の列が無い)").toBeLessThan(100 * SCALE);
+    expect(spots(picture, pass).length > 0 && spots(picture, block).length > 0, "通す札と止める札が写る").toBe(true);
+    expect(verdictBox(picture, facts).rows, "判定の札の行の数").toBe(facts.verdicts.length);
+    expect(spots(picture, now).length, "照らした列の見出しの色の画素").toBe(0);
+  });
+
+  it("capture-judge-film-draws-band-table", () => {
+    const { facts, shot, lastIndex } = band();
+    expect(shot.film.error, "帯の形の判定の表の GIF と mp4 を断った").toBeUndefined();
+    expect(shot.film.value?.mp4Type, "mp4 の Blob の形").toBe("video/mp4");
+    expect(shot.frames, "GIF のコマを読み戻せない").toBeDefined();
+    const [first, last] = (shot.frames ?? []).map((frame) => ({ width: frame.width, height: frame.height, data: blobBytes(frame.rgba) }));
+    expect(first?.width ?? Number.POSITIVE_INFINITY, "GIF のコマの幅").toBeLessThanOrEqual(728);
+    const box = toGifBox(verdictBox(judgePng(shot as unknown as JudgeShot), facts));
+    expect(vivid(first as Picture, box), "最初のコマの判定の札の所の色の濃い画素").toBe(0);
+    expect(vivid(last as Picture, box), `${lastIndex} 番目のコマ (最後の段) の判定の札の所の色の濃い画素`).toBeGreaterThan(0);
+  });
+});

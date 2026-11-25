@@ -1,9 +1,10 @@
 /**
  * 判定の表 (#3879) の描く部品の組。記法を読む処理と書き戻す処理と原本の形との行き来は `judge/read.ts`、並べ方は `kinds/judge/layout.ts`、
- * HTML の表の描き方と段ごとに列を照らす処理は `render/judge.ts` が持つ。
+ * HTML の表の描き方と段ごとに列を照らす処理は `render/judge.ts` が、書き出す絵の形 (例を帯に置いた SVG、#3891) は `render/judge-picture.ts` が持つ。
  * 表は SVG でなく HTML で描くので (`html`)、描く本体は SVG を描かず、再生の部品は表を縮めずに枠へ置く
  */
 import { judgeMarkup, showJudge } from "../render/judge";
+import { judgePicture } from "../render/judge-picture";
 import { isJudgeNotation, judgeDiagram, judgeErrors, judgeModel, printJudge, readJudge } from "../judge/read";
 import { JUDGE_WORDS, type JudgeLayout, layoutJudge } from "./judge/layout";
 import type { KindParts } from "./parts";
@@ -26,7 +27,7 @@ export const parts: KindParts<JudgeLayout> = {
     return { ...model, steps };
   },
   layout: layoutJudge,
-  html: { markup: judgeMarkup, show: showJudge },
+  html: { markup: judgeMarkup, picture: judgePicture, show: showJudge },
 };
 
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)

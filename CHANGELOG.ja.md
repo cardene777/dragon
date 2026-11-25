@@ -6,6 +6,11 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+### Added
+
+- `dragon export --format svg`で、どの図もSVGに書き出せるようにした。最後の段の止め絵を書き、描いた字の書体を`data:`で埋める。`--format`を書かない書き出しは今どおりmp4、GIF、HTML、PNGを書く (#3891)
+- 判定の表の絵は、例の列の代わりに例の名前と添え書きをその例の✓と✕の行の上の帯に置き、どの字も10.5px以上のまま幅728pxに収める。帯の形でも収まらない表は規則の列を分けて縦に積み、どの段にも例の帯を置いて、判定の列を最後の段に置く。`dragon export`のPNG、GIF、mp4、SVGと、見本帳と編集画面の書き出す窓と画像のコピーがこの形を使う。SVGの要素だけで描き`foreignObject`を使わないので、ブラウザでない道具でも描ける。`renderDiagram(diagram, { picture: true })`がこの形を描き、`@cardenelabs/dragon/capture`はその根も受ける (#3891)
+
 ## [0.80.1] - 2026-11-25
 
 ### Fixed

@@ -15,10 +15,13 @@ const J = LOOK.judge;
 const px = (v: number): string => `${v}px`;
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** ✓と✕の線の形。縦横 `J.icon` の升の中に描く。書き出す絵の形 (`judge-picture.ts`) も同じ形を描く */
+export const ICON_PATHS = { pass: "M4.5 10.5l3.5 3.5 7.5-8", fail: "M5.5 5.5l9 9M14.5 5.5l-9 9" } as const;
+
 /** ✓と✕の絵柄。印の升に描き、枠の幅で縮めないので viewBox を持たない */
 const ICONS = {
-  pass: `<svg width="${J.icon}" height="${J.icon}" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="✓"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>`,
-  fail: `<svg width="${J.icon}" height="${J.icon}" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" role="img" aria-label="✕"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>`,
+  pass: `<svg width="${J.icon}" height="${J.icon}" fill="none" stroke="currentColor" stroke-width="${J.stroke}" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="✓"><path d="${ICON_PATHS.pass}"/></svg>`,
+  fail: `<svg width="${J.icon}" height="${J.icon}" fill="none" stroke="currentColor" stroke-width="${J.stroke}" stroke-linecap="round" role="img" aria-label="✕"><path d="${ICON_PATHS.fail}"/></svg>`,
 } as const;
 
 /** 色の変数 `color` を `amount` % だけ `base` に混ぜた色。印の地と、今照らしている列の地に使う */

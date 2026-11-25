@@ -18,7 +18,7 @@ import { type Diagram, PALETTES, parseNotation, readDiagram, renderDiagram, type
 import { type CSSProperties, type ReactElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { type ExportFigure, ExportMenu, figureIn } from "../editor/ExportMenu";
+import { type ExportFigure, ExportMenu, exportFigureIn } from "../editor/ExportMenu";
 import { ZOOM_RANGE, ZOOM_STEP, zoomed } from "../editor/fit";
 import { useFittedFigure } from "../editor/useFittedFigure";
 import { type ExampleKey, exampleInfo, exampleText, LATER_EXAMPLES } from "../examples";
@@ -335,8 +335,8 @@ function Preview({ sample, lang, theme, palette, choice, onChoice, view, onView,
     );
   };
   const editorHref = `${PATHS.editor}${toHash(text)}`;
-  /** 今描いている図の SVG か、HTML で描く図 (判定の表) の根の要素。帯の書き出す窓と画像のコピーが撮る */
-  const figure = (): ExportFigure | null => figureIn(host.current);
+  /** 今描いている図の SVG か、判定の表の書き出す絵の形 (#3891)。帯の書き出す窓と画像のコピーが撮る */
+  const figure = (): ExportFigure | null => exportFigureIn(host.current, () => (diagram ? renderDiagram(diagram, { picture: true, palette, theme, lang }).svg : undefined));
 
   // 帯の頭は図を組み込んだ先と同じ物を package に作らせ、印と題を描かせる。ボタンと 2 行目の中身は下で差し込む (#3713)
   const barHost = useRef<HTMLDivElement>(null);
