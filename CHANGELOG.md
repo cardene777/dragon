@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A Markdown page made by `dragon export` can now be a guide page with `layout: guide` in its top lines. Each `##` becomes a topic tab, each `###` a numbered section stacked in that tab, and the top of each tab lists the questions it answers, made from the `###` titles. Clicking a question scrolls to its section. A quote right after a `###` title is shown as the answer under the title, and a `<details>` block with `<summary>` becomes a check question whose answer opens and hides on a click. Terms go in a Markdown file of their own, with a `###` heading per term, a meaning, and a quote as the example. A `![Terms](glossary.md)` line before the first `##` loads it as a `Terms` tab, and a link such as `[order](glossary.md#order)` becomes an underline that opens a card with the term, the meaning, and the example. A term written twice, or a link to a term the file does not have, stops the export with the line named. Printing draws every term card, box card, and check answer open. The layouts `entry`, `sidebar`, and `tabs` do not change, and raw HTML other than `<details>` and `<summary>` is still shown as text (#3876)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added
