@@ -104,6 +104,8 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.sequence?.shape !== undefined ? { sequence: { shape: model.sequence.shape } } : {}),
     blocks: blocks as DiagramBlocks,
     steps: model.steps,
+    // 場面 (#3878) は、段と同じく根の欄のまま移す
+    ...(model.scenes !== undefined ? { scenes: model.scenes } : {}),
   };
 }
 
@@ -152,6 +154,7 @@ export function toModel(diagram: Diagram): DiagramModel {
       ...(b.strip !== undefined ? { strip: b.strip } : {}),
       ...(b.gauge !== undefined ? { gauge: b.gauge } : {}),
       steps: diagram.steps,
+      ...(diagram.scenes !== undefined ? { scenes: diagram.scenes } : {}),
       flow: { choices: b.choice ?? [], paths: b.path ?? [] },
     };
   return {
@@ -170,6 +173,8 @@ export function toModel(diagram: Diagram): DiagramModel {
     // 量の目盛り (#3880) は版1に無かった欄なので、版2の原本の `gauge` をそのまま持つ
     ...(b.gauge !== undefined ? { gauge: b.gauge } : {}),
     steps: diagram.steps,
+    // 場面 (#3878) は、場面を書ける図の種類 (手順の図と列の図) だけが持つ
+    ...(diagram.scenes !== undefined ? { scenes: diagram.scenes } : {}),
     // 時系列図の生存線は箱の並びから組み、見た目 (#3720) は原本の根の `sequence` の欄から移す
     ...(diagram.kind === "sequence" ? { sequence: { ...lifelinesOf(boxes), ...diagram.sequence } } : {}),
     ...rooted(diagram),

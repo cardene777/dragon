@@ -8,6 +8,7 @@
  * 読んでいないブロックの誤りの文は表に無いが、読む処理はそのブロックの行を読む前に、読んでいないブロックを名指す誤りで止める (`notLoaded`)。
  */
 import { cachedByReadings, loadedReadings } from "./blocks/reading";
+import { SCENE_SHOWS } from "./blocks/scene/block";
 import type { READINGS } from "./blocks/readings";
 import { list } from "./read-kit";
 import { type UserBlockUseMessages, userBlockUseMessages } from "./user-blocks";
@@ -62,6 +63,8 @@ export interface CoreMessages {
   lineupOrTryOnly: (word: string) => string;
   /** 手順の図と列の図だけの行 (量の目盛りの `gauge`) を、別の種類の図に書いた (#3880) */
   flowOrLineupOnly: (word: string) => string;
+  /** 1 行目の `scenes` に `stack` と `pick` の外の値を書いた (#3878)。場面の読み方は後から読むので、1 行目を読む処理の文として持つ */
+  badScenes: string;
   /** 列の図と試す図と量の図だけの `item` の行を、別の種類の図に書いた (#3560) */
   itemOnly: string;
   /** 図の種類の行の属性 `key` (見た目の `shape` と 1 点の件数の `unit`) を、その属性を持てる図の種類 `kinds` の外の図の行に書いた (#3560、#3635、#3637) */
@@ -135,6 +138,7 @@ const ja = (): Messages => {
     lineupOnly: (word) => `${word} の行は lineup (列の図) でだけ書ける`,
     lineupOrTryOnly: (word) => `${word} の行は lineup (列の図) と try (試す図) でだけ書ける`,
     flowOrLineupOnly: (word) => `${word} の行は flow (手順の図) と lineup (列の図) でだけ書ける`,
+    badScenes: `1 行目の scenes は ${list(SCENE_SHOWS)} のどれか。stack は場面を縦に並べ、pick は場面の名前の釦で選んだ場面を追う`,
     itemOnly: "item の行は lineup (列の図) と try (試す図) と chart (量の図) と venn (集合の重なりの図) と cards (持ち主ごとのカードの図) でだけ書ける",
     headOnlyAttr: (key, kinds) => `最初の行の ${key} は ${list(kinds)} の図にだけ書ける`,
     tryOnly: (word) => `${word} の行は try (試す図) でだけ書ける`,
@@ -193,6 +197,7 @@ const en = (): Messages => {
     lineupOnly: (word) => `${word} lines can be written only in lineup diagrams`,
     lineupOrTryOnly: (word) => `${word} lines can be written only in lineup and try diagrams`,
     flowOrLineupOnly: (word) => `${word} lines can be written only in flow and lineup diagrams`,
+    badScenes: `scenes on the first line is one of ${list(SCENE_SHOWS)}. stack lines the scenes up, and pick follows the scene chosen with its name button`,
     itemOnly: "item lines can be written only in lineup, try, chart, venn and cards diagrams",
     headOnlyAttr: (key, kinds) => `${key} on the first line can be written only in ${list(kinds)} diagrams`,
     tryOnly: (word) => `${word} lines can be written only in try diagrams`,

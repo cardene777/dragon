@@ -5,6 +5,8 @@
 import { drawGauges, gaugeCss } from "../blocks/gauge/draw";
 import { gaugesOf } from "../blocks/gauge/layout";
 import { flowCss, flowHooks, flowTimes, stepMarks } from "../render/flow";
+import { renderScenes } from "../blocks/scene/draw";
+import { mountScenes } from "../scene-player";
 import { layoutFlow } from "./flow/layout";
 import type { KindParts } from "./parts";
 
@@ -21,6 +23,8 @@ export const parts: KindParts = {
     css: `${flowCss(ctx.id)}${gaugeCss(gaugesOf(layout))}`,
   }),
   states: true,
+  // 場面 (#3878)。段で居場所が移る物を持たないので、全ての場面の段をつないだ 1 つの並べ方から箱の位置を取る
+  scenes: { render: (model, options, lang) => renderScenes(model, options, lang, false), mount: mountScenes },
 };
 
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)

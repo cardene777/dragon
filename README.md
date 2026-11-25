@@ -173,7 +173,7 @@ Every line follows these four rules.
 1. The first English word of a line decides its kind. Only arrow lines start with a box id
 2. A colon separates a key from its value, and attributes go inside `[ ]`, separated by `,`
 3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
-4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
+4. The only nesting is `group … end` and the scene's `scene … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 The [notation guide](packages/dragon/examples/quick-start.en.md) has every line form, and a section for each kind of diagram.
 A full example of each kind is in [`packages/dragon/examples`](packages/dragon/examples).

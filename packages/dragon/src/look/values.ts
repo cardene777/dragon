@@ -325,6 +325,24 @@ export const LOOK = {
     shadowMix: 22,
   },
   /**
+   * 1 つの図の場面 (#3878)。`colors` は場面を書いた順の場面の色、`common` は並べる見せ方の共通の段の線の灰。
+   * 分かれる位置の縦の点線は、分かれる所の箱の左の端から `fork` だけ左に `dash` の点線で引く。
+   * 縦に並べた図は、場面の名前の行の高さ `head`、止まる理由の行の高さ `reason`、場面の間 `gap` で場面を上から積む。
+   * 再生の部品は場面の枠を `panelGap` だけ離して積み、名前と段の題の間を `captionGap`、図と止まる理由の間を `stopGap` にする
+   */
+  scene: {
+    colors: ["blue", "rose", "violet"],
+    common: "slate",
+    fork: 5,
+    dash: "5 4",
+    head: 28,
+    reason: 30,
+    gap: 16,
+    panelGap: 16,
+    captionGap: 8,
+    stopGap: 6,
+  },
+  /**
    * 判定の表 (#3879) の HTML の表の寸法 (px)。字は縮めずにこの大きさで描くので、どの字も読める大きさ (`READABLE_PX`) を下回らない。
    * `text` は表の字、`caseName` は例の名前の字、`small` は規則の値と添え書きと外れた値と外れた規則の字、`verdict` は判定の語の字、
    * `no` は規則の番号の字、`whyNo` は外れた規則の番号の字、`dash` は照らせない「—」の字。

@@ -56,6 +56,7 @@ import { desc as roleDesc } from "../../../../packages/dragon/src/blocks/role/ga
 import { desc as routeDesc } from "../../../../packages/dragon/src/blocks/route/gallery/desc";
 import { desc as rowDesc } from "../../../../packages/dragon/src/blocks/row/gallery/desc";
 import { desc as scaleDesc } from "../../../../packages/dragon/src/blocks/scale/gallery/desc";
+import { desc as sceneDesc } from "../../../../packages/dragon/src/blocks/scene/gallery/desc";
 import { desc as sealDesc } from "../../../../packages/dragon/src/blocks/seal/gallery/desc";
 import { desc as sideDesc } from "../../../../packages/dragon/src/blocks/side/gallery/desc";
 import { desc as sidePathDesc } from "../../../../packages/dragon/src/blocks/side-path/gallery/desc";
@@ -129,6 +130,7 @@ export const BLOCK_DESC = {
   "route": routeDesc,
   "row": rowDesc,
   "scale": scaleDesc,
+  "scene": sceneDesc,
   "seal": sealDesc,
   "side": sideDesc,
   "side-path": sidePathDesc,
