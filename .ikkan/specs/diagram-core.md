@@ -433,7 +433,7 @@
 | 見本の値をbacktickで囲み、等幅の字のまま描く。枝の付け替えの図の`HEAD`の`main`と`feature`(16か所)、まとめる図のcommitの名前(6か所)、HDウォレットの図の道の始まりの`m`(2か所)、部品の図の`HEAD`の`main`(2か所)の26か所 | `pnpm test`の検査`examples-strip-names-stay-mono`が通る | #3856 |
 | 記法の説明(`plugins/dragon/skills/dragon/references/notation.md`、`packages/dragon/README.md`、`packages/dragon/README.ja.md`、`docs/design/base/GRAMMAR.md`)に、`strip`の値の字の決まりと、backtickで囲むと等幅で描くことを書く | `pnpm test`の検査`docs-explain-strip-value-font`が通る | #3856 |
 | `CHANGELOG.md`と`CHANGELOG.ja.md`に#3856の項がある | `pnpm test`の検査`changelog-lists-strip-value-font`が通る | #3856 |
-| 止めて見せる図を元の幅より広い枠に置いた時、図は元の幅より大きく描かれず、枠の真ん中に置かれる | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `fixed-figure-not-wider-than-layout` passes | #3934 |
+| 止めて見せる図を元の幅より広い枠に置いた時、図は元の幅より大きく描かれず、枠の真ん中に置かれる | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `fixed-figure-not-wider-than-layout` passes | #3934 #3938 |
 | 縦に長い手順の図 (skillの資料の例の`flow The checks at the desk`) を幅728pxの枠で描くと、箱の名前の字が13px以下になる | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `tall-flow-text-stays-natural-size` passes | #3934 |
 | 見せ方を選ぶ`chooseView`が返す字の大きさは、枠が広くても箱の名前の元の字の大きさを超えない | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `choose-view-text-capped-at-natural` passes | #3934 |
 | 寄って見せる図は、枠の高さに収まる今の形のまま | `pnpm exec vitest run packages/dragon/test/follow-fit-height.test.ts` check `follow-figure-fits-frame-height` passes | #3934 |
@@ -441,3 +441,5 @@
 | 枠の高さを渡さない時の見せ方は、今と同じく幅で決まる | `pnpm exec vitest run packages/dragon/test/follow-fit-height.test.ts` check `view-by-width-without-fit-height` passes | #3934 |
 | 止めて見せる図の札は、今と同じく配置の位置に合う | `pnpm exec vitest run packages/dragon/test/follow-heads.test.ts` check `fixed-view-cards-match-layout` passes | #3934 |
 | 見本帳の見本の図のSVGは、今と同じ形のまま | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3934 |
+| 場面を持つ縦に長い手順の図を元の幅より広い枠に置いた時、場面ごとの図は元の幅 (`--dg-w`) を上限として渡される | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `scene-figures-not-wider-than-layout` passes | #3938 |
+| 場面を並べて見せる図は、印刷の形で全ての場面を最後の段の形で積む | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-print-stacks-all-at-last-step` passes | #3938 |
