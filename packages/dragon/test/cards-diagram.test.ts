@@ -55,6 +55,10 @@ interface CardsLayout extends Omit<Layout, "boxes"> {
   kind: string;
   columns?: CardColumn[];
   cards?: CardSeat[];
+  /** 合計の帯の場所。合計に足すカードが無い図は持たない */
+  band?: Rect;
+  /** 段ごとの列の合計 */
+  totals?: unknown[];
 }
 
 interface CardsRendered extends Omit<Rendered, "layout"> {
@@ -203,6 +207,83 @@ const NONE = [
   "step 許す",
   "  say 許可は量を持つが、合計に足さない。",
   "  item p2 as 許可#2 in a [amount: 5 USDC, total: none]",
+  "",
+].join("\n");
+
+/** 量を持つ全てのカードが合計に足さないカード (`total: none`) の図。課題 (#3944) の記法に段を1つ足し、段の中でも足さないカードを作る */
+const ALL_NONE = [
+  "cards 足さない量だけ",
+  "",
+  "box alice as Alice",
+  "box bob as Bob",
+  "",
+  "item c1 as 券#1 in alice, bob [amount: 100 USDC, total: none]",
+  "",
+  "step 見る",
+  "  say 足すカードは無い。",
+  "  item c2 as 券#2 in bob [amount: 5 USDC, total: none]",
+  "",
+].join("\n");
+
+/** 量を持つカードが1枚も無い図 */
+const NO_AMOUNT = [
+  "cards 量の無いカード",
+  "",
+  "box alice as Alice",
+  "box bob as Bob",
+  "",
+  "item c1 as 券#1 in alice, bob",
+  "",
+  "step 見る",
+  "  say 量を持つカードは無い。",
+  "",
+].join("\n");
+
+/** 合計に足すカードを1枚だけ持つ図。足さないカードも載せ、足すカードの載らない列を持つ */
+const ONE_COUNTED = [
+  "cards 足すカードが1枚",
+  "",
+  "box alice as Alice",
+  "box bob as Bob",
+  "",
+  "item c1 as 券#1 in alice [amount: 100 USDC]",
+  "item p1 as 許可#1 in alice, bob [amount: 40 USDC, total: none]",
+  "",
+  "step 見る",
+  "  say 券#1だけを足す。",
+  "",
+].join("\n");
+
+/** 最初の段より前のカードは全て合計に足さず、段2で合計に足すカードを作る図 */
+const COUNTED_LATER = [
+  "cards 後から足す",
+  "",
+  "box alice as Alice",
+  "box bob as Bob",
+  "",
+  "item p1 as 許可#1 in alice, bob [amount: 40 USDC, total: none]",
+  "",
+  "step 置く",
+  "  say まだ足すカードは無い。",
+  "",
+  "step 作る",
+  "  say 足すカードを作る。",
+  "  item c1 as 券#1 in alice [amount: 100 USDC]",
+  "",
+].join("\n");
+
+/** 最初の量のカードが合計に足さないETHのカードで、合計に足すカードがUSDCだけの図。Bの列には合計に足すカードが載らない */
+const ZERO_UNIT = [
+  "cards 足す単位の0",
+  "",
+  "box a as A",
+  "box b as B",
+  "",
+  "item p1 as 許可#1 in a, b [amount: 2 ETH, total: none]",
+  "item c1 as 券#1 in a [amount: 50 USDC]",
+  "",
+  "step 見る",
+  "  say Bの列に足すカードは無い。",
   "",
 ].join("\n");
 
@@ -771,6 +852,73 @@ describe("持ち主ごとのカードの図の並べ方と段 (#3846)", () => {
     expect(now.totals.a, "Aの列の合計").toEqual(["100 USDC"]);
     // 許可だけが載るBの列の合計は、許可の量を足さない
     expect((now.totals.b ?? []).filter((amount) => amount !== "0 USDC"), "許可だけが載るBの列の合計").toEqual([]);
+  });
+
+  /** 頁に置いた図の合計の帯 (`.dg-cd-band`) と合計の印 (`data-dragon="total"`) の数。隠した段の組の印も数える */
+  const bandMarks = (host: HTMLElement): { band: number; totals: number } => ({
+    band: host.querySelectorAll(".dg-cd-band").length,
+    totals: host.querySelectorAll('[data-dragon="total"]').length,
+  });
+
+  it("cards-total-band-absent-when-no-card-counts", () => {
+    const diagram = parsed(ALL_NONE);
+    for (const lang of ["ja", "en"] as const) {
+      const { layout } = render(diagram, lang);
+      expect(layout.band, `全てのカードが合計に足さない図 (${lang}) が合計の帯の場所 (layout.band) を持つ`).toBeUndefined();
+      expect(layout.totals ?? [], `全てのカードが合計に足さない図 (${lang}) の列の合計 (layout.totals)`).toEqual([]);
+      const { host, player } = mount(diagram, lang);
+      expect(bandMarks(host), `全てのカードが合計に足さない図 (${lang}) の合計の帯と合計の印の数`).toEqual({ band: 0, totals: 0 });
+      for (const step of [0, 1]) {
+        player.goTo(step);
+        expect(board(host).totals, `全てのカードが合計に足さない図 (${lang}) の段${step + 1}に見える合計`).toEqual({});
+      }
+    }
+  });
+
+  it("cards-total-band-absent-without-amounts", () => {
+    const diagram = parsed(NO_AMOUNT);
+    const { layout } = render(diagram);
+    expect(layout.band, "量を持つカードが無い図が合計の帯の場所 (layout.band) を持つ").toBeUndefined();
+    const { host } = mount(diagram);
+    expect(bandMarks(host), "量を持つカードが無い図の合計の帯と合計の印の数").toEqual({ band: 0, totals: 0 });
+  });
+
+  it("cards-total-band-drawn-for-one-counted-card", () => {
+    const diagram = parsed(ONE_COUNTED);
+    for (const lang of ["ja", "en"] as const) {
+      const { layout } = render(diagram, lang);
+      expect(layout.band, `足すカードを1枚持つ図 (${lang}) に合計の帯の場所 (layout.band) が無い`).toBeDefined();
+      const { host } = mount(diagram, lang);
+      expect(bandMarks(host).band, `足すカードを1枚持つ図 (${lang}) の合計の帯の数`).toBe(1);
+      // 足すカードの載らないBobの列も合計を出し、足さない許可の量は足さない
+      expect(pick(board(host).totals, ["alice", "bob"]), `足すカードを1枚持つ図 (${lang}) の列ごとの合計`).toEqual({ alice: ["100 USDC"], bob: ["0 USDC"] });
+    }
+  });
+
+  it("cards-total-band-stays-when-a-step-makes-a-counted-card", () => {
+    const diagram = parsed(COUNTED_LATER);
+    const { layout } = render(diagram);
+    expect(layout.band, "段の中で足すカードを作る図に合計の帯の場所 (layout.band) が無い").toBeDefined();
+    const { host, player } = mount(diagram);
+    expect(bandMarks(host).band, "段の中で足すカードを作る図の合計の帯の数").toBe(1);
+    // 帯は全ての段で同じ場所に1つだけ在り、足すカードを作る前の段も列ごとの合計を出す
+    const want: Record<string, string[]>[] = [
+      { alice: ["0 USDC"], bob: ["0 USDC"] },
+      { alice: ["100 USDC"], bob: ["0 USDC"] },
+    ];
+    for (const [step, expected] of want.entries()) {
+      player.goTo(step);
+      expect(pick(board(host).totals, ["alice", "bob"]), `段の中で足すカードを作る図の段${step + 1}の列ごとの合計`).toEqual(expected);
+    }
+  });
+
+  it("cards-total-zero-takes-first-counted-unit", () => {
+    const diagram = parsed(ZERO_UNIT);
+    for (const lang of ["ja", "en"] as const) {
+      const { host } = mount(diagram, lang);
+      // Bの列は合計に足すカードを持たないので、足すカードの単位 (USDC) で0を出し、足さない許可の単位 (ETH) では出さない
+      expect(pick(board(host).totals, ["a", "b"]), `足さないカードが最初に在る図 (${lang}) の列ごとの合計`).toEqual({ a: ["50 USDC"], b: ["0 USDC"] });
+    }
   });
 
   it("cards-mark-shows-only-on-named-columns", () => {

@@ -2168,7 +2168,7 @@ Columns sit from left to right in the order of their `box` lines, and each colum
 
 - `box <id> as <name>` declares an owner column before the first `step`. `[note: <caption>]` is the caption next to the name, and `[mark: <word>]` is the mark word shown in that column. A box takes no `color`, `icon` or `link`
 - `item <id> as <name> in <column>, <column> [amount: <amount>]` declares a card, and every column in `in` gets its own copy. Write an amount as a number and a unit, like `1000 USDC`, and wrap an amount with `,` in `"`
-- A `[total: none]` card shows its amount but stays out of the column total. `[mark: <column>]` picks a column to show the mark in, and that column needs a `mark` word. Only card lines can repeat `mark`
+- A `[total: none]` card shows its amount but stays out of the column total. A diagram with no card that adds to a total draws no total band. `[mark: <column>]` picks a column to show the mark in, and that column needs a `mark` word. Only card lines can repeat `mark`
 - Cards written before the first `step` are there from the start. An `item` line in a step makes a card in that step, with a green edge and a New tag
 - `item <id> in <column>` on an existing card in a step moves it to those columns. A move line takes no name and no attributes
 - `delete <card>` strikes a card through and keeps it, and the card leaves the column total. A deleted card stays struck through in later steps

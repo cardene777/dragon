@@ -24,7 +24,7 @@ Pick `lineup` instead when items wait in lanes and move one by one without owner
 ## How to write it well
 
 - Write an amount as a number and a unit (`1000 USDC`, `1 vol.`, `500 yen`). Totals add amounts unit by unit, so keep one spelling per unit. Wrap an amount with `,` in `"`, as in `[amount: "3,000 yen"]`.
-- `[total: none]` shows a card's amount but leaves it out of the column total. Use it for permits, allowances and limits that are not holdings.
+- `[total: none]` shows a card's amount but leaves it out of the column total. Use it for permits, allowances and limits that are not holdings. A diagram whose amount cards are all `[total: none]` draws no total band.
 - `[mark: <column>]` on a card shows that column's `mark` word on the copy in that column only. Repeat it for each column (`[mark: alice, mark: usdc]`); the column must have a `mark` word.
 - Put the call line first in a step, then the change: `alice -> n1: Send 100`, then `delete n1` and the new `item` lines. The call lights the card it reaches.
 - Use `refuse` for an attempt that changes nothing, such as a balance that is too small or an account that does not exist. Write no other change for that card in the same step.
