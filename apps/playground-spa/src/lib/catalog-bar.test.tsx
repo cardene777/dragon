@@ -199,3 +199,29 @@ describe("カタログの札の帯 (#3713)", () => {
     expect(host.querySelector('[data-catalog="overlay-title"]')?.textContent).toBe(exampleInfo(SAMPLE, "ja")?.title);
   });
 });
+
+describe("判定の表の札の書き出し (#3937)", () => {
+  // 判定の表の札で書き出す窓の PNG を押すと、書き出す入口に札の中の判定の表の要素を渡す
+  it("catalog-export-judge-passes-table", async () => {
+    act(() => mounted?.render(<CategoryPage kind="judge" lang="ja" theme="light" palette="paper" />));
+    const table = (): HTMLElement | null => card().querySelector<HTMLElement>('[data-dragon="judge"]');
+    // 判定の表の部品の塊が届くまで待つ。1 件の上限 (10 秒) の内の 6 秒まで待つ
+    for (let i = 0; i < 300 && !table(); i++) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    }
+    expect(table(), "判定の表の札に表が無い").not.toBeNull();
+    capture.capturePng.mockReset();
+    capture.capturePng.mockResolvedValue(new Blob(["png"], { type: "image/png" }));
+    await press(action("export"));
+    const png = document.querySelector<HTMLElement>('[role="menu"] [data-format="png"]');
+    expect(png, "エクスポートの窓に png が無い").not.toBeNull();
+    if (png) await press(png);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(capture.capturePng, "PNG を押しても書き出す入口の関数を呼ばない").toHaveBeenCalledTimes(1);
+    expect(capture.capturePng.mock.calls[0]?.[0], "PNG の書き出しに判定の表の要素を渡さない").toBe(table());
+  });
+});

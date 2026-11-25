@@ -28,3 +28,10 @@
 | 常に、エディタの頁が最初に読む量は上限の中に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3667 |
 | 常に、scriptの1行の入口が最初に読む量は上限の中に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3667 |
 | 常に、配った後の確かめは、npmの最新の版が包んだ版と違う時に落とす | `pnpm exec vitest run packages/dragon/test/release-checks.test.ts`の検査`release-after-judges-npm-and-pages`が通る | #3667 |
+| 書き出す入口 (`@cardenelabs/dragon/capture`) は、再生の部品が途中の段を照らした判定の表を受けても、全ての列の✓と✕と判定の札を照らした色の帯なしで写したPNGを返す | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-judge-png-shows-every-column` passes | #3937 |
+| 書き出す入口は、判定の表を`foreignObject`に包み、描いた字を`data:`で埋め、段の印を外したSVGの文字列を返す | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-judge-svg-wraps-table` passes | #3937 |
+| 書き出す入口は、判定の表のGIFとmp4を作り、GIFの最初のコマで判定の列の札を見せず、最後の段のコマで見せる | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-judge-film-lights-columns-by-step` passes | #3937 |
+| 編集画面で判定の表を描き、書き出す窓のPNGとHTMLを押すと、書き出す入口に表の要素と記法を渡し、fileを保存させる | `pnpm exec vitest run apps/playground-spa/src/editor/export-menu.test.tsx` check `editor-export-judge-saves-file` passes | #3937 |
+| 見本帳の判定の表の札で書き出す窓のPNGを押すと、書き出す入口に表の要素を渡す | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-bar.test.tsx` check `catalog-export-judge-passes-table` passes | #3937 |
+| SVGで描く図の種類の書き出す入口のPNGとSVGは、今と同じ大きさと字で書く | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-still-any-svg` passes | #3937 |
+| SVGで描く図の種類の書き出す入口のGIFとmp4は、今と同じく命令の書き出しと同じコマの数と縦横で書く | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-film-matches-export` passes | #3937 |

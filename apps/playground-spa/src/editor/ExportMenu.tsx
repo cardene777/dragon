@@ -5,6 +5,7 @@
  * 道具の列は狭い幅で横に送るため、はみ出した物を切る。窓は列に切られないよう、釦の下の画面の位置に置く (`position: fixed`)。
  * 形を選ぶと、書き出す入口 (`@cardenelabs/dragon/capture`) の関数に今の図の SVG を渡し、返った物を書類名の file に保存させる。
  * HTML は頁が図を描き直すので、SVG でなく今の図の記法と色味を渡し、返った頁の文字列を保存させる (#3667)。
+ * HTML で描く図 (判定の表) は SVG を持たないので、表の根の要素を渡す (#3937)。HTML の頁は図の要素を使わないので、図が見つからない時も書き出す。
  * 書き出す入口は詰める道具を持ち重いので、最初に読む script に入れず、釦を押した時に読む。
  * mp4 は WebCodecs の H.264 が無いブラウザでは作れないので、窓を開いた時に確かめ、作れない時は MP4 を並べない。
  * 書き出している間は釦を押せない。書き出せなかった時は、釦の下に訳を出す。
@@ -19,6 +20,15 @@ import type { Lang, Text } from "../text";
 const loadCapture = (): Promise<typeof import("@cardenelabs/dragon/capture")> => import("@cardenelabs/dragon/capture");
 
 type Format = "png" | "svg" | "gif" | "mp4" | "html";
+
+/** 書き出す図。SVG で描く図は図の SVG、HTML で描く図 (判定の表、#3937) は表の根の要素 */
+export type ExportFigure = SVGSVGElement | HTMLElement;
+
+/** `host` の中で今描いている図。編集画面と見本帳の札が、書き出す窓と画像のコピーに渡す */
+export function figureIn(host: HTMLElement | null): ExportFigure | null {
+  return host?.querySelector<SVGSVGElement | HTMLElement>('svg[data-dragon="figure"], [data-dragon="judge"]') ?? null;
+}
+
 /** 窓に並べる形。名前は形の名前をそのまま出し、言葉で替えない */
 const FORMATS: readonly { id: Format; label: string }[] = [
   { id: "png", label: "PNG" },
@@ -32,10 +42,13 @@ interface Props {
   t: Text["stage"];
   /** 頁の言葉。書き出す入口が断る時の文の言葉にする */
   lang: Lang;
-  /** 今の図の SVG。図を置いていない時は null */
-  figure: () => SVGSVGElement | null;
-  /** 今の図の 1 周の秒と段ごとの止め絵の時刻。GIF の色の表を `dragon export` と同じ絵から作る */
-  timeline: () => Pick<Timeline, "total" | "stills"> | undefined;
+  /** 今の図の SVG か、HTML で描く図の根の要素。図を置いていない時は null */
+  figure: () => ExportFigure | null;
+  /**
+   * 今の図の 1 周の秒と段ごとの止め絵の時刻と段の始まりの時刻。GIF の色の表を `dragon export` と同じ絵から作り、
+   * HTML で描く図の動画は段の始まりの時刻ごとに列を照らす
+   */
+  timeline: () => Pick<Timeline, "total" | "stills" | "steps"> | undefined;
   /** 今の図の記法。HTML の頁に埋める。図を置いていない時は null */
   source: () => string | null;
   /** 今の図の色味と明るさ。HTML の頁を同じ色で描く */
@@ -124,13 +137,14 @@ export function ExportMenu({ t, lang, figure, timeline, source, palette, theme, 
     setOpen(false);
     const svg = figure();
     const notation = source();
-    if (!svg || notation === null) return;
+    // HTML の頁は記法から描き直すので、図の要素が見つからない時も書き出す
+    if (notation === null || (!svg && format !== "html")) return;
     setBusy(true);
     try {
       const capture = await loadCapture();
       const film = { lang, timeline: timeline() };
       const made =
-        format === "html"
+        format === "html" || !svg
           ? new Blob([await capture.captureHtml(notation, { lang, palette, theme, ...(line ? { line } : {}) })], { type: "text/html" })
           : format === "png"
           ? await capture.capturePng(svg, { lang })

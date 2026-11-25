@@ -49,6 +49,18 @@ export function planFilm(
   };
 }
 
+/**
+ * 時刻 `t` の段。再生の部品と同じく、始まりが `t` 以前の最後の段 (`player.ts` の `stepAt`)。
+ * HTML で描く図 (判定の表) の動画は、コマごとにこの段を図に書いて撮る。命令の書き出しと書き出す入口が同じ物を使う (#3923、#3937)
+ */
+export function stepAt(starts: readonly number[], t: number): number {
+  let found = 0;
+  starts.forEach((start, i) => {
+    if (start <= t) found = i;
+  });
+  return found;
+}
+
 /** 詰める道具。`mb` は `mediabunny`、`gif` は `gifenc` の module (使う部品だけを持つ物でもよい) */
 export interface FilmTools {
   mb: any;

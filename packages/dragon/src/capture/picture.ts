@@ -5,7 +5,12 @@
  * 写しの `style` には CSS の変数 (`--` で始まる物) だけを残し、頁に合わせた大きさや位置の指定を外す。
  * 時刻は命令の書き出し (`export/capture.ts`) と同じく、`--play` を `paused` にして `--at` に秒を入れて止める。
  * 写しを画像として読み、倍率を掛けた canvas に描く。
+ *
+ * HTML で描く図 (判定の表、#3937) は、頁の表の写しから段の印を消して頁の外に中身の幅で置き、描いた大きさを測る。
+ * 写しを SVG の `foreignObject` に包み、字を埋めた `@font-face` を頭に置く。動画のコマは、時刻の段の印を写しに書いて撮る。
+ * `foreignObject` を持つ SVG は、`blob:` の URL で読むと Chromium が canvas を汚れた物として扱い絵を読み出せないので、`data:` の URL で読む。
  */
+import { stepAt } from "../export/film";
 import type { NotationLang } from "../words";
 import { embeddedFontCss } from "./fonts";
 
@@ -65,6 +70,22 @@ export interface Picture {
   draw(t: number, scale: number, background?: string): Promise<HTMLCanvasElement>;
 }
 
+/** 読んだ画像を、CSS の px の `scale` 倍の canvas に描く。`background` を渡すと先に地を塗る */
+async function paint(canvas: HTMLCanvasElement, url: string, size: { width: number; height: number }, scale: number, background?: string): Promise<HTMLCanvasElement> {
+  const image = new Image();
+  image.src = url;
+  await image.decode();
+  canvas.width = Math.round(size.width * scale);
+  canvas.height = Math.round(size.height * scale);
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+  if (background) {
+    context.fillStyle = background;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
 /**
  * 頁の SVG を写して字を埋める。`film` の時は写しの `--T` と `--at` と `--play` を外し、図の `<style>` の 1 周の長さで撮る。
  * 再生の部品が流す速さに合わせて書き換えた長さ (#3568) で撮らないため
@@ -96,21 +117,70 @@ export async function picture(svg: SVGSVGElement, lang: NotationLang, film = fal
     async draw(t, scale, background) {
       const url = URL.createObjectURL(new Blob([withStyle([...kept.filter((p) => !/^--(?:at|play):/u.test(p)), "--play:paused", `--at:${t}`])], { type: "image/svg+xml" }));
       try {
-        const image = new Image();
-        image.src = url;
-        await image.decode();
-        canvas.width = Math.round(width * scale);
-        canvas.height = Math.round(height * scale);
-        const context = canvas.getContext("2d") as CanvasRenderingContext2D;
-        if (background) {
-          context.fillStyle = background;
-          context.fillRect(0, 0, canvas.width, canvas.height);
-        }
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        return canvas;
+        return await paint(canvas, url, { width, height }, scale, background);
       } finally {
         URL.revokeObjectURL(url);
       }
+    },
+  };
+}
+
+/** HTML で描く図の段の印を書く処理と消す処理。種類の部品の `html.show` と同じ形で、外の名前を読まない */
+export interface HtmlParts {
+  show(this: void, figure: HTMLElement, step: number): void;
+  clear(this: void, figure: HTMLElement): void;
+}
+
+/** 包んだ写しの地。画像の中で印の移り変わり (`transition`) を止め、撮る時刻で絵がぶれないようにする */
+const STILL_CSS = "*{transition:none!important}";
+
+/**
+ * 頁に描いた HTML の図 (判定の表) を写し、段の印を消して字を埋める。
+ * `starts` (段ごとの始まりの時刻) を渡すと、`draw` は時刻の段の印を書いた形を描き、渡さない時は全ての段を照らさずに見せた形を描く
+ */
+export async function htmlPicture(root: HTMLElement, lang: NotationLang, parts: HtmlParts, starts?: readonly number[]): Promise<Picture> {
+  const doc = root.ownerDocument;
+  const base = root.cloneNode(true) as HTMLElement;
+  parts.clear(base);
+  // 頁の外に中身の幅で置き、横に送る枠の中の列も全て描いた大きさを測る。字を埋める処理も、置いた写しの書体を読む
+  const holder = doc.createElement("div");
+  holder.style.cssText = "position:absolute;left:-100000px;top:0;width:max-content";
+  holder.append(base);
+  doc.body.append(holder);
+  let width: number;
+  let height: number;
+  let css: string;
+  try {
+    const drawn = base.getBoundingClientRect();
+    width = Math.ceil(drawn.width);
+    height = Math.ceil(drawn.height);
+    css = await embeddedFontCss(base, lang);
+  } finally {
+    holder.remove();
+  }
+  /** 写しを `foreignObject` に包んだ SVG の文字列 */
+  const wrap = (figure: HTMLElement): string => {
+    const svg = doc.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    const style = doc.createElementNS(SVG_NS, "style");
+    style.textContent = `${css}${STILL_CSS}`;
+    const object = doc.createElementNS(SVG_NS, "foreignObject");
+    object.setAttribute("width", String(width));
+    object.setAttribute("height", String(height));
+    object.append(figure);
+    svg.append(style, object);
+    return new XMLSerializer().serializeToString(svg);
+  };
+  const canvas = doc.createElement("canvas");
+  return {
+    width,
+    height,
+    svg: () => wrap(base.cloneNode(true) as HTMLElement),
+    draw(t, scale, background) {
+      const figure = base.cloneNode(true) as HTMLElement;
+      if (starts?.length) parts.show(figure, stepAt(starts, t));
+      return paint(canvas, `data:image/svg+xml;charset=utf-8,${encodeURIComponent(wrap(figure))}`, { width, height }, scale, background);
     },
   };
 }

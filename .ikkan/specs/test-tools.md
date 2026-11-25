@@ -205,7 +205,10 @@
 | 目安を超えた件が在っても、通った実行は終わり方0で終わり、知らせを理由に落とせない | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-does-not-fail-the-run`が通る | #3740 |
 | 一覧の行を、関門が読む通った行と落ちた行の形 (`.ikkan/checks.md`) に当てることを拒む | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-lines-are-not-result-lines`が通る | #3740 |
 | 届く検査の命令 (`pnpm test:related`) は、vitestへ報告の部品と既定の報告の両方を渡す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-run-passes-near-limit-reporter`が通る | #3740 |
-| 一式と配る前のテストの命令は、`packages/`と`apps/`の2つのvitestの実行の両方で報告の部品を渡す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`suite-commands-pass-near-limit-reporter`が通る | #3740 |
+| 一式と配る前のテストの命令は、`packages/`の2回と`apps/`の1回の3つのvitestの実行の全てで報告の部品を渡す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`suite-commands-pass-near-limit-reporter`が通る | #3740、#3946 |
+| 一式と配る前のテストの命令は、`packages/`の検査を`--shard=1/2`と`--shard=2/2`の2回のvitestに分け、その後に`apps/`の検査を回す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`checks-run-packages-in-two-shards`が通る | #3946 |
+| 準備の段が読む回す検査のfileの一覧は、`--shard=1/2`の回と`--shard=2/2`の回で重ならず、2つを合わせると分けない回の一覧と同じになる | `pnpm exec vitest run packages/dragon/test/run-specs.test.ts`の検査`run-specs-split-by-shard`が通る | #3946 |
+| 回す検査のfileの一覧を読む準備の段の4つは、一覧を`runSpecs`から読み、`getRelevantTestSpecifications`を直に呼ばない | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`setups-read-run-specs`が通る | #3946 |
 | 1件の検査の上限は10秒のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3740 |
 | 1回の実行の上限は5分のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`が通る | #3740 |
 | 上限を変える環境変数は`DRAGON_TEST_LIMIT_MS`と`DRAGON_RUN_LIMIT_MS`の2つのままで、`scripts/`の部品を含めて増やせない | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`limit-env-names-unchanged`が通る | #3740 |

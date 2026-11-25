@@ -234,14 +234,34 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
   });
 
   it("suite-commands-pass-near-limit-reporter", () => {
-    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package と見本帳の 2 つの実行の両方で渡す (#3740)
+    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package の 2 回と見本帳の 1 回の 3 つの実行の全てで渡す (#3740、#3946)
     expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
     const missing = ["一式", "配る前のテスト"].flatMap((field) => {
       const runs = commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step));
-      if (runs.length !== 2) return [`${field} の vitest の実行が 2 つでない (${runs.length} 個)`];
+      if (runs.length !== 3) return [`${field} の vitest の実行が 3 つでない (${runs.length} 個)`];
       return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
     });
     expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
+  });
+
+  it("checks-run-packages-in-two-shards", () => {
+    // package の検査は 1 回で回すと、混んだ時に 1 回の実行の上限 (5 分) を超えて残りを回さずに止まる (#3946)。`--shard` で 2 回に分け、見本帳の検査をその後に回す
+    const want = ["pnpm exec vitest run packages/ --shard=1/2", "pnpm exec vitest run packages/ --shard=2/2", "pnpm exec vitest run apps/"];
+    const runs = Object.fromEntries(["一式", "配る前のテスト"].map((field) => [
+      field,
+      commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step)).map((step) => step.split(/\s+/u).filter((word) => !word.startsWith("--reporter=")).join(" ")),
+    ]));
+    expect(runs, "`.ikkan/checks.md` の欄の vitest の実行").toEqual({ 一式: want, 配る前のテスト: want });
+  });
+
+  it("setups-read-run-specs", () => {
+    // 回す検査の file の一覧を読む準備の段 (`vitest.config.ts` の `globalSetup`) は、一覧を `test-support/run-specs.ts` から読む (#3946)。
+    // 一覧を直に読む段が残ると、package の検査を分けた回でその段だけが回さない側の file まで準備する
+    const setups = ["test-support/run-limit.ts", "test-support/prepare-setup.ts", "test-support/pack-setup.ts", "apps/playground-spa/src/lib/site-setup.ts"];
+    const direct = setups.filter((file) => readFileSync(join(ROOT, file), "utf8").includes("getRelevantTestSpecifications"));
+    expect(direct, "一覧を runSpecs でなく直に読む準備の段").toEqual([]);
+    const missing = setups.filter((file) => !readFileSync(join(ROOT, file), "utf8").includes("runSpecs(project.vitest)"));
+    expect(missing, "一覧を runSpecs から読まない準備の段").toEqual([]);
   });
 
   it("checks-suite-and-release-tests-typecheck-after-build", () => {
