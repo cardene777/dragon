@@ -1508,7 +1508,8 @@ async function readFontFaces(page: Page): Promise<FontRead> {
 /** `fonts` の形の jsDelivr の1行の入口の頁を開き、図の字と帯の字の書体を読む */
 async function readFonts(fonts: Fonts): Promise<FontRead> {
   const context = await (await fileChromium()).newContext({ viewport: { width: 900, height: 900 }, reducedMotion: "reduce" });
-  await context.route("**/*", async (route) => {
+  // 全ての求めを受ける。glob で全ての path を書くと、関係する検査を選ぶ命令がその字を注釈の始まりと読み、後ろの code を読み落とす (#3912)
+  await context.route(() => true, async (route) => {
     const url = route.request().url();
     const dragon = DRAGON_CDN.exec(url)?.[1];
     if (dragon !== undefined) {
