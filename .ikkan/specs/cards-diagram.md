@@ -10,7 +10,7 @@
 | 段の中の`<列> -> <カード>: <名前>`は、列の見出しからカードへの呼び出しの線を引く | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-call-runs-from-column-head-to-card`が通る | #3846 |
 | 段の中の`refuse <id>: <理由>`は、カードを1枚も変えず、idがカードならそのカードの下に、列ならその列のカードの下に、断られた札と理由を出す | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-refuse-changes-nothing`が通る | #3846 |
 | 列ごとの合計は、その列の消えていないカードの量を単位ごとに足して列の下に出し、段で変わった合計は前の量を消し線で添える | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-sums-live-cards-by-unit`が通る | #3846 |
-| 列ごとの合計は`[total: none]`のカードの量を足さず、そのカードの量はカードに出す | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-skips-total-none-cards`が通る | #3846 |
+| 列ごとの合計は`[total: none]`のカードの量を足さず、そのカードの量はカードに出す | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-skips-total-none-cards`が通る | #3846 #3944 |
 | カードの`[mark: <列>]`は、その列に載るそのカードにだけ、列の`[mark: <印の語>]`の札を出し、`mark:`を繰り返すと書いた全ての列に出す | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-mark-shows-only-on-named-columns`が通る | #3846 |
 | 描いた図は、図の根、列、列の見出し、カード、カードの名と量、印、理由の札、合計、段の番号と送りのボタンに、Tracelythと約束した`data-dragon`の印を持つ | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-dom-carries-the-promised-marks`が通る | #3846 |
 | 知らない列にカードを置く行と、知らないカードを消す、動かす、断る、呼ぶ行を書くと、読む時に日本語と英語の誤りの文を返して図を作るのを拒む | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-rejects-unknown-names`が通る | #3846 |
@@ -25,3 +25,9 @@
 | 見本のfileの最初の注釈の行は作業の番号を持たない | `pnpm exec vitest run packages/dragon/test/examples.test.ts`の検査`example-descriptions-carry-no-issue-number`が通る | #3846 |
 | 頁が最初に読むscriptとCSSは上限の大きさに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3846 |
 | 持ち主ごとのカードの図の全ての見本で、寄って追う形の全体図に部品が在る | `pnpm exec vitest run packages/dragon/test/overview-all-kinds.test.ts --reporter=verbose`の検査`overview-parts-cards`が通る | #3912 |
+| 量を持つ全てのカードが`[total: none]`のカードの図は、どの段にも合計の帯 (`data-dragon="total"`) を描かず、並べ方も帯の場所を持たない | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-band-absent-when-no-card-counts`が通る | #3944 |
+| 量を持つカードが1枚も無い図は、合計の帯を描かない | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-band-absent-without-amounts`が通る | #3944 |
+| `[total: none]`を持たない量のカードを1枚持つ図は、全ての列に合計の帯を描く | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-band-drawn-for-one-counted-card`が通る | #3944 |
+| 最初の段より前のカードが全て`[total: none]`で、段の中で合計に足すカードを作る図は、その段より前の段にも同じ高さの合計の帯を描く | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-band-stays-when-a-step-makes-a-counted-card`が通る | #3944 |
+| 合計に足すカードの無い列の合計は、合計に足すカードのうち最初に出たカードの単位で0を出し、`[total: none]`のカードの単位では出さない | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-zero-takes-first-counted-unit`が通る | #3944 |
+| 列ごとの合計は、消えていないカードの量を単位ごとに足し、段で変わった合計は前の量を添える | `pnpm exec vitest run packages/dragon/test/cards-diagram.test.ts`の検査`cards-total-sums-live-cards-by-unit`が通る | #3944 |
