@@ -12,6 +12,8 @@ export const STILL_ATTR = "data-still";
 
 /** 止めて置く図を描いた HTML。`div.dragon-figure.dragon-still` の中に SVG を 1 つ置く */
 export function stillFigureHtml(diagram: unknown, options: RenderOptions = {}): string {
-  const { svg } = renderDiagram(diagram, { ...options, still: true, figure: true });
-  return `<div class="dragon-figure dragon-still">${svg.replace("<svg ", '<svg style="display:block;max-width:100%;height:auto" ')}</div>`;
+  const { svg, layout } = renderDiagram(diagram, { ...options, still: true, figure: true });
+  // 全ての図に入る `.dg{width:100%}` は枠の幅まで拡げるので、元の幅を上限にして真ん中に置く (#3934)
+  const style = `display:block;max-width:min(100%,${Math.ceil(layout.width)}px);height:auto;margin-inline:auto`;
+  return `<div class="dragon-figure dragon-still">${svg.replace("<svg ", `<svg style="${style}" `)}</div>`;
 }

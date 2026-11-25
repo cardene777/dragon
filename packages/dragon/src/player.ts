@@ -185,6 +185,9 @@ function playerCss(): string {
     // 再生の帯の題と本文も、置いた頁の字の間と大文字を受け継がない (#3787)
     `.dg-player{display:flex;flex-direction:column;gap:${px(P.gap)};color:var(--ink);${PLAIN_TEXT}}`,
     `.dg-player .dg-frame{border-radius:${px(P.radius)};overflow:hidden}`,
+    // 止めて見せる図は元の幅 (`--dg-w`) より大きく描かず、枠より狭い時は真ん中に置く (#3934)。
+    // 送れる枠とキャンバス式の窓の規則 (`max-width:none`) に勝たないよう、`:where` で重みを下げる
+    `.dg-player .dg-frame>svg:where([data-view="fixed"]){max-width:var(--dg-w,100%);margin-inline:auto}`,
     // 横に長い配管の図は縮めずに枠の中を横に送る。手でも送れるように枠の外を動かせる (#3398)。
     // 置いた頁が枠の高さを決めていて図の方が高い時も、縦に送って図の下まで見せる
     // 配管の図の拡大する枠も同じく送り、拡大した図を縦横に送る (#3418)
@@ -930,6 +933,8 @@ export function mountDiagram(
       // 札で見せる図 (#3877) の印の付いた箱も押せる物なので、同じく group として読ませ、箱を Tab で選んで開けるようにする。
       // 描き直すと箱の位置が替わるので、開いた札は閉じる
       notes?.close();
+      // 止めて見せる図の元の幅を、図の幅の上限として渡す (#3934)。HTML の表は幅を持たない
+      if (!htmlKind) next.style.setProperty("--dg-w", `${next.getAttribute("width")}px`);
       for (const box of next.querySelectorAll("[data-note]")) {
         const name = rendered.layout.noteCards?.find((note) => note.box === box.getAttribute("data-note"))?.name ?? "";
         box.setAttribute("role", "button");

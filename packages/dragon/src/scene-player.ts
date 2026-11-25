@@ -210,6 +210,8 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
       }
       if (svg.querySelector("a[href],[data-note]")) svg.setAttribute("role", "group");
       else svg.setAttribute("aria-hidden", "true");
+      // 再生の部品と同じく、図の元の幅を幅の上限として渡す。上限と真ん中寄せの規則は再生の部品の見た目が持つ (#3934、#3938)
+      svg.style.setProperty("--dg-w", `${svg.getAttribute("width")}px`);
       frame.append(svg);
     }
     el.append(head, frame);

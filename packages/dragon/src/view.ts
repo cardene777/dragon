@@ -2,6 +2,7 @@
  * 見せ方を字の大きさで選ぶ。
  *
  * 全体を枠の幅へ収めた時の箱の名前の字が 10.5px 以上なら、全体を止めて中だけ動かす (`fixed`)。
+ * 枠が元の幅より広くても図は元の幅で描くので、字の大きさは元の字の大きさを超えない (#3934)。
  * 下回るなら、動く所へ寄って追い、隅の全体図で今どこかを示す (`follow`)。
  * 枠の高さを渡すと、全体を枠の幅と高さの両方へ収めた時の字で選ぶ (#3047)。高さの決まった置き場で、縦に長い図を縮めすぎないため。
  * 書き手が原本の `view` で決めた時は、字の大きさに関わらずそれに従う。
@@ -25,7 +26,8 @@ export function staysFixed(rendered: Pick<Rendered, "layout" | "view">): boolean
 }
 
 export function chooseView(rendered: Pick<Rendered, "layout" | "view">, frameWidth: number, frameHeight?: number): { mode: ViewMode; textPx: number } {
-  const byWidth = Math.max(0, frameWidth) / rendered.layout.width;
+  // 止めて見せる図は元の幅より大きく描かないので、倍率は 1 で止める (#3934)
+  const byWidth = Math.min(1, Math.max(0, frameWidth) / rendered.layout.width);
   const scale = frameHeight === undefined ? byWidth : Math.min(byWidth, Math.max(0, frameHeight) / rendered.layout.height);
   const textPx = scale * TYPE.boxName.size;
   if (staysFixed(rendered)) return { mode: "fixed", textPx };
