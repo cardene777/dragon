@@ -12,7 +12,21 @@ import { describe, expect, it } from "vitest";
 import { api } from "./diagram-support";
 // 判定の表 (#3879) は種類の読み方が記法を読むので、参照の囲みを読む前にその種類を登録する
 import "../src/kind-use/judge";
+// 資料の例の図を描いて崩れを数える (#3909)。例が載せる図の種類だけを登録する
+import "../src/kind-use/architecture";
+import "../src/kind-use/chart";
+import "../src/kind-use/flow";
+import "../src/kind-use/matrix";
+import "../src/kind-use/sequence";
+import "../src/kind-use/state";
+import "../src/kind-use/time";
 import { KIND_FOLDERS } from "../src/kinds/index";
+
+/*
+ * `dragon check --layout` と同じ処理を、検査の外 (この file を読む段) で先に読む。
+ * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
+ */
+const { checkText, problemLine } = await import("../src/check");
 
 const ROOT = process.cwd();
 const MARKETPLACE = join(ROOT, ".claude-plugin/marketplace.json");
@@ -448,5 +462,161 @@ describe("ほかのスキルが musubi で従う中身 (#3807)", () => {
     expect(section, "SKILL.md に musubi で従う中身の節が無い").not.toBe("");
     const unnamed = referenceFiles().map(contentName).filter((name) => !section.includes(`\`${name}\``));
     expect(unnamed, "節が名を挙げない中身").toEqual([]);
+  });
+});
+
+/** 題材を問いに分け、問いの型ごとに使う図の種類と部品を挙げる参照 (#3909) */
+const PLAN = join(REFERENCES, "plan.md");
+/** 全ての図の種類と部品の最小の書き方を 1 枚に持つ早見表 (#3909) */
+const CHEATSHEET = join(REFERENCES, "cheatsheet.md");
+/** 図を載せた説明の頁を書き、1 枚の HTML に書き出す参照 (#3909) */
+const PAGE = join(REFERENCES, "page.md");
+/** 題材ごとに作った資料の例。参照の `example-<題材>.md` で、1 つの file が 1 枚の説明の頁 (#3909) */
+const examplePages = (): string[] =>
+  existsSync(REFERENCES)
+    ? readdirSync(REFERENCES)
+        .filter((name) => /^example-[a-z0-9-]+\.md$/u.test(name))
+        .sort()
+        .map((name) => join(REFERENCES, name))
+    : [];
+
+/** `words` を含む `## ` の節。無い時は空 */
+function sectionWith(text: string, words: string): string {
+  const heading = text
+    .split("\n")
+    .filter((line) => line.startsWith("## "))
+    .find((line) => sectionOf(text, line).includes(words));
+  return heading === undefined ? "" : sectionOf(text, heading);
+}
+
+/** 囲みの最初の行。注釈と空の行を除く */
+const headLine = (source: string): string => source.split("\n").find((line) => line.trim() !== "" && !line.trim().startsWith("//"))?.trim() ?? "";
+
+/** 並べた語と形のうち、`text` に無い物の名前 */
+const absent = (text: string, parts: Record<string, RegExp>): string[] =>
+  Object.entries(parts)
+    .filter(([, pattern]) => !pattern.test(text))
+    .map(([part]) => part);
+
+describe("題材に合う図の種類と部品を選び、複数の図を組んだ頁を作る (#3909)", () => {
+  // 種類の表から 1 つ選んで 1 枚書く流れでは、いつも同じ種類の図を 1 枚だけ作っていた。図を書く前に、問いごとの構成案を立てさせる
+  it("skill-plans-questions-before-figures", () => {
+    const text = read(MAIN);
+    const section = sectionOf(text, "## 2. Pick the kind");
+    expect(section, "図の種類を選ぶ節が無い").not.toBe("");
+    const missing = absent(section, {
+      "題材を問いに分ける": /Split the topic into the questions/u,
+      "問いの型の表を開く": /\]\(references\/plan\.md\)/u,
+      "問いごとに 2〜4 枚の図を決める": /2 to 4 figures for each question/u,
+      "構成案を図より先に書く": /Write the plan down before the first figure/u,
+      "構成案の後に 1 枚ずつ書く": /one at a time/u,
+    });
+    expect(missing, "図の種類を選ぶ節が書かない、構成案の段の事").toEqual([]);
+    expect(existsSync(PLAN), "問いの型の表の参照 (references/plan.md) が無い").toBe(true);
+    // 構成案の段は、図を書く段より前に在る
+    const planAt = text.indexOf("](references/plan.md)");
+    const writeAt = text.indexOf("## 3. Write the diagram");
+    expect(writeAt, "図を書く節が無い").toBeGreaterThanOrEqual(0);
+    expect(planAt >= 0 && planAt < writeAt, "構成案の段が、図を書く節より後に在る").toBe(true);
+  });
+
+  it("skill-question-types-name-kinds-and-parts", () => {
+    const section = sectionOf(read(PLAN), "## Question types");
+    expect(section, "references/plan.md に Question types の節が無い").not.toBe("");
+    const rows = section.split("\n").filter((line) => line.startsWith("| ") && !line.startsWith("|---"));
+    const kinds = new Set(kindNames());
+    // 問いの型ごとに、必ず挙げる図の種類と部品 (札、場面、判定の表、目盛り)
+    const types: Record<string, string[]> = {
+      "How it works": ["`architecture`", "`[note: pop]`"],
+      "Pass or block": ["`judge`"],
+      Difference: ["`scene`"],
+      "One case step by step": ["`flow`", "`sequence`"],
+      Amount: ["`chart`", "`gauge`"],
+    };
+    const problems = Object.entries(types).flatMap(([type, words]) => {
+      const row = rows.find((line) => line.startsWith(`| ${type} |`));
+      if (row === undefined) return [`${type} の行が無い`];
+      const named = [...row.matchAll(/`([a-z]+)`/gu)].map((match) => match[1] ?? "").filter((word) => kinds.has(word));
+      return [...(named.length > 0 ? [] : [`${type} の行が図の種類を 1 つも名指さない`]), ...words.filter((word) => !row.includes(word)).map((word) => `${type} の行が ${word} を挙げない`)];
+    });
+    expect(problems, "問いの型の表に足りない事").toEqual([]);
+  });
+
+  // 構成案を立てるのに種類の数だけ参照を開くと遅いので、全ての種類と部品の最小の書き方を 1 枚にまとめる
+  it("skill-cheatsheet-covers-every-kind-and-part", () => {
+    const text = read(CHEATSHEET);
+    expect(text, "早見表 (references/cheatsheet.md) が無い").not.toBe("");
+    expect(sectionOf(read(MAIN), "## 2. Pick the kind"), "図の種類を選ぶ節が早見表を指さない").toContain("](references/cheatsheet.md)");
+    const fences = dragonFences(text);
+    const kinds = kindNames().filter((kind) => !fences.some(({ source }) => headLine(source).split(" ")[0] === kind));
+    const parts: Record<string, (source: string) => boolean> = {
+      "札 (1 行目の [note: pop])": (source) => /\[note: pop\]/u.test(headLine(source)),
+      "場面 (scene と end)": (source) => /^\s*scene \S/mu.test(source) && /^\s*end\s*$/mu.test(source),
+      "判定の表 (judge と rule と case)": (source) => headLine(source).startsWith("judge ") && /^rule \S/mu.test(source) && /^case \S/mu.test(source),
+      "目盛り (gauge と set)": (source) => /^gauge \S/mu.test(source) && /^\s*set \S+: \d/mu.test(source),
+    };
+    const missingParts = Object.entries(parts)
+      .filter(([, uses]) => !fences.some(({ source }) => uses(source)))
+      .map(([part]) => part);
+    const parse = api("parseNotation");
+    const failed = fences.flatMap(({ source, line }) => {
+      const parsed = parse(source, { lang: "en" });
+      return parsed.ok ? [] : [`${relative(ROOT, CHEATSHEET)}:${line + (parsed.errors[0]?.line ?? 1) - 1} ${parsed.errors[0]?.message ?? ""}`];
+    });
+    expect({ kinds, parts: missingParts, failed }, "早見表に無い種類と部品と、読めない囲み").toEqual({ kinds: [], parts: [], failed: [] });
+  });
+
+  // 出来上がりは 1 枚の HTML。今は説明の頁 (layout: guide) を書いて書き出す。HTML の形で直に書く道は #3908 が足す
+  it("skill-builds-one-html-page", () => {
+    const step = sectionWith(read(MAIN), "](references/page.md)");
+    expect(step, "SKILL.md に説明の頁の参照 (references/page.md) を指す節が無い").not.toBe("");
+    const stepMissing = absent(step, {
+      "1 枚の HTML にする": /one HTML page/u,
+      "説明の頁で書く": /`layout: guide`/u,
+      "書き出す命令": /dragon export \S+\.md/u,
+    });
+    const page = read(PAGE);
+    expect(page, "説明の頁の参照 (references/page.md) が無い").not.toBe("");
+    const pageMissing = absent(page, {
+      "頭書きの layout: guide": /^---\nlayout: guide\n(?:.*\n)*?---$/mu,
+      "問いを ### で書く": /^### \S/mu,
+      "書き出す命令": /^dragon export \S+\.md$/mu,
+      "HTML の形で書く道 (#3908)": /\]\(https:\/\/github\.com\/cardene777\/dragon\/issues\/3908\)/u,
+    });
+    expect({ step: stepMissing, page: pageMissing }, "1 枚の HTML にする手順に足りない事").toEqual({ step: [], page: [] });
+  });
+
+  // 図の質を上げるため、描いた図を記法と崩れの確かめに通した後、幅 728px と幅 390px の画像で見て直してから渡させる
+  it("skill-review-exports-two-widths", () => {
+    const section = sectionWith(read(MAIN), "--width 728");
+    expect(section, "SKILL.md に幅 728px の画像に書き出す節が無い").not.toBe("");
+    const missing = absent(section, {
+      "崩れを確かめる": /dragon check --layout/u,
+      "幅 728px の画像": /dragon export \S+ --format png --width 728/u,
+      "幅 390px の画像": /dragon export \S+ --format png --width 390/u,
+      "崩れを直す": /\bbreaks\b/u,
+      "字のはみ出しを直す": /text that sticks out/u,
+      "薄い説明を直す": /thin explanations/u,
+      "直してから渡す": /before you hand/u,
+    });
+    expect(missing, "見て直す段が書かない事").toEqual([]);
+  });
+
+  it("skill-example-pages-check-clean", () => {
+    const pages = examplePages();
+    // 走査の空振りを避ける。例は 1 件以上ある
+    expect(pages.length, "参照に資料の例 (references/example-<題材>.md) が無い").toBeGreaterThan(0);
+    const problems = pages.flatMap((file) => {
+      const text = read(file);
+      const name = relative(ROOT, file);
+      const shape = [
+        ...(/^---\nlayout: guide\n(?:.*\n)*?---\n/u.test(text) ? [] : [`${name} が layout: guide の頁でない`]),
+        ...(dragonFences(text).length >= 2 ? [] : [`${name} が図を 2 枚以上持たない`]),
+      ];
+      // 崩れを確かめる形は、記法の誤りと知らせ (`dragon check`) に崩れ (`--layout`) を足して返す
+      const found = checkText(name, text, "markdown", "en", { layout: (step, said) => `Step ${step}: ${said}` });
+      return [...shape, ...found.map(problemLine)];
+    });
+    expect(problems, "資料の例の誤りと知らせと崩れ").toEqual([]);
   });
 });
