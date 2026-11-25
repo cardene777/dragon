@@ -32,6 +32,8 @@ export {
   type DiagramEvent,
   type DiagramKind,
   type DiagramModel,
+  type DiagramScene,
+  type DiagramScenes,
   type ErCell,
   type ErField,
   type ErFormula,
@@ -73,6 +75,7 @@ export {
   type PipeWrite,
   type Region,
   type SankeyLook,
+  type SceneShow,
   type StatePath,
   type Step,
   type StepSource,
@@ -119,6 +122,7 @@ export type {
   SceneField,
   SceneLabel,
   SceneLifeline,
+  SceneMark,
   SceneNote,
   ScenePath,
   SceneRegion,
@@ -200,7 +204,7 @@ export { describeOverlap, type InkPart, type Overlap, type OverlapSpot } from ".
 export type { FrameSide, LayoutBreak, LayoutBreakKind, LayoutPart } from "./render/breaks";
 export { checkLayoutText, describeBreak } from "./render/layout-check";
 export { iconSvg } from "./blocks/icon/draw";
-export { type DiagramWords, type Rendered, type RenderOptions, renderDiagram } from "./render/draw";
+export { type DiagramWords, type Rendered, type RenderedScene, type RenderOptions, renderDiagram } from "./render/draw";
 export { LINE_STYLES, type LineStyle, penLoaded } from "./render/pen-store";
 // 時系列図の見た目 (#3720)。図が選んだ見た目と、パイプ図の部品で描く見た目の部品を読んだかを返す
 export { lookOf, sequenceLookLoaded } from "./render/look-store";

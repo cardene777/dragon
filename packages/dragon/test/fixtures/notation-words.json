@@ -79,7 +79,9 @@
     "table",
     "field",
     "axis",
-    "refuse"
+    "refuse",
+    "scene",
+    "stop"
   ],
   "ATTRS": {
     "diagram": [
@@ -88,7 +90,8 @@
       "unit",
       "turn",
       "table",
-      "note"
+      "note",
+      "scenes"
     ],
     "group": [
       "note",

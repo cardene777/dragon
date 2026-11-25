@@ -414,6 +414,9 @@ export function mountDiagram(
   const fromStill = isPipe || lookOf(rendered.diagram) !== undefined;
 
   ensureCss(doc, styles);
+  // 場面を書いた図 (#3878) は、場面を書ける種類の部品の組が場面の枠を並べて置く。帯と釦の見た目はこの部品の規則が描く
+  const scenes = rendered.scenes ? partsOf(rendered.diagram.kind, lang)?.scenes : undefined;
+  if (scenes) return scenes.mount(host, rendered, diagram, options);
   const root = doc.createElement("div");
   root.className = "dg-player";
   root.dataset.dragon = "player";
@@ -638,13 +641,14 @@ export function mountDiagram(
   const elapsed = (): number => ((Date.now() - born) / 1000) * speed;
   let marked: readonly Rect[] = [];
 
+  /** 置いた図の段ごとの組 (`data-dg-only` に段の番号を持つ要素)。図を置いた時に 1 度だけ集め、段を送るたびに図の中を全てたどらない (#3912) */
+  let only: Element[] = [];
   /**
-   * 段ごとの組 (`data-dg-only` に段の番号を持つ要素、持ち主ごとのカードの図、#3846) の見え方。
+   * 段ごとの組 (持ち主ごとのカードの図、#3846) の見え方。
    * 止めている間は今の段の組だけを見せてほかの組に `hidden` を付け、流している間は隠さずに図の動きに任せる
    */
   const showOnly = (): void => {
-    if (!svg) return;
-    for (const part of svg.querySelectorAll("[data-dg-only]")) part.toggleAttribute("hidden", !playing && part.getAttribute("data-dg-only") !== String(step));
+    for (const part of only) part.toggleAttribute("hidden", !playing && part.getAttribute("data-dg-only") !== String(step));
   };
 
   /**
@@ -952,6 +956,7 @@ export function mountDiagram(
     if (svg && fresh) svg.replaceWith(next);
     else if (!svg) frame.append(next);
     svg = next;
+    if (fresh) only = [...next.querySelectorAll("[data-dg-only]")];
     rewind(next);
     born = Date.now();
     if (fresh) drawMarks();

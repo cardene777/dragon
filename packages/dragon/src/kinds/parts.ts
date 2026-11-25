@@ -148,4 +148,17 @@ export interface KindParts<L extends Layout = Layout> {
   ownBoxes?: true;
   /** 状態遷移図と同じく、済んだ線と番号を灰にし、着いた箱を光らせる */
   states?: true;
+  /**
+   * 1 つの図の場面 (#3878) の描き方と置き方。場面を書ける種類 (`SCENE_KINDS`) だけが持つ。
+   * 場面の描き方と再生の部品は場面を書ける種類の塊にだけ入れ、最初に読む量に入れない
+   */
+  scenes?: SceneParts;
+}
+
+/** 1 つの図の場面 (#3878) の描き方と置き方 */
+export interface SceneParts {
+  /** 場面を書いた図を、場面ごとの図と縦に並べた図に描く */
+  render(this: void, model: DiagramModel, options: import("../render/draw").DrawOptions, lang: NotationLang): import("../render/draw").Rendered;
+  /** 場面を書いた図を頁に置く。`rendered` は `render` が描いた図、`diagram` は渡された原本 */
+  mount(this: void, host: HTMLElement, rendered: import("../render/draw").Rendered, diagram: unknown, options: import("../player").PlayerOptions): import("../player").Player;
 }

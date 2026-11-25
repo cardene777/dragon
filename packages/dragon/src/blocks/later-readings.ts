@@ -47,6 +47,7 @@ export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>
   "route": () => import("./route/read").then((m): BlockReading => m.reading),
   "row": () => import("./row/read").then((m): BlockReading => m.reading),
   "scale": () => import("./scale/read").then((m): BlockReading => m.reading),
+  "scene": () => import("./scene/read").then((m): BlockReading => m.reading),
   "seal": () => import("./seal/read").then((m): BlockReading => m.reading),
   "side": () => import("./side/read").then((m): BlockReading => m.reading),
   "side-path": () => import("./side-path/read").then((m): BlockReading => m.reading),

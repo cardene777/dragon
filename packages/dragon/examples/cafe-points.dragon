@@ -1,0 +1,24 @@
+// 喫茶店のポイントと割引券。ポイントは客ごとの合計に足し、割引券は使うまで見せるが合計には足さない。
+cards 喫茶店のポイントと割引券
+
+box shop as 喫茶店 [note: 発行する]
+box mina as Mina [note: 会員]
+box ken as Ken [note: 会員でない]
+
+item p1 as スタンプ in mina [amount: 120 pt]
+item c1 as 次回の割引券 in mina [amount: 200円, total: none]
+
+step ポイントを使う
+  say Minaが100 ptでコーヒーを1杯もらう。残りの20 ptは新しいカードに移る。
+  shop -> p1: 100 pt引く
+  delete p1
+  item p2 as スタンプ in mina [amount: 20 pt]
+
+step 割引券を使う
+  say 割引券は使うと消える。合計に足していないので、Minaの合計は変わらない。
+  mina -> c1: 使う
+  delete c1
+
+step Kenに割引券を送る
+  say Kenは会員でないので、割引券を受け取れない。
+  refuse ken: 会員でない

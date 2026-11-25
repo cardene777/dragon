@@ -17,7 +17,7 @@ import { dirname, extname, join, resolve } from "node:path";
 import { PNG } from "pngjs";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
-import { atLoad } from "./at-load";
+import { atLoad, type Loaded } from "./at-load";
 import { cdnPage, escapeHtml } from "./cdn-page-support";
 import { MONO_STACK, SANS_STACK } from "./font-stacks";
 import { ACTION_LIMIT_MS, PAGE_LIMIT_MS, readUntil, within } from "./page-wait";
@@ -1508,7 +1508,8 @@ async function readFontFaces(page: Page): Promise<FontRead> {
 /** `fonts` の形の jsDelivr の1行の入口の頁を開き、図の字と帯の字の書体を読む */
 async function readFonts(fonts: Fonts): Promise<FontRead> {
   const context = await (await fileChromium()).newContext({ viewport: { width: 900, height: 900 }, reducedMotion: "reduce" });
-  await context.route("**/*", async (route) => {
+  // 全ての求めを受ける。glob で全ての path を書くと、関係する検査を選ぶ命令がその字を注釈の始まりと読み、後ろの code を読み落とす (#3912)
+  await context.route(() => true, async (route) => {
     const url = route.request().url();
     const dragon = DRAGON_CDN.exec(url)?.[1];
     if (dragon !== undefined) {
@@ -1651,7 +1652,7 @@ const channels = (color: string): number[] => (color.match(/\d+(?:\.\d+)?/gu) ??
  * 釦を撮り、絵柄の画素の外接矩形の真ん中が、釦の真ん中から横と縦に何pxずれるかを返す。
  * 絵柄の画素は、地の色から字の色までの隔たりの半分より字の色に寄った画素で、地に近い色の縁の線と角の外の頁は数えない
  */
-async function inkOffset(page: Page, box: Box, ink: string, ground: string): Promise<{ dx: number; dy: number }> {
+async function inkOffset(page: Page, box: Box, ink: string, ground: string): Promise<{ dx: number; dy: number } | null> {
   const clip = {
     x: Math.floor(box.x),
     y: Math.floor(box.y),
@@ -1677,7 +1678,8 @@ async function inkOffset(page: Page, box: Box, ink: string, ground: string): Pro
       bottom = Math.max(bottom, y + 1);
     }
   }
-  expect(Number.isFinite(left), "釦を撮った画像に絵柄の画素が無い").toBe(true);
+  // 絵柄の画素が無い時は、読み込む段で投げずに件へ返し、件が落とす
+  if (!Number.isFinite(left)) return null;
   return { dx: (left + right) / 2 - (box.x + box.w / 2 - clip.x), dy: (top + bottom) / 2 - (box.y + box.h / 2 - clip.y) };
 }
 
@@ -1705,12 +1707,27 @@ function toggleColor(page: Page, scope: "framed" | "plain"): Promise<string> {
   }, scope);
 }
 
-describe("再生の帯の釦と進み具合 (#3752)", () => {
-  // 760 は帯の中身が 640px より広く 1 段に並べ、480 は積んで並べる (#3398)
-  describe.for([{ width: 760 }, { width: 480 }])("幅 $width", ({ width }) => {
-    it("player-icons-centered-in-buttons", () =>
-      withFrame({ lang: "ja" }, async (page) => {
-        // 釦の絵柄は縦横18pxの枠に描き、撮った画像の絵柄の真ん中を釦の真ん中に置く。再生の釦は絵柄と名前を合わせて真ん中に置く
+/** 再生の釦1つの、置いた所と絵柄の枠と、撮った画像の絵柄の真ん中の釦の真ん中からのずれ。絵柄の画素が無い時のずれは`null` */
+interface ButtonSeen {
+  where: string;
+  name: string;
+  box: Box | null;
+  icon: { w: number; h: number } | null;
+  offset: { dx: number; dy: number } | null;
+}
+
+// 再生の帯の検査 (#3752) の頁の仕事は読み込む段で済ませ、件は結果を読む。件の中で頁を開くと、混んだ機械で1件10秒の上限を超える (#3816、#3912)。
+// 件ごとに図と幅と止める段が違うので、頁は件ごとに1つずつ持つ
+// 760 は帯の中身が 640px より広く 1 段に並べ、480 は積んで並べる (#3398)
+const ICON_WIDTHS = [760, 480] as const;
+
+/** 幅ごとの、帯つきの図と帯の無い図の再生の釦 */
+const PLAYER_ICONS = new Map<number, Loaded<Framed<ButtonSeen[]>>>();
+for (const width of ICON_WIDTHS) {
+  PLAYER_ICONS.set(
+    width,
+    await atLoad(`幅${width}pxで帯つきの図と帯の無い図を並べ、再生の釦の絵柄を撮る`, () =>
+      withFrame({ lang: "ja" }, async (page): Promise<ButtonSeen[]> => {
         await mountSideBySide(page, width, STEPPED);
         const buttons = await page.evaluate((names) => {
           const scopes: [string, ParentNode][] = [
@@ -1734,100 +1751,140 @@ describe("再生の帯の釦と進み具合 (#3752)", () => {
             }),
           );
         }, STEP_BUTTONS);
-        for (const button of buttons) {
-          const label = `幅 ${width}px の${button.where}の${button.name}の釦`;
-          expect(button.box, `${label}が無い`).not.toBeNull();
-          expect(button.icon, `${label}の絵柄の枠`).toEqual({ w: 18, h: 18 });
-          const { dx, dy } = await inkOffset(page, button.box!, button.ink, button.ground);
-          expect(Math.abs(dx), `${label}の絵柄が釦の真ん中から横に ${dx}px ずれた`).toBeLessThanOrEqual(1);
-          expect(Math.abs(dy), `${label}の絵柄が釦の真ん中から縦に ${dy}px ずれた`).toBeLessThanOrEqual(1);
-        }
-      }));
+        const seen: ButtonSeen[] = [];
+        for (const { ink, ground, ...button } of buttons) seen.push({ ...button, offset: button.box ? await inkOffset(page, button.box, ink, ground) : null });
+        return seen;
+      }),
+    ),
+  );
+}
+
+/** 図の箱と区画と中身の帯の絵柄の後ろの四角の、描いた幅と書いた幅 */
+const TILES = await atLoad("帯つきの図と帯の無い図に構成図を並べ、絵柄の後ろの四角の幅を読む", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    await mountSideBySide(page, 760, ARCHITECTURE);
+    return page.evaluate(() => {
+      const scopes: [string, ParentNode][] = [
+        ["帯つきの図", document.querySelector(".dragon-frame")!.shadowRoot!],
+        ["帯の無い図", document.getElementById("plain")!],
+      ];
+      return scopes.flatMap(([where, scope]) =>
+        [...scope.querySelectorAll<SVGRectElement>("svg.dg rect.dg-ic, svg.dg rect.dg-bi")].map((tile) => ({
+          where,
+          drawn: getComputedStyle(tile).width,
+          written: `${tile.getAttribute("width")}px`,
+        })),
+      );
+    });
+  }),
+);
+
+/** 広い帯の、段の説明文の行の数と、文の塊と釦の段の縦の真ん中 */
+const CAPTIONS = await atLoad("幅760pxの帯に段の説明文が2行に折れる時系列図を並べ、釦の段と文の塊の真ん中を読む", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    await mountSideBySide(page, 760, STEPPED);
+    return page.evaluate(() => {
+      const scopes: [string, ParentNode][] = [
+        ["帯つきの図", document.querySelector(".dragon-frame")!.shadowRoot!],
+        ["帯の無い図", document.getElementById("plain")!],
+      ];
+      return scopes.map(([where, scope]) => {
+        const say = scope.querySelector(".dg-say")!.getBoundingClientRect();
+        const buttons = scope.querySelector(".dg-btns")!.getBoundingClientRect();
+        const body = scope.querySelector<HTMLElement>('[data-dragon="step-body"]')!;
+        const lines = Math.round(body.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(body).lineHeight));
+        return { where, lines, say: (say.top + say.bottom) / 2, buttons: (buttons.top + buttons.bottom) / 2 };
+      });
+    });
+  }),
+);
+
+/** 段2で止めた図の、帯つきの図と帯の無い図の進み具合の段と再生の釦の地の色 */
+const PAUSED_FILLS = await atLoad("段2で止めた時系列図を並べ、進み具合の帯の塗りを読む", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    // 塗りが移る動き (120ms) の後に測る
+    await mountSideBySide(page, 760, STEPPED, { pausedAt: 1 });
+    await page.waitForTimeout(400);
+    const out: { where: string; segments: Awaited<ReturnType<typeof readFills>>; blue: string }[] = [];
+    for (const [scope, where] of [["framed", "帯つきの図"], ["plain", "帯の無い図"]] as const) out.push({ where, segments: await readFills(page, scope), blue: await toggleColor(page, scope) });
+    return out;
+  }),
+);
+
+/** 段1の止め絵から流した帯の無い図の、段2へ移った後に2度測った今の段と塗りの割合 */
+const GROWING = await atLoad("段1から半分の速さで流した時系列図の、今の段の帯の塗りを2度測る", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    // 段1の止め絵から流すと、止め絵の後の残りの時間 (MOTION.still) を流してから段2へ移る。速さを半分にし、段2へ移った後に2度測る
+    await mountSideBySide(page, 760, STEPPED, { pausedAt: 0, speed: 0.5 });
+    await page.locator('#plain button[data-dragon="toggle"]').click();
+    await page.waitForFunction(() => document.querySelector<HTMLElement>('#plain [data-dragon="segment"][data-step="1"]')?.dataset.state === "now", null, { timeout: 4000 });
+    const read = async (): Promise<{ now: number; scale: number }> => {
+      const segments = await readFills(page, "plain");
+      const now = segments.findIndex((seg) => seg.state === "now");
+      return { now, scale: segments[now]?.scale ?? Number.NaN };
+    };
+    await page.waitForTimeout(300);
+    const before = await read();
+    await page.waitForTimeout(400);
+    const after = await read();
+    return { before, after };
+  }),
+);
+
+describe("再生の帯の釦と進み具合 (#3752)", () => {
+  describe.for(ICON_WIDTHS.map((width) => ({ width })))("幅 $width", ({ width }) => {
+    it("player-icons-centered-in-buttons", () => {
+      // 釦の絵柄は縦横18pxの枠に描き、撮った画像の絵柄の真ん中を釦の真ん中に置く。再生の釦は絵柄と名前を合わせて真ん中に置く
+      const loaded = PLAYER_ICONS.get(width);
+      expect(loaded, `幅 ${width}px の釦を読み込む段で撮っていない`).toBeDefined();
+      for (const button of frameResult(loaded!.get())) {
+        const label = `幅 ${width}px の${button.where}の${button.name}の釦`;
+        expect(button.box, `${label}が無い`).not.toBeNull();
+        expect(button.icon, `${label}の絵柄の枠`).toEqual({ w: 18, h: 18 });
+        expect(button.offset, `${label}を撮った画像に絵柄の画素が無い`).not.toBeNull();
+        const { dx, dy } = button.offset!;
+        expect(Math.abs(dx), `${label}の絵柄が釦の真ん中から横に ${dx}px ずれた`).toBeLessThanOrEqual(1);
+        expect(Math.abs(dy), `${label}の絵柄が釦の真ん中から縦に ${dy}px ずれた`).toBeLessThanOrEqual(1);
+      }
+    });
   });
 
-  it("player-icons-leave-figure-tiles", () =>
-    withFrame({ lang: "ja" }, async (page) => {
-      // 再生の釦の絵柄の見た目は、図の箱と区画と中身の帯の絵柄の後ろの四角 (`rect.dg-ic`、`rect.dg-bi`) に当たらない。
-      // 当たると四角が縮んで左上に寄り、絵柄が四角から右下へはみ出す
-      await mountSideBySide(page, 760, ARCHITECTURE);
-      const tiles = await page.evaluate(() => {
-        const scopes: [string, ParentNode][] = [
-          ["帯つきの図", document.querySelector(".dragon-frame")!.shadowRoot!],
-          ["帯の無い図", document.getElementById("plain")!],
-        ];
-        return scopes.flatMap(([where, scope]) =>
-          [...scope.querySelectorAll<SVGRectElement>("svg.dg rect.dg-ic, svg.dg rect.dg-bi")].map((tile) => ({
-            where,
-            drawn: getComputedStyle(tile).width,
-            written: `${tile.getAttribute("width")}px`,
-          })),
-        );
-      });
-      expect(tiles.length, "図に絵柄の後ろの四角が無い").toBeGreaterThan(0);
-      for (const tile of tiles) expect(tile.drawn, `${tile.where}の絵柄の後ろの四角の幅が書いた幅と違う`).toBe(tile.written);
-    }));
+  it("player-icons-leave-figure-tiles", () => {
+    // 再生の釦の絵柄の見た目は、図の箱と区画と中身の帯の絵柄の後ろの四角 (`rect.dg-ic`、`rect.dg-bi`) に当たらない。
+    // 当たると四角が縮んで左上に寄り、絵柄が四角から右下へはみ出す
+    const tiles = frameResult(TILES.get());
+    expect(tiles.length, "図に絵柄の後ろの四角が無い").toBeGreaterThan(0);
+    for (const tile of tiles) expect(tile.drawn, `${tile.where}の絵柄の後ろの四角の幅が書いた幅と違う`).toBe(tile.written);
+  });
 
-  it("player-buttons-center-on-caption", () =>
-    withFrame({ lang: "ja" }, async (page) => {
-      // 広い帯の釦の段は、段の番号と題と説明文の塊の真ん中に揃え、説明文が何行でも塊の上の端に寄らない
-      await mountSideBySide(page, 760, STEPPED);
-      const rows = await page.evaluate(() => {
-        const scopes: [string, ParentNode][] = [
-          ["帯つきの図", document.querySelector(".dragon-frame")!.shadowRoot!],
-          ["帯の無い図", document.getElementById("plain")!],
-        ];
-        return scopes.map(([where, scope]) => {
-          const say = scope.querySelector(".dg-say")!.getBoundingClientRect();
-          const buttons = scope.querySelector(".dg-btns")!.getBoundingClientRect();
-          const body = scope.querySelector<HTMLElement>('[data-dragon="step-body"]')!;
-          const lines = Math.round(body.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(body).lineHeight));
-          return { where, lines, say: (say.top + say.bottom) / 2, buttons: (buttons.top + buttons.bottom) / 2 };
-        });
-      });
-      for (const row of rows) {
-        expect(row.lines, `${row.where}の段の説明文が2行以上に折れていない`).toBeGreaterThanOrEqual(2);
-        expect(Math.abs(row.buttons - row.say), `${row.where}の釦の段が文の塊の真ん中から ${row.buttons - row.say}px ずれた`).toBeLessThanOrEqual(1);
-      }
-    }));
+  it("player-buttons-center-on-caption", () => {
+    // 広い帯の釦の段は、段の番号と題と説明文の塊の真ん中に揃え、説明文が何行でも塊の上の端に寄らない
+    for (const row of frameResult(CAPTIONS.get())) {
+      expect(row.lines, `${row.where}の段の説明文が2行以上に折れていない`).toBeGreaterThanOrEqual(2);
+      expect(Math.abs(row.buttons - row.say), `${row.where}の釦の段が文の塊の真ん中から ${row.buttons - row.say}px ずれた`).toBeLessThanOrEqual(1);
+    }
+  });
 
-  it("player-progress-fills-done-and-now", () =>
-    withFrame({ lang: "ja" }, async (page) => {
-      // 段2で止めた図は、段1を呼び出しの色で塗り切り、段2をほぼ塗り切り、段3を塗らない。塗りが移る動き (120ms) の後に測る
-      await mountSideBySide(page, 760, STEPPED, { pausedAt: 1 });
-      await page.waitForTimeout(400);
-      for (const [scope, where] of [["framed", "帯つきの図"], ["plain", "帯の無い図"]] as const) {
-        const segments = await readFills(page, scope);
-        const blue = await toggleColor(page, scope);
-        expect(segments.map((s) => s.state), `${where}の進み具合の段の状態`).toEqual(["done", "now", "todo"]);
-        expect(segments.map((s) => s.height), `${where}の進み具合の帯の高さ`).toEqual([6, 6, 6]);
-        const [done, now, todo] = segments;
-        expect(done?.scale, `${where}の済んだ段1の塗りの割合`).toBe(1);
-        expect(done?.color, `${where}の済んだ段1の塗りが呼び出しの色でない`).toBe(blue);
-        expect(now?.scale, `${where}の今の段2の塗りの割合`).toBeGreaterThanOrEqual(0.95);
-        expect(todo?.scale, `${where}のまだの段3の塗りの割合`).toBe(0);
-      }
-    }));
+  it("player-progress-fills-done-and-now", () => {
+    // 段2で止めた図は、段1を呼び出しの色で塗り切り、段2をほぼ塗り切り、段3を塗らない
+    for (const { where, segments, blue } of frameResult(PAUSED_FILLS.get())) {
+      expect(segments.map((s) => s.state), `${where}の進み具合の段の状態`).toEqual(["done", "now", "todo"]);
+      expect(segments.map((s) => s.height), `${where}の進み具合の帯の高さ`).toEqual([6, 6, 6]);
+      const [done, now, todo] = segments;
+      expect(done?.scale, `${where}の済んだ段1の塗りの割合`).toBe(1);
+      expect(done?.color, `${where}の済んだ段1の塗りが呼び出しの色でない`).toBe(blue);
+      expect(now?.scale, `${where}の今の段2の塗りの割合`).toBeGreaterThanOrEqual(0.95);
+      expect(todo?.scale, `${where}のまだの段3の塗りの割合`).toBe(0);
+    }
+  });
 
-  it("player-progress-now-grows-while-playing", () =>
-    withFrame({ lang: "ja" }, async (page) => {
-      // 段1の止め絵から流すと、止め絵の後の残りの時間 (MOTION.still) を流してから段2へ移り、段2の帯を流した時間の分だけ左から塗り進める。
-      // 速さを半分にし、段2へ移った後に2度測る
-      await mountSideBySide(page, 760, STEPPED, { pausedAt: 0, speed: 0.5 });
-      await page.locator('#plain button[data-dragon="toggle"]').click();
-      await page.waitForFunction(() => document.querySelector<HTMLElement>('#plain [data-dragon="segment"][data-step="1"]')?.dataset.state === "now", null, { timeout: 4000 });
-      const read = async (): Promise<{ now: number; scale: number }> => {
-        const segments = await readFills(page, "plain");
-        const now = segments.findIndex((seg) => seg.state === "now");
-        return { now, scale: segments[now]?.scale ?? Number.NaN };
-      };
-      await page.waitForTimeout(300);
-      const before = await read();
-      await page.waitForTimeout(400);
-      const after = await read();
-      expect(before.scale, "流している今の段の帯を塗っていない").toBeGreaterThan(0);
-      expect(before.scale, "流し始めたばかりの今の段の帯を塗り切った").toBeLessThan(1);
-      expect(after.now, "2度測る間に今の段が替わった").toBe(before.now);
-      expect(after.scale, "400ms後の今の段の塗りが増えていない").toBeGreaterThan(before.scale);
-      expect(after.scale, "400ms後の今の段の帯を塗り切った").toBeLessThan(1);
-    }));
+  it("player-progress-now-grows-while-playing", () => {
+    // 流している今の段の帯は、流した時間の分だけ左から塗り進める
+    const { before, after } = frameResult(GROWING.get());
+    expect(before.scale, "流している今の段の帯を塗っていない").toBeGreaterThan(0);
+    expect(before.scale, "流し始めたばかりの今の段の帯を塗り切った").toBeLessThan(1);
+    expect(after.now, "2度測る間に今の段が替わった").toBe(before.now);
+    expect(after.scale, "400ms後の今の段の塗りが増えていない").toBeGreaterThan(before.scale);
+    expect(after.scale, "400ms後の今の段の帯を塗り切った").toBeLessThan(1);
+  });
 });

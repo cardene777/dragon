@@ -338,6 +338,25 @@ export interface Step {
   events: DiagramEvent[];
 }
 
+/**
+ * 1 つの図の場面 (#3878)。箱と全ての場面に共通の段は図で 1 回だけ持ち、場面は分かれる所から先のその場面だけの段を持つ。
+ * `stop` を持つ場面は、最後の段で止まってその理由の文を出す
+ */
+export interface DiagramScene {
+  name: string;
+  steps: Step[];
+  stop?: string;
+}
+
+/** 場面の見せ方 (#3878)。`stack` は場面を縦に並べて同じ段の送りで同時に動かし、`pick` は場面の名前の釦で選んだ 1 つの場面を追う */
+export type SceneShow = "stack" | "pick";
+
+/** 図の場面と見せ方 (#3878)。場面を書いた図だけが持つ */
+export interface DiagramScenes {
+  show: SceneShow;
+  list: DiagramScene[];
+}
+
 /** 図の種類。最初の行の頭の語で、原本の `kind` の欄 */
 export type DiagramKind = "checkout" | "sequence" | "architecture" | "state" | "git" | "time" | "tree" | "lineup" | "try" | "pipe" | "chart" | "flow" | "cycle" | "mind" | "er" | "matrix" | "venn" | "sankey" | "judge" | "cards";
 
@@ -425,7 +444,10 @@ export interface Diagram {
   /** 判定の表 (#3879) の規則と例と判定の語。判定の表だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
   judge?: import("./judge/types").JudgeSpec;
   blocks: DiagramBlocks;
+  /** 段。場面を書いた図 (#3878) では、全ての場面に共通の段 */
   steps: Step[];
+  /** 場面と見せ方 (#3878)。場面を書いた図だけが持つ */
+  scenes?: DiagramScenes;
 }
 
 /**
@@ -453,6 +475,8 @@ export interface DiagramModel {
   /** 量の目盛り (#3880)。版1の原本に無かった欄なので、版2の原本の `gauge` をそのまま持つ */
   gauge?: Gauge[];
   steps: Step[];
+  /** 場面と見せ方 (#3878)。版2の原本の根の `scenes` の欄をそのまま持つ。描く処理は場面ごとに共通の段と場面の段をつないだ図を組んで描く */
+  scenes?: DiagramScenes;
   /** 時系列図の生存線の並びと、見た目 (#3720)。見た目は版2の原本の根の `sequence` の欄から移す */
   sequence?: { lifelines: string[]; shape?: SequenceShape };
   state?: { paths: StatePath[] };

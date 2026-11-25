@@ -56,6 +56,7 @@ import { docs as roleDocs } from "../../../../packages/dragon/src/blocks/role/ga
 import { docs as routeDocs } from "../../../../packages/dragon/src/blocks/route/gallery/docs";
 import { docs as rowDocs } from "../../../../packages/dragon/src/blocks/row/gallery/docs";
 import { docs as scaleDocs } from "../../../../packages/dragon/src/blocks/scale/gallery/docs";
+import { docs as sceneDocs } from "../../../../packages/dragon/src/blocks/scene/gallery/docs";
 import { docs as sealDocs } from "../../../../packages/dragon/src/blocks/seal/gallery/docs";
 import { docs as sideDocs } from "../../../../packages/dragon/src/blocks/side/gallery/docs";
 import { docs as sidePathDocs } from "../../../../packages/dragon/src/blocks/side-path/gallery/docs";
@@ -129,6 +130,7 @@ export const BLOCK_DOCS = {
   "route": routeDocs,
   "row": rowDocs,
   "scale": scaleDocs,
+  "scene": sceneDocs,
   "seal": sealDocs,
   "side": sideDocs,
   "side-path": sidePathDocs,

@@ -113,8 +113,8 @@ beforeAll(() => {
 
 describe("見本が少ない図の種類に見本を足す (#3615)", () => {
   it("every-kind-has-four-examples", () => {
-    // 判定の表 (#3879) を足して 19 種類
-    expect(KINDS.length, "カタログの図の種類の数").toBe(19);
+    // 判定の表 (#3879) と持ち主ごとのカードの図 (#3846) を足して 20 種類
+    expect(KINDS.length, "カタログの図の種類の数").toBe(20);
     const short = KINDS.map((kind) => ({ kind, count: samplesOf(kind).length })).filter(({ count }) => count < 4);
     expect(short, "見本が 4 枚に届かない種類").toEqual([]);
   });

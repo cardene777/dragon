@@ -1,0 +1,26 @@
+lineup 送金の列の2つの場面 [scenes: pick]
+
+box wait as 待ち
+box done as 済み
+box out as 戻した
+
+item 甲, 乙, 丙
+
+step 並ぶ
+  say 3つの送金が待ちに並ぶ。ここまではどの場面も同じ段を通る。
+  line wait: 甲, 乙, 丙
+
+scene 通る送金
+  step 送る
+    say 先頭を済みへ送る。
+    line wait: 乙, 丙
+    line done: 甲
+end
+
+scene 宛先が違う送金
+  step 戻す
+    say 先頭を戻した列へ移す。この場面はここで止まる。
+    line wait: 乙, 丙
+    line out: 甲
+    stop 宛先が登録されていない
+end
