@@ -224,9 +224,10 @@ describe("判定の表の命令の書き出しと動画 (#3923)", () => {
   // 動画のコマも帯の形の表で、CSS の 1px を 1 画素で撮る GIF の幅が 728 画素以下 (#3891)
   it("judge-film-draws-band-table", () => {
     const film = value(done().film, `${FILMED} の命令の書き出し`);
-    expect(film.frames, `GIF のコマを読めない: ${film.ran.stderr}`).toBeDefined();
+    const frames = FRAMES.get();
+    expect(frames, `GIF のコマを読めない: ${film.ran.stderr}`).toBeDefined();
     expect(
-      film.frames?.first.width ?? Number.POSITIVE_INFINITY,
+      frames?.first.width ?? Number.POSITIVE_INFINITY,
       "GIF のコマの幅",
     ).toBeLessThanOrEqual(728);
   });
