@@ -22,9 +22,9 @@
 | 部品の表を読まずに部品のidを確かめる処理が、部品の表の全ての部品のidを部品と答え、表に無いidを部品と答えない | `pnpm test`の検査`part-ids-match-parts-table`が通る | #3868 |
 | カタログの部品の頁は、今と同じく種類ごとの部品の図と設定の表を出す | `pnpm test`の検査`part-page-keeps-kind-figures`と`part-settings-rows-per-attr`が通る | #3868 |
 | 見本帳の使い方の頁の組み込みの節が、READMEの組み込みの節と同じ5つのコードを出し、5つ目は押した箱のidを`closest('[data-node]')`で読むコードである | `pnpm test`の検査`docs-page-has-embed-section`が通る | #3868 |
-| ベン図の描く所(`packages/dragon/src/render/venn.ts`)を変えた時、関係する検査を選ぶ命令は117以下の検査のfileを返す | `pnpm test`の検査`related-venn-draw-picks-at-most-117`が通る | #3868 #3877 #3881 #3876 #3908 |
-| 時系列図の並べ方(`packages/dragon/src/kinds/sequence/layout.ts`)を変えた時、関係する検査を選ぶ命令は164以下の検査のfileを返す | `pnpm test`の検査`related-sequence-layout-picks-at-most-164`が通る | #3868 #3877 #3881 #3876 #3908 |
-| 配管の図の描く所を変えた時に選ぶ検査のfileは、133以下である | `pnpm test`の検査`related-pipe-draw-picks-at-most-133`が通る | #3868 #3876 #3908 |
+| ベン図の描く所(`packages/dragon/src/render/venn.ts`)を変えた時、関係する検査を選ぶ命令は118以下の検査のfileを返す | `pnpm test`の検査`related-venn-draw-picks-at-most-118`が通る | #3868 #3877 #3881 #3876 #3908 #3934 |
+| 時系列図の並べ方(`packages/dragon/src/kinds/sequence/layout.ts`)を変えた時、関係する検査を選ぶ命令は165以下の検査のfileを返す | `pnpm test`の検査`related-sequence-layout-picks-at-most-165`が通る | #3868 #3877 #3881 #3876 #3908 #3934 |
+| 配管の図の描く所を変えた時に選ぶ検査のfileは、134以下である | `pnpm test`の検査`related-pipe-draw-picks-at-most-134`が通る | #3868 #3876 #3908 #3934 |
 | 描いた箱と囲みが記法のidを`data-node`に持つ件は、`examples.test.ts`へ移した後も同じ名前で通る | `pnpm test`の検査`box-carries-notation-id`と`same-name-boxes-carry-distinct-ids`と`group-carries-notation-id`と`click-reads-innermost-node-id`と`lines-and-labels-carry-no-node-id`と`every-gallery-box-carries-its-id`と`embed-docs-name-node-attribute`が通る | #3868 |
 | `dragon embed`で書き出した1枚のHTMLの箱と囲みが記法のidを持つ件は、`script-entry.test.ts`へ移した後も同じ名前で通る | `pnpm test`の検査`embed-html-keeps-node-ids`が通る | #3868 |
 | jsDelivrの1行の入口が最初に読むscriptは、今と同じく90,000byte以下に収まる | `pnpm test`の検査`script-entry-within-budget`が通る | #3868 |
