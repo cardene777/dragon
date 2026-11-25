@@ -1,0 +1,13 @@
+cards Boxes
+
+box alice as Alice
+box bob as Bob [mark: Payee]
+
+item t1 as Ticket #1 in alice, bob [amount: 2 tickets, mark: bob]
+
+step Line up
+  say A box line places an owner column. Columns sit from left to right in the order written.
+
+step Show a mark
+  say A column's mark is the word it shows, and a card's mark picks the columns that show it.
+  item t2 as Ticket #2 in bob [amount: 3 tickets]

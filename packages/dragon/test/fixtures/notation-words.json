@@ -17,7 +17,8 @@
     "er",
     "matrix",
     "venn",
-    "sankey"
+    "sankey",
+    "cards"
   ],
   "HEADS": [
     "group",
@@ -76,7 +77,8 @@
     "idea",
     "table",
     "field",
-    "axis"
+    "axis",
+    "refuse"
   ],
   "ATTRS": {
     "diagram": [
@@ -99,6 +101,7 @@
       "link",
       "order",
       "limit",
+      "mark",
       "example"
     ],
     "source": [

@@ -1,0 +1,17 @@
+cards 出典
+
+box alice as Alice
+box bob as Bob
+
+item n1 as 証書#1 in alice [amount: 100 USDC]
+
+step 渡す
+  say sourceで段に出典の名前とurlを書く。1つの段に何行でも書ける。
+  source dragonのREADME [url: https://github.com/cardene777/dragon/blob/main/README.md]
+  item n1 in bob
+
+step 残す
+  say 出典は図にも語りにも出さず、読み上げの段の一覧に名前のlinkで出る。
+  source 記法の書き方 [url: https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md]
+  source dragonのrepo [url: https://github.com/cardene777/dragon]
+  delete n1

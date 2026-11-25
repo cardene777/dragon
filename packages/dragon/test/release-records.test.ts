@@ -223,6 +223,20 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-80-0-lists-cards-once", () => {
+    // 持ち主ごとのカードの図 (#3846) と、v0.79.7 の後に既定の枝へ入った未公開の項を全て 0.80.0 で出す (#3904)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 80, `package の版 ${version()} が 0.80.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.80\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.80.0"), "0.80.0");
+      expect(released, `${file} に日付付きの ## [0.80.0] の節が無い`).not.toBe("");
+      expect(released.split("(#3846)").length - 1, `${file} の 0.80.0 の節が (#3846) の項を 1 回だけ持たない`).toBe(1);
+      // 既定の枝を全て出すので、0.80.0 を出した時点の Unreleased に項は残らない。次の版の項は後から積まれる
+      if (version() === "0.80.0") expect(section(text, "[Unreleased]").split("\n").filter((line) => line.startsWith("- ")), `${file} の Unreleased に項が残る`).toEqual([]);
+    }
+  });
+
   it("changelog-0-79-7-lists-node-ids-once", () => {
     // 描いた箱と囲みが記法の id を data-node に持つ形 (#3795) を 0.79.7 で出す (#3865)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

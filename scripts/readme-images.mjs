@@ -60,6 +60,7 @@ export const README_KINDS = [
   { kind: "matrix", example: "task-priority" },
   { kind: "venn", example: "hobbies" },
   { kind: "sankey", example: "salary" },
+  { kind: "cards", example: "book-club" },
 ];
 
 /** 絵を描く言葉。英語の絵は英語のREADMEが、日本語の絵は日本語のREADMEが指す */

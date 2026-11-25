@@ -5,6 +5,7 @@
  */
 import "./basics";
 import "../kind-use/architecture";
+import "../kind-use/cards";
 import "../kind-use/chart";
 import "../kind-use/checkout";
 import "../kind-use/cycle";

@@ -7,6 +7,7 @@ import { shape as boxShape } from "./box/shape";
 import { shape as branchShape } from "./branch/shape";
 import { shape as calcShape } from "./calc/shape";
 import { shape as callShape } from "./call/shape";
+import { shape as cardShape } from "./card/shape";
 import { shape as carryShape } from "./carry/shape";
 import { shape as chainShape } from "./chain/shape";
 import { shape as chartItemShape } from "./chart-item/shape";
@@ -79,6 +80,7 @@ export const SHAPES = {
   "branch": branchShape,
   "calc": calcShape,
   "call": callShape,
+  "card": cardShape,
   "carry": carryShape,
   "chain": chainShape,
   "chart-item": chartItemShape,

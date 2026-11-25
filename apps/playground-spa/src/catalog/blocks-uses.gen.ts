@@ -7,6 +7,7 @@ import { uses as boxUses } from "../../../../packages/dragon/src/blocks/box/gall
 import { uses as branchUses } from "../../../../packages/dragon/src/blocks/branch/gallery/uses";
 import { uses as calcUses } from "../../../../packages/dragon/src/blocks/calc/gallery/uses";
 import { uses as callUses } from "../../../../packages/dragon/src/blocks/call/gallery/uses";
+import { uses as cardUses } from "../../../../packages/dragon/src/blocks/card/gallery/uses";
 import { uses as carryUses } from "../../../../packages/dragon/src/blocks/carry/gallery/uses";
 import { uses as chainUses } from "../../../../packages/dragon/src/blocks/chain/gallery/uses";
 import { uses as chartItemUses } from "../../../../packages/dragon/src/blocks/chart-item/gallery/uses";
@@ -79,6 +80,7 @@ export const BLOCK_USES = {
   "branch": branchUses,
   "calc": calcUses,
   "call": callUses,
+  "card": cardUses,
   "carry": carryUses,
   "chain": chainUses,
   "chart-item": chartItemUses,

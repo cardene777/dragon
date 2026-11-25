@@ -25,6 +25,10 @@
       "version": "1.0.0",
       "file": "references/kinds/architecture.md"
     },
+    "cards": {
+      "version": "1.0.0",
+      "file": "references/kinds/cards.md"
+    },
     "chart": {
       "version": "1.1.0",
       "file": "references/kinds/chart.md"
