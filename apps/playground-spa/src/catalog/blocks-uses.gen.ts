@@ -55,6 +55,7 @@ import { uses as roleUses } from "../../../../packages/dragon/src/blocks/role/ga
 import { uses as routeUses } from "../../../../packages/dragon/src/blocks/route/gallery/uses";
 import { uses as rowUses } from "../../../../packages/dragon/src/blocks/row/gallery/uses";
 import { uses as scaleUses } from "../../../../packages/dragon/src/blocks/scale/gallery/uses";
+import { uses as sceneUses } from "../../../../packages/dragon/src/blocks/scene/gallery/uses";
 import { uses as sealUses } from "../../../../packages/dragon/src/blocks/seal/gallery/uses";
 import { uses as sideUses } from "../../../../packages/dragon/src/blocks/side/gallery/uses";
 import { uses as sidePathUses } from "../../../../packages/dragon/src/blocks/side-path/gallery/uses";
@@ -127,6 +128,7 @@ export const BLOCK_USES = {
   "route": routeUses,
   "row": rowUses,
   "scale": scaleUses,
+  "scene": sceneUses,
   "seal": sealUses,
   "side": sideUses,
   "side-path": sidePathUses,

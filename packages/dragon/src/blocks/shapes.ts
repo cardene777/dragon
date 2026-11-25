@@ -55,6 +55,7 @@ import { shape as roleShape } from "./role/shape";
 import { shape as routeShape } from "./route/shape";
 import { shape as rowShape } from "./row/shape";
 import { shape as scaleShape } from "./scale/shape";
+import { shape as sceneShape } from "./scene/shape";
 import { shape as sealShape } from "./seal/shape";
 import { shape as sideShape } from "./side/shape";
 import { shape as sidePathShape } from "./side-path/shape";
@@ -127,6 +128,7 @@ export const SHAPES = {
   "route": routeShape,
   "row": rowShape,
   "scale": scaleShape,
+  "scene": sceneShape,
   "seal": sealShape,
   "side": sideShape,
   "side-path": sidePathShape,

@@ -123,6 +123,8 @@ import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
 import type { NoteMode } from "./blocks/pop/block";
 import { noteModeOf } from "./blocks/pop/read";
+import { SCENE_KINDS, SCENE_MOST } from "./blocks/scene/block";
+import { sceneShowOf } from "./blocks/scene/read";
 import { stepOf, viewOf } from "./blocks/step/read";
 import { blockKinds, fits } from "./blocks/usable";
 import { kindNeeds, lineNeeds, lineView, matches } from "./blocks/used";
@@ -131,7 +133,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { Diagram, DiagramModel, LineupShape, SequenceShape, Step } from "./schema";
+import type { Diagram, DiagramModel, DiagramScene, LineupShape, SequenceShape, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -223,9 +225,17 @@ const POP_KINDS: readonly string[] = blockKinds("pop");
 /**
  * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
  * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)、
- * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877)
+ * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877)、場面の見せ方 (`scenes`) は場面を書ける図 (#3878)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: POP_KINDS };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: POP_KINDS, scenes: SCENE_KINDS };
+
+/** 書いている場面 (#3878)。`scene` の行と名前と、読み終えた段と止まる理由 */
+interface SceneDraft {
+  source: SourceLine;
+  name: string;
+  steps: Step[];
+  stop?: string;
+}
 
 function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notices: LineError[], defaultNote?: NoteMode): DiagramModel {
   const headAt = lines.findIndex((source) => !isBlankOrComment(source));
@@ -257,6 +267,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   }
   const shape = headAttrs.get("shape");
   const unit = headAttrs.get("unit");
+  // 場面の見せ方 (#3878)。書かない図は並べる見せ方で描く
+  const sceneShow = sceneShowOf(head, headAttrs.get("scenes"), m);
   // 箱の説明を札で見せるか (#3877)。1 行目の値が頁の既定に勝ち、札で見せられない種類の図には頁の既定が効かない
   const pop = POP_KINDS.includes(kind) && (noteModeOf(head, headAttrs.get("note"), m) ?? defaultNote) === "pop";
 
@@ -305,6 +317,14 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const nameOf = (id: string): string => boxes.find((box) => box.id === id)?.name ?? id;
   /** 全ての宣言を読んでから確かめる宣言を、もう確かめたか */
   let settled = false;
+  /** 書いた場面と、書いている場面 (#3878)。場面の段は共通の段 (`steps`) と分けて場面ごとに積む */
+  const scenes: SceneDraft[] = [];
+  let scene: SceneDraft | undefined;
+  /**
+   * 共通の段を読み終えた時の、図の種類が段を読みながら積む状態の写し (#3878)。手順の図の本筋と読んだ線、列の図の封をした列。
+   * 場面ごとに共通の段の終わりから読み直し、前の場面の段が次の場面の確かめ (前へ戻る線、封をした列の並び) に混ざらないようにする
+   */
+  let shared: { main: string[]; side: string[]; forked: string[]; lines: FigureDraft["flow"]["lines"]; sealed: string[] } | undefined;
 
   const declare = (source: SourceLine, id: string, at: number): void => {
     // 箱を導いた後の宣言は、箱を宣言した図の宣言の無い名前として、最初に導いた名前を示して止める (#3438)
@@ -354,7 +374,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   };
   /** 宣言の行。最初の `step` より後か、段を書かない図の最初の線より後なら誤り */
   const beforeSteps = (source: SourceLine): void => {
-    if (building) throw fail(source, 0, m.declarationInStep);
+    // 場面 (#3878) の後ろも段の後ろと同じく宣言を書けない
+    if (building || scenes.length > 0) throw fail(source, 0, m.declarationInStep);
     if (lineSteps && steps.length > 0) throw fail(source, 0, m.declarationAfterLine);
   };
   /** 全ての宣言を読んでから確かめる宣言を、最初の段を始める時か記法の終わりに 1 度だけ確かめる */
@@ -370,11 +391,46 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (!building) return;
     // 短い記法の図の `say` を書かない段は、段の線の名前から本文を導く (#3438)。線も無ければ本文の無い段の誤りになる
     if (short && building.body === undefined) building.body = derivedBody(building.events, nameOf);
-    steps.push(stepOf(building, m));
+    // 場面の中の段は場面の段に積み、`stop` を書いた段で場面が止まる (#3878)
+    (scene?.steps ?? steps).push(stepOf(building, m));
+    if (scene && building.stop !== undefined) scene.stop = building.stop;
   };
   const openStep = (draft: StepDraft): void => {
+    // 場面の後ろに場面の外の段は書けず、止まる段の後ろに同じ場面の段は書けない (#3878)
+    if (scenes.length > 0 && !scene) throw fail(draft.source, 0, m.stepAfterScenes);
+    if (scene?.stop !== undefined) throw fail(draft.source, 0, m.afterStop);
     building = draft;
     for (const begin of hooks("beginStep")) begin(state);
+  };
+  /**
+   * `scene <名前>` の行で場面を書き始める (#3878)。書いている段を閉じ、図の種類が段を読みながら積む状態を、
+   * 最初の場面では写しに取り、次からの場面では写しに戻して、どの場面も共通の段の終わりから読む
+   */
+  const openScene = (source: SourceLine, name: string): void => {
+    if (scene) throw fail(source, 0, m.sceneInScene);
+    if (name === "") throw fail(source, 0, m.emptyScene);
+    if (scenes.some((s) => s.name === name)) throw fail(source, "scene".length + 1, m.sceneTwice(name));
+    if (scenes.length >= SCENE_MOST) throw fail(source, 0, m.sceneMost);
+    closeStep();
+    building = undefined;
+    const { flow, lineup } = figure;
+    if (shared === undefined) shared = { main: [...flow.main], side: [...flow.side], forked: [...flow.forked], lines: [...flow.lines], sealed: [...lineup.sealed] };
+    else {
+      flow.main.splice(0, flow.main.length, ...shared.main);
+      flow.side.splice(0, flow.side.length, ...shared.side);
+      flow.forked.splice(0, flow.forked.length, ...shared.forked);
+      flow.lines.splice(0, flow.lines.length, ...shared.lines);
+      lineup.sealed.clear();
+      for (const lane of shared.sealed) lineup.sealed.add(lane);
+    }
+    scene = { source, name, steps: [] };
+    scenes.push(scene);
+  };
+  /** `end` の行で書いている場面を閉じる (#3878) */
+  const closeScene = (): void => {
+    closeStep();
+    building = undefined;
+    scene = undefined;
   };
   /** 段を書かない図の線の行を 1 段にして始める (#3438)。題は線を読んだ後に `closeLineStep` が付ける */
   const openLineStep = (source: SourceLine): void => {
@@ -406,7 +462,30 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (given) throw fail(source, given.attr.at, m.timeOnly(given.name));
     return {};
   };
-  const state: ParseState = { m, kind, attrs: ATTRS, head: headAttrs, pop, inStep, current, closeStep, openStep, beforeSteps, boxAt, declare, declared, notReserved, claim, endAt, columns, figure, reader: (word) => headReaders().get(word) };
+  const state: ParseState = {
+    m,
+    kind,
+    attrs: ATTRS,
+    head: headAttrs,
+    pop,
+    inStep,
+    current,
+    scene: () => scene?.name,
+    openScene,
+    closeScene,
+    closeStep,
+    openStep,
+    beforeSteps,
+    boxAt,
+    declare,
+    declared,
+    notReserved,
+    claim,
+    endAt,
+    columns,
+    figure,
+    reader: (word) => headReaders().get(word),
+  };
   /** 行が使うブロックの読み方を持っているか確かめる。持っていなければ、ブロックの名前を名指して止める */
   const needed = (source: SourceLine, line: LineView): void => {
     const missing = lineNeeds(line, kind).find((name) => !readingLoaded(name));
@@ -511,6 +590,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       }
       throw fail(source, 0, m.unknownHead(word));
     }
+    // 場面 (#3878) を書けない図の種類は、図の種類ごとの行の確かめより先に、場面を書ける種類を挙げて断る
+    if (word === "scene" && !(SCENE_KINDS as readonly string[]).includes(kind)) throw fail(source, 0, m.sceneKinds);
     for (const check of hooks("checkHead")) check(source, word, state);
     const reader = headReaders().get(word);
     if (reader) {
@@ -521,6 +602,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     }
   }
   closeStep();
+  if (scene) throw fail(scene.source, 0, m.unclosedScene(scene.name));
 
   for (const finish of hooks("finish")) finish(state, head);
   if (boxes.length === 0 && !BOXLESS.includes(kind)) throw fail(head, 0, m.noBoxes);
@@ -540,6 +622,8 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     boxes,
     ...(figure.strip ? { strip: figure.meters.length > 0 ? { ...figure.strip, meters: figure.meters } : figure.strip } : {}),
     steps,
+    // 場面 (#3878)。見せ方を書かない図は並べる見せ方
+    ...(scenes.length > 0 ? { scenes: { show: sceneShow ?? "stack", list: scenes.map((s): DiagramScene => ({ name: s.name, steps: s.steps, ...(s.stop !== undefined ? { stop: s.stop } : {}) })) } } : {}),
     ...(paths.length > 0 ? { state: { paths } } : {}),
     ...(kind === "flow" ? { flow: { choices: figure.flow.choices, paths: figure.flow.paths } } : {}),
     ...(isGit ? { git: { branches } } : {}),

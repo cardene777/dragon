@@ -224,6 +224,8 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
       ["view", diagram.view],
       // 箱の説明を押すと出る札で見せる図 (#3877)
       ["note", diagram.note],
+      // 場面の見せ方 (#3878)。既定の並べる見せ方は書かない
+      ["scenes", diagram.scenes?.show === "pick" ? "pick" : undefined],
     ])}${diagram.layout !== undefined ? `\nlayout ${diagram.layout}` : ""}`,
     // 図の頭に書いた、使う人が足すブロックの定義は、図の種類の行の直ぐ後ろに書く (#3399)
     ...(diagram.define ? [defineLines(diagram.define)] : []),
@@ -236,17 +238,24 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
   if (omit.lineSteps) blocks.push(diagram.steps.flatMap((step) => step.events.map((e) => event(e, diagram.kind, diagram))).join("\n"));
   // 段の区切りの `step` の行の下に、段の中でブロックが受け持つ行を字下げして書く。空の行 (本文の空の行) は字下げしない
   // 本文を省く段は、本文を空にして段のブロックに渡す。段のブロックは本文が空の段の `say` を書かない
-  for (const step of omit.lineSteps ? [] : diagram.steps) {
+  // 場面が止まる段 (#3878) は、段の中の行の最後に `stop` の行を書く
+  const indent = (line: string): string => (line === "" ? "" : `  ${line}`);
+  const stepLines = (step: Step, stop?: string): string[] => {
     const written = omit.say(step) ? { ...step, body: "" } : step;
-    blocks.push(
-      [
-        `step ${step.title}`,
-        ...stepPrinters()
-          .flatMap((print) => print(written))
-          .map((line) => (line === "" ? "" : `  ${line}`)),
-        ...step.events.map((e) => `  ${event(e, diagram.kind, diagram)}`),
-      ].join("\n"),
-    );
+    return [
+      `step ${step.title}`,
+      ...stepPrinters()
+        .flatMap((print) => print(written))
+        .map(indent),
+      ...step.events.map((e) => `  ${event(e, diagram.kind, diagram)}`),
+      ...(stop === undefined ? [] : [`  stop ${stop}`]),
+    ];
+  };
+  for (const step of omit.lineSteps ? [] : diagram.steps) blocks.push(stepLines(step).join("\n"));
+  // 場面 (#3878) は共通の段の後ろに、`scene` と `end` の間にその場面の段を字下げして書く
+  for (const scene of diagram.scenes?.list ?? []) {
+    const last = scene.steps.length - 1;
+    blocks.push([`scene ${scene.name}`, ...scene.steps.flatMap((step, k) => stepLines(step, k === last ? scene.stop : undefined).map(indent)), "end"].join("\n"));
   }
   return `${blocks.join("\n\n")}\n`;
 }

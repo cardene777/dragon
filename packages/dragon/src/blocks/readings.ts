@@ -55,6 +55,7 @@ import { reading as roleReading } from "./role/read";
 import { reading as routeReading } from "./route/read";
 import { reading as rowReading } from "./row/read";
 import { reading as scaleReading } from "./scale/read";
+import { reading as sceneReading } from "./scene/read";
 import { reading as sealReading } from "./seal/read";
 import { reading as sideReading } from "./side/read";
 import { reading as sidePathReading } from "./side-path/read";
@@ -127,6 +128,7 @@ export const READINGS = {
   "route": routeReading,
   "row": rowReading,
   "scale": scaleReading,
+  "scene": sceneReading,
   "seal": sealReading,
   "side": sideReading,
   "side-path": sidePathReading,

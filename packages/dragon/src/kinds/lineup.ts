@@ -3,6 +3,8 @@
  * 見た目の規則は列の図の SVG にだけ書き、ほかの図の SVG と最初に読む script に入れない (#3351)
  */
 import { drawLineup } from "../render/lineup";
+import { renderScenes } from "../blocks/scene/draw";
+import { mountScenes } from "../scene-player";
 import { layoutLineup, type LineupLayout } from "./lineup/layout";
 import type { KindParts } from "./parts";
 
@@ -27,6 +29,8 @@ export const parts: KindParts<LineupLayout> = {
   // 寄って追う窓は、描かない見出しの文 (図の題と、段ごとの題と説明) の下の端から見せ始める (#3365)
   top: (layout) => Math.max(...[layout.heading, ...layout.headlines.flatMap((h) => (h.say ? [h.title, h.say] : [h.title]))].map((t) => t.y + t.h)),
   ownBoxes: true,
+  // 場面 (#3878)。札の居場所が段で移るので、場面ごとにその場面の段の後ろへほかの場面の段を足して並べ、帯の位置を全ての場面でそろえる
+  scenes: { render: (model, options, lang) => renderScenes(model, options, lang, true), mount: mountScenes },
 };
 
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)

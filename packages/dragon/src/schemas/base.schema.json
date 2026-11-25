@@ -217,6 +217,50 @@
         "$ref": "#/definitions/step"
       }
     },
+    "scenes": {
+      "description": "1 つの図の場面 (#3878)。手順の図と列の図だけが持て、steps は全ての場面に共通の段になる。場面は分かれる所から先のその場面だけの段を持ち、stop を持つ場面は最後の段で止まってその理由の文を出す。show は見せ方で、stack は場面を縦に並べて同じ段の送りで同時に動かし、pick は場面の名前の釦で選んだ 1 つの場面を追う。場面は 3 つまでで、名前は場面ごとに違う",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "show",
+        "list"
+      ],
+      "properties": {
+        "show": {
+          "enum": [
+            "stack",
+            "pick"
+          ]
+        },
+        "list": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "steps"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/definitions/text"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/step"
+                }
+              },
+              "stop": {
+                "$ref": "#/definitions/text"
+              }
+            }
+          }
+        }
+      }
+    },
     "checkout": {
       "type": "object",
       "required": [
@@ -827,6 +871,28 @@
       "else": {
         "properties": {
           "sequence": {
+            "$ref": "#/definitions/absent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "flow",
+              "lineup"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "scenes": {
             "$ref": "#/definitions/absent"
           }
         }

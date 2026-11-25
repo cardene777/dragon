@@ -1,0 +1,27 @@
+flow 送金の2つの場面 [scenes: stack]
+
+box ask as 送金を頼む
+box look as 宛先を確かめる
+box send as 送る
+box back as 差し戻す
+
+step 頼む
+  say 利用者が送金を頼む。ここまではどの場面も同じ段を通る。
+  start -> ask
+
+step 確かめる
+  say 宛先が登録されているかを確かめる。ここから場面が分かれる。
+  ask -> look: 宛先
+
+scene 通る送金
+  step 送る
+    say 宛先が正しいので送る。
+    look -> send: 正しい
+end
+
+scene 宛先が違う送金
+  step 差し戻す
+    say 宛先が違うので差し戻す。この場面はここで止まる。
+    look -> back: 違う
+    stop 宛先が登録されていない
+end

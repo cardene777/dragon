@@ -1,0 +1,26 @@
+lineup Two scenes of a transfer queue [scenes: pick]
+
+box wait as Waiting
+box done as Done
+box out as Sent back
+
+item a, b, c
+
+step Line up
+  say Three transfers wait in line. Every scene shares the steps up to here.
+  line wait: a, b, c
+
+scene Transfer goes through
+  step Send
+    say The first one moves to done.
+    line wait: b, c
+    line done: a
+end
+
+scene Wrong payee
+  step Send back
+    say The first one moves to sent back. This scene stops here.
+    line wait: b, c
+    line out: a
+    stop The payee is not registered
+end

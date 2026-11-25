@@ -3,6 +3,8 @@
  * 判断のひし形の描き方は判断のブロックの置き場が持つ
  */
 import { flowCss, flowHooks, flowTimes, stepMarks } from "../render/flow";
+import { renderScenes } from "../blocks/scene/draw";
+import { mountScenes } from "../scene-player";
 import { layoutFlow } from "./flow/layout";
 import type { KindParts } from "./parts";
 
@@ -15,6 +17,8 @@ export const parts: KindParts = {
   // 段で動く線を青で引いて段の印の点を走らせ、段が終わった線を濃い墨の色で残す
   draw: (layout, _diagram, ctx) => ({ after: () => stepMarks(layout, ctx), css: flowCss(ctx.id) }),
   states: true,
+  // 場面 (#3878)。段で居場所が移る物を持たないので、全ての場面の段をつないだ 1 つの並べ方から箱の位置を取る
+  scenes: { render: (model, options, lang) => renderScenes(model, options, lang, false), mount: mountScenes },
 };
 
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
