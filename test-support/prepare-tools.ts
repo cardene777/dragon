@@ -40,6 +40,8 @@ export interface ExportOptions {
   gifFps?: number;
   /** 図の中の字 (全体図の札、読み上げの名前、断りの文) の言葉 (#3001) */
   lang?: "ja" | "en";
+  /** PNG に撮る段 (1 から数える、#3484) */
+  step?: number;
 }
 
 /** 書き出した file と、動画のコマの大きさ (CSS の px) */

@@ -14,8 +14,8 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 const TEST_DIR = join(ROOT, "packages/dragon/test");
 
-/** 背景の表の 6 つの検査の file (#3734) */
-const PREPARED = ["export-language", "cli-language", "export", "package-entries", "export-fonts", "player"];
+/** 背景の表の 6 つの検査の file (#3734) と、判定の表の書き出し (#3923) */
+const PREPARED = ["export-language", "cli-language", "export", "package-entries", "export-fonts", "player", "judge-export"];
 
 /** 準備の段の道具。まだ無い時は undefined にして、判定で落とす */
 interface PrepareTools {

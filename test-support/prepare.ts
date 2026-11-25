@@ -11,7 +11,7 @@
 import { existsSync } from "node:fs";
 import ts from "typescript";
 
-/** 準備の file を持つ検査の file。背景の表の 6 つ (#3734) */
+/** 準備の file を持つ検査の file。背景の表の 6 つ (#3734) と、判定の表の書き出し (#3923) */
 export const PREPARED_FILES = [
   "packages/dragon/test/export-language.test.ts",
   "packages/dragon/test/cli-language.test.ts",
@@ -19,6 +19,7 @@ export const PREPARED_FILES = [
   "packages/dragon/test/package-entries.test.ts",
   "packages/dragon/test/export-fonts.test.ts",
   "packages/dragon/test/player.test.ts",
+  "packages/dragon/test/judge-export.test.ts",
 ] as const;
 
 /**
