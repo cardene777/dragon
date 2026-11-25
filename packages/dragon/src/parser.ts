@@ -123,8 +123,7 @@ import { BLOCKS } from "./blocks/index";
 import { cachedByReadings, loadedReadings, readingLoaded } from "./blocks/reading";
 import type { NoteMode } from "./blocks/pop/block";
 import { noteModeOf } from "./blocks/pop/read";
-import { SCENE_KINDS, SCENE_MOST } from "./blocks/scene/block";
-import { sceneShowOf } from "./blocks/scene/read";
+import { SCENE_KINDS, SCENE_MOST, SCENE_SHOWS } from "./blocks/scene/block";
 import { stepOf, viewOf } from "./blocks/step/read";
 import { blockKinds, fits } from "./blocks/usable";
 import { kindNeeds, lineNeeds, lineView, matches } from "./blocks/used";
@@ -133,7 +132,7 @@ import { KIND_FOLDERS } from "./kinds/index";
 import type { Kind } from "./kinds/kind";
 import { type Messages, messagesFor, type Shape } from "./messages";
 import { type Attr, fail, isOneOf, NotationError, readAttrs, readName } from "./read-kit";
-import type { Diagram, DiagramModel, DiagramScene, LineupShape, SequenceShape, Step } from "./schema";
+import type { Diagram, DiagramModel, DiagramScene, LineupShape, SceneShow, SequenceShape, Step } from "./schema";
 import { columnOf, isBlankOrComment, type SourceLine, tokenize } from "./tokenize";
 import { FORMAT_VERSION, fromModel, MODEL_VERSION } from "./model";
 import { markParsed } from "./parsed";
@@ -220,6 +219,11 @@ const LINEUP_OR_TRY = ["item", "line"];
  * ほかの種類の図に書いた行は、読み方を読まずに 2 つの図の種類だけの語の誤りで止める。書ける図の種類はブロックの定義から引く
  */
 const FLOW_OR_LINEUP = ["gauge"];
+/**
+ * 場面の行の頭の語 (#3878)。場面の読み方も手順の図と列の図の図でだけ後から読むので、ほかの種類の図に書いた行は、
+ * 読み方を読まずに目盛りと同じ 2 つの図の種類だけの語の誤りで止める
+ */
+const SCENE_HEADS = ["scene", "stop"];
 /** 箱を持たずに描ける図の種類。ほかの種類の図は箱が 1 つも無いと止める。手順の図は判断だけでも描け、箱も判断も無い図は判断のブロックが止める (#3561) */
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
@@ -273,7 +277,9 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   const shape = headAttrs.get("shape");
   const unit = headAttrs.get("unit");
   // 場面の見せ方 (#3878)。書かない図は並べる見せ方で描く
-  const sceneShow = sceneShowOf(head, headAttrs.get("scenes"), m);
+  const scenesAttr = headAttrs.get("scenes");
+  if (scenesAttr && !isOneOf(SCENE_SHOWS, scenesAttr.value)) throw fail(head, scenesAttr.at, m.badScenes);
+  const sceneShow = scenesAttr?.value as SceneShow | undefined;
   // 箱の説明を札で見せるか (#3877)。1 行目の値が頁の既定に勝ち、札で見せられない種類の図には頁の既定が効かない
   const pop = POP_KINDS.includes(kind) && (noteModeOf(head, headAttrs.get("note"), m) ?? defaultNote) === "pop";
 
@@ -415,7 +421,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     if (scene) throw fail(source, 0, m.sceneInScene);
     if (name === "") throw fail(source, 0, m.emptyScene);
     if (scenes.some((s) => s.name === name)) throw fail(source, "scene".length + 1, m.sceneTwice(name));
-    if (scenes.length >= SCENE_MOST) throw fail(source, 0, m.sceneMost);
+    if (scenes.length >= SCENE_MOST) throw fail(source, 0, m.sceneMost(SCENE_MOST));
     closeStep();
     building = undefined;
     const { flow, lineup } = figure;
@@ -577,6 +583,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
     // 列の図のチップと並びの語は試す図でも書け、ほかの種類の図に書いた行は 2 つの図の種類だけの語の誤りで止める (#3337)
     if (LINEUP_OR_TRY.includes(word) && !isLineup && !isTry) throw fail(source, 0, word === "item" ? m.itemOnly : m.lineupOrTryOnly(word));
     if (FLOW_OR_LINEUP.includes(word) && !blockKinds("gauge").includes(kind)) throw fail(source, 0, m.flowOrLineupOnly(word));
+    if (SCENE_HEADS.includes(word) && !(SCENE_KINDS as readonly string[]).includes(kind)) throw fail(source, 0, m.flowOrLineupOnly(word));
     const only = ONLY_HEADS.get(word);
     // 残高と書き換える値の hold の行は、パイプ図の部品で描く時系列図 (`[shape: pipe]`) の列の頭の下の器と札にも使う (Tracelyth #93、#3720)。
     // 見た目を書かない時系列図は値の持ち分を描かないので、今どおり断る
@@ -596,8 +603,6 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
       }
       throw fail(source, 0, m.unknownHead(word));
     }
-    // 場面 (#3878) を書けない図の種類は、図の種類ごとの行の確かめより先に、場面を書ける種類を挙げて断る
-    if (word === "scene" && !(SCENE_KINDS as readonly string[]).includes(kind)) throw fail(source, 0, m.sceneKinds);
     for (const check of hooks("checkHead")) check(source, word, state);
     const reader = headReaders().get(word);
     if (reader) {

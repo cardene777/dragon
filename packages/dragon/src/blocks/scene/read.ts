@@ -1,21 +1,15 @@
 /**
  * 場面のブロックの読み方 (#3878)。`scene` の行は段を積む読む処理 (`parser.ts` の `openScene`) へ渡し、`stop` の行は今の段に止まる理由を置く。
+ * 読み方は手順の図と列の図の図でだけ後から読むので、1 行目の `scenes` の値と、ほかの図の種類の `scene` と `stop` の行は、記法を読む処理が中心の誤りの文で断る。
+ * 場面のブロックの定義 (`block.ts`) は最初に読む塊に入るので、ここから値を読まない。読むと定義が最初に読む別の file に分かれる (#3706)。
  * 場面を書き戻すのは書き戻す処理 (`printer.ts`) で、場面の段の後ろに `stop` の行を、場面の終わりに `end` の行を書く
  */
-import type { Messages } from "../../messages";
-import { type Attr, fail, isOneOf, list } from "../../read-kit";
-import type { SceneShow } from "../../schema";
-import type { SourceLine } from "../../tokenize";
+import { fail } from "../../read-kit";
 import { type BlockReading, none } from "../block";
-import { SCENE_KINDS, SCENE_MOST, SCENE_SHOWS } from "./block";
 
 export interface SceneMessages {
-  /** 最初の行の `scenes` に `stack` と `pick` の外の値を書いた */
-  badScenes: string;
-  /** 場面を書けない図の種類に `scene` を書いた */
-  sceneKinds: string;
-  /** 場面を上限より多く書いた */
-  sceneMost: string;
+  /** 場面を上限 (`most`) より多く書いた。上限は記法を読む処理が渡し、この file は場面のブロックの定義を読まない */
+  sceneMost: (most: number) => string;
   /** `scene` の後ろに名前を書かない */
   emptyScene: string;
   /** 同じ名前の場面をもう一度書いた */
@@ -32,12 +26,6 @@ export interface SceneMessages {
   emptyStop: string;
   /** `stop` を書いた段の後ろに、同じ場面の段か `stop` を書いた */
   afterStop: string;
-}
-
-/** 最初の行の `scenes:` の値。知らない見せ方は 1 行目の `scenes` の所を指して断る */
-export function sceneShowOf(head: SourceLine, shown: Attr | undefined, m: Messages): SceneShow | undefined {
-  if (shown && !isOneOf(SCENE_SHOWS, shown.value)) throw fail(head, shown.at, m.badScenes);
-  return shown?.value as SceneShow | undefined;
 }
 
 export const reading: BlockReading<SceneMessages> = {
@@ -59,9 +47,7 @@ export const reading: BlockReading<SceneMessages> = {
   print: none("場面は書き戻す処理が、場面の段と一緒に scene と stop と end の行で書き戻す"),
   messages: {
     ja: {
-      badScenes: `1 行目の scenes は ${list(SCENE_SHOWS)} のどれか。stack は場面を縦に並べ、pick は場面の名前の釦で選んだ場面を追う`,
-      sceneKinds: `scene は ${list(SCENE_KINDS)} の図にだけ書ける`,
-      sceneMost: `1 つの図に scene は ${SCENE_MOST} つまで`,
+      sceneMost: (most) => `1 つの図に scene は ${most} つまで`,
       emptyScene: "scene の後ろに場面の名前を書く",
       sceneTwice: (name) => `scene ${name} は既に書いた場面。場面ごとに違う名前を付ける`,
       sceneInScene: "scene の中に scene は書けない。先に end で閉じる",
@@ -72,9 +58,7 @@ export const reading: BlockReading<SceneMessages> = {
       afterStop: "stop は 1 つの場面に 1 つまで、場面の最後の段に書く",
     },
     en: {
-      badScenes: `scenes on the first line is one of ${list(SCENE_SHOWS)}. stack lines the scenes up, and pick follows the scene chosen with its name button`,
-      sceneKinds: `scene can be written only in ${list(SCENE_KINDS)} diagrams`,
-      sceneMost: `A diagram takes at most ${SCENE_MOST} scenes`,
+      sceneMost: (most) => `A diagram takes at most ${most} scenes`,
       emptyScene: "Write the scene name after scene",
       sceneTwice: (name) => `scene ${name} is already written. Give each scene its own name`,
       sceneInScene: "A scene cannot hold another scene. Close it with end first",
