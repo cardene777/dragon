@@ -29,7 +29,8 @@ function overview(layout: CardsLayout): OverviewShape[] {
 
 export const parts: KindParts<CardsLayout> = {
   layout: (diagram, lang) => layoutCards(diagram, lang),
-  carried: () => [],
+  // 描かない運ぶ物の時刻を、描いた結果の時刻の表にも残さない。描く処理と、時刻の表を読む検査と使う側が同じ数を読む (#3918)
+  times: (_diagram, timeline) => ({ ...timeline, carriers: [] }),
   draw: (layout, _diagram, ctx) => ({ ...drawCards(layout, ctx), edge: () => undefined }),
   focus: (layout, _diagram, step) => moving(layout, step),
   overview,
