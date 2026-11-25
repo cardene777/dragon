@@ -1,0 +1,26 @@
+// NFTのチケットを預かりの契約に預けて売る。チケットは出品すると預かりの契約と出品の一覧に載り、代金を払うと買い手へ動く。
+// 額は形を見せるための見本の値。
+cards NFTのチケットを預けて売る
+
+box seller as 売り手 [note: Aoi]
+box escrow as 預かりの契約 [mark: 預かり中]
+box buyer as 買い手 [note: Sora]
+box market as 出品の一覧 [mark: 出品中]
+
+item t7 as チケット#7 in seller [amount: 1枚, mark: escrow, mark: market]
+item u1 as 代金 in buyer [amount: 50 USDC]
+
+step 出品する
+  say 売り手がチケットを預かりの契約へ渡すと、出品の一覧にも載る。
+  seller -> t7: 預ける
+  item t7 in escrow, market
+
+step 買う
+  say 買い手が50 USDCを払ってチケットを受け取り、代金は売り手へ動く。
+  buyer -> t7: 買う
+  item t7 in buyer
+  item u1 in seller
+
+step 取り下げる
+  say 売れた後のチケットは、売り手が取り下げられない。
+  refuse t7: 売れた後は取り下げられない
