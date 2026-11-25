@@ -9,6 +9,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Fixed
 
 - `dragon export` of a judge table stopped with `Cannot take screenshot with 0 width` and wrote nothing. The PNG now measures the drawn table and shows every column and verdict, at any `--width`. `--step` lights the columns up to the chosen step. The GIF and mp4 light one rule column per step and the verdict column last (#3923)
+- Each scene of a diagram with scenes (`[scenes: stack]` and `[scenes: pick]`) is no longer drawn wider than its own width either, so a tall flow with scenes keeps 13px box names on a 728px page.
 - A diagram shown whole (`fixed`) is no longer drawn wider than its own width when its frame is wider, and sits in the middle of the frame. A tall flow on a 728px page used to grow until its box names were about 30px, and now keeps the same 13px text as the other kinds. Still figures from `dragon embed` and `data-still` blocks keep their own width the same way, and `chooseView` no longer reports text larger than the box name's own size.
 
 ## [0.80.0] - 2026-11-25
