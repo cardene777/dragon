@@ -366,6 +366,14 @@ git ls-remote --tags origin refs/tags/v0.59.0
 中身が違う時は、出た版を直さず、次の版で出し直す課題を立てる。
 npm の版は消しても同じ番号で出し直せないため。
 
+### 変更の一覧の漏れ
+
+同じ欄は、前の版の印から先の取り込みと、`CHANGELOG.md`と`CHANGELOG.ja.md`も突き合わせる (#3932)。
+件名が`✨ feat`で、配る物 (`packages/dragon/src/`、`plugins/dragon/`、`apps/playground-spa/src/`) のfileを変えた取り込みの課題の番号が、版の節に無い時に落ちる。
+印を付ける前に回すので、Unreleasedに項が残る時も落ちる。Unreleasedの項は全て包む版に入るため。
+落ちた時は、名指された課題の項を包む版の節に書くか、Unreleasedから包む版の節へ移す課題を立てて取り込み、関門を回し直す。
+検査とscriptと文書だけを変えた`✨ feat`は配る物を変えないので数えない。
+
 ## 版を出す時に GitHub Release を作る
 
 版の印 (`v<版>`) を GitHub に送ったら、同じ版の Release を作る。
