@@ -5,6 +5,10 @@
  * 撮ったコマは同じ頁の中で詰める。詰める処理とコマの計画は書き出す入口と同じ物 (`film.ts`) を使う (#3644)。
  * mp4 は WebCodecs で H.264 にして `mediabunny` で箱に入れ、GIF は `gifenc` で詰める。
  * WebCodecs は安全な頁でしか使えないので、頁は `http://localhost/` に置く。
+ *
+ * HTML で描く図 (判定の表、#3879) は SVG の大きさを持たないので、撮る頁で描いた大きさを測り、窓をその大きさにする (#3923)。
+ * 頁の地を中身の幅 (`max-content`) にして置くので、横に送る枠の中の列も全て写る。
+ * 時刻の代わりに段を図に書き (種類の部品の `html.show`)、印の移り変わり (`transition`) を止めて、撮る時刻で絵がぶれないようにする。
  */
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -65,23 +69,47 @@ export function sizeOf(svg: string): { width: number; height: number } {
   return { width: Number(width), height: Number(height) };
 }
 
+/** HTML で描く図を撮る時に、段を図に書く処理と段の始まりの時刻 (#3923) */
+export interface HtmlFigure {
+  /** 段 `step` (0 から数える) を図の根に書く。種類の部品の `html.show` を字の並びにして撮る頁へ送るので、外の名前を読まない関数にする */
+  show(this: void, figure: HTMLElement, step: number): void;
+  /** 段ごとの始まりの時刻 (秒) */
+  starts: number[];
+}
+
 export interface Stage {
   page: Page;
   width: number;
   height: number;
+  /** HTML で描く図の時だけ持つ */
+  html?: HtmlFigure;
 }
+
+/** 時刻 `t` の段。再生の部品と同じく、始まりが `t` 以前の最後の段 (`player.ts` の `stepAt`) */
+function stepAt(starts: number[], t: number): number {
+  let found = 0;
+  starts.forEach((start, i) => {
+    if (start <= t) found = i;
+  });
+  return found;
+}
+
+/** HTML で描く図を置く頁の地。中身の幅に縮めて描いた大きさを測り、印の移り変わりを止める */
+const HTML_STAGE = "body{width:max-content}*{transition:none!important}";
 
 /**
  * 図 1 枚を置いた頁を開き、字が読み込まれるまで待つ。`body` は頁の地の CSS。
  * 図は置く前から止めておく。置いてから止めると、止めるまでに進んだ分だけ毎回絵がずれる。
  * 字の file を 1 つでも読めない時は、読めない file を `lang` の言葉で名指して断る。
+ * HTML で描く図 (`figure` を渡した時) は、字を読み込んだ後に描いた大きさを測り、窓をその大きさにする (#3923)
  */
-export async function stage(browser: Browser, svg: string, fontCss: string, body: string, lang: NotationLang): Promise<Stage> {
-  const { width, height } = sizeOf(svg);
+export async function stage(browser: Browser, svg: string, fontCss: string, body: string, lang: NotationLang, figure?: HtmlFigure): Promise<Stage> {
+  // HTML の図は窓の幅に依らず中身の幅で描くので、測るまでの窓の大きさは描き方を変えない
+  const { width, height } = figure ? { width: 800, height: 600 } : sizeOf(svg);
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: FILM_SCALE });
   const paused = svg.replace(/^<svg\b/, '<svg style="--play:paused;--at:0"');
   const html =
-    `<!doctype html><html><head><meta charset="utf-8"><style>${fontCss}html,body{margin:0}body{${body}}svg{display:block}</style>` +
+    `<!doctype html><html><head><meta charset="utf-8"><style>${fontCss}html,body{margin:0}body{${body}}svg{display:block}${figure ? HTML_STAGE : ""}</style>` +
     `<script type="module">import * as mb from "/mediabunny.js";import * as gif from "/gifenc.js";window.__tools={mb,gif};</script></head><body>${paused}</body></html>`;
   await page.route("http://localhost/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -102,24 +130,39 @@ export async function stage(browser: Browser, svg: string, fontCss: string, body
     await page.close();
     throw new Error(FONT_TEXT[lang](unreadable));
   }
-  return { page, width, height };
+  if (!figure) return { page, width, height };
+  await page.evaluate(`window.__show = ${figure.show.toString()};`);
+  const box = await page.evaluate(() => {
+    const drawn = document.body.firstElementChild?.getBoundingClientRect();
+    return { width: Math.ceil(drawn?.width ?? 0), height: Math.ceil(drawn?.height ?? 0) };
+  });
+  await page.setViewportSize(box);
+  return { page, ...box, html: figure };
 }
 
-/** 止めてある図の時刻を `t` 秒に動かし、描き終わるまで待つ */
-async function at(page: Page, t: number): Promise<void> {
-  await page.evaluate(
-    (t) =>
+/**
+ * 止めてある図の時刻を `t` 秒に動かし、描き終わるまで待つ。
+ * HTML で描く図は時刻で動かないので、段 `step` を図に書く。`step` が無い時は段を書かず、全ての段を見せた形で描く
+ */
+async function at(stage: Stage, t: number, step?: number): Promise<void> {
+  await stage.page.evaluate(
+    ([t, step, html]) =>
       new Promise<void>((done) => {
-        document.querySelector("svg")?.style.setProperty("--at", String(t));
+        const figure = document.body.firstElementChild as HTMLElement;
+        if (!html) figure.style.setProperty("--at", String(t));
+        else if (step !== undefined) (window as unknown as { __show: (figure: HTMLElement, step: number) => void }).__show(figure, step);
         requestAnimationFrame(() => requestAnimationFrame(() => done()));
       }),
-    t,
+    [t, step, stage.html !== undefined] as const,
   );
 }
 
-/** `t` 秒の止め絵の PNG。図の外 (角の丸みの外) は透明にする */
-export async function still(stage: Stage, t: number): Promise<Buffer> {
-  await at(stage.page, t);
+/**
+ * `t` 秒の止め絵の PNG。図の外 (角の丸みの外) は透明にする。
+ * HTML で描く図は段 `step` (0 から数える) を書いた形を撮り、`step` が無い時は全ての段を見せた形を撮る (#3923)
+ */
+export async function still(stage: Stage, t: number, step?: number): Promise<Buffer> {
+  await at(stage, t, step);
   return stage.page.screenshot({ type: "png", omitBackground: true });
 }
 
@@ -146,7 +189,7 @@ export async function film(stage: Stage, plan: FilmPlan): Promise<Film> {
   const cdp = await page.context().newCDPSession(page);
   const clip = { x: 0, y: 0, width, height, scale: FILM_SCALE };
   const shoot = async (t: number): Promise<string> => {
-    await at(page, t);
+    await at(stage, t, stage.html ? stepAt(stage.html.starts, t) : undefined);
     return (await cdp.send("Page.captureScreenshot", { format: "png", optimizeForSpeed: true, clip })).data;
   };
   /** 撮った PNG を頁の中で絵に戻し、箱に色の表の元 (`sample`) かコマ (`push`) として渡す */

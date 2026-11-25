@@ -16,3 +16,11 @@
 | 宣言していない規則を`fail`に書いた時と、同じ例に同じ規則の`fail`を2度書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-fail-unknown-or-twice-refused` passes | #3879 |
 | 最初の`case`より前に`fail`を書いた時と、規則か例が1つも無い時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-fail-before-case-or-empty-refused` passes | #3879 |
 | `judge`でない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3879 |
+| 判定の表の英語の見本4つ (airdrop-check.en.dragon、refund-check.en.dragon、signup-check.en.dragon、transfer-check.en.dragon) をPNGに書き出すと、幅0で止まらずに、右端の判定の列の札まで切れずに写った画像ができる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-shows-every-column` passes | #3923 |
+| 段を選ばずに書き出した判定の表のPNGは、照らした列の色の帯を付けずに、全ての✓と✕と判定の札を見せる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-default-shows-all-unlit` passes | #3923 |
+| `--step 2`で書き出した判定の表のPNGは、2番目の規則の列を照らした色の帯を持ち、判定の列の札を見せない | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-step-lights-chosen-column` passes | #3923 |
+| `--width 390`を渡して書き出した判定の表のPNGは、幅を渡さない時と同じ大きさで全ての列を写す | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-ignores-narrow-width` passes | #3923 |
+| 形を選ばずに`dragon export`で判定の表を書き出すと、mp4とGIFとHTMLとPNGの4つを書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-writes-four-formats` passes | #3923 |
+| 判定の表のGIFは、最初のコマで判定の列の札を見せず、最後の段のコマで判定の列の札を見せる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-film-lights-columns-by-step` passes | #3923 |
+| SVGで描く図の種類のPNGは、今と同じく図の`width`と`height`の2倍の大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3923 |
+| 判定の表で図に無い段を`--step`に選ぶと、撮らずに断る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-refuses-missing-step` passes | #3923 |
