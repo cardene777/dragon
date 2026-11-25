@@ -232,6 +232,8 @@ describe("公開する頁 (#2995)", () => {
     const project = {
       vitest: {
         filenamePattern: [],
+        // 分けた実行 (`--shard`) でない回。準備の段は `config.shard` を見て一覧を絞るかを決める (#3946)
+        config: {},
         getRelevantTestSpecifications: () => Promise.resolve([{ moduleId: join(process.cwd(), "packages/dragon/test/test-limits.test.ts") }]),
       },
       provide: (key: string, value: unknown) => {

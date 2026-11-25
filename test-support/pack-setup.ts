@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { TestProject } from "vitest/node";
+import { runSpecs } from "./run-specs";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -32,9 +33,7 @@ export function packFiles(dir: string = PACKAGE): string[] {
 }
 
 export default async function setup(project: TestProject): Promise<void> {
-  // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
-  const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
-  const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
+  const specs = await runSpecs(project.vitest);
   const sources = specs.map((spec) => readFileSync(spec.moduleId, "utf8"));
   project.provide("dragonPackFiles", needsPackFiles(sources) ? packFiles() : []);
 }

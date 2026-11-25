@@ -21,6 +21,7 @@ import { writeFileSync } from "node:fs";
 import { relative } from "node:path";
 import type { TestProject } from "vitest/node";
 import { runLimitMs } from "./limits";
+import { runSpecs } from "./run-specs";
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -94,9 +95,8 @@ export default async function setup(project: TestProject): Promise<() => void> {
   const out = process.env.DRAGON_UNFINISHED_OUT;
   delete process.env.DRAGON_UNFINISHED_OUT;
   project.provide("dragonRunLimitMs", limit);
-  // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
-  const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
-  const all = (await vitest.getRelevantTestSpecifications(vitest.filenamePattern)).map((spec) => relative(project.config.root, spec.moduleId));
+  // 分けた実行 (`--shard`) では、この回に回す分だけを数える (#3946)
+  const all = (await runSpecs(project.vitest)).map((spec) => relative(project.config.root, spec.moduleId));
   const timer = setTimeout(() => {
     const names = unfinished(project, all);
     process.stderr.write(`\n1回の実行の上限 ${limit / 1000} 秒を超えたので、残りの検査を回さずに止める (#3381)。終わっていない検査 ${names.length} 件:\n${names.map((name) => `  ${name}\n`).join("")}`);

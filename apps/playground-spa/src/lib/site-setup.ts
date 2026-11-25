@@ -7,6 +7,7 @@
  */
 import { readFileSync, rmSync } from "node:fs";
 import type { TestProject } from "vitest/node";
+import { runSpecs } from "../../../../test-support/run-specs";
 import { type Built, buildPage } from "./site-build";
 import { sitesNeeded } from "./site-needs";
 
@@ -18,9 +19,7 @@ declare module "vitest" {
 }
 
 export default async function setup(project: TestProject): Promise<() => void> {
-  // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
-  const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
-  const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
+  const specs = await runSpecs(project.vitest);
   const keys = sitesNeeded(specs.map((spec) => readFileSync(spec.moduleId, "utf8")));
   const built = await Promise.all(
     keys.map(async (key) => [key, await buildPage()] as const),

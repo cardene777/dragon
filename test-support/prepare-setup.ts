@@ -12,11 +12,10 @@ import { pathToFileURL } from "node:url";
 import type { TestProject } from "vitest/node";
 import { closePrepareTools } from "./prepare-tools";
 import { preparesFor, runPrepares } from "./prepare";
+import { runSpecs } from "./run-specs";
 
 export default async function setup(project: TestProject): Promise<void> {
-  // 命令に渡した file の絞り (`vitest run <file>`) は `filenamePattern` に在る。型に出ていないので読む形だけ宣言する
-  const vitest = project.vitest as typeof project.vitest & { filenamePattern?: string[] };
-  const specs = await vitest.getRelevantTestSpecifications(vitest.filenamePattern);
+  const specs = await runSpecs(project.vitest);
   const chosen = preparesFor([...new Set(specs.map((spec) => spec.moduleId))]);
   try {
     const results = await runPrepares(
