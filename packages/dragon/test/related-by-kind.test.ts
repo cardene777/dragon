@@ -112,9 +112,12 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 記法とHTMLの形の変換の検査 (`html-form.test.ts`、#3908) は全ての見本を変換するので全ての種類を読み、頁に置いたHTMLの形の図の検査 (`html-form-browser.test.ts`、#3908) は入口の build を読むので、どちらもどの種類を変えても選ぶ。配管の図とベン図と順の図の上限を2つずつ上げた。
   // 変換の検査は図を描かず、頁の検査は小さな時系列図を1枚だけ Chromium で開く
   // 判定の表の書き出しの検査 (`judge-export.test.ts`、#3923) は、既定の入口`@cardenelabs/dragon`で表を書き出し、入口がどの種類の記法も読むので、どの種類を変えても選ぶ。上限を1つ上げた (#3934で本線を取り込んだ時に数え直した)
-  it("related-pipe-draw-picks-at-most-134", () => {
+  // SVGの書き出しの検査 (`export-svg.test.ts`、#3891) は組み上げた命令 (`dist/cli.js`) を起こし、判定の表の絵の検査 (`judge-picture.test.ts`、#3891) は図の言語を決める`src/words.ts`を読んで全てのブロックの登録を読むので、どちらもどの種類を変えても選ぶ。上限を2つ上げた (#3950)
+  // SVGの書き出しの検査は小さな時系列図を1枚書き出し、判定の表の絵の検査は判定の表だけをjsdomで描く
+  // 埋め込んだ頁の帯から書き出す判定の表の検査 (`frame-judge-picture.test.ts`、#3945) は組み上げた帯の部品 (`dist/frame.js`) を読むので、どの種類を変えても選ぶ。上限をもう1つ上げた (#3950)
+  it("related-pipe-draw-picks-at-most-137", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
-    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(134);
+    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(137);
   });
 
   // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。
@@ -128,9 +131,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 持ち主ごとのカードの図の見本の検査 (#3846) も選ぶので、上限をもう1つ上げた (理由は配管の図の上限の上に書いた)
   // 記法とHTMLの形の変換の検査と頁に置いたHTMLの形の図の検査 (#3908) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた)
   // 判定の表の書き出しの検査 (#3923) も選ぶので、上限を1つ上げた (理由は配管の図の上限の上に書いた)
-  it("related-venn-draw-picks-at-most-118", () => {
+  // SVGの書き出しの検査と判定の表の絵の検査 (#3891) と、埋め込んだ頁の帯から書き出す判定の表の検査 (#3945) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#3950)
+  it("related-venn-draw-picks-at-most-121", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/venn.ts`);
-    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(118);
+    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(121);
   });
 
   // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
@@ -139,9 +143,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 持ち主ごとのカードの図の見本の検査 (#3846) は既定の入口からどの種類の記法も読むので選ばれ、カードの図の検査 (`cards-diagram.test.ts`、#3846) は`cards`と`refuse`を時系列図の箱の名札に使えるかを読むために時系列図の登録を読むので選ばれる。上限を2つ上げた
   // 記法とHTMLの形の変換の検査と頁に置いたHTMLの形の図の検査 (#3908) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた)
   // 判定の表の書き出しの検査 (#3923) は小さな時系列図も書き出すので選ばれる。上限を1つ上げた
-  it("related-sequence-layout-picks-at-most-165", () => {
+  // SVGの書き出しの検査と判定の表の絵の検査 (#3891) と、埋め込んだ頁の帯から書き出す判定の表の検査 (#3945) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#3950)
+  it("related-sequence-layout-picks-at-most-168", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(165);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(168);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
