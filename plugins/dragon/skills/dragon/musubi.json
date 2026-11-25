@@ -14,12 +14,32 @@
       "file": "references/layout.md"
     },
     "notation": {
-      "version": "1.1.0",
+      "version": "1.2.0",
       "file": "references/notation.md"
     },
     "setup": {
       "version": "1.0.0",
       "file": "references/setup.md"
+    },
+    "cheatsheet": {
+      "version": "1.0.0",
+      "file": "references/cheatsheet.md"
+    },
+    "plan": {
+      "version": "1.0.0",
+      "file": "references/plan.md"
+    },
+    "page": {
+      "version": "1.0.0",
+      "file": "references/page.md"
+    },
+    "example-library-loans": {
+      "version": "1.0.0",
+      "file": "references/example-library-loans.md"
+    },
+    "example-support-desk": {
+      "version": "1.0.0",
+      "file": "references/example-support-desk.md"
     },
     "architecture": {
       "version": "1.0.0",

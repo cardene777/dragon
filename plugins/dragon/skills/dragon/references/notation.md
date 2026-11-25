@@ -1,6 +1,7 @@
 # Notation shared by every kind
 
 This file covers the syntax every kind shares. The lines that only one kind takes are in that kind's file under `references/kinds/`.
+The smallest form of every kind and part, on one page, is in [cheatsheet](cheatsheet.md). Read it first when you plan the figures.
 Back to the workflow: [SKILL.md](../SKILL.md).
 
 ## The four rules
