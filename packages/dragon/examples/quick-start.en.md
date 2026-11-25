@@ -954,6 +954,7 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Kind and title | `view` | The view. `fixed` or `follow` |
 | Kind and title | `shape` | The shape of a chart. `donut` or `bar`. Only in a chart, where it is required |
 | Kind and title | `note` | How box notes show. `pop` shows them on cards that open on a click, and `under` under the names (see [Note cards](#note-cards)) |
+| Kind and title | `scenes` | How scenes show. `stack` lines them up and plays them together, and `pick` follows the scene chosen with its name button (see [Scenes](#scenes)) |
 | Region and box | `note` | The note of a region, or the caption under a box |
 | Region and box | `color` | Colour role. One of `blue` / `amber` / `green` / `violet` / `rose` / `slate` / `coin` |
 | Region and box | `icon` | Icon next to the name |
@@ -990,6 +991,49 @@ box store as Warehouse [note: Keeps the goods and ships them]
 step Ask
   say The shop asks the warehouse to ship.
   shop -> store: ship
+```
+
+## Scenes
+
+Flow and lineup diagrams can hold up to three scenes.
+Write the boxes and the steps shared by all scenes once, then write each scene's own steps from the point where they split between `scene <name>` and `end`.
+`stop <reason>` in a step stops that scene there and shows the reason.
+Choose how the scenes show with `[scenes: stack]` or `[scenes: pick]` on the first line; without it, the diagram uses `stack`.
+`stack` lines the scenes up top to bottom with each box at the same horizontal place in every scene, and moving on plays all scenes together.
+Shared steps draw their lines in gray, a scene's own steps in the scene's color, and a vertical dashed line marks where they split.
+`pick` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene.
+With `[note: pop]` on the first line too, a card opens just below the box clicked in that scene.
+When the page is printed, both show every scene at its last step, stacked.
+A fourth `scene`, a `scenes` value other than `stack` and `pick`, `scene` in another kind of diagram, `stop` in a step outside a scene, and a `scene` not closed with `end` are refused with the line named.
+
+```dragon
+flow Two scenes of a transfer [scenes: stack]
+
+box ask as Ask to transfer
+box look as Check the payee
+box send as Send
+box back as Send back
+
+step Ask
+  say A user asks to transfer money. Every scene shares the steps up to here.
+  start -> ask
+
+step Check
+  say Checks whether the payee is registered. The scenes split from here.
+  ask -> look: payee
+
+scene Transfer goes through
+  step Send
+    say The payee is right, so the money is sent.
+    look -> send: right
+end
+
+scene Wrong payee
+  step Send back
+    say The payee is wrong, so the transfer is sent back. This scene stops here.
+    look -> back: wrong
+    stop The payee is not registered
+end
 ```
 
 ## Errors

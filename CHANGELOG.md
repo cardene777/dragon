@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- Flow (`flow`) and lineup (`lineup`) diagrams can hold up to three scenes. Write the boxes and the steps shared by all scenes once, write each scene's own steps from the point where they split between `scene <name>` and `end`, and `stop <reason>` in a step stops that scene there and shows the reason. `[scenes: stack]` on the first line (the default) lines the scenes up top to bottom with each box at the same horizontal place, plays all scenes together, draws shared steps' lines in gray and a scene's own steps in its color, and marks where they split with a vertical dashed line. `[scenes: pick]` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene. When printed, both show every scene at its last step, stacked, and a `[note: pop]` card opens just below the box clicked in that scene. A fourth `scene`, a `scenes` value other than `stack` and `pick`, `scene` in another kind of diagram, `stop` outside a scene, and a `scene` not closed with `end` are refused with the line named. The JSON model holds the show and the scenes in a root `scenes` field, and the result of `renderDiagram` holds each scene's drawing in `scenes`. The types `DiagramScene`, `DiagramScenes`, `SceneShow`, `SceneMark` and `RenderedScene` are exported too. Drawing scenes and their player load later with the flow and lineup parts, so the first load does not grow (#3878)
+
 ## [0.80.0] - 2026-11-25
 
 ### Added
