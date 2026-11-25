@@ -1,0 +1,16 @@
+/** 使い方の頁の「帯」の節の、量の目盛りの段落 (#3880) */
+import type { BlockDocs } from "../../gallery";
+
+export const docs: BlockDocs = {
+  section: "strip",
+  ja: [
+    "目盛りは上限のある量を横の棒で見せる部品で、手順の図と列の図に置ける。最初の `step` より前に `gauge <名札> as <名前> [on: <箱>, limit: <上限>, unit: <単位>]` で宣言する。",
+    "段の中で `set <目盛り>: <総量>` と書くと、棒がその値まで動き、`20 / 100 USDC` の字と、前の段から増えた量か減った量の札が出る。値を書かない段は前の段の値を保つ。",
+    "目盛りは `on` の箱のすぐ下に置き、`on` を書かない目盛りは図の上の帯に置く。上限を超えた段は超えた分を赤で伸ばし、目盛りの下に「上限を超えた」の札を出す。札の字は `[over: <字>]` で替えられる。",
+  ],
+  en: [
+    "A gauge shows an amount with a limit as a bar, in a flow or a lineup diagram. Declare it before the first `step` with `gauge <id> as <name> [on: <box>, limit: <limit>, unit: <unit>]`.",
+    "Inside a step, `set <gauge>: <total>` moves the bar to that value. It shows `20 / 100 USDC` and a tag with the change from the step before. A step without it keeps the value.",
+    "A gauge sits right under its `on` box, and a gauge without `on` sits in the band at the top. Over the limit, the extra part grows in red with an over the limit tag under it. Change the tag with `[over: <text>]`.",
+  ],
+};

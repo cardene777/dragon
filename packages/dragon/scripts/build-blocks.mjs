@@ -8,8 +8,8 @@
  * - `src/blocks/index.ts` ... 各置き場の `block.ts` が出す定義を、dir の名前を鍵にした `BLOCKS` と、名前の並び `BLOCK_NAMES`
  * - `src/blocks/shapes.ts` ... 各置き場の `shape.ts` が出す原本の形の欠片を、dir の名前を鍵にした `SHAPES`
  * - `src/blocks/readings.ts` ... 各置き場の `read.ts` が出す読み方を、dir の名前を鍵にした `READINGS` (全部入りの入口と検査が読む、#3349)
- * - `src/blocks/entry-readings.ts` ... 入口が初めから持つ読み方 (`ENTRY_READINGS`)。コアブロックと、後から読まない図の種類の個別ブロック
- * - `src/blocks/later-readings.ts` ... 後から読む図の種類の個別ブロックの読み方を読む関数 (`LATER_READINGS`)。軽い入口が書いた図が使う時に呼ぶ
+ * - `src/blocks/entry-readings.ts` ... 入口が初めから持つ読み方 (`ENTRY_READINGS`)。後から読まない図の種類で使えるコアブロックと、後から読まない図の種類の個別ブロック
+ * - `src/blocks/later-readings.ts` ... 後から読む図の種類だけで使えるブロックの読み方を読む関数 (`LATER_READINGS`)。軽い入口が書いた図が使う時に呼ぶ
  * - `src/kinds/index.ts` ... 各置き場の `kind.ts` が出す定義を、dir の名前を鍵にした `KIND_FOLDERS`
  * - `apps/playground-spa/src/catalog/blocks.gen.ts` ... 各置き場の `gallery/` の見本帳の分を、種類ごとに dir の名前を鍵にした表と、
  *   ブロックの名前をブロックの並び (`block.ts` の `rank`) の順に並べた `BLOCK_ORDER`
@@ -110,6 +110,24 @@ const onlyOf = (root, name) => {
   return existsSync(path) ? /\bonly:\s*"([a-z-]+)"/u.exec(readFileSync(path, "utf8"))?.[1] : undefined;
 };
 
+/** 置き場の `block.ts` の付け方の `except` に並べた図の種類。無ければ空 */
+const exceptOf = (root, name) => {
+  const path = join(root, "blocks", name, "block.ts");
+  const list = existsSync(path) ? /\bexcept:\s*\[([^\]]*)\]/u.exec(readFileSync(path, "utf8"))?.[1] : undefined;
+  return list === undefined ? [] : [...list.matchAll(/"([a-z-]+)"/gu)].map((m) => m[1]);
+};
+
+/**
+ * 後から読むブロックか。`only` が後から読む図の種類の個別ブロックと、`except` で後から読まない図の種類を全て外したブロック (#3349、#3880)。
+ * 後者は 2 つ以上の図の種類で使えるが、使える種類がどれも後から読む種類なので、入口が初めから持つと使わない頁の最初に読む量だけが増える
+ */
+const isLaterBlock = (root, name, kinds, later) => {
+  const only = onlyOf(root, name);
+  if (only !== undefined) return later.has(only);
+  const except = exceptOf(root, name);
+  return except.length > 0 && kinds.every((kind) => later.has(kind) || except.includes(kind));
+};
+
 /** 置き場の `block.ts` のブロックの並び (`rank`) の字。無ければ `undefined` */
 const rankOf = (root, name) => {
   const path = join(root, "blocks", name, "block.ts");
@@ -148,7 +166,7 @@ function entryReadingsIndex(names) {
     'import type { BlockReading } from "./block";',
     ...names.map((name) => `import { reading as ${ident(name)}Reading } from "./${name}/read";`),
     "",
-    "/** 入口が初めから持つ読み方。コアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349) */",
+    "/** 入口が初めから持つ読み方。後から読まない図の種類で使えるコアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349、#3880) */",
     `export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = ${table(names, (name) => `${ident(name)}Reading`)};`,
     "",
   ].join("\n");
@@ -159,7 +177,7 @@ function laterReadingsIndex(names) {
     HEADER,
     'import type { BlockReading } from "./block";',
     "",
-    "/** 後から読む図の種類の個別ブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349) */",
+    "/** 後から読む図の種類だけで使えるブロックの読み方を読む関数。鍵は置き場の dir の名前。軽い入口が書いた図が使う時に呼ぶ (#3349、#3880) */",
     `export const LATER_READINGS: Readonly<Record<string, () => Promise<BlockReading>>> = ${table(names, (name) => `() => import("./${name}/read").then((m): BlockReading => m.reading)`)};`,
     "",
   ].join("\n");
@@ -250,7 +268,7 @@ export function generate(root = SRC, catalog = CATALOG, grammar = GRAMMAR) {
   const blocks = dirs(join(root, "blocks"));
   const kinds = dirs(join(root, "kinds"));
   const later = new Set(laterKinds(root, kinds));
-  const laterBlocks = blocks.filter((name) => later.has(onlyOf(root, name) ?? ""));
+  const laterBlocks = blocks.filter((name) => isLaterBlock(root, name, kinds.filter((kind) => existsSync(join(root, "kinds", kind, "kind.ts"))), later));
   const order = rankedNames(root, blocks);
   const apart = Object.keys(APART_FILES);
   const grammarRewritten = existsSync(grammar) ? grammarText(root, grammar, order) : undefined;

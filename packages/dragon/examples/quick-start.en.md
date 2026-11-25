@@ -56,6 +56,7 @@ Before the first `step` line, declare the diagram kind and title, regions, boxes
 | Box | `box <id> as <name> [note: <caption>]`. Without `as <name>`, the id is the name | `box OnRamp [note: checks and sends]` |
 | Choice | `choice <id> as <question>`. A diamond with the question inside, and each line out of it carries the answer as its label. Only in a flow diagram | `choice ok as Filled in?` |
 | Strip | `strip <title>: <field>, <field>`. In a time diagram, `[meter: <ratio>]` after a field name makes that field a meter | `strip Message: ID, receiver, state` |
+| Gauge | `gauge <id> as <name> [on: <box>, limit: <limit>, unit: <unit>, over: <text>]`. A bar for an amount with a limit. Only in a flow or a lineup diagram ([Gauges](#gauges)) | `gauge budget as Daily budget [on: vi, limit: 100, unit: USDC]` |
 | Branch | `branch <branch> [note: <note>]`. Only in a git graph. Bands are stacked from the top in the order declared | `branch feature [note: Work branch]` |
 | Scale | `scale <unit> <length> <count> [from: <first number>]`. Write the length as a number and a unit (`ms`, `s`, `min`, `h`, `d`); that many ticks are spaced evenly along the axis. Only in a time diagram | `scale slot 12s 64` |
 | Period | `period <name> <ticks> [from: <first number>]`. Puts a name and a number at each period boundary | `period epoch 32` |
@@ -76,6 +77,7 @@ Inside a step, indent these lines in the order things happen.
 | Action in a box | `act <id>: <action>` | `act OnRamp: check the contents` |
 | New caption under a box | `note <id>: <text>` | `note sourcePool: −100 USDC` |
 | Strip value | `set <field>: <value>` or `set <field> [tag: <tag>]` | `set state: SUCCESS` |
+| Gauge value | `set <gauge>: <total>`. The value is the total at that step, and a step without it keeps the value | `set budget: 40` |
 | Commit | `commit <id> on <branch> [hash: <hash>, note: <note>]`. Add `copy <source>` for a replayed commit or `merge <branch>` for a merge commit. Only in a git graph | `commit M on main merge fix [hash: 7d3a5e2]` |
 | Cut a branch | `<branch> from <commit>`. HEAD moves to that branch | `feature from A` |
 | Move a ref | `<branch or HEAD> -> <commit>`. In a git graph it moves only the ref and makes no commit | `HEAD -> M` |
@@ -965,6 +967,10 @@ Inside the `[ ]` at the end of a line, list `<key>: <value>` pairs separated by 
 | Line | `carry` | What travels on the line. `coin` or `none`. Without it, an envelope travels |
 | Line and strip value | `tag` | The text of a tag that travels on the line, or a tag on a strip field |
 | Line | `side` | Which side of the line the label goes. `above` / `below` / `left` / `right`. Write it only when the automatic placement breaks |
+| Gauge | `on` | The box the gauge sits under. Without it, the gauge sits in the band at the top |
+| Gauge | `limit` | The limit, a number above 0. Without it, the gauge draws no bar and shows only the value and the unit |
+| Gauge | `unit` | The unit shown after the value |
+| Gauge | `over` | The tag under the gauge in a step over the limit. The default is over the limit. Only a gauge with `limit` takes it |
 
 Wrap a value that contains `,` or `]` in `"`, and write `"` and `\` inside it as `\"` and `\\`.
 Lines starting with `//` and empty lines are not read.
@@ -990,6 +996,42 @@ box store as Warehouse [note: Keeps the goods and ships them]
 step Ask
   say The shop asks the warehouse to ship.
   shop -> store: ship
+```
+
+## Gauges
+
+In a flow or a lineup diagram, `gauge <id> as <name> [on: <box>, limit: <limit>, unit: <unit>]` before the first `step` shows an amount with a limit as a bar.
+In a step, `set <gauge>: <total>` moves the bar to that value, with text like 40 / 100 USDC above the bar.
+The value is the total at that step. It is 0 before the first `set`, and a step without `set` keeps the value.
+A smaller value than before shrinks the bar.
+A step that changes the value shows a tag with the increase (`+40`) or the decrease (`−20`) to the right of the bar.
+A gauge sits right under its `on` box, and gauges on the same box stack in the order declared.
+A gauge without `on` sits in the band at the top of the diagram.
+In a step over the limit, a dotted line marks the limit, and the part over it grows in red.
+The value turns red, and an over the limit tag shows under the gauge. `[over: <text>]` changes the text of the tag.
+A gauge without `limit` draws no bar and shows only the value and the unit.
+An `on` that names an undeclared box is refused with the line named.
+So is a `set` on an undeclared gauge, or a `set` whose value is below 0 or not a number.
+
+```dragon
+flow Stop payments at the daily budget
+
+box agent as AI agent
+box vi as VeriIntent
+box signer as Signer
+
+gauge budget as Daily budget [on: vi, limit: 100, unit: USDC, over: Stopped over the limit]
+
+step Send the first
+  say Send 40 USDC and use 40 percent of the budget.
+  agent -> vi: 40 USDC
+  vi -> signer: Ask to sign
+  set budget: 40
+
+step Stop at the second
+  say The total of 120 USDC goes over the limit, so it stops without asking to sign.
+  agent -> vi: 80 USDC
+  set budget: 120
 ```
 
 ## Errors
