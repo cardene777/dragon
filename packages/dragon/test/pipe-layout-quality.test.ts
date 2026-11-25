@@ -1137,19 +1137,39 @@ const VAULT = await atLoad("見本 vault-proxy の日本語と英語の図を描
   ),
 );
 const vaultFigure = (lang: string): TagFigure => VAULT.get().get(lang) as TagFigure;
-const centerOf = (r: Rect): Point => [r.x + r.w / 2, r.y + r.h / 2];
-/** 点 `p` から点の並び `points` の線までの距離 */
-function distanceToLine([x, y]: Point, points: readonly Point[]): number {
-  return Math.min(
-    ...segsOf(points).map(([a, b]) => {
-      const dx = b[0] - a[0];
-      const dy = b[1] - a[1];
-      const len = dx * dx + dy * dy;
-      const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / len));
-      return Math.hypot(x - (a[0] + t * dx), y - (a[1] + t * dy));
-    }),
-    Number.POSITIVE_INFINITY,
+/** 呼び出しの管。線の札は自分の管の番号 (`call`) を持つ */
+interface CallPipe {
+  index: number;
+  from: string;
+  to: string;
+  points: Point[];
+}
+type GapTag = CallTag & { call: number };
+type GapLayout = TagLayout & { calls?: CallPipe[]; callTags?: GapTag[] };
+/** 2 つの四角の隙間。離れる向きの隙間のうち最も大きい値で、重なる時は負になる */
+const gapOf = (a: Rect, b: Rect): number => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+const rounded = (r: Rect): number[] => [r.x, r.y, r.w, r.h].map(Math.round);
+/** 管は 16px の太さで描くので、管の縁は線の芯から 8px 外 (Tracelyth #209) */
+const PIPE_HALF = 8;
+/**
+ * 線の札と、自分の呼び出しの管の縁と、返り値の札の止まる所の隙間 (#3949)。
+ * 返り値の札は道の始まりに描き、道の終わりで止まる。止まる所の四角は道の終わりを真ん中にする
+ */
+function tagClearance(L: GapLayout, tag: GapTag): { pipe: number; back: number } {
+  const call = (L.calls ?? []).find((c) => c.index === tag.call);
+  if (!call) throw new Error(`線の札 ${tag.text} の呼び出しの管が無い`);
+  const pipe = Math.min(
+    ...segsOf(call.points).map(([a, b]) =>
+      gapOf(tag, { x: Math.min(a[0], b[0]) - PIPE_HALF, y: Math.min(a[1], b[1]) - PIPE_HALF, w: Math.abs(b[0] - a[0]) + PIPE_HALF * 2, h: Math.abs(b[1] - a[1]) + PIPE_HALF * 2 }),
+    ),
   );
+  const rests = L.chips
+    .filter((c) => c.kind === "return" && c.w > 0 && c.path && c.path.length > 1)
+    .map((c): Rect => {
+      const [x, y] = (c.path as Point[])[(c.path as Point[]).length - 1] as Point;
+      return { x: x - c.w / 2, y: y - c.h / 2, w: c.w, h: c.h };
+    });
+  return { pipe, back: Math.min(...rests.map((r) => gapOf(tag, r)), Number.POSITIVE_INFINITY) };
 }
 
 describe.for(["ja", "en"])("vault-proxy (%s) の線の札", (lang) => {
@@ -1176,14 +1196,14 @@ describe.for(["ja", "en"])("vault-proxy (%s) の線の札", (lang) => {
     expect([...new Set(hits)], "線の札が重なる部品").toEqual([]);
   });
 
-  it("pipe-call-tag-sits-on-pipe-without-room", () => {
-    // VaultProxy と VaultLogic の間の管は短く、横に札を置ける所が無い。札は自分の管の上に重ね、札の真ん中を管の芯に載せる
+  it("pipe-call-tag-sits-beside-short-pipe", () => {
+    // VaultProxy と VaultLogic の間の管は短い。札は管から遠い所と線の端の外まで探し、管の上に重ねずに管の横に置く (#3949)
     const { layout: L } = vaultFigure(lang);
     const tag = (L.callTags ?? []).find((t) => t.from === "proxy" && t.to === "logic");
-    const branch = L.mains.find((m) => m.from === "proxy")?.branches.find((b) => b.to === "logic");
-    expect(tag && branch, "VaultProxy から VaultLogic への線と線の札").toBeTruthy();
-    const center = centerOf(tag as Rect);
-    expect(distanceToLine(center, branch?.points ?? []), `札の真ん中 ${JSON.stringify(center.map(Math.round))} から管の芯までの距離`).toBeLessThan(1);
+    expect(tag, "VaultProxy から VaultLogic への線の札").toBeTruthy();
+    const { pipe, back } = tagClearance(L as GapLayout, tag as GapTag);
+    expect(pipe, `札 ${JSON.stringify(rounded(tag as Rect))} と管の縁の隙間`).toBeGreaterThanOrEqual(8);
+    expect(back, `札 ${JSON.stringify(rounded(tag as Rect))} と返り値の札の止まる所の隙間`).toBeGreaterThanOrEqual(8);
   });
 
   it("pipe-call-tag-drawn-above-lit-pipes", () => {
@@ -1192,5 +1212,79 @@ describe.for(["ja", "en"])("vault-proxy (%s) の線の札", (lang) => {
     const tagAt = svg.indexOf("data-pipe-calltag=");
     expect(tagAt, "線の札を描いていない").toBeGreaterThanOrEqual(0);
     expect(tagAt, "線の札の組が最後の段の組より前に在る").toBeGreaterThan(svg.lastIndexOf("data-pipe-frame="));
+  });
+});
+
+// ---- 処理を借りる呼び出しの線の札の隙間 (#3949)
+
+/**
+ * 網型で、Diamond が DiamondCutFacet の処理を借りる呼び出し。0.80.0 から線の札が戻りの ok の札に 23px 重なった (#3949)。
+ * Tracelyth のアップグレードのサンプル (Diamond) と同じ記法
+ */
+const DIAMOND_CUT = `pipe Diamond.diamondCutを実行
+layout mesh
+
+box alice as Alice
+box diamond as Diamond
+box cut as DiamondCutFacet
+box v1 as CounterFacetV1
+box v2 as CounterFacetV2
+
+hold diamond: "count" 1 [tank]
+
+step AliceがDiamondのdiamondCutを呼ぶ
+  say AliceがDiamond.diamondCutを呼び出します。
+  alice -> diamond: "diamondCut(_diamondCut: [(v2, 1, [0xd09de08a])], _init: 0x0000000000000000000000000000000000000000, _calldata: 0x)"
+
+step DiamondのincrementのファセットがCounterFacetV1からCounterFacetV2になる
+  say DiamondがDiamondCutFacetのdiamondCutの処理を借りて、自分のincrementのファセットをCounterFacetV1からCounterFacetV2に書き換えます。
+  diamond -> cut: "diamondCut(_diamondCut: [(v2, 1, [0xd09de08a])], _init: 0x0000000000000000000000000000000000000000, _calldata: 0x)" [call: delegate]
+  emit diamond: DiamondCut(_diamondCut: [(v2, 1, [0xd09de08a])], _init: 0x0000000000000000000000000000000000000000, _calldata: 0x)
+  return cut: ok
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。incrementのファセットはCounterFacetV1からCounterFacetV2になりました。
+  return diamond: ok
+`;
+// 図は file を読み込む段で描き、件は描いた物を読む (#3738)
+const DIAMOND = await atLoad("Diamond.diamondCut の図を描く", () => {
+  const parsed = api.parseNotation(DIAMOND_CUT, { lang: "ja" });
+  if (!parsed.ok) throw new Error(`Diamond.diamondCut を読めない: ${parsed.errors.map((e) => `${e.line}行目 ${e.message}`).join(" / ")}`);
+  return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout as GapLayout;
+});
+const diamondTag = (): GapTag => {
+  const tag = (DIAMOND.get().callTags ?? []).find((t) => t.from === "diamond" && t.to === "cut");
+  if (!tag) throw new Error("Diamond から DiamondCutFacet への線の札が無い");
+  return tag;
+};
+
+describe("Diamond.diamondCut の線の札 (#3949)", () => {
+  it("pipe-call-tag-clears-return-chip", () => {
+    const tag = diamondTag();
+    expect(tagClearance(DIAMOND.get(), tag).back, `札 ${JSON.stringify(rounded(tag))} と戻りの ok の札の止まる所の隙間`).toBeGreaterThanOrEqual(8);
+  });
+
+  it("pipe-call-tag-clears-pipe-edge", () => {
+    const tag = diamondTag();
+    expect(tagClearance(DIAMOND.get(), tag).pipe, `札 ${JSON.stringify(rounded(tag))} と呼び出しの管の縁の隙間`).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("描いたログの札と線の札の隙間 (#3949)", () => {
+  // 描く段はログの札を線の札から 6px 空けて置き直す。並べ方の段の線の札はログの札の仮の置き場を避けないので、描く段が離す
+  const figures = (): [string, GapLayout][] => [
+    ["Diamond.diamondCut", DIAMOND.get()],
+    ["vault-proxy (ja)", vaultFigure("ja").layout as GapLayout],
+    ["vault-proxy (en)", vaultFigure("en").layout as GapLayout],
+  ];
+  it("pipe-log-card-clears-call-tag", () => {
+    const near: string[] = [];
+    for (const [name, L] of figures())
+      for (const tag of L.callTags ?? [])
+        for (const card of L.logCards ?? []) {
+          const gap = gapOf(tag, card);
+          if (gap < 6 - 1e-6) near.push(`${name} ${tag.text} とログの札 ${card.title} の隙間 ${gap.toFixed(1)}px`);
+        }
+    expect(near, "線の札から 6px 未満のログの札").toEqual([]);
   });
 });
