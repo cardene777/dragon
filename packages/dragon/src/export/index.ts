@@ -6,6 +6,8 @@
  * 寄って見せる図で幅の指定が無い時は、記事の本文ほどの枠 (`FOLLOW_WIDTH`) で寄る。
  * 頁に要る物 (描いた図と色の値と描かれうる字) は、ブラウザの書き出す入口と同じ処理 (`page.ts`) で集める (#3667)。
  * PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
+ * HTML で描く図 (判定の表) は、撮る頁で描いた大きさを測って撮り、動画は段ごとに種類の部品の `html.show` で段を図に書く (#3923)。
+ * その PNG は、段を選ばない時は段を書かずに全ての段を見せ、`step` を選んだ時はその段を書いた形を撮る。
  * 字は図で描く字だけに削り、撮る頁と HTML の両方に同じ物を埋める。
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -17,7 +19,8 @@ import type { ViewMode } from "../schema";
 import type { UserBlocks } from "../user-blocks";
 import { chooseView } from "../view";
 import type { NotationLang } from "../words";
-import { film, launch, sizeOf, stage, still } from "./capture";
+import { partsOf } from "../kinds/registry";
+import { film, type HtmlFigure, launch, sizeOf, stage, still } from "./capture";
 import { planFilm } from "./film";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
@@ -98,6 +101,8 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const view = chooseView(rendered, width).mode;
   const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
   const fontCss = await fontFaces(charsOf(plan.texts));
+  const show = partsOf(rendered.layout.kind)?.html?.show;
+  const figure: HtmlFigure | undefined = show ? { show, starts: timeline.steps.map((span) => span.start) } : undefined;
 
   // 撮る物を全て撮り終えてから書く。撮る所で失敗した時に、書き出し先の dir と途中の file を残さないため (#3013)
   const outputs: [ExportFormat, string | Buffer][] = [];
@@ -105,20 +110,26 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   if (formats.includes("html")) outputs.push(["html", pageHtml(plan, fontCss, readFileSync(PLAYER, "utf8"))]);
 
   let frames = 0;
+  // 動画のコマの大きさ。HTML で描く図は撮る頁で測った大きさ、ほかは図の SVG の大きさ
+  let size = sizeOf(videoSvg);
   const mp4 = formats.includes("mp4");
   const gif = formats.includes("gif");
   if (mp4 || gif || formats.includes("png")) {
     const browser = await launch(said);
     try {
       if (formats.includes("png")) {
-        const fixed = await stage(browser, rendered.svg, fontCss, "", said);
-        outputs.push(["png", await still(fixed, timeline.stills[(options.step ?? steps) - 1] ?? 0)]);
+        const fixed = await stage(browser, rendered.svg, fontCss, "", said, figure);
+        if (figure) size = { width: fixed.width, height: fixed.height };
+        const step = (options.step ?? steps) - 1;
+        outputs.push(["png", await still(fixed, timeline.stills[step] ?? 0, options.step === undefined ? undefined : step)]);
       }
       if (mp4 || gif) {
         // コマの数と間引きは書き出す入口と同じ計画で決める (#3644)。GIF の色の表は、最初の絵と段ごとの止め絵から作る
         const filmPlan = planFilm(timeline, { mp4, gif, fps: options.fps, gifFps: options.gifFps });
-        const shot = await film(await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, said), filmPlan);
+        const filmed = await stage(browser, videoSvg, fontCss, `${vars};background:var(--bg)`, said, figure);
+        const shot = await film(filmed, filmPlan);
         frames = shot.frames;
+        size = { width: filmed.width, height: filmed.height };
         if (shot.mp4) outputs.push(["mp4", shot.mp4]);
         if (shot.gif) outputs.push(["gif", shot.gif]);
       }
@@ -127,7 +138,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     }
   }
   const files = writeOutputs(options.outDir, options.name ?? "diagram", outputs);
-  return { files, view, frames, ...sizeOf(videoSvg), overlaps: rendered.overlaps };
+  return { files, view, frames, ...size, overlaps: rendered.overlaps };
 }
 
 /**
