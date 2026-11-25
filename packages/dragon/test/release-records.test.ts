@@ -223,6 +223,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-80-1-lists-width-fixes-once", () => {
+    // 判定の表の PNG の直し (#3923) と書き出す窓の直し (#3937) と、止めて見せる図 (#3934) と場面の図 (#3938) を元の幅で止める直しを 0.80.1 で出す (#3940)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 80 || (minor === 80 && patch >= 1), `package の版 ${version()} が 0.80.1 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.80\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.80.1"), "0.80.1");
+      expect(released, `${file} に日付付きの ## [0.80.1] の節が無い`).not.toBe("");
+      for (const issue of ["(#3923)", "(#3937)", "(#3934)", "(#3938)"]) {
+        expect(released.split(issue).length - 1, `${file} の 0.80.1 の節が ${issue} の項を 1 回だけ持たない`).toBe(1);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-80-0-lists-cards-once", () => {
     // 持ち主ごとのカードの図 (#3846) と、v0.79.7 の後に既定の枝へ入った未公開の項を全て 0.80.0 で出す (#3904)
     const [major = 0, minor = 0] = version().split(".").map(Number);
