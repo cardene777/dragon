@@ -154,6 +154,9 @@ step ログインを押す
 <tr>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#購入操作図">購入操作図</a><br>読む人が条件を変えられる購入の模型</td>
 </tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.md#判定の表">判定の表</a><br>例を規則と照らして通すか止めるかを出す表</td>
+</tr>
 </table>
 
 ## script の 1 行で頁に出す

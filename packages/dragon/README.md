@@ -151,6 +151,9 @@ Select a kind to read how to write it.
 <tr>
 <td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#checkout-diagram">Checkout diagram</a><br>A purchase model the reader can change</td>
 </tr>
+<tr>
+<td align="center"><a href="https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#judge-table">Judge table</a><br>A table that checks each case against the rules</td>
+</tr>
 </table>
 
 ## Show it with one script line

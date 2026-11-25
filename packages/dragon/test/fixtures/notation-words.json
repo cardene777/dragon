@@ -18,7 +18,8 @@
     "matrix",
     "venn",
     "sankey",
-    "cards"
+    "cards",
+    "judge"
   ],
   "HEADS": [
     "group",

@@ -1,0 +1,17 @@
+// 会員登録の入力の決まりを列に、登録の申し込みを行に並べ、決まりを1つずつ照らしてどの申し込みを断るかを出す。
+// 外れる申し込みの下に、外れた決まりと入力の値を書く。
+judge どの会員登録を断るのか
+
+rule mail as メール [value: @を含む]
+rule pw as パスワード [value: 8字以上]
+rule age as 年齢 [value: 13歳以上]
+rule terms as 利用規約 [value: 同意する]
+
+case 佐藤さん [note: 全て入力した]
+case 鈴木さん [note: パスワードが短い]
+  fail pw: 5字
+case 高橋さん [note: メールの打ち間違い]
+  fail mail: takahashi.example.jp
+case 田中さん [note: 12歳で同意していない]
+  fail age: 12歳
+  fail terms: 未同意

@@ -208,3 +208,5 @@ export { blockKinds } from "./blocks/usable";
 
 export type { CheckoutBlock, CheckoutDefinition, ReadCheckout } from "./checkout/read";
 export type { CheckoutQuote, CheckoutState, CheckoutEvent, CheckoutView, CheckoutModel, CheckoutOptions, CheckoutController } from "./checkout/types";
+// 判定の表の原本の `judge` の欄の型 (#3879)
+export type { JudgeCase, JudgeFail, JudgeRule, JudgeSpec } from "./judge/types";
