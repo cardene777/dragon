@@ -26,6 +26,7 @@
     "end",
     "box",
     "strip",
+    "gauge",
     "step",
     "say",
     "code",
@@ -123,6 +124,12 @@
     ],
     "set": [
       "tag"
+    ],
+    "gauge": [
+      "on",
+      "limit",
+      "unit",
+      "over"
     ],
     "strip": [
       "meter"

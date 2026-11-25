@@ -267,6 +267,14 @@ export const TYPE = {
   noteName: text(11, 650),
   noteBody: text(14, 500),
   noteExample: text(12.5, 500),
+  /**
+   * 量の目盛り (#3880)。目盛りの名前、「値 / 上限 単位」の字、増えた量の札の字、上限を超えた札の字。
+   * 列の図は箱の名前 (`boxName`) が読める幅で横に並べるので、目盛りの字はその幅の縮みでも 10.5 を下回らない大きさにする
+   */
+  gaugeName: text(11.5, 600),
+  gaugeValue: text(12, 700, "mono"),
+  gaugeTag: text(11.5, 700, "mono"),
+  gaugeOver: text(11.5, 700),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -622,6 +630,32 @@ export const LOOK = {
     valueY: 43,
     trail: { r: 5.4, step: 16 },
     now: { r: 3, gap: 7 },
+  },
+  /**
+   * 量の目盛り (#3880)。`below` は箱の下の端から 1 つ目の目盛りまで、`stack` は積んだ目盛りの間、`band` は図の上の帯の下の空き、
+   * `clear` は手順の図で箱の真ん中から下りる線と目盛りの左の端の間 (線の上の段の番号の丸に掛けない)。
+   * 1 行目は名前と「値 / 上限 単位」の字 (`textH`)、2 行目は棒 (`barH`) と増えた量の札 (`chipH`)、超える段が在る目盛りは 3 行目に上限を超えた札 (`overH`) を置く。
+   * `minBar` は棒の最も短い長さ、`limitOver` は上限の点線が棒の上下にはみ出す長さ
+   */
+  gauge: {
+    below: 8,
+    stack: 8,
+    band: 18,
+    clear: 16,
+    textH: 16,
+    rowGap: 4,
+    barH: 8,
+    chipH: 18,
+    chipPadX: 6,
+    chipGap: 6,
+    nameGap: 12,
+    minBar: 96,
+    overGap: 4,
+    overH: 18,
+    overPadX: 7,
+    limitOver: 3,
+    radius: 4,
+    stroke: 1.2,
   },
   /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
   stroke: {

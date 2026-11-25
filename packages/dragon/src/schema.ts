@@ -49,6 +49,7 @@ import type { PipeWrite } from "./blocks/write/block";
 import type { LineupStamp } from "./blocks/stamp/block";
 import type { ErCell, ErField, ErFormula, ErLookup, ErTable } from "./blocks/table/block";
 import type { VennCount, VennNone, VennSet } from "./blocks/circle/block";
+import type { Gauge, GaugeSet } from "./blocks/gauge/block";
 import type { CardDelete, CardItem, CardMake, CardMove, CardRefuse } from "./blocks/card/block";
 import { READ_MESSAGES } from "./read-messages";
 import { DEFAULT_LANG, type NotationLang } from "./words";
@@ -132,6 +133,7 @@ export type DiagramEvent =
   | ErFormula
   | VennCount
   | VennNone
+  | GaugeSet
   | CardMake
   | CardMove
   | CardDelete
@@ -170,6 +172,8 @@ export type { ErCell, ErField, ErFormula, ErLookup, ErTable };
 
 /** 集合の重なりの図 (#3620) の集まりと、段の中の数の出来事の型は集まりの円のブロックが持つ */
 export type { VennCount, VennNone, VennSet };
+/** 量の目盛り (#3880) の宣言と、段の中の値の出来事の型は目盛りのブロックが持つ */
+export type { Gauge, GaugeSet };
 
 /** 持ち主ごとのカードの図 (#3846) のカードと、段の中のカードの出来事の型は持ち主ごとのカードのブロックが持つ */
 export type { CardDelete, CardItem, CardMake, CardMove, CardRefuse };
@@ -377,6 +381,8 @@ export interface DiagramBlocks {
   table?: ErTable[];
   /** 集合の重なりの図 (#3620) の集まり。宣言した順に円を置く */
   circle?: VennSet[];
+  /** 量の目盛り (#3880)。`on` の箱の下と図の上の帯に、宣言した順に縦に積む */
+  gauge?: Gauge[];
   /** 持ち主ごとのカードの図 (#3846) の、最初の段より前から在るカード。書いた順に列の上から積む */
   card?: CardItem[];
 }
@@ -444,6 +450,8 @@ export interface DiagramModel {
   regions?: Region[];
   boxes: Box[];
   strip?: Strip;
+  /** 量の目盛り (#3880)。版1の原本に無かった欄なので、版2の原本の `gauge` をそのまま持つ */
+  gauge?: Gauge[];
   steps: Step[];
   /** 時系列図の生存線の並びと、見た目 (#3720)。見た目は版2の原本の根の `sequence` の欄から移す */
   sequence?: { lifelines: string[]; shape?: SequenceShape };

@@ -2147,6 +2147,9 @@
             },
             "choice": {
               "$ref": "#/definitions/absent"
+            },
+            "gauge": {
+              "$ref": "#/definitions/absent"
             }
           }
         },
@@ -2232,6 +2235,9 @@
                 "$ref": "#/definitions/absent"
               },
               "choice": {
+                "$ref": "#/definitions/absent"
+              },
+              "gauge": {
                 "$ref": "#/definitions/absent"
               }
             }
@@ -2421,6 +2427,9 @@
                   },
                   "check": {
                     "$ref": "#/definitions/absent"
+                  },
+                  "gauge": {
+                    "$ref": "#/definitions/absent"
                   }
                 }
               },
@@ -2494,6 +2503,9 @@
                     },
                     "choice": {
                       "$ref": "#/definitions/absent"
+                    },
+                    "gauge": {
+                      "$ref": "#/definitions/absent"
                     }
                   }
                 },
@@ -2560,6 +2572,9 @@
                         "$ref": "#/definitions/absent"
                       },
                       "choice": {
+                        "$ref": "#/definitions/absent"
+                      },
+                      "gauge": {
                         "$ref": "#/definitions/absent"
                       }
                     }
@@ -2633,6 +2648,9 @@
                           "$ref": "#/definitions/absent"
                         },
                         "choice": {
+                          "$ref": "#/definitions/absent"
+                        },
+                        "gauge": {
                           "$ref": "#/definitions/absent"
                         }
                       }
@@ -2798,6 +2816,9 @@
                             },
                             "choice": {
                               "$ref": "#/definitions/absent"
+                            },
+                            "gauge": {
+                              "$ref": "#/definitions/absent"
                             }
                           }
                         },
@@ -2887,6 +2908,9 @@
                               },
                               "choice": {
                                 "$ref": "#/definitions/absent"
+                              },
+                              "gauge": {
+                                "$ref": "#/definitions/absent"
                               }
                             }
                           },
@@ -2962,6 +2986,9 @@
                                   "$ref": "#/definitions/absent"
                                 },
                                 "choice": {
+                                  "$ref": "#/definitions/absent"
+                                },
+                                "gauge": {
                                   "$ref": "#/definitions/absent"
                                 }
                               }
@@ -3042,6 +3069,9 @@
                                   },
                                   "choice": {
                                     "$ref": "#/definitions/absent"
+                                  },
+                                  "gauge": {
+                                    "$ref": "#/definitions/absent"
                                   }
                                 }
                               },
@@ -3117,6 +3147,9 @@
                                       "$ref": "#/definitions/absent"
                                     },
                                     "choice": {
+                                      "$ref": "#/definitions/absent"
+                                    },
+                                    "gauge": {
                                       "$ref": "#/definitions/absent"
                                     }
                                   }
@@ -3199,6 +3232,9 @@
                                         "$ref": "#/definitions/absent"
                                       },
                                       "table": {
+                                        "$ref": "#/definitions/absent"
+                                      },
+                                      "gauge": {
                                         "$ref": "#/definitions/absent"
                                       }
                                     }
@@ -3299,6 +3335,9 @@
                                         },
                                         "choice": {
                                           "$ref": "#/definitions/absent"
+                                        },
+                                        "gauge": {
+                                          "$ref": "#/definitions/absent"
                                         }
                                       }
                                     },
@@ -3394,6 +3433,9 @@
                                             "$ref": "#/definitions/absent"
                                           },
                                           "check": {
+                                            "$ref": "#/definitions/absent"
+                                          },
+                                          "gauge": {
                                             "$ref": "#/definitions/absent"
                                           }
                                         }
@@ -3506,6 +3548,9 @@
                                             },
                                             "check": {
                                               "$ref": "#/definitions/absent"
+                                            },
+                                            "gauge": {
+                                              "$ref": "#/definitions/absent"
                                             }
                                           }
                                         },
@@ -3602,6 +3647,9 @@
                                                 "$ref": "#/definitions/absent"
                                               },
                                               "choice": {
+                                                "$ref": "#/definitions/absent"
+                                              },
+                                              "gauge": {
                                                 "$ref": "#/definitions/absent"
                                               }
                                             }

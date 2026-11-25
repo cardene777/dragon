@@ -18,6 +18,7 @@ export const EVENT_OWNERS: Readonly<Record<string, string>> = {
   "edge": "edge",
   "emit": "emit",
   "formula": "table",
+  "gauge": "gauge",
   "idea": "idea",
   "item": "ask",
   "leaf": "leaf",

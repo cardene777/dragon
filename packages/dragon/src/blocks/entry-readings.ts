@@ -17,7 +17,7 @@ import { reading as sourceReading } from "./source/read";
 import { reading as stepReading } from "./step/read";
 import { reading as stripReading } from "./strip/read";
 
-/** 入口が初めから持つ読み方。コアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349) */
+/** 入口が初めから持つ読み方。後から読まない図の種類で使えるコアブロックと、後から読まない図の種類の個別ブロック。鍵は置き場の dir の名前 (#3349、#3880) */
 export const ENTRY_READINGS: Readonly<Record<string, BlockReading>> = {
   "act": actReading,
   "box": boxReading,

@@ -39,6 +39,8 @@ export {
   type ErTable,
   type FieldError,
   type FlowChoice,
+  type Gauge,
+  type GaugeSet,
   type GitBranch,
   type GitCommit,
   type GitDelete,
@@ -124,6 +126,8 @@ export type {
   SceneStrip,
   SceneTrail,
 } from "./layout/scene";
+/** 量の目盛りの置き場所 (#3880) */
+export type { SceneGauge } from "./blocks/gauge/layout";
 export type { TimeAxis, TimeBox, TimeColumn, TimeLayout, TimeMark, TimePeriodPlaced, TimePointPlaced, TimeRowPlaced, TimeSpanPlaced, TimeTaskPlaced, TimeTick, TimeWire, TimeZoom } from "./kinds/time/layout";
 export type { TreeLayout, TreeLink, TreePlaced, TreeRun } from "./kinds/tree/layout";
 export type { TryChainPlaced, TryLayout, TryLogPlaced, TryMoment, TryNetLink, TryNodePlaced, TryPartPlaced, TryQueuePlaced, TryRoutePlaced, TryTitle } from "./kinds/try/layout";

@@ -10,6 +10,7 @@
  * 判断から同じ段に書いた 2 本の線は、先に書いた線が本筋を進み、後に書いた線の先の箱は本筋に無い箱と同じ所へ置く。段で辿り着くので点線の縁と薄い字にはしない (#3579)。
  */
 import { type MainWalk, walkLine } from "../../blocks/choice/block";
+import { planGauges, roomUnder, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
 import { FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { Box, DiagramModel } from "../../schema";
@@ -124,6 +125,12 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   };
   const fits = new Map(all.boxes.map((b) => [b.id, fitOf(b.id)]));
   const fit = (id: string): BoxFit => fits.get(id) ?? { w: B.minW, h: B.h };
+  // 量の目盛り (#3880)。箱の下に積む目盛りの高さを箱の後ろの間に足し、図の上の帯の目盛りの高さを最初の箱の上に空ける。
+  // 箱の下の目盛りは、箱の真ん中から下りる線と線の上の段の番号の丸に掛けないよう、真ん中から `clear` だけ右から始める
+  const G = LOOK.gauge;
+  const plans = planGauges(diagram, all.boxes.map((b) => b.id), words.gaugeOver);
+  const under = (id: string): number => roomUnder(plans.under.get(id));
+  const band = plans.top.length > 0 ? stackHeight(plans.top) + G.band : 0;
 
   const boxOf = (id: string, x: number, y: number): SceneBox => {
     const source = all.boxes.find((b) => b.id === id);
@@ -156,14 +163,14 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const cx = margin + leftRoom + mainW / 2;
   const startTo = lines.find((l) => l.from === "start")?.to;
   // 始まりの印から最初の箱へ下りる間を、最初の箱の上に空ける
-  let y = margin + (startTo !== undefined && (startTo === main[0] || !main.includes(startTo)) ? T.start + F.drop : 0);
+  let y = margin + band + (startTo !== undefined && (startTo === main[0] || !main.includes(startTo)) ? T.start + F.drop : 0);
   const boxes: SceneBox[] = [];
   for (const id of main) {
     boxes.push(boxOf(id, cx - fit(id).w / 2, y));
-    y += fit(id).h + F.gap;
+    y += fit(id).h + under(id) + F.gap;
   }
   const byId = new Map(boxes.map((b) => [b.id, b]));
-  const mainRight = Math.max(cx, ...boxes.map((b) => b.x + b.w));
+  const mainRight = Math.max(cx, ...boxes.map((b) => b.x + b.w), ...boxes.map((b) => (plans.under.has(b.id) ? b.cx + G.clear + widest(plans.under.get(b.id)) : 0)));
   const mainLeft = Math.min(cx, ...boxes.map((b) => b.x));
   const mainBottom = boxes.length > 0 ? Math.max(...boxes.map((b) => b.y + b.h)) : margin;
 
@@ -200,10 +207,12 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       const placed = boxOf(id, left + (colW - fit(id).w) / 2, top);
       boxes.push(placed);
       byId.set(id, placed);
-      floor = top + h + F.stack;
+      floor = top + h + under(id) + F.stack;
     }
-    left += colW + F.side;
+    // 箱の下の目盛りが列の幅より右へ出る列は、次の列をその分だけ右に置く
+    left += Math.max(colW, ...inColumn.map((id) => (plans.under.has(id) ? colW / 2 + G.clear + widest(plans.under.get(id)) : 0))) + F.side;
   }
+  const gauges = [...topBand(plans.top, margin, margin), ...boxes.flatMap((b) => { const own = plans.under.get(b.id); return own ? underBox(own, b, b.cx + G.clear) : []; })];
 
   // 始まりの印は始まりから入る箱の上。本筋の途中の箱へ入る時は、その箱の左に置く
   const ends: SceneEnd[] = [];
@@ -217,7 +226,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   for (const box of boxes.filter((b) => lines.some((l) => l.from === b.id && l.to === "finish"))) {
     ends.push(
       exitsRight(box.id)
-        ? { kind: "finish", x: box.cx, y: box.y + box.h + T.below, r: T.end.r, ghost: false, text: words.end, box: box.id }
+        ? { kind: "finish", x: box.cx, y: box.y + box.h + under(box.id) + T.below, r: T.end.r, ghost: false, text: words.end, box: box.id }
         : { kind: "finish", x: box.x + box.w + F.beside, y: box.cy, r: T.end.r, ghost: false, text: words.end, box: box.id },
     );
   }
@@ -333,7 +342,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     labels.push(
       placeLabel(
         { step: e.step, event: e.event, text: source.label, points: e.points, color: nameColor(e), ...(side ? { side } : loop ? {} : { flip: true }), ...below },
-        { hard: boxes, soft: [...marks, ...labels], touch: badgeRects, lines: others(e.points) },
+        { hard: [...boxes, ...gauges], soft: [...marks, ...labels], touch: badgeRects, lines: others(e.points) },
       ),
     );
   }
@@ -343,19 +352,27 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const path = paths[i] as ScenePath;
     if (p.label === undefined || path.points.length === 0) return;
     const style = labelStyle(p.label);
-    const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", flip: true }, { hard: boxes, soft: [...marks, ...labels, ...placed], touch: badgeRects, lines: others(path.points) });
+    const rect = placeLabel({ step: -1, event: i, text: p.label, points: path.points, color: "slate", flip: true }, { hard: [...boxes, ...gauges], soft: [...marks, ...labels, ...placed], touch: badgeRects, lines: others(path.points) });
     placed.push(rect);
     path.label = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, text: labelText(p.label), family: style.family };
   });
 
   const layout: Layout = { kind: "flow", width: 0, height: 0, regions: [], boxes, lifelines: [], edges: sceneEdges, labels, actions: [], badges: [], paths, ends };
-  // 名前が左か上へ出たら、全体を右か下へ寄せる。始まりの印の左で待つ札と終わりの印の脇に留まる札も、図の中に収める
+  withGauges(layout, gauges);
+  // 名前が左か上へ出たら、全体を右か下へ寄せる。始まりの印の左で待つ札と終わりの印の脇に留まる札も、図の中に収める。
+  // 目盛りは共通の寄せ方 (`shiftContent`) が知らない欄なので、箱と同じだけここで寄せる
   const seatsBefore = carrierSeats(sceneEdges);
   const lefts = [...boxes.map((b) => b.x), ...labels.map((l) => l.x), ...paths.flatMap((p) => [...p.points.map((q) => q[0]), ...(p.label ? [p.label.x] : [])]), ...sceneEdges.flatMap((e) => e.points.map((q) => q[0])), ...ends.map((e) => e.x - e.r), ...seatsBefore.map((r) => r.x)];
   const tops = [...labels.map((l) => l.y), ...paths.flatMap((p) => (p.label ? [p.label.y] : [])), ...ends.map((e) => e.y - e.r), ...seatsBefore.map((r) => r.y)];
   const shift = Math.max(0, margin - Math.min(...lefts));
   const drop = tops.length > 0 ? Math.max(0, margin - Math.min(...tops)) : 0;
-  if (shift > 0 || drop > 0) shiftContent(layout, shift, drop);
+  if (shift > 0 || drop > 0) {
+    shiftContent(layout, shift, drop);
+    for (const g of gauges) {
+      g.x += shift;
+      g.y += drop;
+    }
+  }
   const endRight = (e: SceneEnd): number => e.x + (e.text === "" ? e.r : T.text + textWidth(e.text, TYPE.regionNote));
   const seats = carrierSeats(sceneEdges);
   const rights = [
@@ -365,6 +382,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     ...sceneEdges.flatMap((e) => e.points.map((p) => p[0])),
     ...paths.flatMap((p) => [...p.points.map((q) => q[0]), ...(p.label ? [p.label.x + p.label.w] : [])]),
     ...seats.map((r) => r.x + r.w),
+    ...gauges.map((g) => g.x + g.w),
   ];
   const bottoms = [
     ...boxes.map((b) => b.y + b.h),
@@ -373,6 +391,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     ...sceneEdges.flatMap((e) => e.points.map((p) => p[1])),
     ...paths.flatMap((p) => [...p.points.map((q) => q[1]), ...(p.label ? [p.label.y + p.label.h] : [])]),
     ...seats.map((r) => r.y + r.h),
+    ...gauges.map((g) => g.y + g.h),
   ];
   const width = Math.max(Math.max(...rights) + margin, stripNeed(diagram) + margin * 2);
   const bottom = Math.max(...bottoms);
@@ -393,7 +412,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       if (!line) return cornerBadge(step.events, s, layout);
       return { step: s, x: line.point[0], y: line.point[1], color: nameColor(line.edge) };
     }),
-    badgeBlocked(layout, endParts),
+    badgeBlocked(layout, [...endParts, ...gauges]),
     (before, after) => lineOf(before.step) !== undefined && lineOf(before.step) === lineOf(after.step),
   );
   return layout;
