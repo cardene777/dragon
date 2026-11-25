@@ -49,6 +49,55 @@ Run `dragon embed page.html` to make a file that reads nothing from outside. A `
 
 Set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`, to paint the figure background, the line outlines, and the label plates with the page's color on light and dark pages. A donut wraps a middle name that does not fit the ring onto two lines, and a step band (`cycle` with `[shape: band]`) writes the step names inside the chevrons.
 
+## Write the diagram and the page in HTML
+
+When a report is one HTML file, write its diagrams in HTML too. Each notation line becomes one element: the diagram is `<dg-<kind>>` (`<dg-sequence>`, `<dg-flow>`), a declaration line is the element named after its block (`<dg-box>`, `<dg-choice>`), a step is `<dg-step>`, its `say` line is `<dg-body>`, and a line inside a step is `<dg-edge>`.
+The element and attribute names are the field names of the source JSON, so `dragon convert diagram.dragon` shows the HTML form of any notation, and a new notation word gets its element with the next release.
+Words and numbers are attributes, a box name or a line label is the element text, and a field that holds one small object is a hyphenated attribute (`carry-kind="coin"`).
+Close every element with its end tag. HTML does not close `<dg-box/>`.
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+
+<dg-sequence title="Take an order">
+  <dg-box id="shop">Shop</dg-box>
+  <dg-box id="api">Order API</dg-box>
+
+  <dg-step title="Place the order">
+    <dg-body>The shop sends the order to the API.</dg-body>
+    <dg-edge from="shop" to="api">Send the order</dg-edge>
+  </dg-step>
+</dg-sequence>
+```
+
+The same script line draws a `<dg-...>` diagram where it stands, with the same bar and steps as a `<pre class="dragon">` block, which still works.
+
+A Markdown page for `dragon export` converts to one HTML page in `<dragon-page>`: the front matter becomes its attributes, `##` and `###` become `<section>` with the heading, a quote becomes `<blockquote>`, `<details>` stays `<details>`, a glossary link becomes `<a>`, and a `dragon` fence becomes the HTML form of the diagram.
+
+```html
+<dragon-page title="How an order arrives" layout="guide">
+  <section>
+    <h2>Take the order</h2>
+    <section>
+      <h3>Which orders does the shop take?</h3>
+      <blockquote>
+        <p>Only orders for items in stock. See <a href="glossary.md#order">order</a>.</p>
+      </blockquote>
+    </section>
+  </section>
+</dragon-page>
+```
+
+| Command | What it does |
+|---|---|
+| `dragon convert diagram.dragon` | Prints the HTML form of the diagram |
+| `dragon convert page.md` | Prints the `<dragon-page>` HTML page |
+| `dragon convert page.html` | Prints the notation of the first `<dg-...>` diagram, or the Markdown page of a `<dragon-page>` |
+| `dragon check page.html` | Checks every `<dg-...>` diagram and `<pre class="dragon">` block, and names the HTML line and element of each error |
+
+Add `--out <file>` to write a file instead. Converting back gives tidied notation with the same source JSON; blank lines and indentation are not kept.
+From the package, `notationToHtml`, `htmlToNotation`, `markdownToHtml`, and `htmlToMarkdown` do the same.
+
 ## Find the box that was pressed
 
 Every drawn box and group carries its notation id in `data-node`.

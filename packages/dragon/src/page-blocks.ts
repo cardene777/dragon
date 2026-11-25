@@ -23,16 +23,23 @@
  *
  * `dragon embed` が収めた配管の図の並べ方 (`#dragon-layouts`、#3748) が在れば全ての塊に渡し、鍵が合う図は道を探さずに描く。
  * `drawn` を渡すと、全ての塊の図を描いた後に、描いた原本と設定を渡す。jsDelivr の入口はここで配管の図の箱を開いた形を先に組む (#3753)。
+ *
+ * HTMLの形で書いた図 (`<dg-<種類>>`、#3908) も塊として読む。読む処理は後から読む塊 (`html-form/in-page.ts`) に置き、
+ * HTMLの形の図を持つ頁だけが読む。読んだ原本を記法へ書き戻し、記法の塊と同じ道で描くので、同じ図が同じ再生の帯で動く。
  */
 import { dedent } from "./embed/dedent";
 import type { StoredPipeLayout } from "./kinds/pipe/layout";
 import { parseNotation } from "./parser";
+import { printNotation } from "./printer";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type PlayerOptions } from "./player";
 import type { Diagram } from "./schema";
 import { STILL_ATTR, stillFigureHtml } from "./still-figure";
 import type { BuiltinButton, EmbedLook } from "./frame/types";
-import type { NotationLang } from "./words";
+import { KINDS, type NotationLang } from "./words";
+
+/** HTMLの形の図の要素を選ぶ字 (#3908) */
+const FORM_FIGURES = KINDS.map((kind) => `dg-${kind}`).join(",");
 
 /** 帯の設定の塊 (`#dragon-header`) に書ける設定。SDK の `mountDragon` の `buttons` と `look` と同じ (#3789) */
 export interface HeaderSettings {
@@ -125,16 +132,41 @@ interface PageShared {
   header: ReturnType<typeof headerSettings>;
 }
 
+/**
+ * HTMLの形の図の要素を記法に書き戻す (#3908)。読む処理を後から読み、原本が使う部品を `prepare` で読んでから書き戻す。
+ * 読めない時は誤りの文の並びを返す
+ */
+async function formNotation(block: Element, lang: NotationLang, prepare: (source: string | object) => Promise<void>): Promise<{ ok: true; text: string } | { ok: false; errors: string[] }> {
+  const { readPageFigure } = await import("./html-form/in-page");
+  const read = readPageFigure(block.outerHTML, lang);
+  if (!read.ok) return read;
+  await prepare(read.diagram);
+  return { ok: true, text: printNotation(read.diagram as unknown as Diagram) };
+}
+
 async function drawBlock(
   block: Element,
-  prepare: (text: string) => Promise<void>,
+  prepare: (source: string | object) => Promise<void>,
   page: PageShared,
   framed?: () => Promise<FramedBlock>,
   drawnBlock?: DrawnBlock,
 ): Promise<void> {
   const doc = block.ownerDocument;
   const { lang, layouts, header } = page;
-  const text = dedent(block.textContent ?? "");
+  let text = dedent(block.textContent ?? "");
+  if (block.matches(FORM_FIGURES)) {
+    try {
+      const form = await formNotation(block, lang, prepare);
+      if (!form.ok) {
+        block.replaceWith(errorBox(doc, form.errors));
+        return;
+      }
+      text = form.text;
+    } catch (error) {
+      block.replaceWith(errorBox(doc, [detail(error)]));
+      return;
+    }
+  }
   // 止めて置く塊は帯を付けないので、帯の塊を読まない
   const wantsFrame = framed !== undefined && block.hasAttribute("data-header") && !block.hasAttribute(STILL_ATTR);
   let blocks: UserBlocks | undefined;
@@ -225,10 +257,14 @@ function whenShown(block: Element, run: () => void): void {
   observer.observe(block);
 }
 
-/** 頁の記法の塊。`<pre class="dragon">` と、Markdown の囲みから作った `<pre><code class="language-dragon">` の `<pre>` */
+/**
+ * 頁の記法の塊。`<pre class="dragon">` と、Markdown の囲みから作った `<pre><code class="language-dragon">` の `<pre>` と、
+ * HTMLの形の図 (#3908)。図の中に在る同じ名前の部品の要素 (`<dg-chart>` の中の `<dg-chart>`) は数えない
+ */
 const pageBlocks = (doc: Document): Element[] => [
   ...doc.querySelectorAll("pre.dragon"),
   ...[...doc.querySelectorAll("pre > code.language-dragon")].flatMap((code) => (code.parentElement && !code.parentElement.matches("pre.dragon") ? [code.parentElement] : [])),
+  ...[...doc.querySelectorAll(FORM_FIGURES)].filter((figure) => !figure.parentElement?.closest(FORM_FIGURES)),
 ];
 
 /**
@@ -237,14 +273,18 @@ const pageBlocks = (doc: Document): Element[] => [
  * `drawnBlock` を渡すと、全ての塊の図を描いた後にそれへ渡す。
  * 頁を読み終える前に呼ばれた時は、読み終えてから置き換える
  */
-export function drawPageBlocks(doc: Document, prepare: (text: string) => Promise<void>, framed?: () => Promise<FramedBlock>, drawnBlock?: DrawnBlock): void {
+export function drawPageBlocks(doc: Document, prepare: (source: string | object) => Promise<void>, framed?: () => Promise<FramedBlock>, drawnBlock?: DrawnBlock): void {
   const lang: NotationLang = doc.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
   const draw = (): void => {
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
     const page: PageShared = { lang, defined, layouts: storedLayouts(doc), header: headerSettings(doc, lang) };
-    for (const block of pageBlocks(doc)) whenShown(block, () => void drawBlock(block, prepare, page, framed, drawnBlock));
+    for (const block of pageBlocks(doc)) {
+      // HTMLの形の図は既定で行の中の要素なので、幅を見張れるよう塊にする (#3908)
+      if (block.matches(FORM_FIGURES)) (block as HTMLElement).style.display = "block";
+      whenShown(block, () => void drawBlock(block, prepare, page, framed, drawnBlock));
+    }
   };
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();

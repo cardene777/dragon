@@ -52,9 +52,9 @@ function tool<K extends keyof Converter>(name: K): Converter[K] | undefined {
   return value;
 }
 
-/** 読んだ図の原本。読めない時は undefined。描く印などを外し、JSON にできる欄だけを比べる */
-function parsed(text: string): unknown {
-  const read = dragon.parseNotation(text, { lang: "ja" });
+/** 読んだ図の原本。読めない時はundefined。描く印などを外し、JSONにできる欄だけを比べる。`note`は頁の頭の`note: pop`が図に渡す見せ方 */
+function parsed(text: string, note?: "pop"): unknown {
+  const read = dragon.parseNotation(text, { lang: "ja", ...(note ? { note } : {}) });
   return read.ok ? (JSON.parse(JSON.stringify(read.diagram)) as unknown) : undefined;
 }
 
@@ -112,8 +112,11 @@ function headings(markdown: string): string[] {
   });
 }
 
-/** 頁の dragon の囲みを読んだ原本の並び */
-const figures = (markdown: string): unknown[] => dragon.extractDiagrams(markdown).map((fence) => parsed(fence.source));
+/** 頁のdragonの囲みを読んだ原本の並び。頭に`note: pop`を書いた頁は、図にも同じ見せ方を渡して読む */
+const figures = (markdown: string): unknown[] => {
+  const note = /^note: pop$/mu.test(markdown.split(/^---$/mu)[1] ?? "") ? "pop" : undefined;
+  return dragon.extractDiagrams(markdown).map((fence) => parsed(fence.source, note));
+};
 
 /** 原本のJSONの欄に無い名前の要素を持つHTMLの形。3 行目の`dg-boxx`が知らない名前 */
 const UNKNOWN_ELEMENT = ['<dg-flow title="申し込み">', '  <dg-box id="form">申し込み</dg-box>', '  <dg-boxx id="back">差し戻す</dg-boxx>', "</dg-flow>", ""].join("\n");
@@ -286,6 +289,7 @@ describe("記法とHTMLの形の変換 (#3908)", () => {
     if (!page.ok) return;
     const html = page.html;
     // 頭の行は<dragon-page>の属性、##と###は<section>と見出し、引用は<blockquote>、<details>は<details>、用語のリンクは<a>、図はHTMLの形
+    // 図の要素は頁の外へ写しても同じに描けるよう、頁のnoteも属性に持つ
     expect(html.trimStart().startsWith('<dragon-page title="注文を届けるまでの手引き" layout="guide" note="pop">'), `頭の行が<dragon-page>の属性にならない: ${html.slice(0, 120)}`).toBe(true);
     for (const part of [
       "<section>",
@@ -295,7 +299,7 @@ describe("記法とHTMLの形の変換 (#3908)", () => {
       '<a href="glossary.md#注文">注文</a>',
       "<details>",
       "<summary>在庫の無い品物を1つ含む注文はどうなるか</summary>",
-      '<dg-sequence title="注文を受ける">',
+      '<dg-sequence title="注文を受ける" note="pop">',
     ]) {
       expect(html, `HTMLの頁に ${part} が無い`).toContain(part);
     }

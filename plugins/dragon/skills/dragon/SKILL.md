@@ -164,6 +164,7 @@ Pick the way the destination supports. Details and code are in [setup](reference
 | A tool or page that wants the diagram with its bar (Code, Editor, Copy, Export) | One of four ways: `data-header` on the script block, `mountDragon`, `<dragon-diagram>`, or an iframe from `embedUrl`. See [embed](references/embed.md) |
 | A report or explainer page that shows the last step as one picture | `data-still` on the `<pre class="dragon">` block, then `dragon embed page.html`, which draws it as an SVG with no player. See [embed](references/embed.md) |
 | A file that opens offline | `dragon embed page.html` |
+| A report written as one HTML file | Write the diagrams as `<dg-<kind>>` elements and the page as `<dragon-page>`, or turn notation and Markdown into them with `dragon convert`. See [embed](references/embed.md) |
 | An explanation with several diagrams, split into pages and tabs | Write it in Markdown (`#` title, `##` groups, `###` items, `####` tabs, `[link: #<item>]` on overview boxes, `![name](file to include)` alone on a line to include a file) and run `dragon export notes.md`. Pick `layout: sidebar` or `layout: tabs` at the top; the default is `entry`. See the package README |
 
 Keep the `.dragon` file next to any exported image so the diagram can be edited and exported again.

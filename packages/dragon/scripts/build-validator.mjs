@@ -17,6 +17,9 @@
  *
  * 段の中で起きることの種類ごとに、その形の枝を持つブロックの名前の表 (`src/blocks/event-owners.ts` の `EVENT_OWNERS`) も書き出す (#3349)。
  * 軽い入口は原本から書いた図が使うブロックを引く時にこの表を読み、出来事を書き戻すブロックの読み方を読む。形の欠片は入口に入れないので、表だけを書き出す。
+ *
+ * 束ねた原本の形から、HTMLの形の要素と属性の名前の表 (`src/html-form/vocabulary.ts`) も書き出す (#3908)。
+ * 記法に語を足すと原本の形に欄が増え、次のbuildで表にも同じ名前が増えるので、HTMLの形の名前を手で足さない。
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,9 +28,12 @@ import Ajv from "ajv";
 import standaloneCode from "ajv/dist/standalone/index.js";
 import { BLOCKS } from "../src/blocks/index.ts";
 import { SHAPES } from "../src/blocks/shapes.ts";
+import { vocabularySource } from "../src/html-form/vocabulary-build.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const schemas = join(here, "../src/schemas");
+/** HTMLの形の名前の表を書き出す先 (#3908) */
+const VOCABULARY_FILE = join(here, "../src/html-form/vocabulary.ts");
 /** 出来事の種類ごとの持ち主のブロックの表を書き出す先 */
 const EVENT_OWNERS_FILE = join(here, "../src/blocks/event-owners.ts");
 /** 骨組みの形 */
@@ -106,7 +112,7 @@ export function eventOwners(shapes = SHAPES) {
   ].join("\n");
 }
 
-/** 書き出す 2 つの file の中身。骨組みとブロックの形と ajv の版が同じなら毎回同じ字の並びになる */
+/** 書き出す3つのfileの中身。骨組みとブロックの形とajvの版が同じなら毎回同じ字の並びになる */
 export function generate(shapes = SHAPES) {
   const schema = compose(shapes);
   // 設定は検査の結果を変えるため、src/schema.ts の説明と同じにする。
@@ -126,7 +132,7 @@ export function generate(shapes = SHAPES) {
     code.replace(/^"use strict";/u, "").replaceAll(REQUIRE_UCS2LENGTH, "ucs2length"),
     "",
   ].join("\n");
-  return { schema: `${JSON.stringify(schema, null, 2)}\n`, validator };
+  return { schema: `${JSON.stringify(schema, null, 2)}\n`, validator, vocabulary: vocabularySource(schema) };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -135,6 +141,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     [SCHEMA, written.schema],
     [OUT, written.validator],
     [EVENT_OWNERS_FILE, eventOwners()],
+    [VOCABULARY_FILE, written.vocabulary],
   ]) {
     let before = "";
     try {
@@ -144,5 +151,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     }
     if (before !== text) writeFileSync(path, text);
   }
-  console.log(`[build-validator] ${SCHEMA} と ${OUT} と ${EVENT_OWNERS_FILE} を書き出した`);
+  console.log(`[build-validator] ${SCHEMA} と ${OUT} と ${EVENT_OWNERS_FILE} と ${VOCABULARY_FILE} を書き出した`);
 }
