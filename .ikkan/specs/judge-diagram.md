@@ -24,3 +24,28 @@
 | 判定の表のGIFは、最初のコマで判定の列の札を見せず、最後の段のコマで判定の列の札を見せる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-film-lights-columns-by-step` passes | #3923 |
 | SVGで描く図の種類のPNGは、今と同じく図の`width`と`height`の2倍の大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3923 |
 | 判定の表で図に無い段を`--step`に選ぶと、撮らずに断る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-refuses-missing-step` passes | #3923 |
+| 判定の表を`dragon export --format svg`で書き出すと、表の枠と地と字と✓と✕と判定の札をSVGの要素で描いたSVGを書き、`foreignObject`を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-draws-table-with-svg-elements` passes | #3891 |
+| 書き出したSVGは全てのセルの✓と✕と「—」と全ての例の判定を描き、✕の下に外れた値を、止める判定の語の下に外れた規則の番号と名前を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-fills-every-cell-and-verdict` passes | #3891 |
+| 書き出したSVGは、例の名前と添え書きをその例の✓と✕の行の上の帯に1行で描き、左の例の列を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-puts-cases-on-bands` passes | #3891 |
+| 判定の表の見本 (送金、会員登録、返金、配布の日本語と英語) のSVGは幅が728px以下で、全ての字が10.5px以上 | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-readable-at-728` passes | #3891 |
+| 帯の形でも幅728pxを超える表 (規則を10個書いた表) のSVGは、728pxに収まる所で規則の列を分けて帯の形の表を縦に積み、どの段にも例の帯を、最後の段にだけ判定の列を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-stacks-wide-tables` passes | #3891 |
+| 書き出したSVGは描いた字の書体を`data:`で埋め、外のURLを1つも持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-embeds-fonts-offline` passes | #3891 |
+| `--palette`と`--theme dark`を渡すと、判定の表のSVGをその色味の暗い色で描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-follows-palette-and-theme` passes | #3891 |
+| 判定の表でない図を`--format svg`で書き出すと、最後の段の止め絵のSVGを書き、描いた字の書体を`data:`で埋める | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts` check `export-svg-writes-last-step-still` passes | #3891 |
+| `--format`に知らない形を渡すと断り、断りの文の書ける形にsvgを並べる | `pnpm exec vitest run packages/dragon/test/cli-arguments.test.ts` check `cli-rejects-bad-format` passes | #3891 |
+| 形を選ばない`dragon export`は今どおりmp4、GIF、HTML、PNGの4つを書き、SVGを書かない | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts` check `export-default-writes-no-svg` passes | #3891 |
+| READMEと使い方の頁の書き出しの説明は、書ける形にSVGを並べる | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts` check `export-svg-listed-in-docs` passes | #3891 |
+| 判定の表を`--format png`で書き出すと、SVGと同じ帯の形の表を、列を照らさずに幅1456画素以下 (CSSの728pxの2倍) で撮る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-draws-band-table` passes | #3891 |
+| 判定の表のPNGは今どおり全ての規則の列と全ての行の判定の札を切らずに写し、`--step`を選ぶとその段の列を照らし、`--width`に依らず同じ大きさになる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-png-shows-every-column` and `judge-png-default-shows-all-unlit` and `judge-png-step-lights-chosen-column` and `judge-png-ignores-narrow-width` passes | #3891 |
+| 判定の表の書き出しは、図に無い段を`--step`に選ぶと今どおり断り、PNGを書かない | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-refuses-missing-step` passes | #3891 |
+| 判定の表のGIFとmp4は帯の形の表を幅728px以下で撮る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-film-draws-band-table` passes | #3891 |
+| 判定の表のGIFとmp4は今どおり段ごとに規則の列を照らし、最後の段で判定の札を見せる | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-film-lights-columns-by-step` passes | #3891 |
+| 書き出す入口 (`@cardenelabs/dragon/capture`) は、帯の形の判定の表のSVGを受けると、`foreignObject`を持たず字を`data:`で埋めたSVGと、列を照らさないPNGを返す | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-judge-svg-draws-band-table` and `capture-judge-png-draws-band-table` passes | #3891 |
+| 書き出す入口は、帯の形の判定の表のGIFとmp4を、段ごとに列を照らして作る | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-judge-film-draws-band-table` passes | #3891 |
+| 編集画面で判定の表を描き、書き出す窓のPNG、SVG、GIF、mp4を押すと、書き出す入口に帯の形の表のSVGを渡し、fileを保存させる | `pnpm exec vitest run apps/playground-spa/src/editor/export-menu.test.tsx` check `editor-export-judge-passes-band-picture` passes | #3891 |
+| 見本帳の判定の表の札で、書き出す窓のPNGを押すと、書き出す入口に帯の形の表のSVGを渡す | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-bar.test.tsx` check `catalog-export-judge-passes-band-picture` passes | #3891 |
+| 見本帳の判定の表の札で画像をコピーすると、帯の形の表のSVGから撮ったPNGをコピーする | `pnpm exec vitest run apps/playground-spa/src/lib/catalog-bar.test.tsx` check `catalog-copy-judge-passes-band-picture` passes | #3891 |
+| 編集画面と見本帳の書き出す窓のHTMLは、今どおり記法から頁を作る | `pnpm exec vitest run apps/playground-spa/src/editor/export-menu.test.tsx` check `editor-export-judge-saves-file` passes | #3891 |
+| 頁に置く判定の表と再生する表は今どおりHTMLの表で、字を縮めない | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-text-readable-at-728` passes | #3891 |
+| SVGで描く図の種類の書き出す入口のPNGとSVGと動画は、今と同じ大きさと字で書く | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-still-any-svg` and `capture-film-matches-export` passes | #3891 |
+| SVGで描く図の種類の命令の書き出しのPNGは、今と同じ大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3891 |

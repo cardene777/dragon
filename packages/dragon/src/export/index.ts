@@ -1,13 +1,15 @@
 /**
- * 同じ原本の JSON から、mp4、GIF、HTML、PNG を書き出す。
+ * 同じ原本の JSON から、mp4、GIF、HTML、PNG、SVG を書き出す。形を選ばない時は SVG を除く 4 つを書く (#3891)。
  *
  * 見せ方は頁と同じく枠の幅で選ぶ (`chooseView`)。幅は寄って見せる窓の幅にもなる。
  * 配管の図は再生の部品と同じく寄って追わず、幅を渡しても止めた形で書き出す (#3852)。
  * 寄って見せる図で幅の指定が無い時は、記事の本文ほどの枠 (`FOLLOW_WIDTH`) で寄る。
  * 頁に要る物 (描いた図と色の値と描かれうる字) は、ブラウザの書き出す入口と同じ処理 (`page.ts`) で集める (#3667)。
  * PNG は最後の段の止め絵を、全体を止めた見せ方で撮る。
- * HTML で描く図 (判定の表) は、撮る頁で描いた大きさを測って撮り、動画は段ごとに種類の部品の `html.show` で段を図に書く (#3923)。
+ * HTML で描く図 (判定の表) は、頁の表でなく書き出す絵の形 (例を帯に置いた SVG、#3891) を撮る。
+ * 撮る頁で描いた大きさを測って撮り、動画は段ごとに種類の部品の `html.show` で段を図に書く (#3923)。
  * その PNG は、段を選ばない時は段を書かずに全ての段を見せ、`step` を選んだ時はその段を書いた形を撮る。
+ * SVG は最後の段の止め絵 (`figure: true`) を、判定の表は書き出す絵の形を書き、描いた字の書体を `data:` で埋める (#3891)。
  * 字は図で描く字だけに削り、撮る頁と HTML の両方に同じ物を埋める。
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -15,6 +17,7 @@ import { join } from "node:path";
 import type { Theme } from "../look/values";
 import type { Overlap } from "../render/ink";
 import type { LineStyle } from "../render/pen-store";
+import { renderDiagram } from "../render/svg";
 import type { ViewMode } from "../schema";
 import type { UserBlocks } from "../user-blocks";
 import { chooseView } from "../view";
@@ -24,19 +27,19 @@ import { film, type HtmlFigure, launch, sizeOf, stage, still } from "./capture";
 import { planFilm } from "./film";
 import { charsOf, fontFaces } from "./fonts";
 import { pageHtml } from "./html";
-import { planPage } from "./page";
+import { planPage, svgTexts } from "./page";
 
 /** 書き出した頁と見本帳に収める配管の図の並べ方を組む部品 (#3748)。見本帳の build が読む */
 export { pipeLayouts, type PipeLayoutsOptions } from "./layouts";
 
-export type ExportFormat = "mp4" | "gif" | "html" | "png";
+export type ExportFormat = "mp4" | "gif" | "html" | "png" | "svg";
 
 export interface ExportOptions {
   /** 書き出す先の dir。無ければ作り、書き出しに失敗した時は作った dir を残さない (#3013) */
   outDir: string;
   /** file の名前 (拡張子を除く)。既定は `diagram` */
   name?: string;
-  /** 書き出す形。既定は 4 つ全て */
+  /** 書き出す形。既定は SVG を除く 4 つ (`DEFAULT_FORMATS`) */
   formats?: ExportFormat[];
   /** 枠の幅 (CSS の px)。見せ方を選び、寄って見せる窓の幅になる */
   width?: number;
@@ -86,20 +89,25 @@ export interface ExportResult {
 }
 
 /** 書き出せる形。命令が `--format` の値を確かめる時にも使う */
-export const FORMATS: readonly ExportFormat[] = ["mp4", "gif", "html", "png"];
+export const FORMATS: readonly ExportFormat[] = ["mp4", "gif", "html", "png", "svg"];
+
+/** 形を選ばない時に書く形。SVG は選んだ時だけ書く (#3891) */
+export const DEFAULT_FORMATS: readonly ExportFormat[] = ["mp4", "gif", "html", "png"];
 
 /** 頁に図を置いて動かす script。build で `player-global.ts` を 1 file に束ねた物で、この入口と同じ dir に置く */
 const PLAYER = new URL("./player.global.js", import.meta.url);
 
 export async function exportDiagram(input: unknown, options: ExportOptions): Promise<ExportResult> {
-  const formats = options.formats ?? FORMATS;
+  const formats = options.formats ?? DEFAULT_FORMATS;
   const plan = planPage(input, options);
-  const { rendered, said, vars, width, followSvg } = plan;
+  const { rendered, said, vars, width, followSvg, picture } = plan;
   const { timeline } = rendered;
   const steps = timeline.stills.length;
   if (options.step !== undefined && !(Number.isInteger(options.step) && options.step >= 1 && options.step <= steps)) throw new NoSuchStep(options.step, steps);
   const view = chooseView(rendered, width).mode;
-  const videoSvg = view === "follow" && followSvg ? followSvg : rendered.svg;
+  // 判定の表は書き出す絵の形を撮る。寄って見せる図の動画は枠の幅で描いた全体図を撮る
+  const stillSvg = picture ?? rendered.svg;
+  const videoSvg = picture ?? (view === "follow" && followSvg ? followSvg : rendered.svg);
   const fontCss = await fontFaces(charsOf(plan.texts));
   const show = partsOf(rendered.layout.kind)?.html?.show;
   const figure: HtmlFigure | undefined = show ? { show, starts: timeline.steps.map((span) => span.start) } : undefined;
@@ -108,6 +116,21 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
   const outputs: [ExportFormat, string | Buffer][] = [];
 
   if (formats.includes("html")) outputs.push(["html", pageHtml(plan, fontCss, readFileSync(PLAYER, "utf8"))]);
+  if (formats.includes("svg")) {
+    // 判定の表は書き出す絵の形、ほかの図は最後の段の止め絵。どちらも描いた字だけの書体を頭に埋める
+    const svg =
+      picture ??
+      renderDiagram(input, {
+        figure: true,
+        palette: rendered.palette,
+        theme: rendered.theme,
+        lang: plan.lang,
+        ...(plan.line === "pen" ? { line: plan.line } : {}),
+        ...(options.blocks ? { blocks: options.blocks } : {}),
+      }).svg;
+    const faces = await fontFaces(charsOf(svgTexts(svg)));
+    outputs.push(["svg", svg.replace(/^<svg\b[^>]*>/u, (open) => `${open}<style>${faces}</style>`)]);
+  }
 
   let frames = 0;
   // 動画のコマの大きさ。HTML で描く図は撮る頁で測った大きさ、ほかは図の SVG の大きさ
@@ -118,7 +141,7 @@ export async function exportDiagram(input: unknown, options: ExportOptions): Pro
     const browser = await launch(said);
     try {
       if (formats.includes("png")) {
-        const fixed = await stage(browser, rendered.svg, fontCss, "", said, figure);
+        const fixed = await stage(browser, stillSvg, fontCss, "", said, figure);
         if (figure) size = { width: fixed.width, height: fixed.height };
         const step = (options.step ?? steps) - 1;
         outputs.push(["png", await still(fixed, timeline.stills[step] ?? 0, options.step === undefined ? undefined : step)]);

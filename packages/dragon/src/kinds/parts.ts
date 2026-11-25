@@ -103,7 +103,9 @@ export interface KindParts<L extends Layout = Layout> {
    */
   html?: {
     markup(this: void, layout: L, palette: import("../look/values").Palette, theme: import("../look/values").Theme): string;
-    show(this: void, figure: HTMLElement, step: number): void;
+    /** 書き出す絵の形 (#3891)。頁の HTML を写さずに SVG の要素だけで描いた絵を返す。`renderDiagram` の `picture` で描く */
+    picture?(this: void, layout: L, palette: import("../look/values").Palette, theme: import("../look/values").Theme): string;
+    show(this: void, figure: HTMLElement | SVGElement, step: number): void;
   };
   mountInput?(this: void, host: HTMLElement, diagram: import("../schema").Diagram, options: import("../player").PlayerOptions): import("../player").Player;
 

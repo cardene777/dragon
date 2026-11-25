@@ -63,7 +63,7 @@ const JA = {
         items: [
           { title: "文章で書ける", text: "箱と線と段を 1 行ずつ書くだけ。座標も図の部品も組まない。" },
           { title: "段ごとに動き出す", text: "段を切り替えると、線の上を封筒や札が走り、箱の中の処理が進む。順序と因果が目に見える。" },
-          { title: "URL と file で渡せる", text: "書いた記法は URL に載せて共有できる。CLI で mp4、GIF、HTML、PNG にも書き出せる。" },
+          { title: "URL と file で渡せる", text: "書いた記法は URL に載せて共有できる。CLI で mp4、GIF、HTML、PNG、SVG にも書き出せる。" },
         ],
       },
       steps: {
@@ -109,7 +109,7 @@ const JA = {
   cannotDraw: (message: string) => `描けない — ${message}`,
   kept: "誤りがあるあいだは、最後に描けた図を出しています",
   exportLead: "同じ図を書き出す",
-  exportTail: "で mp4 / GIF / HTML / PNG",
+  exportTail: "で mp4 / GIF / HTML / PNG / SVG",
   shelf: {
     label: "棚",
     open: "棚を開く",

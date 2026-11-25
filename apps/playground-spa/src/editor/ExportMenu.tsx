@@ -5,7 +5,7 @@
  * 道具の列は狭い幅で横に送るため、はみ出した物を切る。窓は列に切られないよう、釦の下の画面の位置に置く (`position: fixed`)。
  * 形を選ぶと、書き出す入口 (`@cardenelabs/dragon/capture`) の関数に今の図の SVG を渡し、返った物を書類名の file に保存させる。
  * HTML は頁が図を描き直すので、SVG でなく今の図の記法と色味を渡し、返った頁の文字列を保存させる (#3667)。
- * HTML で描く図 (判定の表) は SVG を持たないので、表の根の要素を渡す (#3937)。HTML の頁は図の要素を使わないので、図が見つからない時も書き出す。
+ * 判定の表は頁の表でなく、書き出す絵の形 (例を帯に置いた SVG、#3891) を渡す (`exportFigureIn`)。HTML の頁は図の要素を使わないので、図が見つからない時も書き出す。
  * 書き出す入口は詰める道具を持ち重いので、最初に読む script に入れず、釦を押した時に読む。
  * mp4 は WebCodecs の H.264 が無いブラウザでは作れないので、窓を開いた時に確かめ、作れない時は MP4 を並べない。
  * 書き出している間は釦を押せない。書き出せなかった時は、釦の下に訳を出す。
@@ -21,12 +21,26 @@ const loadCapture = (): Promise<typeof import("@cardenelabs/dragon/capture")> =>
 
 type Format = "png" | "svg" | "gif" | "mp4" | "html";
 
-/** 書き出す図。SVG で描く図は図の SVG、HTML で描く図 (判定の表、#3937) は表の根の要素 */
+/** 書き出す図。SVG で描く図は図の SVG、判定の表は書き出す絵の形の SVG か、表の根の要素 (#3937) */
 export type ExportFigure = SVGSVGElement | HTMLElement;
 
-/** `host` の中で今描いている図。編集画面と見本帳の札が、書き出す窓と画像のコピーに渡す */
-export function figureIn(host: HTMLElement | null): ExportFigure | null {
+/** `host` の中で今描いている図 */
+function figureIn(host: HTMLElement | null): ExportFigure | null {
   return host?.querySelector<SVGSVGElement | HTMLElement>('svg[data-dragon="figure"], [data-dragon="judge"]') ?? null;
+}
+
+/**
+ * 書き出す窓と画像のコピーが撮る図。編集画面と見本帳の札が渡す。
+ * 判定の表は頁の表を撮らず、書き出す絵の形 (例を帯に置いた SVG) を `draw` で描いて渡す (#3891)。
+ * 頁の文書の要素にするので、書き出す入口は頁が読み込んだ字を埋められる
+ */
+export function exportFigureIn(host: HTMLElement | null, draw: () => string | undefined): ExportFigure | null {
+  const shown = figureIn(host);
+  if (shown?.getAttribute("data-dragon") !== "judge") return shown;
+  const svg = draw();
+  if (svg === undefined) return shown;
+  const root = new DOMParser().parseFromString(svg, "image/svg+xml").querySelector<SVGSVGElement>(":root");
+  return root ? document.importNode(root, true) : shown;
 }
 
 /** 窓に並べる形。名前は形の名前をそのまま出し、言葉で替えない */

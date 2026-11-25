@@ -348,7 +348,10 @@ export const LOOK = {
    * `no` は規則の番号の字、`whyNo` は外れた規則の番号の字、`dash` は照らせない「—」の字。
    * `padY` と `padX` はセルの内側の余白、`radius` は表の枠の角の丸み、`line` は枠と区切りの線の太さ、`icon` は✓と✕の升の縦横、`mark` は印のセルの幅の下限。
    * `badge` と `badgeX` と `badgeGap` は規則の番号の丸の高さと左右の余白と名前との間、`whyBadge` と `whyGap` は外れた規則の番号の丸の高さと名前との間。
-   * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み
+   * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み、`stroke` は✓と✕の線の太さ。
+   * `picture` は書き出す絵の形 (#3891) の寸法。`width` は絵の幅 (記事の本文ほどの枠) で、収まらない表は規則の列を分けて `blockGap` の間を空けて縦に積む。
+   * `noteGap` は帯の例の名前と添え書きの間、`markTop` は帯の下の印の行の上の余白、`lead` は字の大きさに掛けて行の高さにする割合、
+   * `mid` は行の真ん中から字の基準線までの字の大きさに対する割合
    */
   judge: {
     text: 14,
@@ -372,6 +375,8 @@ export const LOOK = {
     pill: 999,
     mark: 28,
     line: 1,
+    stroke: 2.6,
+    picture: { width: 728, blockGap: 12, noteGap: 8, markTop: 4, lead: 1.5, mid: 0.35 },
   },
   region: {
     pad: 18,

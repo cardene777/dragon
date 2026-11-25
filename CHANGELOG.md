@@ -6,10 +6,15 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- `dragon export --format svg` writes an SVG of any diagram: the still of the last step, with the fonts it draws embedded as `data:` URLs. An export without `--format` still writes mp4, GIF, HTML, and PNG (#3891)
+- Pictures of a judge table put each case name and note on a band above its ✓ and ✕ row instead of a case column, so the table fits in 728px with every text at 10.5px or more. A table still wider splits its rule columns into stacked tables, each with the case bands, and the verdict column in the last one. The PNG, GIF, mp4, and SVG of `dragon export`, and of the export menu and image copy in the playground editor and catalog, use this form. It is drawn only with SVG elements and no `foreignObject`, so tools other than browsers show it too. `renderDiagram(diagram, { picture: true })` draws it, and `@cardenelabs/dragon/capture` takes its root (#3891)
+
 ### Fixed
 
 - `dragon export` of a judge table stopped with `Cannot take screenshot with 0 width` and wrote nothing. The PNG now measures the drawn table and shows every column and verdict, at any `--width`. `--step` lights the columns up to the chosen step. The GIF and mp4 light one rule column per step and the verdict column last (#3923)
-- Exporting a judge table from the export menu of the playground editor or the catalog saved no file for any format. PNG and SVG now show the whole table with no column lit, the SVG wraps the table in a `foreignObject`, and the GIF and mp4 light one column per step. `@cardenelabs/dragon/capture` takes the root element of a judge table as well as an SVG (#3937)
+- Exporting a judge table from the export menu of the playground editor or the catalog saved no file for any format. PNG and SVG now show the whole table with no column lit, and the GIF and mp4 light one column per step. `@cardenelabs/dragon/capture` takes the root element of a judge table as well as an SVG, and wraps it in a `foreignObject` for the SVG (#3937)
 - Each scene of a diagram with scenes (`[scenes: stack]` and `[scenes: pick]`) is no longer drawn wider than its own width either, so a tall flow with scenes keeps 13px box names on a 728px page.
 - A diagram shown whole (`fixed`) is no longer drawn wider than its own width when its frame is wider, and sits in the middle of the frame. A tall flow on a 728px page used to grow until its box names were about 30px, and now keeps the same 13px text as the other kinds. Still figures from `dragon embed` and `data-still` blocks keep their own width the same way, and `chooseView` no longer reports text larger than the box name's own size.
 

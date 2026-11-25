@@ -2219,6 +2219,7 @@ A table wider than its frame scrolls sideways and keeps the case column on the l
 - `[stop]` on a `fail` line leaves the later columns of that case unchecked, shown as "—"
 - `[pass: <word>, block: <word>]` on the first line replaces the verdict words. Without it, English pages show `pass` and `block`, and Japanese pages show their own words
 - Playing checks one rule column per step, and the last step shows the verdicts. Printing fills every cell and verdict
+- Exported pictures (PNG, GIF, mp4, SVG) put each case name and note on a band above its ✓ and ✕ row and fit in 728px. A wider table splits its rule columns into stacked tables, with the verdict column in the last one
 - The reader refuses a `fail` for an undeclared rule, a rule failed twice in one case, a `fail` before the first `case`, and a table without rules or cases. Each error names its line
 
 ```dragon
