@@ -223,6 +223,19 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-85-0-lists-guide-pages-once", () => {
+    // 話題が2つ以上ある説明の頁を、全体像の頁と問いごとの頁に分ける変更 (#3983) を Changed の1項に持って 0.85.0 で出す (#3985)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 85, `package の版 ${version()} が 0.85.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.85\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.85.0"), "0.85.0");
+      expect(released, `${file} に日付付きの ## [0.85.0] の節が無い`).not.toBe("");
+      expect(released.split("(#3983)").length - 1, `${file} の 0.85.0 の節が (#3983) の項を 1 回持たない`).toBe(1);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3983) が残る`).not.toContain("(#3983)");
+    }
+  });
+
   it("changelog-0-84-0-lists-print-fix-once", () => {
     // 説明の頁の印刷の直し (#3975) を1項に、頁に置いた図の止め絵と過ぎた段の線の名前 (#3831) を Added と Changed と Fixed の3項に持って 0.84.0 で出す (#3981)。
     // 2つとも 0.83.0 では未公開へ戻した (#3977)
