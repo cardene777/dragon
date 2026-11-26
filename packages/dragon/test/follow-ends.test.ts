@@ -298,29 +298,42 @@ describe("寄って追う窓の線の端の箱 (#3836)", () => {
   });
 
   it("follow-ends-state-tag-on-line", () => {
+    // 段 5 は段で動く物が窓に収まらないので、窓を字が読める大きさまで引き、線の先の「有料」から窓に入れる (#3871)。
+    // 窓の端で切れる線の元の「停止」には札を出す。箱の一部が窓に映る時は映る所を同じ高さで覆い、窓の外に在る時は線が窓の端を横切る所に出す
     const p = place("subscription", notation(example("subscription")), WIDTH);
     const s = 4;
     const win = p.windowAt(s);
+    const k = p.scaleAt(s);
     const l = loose(p);
-    const from = l.boxes.find((x) => x.name === "停止") as Rect;
-    expect(overflow(from, win), "subscription の段 5 で線の元「停止」が窓から切れる").toBeLessThanOrEqual(0.5);
-    const end = endsAt(p, s).find((e) => e.name === "有料") as End;
-    expect(overflow(end.rect, win), "subscription の段 5 で「有料」が窓に入る").toBeGreaterThan(1);
-    const tag = shownTags(p, s).find((t) => t.name === "有料");
-    expect(tag, "subscription の段 5 の止め絵に「有料」の札が見えない").toBeDefined();
+    expect(k, "subscription の段 5 で窓を引かない").toBeLessThan(1);
+    const to = l.boxes.find((x) => x.name === "有料") as Rect;
+    expect(overflow(to, win), "subscription の段 5 で線の先「有料」が窓から切れる").toBeLessThanOrEqual(0.5);
+    const end = endsAt(p, s).find((e) => e.name === "停止") as End;
+    expect(overflow(end.rect, win), "subscription の段 5 で「停止」が窓に入る").toBeGreaterThan(1);
+    const tag = shownTags(p, s).find((t) => t.name === "停止");
+    expect(tag, "subscription の段 5 の止め絵に「停止」の札が見えない").toBeDefined();
     const pill = (tag as Tag).pill;
-    // 線が窓の左の端を横切る高さ
-    const crossings: number[] = [];
-    for (const pts of end.paths)
-      for (let i = 1; i < pts.length; i++) {
-        const [a, c] = [pts[i - 1] as Point, pts[i] as Point];
-        if (a[0] === c[0] || (a[0] - win.x) * (c[0] - win.x) > 0) continue;
-        crossings.push(a[1] + ((win.x - a[0]) / (c[0] - a[0])) * (c[1] - a[1]) - win.y);
-      }
-    expect(crossings.length, "subscription の段 5 の線が窓の左の端を横切らない").toBeGreaterThan(0);
-    expect(crossings.some((y) => y >= pill.y - 0.5 && y <= pill.y + pill.h + 0.5), `札 ${JSON.stringify(pill)} が線の横切る高さ ${crossings.map(round).join(",")} に無い`).toBe(true);
-    for (const label of l.labels.filter((x) => x.step === s)) expect(meets(pill, inWindow(label, win)), "札が段の線の札に重なる").toBe(false);
-    for (const box of l.boxes) expect(meets(pill, inWindow(box, win)), `札が状態「${box.name}」の箱に重なる`).toBe(false);
+    /** 図の上の四角を、引いた窓に映る四角 (札の中の位置と同じ、窓の左上からの位置) へ移す */
+    const shown = (r: Rect): Rect => ({ x: (r.x - win.x) * k, y: (r.y - win.y) * k, w: r.w * k, h: r.h * k });
+    const box = shown(end.rect);
+    if (meets(end.rect, win)) {
+      // 箱の一部が窓に映る時は、札が箱の映る高さを覆う
+      expect(pill.y <= box.y + 0.5 && pill.y + pill.h >= box.y + box.h - 0.5, `札 ${JSON.stringify(pill)} が窓に映る「停止」${JSON.stringify(box)} の高さを覆わない`).toBe(true);
+    } else {
+      // 線が「停止」の側の窓の端を横切る高さ
+      const edge = end.rect.x < win.x ? win.x : win.x + win.w;
+      const crossings: number[] = [];
+      for (const pts of end.paths)
+        for (let i = 1; i < pts.length; i++) {
+          const [a, c] = [pts[i - 1] as Point, pts[i] as Point];
+          if (a[0] === c[0] || (a[0] - edge) * (c[0] - edge) > 0) continue;
+          crossings.push((a[1] + ((edge - a[0]) / (c[0] - a[0])) * (c[1] - a[1]) - win.y) * k);
+        }
+      expect(crossings.length, "subscription の段 5 の線が窓の端を横切らない").toBeGreaterThan(0);
+      expect(crossings.some((y) => y >= pill.y - 0.5 && y <= pill.y + pill.h + 0.5), `札 ${JSON.stringify(pill)} が線の横切る高さ ${crossings.map(round).join(",")} に無い`).toBe(true);
+    }
+    for (const label of l.labels.filter((x) => x.step === s)) expect(meets(pill, shown(label)), "札が段の線の札に重なる").toBe(false);
+    for (const other of l.boxes.filter((x) => x.name !== "停止")) expect(meets(pill, shown(other)), `札が状態「${other.name}」の箱に重なる`).toBe(false);
   });
 
   it("follow-ends-state-both-ends", () => {
@@ -448,7 +461,8 @@ describe.each(followFiles())("%s", (file) => {
 });
 
 /** 線の端の箱を挙げない種類の、幅 390 の今の窓の位置 (#3836 の前に測った値) */
+// hd-wallet の段 5 は段で動く物が窓に収まらず、窓を引いて全てを映す所に止まる (#3871)
 const OTHER_KINDS: [string, Point[]][] = [
-  ["packages/dragon/examples/hd-wallet.dragon", [[14, 350], [32.5, 281.5], [67.75, 24], [106.37, 0], [0, 152], [0, 350]]],
+  ["packages/dragon/examples/hd-wallet.dragon", [[14, 350], [32.5, 281.5], [67.75, 24], [106.37, 0], [0, 129], [0, 350]]],
   ["packages/dragon/examples/bridge.dragon", [[1.5, 0], [196.5, 0]]],
 ];

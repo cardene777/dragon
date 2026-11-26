@@ -22,6 +22,7 @@ import { isParsed } from "./parsed";
 import { type Diagram, registerValidator, type SequenceShape, validatorLoaded } from "./schema";
 import { iconSetLoaded, registerTabler, usesTabler } from "./blocks/icon/sets";
 import { definesBlocks, registerUserBlockReader, userBlockReader } from "./user-blocks";
+import { architectureEnds, registerArchitectureEnds } from "./render/follow-ends-store";
 import { lookOf, registerSequenceLook, sequenceLookLoaded } from "./render/look-store";
 import { type LineStyle, penLoaded, registerPen } from "./render/pen-store";
 
@@ -162,6 +163,14 @@ export async function loadLook(shape: SequenceShape | undefined): Promise<void> 
 }
 
 /**
+ * 構成図 `kind` を寄って追う窓で描く時に、窓の端で切れる箱に名前の札を出す部品 (#3871) を読む。読んでいれば何もしない。
+ * 札は寄って追う窓でだけ出すので、最初に読む量に入れず後から読む。読み込みが落ちると拒否され、次に呼ぶと読み直す
+ */
+export async function loadEnds(kind: string | undefined): Promise<void> {
+  if (kind === "architecture" && !architectureEnds()) registerArchitectureEnds((await import("./render/architecture-ends")).ARCHITECTURE_ENDS);
+}
+
+/**
  * 原本の形の検査を読む (#3400)。読んでいれば何もしない。
  * 記法から読んだ図は検査を要らないので、`loadFor` は原本の JSON を渡した時だけこれを待つ。読み込みが落ちると拒否され、次に呼ぶと読み直す
  */
@@ -177,5 +186,7 @@ export async function loadFor(source: string | object): Promise<void> {
   // 原本の JSON は、読む前に原本の形の検査も読む。記法と、記法から読んだ図は検査を要らない (#3400)
   const json = typeof source !== "string" && !isParsed(source);
   // 種類の行に `[shape: pipe]` を書いた時系列図は、その見た目で並べて描く部品も読む (#3720)
-  await Promise.all([loadParts(diagramKind(source)), loadReadings(source), loadLook(lookOf(current(source))), json ? loadValidator() : undefined]);
+  // 構成図は、寄って追う窓の端で切れる箱に出す名前の札の部品も読む (#3871)
+  const kind = diagramKind(source);
+  await Promise.all([loadParts(kind), loadEnds(kind), loadReadings(source), loadLook(lookOf(current(source))), json ? loadValidator() : undefined]);
 }

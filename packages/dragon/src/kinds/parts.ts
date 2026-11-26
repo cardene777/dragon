@@ -10,7 +10,7 @@ import type { SubChange } from "../blocks/box/draw";
 import type { CarrierTime } from "../blocks/carry/timing";
 import type { FieldChange } from "../blocks/strip/draw";
 import type { Layout, Point, Rect, SceneEdge, SceneField } from "../layout/scene";
-import type { ColorKey } from "../look/values";
+import type { ColorKey, Corner } from "../look/values";
 import type { RenderOptions } from "../render/draw";
 import type { Motion } from "../render/motion";
 import type { Ctx } from "../render/parts";
@@ -74,14 +74,21 @@ export interface EndView {
   clamp(this: void, at: [number, number]): [number, number];
   /** 段で動く物 */
   moving(this: void, step: number): Rect[];
+  /** 図の色味の角の形。角を落とす色味では札の角を丸めない (#3344) */
+  corner: Corner;
 }
 
 /** 線の端の箱を挙げる種類の、寄って追う窓の寄せ直しと札 (#3836) */
 export interface FollowEnds {
   /** 段 `step` の窓の真ん中 `at` を、線の端の箱を窓に入れる所へ寄せ直す。寄せ直さない段は `at` のまま返す */
   aim(this: void, at: [number, number], step: number): [number, number];
-  /** 段ごとの頭の列の下の窓の真ん中 `middles` で、窓の端で切れる線の端の箱に出す札。図の上に描き、札の中の位置は窓の上の位置で書く */
-  tags(this: void, middles: [number, number][], m: Motion, timeline: Timeline): string;
+  /**
+   * 段ごとの頭の列の下の窓の真ん中 `middles` で、窓の端で切れる線の端の箱に出す札。図の上に描き、札の中の位置は窓の上の位置で書く。
+   * `zooms` は段ごとの窓の倍率で、窓を引いた段 (#3871) の札は引いた窓の広さで置き、窓に映る大きさを変えない
+   */
+  tags(this: void, middles: [number, number][], m: Motion, timeline: Timeline, zooms?: readonly number[]): string;
+  /** 段 `step` の線の端の箱と、窓の端で切れると名前の札を出す足した物の四角。窓を引いた段 (#3871) で窓に入れる物を選ぶ */
+  boxes(this: void, step: number): { ends: Rect[]; named: Rect[] };
 }
 
 /** 後から読む種類の部品の組。`L` はその種類の並べ方が返す置き場所 */

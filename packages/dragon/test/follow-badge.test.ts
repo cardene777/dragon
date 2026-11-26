@@ -68,6 +68,8 @@ describe("寄って追う図で今の段の番号の丸を窓に入れる (#3046
       for (const width of WIDTHS) {
         const placed = place(name, file, width);
         for (let s = 0; s < placed.steps; s++) {
+          // 段で動く物が窓に収まらずに窓を引いた段は、段の最初の線の先の箱と札を先に入れ、番号の丸は入る時だけ入れる (#3871、follow-zoom.test.ts)
+          if (placed.scaleAt(s) < 1) continue;
           const b = placed.badgeAt(s);
           const over = overflow({ x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 }, placed.windowAt(s));
           if (over > 0.01) out.push(`${name} / 枠の幅 ${width}px / 段 ${s + 1} の丸が窓から ${round(over)}px 外れる`);
@@ -84,6 +86,8 @@ describe("寄って追う図で今の段の番号の丸を窓に入れる (#3046
       // 構成図には頭の列を貼らない。窓の中身を覆わず、窓の位置も変えない
       expect(placed.figure.querySelector(".dg-hd"), `ccip / 枠の幅 ${width}px に頭の列が在る`).toBeNull();
       for (const [step, x, y] of KEPT[width] ?? []) {
+        // 段で動く物が窓に収まらずに窓を引いた段は、引いた窓の所に止まる (#3871)
+        if (placed.scaleAt(step - 1) < 1) continue;
         const win = placed.windowAt(step - 1);
         if (Math.abs(win.x - x) > 0.01 || Math.abs(win.y - y) > 0.01) moved.push(`ccip / 枠の幅 ${width}px / 段 ${step} の窓が (${x}, ${y}) から (${round(win.x)}, ${round(win.y)}) へ動いた`);
       }
@@ -98,7 +102,8 @@ describe("寄って追う図で今の段の番号の丸を窓に入れる (#3046
       const ccip = place("ccip", "ccip.json", width);
       const offRamp = ccip.layout.boxes.find((b) => b.id === "OffRamp");
       expect(offRamp, "ccip に OffRamp の箱が無い").toBeDefined();
-      const over = overflow(offRamp as Rect, ccip.windowAt(12));
+      // 段で動く物が窓に収まらずに窓を引いた段は、段の最初の線の先の箱と札を先に入れる (#3871、follow-zoom.test.ts)
+      const over = ccip.scaleAt(12) < 1 ? 0 : overflow(offRamp as Rect, ccip.windowAt(12));
       if (over > 0.01) out.push(`ccip / 枠の幅 ${width}px / 段 13 の OffRamp の箱が窓から ${round(over)}px 外れる`);
       // oauth の段 9、11、12 は、書き換わる頭の箱が図の上端に、線が図の下の方に在り、両方は窓に入らない。丸の側の線を入れる
       const oauth = place("oauth", "oauth.json", width);
