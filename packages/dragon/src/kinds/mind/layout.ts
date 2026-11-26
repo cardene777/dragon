@@ -4,7 +4,8 @@
  * 真ん中の題を図の横の真ん中に置き、題の子の枝を左右の列に分ける。枝は書いた順に左上から右回りに置き、右の列に左の列と同じ数か 1 つ多く置く。
  * 枝が 4 つなら左上、右上、右下、左下の四方になる。枝の子の葉は枝より外の列に、枝の高さの真ん中を挟んで縦に並べる。
  * 枝の塊 (枝と、その葉と、枝の上の段の番号の丸) は列の中で上から重ねて並べ、列の真ん中を題の高さに揃える。
- * 題から枝へ、枝から葉へは、考えの縁から縁へ横向きに出て横向きに入る曲線で結ぶ。同じ考えの縁から出る線は、出る所を少しずつずらす。
+ * 題から枝へ、枝から葉へは、親の縁の高さの真ん中から親の色の短い幹を横へ出し、幹の先の 1 点から子の縁へ横向きに出て横向きに入る曲線で結ぶ (#3960)。
+ * 幹は親と子を置いた側ごとに 1 本にし、子の縁までの `MIND_LOOK.fork` の割合の所で分ける。どの子への線も親の縁の同じ 1 点から出て、同じ 1 点で分かれる。
  * 色は、書いた色が無い題を `MIND_LOOK.centre`、書いた色が無い枝を書いた順に `MIND_LOOK.branches` のうちほかの枝が書いていない色にし、葉は書いた色が無ければ枝の色を継ぐ。
  * 段の番号は、その段で最初に書いた考えの枠の上に置き、考えを書かない段は前の段の番号と同じ所で入れ替える
  */
@@ -28,7 +29,10 @@ export interface MindPlaced extends Rect {
   event: number;
 }
 
-/** 親から子への曲線。`curve` は始まり、2 つの制御点、終わりの 4 つの点で、`points` は崩れの確かめに渡す曲線を区切った点 */
+/**
+ * 親から子への曲線。`curve` は幹の先から子の縁までの曲線の始まり、2 つの制御点、終わりの 4 つの点。
+ * `points` は親の縁から幹を通って子の縁までの道を区切った点で、崩れの確かめと段の番号の置き場所と窓の端の札に渡す
+ */
 export interface MindLink {
   from: string;
   to: string;
@@ -40,10 +44,27 @@ export interface MindLink {
   points: Point[];
 }
 
+/**
+ * 親の縁から子の側へ横に出る幹 (#3960)。親と子を置いた側 (`side`) ごとに 1 本で、親の色で描く。
+ * `start` は親の縁の高さの真ん中、`fork` は子への曲線が分かれる幹の先。`step` と `event` はその側で最初に書いた子の段と出来事の番号で、幹はその子と一緒に引く。
+ * `level` は線の太さの段で、題からの幹が 1、枝からの幹が 2
+ */
+export interface MindTrunk {
+  from: string;
+  side: -1 | 1;
+  level: 1 | 2;
+  color: ColorKey;
+  step: number;
+  event: number;
+  start: Point;
+  fork: Point;
+}
+
 export interface MindLayout extends Layout {
   kind: "mind";
   ideas: MindPlaced[];
   links: MindLink[];
+  trunks: MindTrunk[];
 }
 
 interface Written {
@@ -69,8 +90,15 @@ function curveOf(from: Point, to: Point): [Point, Point, Point, Point] {
   return [from, [mx, from[1]], [mx, to[1]], to];
 }
 
-/** 線の出る所を、並んだ数 `n` の `k` 番目ごとに `MIND_LOOK.fan` ずつずらした高さの差 */
-const fanned = (k: number, n: number): number => (k - (n - 1) / 2) * MIND_LOOK.fan;
+/** 曲線を崩れの確かめに渡す点に区切る */
+const sampled = (curve: [Point, Point, Point, Point]): Point[] => Array.from({ length: MIND_LOOK.samples + 1 }, (_, k) => bezier(curve, k / MIND_LOOK.samples));
+
+/** 親の縁の点 `start` から、子の縁の x (`edge`) までの `MIND_LOOK.fork` の割合の所にある幹の先 */
+const forkOf = (start: Point, edge: number): Point => [start[0] + (edge - start[0]) * MIND_LOOK.fork, start[1]];
+
+/** 親の縁から幹の先までの直線を区切った点。幹の先は子への曲線の始まりと同じ点なので入れない */
+const stemOf = (start: Point, fork: Point): Point[] =>
+  Array.from({ length: MIND_LOOK.stem }, (_, k) => [start[0] + ((fork[0] - start[0]) * k) / MIND_LOOK.stem, start[1]] as Point);
 
 /** 段の番号の丸の真ん中 `p` の四角 */
 const disc = ([x, y]: Point): Rect => ({ x: x - LOOK.badge.r, y: y - LOOK.badge.r, w: LOOK.badge.r * 2, h: LOOK.badge.r * 2 });
@@ -121,6 +149,15 @@ export function layoutMind(diagram: DiagramModel): MindLayout {
 
   const G = MIND_LOOK.gap;
   const links: MindLink[] = [];
+  const trunks: MindTrunk[] = [];
+  /** 親 `from` の `side` の側に、子 `kids` の中で最初に書いた子と一緒に引く幹を置き、幹の先を返す */
+  const trunk = (from: MindPlaced, side: -1 | 1, level: 1 | 2, edge: number, kids: MindPlaced[]): { fork: Point; stem: Point[] } => {
+    const start: Point = [side > 0 ? from.x + from.w : from.x, from.cy];
+    const fork = forkOf(start, edge);
+    const first = kids.reduce((a, b) => (b.step < a.step || (b.step === a.step && b.event < a.event) ? b : a));
+    trunks.push({ from: from.id, side, level, color: from.color, step: first.step, event: first.event, start, fork });
+    return { fork, stem: stemOf(start, fork) };
+  };
   if (centre) {
     const c = place(centre.idea.id, 0, 0, 0, 0);
     // 左の列に書いた順の最初の枝と、右の列に置いた残りを右回りに続けた枝を置く
@@ -151,25 +188,31 @@ export function layoutMind(diagram: DiagramModel): MindLayout {
         return { p, stack: b.stack };
       });
       const outer = Math.max(...placedBranches.map(({ p }) => inner + p.w)) + G.twig;
-      placedBranches.forEach(({ p, stack }, k) => {
-        // 題の縁から枝の内の縁への線
-        const from: Point = [side * (c.w / 2), c.cy + fanned(k, column.length)];
+      // 題の縁から枝の内の縁への線。題の幹の先から枝ごとの曲線に分かれる
+      const centreStem = trunk(c, side, 1, side * inner, placedBranches.map(({ p }) => p));
+      placedBranches.forEach(({ p, stack }) => {
         const to: Point = [side > 0 ? p.x : p.x + p.w, p.cy];
-        links.push({ from: c.id, to: p.id, level: 1, color: p.color, step: p.step, event: p.event, curve: curveOf(from, to), points: [] });
+        const curve = curveOf(centreStem.fork, to);
+        links.push({ from: c.id, to: p.id, level: 1, color: p.color, step: p.step, event: p.event, curve, points: [...centreStem.stem, ...sampled(curve)] });
         const leaves = kids.get(p.id) ?? [];
         let y = p.cy - stack / 2;
-        leaves.forEach((id, j) => {
+        const placedLeaves = leaves.map((id) => {
           const w = widthOf(id, 2);
           const leaf = place(id, 2, side, side * (outer + w / 2), y + leafH / 2);
           y += leafH + G.leaf;
-          const out: Point = [side > 0 ? p.x + p.w : p.x, p.cy + fanned(j, leaves.length)];
-          const into: Point = [side > 0 ? leaf.x : leaf.x + leaf.w, leaf.cy];
-          links.push({ from: p.id, to: leaf.id, level: 2, color: leaf.color, step: leaf.step, event: leaf.event, curve: curveOf(out, into), points: [] });
+          return leaf;
         });
+        if (placedLeaves.length === 0) return;
+        // 枝の外の縁から葉の内の縁への線。枝の幹の先から葉ごとの曲線に分かれる
+        const branchStem = trunk(p, side, 2, side * outer, placedLeaves);
+        for (const leaf of placedLeaves) {
+          const into: Point = [side > 0 ? leaf.x : leaf.x + leaf.w, leaf.cy];
+          const curve = curveOf(branchStem.fork, into);
+          links.push({ from: p.id, to: leaf.id, level: 2, color: leaf.color, step: leaf.step, event: leaf.event, curve, points: [...branchStem.stem, ...sampled(curve)] });
+        }
       });
     }
   }
-  for (const link of links) link.points = Array.from({ length: MIND_LOOK.samples + 1 }, (_, k) => bezier(link.curve, k / MIND_LOOK.samples));
 
   // 段の番号。その段で最初に書いた考えの枠の上、外の横、下の順に、ほかの考えと線と丸に掛からない所へ置く
   const ideas = written.flatMap((w) => {
@@ -236,5 +279,6 @@ export function layoutMind(diagram: DiagramModel): MindLayout {
     ends: [],
     ideas: ideas.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy, cx: p.cx + dx, cy: p.cy + dy })),
     links: links.map((l) => ({ ...l, curve: l.curve.map(shift) as [Point, Point, Point, Point], points: l.points.map(shift) })),
+    trunks: trunks.map((t) => ({ ...t, start: shift(t.start), fork: shift(t.fork) })),
   };
 }
