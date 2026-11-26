@@ -123,7 +123,7 @@ export const COMMANDS: Partial<Record<SectionId, readonly (string | null)[]>> = 
   embed: [
     null,
     [
-      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.83/dist/cdn/dragon.js"></script>',
+      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.84/dist/cdn/dragon.js"></script>',
       "",
       '<pre class="dragon" data-header>',
       "sequence Take an order",
