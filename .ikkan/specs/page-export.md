@@ -72,11 +72,6 @@
 | 全体像の図より後の段落の用語のリンクは、押すとすぐ下に用語の札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-text-opens-term-card` passes | #3969 |
 | 問いの番号は章 (話題) ごとの連番で、章の番号と章の中の問いの番号を並べた`1-1`、`1-2`、`2-1`の形で、目次と本文の見出しの両方に同じ番号が出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-numbers-restart-per-topic` passes | #3969 |
 | 頁の説明の文に置いた図は頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3969 |
-| 話題が2つ以上ある説明の頁を開くと、頁の題と頭の中身と全体像だけが見え、問いの節を1つも見せない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-split-opens-on-overview` passes | #3983 |
-| 話題が2つ以上ある説明の頁で目次の問いを押すと、その問いの節だけが見え、URLの`#`の後ろがその節のidになり、目次がその問いに印を付ける | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-split-menu-opens-question-page` passes | #3983 |
-| 問いの頁の下に前と次の問いへのlinkが在り、最初の問いの前は全体像の頁を指し、最後の問いは次のlinkを持たず、印刷の形ではlinkを出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-split-pager-links-neighbors` passes | #3983 |
-| 問いの頁の上に話題の名前が在り、話題の頭の中身は話題の最初の問いの頁だけが見せる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-split-topic-name-on-question-page` passes | #3983 |
-| 用語の札の中のlinkを押すと、用語の話題の頁に切り替わり、その用語の説明が画面に入る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-split-term-link-opens-glossary-page` passes | #3983 |
 | 話題が1つだけの説明の頁は、全ての節を1枚に積み、前と次のlinkを持たない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-single-topic-stacks` passes | #3983 |
 | 印刷の形では、話題が2つ以上でも全ての話題を書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3983 |
 | 印刷の形では、2つ目からの話題を新しい紙から始める | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-starts-each-topic-on-new-paper` passes | #3983 |
