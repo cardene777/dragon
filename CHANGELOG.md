@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- A printed page no longer leaves the title bar of a figure alone at the bottom of a sheet with the figure on the next one, and no longer leaves half a sheet blank after a tall step. The title bar of a figure, the titles of guide topics and sections, the one-sentence answer, and the paragraph right before a figure now stay on the same sheet as what follows them, and each printed step of a figure, with its number, title, and text, fits in half the height of the sheet, so a sheet holds two steps. A step drawn taller than that is scaled down with its proportions kept. A figure with scenes now prints every scene, not only the one shown on screen, with each scene name on the same sheet as its first step (#3975)
+
 ## [0.82.0] - 2026-11-26
 
 ### Changed

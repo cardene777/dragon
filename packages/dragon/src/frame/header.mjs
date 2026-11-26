@@ -31,7 +31,7 @@ export const HEADER_CSS=`
 [data-dragon-header] .dg-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;margin:0 -4px 0 -6px;border-radius:var(--dragon-header-radius,6px);color:var(--h-accent);text-decoration:none}
 [data-dragon-header] .dg-mark:hover{background:var(--h-hover)}
 [data-dragon-header] .dg-mark svg{display:block;width:22px;height:22px;fill:currentColor;stroke:none}
-@media print{[data-dragon-header] .dg-header-actions,[data-dragon-header] .dg-header-settings{display:none}}
+@media print{[data-dragon-header]{break-after:avoid}[data-dragon-header] .dg-header-actions,[data-dragon-header] .dg-header-settings{display:none}}
 @container(max-width:600px){[data-dragon-header] .dg-header-row{gap:5px;padding:9px 10px}[data-dragon-header] .dg-header-title{flex:1 1 0}[data-dragon-header] .dg-header-actions{margin-left:0;width:100%;gap:4px}[data-dragon-header] .dg-header-actions>:is(button,a),[data-dragon-header] .dg-header-actions>:not(button,a)>button{padding:5px 8px}[data-dragon-header] .dg-header-settings{padding:8px 10px;gap:9px}}
 `;
 
