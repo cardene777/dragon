@@ -61,7 +61,7 @@
 | 問いの見出しの末尾に`[menu: 短い名前]`を書くと、目次はその短い名前を出し、本文の見出しは問いの文のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-uses-short-name` passes | #3961 |
 | `[menu: ]`のように名前が空の時、書き出しは行の番号を付けて断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-empty-name-refused` passes | #3961 |
 | 頁の説明の文 (最初の`##`より前) に置いた図は、頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながって並ぶ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3961 |
-| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、問いの番号が話題をまたいで1から通る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-with-running-numbers` passes | #3961 |
+| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、問いの番号は話題ごとに1から数え直す (#3969で通し番号をやめた) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-one-after-another` passes | #3961 |
 | 頁を下へ読み進めると、目次で今読んでいる問いに色が付き、目次の問いを押すとその節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-marks-current-question` passes | #3961 |
 | 幅390pxでは、目次が本文の横に並ばず、本文が横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-folds-on-phone` passes | #3961 |
 | 節の題の直後の引用は題の下の答えとして出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3961 |

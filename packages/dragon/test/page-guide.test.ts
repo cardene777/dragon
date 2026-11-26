@@ -2,7 +2,7 @@
  * mdから書き出す説明の頁 (`layout: guide`、#3876)。
  *
  * 頭の行に`layout: guide`を書いたmdは、`##`が話題、`###`が話題の中に番号つきで縦に積む節になり、話題は1つの頁に続けて積む (#3961)。
- * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題をまたいで1から数える。
+ * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題ごとに1から数え直し、`話題の番号-問いの番号`で出す (#3969)。
  * 節の題の直後の引用は題の下の答えになり、`<details>`と`<summary>`は答えを押すまで隠す確かめる問いになる。
  * 頁の頭の`![用語](glossary.md)`の行で読み込んだ用語のfileは頁の終わりの「用語」の話題になり、本文の`[用語](glossary.md#用語)`のリンクは押すと札が開く下線になる。
  * 印刷の形では、用語の札と箱の札と確かめる問いの答えが全て開き、左の目次を隠す。
@@ -305,13 +305,13 @@ async function exportedGuide(md = writeGuide()): Promise<Document | undefined> {
   return path === "" ? undefined : documentOf(path);
 }
 
-/** 話題 (`section.pg-topic`) の頭の題 (`h2.pg-topic-title`) と、話題ごとの節の番号と題と、隠した節か */
+/** 話題 (`section.pg-topic`) の頭の題 (`h2.pg-topic-title`) と、話題ごとの節の番号 (`話題の番号-問いの番号`) と題と、隠した節か */
 function topicsOf(doc: Document): { topic: string; sections: { number: string; title: string; hidden: boolean }[] }[] {
   return [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
     topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
     sections: [...topic.querySelectorAll(".pg-sec")].map((sec) => ({
       number: squash(sec.querySelector(".pg-sec-title .pg-num")?.textContent),
-      title: squash(sec.querySelector(".pg-sec-title")?.textContent).replace(/^\d+\s*/u, ""),
+      title: squash(sec.querySelector(".pg-sec-title")?.textContent).replace(/^\d+-\d+\s*/u, ""),
       hidden: sec.closest("[hidden]") !== null,
     })),
   }));
@@ -798,15 +798,15 @@ describe("説明の頁 (#3876)", () => {
     const doc = await exportedGuide();
     if (!doc) return;
     expect(doc.body.classList.contains("pg-layout-guide"), "layout: guide の頁の組み立て").toBe(true);
-    expect(topicsOf(doc), "## の話題と、話題の中の ### の通し番号の節").toEqual([
+    expect(topicsOf(doc), "## の話題と、話題の中の ### の節。節の番号は話題ごとに1から数え直す").toEqual([
       {
         topic: "止める仕組み",
         sections: [
-          { number: "1", title: "何を止めるのか", hidden: false },
-          { number: "2", title: "どの順で確かめるのか", hidden: false },
+          { number: "1-1", title: "何を止めるのか", hidden: false },
+          { number: "1-2", title: "どの順で確かめるのか", hidden: false },
         ],
       },
-      { topic: "記録", sections: [{ number: "3", title: "どこに残すのか", hidden: false }] },
+      { topic: "記録", sections: [{ number: "2-1", title: "どこに残すのか", hidden: false }] },
       { topic: "用語", sections: [] },
     ]);
     const seen = PRESSED.get();
@@ -837,15 +837,15 @@ describe("説明の頁 (#3876)", () => {
   it("guide-question-list-jumps-to-section", () => {
     const seen = PRESSED.get();
     if (!seen) return;
-    expect(seen.list.get(), "左の目次の話題と、話題ごとの通し番号の問い").toEqual([
+    expect(seen.list.get(), "左の目次の話題と、話題ごとに1から数え直す番号の問い").toEqual([
       {
         topic: "止める仕組み",
         items: [
-          { number: "1", name: "何を止めるのか" },
-          { number: "2", name: "どの順で確かめるのか" },
+          { number: "1-1", name: "何を止めるのか" },
+          { number: "1-2", name: "どの順で確かめるのか" },
         ],
       },
-      { topic: "記録", items: [{ number: "3", name: "どこに残すのか" }] },
+      { topic: "記録", items: [{ number: "2-1", name: "どこに残すのか" }] },
       { topic: "用語", items: [] },
     ]);
     const jumped = seen.jumped.get();
@@ -1059,18 +1059,18 @@ describe("左の目次と全体像 (#3961)", () => {
       {
         topic: "止める仕組み",
         questions: [
-          { number: "1", href: hrefs[0] },
-          { number: "2", href: hrefs[1] },
+          { number: "1-1", href: hrefs[0] },
+          { number: "1-2", href: hrefs[1] },
         ],
       },
       {
         topic: "記録",
         questions: [
-          { number: "3", href: hrefs[2] },
-          { number: "4", href: hrefs[3] },
+          { number: "2-1", href: hrefs[2] },
+          { number: "2-2", href: hrefs[3] },
         ],
       },
-      { topic: "送り直す仕組み", questions: [{ number: "5", href: hrefs[4] }] },
+      { topic: "送り直す仕組み", questions: [{ number: "3-1", href: hrefs[4] }] },
     ]);
     const seen = MENU.get();
     if (!seen) return;
@@ -1143,7 +1143,7 @@ describe("左の目次と全体像 (#3961)", () => {
     ).toEqual([true, true, true]);
   });
 
-  it("guide-topics-flow-with-running-numbers", async () => {
+  it("guide-topics-flow-one-after-another", async () => {
     const doc = await exportedGuide(writeMenuGuide());
     if (!doc) return;
     expect(doc.querySelectorAll('.pg-topics, .pg-qlist, [role="tablist"]').length, "話題のタブか、タブの頭の問いの一覧が残る").toBe(0);
@@ -1153,11 +1153,11 @@ describe("左の目次と全体像 (#3961)", () => {
         hidden: topic.closest("[hidden]") !== null,
         numbers: [...topic.querySelectorAll(".pg-sec-title .pg-num")].map((num) => squash(num.textContent)),
       })),
-      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む通し番号の節",
+      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む節。節の番号は話題ごとに1から数え直す",
     ).toEqual([
-      { title: "止める仕組み", hidden: false, numbers: ["1", "2"] },
-      { title: "記録", hidden: false, numbers: ["3", "4"] },
-      { title: "送り直す仕組み", hidden: false, numbers: ["5"] },
+      { title: "止める仕組み", hidden: false, numbers: ["1-1", "1-2"] },
+      { title: "記録", hidden: false, numbers: ["2-1", "2-2"] },
+      { title: "送り直す仕組み", hidden: false, numbers: ["3-1"] },
     ]);
   });
 
