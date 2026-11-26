@@ -1270,6 +1270,52 @@ describe("Diamond.diamondCut の線の札 (#3949)", () => {
   });
 });
 
+// ---- 箱の上を横へ走る処理を借りる呼び出しの線の札 (#3962)
+
+/**
+ * 網型で、CounterProxy が CounterV2 の処理を借りる呼び出し。管は箱の上を横へ走り、札を置く時は上を図の上端、下を箱にふさがれる。
+ * 0.81.0 まで札は管の真ん中に重なって置かれた (#3962)。Tracelyth のアップグレードのサンプル (Transparent、Beacon、ERC-7546) と同じ形
+ */
+const COUNTER_PROXY = `pipe CounterProxy.incrementを実行
+layout mesh
+
+box alice as Alice
+box admin as ProxyAdmin
+box proxy as CounterProxy
+box v1 as CounterV1
+box v2 as CounterV2
+
+hold proxy: "count" 1 [tank]
+
+step AliceがCounterProxyのincrementを呼ぶ
+  say AliceがCounterProxy.incrementを呼び出します。
+  alice -> proxy: increment()
+
+step CounterProxyのcountが1から3になる
+  say CounterProxyがCounterV2のincrementの処理を借りて、自分のcountを1から3に書き換えます。
+  proxy -> v2: increment() [call: delegate]
+  write v2: "count" 3
+  return v2: ok
+
+step トランザクションが成功する
+  say 全ての変更が反映されました。countは1から3になりました。
+  return proxy: ok
+`;
+// 図は file を読み込む段で描き、件は描いた物を読む (#3738)
+const COUNTER = await atLoad<GapLayout>("CounterProxy.increment の図を描く", () => {
+  const parsed = api.parseNotation(COUNTER_PROXY, { lang: "ja" });
+  if (!parsed.ok) throw new Error(`CounterProxy.increment を読めない: ${parsed.errors.map((e) => `${e.line}行目 ${e.message}`).join(" / ")}`);
+  return api.renderDiagram(parsed.diagram, { lang: "ja" }).layout;
+});
+
+describe("箱の上を横へ走る管の線の札 (#3962)", () => {
+  it("pipe-call-tag-over-boxes-clears-pipe-edge", () => {
+    const tag = (COUNTER.get().callTags ?? []).find((t) => t.from === "proxy" && t.to === "v2");
+    if (!tag) throw new Error("CounterProxy から CounterV2 への線の札が無い");
+    expect(tagClearance(COUNTER.get(), tag).pipe, `札 ${JSON.stringify(rounded(tag))} と呼び出しの管の縁の隙間`).toBeGreaterThanOrEqual(8);
+  });
+});
+
 describe("描いたログの札と線の札の隙間 (#3949)", () => {
   // 描く段はログの札を線の札から 6px 空けて置き直す。並べ方の段の線の札はログの札の仮の置き場を避けないので、描く段が離す
   const figures = (): [string, GapLayout][] => [

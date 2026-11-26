@@ -27,6 +27,7 @@ import type { TextStyle } from "../../look/values";
 import { type Ask, type Dir, type End, gridLines, type Laid, type Obstacle, Router, simplify, unjog } from "../../pipe-route";
 import { checkPasses, isFault, keyOf, minus, PipeRun, rateOf, tankHolds, tankToken } from "../../pipe-run";
 import { valveRects } from "../../pipe-valve";
+import { Shifter } from "../../render/pipe-shift";
 import { sha256 } from "../../sha256";
 import { SRC_FINGERPRINT } from "../../src-fingerprint";
 import type { CheckOp, DiagramModel, PipeCallKind, PipeCheck, PipeFold, PipeHold, Step } from "../../schema";
@@ -4305,20 +4306,23 @@ function finishPipe(out: PipeLayout): PipeLayout {
       if (moved) break;
     }
   }
-  const solid = [
+  // 図を下げた時 (#3962) に作り直す。計器とログの札と縦の線は写した矩形と点で持ち、図をずらしても動かないため
+  const solidOf = (): Rect[] => [
     ...(out.parties ?? []),
     ...(out.parties ?? []).flatMap((p) => (p.label ? [p.label] : [])),
     ...(out.housings ?? []),
     ...(out.tanks ?? []),
     ...(out.plates ?? []).filter((p) => !p.row),
-    ...out.enclosures,
+    ...(out.enclosures ?? []),
     ...(out.gauges ?? []).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h })),
     // ログの札は札の帯を持つ形 (#3721) の時だけ避ける。ほかの形のログの札はここでは仮の置き場に在り、描く段が線の札を避けて置き直す。
     // 仮の置き場を避けると、描いた図では空いている管の横まで断り、札が管の上に落ちて戻りの札に重なる (#3949)
     ...(out.fixed?.band ? (out.events ?? []) : []).map((e): Rect => ({ x: e.x, y: e.y, ...(({ w, h }) => ({ w, h }))(logCardSize(out, e)) })),
   ];
+  let solid = solidOf();
   const lines = [...(out.calls ?? []), ...(out.valuePipes ?? []), ...(out.links ?? []), ...(out.writes ?? [])].flatMap((l) => segsOf(l.points));
-  const tieLines = (out.ties ?? []).map((t): [Point, Point] => [[t.x, t.y1], [t.x, t.y2]]);
+  const tieLinesOf = (): [Point, Point][] => (out.ties ?? []).map((t): [Point, Point] => [[t.x, t.y1], [t.x, t.y2]]);
+  let tieLines = tieLinesOf();
   // 処理を借りる呼び出し (delegatecall) の線に、線の上の札を付ける。いちばん長い横の線の真ん中の上に置き、ふさがっていれば下に置く
   out.callTags = [];
   const seen = new Set<string>();
@@ -4381,8 +4385,8 @@ function finishPipe(out: PipeLayout): PipeLayout {
         return { x: px - x.w / 2, y: py - x.h / 2, w: x.w, h: x.h };
       });
     });
-    const clear = (r: Rect): boolean =>
-      r.y >= M &&
+    const clear = (r: Rect, top: number = M): boolean =>
+      r.y >= top &&
       r.x >= M &&
       r.x + r.w <= out.width - M &&
       !solid.some((o) => overlap(r, o, 8)) &&
@@ -4409,7 +4413,20 @@ function finishPipe(out: PipeLayout): PipeLayout {
       !others.some((s) => crosses(r, s, 16)) &&
       !tieLines.some((s) => crosses(r, s, 4));
     // 管の上にも空いた所が無い時は、管の道の真ん中に最も近い所 (4pxの刻みで、等しい時は手前) に重ねる
-    const pick = spots.map(([x, y]) => ({ x, y, w, h })).find(clear) ?? onPipe.find(clearOnPipe) ?? onPipeAt(4 * Math.ceil(total / 8 - 0.5));
+    // 管の横の所が図の上端だけで断られる時は (箱の上を横へ走る管で、下は箱がふさぐ)、図の全体を下げて管の上に置く (#3962)。
+    // 図の全体を同じだけ下げるので、上端のほかの判定は下げる前の座標のまま測れる。描く段も、札入れが上端からはみ出す時に同じく図の全体を下げる。
+    // 今の候補に置ける図の置き場を変えないよう、今の候補を全て試した後に試す。図を下げても置けない時だけ管の上に重ねる (#3854)
+    let pick = spots.map(([x, y]) => ({ x, y, w, h })).find((r) => clear(r));
+    if (!pick) {
+      const up = spots.map(([x, y]) => ({ x, y, w, h })).find((r) => r.y < M && clear(r, -Infinity));
+      if (up) {
+        new Shifter(out as unknown as Record<string, unknown>).shift("y", -1e9, M - up.y, []);
+        solid = solidOf();
+        tieLines = tieLinesOf();
+        pick = { ...up, y: M };
+      }
+    }
+    pick ??= onPipe.find(clearOnPipe) ?? onPipeAt(4 * Math.ceil(total / 8 - 0.5));
     out.callTags.push({ call: c.index, from: c.from, to: c.to, text, ...pick });
   }
   return out;
