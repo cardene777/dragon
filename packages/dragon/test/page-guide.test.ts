@@ -697,10 +697,10 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
   ),
 );
 
-/** 左の目次の問いが全て見えているか */
+/** 左の目次の問いが全て見えているか。話題のタブに分けた頁は、開いている話題の問いだけを数える (#3991) */
 const menuShown = (page: Page): Promise<boolean> =>
   page.evaluate(() => {
-    const links = [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")];
+    const links = [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")].filter((a) => !a.closest("[data-off]"));
     return links.length > 0 && links.every((a) => a.checkVisibility());
   });
 
@@ -727,6 +727,8 @@ const measureAt = async (page: Page, width: number) => {
   const glossaryShown = await readUntil(() => page.evaluate(() => document.querySelector<HTMLElement>(".pg-glossary")?.checkVisibility() ?? false), (shown) => shown, WAIT);
   const glossaryText = await smallText(page, READABLE_PX);
   const whole = { text: { min: Math.min(text.min, glossaryText.min), small: [...text.small, ...glossaryText.small] }, overflow: Math.max(wide, await overflow(page)), glossaryShown };
+  // 目次は問いを持つ話題のタブで開く。用語のタブの目次は問いを持たない (#3991)
+  await page.goto(at(ids.first), { timeout: ACTION_LIMIT_MS });
   // 目次を本文の上に畳む幅では、釦を押して開く。広い幅では目次が初めから開いている
   const toggle = page.locator(".pg-menu-toggle:visible");
   if ((await toggle.count()) > 0) await toggle.click({ timeout: WAIT });

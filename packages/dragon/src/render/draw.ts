@@ -112,6 +112,11 @@ export interface RenderOptions {
    */
   figure?: boolean;
   /**
+   * 頁に止めて置く図 (`figure`) で、飛び先 (`link:`、#3199) がこの値の箱だけに色を残し、ほかの箱を薄く描く (#3991)。
+   * 説明の頁の話題のタブの頭が、全体像の図のうちその話題を説明する箱を示すのに使う。`figure` でない図では効かない
+   */
+  focus?: string;
+  /**
    * 書き出す絵の形で描く (#3891)。HTML で描く種類 (判定の表) は、頁の表の代わりに SVG の要素だけで描いた絵を返す。
    * 判定の表は例を帯に置き、幅 728px に収まらない表は規則の列を分けて縦に積む。SVG で描く種類はこの指定で変わらない
    */
@@ -529,6 +534,17 @@ export function drawSvg(
     if (text) L[layer].push(text);
   }
   const on = drawn?.on ?? involved(diagram);
+  // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)。時間軸の図の箱は時間軸の図を描く部品が包む
+  const links = new Map(
+    diagram.boxes.flatMap((b) =>
+      b.link === undefined ? [] : [[b.id, b.link] as [string, string]],
+    ),
+  );
+  // 色を残す飛び先を渡した止めて置く図 (#3991) は、その飛び先を持たない箱と、両端がそういう箱の線と線の名前を薄く描く
+  const focus = figure?.focus;
+  const faint = (markup: string): string => `<g data-dim="1" opacity="0.28">${markup}</g>`;
+  const keptBox = (id: string): boolean => focus === undefined || links.get(id) === focus;
+  const keptEdge = (e: { from: string; to: string }): boolean => keptBox(e.from) || keptBox(e.to);
   for (const e of look ? [] : layout.edges) {
     const time = timeline.edges.find((t) => t.step === e.step && t.event === e.event);
     // 種類の部品は、共通の線を描かない線と、線を出し始める時刻を決められる
@@ -536,46 +552,45 @@ export function drawSvg(
     if (!time || since === undefined) continue;
     // 並べる見せ方の場面の図 (#3878) は、段が済んだ線も灰に替えず、共通の段の灰色と場面の色のまま残す
     const line = edge(e, time, ctx, isState && layout.scene === undefined, since);
-    L.base.push(line.base);
-    L.lit.push(line.lit);
+    L.base.push(keptEdge(e) ? line.base : faint(line.base));
+    L.lit.push(keptEdge(e) ? line.lit : faint(line.lit));
   }
   if (drawn?.after) L.top.push(drawn.after());
   const states = new Map((timeline.states ?? []).map((s) => [s.box, s]));
-  // 飛び先を持つ箱は、箱の札をその飛び先への link で包む (#3199)。時間軸の図の箱は時間軸の図を描く部品が包む
-  const links = new Map(
-    diagram.boxes.flatMap((b) =>
-      b.link === undefined ? [] : [[b.id, b.link] as [string, string]],
-    ),
-  );
   const linked = (id: string, markup: string): string => linkTo(links.get(id), markup);
+  const dimmed = (id: string, markup: string): string => (keptBox(id) ? markup : faint(markup));
   // 札で見せる図 (#3877) の札を持つ箱は、箱の札ごと押せる組で包み、右上に i の印を描く
   const notes = new Map((layout.noteCards ?? []).map((note) => [note.box, note]));
+  // 色を残す飛び先を渡した止めて置く図 (#3991) は押しても札を開かないので、i の印を描かない
   const noted = (id: string, markup: string, y?: number): string => {
-    const note = notes.get(id);
+    const note = figure?.focus === undefined ? notes.get(id) : undefined;
     return note ? noteMark(note, markup, y) : markup;
   };
   for (const box of parts?.ownBoxes || look ? [] : layout.boxes) {
     if (box.ghost) {
-      L.node.push(linked(box.id, ghostCard(box, ink, ctx.corner)));
+      L.node.push(dimmed(box.id, linked(box.id, ghostCard(box, ink, ctx.corner))));
       continue;
     }
     const state = states.get(box.id);
     L.node.push(
-      linked(
+      dimmed(
         box.id,
-        noted(
+        linked(
           box.id,
-          card(
-            box,
-            ctx,
-            on.get(box.id) ?? [],
-            subs.get(box.id) ?? [],
-            isState ? (state?.lit ?? []) : undefined,
+          noted(
+            box.id,
+            card(
+              box,
+              ctx,
+              on.get(box.id) ?? [],
+              subs.get(box.id) ?? [],
+              isState ? (state?.lit ?? []) : undefined,
+            ),
           ),
         ),
       ),
     );
-    if (state?.done !== undefined) L.node.push(doneMark(box, state.done, ctx));
+    if (state?.done !== undefined) L.node.push(dimmed(box.id, doneMark(box, state.done, ctx)));
   }
   for (const b of look ? [] : layout.badges)
     if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
@@ -586,7 +601,10 @@ export function drawSvg(
   };
   for (const l of look ? [] : layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
-    if (time) L.top.push(label(l, fadeUnder(fadeBefore(l, time, timeline.steps), coveredAt(l)), ctx));
+    if (!time) continue;
+    const drawnLabel = label(l, fadeUnder(fadeBefore(l, time, timeline.steps), coveredAt(l)), ctx);
+    const owner = focus === undefined ? undefined : layout.edges.find((e) => e.step === l.step && e.event === l.event);
+    L.top.push(owner && !keptEdge(owner) ? faint(drawnLabel) : drawnLabel);
   }
   // 止め絵を選んだ図は、全ての段の名前を出す間にも処理の札を出す。その間に見えている札は繰り返す前まで延ばす (#3200)
   const { whole } = timeline;
@@ -660,6 +678,8 @@ export interface StillFigure {
   at: number;
   /** 頁が暗い時に描く色味 */
   dark: Palette;
+  /** 色を残す箱の飛び先。ほかの箱を薄く描く (#3991) */
+  focus?: string;
 }
 
 /**
@@ -1215,7 +1235,9 @@ export function renderLayout(
   const strokes: Stroke[] = [];
   // 止めて置く図 (#3801) は、最後の段の止め絵の時刻と、頁が暗い時の色味を渡す
   const figure: StillFigure | undefined =
-    options.figure === true ? { at: timeline.stills[timeline.steps.length - 1] ?? 0, dark: paletteOf(options, "dark") } : undefined;
+    options.figure === true
+      ? { at: timeline.stills[timeline.steps.length - 1] ?? 0, dark: paletteOf(options, "dark"), ...(options.focus === undefined ? {} : { focus: options.focus }) }
+      : undefined;
   // HTML で描く種類 (判定の表、#3879) は SVG を描かず、種類の部品が HTML の字を返す。字を記録しないので、重なりと崩れも数えない
   const html = partsOf(layout.kind)?.html;
   // 手描きの線は描き終えた SVG の形を描き替える。崩れは描いた時に記録した字と線から数えるので、描き替えても変わらない

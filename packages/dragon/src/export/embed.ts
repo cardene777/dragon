@@ -13,7 +13,7 @@ import { iconsElement } from "../blocks/icon/page-icons";
 import { dedent } from "../embed/dedent";
 import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { parseNotation } from "../parser";
-import { STILL_ATTR, stillFigureHtml } from "../still-figure";
+import { FOCUS_ATTR, STILL_ATTR, stillFigureHtml } from "../still-figure";
 import type { NotationLang } from "../words";
 // 並べ方を組む処理 (`./layouts`) は全ての種類の部品を登録する (`render/svg.ts`)。止めて置く塊もこの登録で描く (#3801)
 import { pipeLayouts } from "./layouts";
@@ -57,14 +57,22 @@ export function stillBlocksDrawn(html: string): string {
   return html.replace(BLOCK, (whole: string, _quote: string, inner: string) => {
     const open = whole.slice(0, whole.indexOf(">") + 1);
     if (!new RegExp(`\\s${STILL_ATTR}(?:[\\s=>]|$)`, "u").test(open)) return whole;
-    const parsed = parseNotation(dedent(textOf(inner)), { lang });
+    // 属性 `data-note="pop"` を持つ塊は、頁の script と同じく箱の説明を札で見せる形で読む (#3991)
+    const pop = /\sdata-note\s*=\s*"pop"/u.test(open);
+    const parsed = parseNotation(dedent(textOf(inner)), { lang, ...(pop ? { note: "pop" as const } : {}) });
     if (!parsed.ok) {
       const lines = parsed.errors.map((error) => `${error.line}: ${error.message}`).join("\n");
       return `<pre class="dragon-error" role="alert" style="white-space:pre-wrap;overflow-wrap:anywhere">${lines.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</pre>`;
     }
-    return stillFigureHtml(parsed.diagram, { lang });
+    // 属性 `data-focus` は、飛び先がその値の箱だけに色を残す (#3991)。値は HTML に逃がした字なので戻す
+    const focus = new RegExp(`\\s${FOCUS_ATTR}\\s*=\\s*"([^"]*)"`, "u").exec(open)?.[1];
+    return stillFigureHtml(parsed.diagram, { lang, ...(focus ? { focus: unescapeAttr(focus) } : {}) });
   });
 }
+
+/** 属性の値に逃がした字を戻す */
+const unescapeAttr = (value: string): string =>
+  value.replaceAll("&quot;", '"').replaceAll("&#39;", "'").replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&amp;", "&");
 
 /** 頁の字に書いた絵柄集の絵柄 (`icon: tabler:<名前>`) の名前。同じ名前は 1 度だけ */
 const pageIcons = (html: string): string[] => [...new Set([...html.matchAll(/\bicon:\s*(tabler:[a-z0-9]+(?:-[a-z0-9]+)*)/gu)].map((match) => match[1] as string))];
