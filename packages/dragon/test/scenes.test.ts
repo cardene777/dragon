@@ -372,6 +372,57 @@ describe("1 つの図の場面 (#3878)", () => {
     expect(print, "印刷の形で止まる場面の理由の文を出す決まりが無い").toMatch(/\.dg-scene-stop\[data-final\]\{display:block/u);
   });
 
+  it("scenes-print-shows-every-scene", () => {
+    for (const head of ["", " [scenes: pick]"]) {
+      const placed = mount(flowScenes(head));
+      if (!placed) continue;
+      // 場面の枠は全ての場面の分を書いた順に持ち、止まる場面は印刷の形で出す理由の文を持つ
+      expect(panelsOf(placed.host).map((p) => p.dataset.scene), `${head || "既定"} の場面の枠`).toEqual([PASS, WRONG]);
+      expect(panelOf(placed.host, WRONG)?.querySelector('[data-dragon="scene-stop"]')?.textContent, `${head || "既定"} の止まる場面の理由の文`).toBe(REASON);
+    }
+    // 印刷の形では、隠した場面も場面の見出しと共に見せ、場面を選ぶ釦と再生の帯は出さない
+    const css = document.getElementById("dragon-scenes-css")?.textContent ?? "";
+    const print = /@media print\{(.*)\}$/su.exec(css)?.[1] ?? "";
+    expect(print, "場面の見た目の規則に印刷の形が無い").not.toBe("");
+    expect(print, "印刷の形で隠した場面を見せる決まりが無い").toMatch(/\.dg-scene(?:\[hidden\])?\{display:block/u);
+    expect(print, "印刷の形で場面の見出しを見せる決まりが無い").toMatch(/\.dg-scene-h\{display:flex/u);
+    const hidden = /([^{}]*)\{display:none\}/gu;
+    const off = [...print.matchAll(hidden)].map((m) => m[1] ?? "").join(",");
+    for (const part of [".dg-scene-s", ".dg-scene-picks", ".dg-bar"]) expect(off, `印刷の形で ${part} を隠す決まりが無い`).toContain(part);
+  });
+
+  it("scenes-print-stacks-every-step", () => {
+    for (const head of ["", " [scenes: pick]"]) {
+      const placed = mount(flowScenes(head));
+      const read = scenesOf(flowScenes(head));
+      if (!placed || !read) continue;
+      // 場面ごとに、全ての段の止め絵を段の順に持ち、各絵の下に段の番号と say の文を置く (#3956)
+      for (const [k, scene] of read.scenes.entries()) {
+        const panel = panelsOf(placed.host)[k];
+        const stills = [...(panel?.querySelectorAll<HTMLElement>('[data-dragon="step-still"]') ?? [])];
+        expect(stills.length, `${head || "既定"} の ${scene.name} の段の止め絵の数`).toBe(COUNTS[k]);
+        for (const [i, still] of stills.entries()) {
+          const svg = still.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+          const at = scene.timeline.stills[i] ?? Number.NaN;
+          expect(Number.parseFloat(svg?.style.getPropertyValue("--at") ?? ""), `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の時刻`).toBeCloseTo(at, 3);
+          const caption = [...still.childNodes]
+            .filter((node) => !(node instanceof SVGElement) && !(node instanceof Element && node.querySelector("svg")))
+            .map((node) => node.textContent ?? "")
+            .join(" ");
+          const step = scene.diagram.steps[i] as { title?: string; body?: string } | undefined;
+          expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
+          expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に say の文が無い`).toContain(step?.body ?? "(say の文が無い)");
+        }
+      }
+    }
+    // 段の止め絵は印刷の形で見せる
+    const print = ["dragon-player-css", "dragon-scenes-css"]
+      .map((id) => document.getElementById(id)?.textContent ?? "")
+      .flatMap((css) => [...css.matchAll(/@media print\{(.*?)\}\}/gsu)].map((m) => m[1] ?? ""))
+      .join("");
+    expect(print, "印刷の形で段の止め絵を見せる決まりが無い").toMatch(/step-still[^{]*\{display:(?!none)/u);
+  });
+
   it("scenes-text-readable-at-728", () => {
     for (const [kind, text] of [
       ["flow", flowScenes()],
