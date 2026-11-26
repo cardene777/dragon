@@ -11,10 +11,12 @@
  *
  * 場所の名前は見出しの字から作る。項目は頁の中で、タブは同じ所に並ぶタブの中で重ならないよう分ける。
  *
- * 説明の頁 (`layout: guide`、#3876) は、`##` を話題のタブ、`###` をタブの中に縦に積む節にし、`####` から下は中身の見出しのまま残す。
+ * 説明の頁 (`layout: guide`、#3876) は、`##` を話題、`###` を話題の中に縦に積む問いの節にし、`####` から下は中身の見出しのまま残す。
  * 節の題の直後の引用 (`>`、GitHub の注意書きを除く) は節の答えにし、ほかの引用は中身に残す。
- * 最初の `##` より前に 1 行だけ書いた `![名前](path.md)` は用語の file を読み込む行にし、`名前` のタブにする。
- * 場所の名前は、話題のタブと節と用語のタブで頁の中で重ならないよう分ける。
+ * 節の題の終わりの `[menu: 短い名前]` は左の目次に出す名前にして題から外し、名前の空の `[menu: ]` は行の番号つきで断る (#3961)。
+ * 最初の `##` より前の最初の ```` ```dragon ```` の囲みは、頁の頭の全体像の図にする (#3961)。
+ * 最初の `##` より前に 1 行だけ書いた `![名前](path.md)` は用語の file を読み込む行にし、`名前` の話題にする。
+ * 場所の名前は、話題と節と用語の話題で頁の中で重ならないよう分ける。
  */
 import { NOTE_MODES } from "../blocks/pop/block";
 import { BUILTIN_BUTTONS, HEADER_COLOR_KEYS } from "../frame/names";
@@ -24,21 +26,22 @@ import type { PageMessages } from "./text";
 
 /**
  * 頁の組み立て。`entry` は全体の図を入口にし、`sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブ。
- * `guide` は話題のタブと、タブの中に縦に積む問いの節 (#3876)
+ * `guide` は左の目次と、1つの頁に続けて積む話題と問いの節 (#3876、#3961)
  */
 export type Layout = "entry" | "sidebar" | "tabs" | "guide";
 export const LAYOUTS: readonly Layout[] = ["entry", "sidebar", "tabs", "guide"];
 
-/** 説明の頁の節。`answer` は題の直後の引用の行 (`>` を外した字) */
+/** 説明の頁の節。`answer` は題の直後の引用の行 (`>` を外した字)、`menu` は題の終わりの `[menu: 短い名前]` の名前 (#3961) */
 export interface Section {
   id: string;
   name: string;
+  menu?: string;
   line: number;
   answer?: Line[];
   body: Line[];
 }
 
-/** 説明の頁の話題のタブ。`lead` は最初の節より前の中身 */
+/** 説明の頁の話題。`lead` は最初の節より前の中身 */
 export interface Topic {
   id: string;
   name: string;
@@ -47,7 +50,7 @@ export interface Topic {
   sections: Section[];
 }
 
-/** 頁の頭で読み込む用語の file。`name` はタブの名前、`id` はタブの場所の名前 */
+/** 頁の頭で読み込む用語の file。`name` は用語の話題の名前、`id` はその話題の場所の名前 */
 export interface GlossaryInclude {
   id: string;
   name: string;
@@ -55,9 +58,14 @@ export interface GlossaryInclude {
   line: number;
 }
 
-/** 説明の頁の組み立て。`ids` は頁の中で配った場所の名前 */
+/**
+ * 説明の頁の組み立て。`overview` は頭の中身の最初の図の囲みの行、`overviewId` はその全体像の場所の名前で、図の無い頁は空の字 (#3961)。
+ * `ids` は頁の中で配った場所の名前
+ */
 export interface Guide {
   lead: Line[];
+  overview: Line[];
+  overviewId: string;
   topics: Topic[];
   glossaries: GlossaryInclude[];
   ids: string[];
@@ -169,6 +177,29 @@ function frontMatter(lines: readonly Line[]): { values: Map<string, Line>; next:
 /** 用語の file を読み込める行き先。scheme を持たず、頁の中の場所でも `/` で始まる path でもない `.md` */
 const GLOSSARY_TARGET = /^(?![a-z][a-z0-9+.-]*:)(?![#/])[^#?]*\.md$/iu;
 
+/** 節の題の終わりの `[menu: 短い名前]` (#3961)。名前は前後の空白を外した字 */
+const MENU_NAME = /\s*\[menu:([^\]]*)\]$/u;
+
+/** 頭の中身から最初の ```` ```dragon ```` の囲みの行を抜き出す。囲みが無ければ空 (#3961) */
+function splitOverview(lead: Line[]): Line[] {
+  let fence: string | undefined;
+  let start = -1;
+  for (const [i, line] of lead.entries()) {
+    if (fence !== undefined) {
+      if (!fenceCloses(line.text, fence)) continue;
+      if (start >= 0) return lead.splice(start, i - start + 1);
+      fence = undefined;
+      continue;
+    }
+    const open = fenceOpen(line.text);
+    if (!open) continue;
+    fence = open.mark;
+    if (open.lang === "dragon") start = i;
+  }
+  // 閉じない囲みは頁の終わりまでを図にする
+  return start >= 0 ? lead.splice(start) : [];
+}
+
 /** 節の中身の頭の引用を答えに分ける。注意書きの引用と、頭が引用でない節は答えを持たない */
 function splitAnswer(section: Section): void {
   const start = section.body.findIndex((line) => line.text.trim() !== "");
@@ -228,11 +259,15 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     } else if (!topic) {
       errors.push({ line: line.line, message: m.sectionBeforeTopic });
     } else {
-      section = { id: "", name: heading.text, line: line.line, body: [] };
+      const menu = MENU_NAME.exec(heading.text);
+      const name = menu ? heading.text.slice(0, menu.index).trim() : heading.text;
+      const short = menu?.[1]?.trim();
+      if (short === "") errors.push({ line: line.line, message: m.emptyMenuName });
+      section = { id: "", name, ...(short ? { menu: short } : {}), line: line.line, body: [] };
       topic.sections.push(section);
     }
   }
-  // 場所の名前は、話題のタブとその節を書いた順に配り、用語のタブを最後に配る
+  // 場所の名前は、全体像を最初に、話題とその節を書いた順に配り、用語の話題を最後に配る
   const ids: string[] = [];
   const id = slugger();
   const named = (text: string): string => {
@@ -240,6 +275,8 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     ids.push(name);
     return name;
   };
+  const overview = splitOverview(lead);
+  const overviewId = overview.length > 0 ? named("overview") : "";
   for (const t of topics) {
     t.id = named(t.name);
     for (const s of t.sections) {
@@ -248,7 +285,7 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     }
   }
   for (const g of glossaries) g.id = named(g.name);
-  return { title, guide: { lead, topics, glossaries, ids } };
+  return { title, guide: { lead, overview, overviewId, topics, glossaries, ids } };
 }
 
 /** mdの行の並びを頁の組み立てに分ける。誤りがあれば全ての誤りを返す */
@@ -351,7 +388,7 @@ export function readOutline(lines: readonly Line[], m: PageMessages): { ok: true
 
 /**
  * 頁の中の場所の名前の並び (`項目/タブ/中のタブ`) が、頁に在る場所か。
- * 説明の頁では、話題のタブか節か用語のタブの場所の名前 1 つか、`extra` に渡した場所の名前 (用語の説明) を受ける
+ * 説明の頁では、話題か節か用語の話題の場所の名前 1 つか、`extra` に渡した場所の名前 (用語の説明) を受ける
  */
 export function placeExists(outline: Outline, path: readonly string[], extra: readonly string[] = []): boolean {
   const [id, ...tabs] = path;
