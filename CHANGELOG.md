@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.82.0] - 2026-11-26
+
 ### Changed
 
 - Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. Each section is numbered `<topic>-<question>`, such as `2-1`, so the numbers start again in each topic, and the terms file becomes a `Terms` topic at the end without a number. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, with the text written after the figure shown under it, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961, #3969)
