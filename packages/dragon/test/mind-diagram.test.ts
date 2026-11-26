@@ -24,6 +24,12 @@ import "../src/kind-use/sequence";
 import "../src/kind-use/state";
 import "../src/kind-use/tree";
 
+/*
+ * 崩れを数える部品の元の code を、検査の外 (この file を読む段) で先に読む。
+ * 検査の中で初めて読むと、混んだ機械では変換だけで 1 件の上限 (10 秒) に近づく (#3410)
+ */
+const { checkLayoutText } = await import("../src/render/layout-check");
+
 const ROOT = process.cwd();
 const EXAMPLES = join(ROOT, "packages/dragon/examples");
 
@@ -425,5 +431,249 @@ describe("考えを広げる地図の並べ方と動き (#3619)", () => {
         expect(colorOf(motion.doc.querySelector(`[data-mind-link="${b.id}>${leaf.id}"]`)), `枝 ${b.id} から葉 ${leaf.id} への線の色`).toBe(b.color);
       }
     }
+  });
+});
+
+/** 葉が 6 枚の枝 (検査) と、葉の無い枝 (記録) と、葉が 1 枚の枝 (配る) を持つ地図 (#3960)。検査の葉は 3 段目に 3 枚、4 段目に 3 枚が現れる */
+const SIX = {
+  ja: [
+    "mind 作業の道具",
+    "",
+    "step 題を置く",
+    "  say 考える題を真ん中に置く。",
+    "  idea tool as 作業の道具",
+    "",
+    "step 入口の枝",
+    "  say 道具を使い始める所を枝に出す。",
+    "  idea entry as 入口 of tool [color: blue]",
+    "  idea cli as 命令の行 of entry",
+    "  idea app as 画面 of entry",
+    "",
+    "step 検査の枝",
+    "  say 変えた物を確かめる検査を葉に書き出す。",
+    "  idea check as 検査 of tool",
+    "  idea types as 型の検査 of check",
+    "  idea format as 書式の検査 of check",
+    "  idea unit as 単体のテスト of check",
+    "",
+    "step 検査の葉を足す",
+    "  say 残りの検査も同じ枝に足す。",
+    "  idea screen as 画面のテスト of check",
+    "  idea speed as 速さの計測 of check",
+    "  idea keys as 鍵の検査 of check",
+    "",
+    "step 記録の枝",
+    "  say 回した結果を残す所を枝に出す。",
+    "  idea log as 記録 of tool",
+    "",
+    "step 配る枝",
+    "  say 出来た物を届ける先を枝に出す。",
+    "  idea ship as 配る of tool",
+    "  idea npm as npmの版 of ship",
+    "",
+  ].join("\n"),
+  en: [
+    "mind Work tools",
+    "",
+    "step Put the title",
+    "  say Put the topic in the middle.",
+    "  idea tool as Work tools",
+    "",
+    "step Entry branch",
+    "  say A branch for where people start.",
+    "  idea entry as Entry of tool [color: blue]",
+    "  idea cli as Command line of entry",
+    "  idea app as Screen of entry",
+    "",
+    "step Checks branch",
+    "  say Leaves list the checks for a change.",
+    "  idea check as Checks of tool",
+    "  idea types as Type check of check",
+    "  idea format as Format check of check",
+    "  idea unit as Unit tests of check",
+    "",
+    "step More checks",
+    "  say The rest of the checks join the same branch.",
+    "  idea screen as Screen tests of check",
+    "  idea speed as Speed runs of check",
+    "  idea keys as Key scan of check",
+    "",
+    "step Records branch",
+    "  say A branch for where results are kept.",
+    "  idea log as Records of tool",
+    "",
+    "step Ship branch",
+    "  say A branch for where the work goes.",
+    "  idea ship as Ship of tool",
+    "  idea npm as npm release of ship",
+    "",
+  ].join("\n"),
+} as const;
+
+type Pt = [number, number];
+
+/** 道の `d` の最初の点と最後の点 */
+function endsOf(d: string): { start: Pt; end: Pt } {
+  const nums = (d.match(/-?\d+(?:\.\d+)?/gu) ?? []).map(Number);
+  return { start: [nums[0] ?? Number.NaN, nums[1] ?? Number.NaN], end: [nums[nums.length - 2] ?? Number.NaN, nums[nums.length - 1] ?? Number.NaN] };
+}
+
+const near = (a: Pt, b: Pt): boolean => Math.abs(a[0] - b[0]) <= 0.5 && Math.abs(a[1] - b[1]) <= 0.5;
+const at = (p: Pt): string => `(${p[0].toFixed(1)}, ${p[1].toFixed(1)})`;
+
+/** 子を持つ親と、子を置いた側 (左が -1、右が 1) ごとの子の並び。真ん中の題は左右の 2 組になる */
+function familiesOf(layout: MindLayout, source: Source): { parent: MindIdea; side: number; kids: { idea: MindIdea; step: number }[] }[] {
+  const all = ideasOf(source);
+  const families = new Map<string, { parent: MindIdea; side: number; kids: { idea: MindIdea; step: number }[] }>();
+  for (const item of all) {
+    if (item.parent === undefined) continue;
+    const parent = ideaOf(layout, item.parent);
+    const idea = ideaOf(layout, item.id);
+    const side = Math.sign(idea.cx - parent.cx);
+    const key = `${parent.id}:${side}`;
+    const family = families.get(key) ?? { parent, side, kids: [] };
+    family.kids.push({ idea, step: item.step });
+    families.set(key, family);
+  }
+  return [...families.values()];
+}
+
+/** 親の名札を持つ幹の部品 (`data-mind-trunk="<親>"`) のうち、`side` の側へ伸びる物 */
+function trunksOf(doc: Document, parent: string, side: number): Element[] {
+  return [...doc.querySelectorAll("[data-mind-trunk]")].filter((el) => {
+    if (el.getAttribute("data-mind-trunk") !== parent) return false;
+    const { start, end } = endsOf(el.getAttribute("d") ?? "");
+    return Math.sign(end[0] - start[0]) === side;
+  });
+}
+
+/** 図を読んで描いた物。名前と、描いた図と、原本 */
+function drawn(name: string, text: string, lang: "ja" | "en"): { name: string; rendered: MindRendered; source: Source; motion: ReturnType<typeof motionFrom> } {
+  const diagram = parsed(text, lang);
+  const rendered = render(diagram, lang);
+  return { name, rendered, source: diagram as unknown as Source, motion: motionFrom(rendered as unknown as Rendered) };
+}
+
+const sixSources = (): ReturnType<typeof drawn>[] => [drawn("葉が6枚の地図", SIX.ja, "ja"), drawn("six-leaf map", SIX.en, "en")];
+
+describe("親から子への線を親の縁の 1 点から出る幹にまとめる (#3960)", () => {
+  it("mind-links-leave-parent-from-one-point", () => {
+    for (const { name, rendered, source, motion } of [drawn("小さな地図", SMALL, "ja"), ...sixSources()]) {
+      for (const { parent, side } of familiesOf(rendered.layout, source)) {
+        const what = `${name} の ${parent.id} から${side > 0 ? "右" : "左"}の子への線`;
+        const trunks = trunksOf(motion.doc, parent.id, side);
+        expect(trunks.length, `${what} が、親の縁から出る幹 ([data-mind-trunk="${parent.id}"]) を持たない`).toBe(1);
+        const trunk = trunks[0];
+        if (!trunk) continue;
+        // 幹は親の箱の、子の側の縁の高さの真ん中から出る
+        const edge: Pt = [side > 0 ? parent.x + parent.w : parent.x, parent.cy];
+        const { start } = endsOf(trunk.getAttribute("d") ?? "");
+        expect(near(start, edge), `${what} の幹が ${at(start)} から出て、親の縁の真ん中 ${at(edge)} から出ない`).toBe(true);
+      }
+    }
+  });
+
+  it("mind-trunk-splits-at-one-fork", () => {
+    for (const { name, rendered, source, motion } of [drawn("小さな地図", SMALL, "ja"), ...sixSources()]) {
+      for (const { parent, side, kids } of familiesOf(rendered.layout, source)) {
+        const what = `${name} の ${parent.id} から${side > 0 ? "右" : "左"}の子への線`;
+        const trunk = trunksOf(motion.doc, parent.id, side)[0];
+        expect(trunk, `${what} が、親の縁から出る幹 ([data-mind-trunk="${parent.id}"]) を持たない`).toBeDefined();
+        if (!trunk) continue;
+        const { start, end } = endsOf(trunk.getAttribute("d") ?? "");
+        // 子の縁は同じ列に揃い、幹は親の縁から子の縁までの 35% の所で終わる
+        const edgeOf = (idea: MindIdea): number => (side > 0 ? idea.x : idea.x + idea.w);
+        const kidEdge = edgeOf((kids[0] as { idea: MindIdea }).idea);
+        for (const { idea } of kids) expect(Math.abs(edgeOf(idea) - kidEdge), `${what} の子 ${idea.id} の縁が、ほかの子の縁と揃わない`).toBeLessThanOrEqual(0.5);
+        const fork: Pt = [start[0] + (kidEdge - start[0]) * 0.35, start[1]];
+        expect(near(end, fork), `${what} の幹が ${at(end)} で終わり、子の縁までの 35% の所 ${at(fork)} で終わらない`).toBe(true);
+        // 子への曲線は全て幹の先の 1 点から出て、子の縁の高さの真ん中へ入る
+        for (const { idea } of kids) {
+          const link = motion.doc.querySelector(`[data-mind-link="${parent.id}>${idea.id}"]`);
+          const ends = endsOf(link?.getAttribute("d") ?? "");
+          expect(near(ends.start, end), `${what} の子 ${idea.id} への曲線が ${at(ends.start)} から出て、幹の先 ${at(end)} から出ない`).toBe(true);
+          const into: Pt = [edgeOf(idea), idea.cy];
+          expect(near(ends.end, into), `${what} の子 ${idea.id} への曲線が ${at(ends.end)} で終わり、子の縁の真ん中 ${at(into)} へ入らない`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("mind-trunk-drawn-once-in-parent-color", () => {
+    for (const { name, rendered, source, motion } of [drawn("小さな地図", SMALL, "ja"), ...sixSources()]) {
+      for (const { parent, side, kids } of familiesOf(rendered.layout, source)) {
+        const what = `${name} の ${parent.id} から${side > 0 ? "右" : "左"}の子への幹`;
+        const trunks = trunksOf(motion.doc, parent.id, side);
+        expect(trunks.length, `${what} の数`).toBe(1);
+        const trunk = trunks[0];
+        if (!trunk) continue;
+        // 幹は親の色で描き、子への曲線は子の色で描く
+        expect(colorOf(trunk), `${what} の色`).toBe(parent.color);
+        for (const { idea } of kids) expect(colorOf(motion.doc.querySelector(`[data-mind-link="${parent.id}>${idea.id}"]`)), `${what} から子 ${idea.id} への曲線の色`).toBe(idea.color);
+      }
+    }
+  });
+
+  it("mind-no-trunk-without-children", () => {
+    for (const { name, rendered, source, motion } of [drawn("小さな地図", SMALL, "ja"), ...sixSources()]) {
+      // 幹を持つ考えは子を持つ親だけで、葉と葉の無い枝は幹を持たない
+      const owners = [...new Set([...motion.doc.querySelectorAll("[data-mind-trunk]")].map((el) => el.getAttribute("data-mind-trunk") ?? ""))].sort();
+      const parents = [...new Set(familiesOf(rendered.layout, source).map((f) => f.parent.id))].sort();
+      expect(owners, `${name} で幹を描いた考え`).toEqual(parents);
+    }
+  });
+
+  it("mind-trunk-drawn-with-first-child", () => {
+    for (const { name, rendered, source, motion } of sixSources()) {
+      const { timeline } = rendered;
+      for (const { parent, side, kids } of familiesOf(rendered.layout, source)) {
+        const what = `${name} の ${parent.id} から${side > 0 ? "右" : "左"}の子への幹`;
+        const trunk = trunksOf(motion.doc, parent.id, side)[0];
+        expect(trunk, `${what} が無い`).toBeDefined();
+        if (!trunk) continue;
+        const offset = (t: number): number => motion.value(trunk, "stroke-dashoffset", t)?.[0] ?? 0;
+        const first = Math.min(...kids.map((k) => k.step));
+        const span = timeline.steps[first] as Span;
+        // 最初の子が現れる段より前は薄く、その段で親の側から引かれ、段の終わりには引き終わる
+        expect(motion.opacity(trunk, span.start - 0.05), `${what} が最初の子の段 ${first + 1} より前から濃く出ている`).toBeLessThan(0.5);
+        expect(offset(span.start + 0.02), `${what} が最初の子の段 ${first + 1} の始めに引き終わっている`).toBeGreaterThan(0.5);
+        expect(offset(span.end - 0.05), `${what} が最初の子の段 ${first + 1} の終わりに引き終わっていない`).toBeLessThan(0.01);
+        expect(motion.opacity(trunk, span.end - 0.05), `${what} が最初の子の段 ${first + 1} の終わりに濃く出ていない`).toBeGreaterThan(0.9);
+        // 後の子が現れる段では引き直さず、濃いまま残る
+        for (const later of [...new Set(kids.map((k) => k.step))].filter((s) => s > first)) {
+          const t = (timeline.steps[later] as Span).start + 0.02;
+          expect(offset(t), `${what} を後の子の段 ${later + 1} で引き直している`).toBeLessThan(0.01);
+          expect(motion.opacity(trunk, t), `${what} が後の子の段 ${later + 1} で濃く残らない`).toBeGreaterThan(0.9);
+        }
+      }
+    }
+  });
+
+  it("mind-six-leaves-have-no-breaks", () => {
+    for (const lang of ["ja", "en"] as const) {
+      const { name, motion } = drawn(lang === "ja" ? "葉が6枚の地図" : "six-leaf map", SIX[lang], lang);
+      // 葉が 6 枚の枝 (検査) は幹から分かれる線で描き、その図に崩れが無い
+      expect(trunksOf(motion.doc, "check", 1).length, `${name} の 6 枚の葉を持つ枝 check が幹を持たない`).toBe(1);
+      expect(
+        checkLayoutText(SIX[lang], { lang }).map((b) => JSON.stringify(b)),
+        `${name} の崩れ`,
+      ).toEqual([]);
+    }
+  });
+
+  it("mind-examples-draw-trunks", () => {
+    for (const key of MIND_EXAMPLES)
+      for (const [file, lang] of [
+        [`${key}.dragon`, "ja"],
+        [`${key}.en.dragon`, "en"],
+      ] as const) {
+        const text = fileText(file);
+        expect(text, `${file} が packages/dragon/examples に無い`).toBeDefined();
+        if (text === undefined) continue;
+        const { rendered, source, motion } = drawn(file, text, lang);
+        // 子を持つ考えごとに、子を置いた側ごとに 1 本の幹を描く
+        for (const { parent, side } of familiesOf(rendered.layout, source))
+          expect(trunksOf(motion.doc, parent.id, side).length, `${file} の ${parent.id} から${side > 0 ? "右" : "左"}の子への幹の数`).toBe(1);
+      }
   });
 });
