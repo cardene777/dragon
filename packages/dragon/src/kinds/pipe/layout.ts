@@ -4529,7 +4529,9 @@ function placeRevertTags(
       !linkLabels.some((o) => overlap(r, o, 8)) &&
       !lines.some((s) => crosses(r, s, 16)) &&
       !tieLines.some((s) => crosses(r, s, 4));
-    const pick = spots.find(clear) ?? spots.find(free) ?? spots[0];
+    const first = spots[0];
+    if (!first) continue;
+    const pick = spots.find(clear) ?? spots.find(free) ?? first;
     tags.push({ party: u.party, step: u.step, event: u.event, text: u.text, ...pick });
     // 寄って追う窓は段ごとの囲む所を見るので、札を出す段の囲む所に札を入れる
     for (const f of out.focus ?? [])
