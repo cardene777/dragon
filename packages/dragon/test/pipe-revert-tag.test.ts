@@ -11,9 +11,11 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import * as dragon from "./all-kinds";
+import * as dragon from "../src/core";
 import { describe, expect, it } from "vitest";
-import { OUT, VARIANTS } from "../scripts/snapshot-examples.mjs";
+import "../src/kind-use/pipe";
+import "./built-globals";
+import { OUT, VARIANTS } from "../scripts/snapshot-variants.mjs";
 import { JSDOM } from "jsdom";
 import { sampler } from "./motion-support";
 import type { Rendered } from "./render-support";

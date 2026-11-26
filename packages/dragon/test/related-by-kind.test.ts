@@ -116,9 +116,11 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // SVGの書き出しの検査は小さな時系列図を1枚書き出し、判定の表の絵の検査は判定の表だけをjsdomで描く
   // 埋め込んだ頁の帯から書き出す判定の表の検査 (`frame-judge-picture.test.ts`、#3945) は組み上げた帯の部品 (`dist/frame.js`) を読むので、どの種類を変えても選ぶ。上限をもう1つ上げた (#3950)
   // 寄って追う図の検査 (`follow-zoom.test.ts`、#3871) は準備の段で全ての種類の登録を読み、印刷の検査 (`player-print.test.ts`、#3956) は組み上げたCDNの入口を読むので、どの種類を変えても選ぶ。上限を2つ上げた (#3966)
-  it("related-pipe-draw-picks-at-most-139", () => {
+  // 取り消しの札の検査 (`pipe-revert-tag.test.ts`、#3974) は配管の図の登録だけを読むが、配管の図を変えた時に選ぶ。配管の図の上限を1つ上げた (#3977)。
+  // 記録した指紋と比べる描き方の組は、全部入りの入口を読まない`scripts/snapshot-variants.mjs`から読むので、他の種類の描く所を変えても選ばない
+  it("related-pipe-draw-picks-at-most-140", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
-    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(139);
+    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(140);
   });
 
   // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。
