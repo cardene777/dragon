@@ -16,12 +16,15 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+// 記録した指紋と比べるだけの検査が全部入りの入口を読まないよう、2つの値は別の file に置く (#3977)
+import { OUT, VARIANTS } from "./snapshot-variants.mjs";
+
+export { OUT, VARIANTS };
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const EXAMPLES = join(here, "../examples");
 /** 検査が使う記法の見本。見本より細かい形 (同じ箱へ戻る線、角の番号など) を持つので、指紋の範囲に入れる */
 export const FIXTURES = join(here, "../test/fixtures");
-export const OUT = join(FIXTURES, "examples-svg.json");
 /**
  * 見本帳の部品の図の置き場 (ブロックの置き場)。全ての部品を、その部品を描ける全ての図の種類で描くので、作り直しの範囲を最も広く覆う。
  * 部品の図は全て `<名前>/gallery/` に在り (#3345、#3348)、鍵は前の置き場と同じ `parts/<file の名前>` にする
@@ -40,13 +43,6 @@ function partFigures() {
     )
     .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
 }
-
-/** 描き方の組。既定、暗い地と止め絵と日本語、別の色味 */
-export const VARIANTS = {
-  default: {},
-  "dark-still-ja": { theme: "dark", still: true, lang: "ja" },
-  night: { palette: "night" },
-};
 
 // 先頭16字 (64 bit) で足りる。repo に残す file を軽くする
 const sha = (text) => createHash("sha256").update(text).digest("hex").slice(0, 16);

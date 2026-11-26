@@ -173,6 +173,7 @@ export type {
   PipePill,
   PipePlate,
   PipePort,
+  PipeRevertTag,
   PipeRing,
   PipeRole,
   PipeScore,

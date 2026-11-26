@@ -1,10 +1,6 @@
 /** `snapshot-examples.mjs` の型 (#3345)。検査 (`test/examples-svg.test.ts`) が読む */
 
-/** 見本の指紋を書き出す file */
-export declare const OUT: string;
-
-/** 描き方の組 */
-export declare const VARIANTS: Record<string, Record<string, unknown>>;
+export { OUT, VARIANTS } from "./snapshot-variants.mjs";
 
 /** 指紋を取る時に使う入口の関数 */
 export interface SnapshotApi {
