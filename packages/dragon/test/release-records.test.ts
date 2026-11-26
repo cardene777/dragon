@@ -245,6 +245,14 @@ describe("版の記録 (#3151)", () => {
     for (const [image, at] of images) expect(at, `${image} をマインドマップの描き方を変えた後に描き直していない`).toBeGreaterThanOrEqual(renderer);
   });
 
+  it("readme-images-redrawn-after-faint-line-names", () => {
+    // 過ぎた段の線の名前を薄く残す変更 (#3831) の後、README の先頭の絵と時系列図と構成図の絵を描き直す (#3989)。
+    // 0.86.0 で描き直すと絵が変わると分かったが、範囲の外として戻したため、npm の頁に前の描き方の絵が残った
+    const { faint, images } = FAINT_LINE_COMMITS.get();
+    expect(faint, "薄い線の名前の変更の commit を git から読めない").toBeGreaterThan(0);
+    for (const [image, at] of images) expect(at, `${image} を薄い線の名前の変更の後に描き直していない`).toBeGreaterThan(faint);
+  });
+
   it("changelog-0-85-0-lists-guide-pages-once", () => {
     // 話題が2つ以上ある説明の頁を、全体像の頁と問いごとの頁に分ける変更 (#3983) を Changed の1項に持って 0.85.0 で出す (#3985)
     const [major = 0, minor = 0] = version().split(".").map(Number);
@@ -1429,4 +1437,13 @@ const MIND_COMMITS = await atLoad("README のマインドマップの絵と描�
     (image) => [image, committed([image])] as const,
   );
   return { renderer, images };
+});
+
+/** 過ぎた段の線の名前を薄く残す変更 (#3831) の commit と、その後に描き直す README の絵 12 枚の commit の時刻 (#3989)。git を起こすので読み込む段で済ませる (#3738) */
+const FAINT_LINE_COMMITS = await atLoad("薄い線の名前の変更と README の先頭の絵と時系列図と構成図の絵の commit を git から読む", () => {
+  const timeOf = (args: string[]): number => Number(execFileSync("git", ["log", "-1", "--format=%ct", ...args], { cwd: ROOT, encoding: "utf8" }).trim() || "0");
+  const faint = timeOf(["3730ee770f579fba9423ad563670eadf50495644"]);
+  const pictures = ["hero", "hero-dark", "kinds/sequence", "kinds/sequence-dark", "kinds/architecture", "kinds/architecture-dark"];
+  const images = ["docs/readme", "docs/readme/ja"].flatMap((dir) => pictures.map((name) => `${dir}/${name}.png`)).map((image) => [image, timeOf(["--", image])] as const);
+  return { faint, images };
 });

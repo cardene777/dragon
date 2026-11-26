@@ -11,6 +11,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { KIND_FOLDERS } from "../src/kinds/index";
+import { parseNotation } from "../src/parser";
+import { renderDiagram } from "../src/render/draw";
+import "../src/kinds/basics";
+import "../src/kind-use/architecture";
+// 組み立てが本体に埋める共有のブロック集と絵柄集を、src を読む検査にも置く (#3763)
+import "./built-globals";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const read = (path: string): string => readFileSync(join(ROOT, path), "utf8");
@@ -140,6 +146,11 @@ const hasPicture = (text: string, light: string, dark: string): boolean =>
     return block.includes(`media="(prefers-color-scheme: dark)" srcset="${dark}"`) && block.includes(`src="${light}"`);
   });
 
+/** 先頭の絵を撮る画素の倍率。表示の 2 倍で撮る */
+const HERO_SCALE = 2;
+/** 先頭の絵の図の左右の余白の和の上限 (px)。再生の部品の枠の内側の余白の分だけ、絵が図より広い */
+const HERO_MARGIN = 48;
+
 /** 絵を作り直す script が持つ一覧。まだ無い時は undefined */
 type ImagesModule = { README_KINDS: { kind: string; example: string }[]; HERO: { example: string }; PALETTE: string; THEMES: string[]; LANGS?: string[] };
 const loadImagesModule = async (): Promise<ImagesModule | undefined> => {
@@ -155,6 +166,27 @@ describe("公開できる形の README (#3881)", () => {
       const lead = leadOf(read(readme.path));
       // 仕様の変更 (#3887): 日本語のREADMEは日本語の見本から描いた絵を指す
       expect(hasPicture(lead, pictureRef(readme, "hero.png"), pictureRef(readme, "hero-dark.png")),`${readme.path} の冒頭に、暗い表示の絵も持つ先頭の絵 (<picture>) が無い`).toBe(true);
+    }
+  });
+
+  it("readme-hero-fits-figure-width", async () => {
+    // 先頭の絵は、最後の段で止めた図の元の幅に合わせて撮る (#3989)。
+    // 止めた図は元の幅より大きく描かれない (#3934) ので、幅960pxで撮ると図の左右に空きが出て、READMEで箱が小さく見えた
+    const images = await loadImagesModule();
+    expect(images, "scripts/readme-images.mjs が無い").toBeDefined();
+    if (!images) return;
+    for (const lang of ["en", "ja"] as const) {
+      const example = `packages/dragon/examples/${images.HERO.example}${lang === "en" ? ".en" : ""}.dragon`;
+      const parsed = parseNotation(read(example));
+      if (!parsed.ok) throw new Error(`${example} を読めない: ${parsed.errors.map((e) => e.message).join(" / ")}`);
+      const figure = Math.ceil(renderDiagram(parsed.diagram, { lang }).layout.width);
+      for (const theme of ["hero", "hero-dark"]) {
+        const file = `docs/readme/${lang === "ja" ? "ja/" : ""}${theme}.png`;
+        // PNG の幅は頭の IHDR の塊の 16 byte 目から 4 byte に在る。絵は表示の 2 倍の画素で撮る
+        const width = readFileSync(join(ROOT, file)).readUInt32BE(16) / HERO_SCALE;
+        expect(width, `${file} の幅 ${width}px が図の元の幅 ${figure}px より狭い`).toBeGreaterThanOrEqual(figure);
+        expect(width, `${file} の幅 ${width}px が図の元の幅 ${figure}px に余白 ${HERO_MARGIN}px を足した幅より広い`).toBeLessThanOrEqual(figure + HERO_MARGIN);
+      }
     }
   });
 
