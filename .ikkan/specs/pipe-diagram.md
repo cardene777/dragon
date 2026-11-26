@@ -270,3 +270,8 @@
 | 配管の図の見本の置き場所の指紋が記録と合う。線の札が動く`vault-proxy`の記録だけを書き直し、ほかの見本の記録は変えない | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts`の検査`pipe-layout-matches-recorded-fingerprints`が通る | #3949 |
 | 見本の描いた結果の指紋が記録と合う。線の札が動く`vault-proxy`の記録だけを書き直す | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3949 |
 | 見本の一覧の図を描いた時、崩れの記録に無い崩れを出さない | `pnpm exec vitest run packages/dragon/test/layout-check.test.ts`の検査`layout-check-examples-match-recorded`が通る | #3949 |
+| 網型で処理を借りる呼び出しの管が箱の上を横へ走る図 (課題の本文のCounterProxyの記法) を描くと、`layout.callTags`の`delegatecall()`の札は、その呼び出しの`layout.calls`のどの区間の管の縁 (線の芯から8px外) からも8px以上離れる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts --reporter=verbose` check `pipe-call-tag-over-boxes-clears-pipe-edge` passes | #3962 |
+| #3949のDiamondの記法を描くと、線の札と戻りの`ok`の札の止まる所の隙間が8px以上ある | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts --reporter=verbose` check `pipe-call-tag-clears-return-chip` passes | #3962 |
+| #3949のDiamondの記法を描くと、線の札と呼び出しの管の縁の隙間が8px以上ある | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts --reporter=verbose` check `pipe-call-tag-clears-pipe-edge` passes | #3962 |
+| 見本のvault-proxyの短い管の線の札は、管の縁と返り値の札の止まる所から8px以上離れる | `pnpm exec vitest run packages/dragon/test/pipe-layout-quality.test.ts --reporter=verbose` check `pipe-call-tag-sits-beside-short-pipe` passes | #3962 |
+| 見本の図の配管の並びは、記録した指紋と同じに描かれる | `pnpm exec vitest run packages/dragon/test/pipe-diagram-rules.test.ts --reporter=verbose` check `pipe-layout-matches-recorded-fingerprints` passes | #3962 |
