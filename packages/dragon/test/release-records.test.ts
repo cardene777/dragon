@@ -223,6 +223,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-88-0-lists-question-pages-and-pipe-cards-once", () => {
+    // 説明の頁のタブの中を問いごとの頁に分ける変更 (#3998) とパイプ図の値の札の変更 (#3990) を Changed の2項に持って 0.88.0 で出す (#4000)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 88, `package の版 ${version()} が 0.88.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.88\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.88.0"), "0.88.0");
+      expect(released, `${file} に日付付きの ## [0.88.0] の節が無い`).not.toBe("");
+      for (const issue of ["(#3990)", "(#3998)"]) {
+        expect(released.split(issue).length - 1, `${file} の 0.88.0 の節が ${issue} の項を 1 回持たない`).toBe(1);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-87-0-lists-guide-tabs-once", () => {
     // 話題が2つ以上ある説明の頁を話題ごとのタブに分ける変更 (#3991) を Changed の1項に持って 0.87.0 で出す (#3994)
     const [major = 0, minor = 0] = version().split(".").map(Number);
