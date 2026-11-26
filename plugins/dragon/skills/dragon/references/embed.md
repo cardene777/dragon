@@ -49,6 +49,27 @@ Run `dragon embed page.html` to make a file that reads nothing from outside. A `
 
 Set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`, to paint the figure background, the line outlines, and the label plates with the page's color on light and dark pages. A donut wraps a middle name that does not fit the ring onto two lines, and a step band (`cycle` with `[shape: band]`) writes the step names inside the chevrons.
 
+## A figure paused on one step
+
+When the page should open a diagram on one step, add `data-step` with the step number, counting from 1 as the step bar does.
+The block does not play when it is placed and waits on the still of that step, and the reader can still play it or move between steps with the bar.
+Sequence, architecture, state, and flow diagrams keep the labels of earlier lines in faint gray, so the flow up to that step reads in one picture.
+A number larger than the step count pauses on the last step, and a value that is not a whole number from 1 turns the block into an error message.
+
+```html
+<pre class="dragon" data-step="2">
+sequence Order
+box shop as Shop
+box bank as Bank
+step Ask
+  shop -> bank: payment
+step Pay
+  bank -> shop: paid
+step Close
+  shop -> bank: closed
+</pre>
+```
+
 ## Write the diagram and the page in HTML
 
 When a report is one HTML file, write its diagrams in HTML too. Each notation line becomes one element: the diagram is `<dg-<kind>>` (`<dg-sequence>`, `<dg-flow>`), a declaration line is the element named after its block (`<dg-box>`, `<dg-choice>`), a step is `<dg-step>`, its `say` line is `<dg-body>`, and a line inside a step is `<dg-edge>`.

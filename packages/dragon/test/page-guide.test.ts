@@ -580,6 +580,16 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
           answers: await deepAll(page, ".pg-topic .pg-q-a"),
           boxes: await deepAll(page, '[data-dragon="note-card"]'),
           menu: await deepAll(page, "nav.pg-menu, .pg-menu-toggle"),
+          // 続く物と同じ頁に留めたい題と段落の、後ろの改め方 (#3975)
+          breaks: await page.evaluate(() => {
+            const out: [string, string][] = [];
+            const add = (name: string, el: Element): void => void out.push([name, getComputedStyle(el).breakAfter]);
+            for (const el of document.querySelectorAll(".pg-topic .pg-topic-title")) add("話題の題", el);
+            for (const el of document.querySelectorAll(".pg-sec .pg-sec-title")) add("節の題", el);
+            for (const el of document.querySelectorAll(".pg-sec .pg-answer")) add("答えの1文", el);
+            for (const el of document.querySelectorAll(".pg-sec p")) if (el.nextElementSibling?.matches(".pg-figure")) add("図の前の段落", el);
+            return out;
+          }),
           ...(await printedPage(page)),
         };
       });
@@ -950,6 +960,19 @@ describe("説明の頁 (#3876)", () => {
     expect(printed.boxes.filter((b) => !b.visible).map((b) => b.text), "印刷の形で開かない箱の札").toEqual([]);
     expect(printed.menu.length, "左の目次と目次を開く釦の数").toBe(2);
     expect(printed.menu.filter((m) => m.visible).length, "印刷の形で見える左の目次か目次を開く釦").toBe(0);
+  });
+
+  it("guide-print-keeps-titles-with-figure", () => {
+    // 話題の題と節の題と答えの1文と図の前の段落は、続く物が無いと意味を持たないので、紙で後ろに頁を分けない (#3975)
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const { breaks } = seen.printed.get();
+    const found = new Set(breaks.map(([name]) => name));
+    for (const name of ["話題の題", "節の題", "答えの1文", "図の前の段落"]) expect(found.has(name), `印刷の形の頁に${name}が無い`).toBe(true);
+    expect(
+      breaks.filter(([, value]) => value !== "avoid").map(([name, value]) => `${name}: ${value}`),
+      "印刷の形で後ろに頁を分けうる題と段落",
+    ).toEqual([]);
   });
 
   it("guide-print-shows-every-topic", () => {

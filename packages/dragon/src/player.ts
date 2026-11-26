@@ -11,6 +11,7 @@
  * 置いた時に流さず決めた段で止めて置く (`options.pausedAt`) ことと、1 度だけ流して最後の段で止める (`options.playOnce`) ことを選べる。
  * 流す速さは倍率で、置く時に `options.speed` で、置いた後に `setSpeed` で渡す。速さを変えても今の位置から続ける (#3568)。
  * 止め絵を選んだ図 (`options.still`) は、最後の段で止まった時に全ての段の線の名前を出す (#3200)。
+ * 止め絵だけを選び、止める段も 1 度だけ流す設定も渡さない図は、流さずに最後の段で止めて置く (#3831)。
  * 頁は `goTo` で段へ移って止め、`mark` で図の上に点線の四角を描く。頁の側では SVG を組まないので、編集画面が字の重なりを囲む時もこれを呼ぶ (#3178)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
@@ -58,6 +59,12 @@ import type { Diagram, Step, ViewMode } from "./schema";
 import type { Span, Timeline } from "./timeline";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
+
+/**
+ * 印刷の形で、段の止め絵の高さの上限を頁の高さの半分から引く分 (#3975)。2段の間の余白 (`P.gap * 2`) と、
+ * 頁の頭に来る節の題と答えの1文と図の見出しの帯がおよそ占める高さの和で、題と帯の下でも2段が1頁に収まる
+ */
+const STILL_ROOM = 96;
 
 export interface PlayerOptions extends RenderOptions {
   onResize?: (height: number) => void;
@@ -285,10 +292,17 @@ function playerCss(): string {
       ".dg-player .dg-bar,.dg-player .dg-ov{display:none}" +
       ".dg-player .dg-frame[data-stills]{height:auto!important;overflow:visible}" +
       '.dg-player .dg-frame[data-stills]>svg[data-dragon="figure"]{display:none}' +
-      `.dg-player .dg-print{display:flex;flex-direction:column;gap:${px(P.gap * 2)}}` +
-      ".dg-still{margin:0;break-inside:avoid}" +
-      ".dg-still>svg{display:block;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
-      `.dg-still-c{display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
+      // 止め絵は塊として縦に積み、最初の止め絵の前で頁を分けない指定が図の枠まで届くようにする (#3975)
+      ".dg-player .dg-print{display:block}" +
+      // 段の止め絵は段の題と文と合わせて頁の高さの半分に収め、1頁に2段まで並べる。収まらない絵は縦横の比を保って縮め、
+      // 送った後に頁の半分を超える空白を残さない。2段の間の余白と、頁の頭に来る節の題と図の見出しの帯の分 (`STILL_ROOM`) を引き、
+      // 題と帯の下でも2段が1頁に収まるようにする。
+      // 帯の頭だけが頁の下に残らないよう、最初の止め絵の前では頁を分けない (#3975)
+      `.dg-still{margin:0;break-inside:avoid;display:flex;flex-direction:column;max-height:calc(50vh - ${px(STILL_ROOM)})}` +
+      `.dg-still+.dg-still{margin-top:${px(P.gap * 2)}}` +
+      ".dg-still:first-child{break-before:avoid}" +
+      ".dg-still>svg{display:block;flex:0 1 auto;min-height:0;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
+      `.dg-still-c{flex:none;display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
       `.dg-still-no{${font(TYPE.stepNo)};color:var(--mute);flex:none}` +
       `.dg-still-t{${font(TYPE.stepTitleNarrow)};line-height:${P.titleLine};margin:0}` +
       `.dg-still-b{${font(TYPE.stepBody)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}` +
@@ -654,8 +668,10 @@ export function mountDiagram(
   // 段 1 の始まりは図を描き終えた時刻 (MOTION.intro) で、時刻 0 では図をまだ描いていない (Tracelyth #131)
   const startOf = (): number => timeline.steps[0]?.start ?? 0;
   const atStart = options.pausedAtStart === true;
-  let step = atStart || options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
-  let playing = !reduce && !atStart && options.pausedAt === undefined && !session;
+  // 止め絵だけを選んだ図は、README のとおり流さずに最後の段で止めて置く。1 度だけ流す図と試す図は流す (#3831)
+  const pausedAt = options.pausedAt ?? (options.still === true && options.playOnce !== true && !session ? count - 1 : undefined);
+  let step = atStart || pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, pausedAt));
+  let playing = !reduce && !atStart && pausedAt === undefined && !session;
   let at = playing ? 0 : atStart ? startOf() : (timeline.stills[step] ?? 0);
   /** 1 度だけ流すか。試す図は足した段を流した後に最初の段へ戻らない */
   const once = options.playOnce === true || session !== undefined;

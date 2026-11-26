@@ -45,7 +45,10 @@ function sceneCss(): string {
     '.dg-player[data-scenes="pick"] .dg-scene-h{display:none}',
     `.dg-scene-stop{${font(TYPE.noteBody)};color:var(--ink2);margin:${px(SC.stopGap)} 0 0}`,
     "@media print{" +
-      ".dg-player[data-scenes] .dg-scene[hidden]{display:block}" +
+      // 隠した場面も紙に出す。図の帯の根の`[hidden]`の規則が`!important`で隠すので、場面の規則も`!important`で上書きする (#3975)
+      ".dg-player[data-scenes] .dg-scene[hidden]{display:block!important}" +
+      // 場面の名前だけが頁の下に残らないよう、名前と最初の段の止め絵の間で頁を分けない。止め絵の高さは再生の部品の印刷の形が抑える (#3975)
+      ".dg-player[data-scenes] .dg-scene-h{break-after:avoid}" +
       ".dg-player[data-scenes] .dg-scene svg{--at:var(--dg-last)!important;--play:paused!important}" +
       ".dg-player[data-scenes] .dg-scene-stop[data-final]{display:block}" +
       ".dg-player[data-scenes] .dg-scene-h{display:flex}" +
@@ -262,8 +265,10 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   /** 段を送る場面 */
   const moving = (): Panel[] => (show === "pick" ? [panels[picked] as Panel] : panels);
   let count = countOf();
-  let step = Math.min(count - 1, Math.max(0, options.pausedAt ?? 0));
-  let playing = !reduce && options.pausedAt === undefined && options.pausedAtStart !== true;
+  // 止め絵だけを選んだ図は、再生の部品と同じく流さずに最後の段で止めて置く (#3831)
+  const pausedAt = options.pausedAt ?? (options.still === true && options.playOnce !== true ? count - 1 : undefined);
+  let step = Math.min(count - 1, Math.max(0, pausedAt ?? 0));
+  let playing = !reduce && pausedAt === undefined && options.pausedAtStart !== true;
   let clock: ReturnType<typeof setTimeout> | undefined;
 
   /** 場面の枠の図の動きの変数。`at` は時刻の表の秒、`play` は流すか */

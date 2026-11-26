@@ -124,6 +124,12 @@ const LINEUP_LENGTH = { line: MOTION.lineup.slide, seal: MOTION.lineup.seal, ope
 /** 配管の図の出来事の種類 (#3389)。段の中で書いた順に 1 つずつ起こす */
 const PIPE_EVENTS: ReadonlySet<string> = new Set(["call", "return", "revert", "move", "write", "check", "emit", "calc"]);
 
+/**
+ * 段の後も線の名前を最後の段まで薄く残す種類。状態遷移図 (#3171) と手順の図に、時系列図と構成図を足した (#3831)。
+ * 途中の段で止めても、今より前の矢印の名前を 1 枚で読める
+ */
+const FAINT_PAST: ReadonlySet<string> = new Set(["state", "flow", "sequence", "architecture"]);
+
 /** 試す図の出来事の長さ。送る出来事は網を通る時に網を運ばれる長さを足す (`tryTrip`) */
 export function tryLength(type: "ask" | "press" | "item", trip: boolean): number {
   const T = MOTION.try;
@@ -313,7 +319,7 @@ export function buildTimeline(diagram: DiagramModel, still = false): Timeline {
     for (const label of named) {
       if (whole && label.end > whole.start) label.end = whole.end;
       else {
-        if ((diagram.kind === "state" || diagram.kind === "flow") && label.end < faint) label.after = { start: label.end, end: faint };
+        if (FAINT_PAST.has(diagram.kind) && label.end < faint) label.after = { start: label.end, end: faint };
         if (whole) label.again = whole;
       }
     }

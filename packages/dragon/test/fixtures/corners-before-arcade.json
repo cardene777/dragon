@@ -46,7 +46,8 @@
     "dg-halo rx=12": 3,
     "dg-ic rx=7": 3,
     "dg-on rx=12": 3,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 4
   },
   "api.json": {
     "(none) rx=10": 4,
@@ -55,7 +56,8 @@
     "dg-halo rx=12": 3,
     "dg-ic rx=7": 3,
     "dg-on rx=12": 3,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 4
   },
   "auction.en.json": {
     "dg-a dg-lb-lit rx=16": 5,
@@ -156,7 +158,8 @@
     "dg-on rx=12": 12,
     "dg-slot rx=7": 13,
     "dg-st rx=12": 12,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 6
   },
   "ccip.json": {
     "(none) rx=10": 6,
@@ -171,7 +174,8 @@
     "dg-on rx=12": 12,
     "dg-slot rx=7": 13,
     "dg-st rx=12": 12,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 6
   },
   "eth-slot.en.json": {
     "dg-bg rx=14": 1,
@@ -242,7 +246,8 @@
     "dg-halo rx=12": 2,
     "dg-ic rx=7": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 2
+    "dg-st rx=12": 2,
+    "dg-cap-ground rx=10": 1
   },
   "intro.json": {
     "(none) rx=10": 1,
@@ -251,35 +256,40 @@
     "dg-halo rx=12": 2,
     "dg-ic rx=7": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 2
+    "dg-st rx=12": 2,
+    "dg-cap-ground rx=10": 1
   },
   "login-all-paths.en.json": {
     "(none) rx=10": 5,
     "dg-bg rx=14": 1,
     "dg-halo rx=12": 3,
     "dg-on rx=12": 3,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 5
   },
   "login-all-paths.json": {
     "(none) rx=10": 5,
     "dg-bg rx=14": 1,
     "dg-halo rx=12": 3,
     "dg-on rx=12": 3,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 5
   },
   "login-check.en.json": {
     "(none) rx=10": 3,
     "dg-bg rx=14": 1,
     "dg-halo rx=12": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 3
   },
   "login-check.json": {
     "(none) rx=10": 3,
     "dg-bg rx=14": 1,
     "dg-halo rx=12": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 3
+    "dg-st rx=12": 3,
+    "dg-cap-ground rx=10": 3
   },
   "merge.en.json": {
     "dg-band rx=14": 3,
@@ -379,7 +389,8 @@
     "dg-ic rx=7": 4,
     "dg-on rx=12": 4,
     "dg-st rx=12": 4,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 12
   },
   "oauth.json": {
     "(none) rx=10": 12,
@@ -393,7 +404,8 @@
     "dg-ic rx=7": 4,
     "dg-on rx=12": 4,
     "dg-st rx=12": 4,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 12
   },
   "order-total.en.json": {
     "dg-bg rx=14": 1,
@@ -425,7 +437,8 @@
     "dg-side rx=14": 1,
     "dg-slot rx=7": 8,
     "dg-st rx=12": 8,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 10
   },
   "order.json": {
     "(none) rx=10": 10,
@@ -439,7 +452,8 @@
     "dg-side rx=14": 1,
     "dg-slot rx=7": 8,
     "dg-st rx=12": 8,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 10
   },
   "os-share.en.json": {
     "dg-bg rx=14": 1,
@@ -460,7 +474,8 @@
     "dg-ic rx=7": 3,
     "dg-on rx=12": 3,
     "dg-st rx=12": 3,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 5
   },
   "payment.json": {
     "(none) rx=10": 5,
@@ -473,7 +488,8 @@
     "dg-ic rx=7": 3,
     "dg-on rx=12": 3,
     "dg-st rx=12": 3,
-    "dg-strip rx=14": 1
+    "dg-strip rx=14": 1,
+    "dg-cap-ground rx=10": 5
   },
   "rebase.en.json": {
     "(none) rx=10": 2,
@@ -519,7 +535,8 @@
     "dg-halo rx=12": 2,
     "dg-ic rx=7": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 2
+    "dg-st rx=12": 2,
+    "dg-cap-ground rx=10": 4
   },
   "retry.json": {
     "(none) rx=10": 4,
@@ -529,7 +546,8 @@
     "dg-halo rx=12": 2,
     "dg-ic rx=7": 2,
     "dg-on rx=12": 2,
-    "dg-st rx=12": 2
+    "dg-st rx=12": 2,
+    "dg-cap-ground rx=10": 4
   },
   "swap-retry.en.json": {
     "dg-bg rx=14": 1,
@@ -804,7 +822,8 @@
     "dg-halo rx=12": 4,
     "dg-ic rx=7": 4,
     "dg-on rx=12": 4,
-    "dg-st rx=12": 4
+    "dg-st rx=12": 4,
+    "dg-cap-ground rx=10": 5
   },
   "wallet.json": {
     "(none) rx=10": 5,
@@ -815,7 +834,8 @@
     "dg-halo rx=12": 4,
     "dg-ic rx=7": 4,
     "dg-on rx=12": 4,
-    "dg-st rx=12": 4
+    "dg-st rx=12": 4,
+    "dg-cap-ground rx=10": 5
   },
   "withdraw.en.json": {
     "(none) rx=10": 1,
