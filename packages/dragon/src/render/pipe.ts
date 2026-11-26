@@ -39,6 +39,7 @@ import {
   valve,
 } from "../blocks/hold/draw";
 import { callCase, FLOW_CSS, litPipe, pipeLine, STREAM } from "../blocks/return/draw";
+import { revertTag } from "../blocks/revert/draw";
 import { linkLabel, linkLine, plate, wide, writePipe } from "../blocks/write/draw";
 import {
   along,
@@ -596,6 +597,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         ...layout.parties.filter((q) => q !== box),
         ...layout.parties.filter((q) => q !== box).flatMap((q) => (q.label ? [q.label] : [])),
         ...(layout.callTags ?? []),
+        ...(layout.revertTags ?? []),
         ...wires,
         ...(meshBox ? [...cards, ...(layout.chips ?? []).filter((c) => c.w > 0 && c.kind !== "return"), ...meshGaugeRects()] : []),
       ].filter((o) => !holds2(o));
@@ -717,7 +719,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       keep(p.x, p.y, p.w, p.h);
       if (p.label) keep(p.label.x, p.label.y, p.label.w, p.label.h);
     }
-    for (const r of [...layout.housings ?? [], ...layout.glasses ?? [], ...layout.plates ?? [], ...layout.gauges ?? [], ...layout.folds ?? [], ...layout.callTags ?? []]) keep(r.x, r.y, r.w, r.h);
+    for (const r of [...layout.housings ?? [], ...layout.glasses ?? [], ...layout.plates ?? [], ...layout.gauges ?? [], ...layout.folds ?? [], ...layout.callTags ?? [], ...layout.revertTags ?? []]) keep(r.x, r.y, r.w, r.h);
     timeline.steps.forEach((_, s) => {
       const st = stackOf(s);
       for (const k of st.map.keys()) movedKeys.add(k);
@@ -851,6 +853,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
             const shownWith = (t0: number, t1: number): boolean => meets(it.wins, [[t0, t1]]);
             const keepOff: Rect[] = [
               ...(layout.callTags ?? []),
+              ...(layout.revertTags ?? []),
               ...(layout.enclosures ?? []),
               ...meshGaugeRects(),
               ...layout.chips.filter((x) => x.kind === "return" && x.w > 0).map(restOf),
@@ -893,6 +896,7 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
             ...layout.housings.filter((h) => !h.enclosed),
             ...(layout.enclosures ?? []),
             ...(layout.callTags ?? []),
+            ...(layout.revertTags ?? []),
             ...layout.chips.filter((x) => x.kind === "return" && x.w > 0).map(restAt),
             ...cards,
           ];
@@ -1253,6 +1257,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
         ...(layout.links ?? []).flatMap((l) => (l.delta ? [l.label, l.delta] : [l.label])),
         // 線の札も避ける。並べ方の段の線の札はログの札の仮の置き場を避けないので、置き直す札が線の札から離れる (#3949)
         ...(layout.callTags ?? []),
+        // 取り消しの札も避ける (#3974)
+        ...(layout.revertTags ?? []),
       ].filter((r) => r && [r.x, r.y, r.w, r.h].every((v) => Number.isFinite(v)));
       const cardsAt = (s: number): CallCard[] => (layout.callCards ?? []).filter((c) => meets(c.shown, [[spanOf(s).a, spanOf(s).b]]));
       // 横へ動かすより縦へ動かす方を少し嫌い、出した箱の生存線から離れすぎない所を先に試す
@@ -1794,6 +1800,12 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
       for (const ink of ctx.ink.slice(drawnFrom)) ink.rect = { ...ink.rect, x: ink.rect.x + ex - sx, y: ink.rect.y + ey - sy };
       // 描く方は t1+f まで濃く見せて t1+2f にかけて消すので、崩れの検査も t1+2f まで見えているとみなす (#3607)
       ctx.pieces?.push({ kind: "chip", text: c.text, rect: { x: c.x + ex - sx, y: c.y + ey - sy, w: c.w, h: c.h }, shown: [[t1, t1 + 2 * f]] });
+    }
+    // 取り消しの札 (#3974)。落ちた時刻に出て、落ちた段の間だけ見える。管と札より手前に描く
+    for (const t of (layout.revertTags ?? []).filter((x) => x.step === s)) {
+      const at = timeOf(s, t.event);
+      parts.push(appear(at, revertTag(t, ctx, since(at), on({}))));
+      ctx.pieces?.push({ kind: "card", text: t.text, rect: { x: t.x, y: t.y, w: t.w, h: t.h }, shown: since(at) });
     }
     // 畳んだ箱
     for (const fold of layout.folds.filter((x) => x.step === s)) parts.push(foldBox(fold, ctx, whole, ` data-pipe-step="${s}"`));
