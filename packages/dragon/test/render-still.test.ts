@@ -156,8 +156,9 @@ function expectPastNamesFaint(kind: string): void {
     const motion = motionFrom(rendered);
     const past = [...motion.doc.querySelectorAll("g.dg-cap-past")];
     expect(past.length, `${name} の薄く残す線の名前の数が、最後の段より前に札を下ろす名前の数と違う`).toBe(leaving.length);
-    const t = stillOf(rendered);
-    for (const group of past) expect(motion.opacity(group, t), `${name} の線の名前「${group.textContent}」が最後の段の止め絵で薄く残っていない`).toBeGreaterThan(FULL);
+    // 最後の段の名前も、その段の札を下ろした後は薄く残るので、最後の段の止め絵と繰り返す前の間で見る
+    const t = (stillOf(rendered) + timeline.last) / 2;
+    for (const group of past) expect(motion.opacity(group, t), `${name} の線の名前「${group.textContent}」が最後の段で薄く残っていない`).toBeGreaterThan(FULL);
   }
 }
 

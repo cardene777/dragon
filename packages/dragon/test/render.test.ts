@@ -379,15 +379,12 @@ describe("線の形と模様 (#3171)", () => {
 
   it("non-state-lines-keep-dotted-texture", () => {
     for (const [name, diagram] of [["OAuth", oauth()], ["CCIP", ccip()]] as const) {
-      const { svg, layout, timeline } = render(diagram);
+      const { svg, layout } = render(diagram);
       const taken = layout.edges.filter((e) => e.points.length > 0).length;
       expect((svg.match(/class="dg-e-on dg-a"/gu) ?? []).length, `${name} の色の線の数`).toBe(taken);
       expect(svg, `${name} の済んだ線が薄く残らない`).toMatch(/opacity:0\.45/u);
-      for (const cls of ["dg-e-past", "dg-bdp-g", "dg-cap-past", "dg-fv-now"]) expect(svg, `${name} に状態遷移図だけの部品 ${cls} が出る`).not.toContain(`class="${cls}`);
-      expect(
-        timeline.labels.every((l) => !("after" in l)),
-        `${name} の線の名前が段の後に残る`,
-      ).toBe(true);
+      // 過ぎた段の線の名前を薄く残す字 (`dg-cap-past`) は、時系列図と構成図も持つ (#3831)
+      for (const cls of ["dg-e-past", "dg-bdp-g", "dg-fv-now"]) expect(svg, `${name} に状態遷移図だけの部品 ${cls} が出る`).not.toContain(`class="${cls}`);
     }
   });
 });

@@ -239,6 +239,36 @@ If every block on a page is still, `dragon embed` draws them as SVGs in place an
 If the page also has moving blocks, it draws only the still blocks as SVGs and adds the bundled script for the rest.
 From the package, pass `figure: true` to `renderDiagram` to get the same SVG.
 
+### A diagram paused on one step
+
+To place a diagram paused on one step, add `data-step` with the step number, counting from 1 as the step bar does.
+
+```html
+<pre class="dragon" data-step="2">
+sequence Order
+
+box shop as Shop
+box bank as Bank
+
+step Ask
+  shop -> bank: payment
+
+step Pay
+  bank -> shop: paid
+
+step Close
+  shop -> bank: closed
+</pre>
+```
+
+The block does not play when it is placed and waits on the still of step 2.
+In sequence, architecture, state, and flow diagrams, lines of earlier steps keep their labels in faint gray.
+The reader sees the flow up to that step in one picture.
+The reader can still play the diagram or move between steps with the bar.
+A number larger than the step count pauses on the last step.
+A value that is not a whole number from 1 turns the block into an error message.
+A block with both `data-still` and `data-step` uses `data-still`.
+
 ## Write a page from Markdown
 
 `dragon export notes.md` reads a Markdown file and writes one HTML page, `notes.html`, next to it (`--out <dir>` sets the folder).

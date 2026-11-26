@@ -6,12 +6,18 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A `<pre class="dragon">` block with `data-step="3"` opens paused on step 3, counting from 1 as the step bar does. The reader can still play it or move between steps. A number larger than the step count pauses on the last step, and a value that is not a whole number from 1 turns the block into an error message (#3831)
+
 ### Changed
 
+- Sequence and architecture diagrams now keep the labels of earlier steps in faint gray until the last step, like state and flow diagrams, so a diagram paused on a middle step shows the names of every line before it. The faint labels of all four kinds sit on a patch of the figure background, so a lifeline no longer runs through them. A faint label goes away when a later step puts its own label in the same place (#3831)
 - Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. The section numbers run from 1 across the topics, and the terms file becomes a `Terms` topic at the end. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961)
 
 ### Fixed
 
+- `mountDiagram` with `still: true` alone now stops on the last step and shows every line label, as the README says, instead of playing in a loop. With `pausedAt` it still stops on that step, and with `playOnce` it plays once (#3831)
 - Buttons of a diagram placed on a page without the bar (`mountDiagram`) no longer take the page's own `button` styles. The step buttons, the zoom buttons of a pipe diagram, the scene buttons, and the close button of a box card used to get the page's shadow, uppercase text, minimum height, margin, and transform, and the step bar grew taller. They now reset every inherited and page style first, so they look the same on any page. Page rules stronger than a plain `button` selector, such as `.site button` or `!important`, still reach them; use the framed diagram on such pages (#3799)
 
 ## [0.81.1] - 2026-11-26
