@@ -223,6 +223,19 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-83-0-lists-revert-tag-once", () => {
+    // check を持たない revert の段でも落ちた箱に取り消しの札を描く変更 (#3974) を 1 項に持って 0.83.0 で出す (#3977)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 83, `package の版 ${version()} が 0.83.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.83\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.83.0"), "0.83.0");
+      expect(released, `${file} に日付付きの ## [0.83.0] の節が無い`).not.toBe("");
+      expect(released.split("(#3974)").length - 1, `${file} の 0.83.0 の節が (#3974) を 1 回だけ持たない`).toBe(1);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3974) が残る`).not.toContain("(#3974)");
+    }
+  });
+
   it("changelog-0-82-0-lists-guide-menu-once", () => {
     // 説明の頁の左の目次と全体像 (#3961) と、全体像の後の段落の位置と章ごとの番号の直し (#3969) を 1 項に、
     // v0.81.1 の後に既定の枝へ入った帯の無い図のボタンの直し (#3799) を 1 項に持って 0.82.0 で出す (#3972)
