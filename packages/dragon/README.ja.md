@@ -165,7 +165,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -185,10 +185,13 @@ script は jsDelivr から、版の真ん中の数まで固定した URL で読�
 同梱の 2 つの字の CSS を jsDelivr から読む `<link>` を、頁に 1 度だけ足す。
 頁を読み終えた時に在る塊を全て描き、後から足した塊は描かない。
 読み終えた時に幅を持たない塊 (`display: none` で隠したタブの中など) は、幅を持った時に描く。
+印刷する時は、幅を持たない塊も印刷の前に描く。
 塊の全ての行に共通の字下げは外して読む。
 記法の中の `<` は `&lt;` と書く。
 記法に誤りのある塊は図にせず、塊の場所に誤りの文を行ごとに出す (`<pre class="dragon-error">`)。
 図の中の字と誤りの文は、頁の `lang` が `ja` で始まれば日本語、ほかは英語で出る。
+頁を印刷すると、紙で押せない再生の帯と図の上の帯の釦を出さない。
+段のある図は全ての段の止め絵を段の順に並べ、各絵の下に段の番号と題と`say`の文を置く。
 
 通信の無い所で開ける 1 file にするには、頁を `dragon embed` に渡す。
 script の 1 行を、全ての図の種類を持つ束ねた script に置き換え、頁の隣に `page.offline.html` を書く (`--out <file>` で書く file を選ぶ)。
@@ -361,7 +364,8 @@ dragon embed notes.html
 下線を押すと、すぐ下に用語の名前と説明と灰色の例の帯を持つ札が開く。
 札は、札の外か閉じるのアイコンか同じ下線を押すと閉じる。
 同じ用語を2度書いた用語のfileと、用語のfileに無い用語へのリンクは、fileと行を名指して書き出しを止める。
-印刷の形では、用語の札と図の箱の札と確かめる問いの答えを全て開いて描き、目次を隠して、話題ごとに頁を改める。
+印刷の形では、目次を出さずに全ての話題の節を書いた順に並べ、2つ目からの話題を新しい紙から始めて、紙の上に話題の名前を出す。
+用語の札と確かめる問いの答えを全て開き、図の箱の札は図に重ねず図の下に箱の名前と並べる。
 見本は [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.md) にある。
 
 ````md
@@ -416,7 +420,7 @@ note: pop
 HTMLは`<dg-box/>`を閉じないので、全ての要素を終わりのタグで閉じる。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="注文を受ける">
   <dg-box id="shop">店</dg-box>
@@ -559,7 +563,7 @@ mountDiagram(host, parsed.diagram, {
 JSONとして読めない塊と、知らないボタンの名前を書いた塊は、`data-header`の塊をその誤りの文に置き換える。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order

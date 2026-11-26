@@ -6,7 +6,8 @@
  * 最後の段に着いた場面はそこに留まり、`stop` を書いた場面は止まる段に着いた時から理由の文を出す。
  * 選ぶ見せ方 (`pick`) は、場面の名前の釦で選んだ 1 つの場面だけを見せ、釦を押すとその場面の 1 段目に戻って、段を送ると選んだ場面の段だけを進める。
  * 場面の図は再生の部品と同じく、1 周の秒 (`--T`) と動きの位置 (`--at`) と止めるか流すか (`--play`) の変数で動かし、
- * 最後の段の止め絵の時刻 (`--dg-last`) を持つ。印刷の形では、どちらの見せ方でも隠した場面も見せ、全ての場面を最後の段の止め絵で止めて縦に並べる。
+ * 最後の段の止め絵の時刻 (`--dg-last`) を持つ。印刷の形では、どちらの見せ方でも隠した場面も見せ、場面ごとに全ての段の止め絵を段の順に並べる (#3956)。
+ * 止め絵を作る前に印刷した時は、全ての場面を最後の段の止め絵で止めて縦に並べる。
  * 札で見せる図 (#3877) は場面の枠ごとに札の層を持ち、押した場面の箱のすぐ下に札を開いて、ほかの場面の札を閉じる。
  * 帯の釦と進み具合と段の番号と題と本文は、再生の部品 (`player.ts`) と同じ class と名前で置き、見た目も再生の部品の規則が描く。
  * この file は場面を書ける種類の描く部品の組だけが読み、最初に読む量に入れない
@@ -14,6 +15,7 @@
 import { type NoteCards, withNoteCards } from "./blocks/pop/cards-store";
 import { drawStepItem } from "./blocks/step/draw";
 import { FIGURE_TEXT } from "./figure-text";
+import { drawStills, whenPrinting } from "./print-stills";
 import { FONT_VARS, LOOK, paletteVars, type TextStyle, TYPE } from "./look/values";
 import { type Player, type PlayerOptions, stepNo } from "./player";
 import { paletteOf, type Rendered, type RenderedScene } from "./render/draw";
@@ -73,6 +75,8 @@ interface Panel {
   /** 見せている段 (0 から) */
   step: number;
   notes?: NoteCards;
+  /** 印刷の形で並べる段ごとの止め絵の束 (#3956) */
+  stills?: HTMLElement;
   /** 流している段の止め絵で止める予約 */
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -226,6 +230,29 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   column.append(...panels.map((p) => p.el));
   root.append(...(picks ? [picks] : []), column, bar, list);
   host.append(root);
+
+  /** 場面ごとに図を写して段ごとの止め絵の束を作り、図のすぐ後ろ (札の層の前) に置く (#3956) */
+  const makeStills = (): void => {
+    if (gone) return;
+    for (const panel of panels) {
+      const { svg, scene } = panel;
+      if (panel.stills || !svg) continue;
+      const steps = scene.diagram.steps;
+      const times = steps.map((_, i) => (scene.timeline.stills[i] ?? scene.timeline.steps[i]?.start ?? 0) / speed);
+      panel.stills = drawStills(doc, svg, steps, times, (i) => stepNo(i, steps.length));
+      panel.frame.insertBefore(panel.stills, svg.nextSibling);
+      panel.frame.dataset.stills = "";
+    }
+  };
+
+  /** 印刷の後に止め絵を外し、画面の頁に図の写しを残さない */
+  const dropStills = (): void => {
+    for (const panel of panels) {
+      panel.stills?.remove();
+      panel.stills = undefined;
+      delete panel.frame.dataset.stills;
+    }
+  };
 
   /** 選ぶ見せ方で選んだ場面 */
   let picked = 0;
@@ -396,10 +423,13 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
       if (gone) return;
       panel.notes = made(doc, panel.frame, row, panel.scene.layout, words);
       if (!panel.notes) return;
-      panel.frame.insertBefore(panel.notes.layer, panel.svg?.nextSibling ?? null);
+      // 札の層は段ごとの止め絵の後ろに置き、印刷の形で札を全ての止め絵の下に並べる (#3956)
+      panel.frame.insertBefore(panel.notes.layer, (panel.stills ?? panel.svg)?.nextSibling ?? null);
       root.dataset.notes = "";
     });
   }
+  // 印刷の前か印刷の形に切り替わった時に段ごとの止め絵を作り、印刷の後に外す (#3956)
+  const stopStills = whenPrinting(win, makeStills, dropStills);
   const openNote = (panel: Panel, noted: Element): void => {
     for (const other of panels) if (other !== panel) other.notes?.close();
     panel.notes?.open(noted.getAttribute("data-note") ?? "", noted, panel.step);
@@ -493,6 +523,7 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
     },
     destroy: () => {
       gone = true;
+      stopStills();
       stopClock();
       for (const panel of panels) {
         if (panel.timer !== undefined) clearTimeout(panel.timer);

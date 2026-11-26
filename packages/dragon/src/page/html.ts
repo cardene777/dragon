@@ -578,7 +578,10 @@ function overviewHtml(guide: RenderedGuide, lang: PageLang): string {
   return `<section class="pg-overview" id="${escapeHtml(guide.overviewId)}" aria-label="${escapeHtml(words.whole)}">${guide.overview}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
 }
 
-/** 説明の頁 (#3876、#3961)。左の列の目次と、右の列の頁の題と頭の中身、全体像、続けて積む話題 */
+/**
+ * 説明の頁 (#3876、#3961)。左の列の目次と、右の列の頁の題と頭の中身、全体像、続けて積む話題。
+ * 印刷の形では目次を出さずに全ての話題を書いた順に並べ、2つ目からの話題を新しい紙から始め、どの話題も紙の上に話題の名前の見出しを出す (#3956)
+ */
 function guideLayout(page: RenderedPage): string {
   const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", overviewId: "", topics: [] };
   const lead = guide.lead || guide.leadTerms.length > 0 ? `<div class="pg-lead" data-terms>${guide.lead}${termCards(guide.leadTerms, page.lang)}</div>` : "";

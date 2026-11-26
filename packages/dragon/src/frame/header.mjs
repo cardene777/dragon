@@ -12,6 +12,7 @@ const MARK_PATHS=[
  * 帯の頭の見た目。`createFigureHeader`は帯の頭を影の根に入れず置いた頁の中に置くので、頁のCSSが帯の頭へ入る (#3787)。
  * 帯の頭の根は頁の字の間と大文字を戻し、行と並びと2行目は頁の`div`の行の高さを受けずに根の1.5を受け継ぐ。
  * 帯のボタンは頁の`button`の指定が足す影と最小の幅と大文字と字の間を戻す。帯の頭の名前を足した指定なので、型の名前だけの頁の指定より強い
+ * 印刷の形では、紙で押せない帯のボタンと設定の段を出さず、題だけを残す (#3956)
  */
 export const HEADER_CSS=`
 [data-dragon-header]{--h-surface:var(--dragon-header-surface,#f7f7f3);--h-bg:var(--dragon-header-background,#fffefa);--h-fg:var(--dragon-header-foreground,#29382e);--h-muted:var(--dragon-header-muted,#748074);--h-line:var(--dragon-header-border,#d6dcd2);--h-accent:var(--dragon-header-accent,#416f48);--h-hover:var(--dragon-header-hover,#eaf0e5);container-type:inline-size;display:block;background:var(--h-surface);color:var(--h-fg);border-bottom:1px solid var(--h-line);font:var(--dragon-header-font-size,12px)/1.5 var(--dragon-header-font,system-ui,sans-serif);min-width:0;${PLAIN_TEXT}}
@@ -30,6 +31,7 @@ export const HEADER_CSS=`
 [data-dragon-header] .dg-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;margin:0 -4px 0 -6px;border-radius:var(--dragon-header-radius,6px);color:var(--h-accent);text-decoration:none}
 [data-dragon-header] .dg-mark:hover{background:var(--h-hover)}
 [data-dragon-header] .dg-mark svg{display:block;width:22px;height:22px;fill:currentColor;stroke:none}
+@media print{[data-dragon-header] .dg-header-actions,[data-dragon-header] .dg-header-settings{display:none}}
 @container(max-width:600px){[data-dragon-header] .dg-header-row{gap:5px;padding:9px 10px}[data-dragon-header] .dg-header-title{flex:1 1 0}[data-dragon-header] .dg-header-actions{margin-left:0;width:100%;gap:4px}[data-dragon-header] .dg-header-actions>:is(button,a),[data-dragon-header] .dg-header-actions>:not(button,a)>button{padding:5px 8px}[data-dragon-header] .dg-header-settings{padding:8px 10px;gap:9px}}
 `;
 

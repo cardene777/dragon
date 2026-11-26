@@ -160,11 +160,12 @@ describe("package の入口 (#3021)", () => {
       .filter((file) => file.endsWith(".js") && file !== "capture.js")
       .map((file) => `dist/cdn/${file}`);
     expect(cdn.length, "script の1行の入口の塊の file の数").toBeGreaterThan(2);
-    const shipped = ["dist/frame.js", "dist/frame.cjs", "dist/embed.js", "dist/embed.cjs", "dist/light-frame.js", "dist/light-frame.cjs", "dist/offline.global.js", ...cdn];
+    // 埋める script (`offline.global.js`) は外を読めない頁で書き出すので、書き出す部品を束ねる (#3792)。判定の表の絵を撮る`capturePng`も束ねる (#3945)
+    const shipped = ["dist/frame.js", "dist/frame.cjs", "dist/embed.js", "dist/embed.cjs", "dist/light-frame.js", "dist/light-frame.cjs", ...cdn];
     expect(shipped.filter((file) => !existsSync(join(ROOT, file))), "build した file が無い配る入口").toEqual([]);
     expect(shipped.filter(holds), "書き出す部品の中身を持つ配る入口の file").toEqual([]);
     // 陰性でない対照。書き出す部品の file では、同じ字を見つける (探す字が古くなっていない)
-    expect(["dist/capture.js", "dist/cdn/capture.js"].filter(holds), "書き出す部品の中身を持つ書き出す部品の file").toEqual(["dist/capture.js", "dist/cdn/capture.js"]);
+    expect(["dist/capture.js", "dist/cdn/capture.js", "dist/offline.global.js"].filter(holds), "書き出す部品の中身を持つ書き出す部品の file").toEqual(["dist/capture.js", "dist/cdn/capture.js", "dist/offline.global.js"]);
   });
 
   it("offline-script-skips-icon-table", () => {

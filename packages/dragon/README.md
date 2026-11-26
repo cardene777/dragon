@@ -163,7 +163,7 @@ The block turns into a diagram that plays.
 There is nothing to install or build.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -185,10 +185,13 @@ It adds one `<link>` to the page that loads the CSS for the two bundled fonts fr
 It draws every block on the page once the page has loaded.
 It does not watch for blocks added later.
 A block that has no width at that point, such as one in a tab hidden with `display: none`, is drawn when it first gets a width.
+When the page is printed, such a block is drawn before printing.
 Indentation shared by every line of a block is removed before parsing.
 Write `<` in the notation as `&lt;`.
 A block whose notation has an error is not drawn, and its error messages appear in its place (`<pre class="dragon-error">`).
 Diagram text and error messages are in Japanese when the page's `lang` starts with `ja`, and in English otherwise.
+When the page is printed, the player bar and the buttons of the bar above a diagram, which cannot be pressed on paper, are left out.
+A diagram with steps prints the still of every step in order, each with its step number, title, and `say` text below it.
 
 To make a file that works offline, run `dragon embed` on the page.
 It replaces the script line with the bundled script, which contains every diagram kind, and writes `page.offline.html` next to the page (`--out <file>` sets the file).
@@ -374,7 +377,9 @@ In the text, a link such as `[order](glossary.md#order)` is underlined.
 Clicking it opens a card just below it with the term, its meaning, and a gray example band.
 The card closes on a click outside it, on its close icon, or on the term again.
 A term written twice, or a link to a term the file does not have, stops the export with the file and line named.
-When the page is printed, every term card, box card, and check answer is drawn open, the menu is hidden, and each topic starts on a new page.
+When the page is printed, the menu is left out and the sections of every topic follow in written order.
+Each topic after the first starts on a new sheet, with its name at the top.
+Every term card and check answer is drawn open, and box cards are listed below their diagram with their box names instead of over it.
 The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).
 
 ````md
@@ -429,7 +434,7 @@ A new notation word gets its element with the next release, so `dragon convert d
 HTML does not close `<dg-box/>`, so close every element with its end tag.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="Take an order">
   <dg-box id="shop">Shop</dg-box>
@@ -594,7 +599,7 @@ Custom buttons need a click handler, so they cannot go here.
 If the settings block is not valid JSON or names an unknown button, every `data-header` block shows that error instead.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.80/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order

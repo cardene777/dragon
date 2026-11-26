@@ -34,6 +34,7 @@ import { drawSources } from "./blocks/source/draw";
 import { drawRooms, drawStepItem } from "./blocks/step/draw";
 import type { Styles } from "./adopt-css";
 import { FIGURE_TEXT } from "./figure-text";
+import { drawStills, whenPrinting } from "./print-stills";
 import type { Rect } from "./layout/scene";
 import type { PipeLayout } from "./kinds/pipe/layout";
 import type { TryLayout } from "./kinds/try/layout";
@@ -272,8 +273,26 @@ function playerCss(): string {
     `.dg-nc-x{position:absolute;top:${px(N.padY / 2)};right:${px(N.padY / 2)};width:${px(N.close)};height:${px(N.close)};padding:0;border:0;border-radius:${px(N.close / 2)};background:none;color:var(--mute);cursor:pointer;display:grid;place-items:center}`,
     `.dg-nc-x:hover{color:var(--ink);background:var(--sunk)}.dg-nc-x:focus-visible{outline:${px(P.focus)} solid var(--c-blue)}`,
     `.dg-nc-x svg{width:${px(N.icon)};height:${px(N.icon)};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`,
-    // 印刷の形では全ての札を開き、図の幅と高さに対する箱の真ん中と下端の割合の所に置く。閉じるのアイコンと影は描かない
-    `@media print{.dg-player[data-notes] .dg-nc{display:block;left:clamp(${px(0)},calc(var(--nx) - ${px(N.card / 2)}),calc(100% - ${px(N.card)}));top:calc(var(--ny) + ${px(N.gap)});box-shadow:none}.dg-player[data-notes] .dg-nc-x{display:none}}`,
+    // 印刷の形で並べる段ごとの止め絵 (#3956)。画面では隠す
+    ".dg-print{display:none}",
+    // 印刷の形 (#3956)。紙で押せない帯と全体の位置の線を出さず、止め絵を作った図は動く図の代わりに全ての段の止め絵を段の順に並べ、
+    // 各絵の下に段の番号と題と say の文を置く。止め絵は枠の幅に収め、枠の高さと送りを外す。
+    // 箱の札は全て開き、図に重ねず止め絵の後ろに箱の名前と並べる。閉じるのアイコンと影は描かない
+    "@media print{" +
+      ".dg-player .dg-bar,.dg-player .dg-ov{display:none}" +
+      ".dg-player .dg-frame[data-stills]{height:auto!important;overflow:visible}" +
+      '.dg-player .dg-frame[data-stills]>svg[data-dragon="figure"]{display:none}' +
+      `.dg-player .dg-print{display:flex;flex-direction:column;gap:${px(P.gap * 2)}}` +
+      ".dg-still{margin:0;break-inside:avoid}" +
+      ".dg-still>svg{display:block;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
+      `.dg-still-c{display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
+      `.dg-still-no{${font(TYPE.stepNo)};color:var(--mute);flex:none}` +
+      `.dg-still-t{${font(TYPE.stepTitleNarrow)};line-height:${P.titleLine};margin:0}` +
+      `.dg-still-b{${font(TYPE.stepBody)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}` +
+      `.dg-player[data-notes] .dg-notes{position:static;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,${px(N.card)}),1fr));gap:${px(N.gap)};margin-top:${px(N.gap)}}` +
+      ".dg-player[data-notes] .dg-nc{display:block;position:static;width:auto;max-width:none;box-shadow:none;break-inside:avoid}" +
+      ".dg-player[data-notes] .dg-nc-x{display:none}" +
+      "}",
   ].join("");
 }
 
@@ -646,6 +665,29 @@ export function mountDiagram(
 
   /** 置いた図の段ごとの組 (`data-dg-only` に段の番号を持つ要素)。図を置いた時に 1 度だけ集め、段を送るたびに図の中を全てたどらない (#3912) */
   let only: Element[] = [];
+  /** 印刷の形で並べる段ごとの止め絵の束 (#3956) と、作る時を待つ見張りを外す処理 */
+  let stills: HTMLElement | undefined;
+  let stopStills: (() => void) | undefined;
+  /** 今の図を写して段ごとの止め絵の束を作り、図のすぐ後ろ (札の層の前) に置く。HTML で描く表は止め絵を持たない */
+  const makeStills = (): void => {
+    if (stills || gone || !svg || htmlKind) return;
+    const times = steps.map((_, i) => (timeline.stills[i] ?? timeline.steps[i]?.start ?? 0) / speed);
+    stills = drawStills(doc, svg as SVGSVGElement, steps, times, (i) => stepNo(i, count));
+    frame.insertBefore(stills, svg.nextSibling);
+    frame.dataset.stills = "";
+  };
+  /** 印刷の後に止め絵を外し、画面の頁に図の写しを残さない */
+  const dropStills = (): void => {
+    stills?.remove();
+    stills = undefined;
+    delete frame.dataset.stills;
+  };
+  /** 図を替えた時は、前の図から作った止め絵を外し、印刷の時を見張り直す */
+  const armStills = (): void => {
+    dropStills();
+    stopStills?.();
+    stopStills = whenPrinting(win, makeStills, dropStills);
+  };
   /**
    * 段ごとの組 (持ち主ごとのカードの図、#3846) の見え方。
    * 止めている間は今の段の組だけを見せてほかの組に `hidden` を付け、流している間は隠さずに図の動きに任せる
@@ -962,11 +1004,12 @@ export function mountDiagram(
     else if (!svg) frame.append(next);
     svg = next;
     if (fresh) only = [...next.querySelectorAll("[data-dg-only]")];
+    if (fresh) armStills();
     rewind(next);
     born = Date.now();
     if (fresh) drawMarks();
     // HTML で描く表は、置き直した表にも今の段までの列を照らす
-    if (htmlKind) htmlKind.show(next as HTMLElement, step);
+    if (htmlKind) htmlKind.show(next, step);
     else {
       controls?.fit(frame, next as SVGSVGElement);
       controls?.mark(next as SVGSVGElement, step);
@@ -1021,7 +1064,7 @@ export function mountDiagram(
     }
     fillNow();
     panTo();
-    if (svg && htmlKind) htmlKind.show(svg as HTMLElement, step);
+    if (svg && htmlKind) htmlKind.show(svg, step);
     else if (svg) controls?.mark(svg as SVGSVGElement, step);
     showOnly();
     calls?.show(rendered.diagram, step);
@@ -1136,7 +1179,8 @@ export function mountDiagram(
       if (gone) return;
       notes = made(doc, frame, row, rendered.layout, words);
       if (!notes) return;
-      frame.insertBefore(notes.layer, svg?.nextSibling ?? null);
+      // 札の層は段ごとの止め絵の後ろに置き、印刷の形で札を全ての止め絵の下に並べる (#3956)
+      frame.insertBefore(notes.layer, (stills ?? svg)?.nextSibling ?? null);
       root.dataset.notes = "";
     });
   if (controls) frame.append(controls.layer);
@@ -1333,6 +1377,7 @@ export function mountDiagram(
       frame.removeEventListener("scroll", onPan);
       frame.removeEventListener("keydown", onNoteKey);
       gone = true;
+      stopStills?.();
       notes?.destroy();
       unbindZoom?.();
       root.remove();

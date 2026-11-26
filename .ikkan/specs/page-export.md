@@ -43,3 +43,17 @@
 | `entry`、`sidebar`、`tabs`の組み立ての見本のmdは、今と同じく書き出せる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts` check `page-examples-export` passes | #3876 |
 | `<details>`と`<summary>`の外の生のHTMLは、今と同じく字として出す | `pnpm exec vitest run packages/dragon/test/page-export.test.ts` check `page-escapes-raw-html` passes | #3876 |
 | `![名前](path)`だけの行は、今と同じくfileの種類ごとに載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts` check `page-includes-files-by-kind` passes | #3876 |
+| 説明の頁を印刷すると、全ての話題の節が書いた順に紙に出る (#3961でタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-shows-every-topic`が通る | #3956 |
+| 説明の頁を印刷すると、各話題は新しい紙から始まり、その紙の上に話題の名前の見出しが出る (#3961でタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-starts-each-topic-on-new-paper`が通る | #3956 |
+| 説明の頁を印刷すると、箱の札 (`note: pop`) は図に重ならず、図の下に箱の名前と並んで開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-notes-below-figure`が通る | #3956 |
+| 説明の頁を印刷すると、段のある図の全ての段の止め絵が紙に出て、各段の`say`の文が読める | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-shows-every-step`が通る | #3956 |
+| 図を置く頁を印刷すると、再生の部品は箱の札を図の下に並べ、箱の上の位置 (`--nx`、`--ny`) には置かない | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts`の検査`note-pop-print-lists-cards-below-figure`が通る | #3956 |
+| 図を置く頁を印刷すると、再生の帯 (段を送る釦、段の文、進み) が紙に出ない | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`player-print-hides-bar`が通る | #3956 |
+| 図の上の道具の帯 (コード、エディタ、コピー、エクスポート、拡大の釦) は、印刷すると紙に出ない | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`frame-print-hides-tool-bar`が通る | #3956 |
+| 図を置く頁で段のある図を印刷すると、全ての段の止め絵が段の順に並び、各絵の下に段の番号と`say`の文が出る | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`player-print-stacks-every-step`が通る | #3956 |
+| 画面では、段のある図は1つの段だけを映し、再生の帯を出す | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`player-screen-shows-one-step-and-bar`が通る | #3956 |
+| 画面では、説明の頁のタブは押したタブの話題だけを映す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-sections-stack-in-topic-tabs`が通る | #3956 |
+| 画面では、箱の札は押した箱の下に開く | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts`の検査`note-pop-opens-card-under-box`が通る | #3956 |
+| 説明の頁を印刷すると、用語の札と確かめる問いの答えが開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-opens-cards-and-answers`が通る | #3956 |
+| 場面の図を印刷すると、場面ごとに全ての段の止め絵が段の順に並び、各絵の下に段の番号と`say`の文が出る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts`の検査`scenes-print-stacks-every-step`が通る | #3956 |
+| 場面の図を印刷すると、今と同じく全ての場面が場面の見出しと共に書いた順に出て、場面を選ぶ釦は紙に出ない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts`の検査`scenes-print-shows-every-scene`が通る | #3956 |

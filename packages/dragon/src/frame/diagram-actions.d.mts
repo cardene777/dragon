@@ -1,5 +1,4 @@
-import type { RenderOptions } from '../render/draw';
-import type { Diagram } from '../schema';
+import type { Diagram, RenderOptions } from '@cardenelabs/dragon';
 import type { CopyKind, ExportDetail, ExportFormat, ExportOptions, ShareDetail } from './types';
 
 /** エクスポートした時 (`export`) とエディタで開いた・コピーした時 (`share`) に呼ぶ口 */

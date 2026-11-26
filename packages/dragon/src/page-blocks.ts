@@ -242,19 +242,33 @@ async function pageDefinitions(doc: Document, lang: NotationLang): Promise<UserB
   );
 }
 
-/** 塊が幅を持てば `run` を呼ぶ。幅を持たなければ、幅を持った時に 1 度だけ呼ぶ (#3755)。大きさを見張れない環境ではすぐ呼ぶ */
+/**
+ * 塊が幅を持てば `run` を呼ぶ。幅を持たなければ、幅を持った時に 1 度だけ呼ぶ (#3755)。大きさを見張れない環境ではすぐ呼ぶ。
+ * 印刷の形は隠したタブも紙に出すので、印刷の前 (`beforeprint`) か印刷の形に切り替わった時にも、幅を待たずに 1 度だけ呼ぶ (#3956)
+ */
 function whenShown(block: Element, run: () => void): void {
-  const Observer = block.ownerDocument.defaultView?.ResizeObserver;
-  if (!Observer || block.getBoundingClientRect().width > 0) {
+  const win = block.ownerDocument.defaultView;
+  const Observer = win?.ResizeObserver;
+  if (!win || !Observer || block.getBoundingClientRect().width > 0) {
     run();
     return;
   }
-  const observer = new Observer(() => {
-    if (block.getBoundingClientRect().width === 0) return;
+  const media = win.matchMedia?.("print");
+  const once = (): void => {
     observer.disconnect();
+    win.removeEventListener("beforeprint", once);
+    media?.removeEventListener?.("change", onMedia);
     run();
+  };
+  const onMedia = (event: MediaQueryListEvent): void => {
+    if (event.matches) once();
+  };
+  const observer = new Observer(() => {
+    if (block.getBoundingClientRect().width > 0) once();
   });
   observer.observe(block);
+  win.addEventListener("beforeprint", once);
+  media?.addEventListener?.("change", onMedia);
 }
 
 /**

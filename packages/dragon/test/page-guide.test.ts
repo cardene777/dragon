@@ -5,7 +5,9 @@
  * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題をまたいで1から数える。
  * 節の題の直後の引用は題の下の答えになり、`<details>`と`<summary>`は答えを押すまで隠す確かめる問いになる。
  * 頁の頭の`![用語](glossary.md)`の行で読み込んだ用語のfileは頁の終わりの「用語」の話題になり、本文の`[用語](glossary.md#用語)`のリンクは押すと札が開く下線になる。
- * 印刷の形では、用語の札と箱の札と確かめる問いの答えが全て開き、左の目次を隠して話題ごとに頁を改める。
+ * 印刷の形では、用語の札と箱の札と確かめる問いの答えが全て開き、左の目次を隠す。
+ * 印刷の形では、全ての話題の節を書いた順に並べ、各話題を新しい紙から始めて紙の上に話題の名前を出す。
+ * 箱の札は図に重ねず図の下に箱の名前と並べ、段のある図は全ての段の止め絵と段の say の文を並べる (#3956)。
  *
  * 書き出したHTMLの形は頁を開かずに確かめ、押す動きと描いた大きさは`http://localhost/`に置いた Chromium で測る。
  * 頁を開いて押して待つ仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は記した値を確かめる (#3816)。
@@ -58,6 +60,9 @@ const GLOSSARY = `# 用語
 /** 節を縦に長くする箇条書き。問いを押した時に頁が動いて節へ移るのを測るため */
 const FILLER = Array.from({ length: 16 }, (_, n) => `- 確かめる段 ${n + 1}`).join("\n");
 
+/** 図の段の say の文。印刷の形で段ごとの止め絵の下に出る */
+const SAYS = ["エージェントが送金を確かめる所へ送る。", "規則に合う送金を署名する所へ通す。"];
+
 /** 説明の頁のmd。`note: pop` で図の箱の説明を札で見せる */
 const GUIDE = `---
 layout: guide
@@ -84,8 +89,10 @@ box check as 確かめる所 [note: 規則と照らす]
 box signer as 署名する所
 
 step 送る
+  say エージェントが送金を確かめる所へ送る。
   agent -> check: 送金
 step 通す
+  say 規則に合う送金を署名する所へ通す。
   check -> signer: 合う送金
 \`\`\`
 
@@ -307,6 +314,92 @@ const sectionTop = (page: Page, title: string): Promise<number | undefined> =>
     return sec?.getBoundingClientRect().top;
   }, title);
 
+/** 印刷の形で段の止め絵が見えるまで待つ。止め絵は印刷の形に切り替わった時に作る。待ちきれなくても投げず、判定に任せる */
+const stillsShown = (page: Page): Promise<unknown> =>
+  page
+    .waitForFunction(
+      () => {
+        const walk = (root: Document | ShadowRoot): boolean =>
+          [...root.querySelectorAll<HTMLElement>('[data-dragon="step-still"]')].some((el) => el.checkVisibility()) ||
+          [...root.querySelectorAll("*")].some((host) => host.shadowRoot !== null && walk(host.shadowRoot));
+        return walk(document);
+      },
+      null,
+      { timeout: WAIT },
+    )
+    .catch(() => undefined);
+
+/**
+ * 印刷の形の頁で、話題ごとの面と節、箱の札と同じ図の絵、段の止め絵を読む (#3956)。
+ * 話題の名前は左の目次 (印刷の形では隠す) の話題の行から読み、行が指す話題の面を読む (#3961)
+ */
+const printedPage = async (page: Page) => {
+  await stillsShown(page);
+  return page.evaluate(() => {
+    const squash = (text: string | null | undefined): string => (text ?? "").replace(/\s+/gu, " ").trim();
+    const deep = (selector: string): Element[] => {
+      const out: Element[] = [];
+      const walk = (root: Document | ShadowRoot): void => {
+        out.push(...root.querySelectorAll(selector));
+        for (const host of root.querySelectorAll("*")) if (host.shadowRoot) walk(host.shadowRoot);
+      };
+      walk(document);
+      return out;
+    };
+    const shown = (el: Element): boolean => (el as HTMLElement).checkVisibility();
+    const rect = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    };
+    const topics = [...document.querySelectorAll("nav.pg-menu .pg-menu-topic")].map((tab) => {
+      let id = (tab.getAttribute("href") ?? "").slice(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch {
+        // 読めない`%`はそのままの字で探す
+      }
+      const panel = document.getElementById(id);
+      // 面の中で最初に見える字。紙の上の見出し
+      let head = "";
+      for (const el of panel?.querySelectorAll<HTMLElement>("*") ?? []) {
+        const own = [...el.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? "").trim() !== "");
+        if (own && el.checkVisibility()) {
+          head = squash(el.textContent);
+          break;
+        }
+      }
+      return {
+        name: squash(tab.textContent),
+        shown: panel ? shown(panel) : false,
+        breakBefore: panel ? getComputedStyle(panel).breakBefore : "",
+        head,
+        sections: [...(panel?.querySelectorAll(".pg-sec") ?? [])].filter(shown).map((sec) => squash(sec.querySelector(".pg-sec-title")?.textContent)),
+      };
+    });
+    const written = [...document.querySelectorAll(".pg-sec")].map((sec) => squash(sec.querySelector(".pg-sec-title")?.textContent));
+    const notes = deep('[data-dragon="note-card"]').map((card) => {
+      const player = card.closest('[data-dragon="player"]');
+      return {
+        shown: shown(card),
+        name: squash(card.querySelector('[data-dragon="note-name"]')?.textContent),
+        card: rect(card),
+        figures: player ? [...player.querySelectorAll('svg[data-dragon="figure"]')].filter(shown).map(rect) : [],
+      };
+    });
+    const stills = deep('[data-dragon="step-still"]')
+      .filter(shown)
+      .map((still) =>
+        squash(
+          [...still.childNodes]
+            .filter((node) => !(node instanceof SVGElement) && !(node instanceof Element && node.querySelector("svg")))
+            .map((node) => node.textContent ?? "")
+            .join(" "),
+        ),
+      );
+    return { topics, written, notes, stills };
+  });
+};
+
 /** 押す動きを 1 つの頁で順に測る。印刷の形は最後に切り替える */
 const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと確かめる問いと用語の下線を押してから印刷の形にする", () =>
   openGuide(
@@ -414,7 +507,7 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
           answers: await deepAll(page, ".pg-topic .pg-q-a"),
           boxes: await deepAll(page, '[data-dragon="note-card"]'),
           menu: await deepAll(page, "nav.pg-menu, .pg-menu-toggle"),
-          breaks: await page.evaluate(() => [...document.querySelectorAll("section.pg-topic")].map((topic) => getComputedStyle(topic).breakBefore)),
+          ...(await printedPage(page)),
         };
       });
       return { stack, list, jumped, quiz, term, other, printed };
@@ -757,7 +850,52 @@ describe("説明の頁 (#3876)", () => {
     expect(printed.boxes.filter((b) => !b.visible).map((b) => b.text), "印刷の形で開かない箱の札").toEqual([]);
     expect(printed.menu.length, "左の目次と目次を開く釦の数").toBe(2);
     expect(printed.menu.filter((m) => m.visible).length, "印刷の形で見える左の目次か目次を開く釦").toBe(0);
-    expect(printed.breaks, "印刷の形で2つ目からの話題の前で頁を改めない").toEqual(["auto", "page", "page"]);
+  });
+
+  it("guide-print-shows-every-topic", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const printed = seen.printed.get();
+    // 全ての話題の面と節を書いた順に紙に出す
+    expect(printed.topics.map((t) => t.name), "説明の頁の話題").toEqual(["止める仕組み", "記録", "用語"]);
+    expect(printed.topics.filter((t) => !t.shown).map((t) => t.name), "印刷の形で紙に出ない話題").toEqual([]);
+    expect(printed.written.length, "説明の頁の節の数").toBeGreaterThan(0);
+    expect(printed.topics.flatMap((t) => t.sections), "印刷の形で紙に出る節の並び").toEqual(printed.written);
+  });
+
+  it("guide-print-starts-each-topic-on-new-paper", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const printed = seen.printed.get();
+    // 2つ目からの話題は新しい紙から始め、どの話題も紙の上に話題の名前の見出しを出す
+    expect(printed.topics.slice(1).map((t) => `${t.name} ${t.breakBefore}`), "印刷の形で話題の前で紙を改める").toEqual(printed.topics.slice(1).map((t) => `${t.name} page`));
+    expect(printed.topics.map((t) => t.head), "印刷の形の話題の面の最初の見出し").toEqual(printed.topics.map((t) => t.name));
+  });
+
+  it("guide-print-notes-below-figure", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const printed = seen.printed.get();
+    // 箱の札は図の絵に重ならず、図の下に箱の名前と並ぶ
+    expect(printed.notes.map((n) => n.name).sort(), "印刷の形の箱の札の箱の名前").toEqual(["エージェント", "確かめる所"]);
+    for (const note of printed.notes) {
+      expect(note.shown, `印刷の形で「${note.name}」の札が開かない`).toBe(true);
+      expect(note.figures.length, `印刷の形で「${note.name}」の札の図の絵が見えない`).toBeGreaterThan(0);
+      const bottom = Math.max(...note.figures.map((f) => f.bottom));
+      expect(note.card.top, `印刷の形で「${note.name}」の札が図の絵の下の端 ${Math.round(bottom)} より上に在る`).toBeGreaterThanOrEqual(bottom - 0.5);
+    }
+  });
+
+  it("guide-print-shows-every-step", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const printed = seen.printed.get();
+    // 段のある図は全ての段の止め絵を段の順に並べ、各絵の下に段の番号と say の文を出す
+    expect(printed.stills.length, "印刷の形の段の止め絵の数").toBe(SAYS.length);
+    for (const [i, say] of SAYS.entries()) {
+      expect(printed.stills[i] ?? "", `段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
+      expect(printed.stills[i] ?? "", `段 ${i + 1} の止め絵の下に say の文が無い`).toContain(say);
+    }
   });
 
   it("guide-readable-and-fits", () => {

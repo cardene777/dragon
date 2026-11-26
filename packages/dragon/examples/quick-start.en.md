@@ -985,7 +985,7 @@ The card closes when you click outside it or its close icon, and when you move t
 A box in such a diagram also takes `example: <example>`, shown as a gray band at the bottom of the card.
 `[note: under]` draws the note under the name, the same as writing nothing.
 Another value of `note`, and `example` on a box without `note` or in a diagram without `[note: pop]`, are refused with the line named.
-When the page is printed, every card is drawn open below its box.
+When the page is printed, every card is drawn open and listed below the diagram with its box name, not over the diagram.
 On a Markdown page, a `note: pop` line at the top makes cards the default for every diagram on the page.
 
 ```dragon
@@ -1009,7 +1009,7 @@ Choose how the scenes show with `[scenes: stack]` or `[scenes: pick]` on the fir
 Shared steps draw their lines in gray, a scene's own steps in the scene's color, and a vertical dashed line marks where they split.
 `pick` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene.
 With `[note: pop]` on the first line too, a card opens just below the box clicked in that scene.
-When the page is printed, both show every scene at its last step, stacked.
+When the page is printed, both stack every scene and print the still of each of its steps in order, with the step number and `say` text.
 A fourth `scene` and a `scenes` value other than `stack` and `pick` are refused with the line named.
 So are `scene` in another kind of diagram, `stop` in a step outside a scene, and a `scene` not closed with `end`.
 
