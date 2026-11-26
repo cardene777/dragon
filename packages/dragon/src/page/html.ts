@@ -348,6 +348,7 @@ const STYLE_GUIDE = `
 .pg-menu,.pg-menu-toggle{display:none!important}
 .pg-has-menu{display:block}
 .pg-topic+.pg-topic{break-before:page}
+.pg-topic-title,.pg-sec-title,.pg-answer,.pg-sec p:has(+.pg-figure){break-after:avoid}
 }
 `;
 

@@ -130,6 +130,108 @@ const SEEN = await atLoad("帯つきの段のある図を置いた頁を開き�
   ),
 );
 
+/** 縦に長い順の図の段の数 */
+const TALL_STEPS = 8;
+
+/** 縦に長い順の図。順の図は全ての段の線を初めから薄く描くので、どの段の止め絵も 32 本の線の高さを持つ */
+const TALL =
+  "sequence 縦に長い順の図\n\nbox ask as 頼む所\nbox take as 受ける所\nbox check as 照らす所\nbox keep as 残す所\n\n" +
+  Array.from(
+    { length: TALL_STEPS },
+    (_, i) => `step 段${i + 1}\n  say ${i + 1}つ目の段で依頼を進める。\n  ask -> take: 依頼${i + 1}\n  take -> check: 照らす${i + 1}\n  check -> take: 答え${i + 1}\n  take -> keep: 残す${i + 1}\n`,
+  ).join("");
+
+/** 縦に長い場面の図。10 の箱を縦に繋いだ手順の後で 2 つの場面に分かれ、印刷の形では場面ごとに段の止め絵を積む */
+const TALL_SCENES =
+  "flow 縦に長い場面の図 [scenes: pick]\n\n" +
+  Array.from({ length: 10 }, (_, i) => `box s${i + 1} as 段${i + 1}\n`).join("") +
+  "choice go as 続けるか？\nbox pass as 通す [color: green]\nbox halt as 止める [color: rose]\n\n" +
+  "step 進める\n  say 10の段を順に進める。\n  start -> s1\n" +
+  Array.from({ length: 9 }, (_, i) => `  s${i + 1} -> s${i + 2}\n`).join("") +
+  "  s10 -> go\n\n" +
+  "scene 続ける\n  step 通す\n    say 続けるので通す。\n    go -> pass: はい\nend\n\n" +
+  "scene 続けない\n  step 止める\n    say 続けないので止める。\n    go -> halt: いいえ\nend\n";
+
+/** 縦に長い図を印刷の形で測る枠。紙の頁と同じく縦に長い */
+const PAPER = { width: 1000, height: 1400 };
+
+const TALL_SEEN = await atLoad("縦に長い帯つきの順の図と場面の図を置いた頁を幅1000px、高さ1400pxで開き、印刷の形の止め絵と場面の絵の高さと頁の改め方を読む", () =>
+  within(
+    withSite(
+      { "index.html": cdnPage(`<pre class="dragon" data-header>${escapeHtml(TALL)}</pre><pre class="dragon" data-header>${escapeHtml(TALL_SCENES)}</pre>`) },
+      "index.html",
+      async (page) => {
+        await drawn(page);
+        await page.emulateMedia({ media: "print" });
+        await stillsShown(page);
+        return page.evaluate(() => {
+          /** `top`の中を、影の根の中も歩いて探す */
+          const deep = (top: Element | Document, selector: string): Element[] => {
+            const out: Element[] = [];
+            const walk = (root: Element | Document | ShadowRoot): void => {
+              out.push(...root.querySelectorAll(selector));
+              for (const host of root.querySelectorAll("*")) if (host.shadowRoot) walk(host.shadowRoot);
+            };
+            if (top instanceof Element && top.shadowRoot) walk(top.shadowRoot);
+            walk(top);
+            return out;
+          };
+          // 1つ目の帯つきの図は順の図、2つ目は場面の図
+          const [tallFrame, sceneFrame] = [...document.querySelectorAll(".dragon-frame")];
+          const shown = (el: Element): boolean => (el as HTMLElement).checkVisibility();
+          const stills = tallFrame ? deep(tallFrame, '[data-dragon="step-still"]').filter(shown) : [];
+          const header = tallFrame ? deep(tallFrame, "[data-dragon-header]")[0] : undefined;
+          const scenes = sceneFrame ? deep(sceneFrame, '[data-dragon="scene"]').filter(shown) : [];
+          // 場面ごとに積んだ段の止め絵を、場面の順に並べる
+          const sceneStills = scenes.flatMap((scene) => [...scene.querySelectorAll('[data-dragon="step-still"]')].filter(shown));
+          /** 続く2つの塊が、間の余白も含めて占める高さ */
+          const pairsOf = (els: Element[]): number[] => els.slice(1).map((el, i) => el.getBoundingClientRect().bottom - (els[i]?.getBoundingClientRect().top ?? 0));
+          return {
+            pageHeight: innerHeight,
+            heights: stills.map((el) => el.getBoundingClientRect().height),
+            pairs: pairsOf(stills),
+            scenes: scenes.length,
+            sceneStills: sceneStills.map((el) => el.getBoundingClientRect().height),
+            // 続く2段は同じ場面の中で数える。場面の間には次の場面の名前が入る
+            sceneStillPairs: scenes.flatMap((scene) => pairsOf([...scene.querySelectorAll('[data-dragon="step-still"]')].filter(shown))),
+            headerBreakAfter: header ? getComputedStyle(header).breakAfter : "(見出しの帯が無い)",
+            firstBreakBefore: stills[0] ? getComputedStyle(stills[0]).breakBefore : "(止め絵が無い)",
+          };
+        });
+      },
+      PAPER,
+    ),
+    PAGE_LIMIT_MS,
+    "縦に長い図の印刷の形を読む頁の仕事",
+  ),
+);
+
+describe("印刷の形の頁の改め方 (#3975)", () => {
+  it("player-print-keeps-header-with-first-still", () => {
+    // 見出しの帯だけが頁の下に残り、図の本体が次の頁から始まらないよう、帯と最初の段の止め絵の間で頁を分けない
+    const tall = TALL_SEEN.get();
+    expect(tall.headerBreakAfter, "印刷の形で図の見出しの帯の後ろに頁を分けうる").toBe("avoid");
+    expect(tall.firstBreakBefore, "印刷の形で最初の段の止め絵の前に頁を分けうる").toBe("avoid");
+  });
+
+  it("player-print-fits-two-stills-per-page", () => {
+    // 段の止め絵は段の題と文と合わせて頁の高さの半分に収め、1頁に2段まで並べて、送った後に頁の半分を超える空白を残さない
+    const tall = TALL_SEEN.get();
+    expect(tall.heights.length, "印刷の形の段の止め絵の数").toBe(TALL_STEPS);
+    const over = tall.heights.map((height, i) => ({ step: i + 1, height: Math.round(height) })).filter(({ height }) => height > tall.pageHeight / 2);
+    expect(over, `頁の高さ ${tall.pageHeight}px の半分を超える段の止め絵`).toEqual([]);
+    const tooTall = tall.pairs.map((height, i) => ({ steps: `${i + 1}-${i + 2}`, height: Math.round(height) })).filter(({ height }) => height > tall.pageHeight);
+    expect(tooTall, `間の余白も含めて頁の高さ ${tall.pageHeight}px に収まらない続く2段`).toEqual([]);
+    // 場面の図は隠した場面も紙に出し、場面ごとに積む段の止め絵も頁の半分に収める
+    expect(tall.scenes, "印刷の形で紙に出る場面の数").toBe(2);
+    expect(tall.sceneStills.length, "印刷の形の場面の図の段の止め絵の数").toBeGreaterThanOrEqual(2);
+    const overScenes = tall.sceneStills.map((height, i) => ({ still: i + 1, height: Math.round(height) })).filter(({ height }) => height > tall.pageHeight / 2);
+    expect(overScenes, `頁の高さ ${tall.pageHeight}px の半分を超える場面の図の段の止め絵`).toEqual([]);
+    const tooTallScenes = tall.sceneStillPairs.map((height) => Math.round(height)).filter((height) => height > tall.pageHeight);
+    expect(tooTallScenes, `間の余白も含めて頁の高さ ${tall.pageHeight}px に収まらない場面の図の続く2段`).toEqual([]);
+  });
+});
+
 describe("図を置いた頁の印刷の形 (#3956)", () => {
   it("player-screen-shows-one-step-and-bar", () => {
     const { screen } = SEEN.get();

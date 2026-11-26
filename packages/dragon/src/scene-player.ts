@@ -45,7 +45,10 @@ function sceneCss(): string {
     '.dg-player[data-scenes="pick"] .dg-scene-h{display:none}',
     `.dg-scene-stop{${font(TYPE.noteBody)};color:var(--ink2);margin:${px(SC.stopGap)} 0 0}`,
     "@media print{" +
-      ".dg-player[data-scenes] .dg-scene[hidden]{display:block}" +
+      // 隠した場面も紙に出す。図の帯の根の`[hidden]`の規則が`!important`で隠すので、場面の規則も`!important`で上書きする (#3975)
+      ".dg-player[data-scenes] .dg-scene[hidden]{display:block!important}" +
+      // 場面の名前だけが頁の下に残らないよう、名前と最初の段の止め絵の間で頁を分けない。止め絵の高さは再生の部品の印刷の形が抑える (#3975)
+      ".dg-player[data-scenes] .dg-scene-h{break-after:avoid}" +
       ".dg-player[data-scenes] .dg-scene svg{--at:var(--dg-last)!important;--play:paused!important}" +
       ".dg-player[data-scenes] .dg-scene-stop[data-final]{display:block}" +
       ".dg-player[data-scenes] .dg-scene-h{display:flex}" +

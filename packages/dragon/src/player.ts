@@ -60,6 +60,12 @@ import type { Span, Timeline } from "./timeline";
 import { chooseView } from "./view";
 import { DEFAULT_LANG } from "./words";
 
+/**
+ * 印刷の形で、段の止め絵の高さの上限を頁の高さの半分から引く分 (#3975)。2段の間の余白 (`P.gap * 2`) と、
+ * 頁の頭に来る節の題と答えの1文と図の見出しの帯がおよそ占める高さの和で、題と帯の下でも2段が1頁に収まる
+ */
+const STILL_ROOM = 96;
+
 export interface PlayerOptions extends RenderOptions {
   onResize?: (height: number) => void;
   /** 段が替わるたびに今の段 (0 から) を受け取る。置いた時にも最初の段で 1 度呼ぶ。頁の側で段の札や進み具合を出す時に使う (#3031) */
@@ -286,10 +292,17 @@ function playerCss(): string {
       ".dg-player .dg-bar,.dg-player .dg-ov{display:none}" +
       ".dg-player .dg-frame[data-stills]{height:auto!important;overflow:visible}" +
       '.dg-player .dg-frame[data-stills]>svg[data-dragon="figure"]{display:none}' +
-      `.dg-player .dg-print{display:flex;flex-direction:column;gap:${px(P.gap * 2)}}` +
-      ".dg-still{margin:0;break-inside:avoid}" +
-      ".dg-still>svg{display:block;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
-      `.dg-still-c{display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
+      // 止め絵は塊として縦に積み、最初の止め絵の前で頁を分けない指定が図の枠まで届くようにする (#3975)
+      ".dg-player .dg-print{display:block}" +
+      // 段の止め絵は段の題と文と合わせて頁の高さの半分に収め、1頁に2段まで並べる。収まらない絵は縦横の比を保って縮め、
+      // 送った後に頁の半分を超える空白を残さない。2段の間の余白と、頁の頭に来る節の題と図の見出しの帯の分 (`STILL_ROOM`) を引き、
+      // 題と帯の下でも2段が1頁に収まるようにする。
+      // 帯の頭だけが頁の下に残らないよう、最初の止め絵の前では頁を分けない (#3975)
+      `.dg-still{margin:0;break-inside:avoid;display:flex;flex-direction:column;max-height:calc(50vh - ${px(STILL_ROOM)})}` +
+      `.dg-still+.dg-still{margin-top:${px(P.gap * 2)}}` +
+      ".dg-still:first-child{break-before:avoid}" +
+      ".dg-still>svg{display:block;flex:0 1 auto;min-height:0;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
+      `.dg-still-c{flex:none;display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
       `.dg-still-no{${font(TYPE.stepNo)};color:var(--mute);flex:none}` +
       `.dg-still-t{${font(TYPE.stepTitleNarrow)};line-height:${P.titleLine};margin:0}` +
       `.dg-still-b{${font(TYPE.stepBody)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}` +
