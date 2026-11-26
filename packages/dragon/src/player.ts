@@ -11,6 +11,7 @@
  * 置いた時に流さず決めた段で止めて置く (`options.pausedAt`) ことと、1 度だけ流して最後の段で止める (`options.playOnce`) ことを選べる。
  * 流す速さは倍率で、置く時に `options.speed` で、置いた後に `setSpeed` で渡す。速さを変えても今の位置から続ける (#3568)。
  * 止め絵を選んだ図 (`options.still`) は、最後の段で止まった時に全ての段の線の名前を出す (#3200)。
+ * 止め絵だけを選び、止める段も 1 度だけ流す設定も渡さない図は、流さずに最後の段で止めて置く (#3831)。
  * 頁は `goTo` で段へ移って止め、`mark` で図の上に点線の四角を描く。頁の側では SVG を組まないので、編集画面が字の重なりを囲む時もこれを呼ぶ (#3178)。
  * 段の本文の帯は本文の最も長い段の高さに保ち、段を送っても図の大きさと位置を変えない (#3049)。
  * 帯の中身の幅が `LOOK.player.narrow` より狭い時は、段を送る釦を指で押せる大きさにして段の番号と上の段に並べ、
@@ -654,8 +655,10 @@ export function mountDiagram(
   // 段 1 の始まりは図を描き終えた時刻 (MOTION.intro) で、時刻 0 では図をまだ描いていない (Tracelyth #131)
   const startOf = (): number => timeline.steps[0]?.start ?? 0;
   const atStart = options.pausedAtStart === true;
-  let step = atStart || options.pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, options.pausedAt));
-  let playing = !reduce && !atStart && options.pausedAt === undefined && !session;
+  // 止め絵だけを選んだ図は、README のとおり流さずに最後の段で止めて置く。1 度だけ流す図と試す図は流す (#3831)
+  const pausedAt = options.pausedAt ?? (options.still === true && options.playOnce !== true && !session ? count - 1 : undefined);
+  let step = atStart || pausedAt === undefined ? 0 : Math.min(count - 1, Math.max(0, pausedAt));
+  let playing = !reduce && !atStart && pausedAt === undefined && !session;
   let at = playing ? 0 : atStart ? startOf() : (timeline.stills[step] ?? 0);
   /** 1 度だけ流すか。試す図は足した段を流した後に最初の段へ戻らない */
   const once = options.playOnce === true || session !== undefined;

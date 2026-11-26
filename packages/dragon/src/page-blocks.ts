@@ -14,6 +14,8 @@
  * 頁の `<script type="application/json" id="dragon-header">` (帯の設定の塊) は、SDK の `mountDragon` と同じ鍵 (`buttons` と `look`) で
  * 帯のボタンの並びと見た目を持ち、頁の全ての `data-header` の塊に効く (#3789)。読めない時は、`data-header` の塊をその誤りの文に置き換える。
  * 属性 `data-still` を持つ塊は、再生の部品を置かず、最後の段の形を描いた SVG (`div.dragon-figure.dragon-still`) に置き換える (#3801)。
+ * 属性 `data-step="3"` を持つ塊は、置いた時に流さず、帯の番号で 3 段目の止め絵で止めて置く。段は帯の番号と同じく 1 から数え、段の数より大きい数は最後の段で止める。
+ * 1 以上の整数でない値は図を描かずに誤りの文にする。`data-still` を一緒に持つ塊は `data-still` が先に効く (#3831)。
  * 属性 `data-note="pop"` を持つ塊は、1 行目に `note` を書かない図を、箱の説明を押すと出る札で見せる (#3877)。
  * 1 行目に `[note: under]` を書いた図は名前の下の字で見せる。mdから書き出した頁の頭の `note: pop` が全ての塊に付ける。
  *
@@ -83,6 +85,18 @@ const HEADER_TEXT: Record<NotationLang, { json(detail: string): string; shape: s
     look: '#dragon-header: write "look" as an object',
   },
 };
+
+/** 決めた段で止めて置く塊の属性 (#3831) */
+const STEP_ATTR = "data-step";
+
+/** `data-step` に 1 以上の整数でない値を書いた時の誤りの文 */
+const STEP_TEXT: Record<NotationLang, (value: string) => string> = {
+  ja: (value) => `data-step: 止めて置く段は、帯の番号と同じく1から数えた整数で書く (書いた値は「${value}」)`,
+  en: (value) => `data-step: write the step to pause on as a whole number counting from 1, as in the step bar (got "${value}")`,
+};
+
+/** `data-step` の値を 0 から数えた段にする。1 以上の整数でない時は `undefined` */
+const stepOf = (value: string): number | undefined => (/^[1-9]\d*$/u.test(value.trim()) ? Number(value.trim()) - 1 : undefined);
 
 /** 欄を持つ物か。並びと null は数えない */
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -203,12 +217,19 @@ async function drawBlock(
     }
     return;
   }
+  // 属性 `data-step` を持つ塊は、置いた時に流さず、帯の番号でその段の止め絵で止めて置く (#3831)
+  const stepText = block.getAttribute(STEP_ATTR);
+  const pausedAt = stepText === null ? undefined : stepOf(stepText);
+  if (stepText !== null && pausedAt === undefined) {
+    block.replaceWith(errorBox(doc, [STEP_TEXT[lang](stepText)]));
+    return;
+  }
   // 図は枠の幅で見せ方を選ぶので、枠を頁に置いてから描く
   const host = doc.createElement("div");
   host.className = "dragon-figure";
   block.replaceWith(host);
   try {
-    const options = { lang, ...(blocks ? { blocks } : {}), ...(layouts ? { layouts } : {}) };
+    const options = { lang, ...(blocks ? { blocks } : {}), ...(layouts ? { layouts } : {}), ...(pausedAt !== undefined ? { pausedAt } : {}) };
     if (mountFramed && header.ok) mountFramed(host, text, parsed.diagram, { ...options, ...header.settings });
     else mountDiagram(host, parsed.diagram, options);
     drawnBlock?.(parsed.diagram, options);

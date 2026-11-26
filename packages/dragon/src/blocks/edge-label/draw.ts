@@ -28,6 +28,16 @@ export function fadeBefore(l: SceneLabel, time: LabelTime, steps: Span[]): Label
 }
 
 /**
+ * 後の段の名前が同じ所に重なる時は、薄く残した名前をその段が始まる時刻 `cut` までで消す (#3831)。
+ * 構成図は同じ線を後の段でまた通ると、違う名前を同じ所に置くため。止め絵で全ての段の名前を出し直す間 (`again`) は変えない
+ */
+export function fadeUnder(time: LabelTime, cut: number | undefined): LabelTime {
+  if (cut === undefined || !time.after) return time;
+  const { after, ...rest } = time;
+  return cut > after.start ? { ...rest, after: { start: after.start, end: Math.min(after.end, cut) } } : rest;
+}
+
+/**
  * 線の名前の札。その段の間だけ出し、段の終わりまでに消え終わる。時刻の表が `after` を持つ時は、その間だけ札を外した灰の字で薄く残す (#3171)。
  * `again` を持つ時は (止め絵を選んだ図、#3200)、その間に同じ札をもう 1 つ出す。
  */
@@ -56,8 +66,9 @@ export function label(l: SceneLabel, time: LabelTime, ctx: Ctx): string {
     });
   const x = r1(l.x + l.w / 2);
   const y = r1(l.y + l.h / 2 + LOOK.baseline.label);
+  // 薄く残す字の下に札と同じ大きさの図の地の色の四角を敷き、後ろを通る線 (時系列図の縦の点線など) を字の後ろに隠す (#3831)
   const past = time.after
-    ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`
+    ? `<g class="dg-cap-past${l.family === "sans" ? " dg-cap-pastj" : ""} dg-a" style="${ctx.m.vis(time.after.start, time.after.end)}"><rect class="dg-cap-ground" x="${r1(l.x)}" y="${r1(l.y)}" width="${r1(l.w)}" height="${l.h}" rx="${partRadius(ctx.corner, radius)}" style="fill:var(--bg);stroke:none"/><text x="${x}" y="${y}" text-anchor="middle">${esc(l.text)}</text></g>`
     : "";
   const caps = shown.map(
     ([a, b]) =>

@@ -262,8 +262,10 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   /** 段を送る場面 */
   const moving = (): Panel[] => (show === "pick" ? [panels[picked] as Panel] : panels);
   let count = countOf();
-  let step = Math.min(count - 1, Math.max(0, options.pausedAt ?? 0));
-  let playing = !reduce && options.pausedAt === undefined && options.pausedAtStart !== true;
+  // 止め絵だけを選んだ図は、再生の部品と同じく流さずに最後の段で止めて置く (#3831)
+  const pausedAt = options.pausedAt ?? (options.still === true && options.playOnce !== true ? count - 1 : undefined);
+  let step = Math.min(count - 1, Math.max(0, pausedAt ?? 0));
+  let playing = !reduce && pausedAt === undefined && options.pausedAtStart !== true;
   let clock: ReturnType<typeof setTimeout> | undefined;
 
   /** 場面の枠の図の動きの変数。`at` は時刻の表の秒、`play` は流すか */
