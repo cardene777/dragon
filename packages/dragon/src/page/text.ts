@@ -22,6 +22,12 @@ export interface PageWords {
   topics: string;
   /** 説明の頁の頭の全体像の名前。左の目次の最初の行と、全体像の読み上げの名前に書く (#3961) */
   whole: string;
+  /** 問いごとの頁に分けた説明の頁 (#3983) の、頁の下の前の頁へのlinkの字 */
+  prev: string;
+  /** 問いごとの頁に分けた説明の頁の、頁の下の次の頁へのlinkの字 */
+  next: string;
+  /** 問いごとの頁に分けた説明の頁の、前と次のlinkの並びの読み上げの名前 */
+  pages: string;
   /** 確かめる問いの枠の見出し */
   quiz: string;
   /** 確かめる問いの答えを開く釦の字 */
@@ -82,6 +88,9 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     alerts: { note: "メモ", tip: "ヒント", important: "大事な点", warning: "注意", caution: "警告" },
     topics: "話題の順",
     whole: "全体像",
+    prev: "前へ",
+    next: "次へ",
+    pages: "前と次の頁",
     quiz: "確かめる",
     answer: "答え",
     close: "閉じる",
@@ -94,6 +103,9 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     alerts: { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution" },
     topics: "Topics in order",
     whole: "Overview",
+    prev: "Previous",
+    next: "Next",
+    pages: "Previous and next pages",
     quiz: "Check",
     answer: "Answer",
     close: "Close",

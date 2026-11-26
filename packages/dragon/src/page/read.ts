@@ -26,7 +26,7 @@ import type { PageMessages } from "./text";
 
 /**
  * 頁の組み立て。`entry` は全体の図を入口にし、`sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブ。
- * `guide` は左の目次と、1つの頁に続けて積む話題と問いの節 (#3876、#3961)
+ * `guide` は左の目次と、話題と問いの節。話題が1つの頁は1つの頁に続けて積み、2つ以上の頁は頭の頁と問いごとの頁に分ける (#3876、#3961、#3983)
  */
 export type Layout = "entry" | "sidebar" | "tabs" | "guide";
 export const LAYOUTS: readonly Layout[] = ["entry", "sidebar", "tabs", "guide"];

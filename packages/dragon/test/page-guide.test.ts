@@ -1,7 +1,8 @@
 /**
  * mdから書き出す説明の頁 (`layout: guide`、#3876)。
  *
- * 頭の行に`layout: guide`を書いたmdは、`##`が話題、`###`が話題の中に番号つきで縦に積む節になり、話題は1つの頁に続けて積む (#3961)。
+ * 頭の行に`layout: guide`を書いたmdは、`##`が話題、`###`が話題の中に番号つきで縦に積む節になり、話題が1つの頁は1つの頁に続けて積む (#3961)。
+ * 話題が2つ以上の頁は、頁の題と頭の中身と全体像の頭の頁と、問いごとの頁に分け、目次の問いと頁の下の前と次のlinkで頁を切り替える (#3983)。
  * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題ごとに1から数え直し、`話題の番号-問いの番号`で出す (#3969)。
  * 節の題の直後の引用は題の下の答えになり、`<details>`と`<summary>`は答えを押すまで隠す確かめる問いになる。
  * 頁の頭の`![用語](glossary.md)`の行で読み込んだ用語のfileは頁の終わりの「用語」の話題になり、本文の`[用語](glossary.md#用語)`のリンクは押すと札が開く下線になる。
@@ -63,7 +64,10 @@ const FILLER = Array.from({ length: 16 }, (_, n) => `- 確かめる段 ${n + 1}`
 /** 図の段の say の文。印刷の形で段ごとの止め絵の下に出る */
 const SAYS = ["エージェントが送金を確かめる所へ送る。", "規則に合う送金を署名する所へ通す。"];
 
-/** 説明の頁のmd。`note: pop` で図の箱の説明を札で見せる */
+/** 1つ目の話題の頭の中身。話題の最初の問いの頁だけが見せる (#3983) */
+const TOPIC_LEAD = "止める所と確かめる順を、問いごとに見る。";
+
+/** 説明の頁のmd。`note: pop` で図の箱の説明を札で見せる。話題は2つで、用語の話題を足して3つになる */
 const GUIDE = `---
 layout: guide
 note: pop
@@ -76,6 +80,8 @@ note: pop
 ![用語](glossary.md)
 
 ## 止める仕組み
+
+${TOPIC_LEAD}
 
 ### 何を止めるのか
 
@@ -139,6 +145,12 @@ function writeGuide(files: Readonly<Record<string, string>> = {}): string {
   writeFiles(root, { "notes.md": GUIDE, "glossary.md": GLOSSARY, ...files });
   return join(root, "notes.md");
 }
+
+/** 「記録」の説明に「規則」の用語へのlinkを持つ用語のfile。札の中のlinkから用語の頁へ移るのを測るため (#3983) */
+const GLOSSARY_LINKED = GLOSSARY.replace("確かめた結果を並べた物。", "確かめた結果を並べた物。[規則](glossary.md#規則)に合わない送金も残す。");
+
+/** 説明の頁のmdと、説明の中にlinkを持つ用語のfileを一時のdirに書き、mdのpathを返す (#3983) */
+const writeLinkedGuide = (): string => writeGuide({ "glossary.md": GLOSSARY_LINKED });
 
 /** 左の目次と全体像の頁の節を縦に長くする箇条書き。下へ送ると今読んでいる問いが変わるのを測るため、節を画面の高さより長くする */
 const LONG_FILLER = Array.from({ length: 24 }, (_, n) => `- 照らす段${n + 1}`).join("\n");
@@ -218,6 +230,16 @@ const MENU_QUESTIONS = [
 function writeMenuGuide(files: Readonly<Record<string, string>> = {}): string {
   const root = tempDir("guide-menu");
   writeFiles(root, { "notes.md": MENU_GUIDE, ...files });
+  return join(root, "notes.md");
+}
+
+/** 左の目次と全体像の頁のmdから2つ目と3つ目の話題の見出しを外し、5つの問いを1つの話題に入れたmd。話題が1つの頁は全ての節を1つの頁に積む (#3983) */
+const STACK_GUIDE = MENU_GUIDE.replace("## 記録\n\n", "").replace("## 送り直す仕組み\n\n", "");
+
+/** 話題が1つの頁のmdを一時のdirに書き、mdのpathを返す (#3983) */
+function writeStackGuide(): string {
+  const root = tempDir("guide-stack");
+  writeFiles(root, { "notes.md": STACK_GUIDE });
   return join(root, "notes.md");
 }
 
@@ -491,21 +513,45 @@ const openedCards = (page: Page) =>
       }),
   );
 
-/** 押す動きを 1 つの頁で順に測る。印刷の形は最後に切り替える */
-const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと確かめる問いと用語の下線を押してから印刷の形にする", () =>
+/**
+ * 今見えている頁の形 (#3983)。URLの`#`の後ろ、見えている節の番号と題、見えている話題の題と話題の頭の中身、頁の題と頭の中身と全体像が見えるか、
+ * 目次の印の行き先、見えている前と次のlinkの向きと行き先と字、見えている話題の道筋の行き先
+ */
+const pageState = (page: Page) =>
+  page.evaluate(() => {
+    const sq = (text: string | null | undefined): string => (text ?? "").replace(/\s+/gu, " ").trim();
+    const vis = (el: Element | null): boolean => el !== null && (el as HTMLElement).checkVisibility();
+    const dec = (href: string): string => {
+      try {
+        return decodeURIComponent(href);
+      } catch {
+        return href;
+      }
+    };
+    return {
+      hash: dec(location.hash),
+      sections: [...document.querySelectorAll(".pg-sec")]
+        .filter(vis)
+        .map((sec) => `${sq(sec.querySelector(".pg-sec-title .pg-num")?.textContent)} ${sq(sec.querySelector(".pg-sec-title > span:last-child")?.textContent)}`),
+      topics: [...document.querySelectorAll("section.pg-topic")].filter(vis).map((topic) => sq(topic.querySelector(":scope > h2.pg-topic-title")?.textContent)),
+      leads: [...document.querySelectorAll(".pg-topic-lead")].filter(vis).map((lead) => sq(lead.textContent)),
+      head: { title: vis(document.querySelector("h1")), lead: vis(document.querySelector(".pg-top .pg-lead")), overview: vis(document.querySelector("section.pg-overview")) },
+      marks: [...document.querySelectorAll('nav.pg-menu [aria-current="true"]')].map((a) => dec(a.getAttribute("href") ?? "")),
+      pager: [...document.querySelectorAll(".pg-pager a")]
+        .filter(vis)
+        .map((a) => ({ rel: a.classList.contains("pg-pager-prev") ? "prev" : "next", href: dec(a.getAttribute("href") ?? ""), text: sq(a.textContent) })),
+      route: [...document.querySelectorAll("ol.pg-route a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
+    };
+  });
+
+/** 押す動きを 1 つの頁で順に測る。話題が2つ以上の頁なので、頭の頁から問いの頁へ移って押す。印刷の形は最後に切り替える */
+const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと前と次のlinkと確かめる問いと用語の下線を押してから印刷の形にする", () =>
   openGuide(
     async (page) => {
       const step = inOrder();
-      const stack = await step("頁の節の並びを測る", async () => {
+      const start = await step("頁を開いた時の、見えている節と頁の題と頭の中身と話題の道筋を読む", async () => {
         await figuresDrawn(page);
-        return page.evaluate(() =>
-          [...document.querySelectorAll<HTMLElement>(".pg-sec")]
-            .filter((s) => s.checkVisibility())
-            .map((s) => {
-              const r = s.getBoundingClientRect();
-              return { left: Math.round(r.left), top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY) };
-            }),
-        );
+        return pageState(page);
       });
       const list = await step("左の目次の話題と問いを読む", () =>
         page.evaluate(() => {
@@ -520,11 +566,16 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
           return groups;
         }),
       );
-      const jumped = await step("左の目次で2つ目の問いを押し、その節が画面の上に来るのを待つ", async () => {
-        const before = await sectionTop(page, "どの順で確かめるのか");
+      const jumped = await step("左の目次で2つ目の問いを押し、その問いの頁に切り替わるのを待つ", async () => {
         await page.locator("nav.pg-menu a.pg-menu-q", { hasText: "どの順で確かめるのか" }).click({ timeout: WAIT });
-        const after = await readUntil(() => sectionTop(page, "どの順で確かめるのか"), (top) => top !== undefined && top >= 0 && top < 60, WAIT);
-        return { before, after, hash: await page.evaluate(() => decodeURIComponent(location.hash)) };
+        const state = await readUntil(() => pageState(page), (shown) => shown.sections.length === 1 && shown.sections[0] === "1-2 どの順で確かめるのか", WAIT);
+        return { ...state, top: await sectionTop(page, "どの順で確かめるのか") };
+      });
+      const back = await step("頁の下の前の問いのlinkを押し、1つ目の問いの頁に切り替わるのを待つ", async () => {
+        const prev = page.locator(".pg-pager a.pg-pager-prev:visible");
+        if ((await prev.count()) === 0) return pageState(page);
+        await prev.first().click({ timeout: WAIT });
+        return readUntil(() => pageState(page), (shown) => shown.sections[0] === "1-1 何を止めるのか", WAIT);
       });
       const quiz = await step("確かめる問いの答えを押して開き、もう一度押して隠す", async () => {
         await page.evaluate(() => scrollTo(0, 0));
@@ -559,7 +610,7 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
         const closedByIcon = await readUntil(card, (cards) => cards.length === 0, WAIT);
         await link.click({ timeout: WAIT });
         await readUntil(card, (cards) => cards.length === 1, WAIT);
-        await page.locator("h1").click({ timeout: WAIT });
+        await page.locator(".pg-sec:visible .pg-sec-title").first().click({ timeout: WAIT });
         const closedOutside = await readUntil(card, (cards) => cards.length === 0, WAIT);
         await link.click({ timeout: WAIT });
         await readUntil(card, (cards) => cards.length === 1, WAIT);
@@ -567,10 +618,26 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
         const closedAgain = await readUntil(card, (cards) => cards.length === 0, WAIT);
         return { underline, before, opened, anchor, closedByIcon, closedOutside, closedAgain };
       });
-      const other = await step("左の目次で2つ目の話題の問いを押し、その節が画面の上に来るのを待つ", async () => {
+      const other = await step("左の目次で2つ目の話題の問いを押し、その問いの頁に切り替わるのを待つ", async () => {
         await page.locator("nav.pg-menu a.pg-menu-q", { hasText: "どこに残すのか" }).click({ timeout: WAIT });
-        const top = await readUntil(() => sectionTop(page, "どこに残すのか"), (at) => at !== undefined && at >= 0 && at < 60, WAIT);
-        return { top, hash: await page.evaluate(() => decodeURIComponent(location.hash)) };
+        const state = await readUntil(() => pageState(page), (shown) => shown.sections[0] === "2-1 どこに残すのか", WAIT);
+        return { ...state, top: await sectionTop(page, "どこに残すのか") };
+      });
+      const glossary = await step("「記録」の用語の札を開き、札の中の「規則」のlinkを押して用語の頁に切り替わるのを待つ", async () => {
+        await page.locator(".pg-sec:visible .pg-term", { hasText: "記録" }).first().click({ timeout: WAIT });
+        const link = page.locator('[role="dialog"]:visible a', { hasText: "規則" }).first();
+        const links = await link.count();
+        if (links === 0) return { links, href: "", state: await pageState(page), entry: undefined };
+        const href = await link.evaluate((a) => decodeURIComponent(a.getAttribute("href") ?? ""));
+        await link.click({ timeout: WAIT });
+        const state = await readUntil(() => pageState(page), (shown) => shown.topics.length === 1 && shown.topics[0] === "用語", WAIT);
+        const entry = await page.evaluate((id) => {
+          const el = document.getElementById(id);
+          if (!el) return undefined;
+          const r = el.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom, height: innerHeight, shown: el.checkVisibility() };
+        }, href.slice(1));
+        return { links, href, state, entry };
       });
       const printed = await step("印刷の形にし、札と答えと左の目次と話題の頁の改め方を読む", async () => {
         await figuresDrawn(page);
@@ -580,6 +647,7 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
           answers: await deepAll(page, ".pg-topic .pg-q-a"),
           boxes: await deepAll(page, '[data-dragon="note-card"]'),
           menu: await deepAll(page, "nav.pg-menu, .pg-menu-toggle"),
+          pagers: await deepAll(page, ".pg-pager"),
           // 続く物と同じ頁に留めたい題と段落の、後ろの改め方 (#3975)
           breaks: await page.evaluate(() => {
             const out: [string, string][] = [];
@@ -593,9 +661,10 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
           ...(await printedPage(page)),
         };
       });
-      return { stack, list, jumped, quiz, term, other, printed };
+      return { start, list, jumped, back, quiz, term, other, glossary, printed };
     },
     { width: 1200, height: 500 },
+    writeLinkedGuide,
   ),
 );
 
@@ -608,20 +677,27 @@ const menuShown = (page: Page): Promise<boolean> =>
 
 /**
  * 幅`width`の枠で、最初の節の札と答えを開いた頁の字の大きさとはみ出す幅を測り、左の目次を開いた形でもう一度測る。
- * 用語の話題は頁の終わりに続けて積むので、頁を測る時に見えているかも読む
+ * 話題が2つ以上の頁は問いごとの頁に分けるので、1つ目の問いの頁を開いて測り、用語の話題の頁へ移って用語が見えるかと字を読む (#3983)
  */
 const measureAt = async (page: Page, width: number) => {
   // 前の幅で開いた札と答えと目次を閉じた形から測るため、読み直す
   await page.setViewportSize({ width, height: 900 });
+  const ids = await page.evaluate(() => ({
+    first: document.querySelector(".pg-sec")?.id ?? "",
+    glossary: [...document.querySelectorAll("section.pg-topic")].find((topic) => topic.querySelector(".pg-glossary"))?.id ?? "",
+  }));
+  const at = (id: string): string => `${new URL("notes.html", page.url()).href}#${encodeURIComponent(id)}`;
+  await page.goto(at(ids.first), { timeout: ACTION_LIMIT_MS });
   await page.reload({ timeout: ACTION_LIMIT_MS });
   await figuresDrawn(page);
   await page.locator(".pg-q:visible .pg-q-btn").first().click({ timeout: WAIT });
   await page.locator(".pg-sec:visible .pg-term").first().click({ timeout: WAIT });
-  const whole = {
-    text: await smallText(page, READABLE_PX),
-    overflow: await overflow(page),
-    glossaryShown: await page.evaluate(() => document.querySelector<HTMLElement>(".pg-glossary")?.checkVisibility() ?? false),
-  };
+  const text = await smallText(page, READABLE_PX);
+  const wide = await overflow(page);
+  await page.goto(at(ids.glossary), { timeout: ACTION_LIMIT_MS });
+  const glossaryShown = await readUntil(() => page.evaluate(() => document.querySelector<HTMLElement>(".pg-glossary")?.checkVisibility() ?? false), (shown) => shown, WAIT);
+  const glossaryText = await smallText(page, READABLE_PX);
+  const whole = { text: { min: Math.min(text.min, glossaryText.min), small: [...text.small, ...glossaryText.small] }, overflow: Math.max(wide, await overflow(page)), glossaryShown };
   // 目次を本文の上に畳む幅では、釦を押して開く。広い幅では目次が初めから開いている
   const toggle = page.locator(".pg-menu-toggle:visible");
   if ((await toggle.count()) > 0) await toggle.click({ timeout: WAIT });
@@ -734,6 +810,14 @@ const MENU = await atLoad("左の目次と全体像の頁を開き、下へ送�
             links: [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")].filter((a) => a.checkVisibility()).length,
             first: first ? { href: decodeURIComponent(first.getAttribute("href") ?? ""), current: first.getAttribute("aria-current") } : null,
             overviewId: document.querySelector("section.pg-overview")?.id ?? "",
+            split: document.querySelector(".pg-split") !== null,
+            pagers: document.querySelectorAll(".pg-pager").length,
+            stack: [...document.querySelectorAll<HTMLElement>(".pg-sec")]
+              .filter((sec) => sec.checkVisibility())
+              .map((sec) => {
+                const r = sec.getBoundingClientRect();
+                return { left: Math.round(r.left), top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY) };
+              }),
           };
         });
       });
@@ -772,7 +856,7 @@ const MENU = await atLoad("左の目次と全体像の頁を開き、下へ送�
       return { layout, marked, jumped, phone };
     },
     { width: 1200, height: 500 },
-    writeMenuGuide,
+    writeStackGuide,
   ),
 );
 
@@ -781,8 +865,11 @@ const OVERVIEW = await atLoad("全体像の頁を開き、全体像の図の後�
   openGuide(
     async (page) => {
       const step = inOrder();
-      const term = await step("全体像の図の後の段落の用語の下線を押し、開いた札を読む", async () => {
+      const start = await step("頁を開いた時の、見えている節と全体像を読む", async () => {
         await figuresDrawn(page);
+        return pageState(page);
+      });
+      const term = await step("全体像の図の後の段落の用語の下線を押し、開いた札を読む", async () => {
         const link = page.locator("section.pg-overview .pg-term", { hasText: "エージェント" }).first();
         const links = await link.count();
         const before = await openedCards(page);
@@ -796,7 +883,7 @@ const OVERVIEW = await atLoad("全体像の頁を開き、全体像の図の後�
         });
         return { links, before, opened, anchor };
       });
-      return { term };
+      return { start, term };
     },
     { width: 1200, height: 900 },
     writeOverviewGuide,
@@ -819,15 +906,6 @@ describe("説明の頁 (#3876)", () => {
       { topic: "記録", sections: [{ number: "2-1", title: "どこに残すのか", hidden: false }] },
       { topic: "用語", sections: [] },
     ]);
-    const seen = PRESSED.get();
-    if (!seen) return;
-    const stack = seen.stack.get();
-    expect(stack.length, "頁で見えている節の数").toBe(3);
-    for (const [n, sec] of stack.entries()) {
-      if (n === 0) continue;
-      expect(sec.left, `${n + 1}つ目の節が1つ目の節と同じ左の縁に並ばない`).toBe(stack[0]!.left);
-      expect(sec.top, `${n + 1}つ目の節が前の節の下に積まれない`).toBeGreaterThanOrEqual(stack[n - 1]!.bottom);
-    }
     // 見本の英語と日本語の頁も、話題と節を持つ頁に書き出せる
     const exportPage = await exportPageTool();
     if (!exportPage) return;
@@ -858,15 +936,6 @@ describe("説明の頁 (#3876)", () => {
       { topic: "記録", items: [{ number: "2-1", name: "どこに残すのか" }] },
       { topic: "用語", items: [] },
     ]);
-    const jumped = seen.jumped.get();
-    expect(jumped.before ?? 0, "押す前から2つ目の節が画面の上に在り、移ったかを測れない").toBeGreaterThan(500);
-    expect(jumped.after ?? -1, "2つ目の問いを押しても、その節が画面の上へ来ない").toBeGreaterThanOrEqual(0);
-    expect(jumped.after ?? 999, "2つ目の問いを押しても、その節が画面の上へ来ない").toBeLessThan(60);
-    expect(jumped.hash, "移った節の場所の名前が頁のURLに残らない").toBe("#どの順で確かめるのか");
-    const other = seen.other.get();
-    expect(other.top ?? -1, "2つ目の話題の問いを押しても、その節が画面の上へ来ない").toBeGreaterThanOrEqual(0);
-    expect(other.top ?? 999, "2つ目の話題の問いを押しても、その節が画面の上へ来ない").toBeLessThan(60);
-    expect(other.hash, "2つ目の話題の移った節の場所の名前").toBe("#どこに残すのか");
   });
 
   it("guide-answer-from-quote-after-title", async () => {
@@ -1316,12 +1385,121 @@ describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
       })),
       "本文の節の題の番号。左の目次の問いと同じ番号",
     ).toEqual(want);
-    // 用語の話題は、目次の行にも本文の話題にも番号を出さない
+    // 用語の話題は、目次の行にも本文の話題にも番号を出さない。頁の下の前と次のlink (#3983) が出す、ほかの問いの番号は数えない
     const glossary = [...doc.querySelectorAll("section.pg-topic")].find((topic) => squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent) === "用語");
     const row = [...doc.querySelectorAll("nav.pg-menu .pg-menu-topic")].find((el) => textWithout(el, "a.pg-menu-q") === "用語");
     expect(
-      { topic: glossary !== undefined, row: row !== undefined, numbers: (glossary?.querySelectorAll(".pg-num").length ?? 0) + (row?.querySelectorAll(".pg-num").length ?? 0) },
+      {
+        topic: glossary !== undefined,
+        row: row !== undefined,
+        numbers: [...(glossary?.querySelectorAll(".pg-num") ?? [])].filter((num) => !num.closest(".pg-pager")).length + (row?.querySelectorAll(".pg-num").length ?? 0),
+      },
       "用語の話題と目次の行の番号 (.pg-num) の数",
     ).toEqual({ topic: true, row: true, numbers: 0 });
+  });
+});
+
+/**
+ * 話題が2つ以上ある説明の頁を、頭の頁と問いごとの頁に分ける (#3983)。
+ *
+ * 頭の頁は頁の題と頭の中身と全体像と話題の道筋を見せ、問いの頁は話題の題とその問いの節と、頁の下の前と次のlinkを見せる。
+ * 目次の問いと前と次のlinkは、URLの`#`の後ろを節のidにして頁を切り替える。話題が1つの頁は今と同じく全ての節を1つの頁に積む。
+ */
+describe("問いごとの頁 (#3983)", () => {
+  it("guide-split-opens-on-overview", async () => {
+    const doc = await exportedGuide(writeLinkedGuide());
+    if (!doc) return;
+    expect(doc.querySelector(".pg-split") !== null, "話題が2つ以上の頁が頁に分ける組み立て (.pg-split) を持たない").toBe(true);
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const start = seen.start.get();
+    expect(start.sections, "頁を開いた時に見えている問いの節").toEqual([]);
+    expect(start.head.title && start.head.lead, "頁を開いた時に頁の題と頭の中身が見えない").toBe(true);
+    expect(start.route, "頁を開いた時に見えている話題の道筋の行き先").toEqual(["#止める仕組み", "#記録"]);
+    const overview = OVERVIEW.get();
+    if (!overview) return;
+    const top = overview.start.get();
+    expect(top.sections, "全体像を持つ頁を開いた時に見えている問いの節").toEqual([]);
+    expect(top.head.overview, "全体像を持つ頁を開いた時に全体像が見えない").toBe(true);
+  });
+
+  it("guide-split-menu-opens-question-page", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    for (const [name, at, want] of [
+      ["1つ目の話題の2つ目の問い", seen.jumped.get(), "どの順で確かめるのか"],
+      ["2つ目の話題の問い", seen.other.get(), "どこに残すのか"],
+    ] as const) {
+      expect(at.sections.map((sec) => sec.replace(/^\d+-\d+ /u, "")), `目次で${name}を押した後に見えている節`).toEqual([want]);
+      expect(at.hash, `目次で${name}を押した後のURLの#の後ろ`).toBe(`#${want}`);
+      expect(at.marks, `目次で${name}を押した後に目次が印を付ける行`).toEqual([`#${want}`]);
+      expect(at.head.title, `目次で${name}を押した後も頁の題が見える`).toBe(false);
+      expect(at.top ?? -1, `目次で${name}を押した後に節の題が画面の上に無い`).toBeGreaterThanOrEqual(0);
+      expect(at.top ?? 999, `目次で${name}を押した後に節の題が画面の上に無い`).toBeLessThan(200);
+    }
+  });
+
+  it("guide-split-pager-links-neighbors", async () => {
+    const doc = await exportedGuide(writeLinkedGuide());
+    if (!doc) return;
+    const glossaryId = [...doc.querySelectorAll("section.pg-topic")].find((topic) => topic.querySelector(".pg-glossary"))?.id ?? "";
+    expect(glossaryId, "用語の話題に場所の名前が無い").not.toBe("");
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const links = (pager: { rel: string; href: string }[]) => pager.map(({ rel, href }) => `${rel} ${href}`);
+    expect(links(seen.back.get().pager), "1つ目の問いの頁の前と次のlink。前は頭の頁を指す").toEqual(["prev #", "next #どの順で確かめるのか"]);
+    expect(links(seen.jumped.get().pager), "2つ目の問いの頁の前と次のlink").toEqual(["prev #何を止めるのか", "next #どこに残すのか"]);
+    expect(links(seen.other.get().pager), "2つ目の話題の問いの頁の前と次のlink。次は用語の話題の頁を指す").toEqual(["prev #どの順で確かめるのか", `next #${glossaryId}`]);
+    expect(links(seen.glossary.get().state.pager), "最後の頁 (用語の話題) は次のlinkを持たない").toEqual(["prev #どこに残すのか"]);
+    const jumped = seen.jumped.get().pager;
+    expect(jumped[0]?.text ?? "", "前のlinkが前の問いの番号を出さない").toContain("1-1");
+    expect(jumped[1]?.text ?? "", "次のlinkが次の問いの番号を出さない").toContain("2-1");
+    const { pagers } = seen.printed.get();
+    expect(pagers.length, "印刷の形の頁の前と次のlinkの並びの数").toBeGreaterThan(0);
+    expect(pagers.filter((p) => p.visible).length, "印刷の形で見える前と次のlinkの並び").toBe(0);
+  });
+
+  it("guide-split-topic-name-on-question-page", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const back = seen.back.get();
+    expect(back.topics, "話題の最初の問いの頁に見えている話題の題").toEqual(["止める仕組み"]);
+    expect(back.leads, "話題の最初の問いの頁に見えている話題の頭の中身").toEqual([TOPIC_LEAD]);
+    const jumped = seen.jumped.get();
+    expect(jumped.topics, "話題の2つ目の問いの頁に見えている話題の題").toEqual(["止める仕組み"]);
+    expect(jumped.leads, "話題の2つ目の問いの頁に話題の頭の中身が繰り返し出る").toEqual([]);
+    expect(seen.other.get().topics, "2つ目の話題の問いの頁に見えている話題の題").toEqual(["記録"]);
+  });
+
+  it("guide-split-term-link-opens-glossary-page", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const glossary = seen.glossary.get();
+    expect(glossary.links, "「記録」の札の中の「規則」のlinkの数").toBe(1);
+    expect(glossary.state.topics, "札の中のlinkを押した後に見えている話題").toEqual(["用語"]);
+    expect(glossary.state.sections, "札の中のlinkを押した後に見えている問いの節").toEqual([]);
+    expect(glossary.state.hash, "札の中のlinkを押した後のURLの#の後ろ").toBe(glossary.href);
+    const entry = glossary.entry;
+    expect(entry?.shown, "linkが指す用語の説明が見えない").toBe(true);
+    expect(entry?.top ?? -1, "linkが指す用語の説明が画面に入らない").toBeGreaterThanOrEqual(0);
+    expect(entry?.bottom ?? Number.POSITIVE_INFINITY, "linkが指す用語の説明が画面に入らない").toBeLessThanOrEqual(entry?.height ?? 0);
+  });
+
+  it("guide-single-topic-stacks", async () => {
+    const doc = await exportedGuide(writeStackGuide());
+    if (!doc) return;
+    expect(doc.querySelectorAll("section.pg-topic").length, "話題が1つの頁の話題の数").toBe(1);
+    expect(doc.querySelector(".pg-split"), "話題が1つの頁が頁に分ける組み立てを持つ").toBeNull();
+    expect(doc.querySelectorAll(".pg-pager").length, "話題が1つの頁の前と次のlinkの並びの数").toBe(0);
+    const seen = MENU.get();
+    if (!seen) return;
+    const { stack, split, pagers } = seen.layout.get();
+    expect({ split, pagers }, "話題が1つの頁を開いた時の、頁に分ける組み立てと前と次のlinkの並びの数").toEqual({ split: false, pagers: 0 });
+    expect(stack.length, "話題が1つの頁で見えている節の数").toBe(5);
+    for (const [n, sec] of stack.entries()) {
+      if (n === 0) continue;
+      expect(sec.left, `${n + 1}つ目の節が1つ目の節と同じ左の縁に並ばない`).toBe(stack[0]!.left);
+      expect(sec.top, `${n + 1}つ目の節が前の節の下に積まれない`).toBeGreaterThanOrEqual(stack[n - 1]!.bottom);
+    }
   });
 });
