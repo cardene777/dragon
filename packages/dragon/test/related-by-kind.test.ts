@@ -122,7 +122,7 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 値の札の収まりの検査 (`pipe-plate-fit.test.ts`、#3990) は配管の図の札を描いて確かめるので、配管の図を変えた時に選ぶ。配管の図の上限を1つ上げた (#4002)
   it("related-pipe-draw-picks-at-most-141", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
-    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(140);
+    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(141);
   });
 
   // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。

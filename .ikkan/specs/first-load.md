@@ -24,7 +24,6 @@
 | 見本帳の使い方の頁の組み込みの節が、READMEの組み込みの節と同じ5つのコードを出し、5つ目は押した箱のidを`closest('[data-node]')`で読むコードである | `pnpm test`の検査`docs-page-has-embed-section`が通る | #3868 |
 | ベン図の描く所(`packages/dragon/src/render/venn.ts`)を変えた時、関係する検査を選ぶ命令は123以下の検査のfileを返す | `pnpm test`の検査`related-venn-draw-picks-at-most-123`が通る | #3868 #3877 #3881 #3876 #3908 #3934 #3950 #3966 |
 | 時系列図の並べ方(`packages/dragon/src/kinds/sequence/layout.ts`)を変えた時、関係する検査を選ぶ命令は171以下の検査のfileを返す | `pnpm test`の検査`related-sequence-layout-picks-at-most-171`が通る | #3868 #3877 #3881 #3876 #3908 #3934 #3950 #3966 #3977 |
-| 配管の図の描く所を変えた時に選ぶ検査のfileは、140以下である | `pnpm test`の検査`related-pipe-draw-picks-at-most-140`が通る | #3868 #3876 #3908 #3934 #3950 #3966 #3977 |
 | 描いた箱と囲みが記法のidを`data-node`に持つ件は、`examples.test.ts`へ移した後も同じ名前で通る | `pnpm test`の検査`box-carries-notation-id`と`same-name-boxes-carry-distinct-ids`と`group-carries-notation-id`と`click-reads-innermost-node-id`と`lines-and-labels-carry-no-node-id`と`every-gallery-box-carries-its-id`と`embed-docs-name-node-attribute`が通る | #3868 |
 | `dragon embed`で書き出した1枚のHTMLの箱と囲みが記法のidを持つ件は、`script-entry.test.ts`へ移した後も同じ名前で通る | `pnpm test`の検査`embed-html-keeps-node-ids`が通る | #3868 |
 | jsDelivrの1行の入口が最初に読むscriptは、今と同じく90,000byte以下に収まる | `pnpm test`の検査`script-entry-within-budget`が通る | #3868 |
