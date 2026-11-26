@@ -6,12 +6,9 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.83.0] - 2026-11-26
-
 ### Added
 
 - A `<pre class="dragon">` block with `data-step="3"` opens paused on step 3, counting from 1 as the step bar does. The reader can still play it or move between steps. A number larger than the step count pauses on the last step, and a value that is not a whole number from 1 turns the block into an error message (#3831)
-- A pipe diagram now draws an undo tag by the box that fails in a `revert <box>: <reason>` step. The tag has a rose border, the same cross circle as a failed check's lamp on the left, and the reason on the right, and it shows only during the failing step, 8px to 24px from the box's edge where the space is free. A `revert <box>` with no reason writes the same word as the undone tank's tag (`Undone`, which `words.pipe.tags.rolled` can replace). The tag is part of the figure, so the reason stays readable when the step caption and the step bar are hidden. When calls fail one after another from the inside out in the same step, only the box where the failure started gets the tag, and that box gets none when it wrote a failing `check` during the call, since the gauge's cross and formula already mark it. Diagrams that write `revert` after `check ... [fail]` look the same as before (#3974)
 
 ### Changed
 
@@ -21,6 +18,12 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - `mountDiagram` with `still: true` alone now stops on the last step and shows every line label, as the README says, instead of playing in a loop. With `pausedAt` it still stops on that step, and with `playOnce` it plays once (#3831)
 - A printed page no longer leaves the title bar of a figure alone at the bottom of a sheet with the figure on the next one, and no longer leaves half a sheet blank after a tall step. The title bar of a figure, the titles of guide topics and sections, the one-sentence answer, and the paragraph right before a figure now stay on the same sheet as what follows them, and each printed step of a figure, with its number, title, and text, fits in half the height of the sheet, so a sheet holds two steps. A step drawn taller than that is scaled down with its proportions kept. A figure with scenes now prints every scene, not only the one shown on screen, with each scene name on the same sheet as its first step (#3975)
+
+## [0.83.0] - 2026-11-26
+
+### Added
+
+- A pipe diagram now draws an undo tag by the box that fails in a `revert <box>: <reason>` step. The tag has a rose border, the same cross circle as a failed check's lamp on the left, and the reason on the right, and it shows only during the failing step, 8px to 24px from the box's edge where the space is free. A `revert <box>` with no reason writes the same word as the undone tank's tag (`Undone`, which `words.pipe.tags.rolled` can replace). The tag is part of the figure, so the reason stays readable when the step caption and the step bar are hidden. When calls fail one after another from the inside out in the same step, only the box where the failure started gets the tag, and that box gets none when it wrote a failing `check` during the call, since the gauge's cross and formula already mark it. Diagrams that write `revert` after `check ... [fail]` look the same as before (#3974)
 
 ## [0.82.0] - 2026-11-26
 
