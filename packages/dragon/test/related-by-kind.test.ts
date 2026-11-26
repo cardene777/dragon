@@ -118,6 +118,7 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 寄って追う図の検査 (`follow-zoom.test.ts`、#3871) は準備の段で全ての種類の登録を読み、印刷の検査 (`player-print.test.ts`、#3956) は組み上げたCDNの入口を読むので、どの種類を変えても選ぶ。上限を2つ上げた (#3966)
   // 取り消しの札の検査 (`pipe-revert-tag.test.ts`、#3974) は配管の図の登録だけを読むが、配管の図を変えた時に選ぶ。配管の図の上限を1つ上げた (#3977)。
   // 記録した指紋と比べる描き方の組は、全部入りの入口を読まない`scripts/snapshot-variants.mjs`から読むので、他の種類の描く所を変えても選ばない
+  // 頁に置いた図を決めた段で止める検査 (`page-step.test.ts`、#3831) は時系列図の登録だけを読み、時系列図を変えた時に選ぶ。順の図の上限を1つ上げた (#3977)
   it("related-pipe-draw-picks-at-most-140", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
     expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(140);
@@ -149,9 +150,9 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 判定の表の書き出しの検査 (#3923) は小さな時系列図も書き出すので選ばれる。上限を1つ上げた
   // SVGの書き出しの検査と判定の表の絵の検査 (#3891) と、埋め込んだ頁の帯から書き出す判定の表の検査 (#3945) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#3950)
   // 寄って追う図の検査 (#3871) と印刷の検査 (#3956) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた、#3966)
-  it("related-sequence-layout-picks-at-most-170", () => {
+  it("related-sequence-layout-picks-at-most-171", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(170);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(171);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
