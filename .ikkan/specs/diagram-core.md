@@ -443,3 +443,13 @@
 | 見本帳の見本の図のSVGは、今と同じ形のまま | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3934 |
 | 場面を持つ縦に長い手順の図を元の幅より広い枠に置いた時、場面ごとの図は元の幅 (`--dg-w`) を上限として渡される | `pnpm exec vitest run packages/dragon/test/fixed-view-size.test.ts` check `scene-figures-not-wider-than-layout` passes | #3938 |
 | 場面を並べて見せる図は、印刷の形で全ての場面を最後の段の形で積む | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-print-stacks-all-at-last-step` passes | #3938 |
+| 幅360pxで課題の最小の状態の図の段4を開くと、線の先の「失敗」の箱と「失敗する」の札が窓の中に在る | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-state-target-in-window`が通る | #3871 |
+| 幅360pxで課題の最小の構成図の段3を開くと、線の先の「記録」の箱と「記録する」の札が窓の中に在る | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-architecture-target-in-window`が通る | #3871 |
+| 段で動く物が今の大きさの窓に収まらない段は、窓を引いて図を縮めて見せる (課題の3つの図、幅360pxと390px) | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-wide-steps-zoom-out`が通る | #3871 |
+| 窓を引いた段でも、窓に映る箱の名前の字は読める大きさ (`READABLE_PX`、10.5px) を下回らない (課題の3つの図と、寄って追う形になる全ての見本、幅360pxと390px) | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-never-below-readable`が通る | #3871 |
+| 幅360pxで課題の最小の構成図の段3を開くと、窓の端で切れる線の元の「呼ぶ側」の箱に、名前を書いた札を窓の枠の内に出す | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-architecture-cut-source-gets-tag`が通る | #3871 |
+| 幅360pxで課題の最小の木の図の段2を開くと、番号の丸に近い側の足した枝が窓の中に在り、窓の端で切れる足した枝には名前を書いた札を窓の枠の内に出す | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-mind-cut-branches-get-tags`が通る | #3871 |
+| 寄って追う形の全体図に出す今見ている所の枠は、窓を引いた段で、窓が映す図の広さに合わせて大きくなる | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-overview-frame-grows`が通る | #3871 |
+| 段で動く物が今の大きさで窓に収まる段は窓を引かず、今と同じ所に止まる。窓を引いた段の次の収まる段は、元の大きさに戻る | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-fitting-steps-unchanged`が通る | #3871 |
+| 時系列図の窓は、段で動く物が収まらない段でも引かない | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-sequence-never-zooms`が通る | #3871 |
+| 線の端の箱が窓に収まる段は、窓を寄せ直さず今の所に止まる | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-fitting-steps-kept`が通る | #3871 |
