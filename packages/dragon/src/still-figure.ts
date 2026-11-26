@@ -10,6 +10,9 @@ import { type RenderOptions, renderDiagram } from "./render/draw";
 /** 止めて置く図を選ぶ塊の属性 */
 export const STILL_ATTR = "data-still";
 
+/** 止めて置く図で、飛び先 (`link:`) がこの属性の値の箱だけに色を残す塊の属性 (#3991) */
+export const FOCUS_ATTR = "data-focus";
+
 /** 止めて置く図を描いた HTML。`div.dragon-figure.dragon-still` の中に SVG を 1 つ置く */
 export function stillFigureHtml(diagram: unknown, options: RenderOptions = {}): string {
   const { svg, layout } = renderDiagram(diagram, { ...options, still: true, figure: true });

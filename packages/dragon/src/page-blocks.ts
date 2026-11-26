@@ -36,7 +36,7 @@ import { printNotation } from "./printer";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type PlayerOptions } from "./player";
 import type { Diagram } from "./schema";
-import { STILL_ATTR, stillFigureHtml } from "./still-figure";
+import { FOCUS_ATTR, STILL_ATTR, stillFigureHtml } from "./still-figure";
 import type { BuiltinButton, EmbedLook } from "./frame/types";
 import { KINDS, type NotationLang } from "./words";
 
@@ -210,7 +210,9 @@ async function drawBlock(
     const width = Math.round(block.getBoundingClientRect().width);
     try {
       const holder = doc.createElement("div");
-      holder.innerHTML = stillFigureHtml(parsed.diagram, { lang, ...(blocks ? { blocks } : {}), ...(width > 0 ? { width } : {}) });
+      // 属性 `data-focus` は、飛び先がその値の箱だけに色を残す (#3991)
+      const focus = block.getAttribute(FOCUS_ATTR) ?? undefined;
+      holder.innerHTML = stillFigureHtml(parsed.diagram, { lang, ...(blocks ? { blocks } : {}), ...(width > 0 ? { width } : {}), ...(focus ? { focus } : {}) });
       block.replaceWith(holder.firstElementChild ?? holder);
     } catch (error) {
       block.replaceWith(errorBox(doc, [detail(error)]));

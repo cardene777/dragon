@@ -22,12 +22,16 @@ export interface PageWords {
   topics: string;
   /** 説明の頁の頭の全体像の名前。左の目次の最初の行と、全体像の読み上げの名前に書く (#3961) */
   whole: string;
-  /** 問いごとの頁に分けた説明の頁 (#3983) の、頁の下の前の頁へのlinkの字 */
+  /** 話題ごとのタブに分けた説明の頁 (#3983、#3991) の、タブの終わりの前の話題へのlinkの字 */
   prev: string;
-  /** 問いごとの頁に分けた説明の頁の、頁の下の次の頁へのlinkの字 */
+  /** 話題ごとのタブに分けた説明の頁の、タブの終わりの次の話題へのlinkの字 */
   next: string;
-  /** 問いごとの頁に分けた説明の頁の、前と次のlinkの並びの読み上げの名前 */
+  /** 話題ごとのタブに分けた説明の頁の、前と次のlinkの並びの読み上げの名前 */
   pages: string;
+  /** 話題ごとのタブに分けた説明の頁の、頁の上のタブの並びの読み上げの名前 (#3991) */
+  tabs: string;
+  /** 話題のタブの頭の、問いと答えの一覧の読み上げの名前 (#3991) */
+  questions: string;
   /** 確かめる問いの枠の見出し */
   quiz: string;
   /** 確かめる問いの答えを開く釦の字 */
@@ -90,7 +94,9 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     whole: "全体像",
     prev: "前へ",
     next: "次へ",
-    pages: "前と次の頁",
+    pages: "前と次の話題",
+    tabs: "話題",
+    questions: "この話題の問いと答え",
     quiz: "確かめる",
     answer: "答え",
     close: "閉じる",
@@ -105,7 +111,9 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     whole: "Overview",
     prev: "Previous",
     next: "Next",
-    pages: "Previous and next pages",
+    pages: "Previous and next topics",
+    tabs: "Topics",
+    questions: "Questions and answers in this topic",
     quiz: "Check",
     answer: "Answer",
     close: "Close",

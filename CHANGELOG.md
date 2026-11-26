@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- A guide page (`layout: guide`) with two or more topics no longer shows each question on its own page. It shows the overview and one tab per topic at the top, and a topic tab shows every question of that topic in the order written. A topic tab starts with a list of the question numbers, short names, and one-sentence answers, and the side menu lists only the questions of the open topic. Write `link: #<topic id>` on a box of the overview figure to open that topic's tab from the box; that tab then starts with a still of the overview where only the linked boxes keep their colors. Each tab ends with links to the previous and next topics. A still figure (`data-still`) with `data-focus` keeps the colors of only the boxes whose link is that value and draws the others faint (#3991)
+
 ## [0.86.0] - 2026-11-26
 
 ### Changed
