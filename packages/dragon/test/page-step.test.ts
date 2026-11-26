@@ -92,7 +92,7 @@ describe("頁に置いた図を決めた段で止めて置く (#3831)", () => {
   it("page-block-step-reaches-framed-figure", async () => {
     const seen: { pausedAt?: number }[] = [];
     const framed: FramedBlock = (host, _source, _diagram, options) => {
-      seen.push(options as { pausedAt?: number });
+      seen.push(options);
       host.textContent = "帯つきの図";
     };
     await drawPage(' data-header data-step="2"', framed);
