@@ -110,7 +110,7 @@ const WRITTEN = await atLoad("判定の表の見本を SVG に書き出す", asy
         }),
       ] as const)(),
   ]);
-  return Object.fromEntries(pairs) as Record<string, Written>;
+  return Object.fromEntries(pairs);
 });
 
 /** 書き出した SVG を読んだ文書。SVG を書かなかった時は落とす */
