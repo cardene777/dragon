@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- A guide page (`layout: guide`) with two or more topics no longer stacks every topic on one long page. It opens on a first page with the title, the text before the first topic, the overview, and the topics in order, and shows each question on its own page. A topic without questions, such as the glossary, is one page. The menu and the links at the end of each page to the previous and next pages change the page without reloading, and the address keeps the place, so a link to a question opens its page. A guide page with one topic still stacks every section, and a printed guide page still shows every topic in order (#3983)
+
 ## [0.84.0] - 2026-11-26
 
 ### Added
