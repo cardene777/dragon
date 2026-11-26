@@ -354,9 +354,16 @@ dragon embed notes.html
 
 ### Guide page
 
-`layout: guide` turns each `##` into a topic tab and each `###` into a numbered section stacked in that tab.
-The top of each tab lists the questions the tab answers, made from its `###` titles.
-Clicking a question scrolls to its section.
+`layout: guide` turns each `##` into a topic and each `###` into a numbered question section, and stacks every topic on one page.
+The section numbers run from 1 across the topics.
+A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
+The menu marks the question being read, and clicking a question scrolls to its section.
+On a phone, the menu folds above the text behind a button.
+A `###` title can end with `[menu: <short name>]`.
+The menu then shows the short name, and the section keeps the whole question as its title.
+`[menu: ]` with no name stops the export with the line named.
+A ```` ```dragon ```` figure before the first `##` becomes the overview at the top of the page.
+The topics follow it in the order they are written.
 A quote (`>`) right after a `###` title is shown under the title as the one-sentence answer.
 Other quotes stay quotes.
 A `<details>` block with a `<summary>` line becomes a check question.
@@ -365,13 +372,13 @@ Other raw HTML is still shown as text.
 
 Write the terms in a Markdown file of their own, such as `glossary.md`.
 Each `###` heading is a term, the paragraph after it is the meaning, and a quote after that is an example.
-A `![Terms](glossary.md)` line before the first `##` loads the file and adds a tab named `Terms` with one card per term.
+A `![Terms](glossary.md)` line before the first `##` loads the file and adds a topic named `Terms` at the end of the page, with one card per term.
 In the text, a link such as `[order](glossary.md#order)` is underlined.
 Clicking it opens a card just below it with the term, its meaning, and a gray example band.
 The card closes on a click outside it, on its close icon, or on the term again.
 A term written twice, or a link to a term the file does not have, stops the export with the file and line named.
-When the page is printed, the tab row is left out and the sections of every tab follow in written order.
-Each tab after the first starts on a new sheet, and every tab shows its name at the top.
+When the page is printed, the menu is left out and the sections of every topic follow in written order.
+Each topic after the first starts on a new sheet, with its name at the top.
 Every term card and check answer is drawn open, and box cards are listed below their diagram with their box names instead of over it.
 The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).
 

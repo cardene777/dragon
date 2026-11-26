@@ -223,6 +223,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-81-1-lists-tag-over-boxes-fix-once", () => {
+    // 箱の上を横へ走る管の delegatecall() の札の直し (#3962) と、v0.81.0 の後に既定の枝へ入った印刷の直し (#3956) と寄って追う図の窓の直し (#3871) を 0.81.1 で出す (#3966)
+    const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor > 81 || (minor === 81 && patch >= 1), `package の版 ${version()} が 0.81.1 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.81\.1\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.81.1"), "0.81.1");
+      expect(released, `${file} に日付付きの ## [0.81.1] の節が無い`).not.toBe("");
+      for (const issue of ["(#3962)", "(#3956)", "(#3871)"]) {
+        expect(released.split(issue).length - 1, `${file} の 0.81.1 の節が ${issue} の項を 1 回だけ持たない`).toBe(1);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-81-0-lists-delegate-tag-fix-once", () => {
     // パイプ図の delegatecall() の札の直し (#3949) と、v0.80.1 の後に既定の枝へ入った未公開の項を全て 0.81.0 で出す (#3955)。
     // SVG の書き出しと判定の表の帯の形 (#3891) は 2 項、埋め込んだ図の帯の書き出し (#3945) と 2 つの直し (#3943、#3944) は 1 項ずつ持つ

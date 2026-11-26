@@ -115,9 +115,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // SVGの書き出しの検査 (`export-svg.test.ts`、#3891) は組み上げた命令 (`dist/cli.js`) を起こし、判定の表の絵の検査 (`judge-picture.test.ts`、#3891) は図の言語を決める`src/words.ts`を読んで全てのブロックの登録を読むので、どちらもどの種類を変えても選ぶ。上限を2つ上げた (#3950)
   // SVGの書き出しの検査は小さな時系列図を1枚書き出し、判定の表の絵の検査は判定の表だけをjsdomで描く
   // 埋め込んだ頁の帯から書き出す判定の表の検査 (`frame-judge-picture.test.ts`、#3945) は組み上げた帯の部品 (`dist/frame.js`) を読むので、どの種類を変えても選ぶ。上限をもう1つ上げた (#3950)
-  it("related-pipe-draw-picks-at-most-137", () => {
+  // 寄って追う図の検査 (`follow-zoom.test.ts`、#3871) は準備の段で全ての種類の登録を読み、印刷の検査 (`player-print.test.ts`、#3956) は組み上げたCDNの入口を読むので、どの種類を変えても選ぶ。上限を2つ上げた (#3966)
+  it("related-pipe-draw-picks-at-most-139", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
-    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(137);
+    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(139);
   });
 
   // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。
@@ -132,9 +133,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 記法とHTMLの形の変換の検査と頁に置いたHTMLの形の図の検査 (#3908) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた)
   // 判定の表の書き出しの検査 (#3923) も選ぶので、上限を1つ上げた (理由は配管の図の上限の上に書いた)
   // SVGの書き出しの検査と判定の表の絵の検査 (#3891) と、埋め込んだ頁の帯から書き出す判定の表の検査 (#3945) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#3950)
-  it("related-venn-draw-picks-at-most-121", () => {
+  // 寄って追う図の検査 (#3871) と印刷の検査 (#3956) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた、#3966)
+  it("related-venn-draw-picks-at-most-123", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/venn.ts`);
-    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(121);
+    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(123);
   });
 
   // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
@@ -144,9 +146,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 記法とHTMLの形の変換の検査と頁に置いたHTMLの形の図の検査 (#3908) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた)
   // 判定の表の書き出しの検査 (#3923) は小さな時系列図も書き出すので選ばれる。上限を1つ上げた
   // SVGの書き出しの検査と判定の表の絵の検査 (#3891) と、埋め込んだ頁の帯から書き出す判定の表の検査 (#3945) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#3950)
-  it("related-sequence-layout-picks-at-most-168", () => {
+  // 寄って追う図の検査 (#3871) と印刷の検査 (#3956) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた、#3966)
+  it("related-sequence-layout-picks-at-most-170", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(168);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(170);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {

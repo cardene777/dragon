@@ -6,9 +6,19 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. The section numbers run from 1 across the topics, and the terms file becomes a `Terms` topic at the end. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961)
+
 ### Fixed
 
 - Buttons of a diagram placed on a page without the bar (`mountDiagram`) no longer take the page's own `button` styles. The step buttons, the zoom buttons of a pipe diagram, the scene buttons, and the close button of a box card used to get the page's shadow, uppercase text, minimum height, margin, and transform, and the step bar grew taller. They now reset every inherited and page style first, so they look the same on any page. Page rules stronger than a plain `button` selector, such as `.site button` or `!important`, still reach them; use the framed diagram on such pages (#3799)
+
+## [0.81.1] - 2026-11-26
+
+### Fixed
+
+- In a mesh pipe diagram, the `delegatecall()` tag of a delegate call (`[call: delegate]`) whose pipe runs sideways above the boxes no longer sits on the middle of its pipe. When the tag was placed, the top edge of the diagram blocked the spots above the pipe and the boxes blocked the spots below it, so the tag fell back onto the pipe, as in a `CounterProxy` that borrows `CounterV2.increment`. When only the top edge blocks a spot beside the pipe, the whole diagram now moves down to make room and the tag sits above the pipe, at least 8px clear of the pipe edge. Diagrams whose tag already found a spot keep their layout (#3962)
 - Printing a page no longer loses most of it. A guide page (`layout: guide`) prints the sections of every tab in written order instead of only the open tab, starts each tab after the first on a new sheet, and puts the tab name at the top. On every page that places a diagram, the player bar and the buttons of the bar above the diagram are left out, a diagram with steps prints the still of every step in order with its step number, title, and `say` text, and `note: pop` box cards are listed below the diagram with their box names instead of opening on top of it. A scenes diagram prints every step of each scene the same way. Blocks in hidden tabs are drawn before printing (#3956)
 - In the follow view, a step whose moving parts do not fit the window now zooms the window out, at most down to the scale where box names are 10.5px, instead of leaving the box its line points to outside the window. This happens on phone widths in state, architecture, mind, and other diagrams. When everything still does not fit at that scale, the window keeps the box that the step's first line points to and its label, then the step badge, and puts a name tag on each line end it cuts. Architecture diagrams now get these tags too. The frame in the overview grows with the zoomed window. Steps that fit, sequence diagrams, and kinds that choose their own window keep the window as before. In the arcade palette the tags have square corners like other small parts (#3871)
 

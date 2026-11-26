@@ -6,6 +6,26 @@ note: pop
 
 How a shop takes an order and delivers the goods, one question at a time.
 Click an underlined word to see what it means on a card.
+See the whole flow in the figure first, then jump to a question from the menu.
+
+```dragon
+architecture From order to delivery
+
+box user as Order screen [link: #take-the-order]
+box shop as Shop desk [link: #take-the-order]
+box pay as Payment system [link: #deliver]
+box store as Warehouse [link: #deliver]
+
+step Ask
+  say The user sends the order, and the shop checks the stock.
+  user -> shop: Order
+step Pay
+  say The shop asks for the payment.
+  shop -> pay: Payment
+step Ship
+  say Only paid orders leave the warehouse.
+  pay -> store: Paid order
+```
 
 ![Terms](glossary.en.md)
 
@@ -45,7 +65,7 @@ The order number. The user can check the address later with it.
 
 </details>
 
-### Where do turned-down orders go?
+### Where does a turned-down order go, and what is kept with it? [menu: Turned-down orders]
 
 > A turned-down order stays in the desk's record with the reason.
 
@@ -56,7 +76,7 @@ The order number. The user can check the address later with it.
 
 ## Deliver
 
-### What happens after the payment?
+### After the payment, how do the goods leave the warehouse? [menu: After payment]
 
 > Only an order with a finished [payment](glossary.en.md#payment) goes to the warehouse, which ships it with a tracking number.
 

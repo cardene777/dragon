@@ -8,15 +8,15 @@
  */
 import { describe, expect, it } from "vitest";
 
-type Shift = typeof import("../src/render/pipe-shift");
+type Shift = typeof import("../src/pipe-shift");
 type Cut = number | ((y: number) => number);
 
 // 道具が無い時も件ごとに名前を挙げて落とすため、読めなかった時は空の物にする
-const mod = (await import("../src/render/pipe-shift").catch(() => ({}))) as Partial<Shift>;
+const mod = (await import("../src/pipe-shift").catch(() => ({}))) as Partial<Shift>;
 
 /** 座標をずらす道具。無い時は名前を挙げて落とす */
 function tool(): Shift["Shifter"] {
-  expect(mod.Shifter, "座標をずらす道具 (src/render/pipe-shift.ts) が Shifter を出していない").toBeTypeOf("function");
+  expect(mod.Shifter, "座標をずらす道具 (src/pipe-shift.ts) が Shifter を出していない").toBeTypeOf("function");
   return mod.Shifter as Shift["Shifter"];
 }
 
