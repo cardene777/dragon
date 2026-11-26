@@ -388,14 +388,17 @@ dragon embed notes.html
 A page with one topic stacks every section on one page.
 A page with two or more topics shows the overview and one tab per topic at the top.
 The overview tab shows the title, the text before the first `##`, the overview, and the topics in order.
-A topic tab shows every question of that topic in the order written, after a list of the question numbers, short names, and one-sentence answers.
+A topic tab opens on a list of the question numbers, short names, and one-sentence answers.
+Inside a topic tab each question is its own page: clicking a row of the list or a question in the menu shows only that question's section.
 Write `link: #<topic id>` on a box of the overview figure to open that topic's tab from the box.
 That tab then starts with a still of the overview where only the linked boxes keep their colors.
-Each tab ends with links to the previous and next topics, and changing tabs does not reload the file.
+The pages run from the overview through each topic's list and then its questions, and each page ends with links to the previous and next pages.
+Changing pages does not reload the file.
 Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
 A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
-The menu marks the question being read, and clicking a question scrolls to its section.
-When the page has topic tabs, the menu lists only the questions of the open topic.
+The menu marks the question being read, and clicking a question scrolls to its section. The menu shows no question numbers.
+When the page has topic tabs, the menu lists only the questions of the open topic, and lists the titles of the figures under the open question.
+Clicking a figure title scrolls to that figure, and the menu marks the figure being read.
 On a phone, the menu folds above the text behind a button.
 A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.
