@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- In a `mind` diagram, the lines from one idea to its children on the same side no longer leave the idea's edge at separate spots, which made a branch with many leaves look like a row of parallel lines stuck into its box. They now leave the middle of the edge as one short trunk in the idea's color, 35% of the way to the children, and split from the tip of the trunk into curves in each child's color. Lines from the centre to its branches take the same form on each side. The trunk is drawn with the first child on that side, and later children draw only their curve from the tip. `dragon check --layout` reads these lines as gathering into the parent, as it does for tree diagrams, so a branch with six leaves gets no warning (#3960)
+
 ## [0.84.0] - 2026-11-26
 
 ### Added
@@ -15,7 +19,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Changed
 
 - Sequence and architecture diagrams now keep the labels of earlier steps in faint gray until the last step, like state and flow diagrams, so a diagram paused on a middle step shows the names of every line before it. The faint labels of all four kinds sit on a patch of the figure background, so a lifeline no longer runs through them. A faint label goes away when a later step puts its own label in the same place (#3831)
-- In a `mind` diagram, the lines from one idea to its children on the same side no longer leave the idea's edge at separate spots, which made a branch with many leaves look like a row of parallel lines stuck into its box. They now leave the middle of the edge as one short trunk in the idea's color, 35% of the way to the children, and split from the tip of the trunk into curves in each child's color. Lines from the centre to its branches take the same form on each side. The trunk is drawn with the first child on that side, and later children draw only their curve from the tip. `dragon check --layout` reads these lines as gathering into the parent, as it does for tree diagrams, so a branch with six leaves gets no warning (#3960)
 
 ### Fixed
 
