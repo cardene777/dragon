@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.83.0] - 2026-11-26
+
 ### Added
 
 - A pipe diagram now draws an undo tag by the box that fails in a `revert <box>: <reason>` step. The tag has a rose border, the same cross circle as a failed check's lamp on the left, and the reason on the right, and it shows only during the failing step, 8px to 24px from the box's edge where the space is free. A `revert <box>` with no reason writes the same word as the undone tank's tag (`Undone`, which `words.pipe.tags.rolled` can replace). The tag is part of the figure, so the reason stays readable when the step caption and the step bar are hidden. When calls fail one after another from the inside out in the same step, only the box where the failure started gets the tag, and that box gets none when it wrote a failing `check` during the call, since the gauge's cross and formula already mark it. Diagrams that write `revert` after `check ... [fail]` look the same as before (#3974)
