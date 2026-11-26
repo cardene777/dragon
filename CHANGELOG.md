@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.81.1] - 2026-11-26
+
 ### Fixed
 
 - In a mesh pipe diagram, the `delegatecall()` tag of a delegate call (`[call: delegate]`) whose pipe runs sideways above the boxes no longer sits on the middle of its pipe. When the tag was placed, the top edge of the diagram blocked the spots above the pipe and the boxes blocked the spots below it, so the tag fell back onto the pipe, as in a `CounterProxy` that borrows `CounterV2.increment`. When only the top edge blocks a spot beside the pipe, the whole diagram now moves down to make room and the tag sits above the pipe, at least 8px clear of the pipe edge. Diagrams whose tag already found a spot keep their layout (#3962)
