@@ -40,7 +40,7 @@ export interface DiagramFrame {
   destroy(): void;
 }
 /** 判定の表の書き出す絵の形を描く処理 (#3945)。帯は本体の`renderDiagram`で描き、本体が登録した判定の表の部品を使う */
-export const drawPicture: PictureDrawer = (diagram, options) => renderDiagram(diagram, { ...options, picture: true });
+const drawPicture: PictureDrawer = (diagram, options) => renderDiagram(diagram, { ...options, picture: true });
 
 export const createDragonFrame = (document: Document, source: string, diagram: Diagram, options: FrameOptions = {}): DiagramFrame => createFrame(document, source, diagram, { ...options, words: NOTATION_WORDS, capture: loadCapture, picture: drawPicture });
 export const diagramEditorUrl: (source: string) => string = editorUrl;

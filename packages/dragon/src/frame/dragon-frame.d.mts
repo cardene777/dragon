@@ -2,7 +2,7 @@ import type { Diagram } from '../schema';
 import type { FigureHeader, HeaderColors } from './header';
 import type { NotationLang } from '../words';
 import type { ActionNotify, CaptureLoader, DiagramActions, PictureDrawer } from './diagram-actions.mjs';
-import type { RenderOptions } from '../render/draw';
+import type { RenderOptions } from '@cardenelabs/dragon';
 import type { BuiltinButton, EmbedLook } from './types';
 
 /** 帯に足す置く側のボタン。押すと`onClick`が図の処理を受け取る (#3698) */
