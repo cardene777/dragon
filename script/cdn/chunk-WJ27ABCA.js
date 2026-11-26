@@ -1,2 +1,0 @@
-import{h as f}from"./chunk-CC6BDYVI.js";import{b as u}from"./chunk-372BTSCB.js";import{o as n,u as d}from"./chunk-QLRE7M5W.js";var c=r=>Math.round(r*100)/100,k=r=>h(r,0,0,1)!=="";function g(r){return r.startsWith("+")?f(r,"icon")?.path:d(r)??(Object.hasOwn(n,r)?n[r]:void 0)}function h(r,t,e,o,a="dg-gl"){let i=u()?.paint(r,t,e,o);if(i)return i;let s=r===void 0?void 0:g(r);return s?`<path class="${a}" transform="translate(${c(t)} ${c(e)}) scale(${o})" d="${s}"/>`:""}export{k as a,h as b};
-//# sourceMappingURL=chunk-WJ27ABCA.js.map
