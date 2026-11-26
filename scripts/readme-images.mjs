@@ -6,7 +6,7 @@
  * 見た目を変えた後に回すと、README の絵が今の見た目に揃う。
  *
  * 作る絵は 3 種類で、全て `docs/readme` の下に置く。
- * - 先頭の絵 (`hero.png` と `hero-dark.png`)。書き出した HTML を開き、再生の帯ごと最後の段で撮る
+ * - 先頭の絵 (`hero.png` と `hero-dark.png`)。書き出した HTML を図の元の幅に合わせた幅で開き、再生の帯ごと最後の段で撮る
  * - 図の種類の一覧の絵 (`kinds/<種類>.png` と `kinds/<種類>-dark.png`)。最後の段の PNG
  * - 札 (`badges/npm.svg`、`badges/license.svg`、`badges/catalog.svg`)。外の札の service を読まないため repo の中に置く
  *
@@ -141,6 +141,9 @@ const writeKinds = async (work, browser, lang) => {
   }
 };
 
+/** 先頭の絵の図の左右の余白 (px)。図の元の幅に、この余白を左右に足した幅で撮る (#3989) */
+const HERO_GAP = 20;
+
 /** 先頭の絵を書く。書き出した HTML を開いて流れを止め、最後の段の再生の部品を帯ごと撮る */
 const writeHero = async (work, browser, lang) => {
   for (const theme of THEMES) {
@@ -151,6 +154,13 @@ const writeHero = async (work, browser, lang) => {
     });
     await tab.goto(pathToFileURL(html).href);
     await tab.waitForSelector(".dg-player button");
+    // 止めた図は元の幅より大きく描かれない (#3934) ので、広い幅で撮ると図の左右に空きが出る。
+    // 撮る幅を図の元の幅 (SVG の viewBox の幅) に合わせ、図が絵の幅いっぱいに入るようにする (#3989)
+    const figure = await tab
+      .locator(".dg-player .dg-frame>svg")
+      .first()
+      .evaluate((svg) => svg.viewBox.baseVal.width);
+    await tab.setViewportSize({ width: Math.ceil(figure) + HERO_GAP * 2, height: 900 });
     // 釦は読み上げの名前でなく`data-dragon`で探す。名前は言葉で変わるため (#3887)
     const pause = tab.locator(
       ".dg-player button[data-dragon='toggle']:has(.dg-btn-ic[data-icon='pause'])",
