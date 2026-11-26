@@ -235,6 +235,34 @@ step 今週
 動く塊が混ざる頁では、止めて置く塊だけを SVG に描き、動く塊のために束ねた script を入れる。
 package から描く時は、`renderDiagram` に `figure: true` を渡すと同じ SVG を返す。
 
+### 決めた段で止めて置く
+
+図を決めた段で止めて置く時は、塊に属性 `data-step` を付け、段の番号を帯の番号と同じく1から数えて書く。
+
+```html
+<pre class="dragon" data-step="2">
+sequence 注文
+
+box shop as 店
+box bank as 銀行
+
+step 頼む
+  shop -> bank: 代金
+
+step 払う
+  bank -> shop: 払った
+
+step 締める
+  shop -> bank: 締め
+</pre>
+```
+
+塊は置いた時に流さず、2段目の止め絵で止まる。
+時系列図、構成図、状態遷移図、手順の図は前の段の線の名前を薄い灰で残すので、読み手はその段までの流れを1枚で読める。
+止めた後も、読み手は帯で流したり段を送ったりできる。
+段の数より大きい数は最後の段で止め、1以上の整数でない値は図を描かずに誤りの文にする。
+`data-still` と `data-step` を一緒に持つ塊は `data-still` が効く。
+
 ## mdから頁を書き出す
 
 `dragon export notes.md` は md の file を読み、HTML の頁 `notes.html` を 1 つ md の隣に書く (`--out <dir>` で書く先のフォルダを選ぶ)。

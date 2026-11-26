@@ -612,6 +612,35 @@ describe("止めて置く、1 度だけ流す (#3200)", () => {
     for (const tag of shownTags(host)) expect(tag.opacity, `止まった図に段 ${tag.step + 1} の「${tag.text}」が最後の段と同じ濃さで出ない`).toBeGreaterThan(0.99);
   });
 
+  it("player-still-alone-stops-on-last-step", () => {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = drawn().oauthStill;
+    const last = diagram.steps.length - 1;
+    // 止め絵だけを選んだ図は、README のとおり流さずに最後の段で止める (#3831)
+    const { host, player } = mount(diagram, { still: true });
+    expect(player.playing, "止め絵だけを選んだ図が、置いた時から流れる").toBe(false);
+    expect(player.step, "止め絵だけを選んだ図が止まる段").toBe(last);
+    expect(placed(host), "止め絵だけを選んだ図が最後の段の止め絵で止まっていない").toEqual({ at: timeline.stills[last], motion: "still" });
+    advance(timeline.total * 2);
+    expect(player.step, "止め絵だけを選んだ図が時刻とともに段を進める").toBe(last);
+    expect(stepTitle(host)).toBe(diagram.steps[last]?.title);
+    for (const tag of shownTags(host)) expect(tag.opacity, `止め絵だけを選んだ図に段 ${tag.step + 1} の「${tag.text}」が最後の段と同じ濃さで出ない`).toBeGreaterThan(0.99);
+  });
+
+  it("player-still-with-paused-at-keeps-step", () => {
+    prefersReducedMotion(false);
+    vi.useFakeTimers();
+    const diagram = exampleJson("oauth.json") as Oauth;
+    const { timeline } = drawn().oauthStill;
+    // 止め絵と止める段を一緒に渡した図は、最後の段でなく渡した段で止める
+    const { host, player } = mount(diagram, { still: true, pausedAt: 2 });
+    expect(player.playing, "止め絵と止める段を渡した図が、置いた時から流れる").toBe(false);
+    expect(player.step, "止め絵と止める段を渡した図が止まる段").toBe(2);
+    expect(placed(host), "止め絵と止める段を渡した図が段 3 の止め絵で止まっていない").toEqual({ at: timeline.stills[2], motion: "still" });
+  });
+
   it("player-still-middle-step-own-labels", () => {
     prefersReducedMotion(false);
     const diagram = exampleJson("oauth.json") as Oauth;

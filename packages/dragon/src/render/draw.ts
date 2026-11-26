@@ -18,7 +18,7 @@ import { carrier } from "../blocks/carry/draw";
 import { type CarrierTime, seatsOf } from "../blocks/carry/timing";
 import { cs } from "../blocks/color/draw";
 import { edge } from "../blocks/edge/draw";
-import { fadeBefore, label } from "../blocks/edge-label/draw";
+import { fadeBefore, fadeUnder, label } from "../blocks/edge-label/draw";
 import { TABLER_MESSAGES, tablerError } from "../blocks/icon/sets";
 import { band } from "../blocks/group/draw";
 import { lifeline } from "../blocks/lifeline/draw";
@@ -579,9 +579,14 @@ export function drawSvg(
   }
   for (const b of look ? [] : layout.badges)
     if (!(follow && onStrip(layout, b))) L.badge.push(badge(b, ctx, isState));
+  // 薄く残す名前は、後の段の名前が同じ所に重なる段が始まるまでで消す (#3831)
+  const coveredAt = (l: (typeof layout.labels)[number]): number | undefined => {
+    const later = layout.labels.filter((o) => o.step > l.step && o.x < l.x + l.w && l.x < o.x + o.w && o.y < l.y + l.h && l.y < o.y + o.h).map((o) => o.step);
+    return later.length > 0 ? timeline.steps[Math.min(...later)]?.start : undefined;
+  };
   for (const l of look ? [] : layout.labels) {
     const time = timeline.labels.find((t) => t.step === l.step && t.event === l.event);
-    if (time) L.top.push(label(l, fadeBefore(l, time, timeline.steps), ctx));
+    if (time) L.top.push(label(l, fadeUnder(fadeBefore(l, time, timeline.steps), coveredAt(l)), ctx));
   }
   // 止め絵を選んだ図は、全ての段の名前を出す間にも処理の札を出す。その間に見えている札は繰り返す前まで延ばす (#3200)
   const { whole } = timeline;
