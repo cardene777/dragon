@@ -1009,7 +1009,7 @@ export function mountDiagram(
     born = Date.now();
     if (fresh) drawMarks();
     // HTML で描く表は、置き直した表にも今の段までの列を照らす
-    if (htmlKind) htmlKind.show(next as HTMLElement, step);
+    if (htmlKind) htmlKind.show(next, step);
     else {
       controls?.fit(frame, next as SVGSVGElement);
       controls?.mark(next as SVGSVGElement, step);
@@ -1064,7 +1064,7 @@ export function mountDiagram(
     }
     fillNow();
     panTo();
-    if (svg && htmlKind) htmlKind.show(svg as HTMLElement, step);
+    if (svg && htmlKind) htmlKind.show(svg, step);
     else if (svg) controls?.mark(svg as SVGSVGElement, step);
     showOnly();
     calls?.show(rendered.diagram, step);
