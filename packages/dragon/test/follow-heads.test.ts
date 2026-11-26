@@ -291,12 +291,13 @@ function overviewBoxAt(p: Placed, step: number): { x: number; y: number; w: numb
   expect(world, `${p.name} / 枠の幅 ${p.width}px の全体図に図の地が無い`).not.toBeNull();
   const n = (el: Element | null, name: string): number => Number(el?.getAttribute(name) ?? 0);
   const k = n(world, "width") / p.layout.width;
-  const [tx = 0, ty = 0] = p.value(vp as Element, "transform", p.stillAt(step)) ?? [];
+  // 窓を引いた段 (#3871) の四角は translate の後の scale で広がる。scale は四角の左上の位置にも掛かる
+  const [tx = 0, ty = 0, s = 1] = p.value(vp as Element, "transform", p.stillAt(step)) ?? [];
   return {
-    x: round((tx + n(vp, "x") - n(world, "x")) / k),
-    y: round((ty + n(vp, "y") - n(world, "y")) / k),
-    w: round(n(vp, "width") / k),
-    h: round(n(vp, "height") / k),
+    x: round((tx + s * n(vp, "x") - n(world, "x")) / k),
+    y: round((ty + s * n(vp, "y") - n(world, "y")) / k),
+    w: round((s * n(vp, "width")) / k),
+    h: round((s * n(vp, "height")) / k),
   };
 }
 
