@@ -574,16 +574,22 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         return pageState(page);
       });
       const tabbed = await step("1つ目の話題のタブを押し、その話題の節が見えるのを待つ", async () => {
-        await page.locator("nav.pg-tabs a", { hasText: "止める仕組み" }).click({ timeout: WAIT });
+        const tab = page.locator("nav.pg-tabs a", { hasText: "止める仕組み" });
+        if ((await tab.count()) === 0) return pageState(page);
+        await tab.first().click({ timeout: WAIT });
         return readUntil(() => pageState(page), (shown) => shown.sections.length > 0, WAIT);
       });
       const jumped = await step("左の目次で2つ目の問いを押し、その節が画面の上に来て目次が印を付けるのを待つ", async () => {
-        await page.locator("nav.pg-menu a.pg-menu-q", { hasText: "どの順で確かめるのか" }).click({ timeout: WAIT });
+        const question = page.locator("nav.pg-menu a.pg-menu-q:visible", { hasText: "どの順で確かめるのか" });
+        if ((await question.count()) === 0) return { ...(await pageState(page)), top: undefined };
+        await question.first().click({ timeout: WAIT });
         const state = await readUntil(() => pageState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.marks.length === 1 && shown.marks[0] === "#どの順で確かめるのか", WAIT);
         return { ...state, top: await sectionTop(page, "どの順で確かめるのか") };
       });
       const mapped = await step("1つ目の話題のタブを押して頭へ戻り、話題の頭の一覧の2つ目の行を押して、その節が画面の上に来るのを待つ", async () => {
-        await page.locator("nav.pg-tabs a", { hasText: "止める仕組み" }).click({ timeout: WAIT });
+        const tab = page.locator("nav.pg-tabs a", { hasText: "止める仕組み" });
+        if ((await tab.count()) === 0) return { count: 0, before: undefined, top: undefined, hash: "" };
+        await tab.first().click({ timeout: WAIT });
         await readUntil(() => pageState(page), (shown) => shown.hash === "#止める仕組み", WAIT);
         const before = await sectionTop(page, "どの順で確かめるのか");
         const rows = page.locator(".pg-map a:visible");
@@ -602,6 +608,7 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
               .map((q) => ({ question: (q.querySelector(".pg-q-text")?.textContent ?? "").trim(), shown: q.querySelector<HTMLElement>(".pg-q-a")?.checkVisibility() ?? false })),
           );
         const first = await read();
+        if (first.length === 0) return { first, opened: first, answer: "", closed: first };
         const button = page.locator(".pg-q:visible .pg-q-btn").first();
         await button.click({ timeout: WAIT });
         const opened = await readUntil(read, (qs) => qs[0]?.shown === true, WAIT);
@@ -612,6 +619,7 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
       });
       const term = await step("用語の下線を押して札を開き、閉じる", async () => {
         const link = page.locator(".pg-sec:visible .pg-answer .pg-term", { hasText: "エージェント" }).first();
+        if ((await link.count()) === 0) return { underline: "", before: [], opened: [], anchor: { bottom: 0, secLeft: 0, secRight: 0 }, closedByIcon: [], closedOutside: [], closedAgain: [] };
         const underline = await link.evaluate((el) => getComputedStyle(el).textDecorationLine);
         const card = () => openedCards(page);
         const before = await card();
@@ -642,7 +650,9 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         return { pager, state: await readUntil(() => pageState(page), (shown) => shown.topics.length === 1 && shown.topics[0] === "記録", WAIT) };
       });
       const glossary = await step("「記録」の用語の札を開き、札の中の「規則」のlinkを押して用語のタブに切り替わるのを待つ", async () => {
-        await page.locator(".pg-sec:visible .pg-term", { hasText: "記録" }).first().click({ timeout: WAIT });
+        const recorded = page.locator(".pg-sec:visible .pg-term", { hasText: "記録" });
+        if ((await recorded.count()) === 0) return { links: 0, href: "", state: await pageState(page), entry: undefined };
+        await recorded.first().click({ timeout: WAIT });
         const link = page.locator('[role="dialog"]:visible a', { hasText: "規則" }).first();
         const links = await link.count();
         if (links === 0) return { links, href: "", state: await pageState(page), entry: undefined };
