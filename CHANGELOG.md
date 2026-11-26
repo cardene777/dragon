@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-11-26
+
 ### Added
 
 - `dragon export --format svg` writes an SVG of any diagram: the still of the last step, with the fonts it draws embedded as `data:` URLs. An export without `--format` still writes mp4, GIF, HTML, and PNG (#3891)

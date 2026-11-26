@@ -6,6 +6,8 @@ dragon DSL の主要変更履歴。
 
 ## [Unreleased]
 
+## [0.81.0] - 2026-11-26
+
 ### Added
 
 - `dragon export --format svg`で、どの図もSVGに書き出せるようにした。最後の段の止め絵を書き、描いた字の書体を`data:`で埋める。`--format`を書かない書き出しは今どおりmp4、GIF、HTML、PNGを書く (#3891)
