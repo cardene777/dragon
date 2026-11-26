@@ -31,12 +31,12 @@
 | `.json`の図の書き出しは今どおりmp4、GIF、HTML、PNGを書く | `pnpm exec vitest run`の検査`four-formats-written-once-from-json`が通る | #3755 |
 | scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3755 |
 | 見本帳が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`page-bundle-within-budget`が通る | #3755 |
-| 頭の行に`layout: guide`を書いたmdを書き出した時、`##`が話題のタブになり、`###`がそのタブの中に番号つきの節として縦に積まれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-sections-stack-in-topic-tabs` passes | #3876 |
-| `layout: guide`の頁のタブの頭に、そのタブの節の題を番号つきで並べた「このタブで答える問い」の一覧が出て、問いを押すとその節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-list-jumps-to-section` passes | #3876 |
+| 頭の行に`layout: guide`を書いたmdを書き出した時、`##`が話題になり、`###`がその話題の中に番号つきの節として縦に積まれ、話題は1つの頁に続けて積まれる (#3961で話題のタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-sections-stack-in-topics` passes | #3876 |
+| `layout: guide`の頁の左の目次に、話題ごとに節の題を番号つきで並べた問いが出て、問いを押すとその節へ移る (#3961でタブの頭の一覧から左の目次に移した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-list-jumps-to-section` passes | #3876 |
 | 節の題の直後の引用は題の下の答えとして出て、題の直後でない引用は今の引用のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3876 |
 | `<details>`と`<summary>`は確かめる問いとして出て、答えは押すまで隠れ、もう一度押すと隠れる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-quiz-hides-answer-until-pressed` passes | #3876 |
 | 用語のfileへのリンク (`[用語](glossary.md#用語)`) は下線になり、押すとすぐ下に用語の名前と説明と例の帯を持つ札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-link-opens-card` passes | #3876 |
-| `![用語](glossary.md)`の行で読み込んだ用語のfileは、「用語」のタブとして用語ごとに並ぶ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-glossary-file-becomes-tab` passes | #3876 |
+| `![用語](glossary.md)`の行で読み込んだ用語のfileは、頁の終わりの「用語」の話題として用語ごとに並ぶ (#3961でタブから話題にした) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-glossary-file-becomes-topic` passes | #3876 |
 | 印刷の形では、用語の札と箱の札と確かめる問いの答えが全て開いて描かれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-opens-cards-and-answers` passes | #3876 |
 | 幅728pxの枠と幅390pxの枠で、`layout: guide`の頁の字が10.5px以上で描かれ、横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-readable-and-fits` passes | #3876 |
 | 用語のfileに同じ用語を2度書いた時と、用語のfileに無い用語へのリンクを書いた時、その行を名指して書き出しを断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-twice-or-missing-refused` passes | #3876 |
