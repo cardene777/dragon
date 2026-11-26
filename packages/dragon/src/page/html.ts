@@ -6,8 +6,9 @@
  * `sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブで項目を選ぶ。
  * 項目の頁の中は `####` の見出しのタブ (`data-level="4"`)、その中は `#####` の見出しのタブ (`data-level="5"`) に分ける。
  * `guide` (#3876、#3961) は頁の頭から左の列に目次を置き、頁の題と全ての話題と問いを並べる。右の列に頁の題と頭の中身と全体像と、話題と番号つきの節を続けて積む。
- * 番号は話題をまたいで1から数える。目次は広い画面で画面に留まり、読んでいる節の問いに印 (`aria-current`) を付ける。携帯の幅では全体像の下、本文の上に畳み、釦で開く。
- * 頭の中身に図を書いた頁は、頁の頭にその図と、話題を書いた順に並べた道筋を全体像として置き、目次の最初の行を全体像にする。
+ * 問いの番号は話題ごとに1から数え直し、`話題の番号-問いの番号` (`1-1`、`2-1`) で出す。用語の話題は番号を持たない (#3969)。
+ * 目次は広い画面で画面に留まり、読んでいる節の問いに印 (`aria-current`) を付ける。携帯の幅では全体像の下、本文の上に畳み、釦で開く。
+ * 頭の中身に図を書いた頁は、頁の頭にその図と、図の後に書いた頭の中身と、話題を書いた順に並べた道筋を全体像として置き、目次の最初の行を全体像にする (#3969)。
  * 用語の札は押した下線のすぐ下に開き、見た目と開け閉めは図の箱の札 (`blocks/pop/cards.ts`) の値 (`LOOK.note`、`TYPE.note*`) に揃える。
  * 印刷の形では、用語の札を節の終わりに全て開いて並べ、確かめる問いの答えを全て開く。
  *
@@ -83,11 +84,16 @@ export interface RenderedTopic {
   glossary?: RenderedTerm[];
 }
 
-/** 説明の頁。`overview` は頭の中身の最初の図のHTML、`overviewId` は全体像の場所の名前で、図が無い頁はどちらも空の字 (#3961) */
+/**
+ * 説明の頁。`overview` は頭の中身の最初の図のHTML、`overviewId` は全体像の場所の名前で、図が無い頁はどちらも空の字 (#3961)。
+ * `overviewText` は頭の中身のうち図の後に書いた中身のHTMLで、`overviewTerms` はその中の下線が開く札 (#3969)
+ */
 export interface RenderedGuide {
   lead: string;
   leadTerms: RenderedTerm[];
   overview: string;
+  overviewText: string;
+  overviewTerms: RenderedTerm[];
   overviewId: string;
   topics: RenderedTopic[];
 }
@@ -261,6 +267,7 @@ const STYLE_GUIDE = `
 .pg-top .pg-lead{position:relative}
 .pg-overview{margin:6px 0 26px}
 .pg-overview .pg-figure{margin:0 0 12px}
+.pg-overview-text{position:relative;margin:0 0 14px;color:var(--pg-ink2);max-width:880px}
 .pg-route{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .pg-route li{display:flex;align-items:center;gap:8px;min-width:0}
 .pg-route li+li::before{content:"\\2192";color:var(--pg-mute)}
@@ -284,16 +291,16 @@ const STYLE_GUIDE = `
 .pg-menu-q{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;color:var(--pg-ink2);text-decoration:none}
 .pg-menu-q:hover{background:var(--pg-sunk);color:var(--pg-ink)}
 .pg-menu-q[aria-current="true"]{background:color-mix(in srgb,var(--cc) 12%,var(--pg-surf));color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
-.pg-menu-q .pg-num{min-width:20px;height:20px;font-size:12px}
+.pg-menu-q .pg-num{min-width:20px;height:20px;padding:0 4px;font-size:12px}
 .pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-main{min-width:0;padding:14px 0 0}
 .pg-topic{margin:0 0 36px;scroll-margin-top:12px}
 .pg-topic-title{font-size:21px;line-height:1.4;margin:0 0 16px;padding:0 0 8px;color:var(--c);border-bottom:2px solid var(--cc)}
 .pg-topic-lead{position:relative;margin:0 0 14px}
-.pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--c,var(--pg-t-blue));color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;margin-top:1px}
+.pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--c,var(--pg-t-blue));color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;margin-top:1px}
 .pg-sec{position:relative;margin:0 0 34px;scroll-margin-top:12px}
 .pg-sec-title{display:flex;gap:10px;align-items:center;font-size:19px;line-height:1.5;margin:0 0 6px}
-.pg-sec-title .pg-num{min-width:28px;height:28px;font-size:15px;margin-top:0}
+.pg-sec-title .pg-num{min-width:28px;height:28px;padding:0 7px;font-size:15px;margin-top:0}
 .pg-answer{font-size:15.5px;margin:0 0 14px}
 .pg-term{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;font-weight:600;text-decoration:underline;text-decoration-color:var(--pg-t-blue);text-decoration-thickness:2px;text-underline-offset:4px}
 .pg-term[aria-expanded="true"]{color:var(--pg-t-blue)}
@@ -524,8 +531,8 @@ function termCards(terms: readonly RenderedTerm[], lang: PageLang): string {
 /** 携帯の幅で目次を開け閉めする釦の矢印 (24の升の中の下向きの折れ線) */
 const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
 
-/** 話題の中身。頭に話題の題を置き、用語の話題は用語ごとの説明と例を並べ、ほかの話題は通し番号 (`first` から数える) の節を縦に積む */
-function topicHtml(topic: RenderedTopic, lang: PageLang, first: number): string {
+/** 話題の中身。頭に話題の題を置き、用語の話題は用語ごとの説明と例を並べ、ほかの話題は節を縦に積む。節の番号は話題の番号`chapter`と話題の中の問いの番号を`-`で繋ぐ (#3969) */
+function topicHtml(topic: RenderedTopic, lang: PageLang, chapter: number): string {
   const title = `<h2 class="pg-topic-title">${withoutLinks(topic.name)}</h2>`;
   if (topic.glossary) {
     const entries = topic.glossary
@@ -537,7 +544,7 @@ function topicHtml(topic: RenderedTopic, lang: PageLang, first: number): string 
   const sections = topic.sections
     .map(
       (section, n) =>
-        `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h3 class="pg-sec-title"><span class="pg-num">${first + n}</span><span>${section.name}</span></h3>` +
+        `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h3 class="pg-sec-title"><span class="pg-num">${chapter}-${n + 1}</span><span>${section.name}</span></h3>` +
         `${section.answer === undefined ? "" : `<p class="pg-answer">${section.answer}</p>`}${section.body}${termCards(section.terms, lang)}</section>`,
     )
     .join("");
@@ -545,16 +552,16 @@ function topicHtml(topic: RenderedTopic, lang: PageLang, first: number): string 
 }
 
 /**
- * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、通し番号と目次の名前
- * (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ
+ * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、`話題の番号-問いの番号`と目次の名前
+ * (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる (#3969)。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ
  */
-function menuHtml(page: RenderedPage, guide: RenderedGuide, firsts: readonly number[]): string {
+function menuHtml(page: RenderedPage, guide: RenderedGuide, chapters: readonly number[]): string {
   const words = WORDS[page.lang];
   const over = guide.overview ? `<a class="pg-menu-over" href="#${escapeHtml(guide.overviewId)}" data-spy>${escapeHtml(words.whole)}</a>` : "";
   const groups = guide.topics
     .map((topic, i) => {
       const questions = topic.sections
-        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-num">${(firsts[i] ?? 1) + n}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
+        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-num">${chapters[i] ?? 0}-${n + 1}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
         .join("");
       const name = `<a class="pg-menu-topic" href="#${escapeHtml(topic.id)}"${questions ? "" : " data-spy"}>${withoutLinks(topic.name)}</a>`;
       return `<div class="pg-menu-group" style="${groupColor(i)}">${name}${questions ? `<ol>${questions}</ol>` : ""}</div>`;
@@ -568,14 +575,18 @@ function menuHtml(page: RenderedPage, guide: RenderedGuide, firsts: readonly num
   );
 }
 
-/** 頁の頭の全体像 (#3961)。頭の中身の最初の図と、`##` の話題を書いた順に並べた道筋。図の無い頁は空の字 */
+/**
+ * 頁の頭の全体像 (#3961)。頭の中身の最初の図と、図の後に書いた頭の中身 (#3969) と、`##` の話題を書いた順に並べた道筋。図の無い頁は空の字。
+ * 図の後の中身は下線が開く札を持ち、札をすぐ下に開く置き場 (`data-terms`) に入れる
+ */
 function overviewHtml(guide: RenderedGuide, lang: PageLang): string {
   if (!guide.overview) return "";
   const words = WORDS[lang];
+  const text = guide.overviewText || guide.overviewTerms.length > 0 ? `<div class="pg-overview-text" data-terms>${guide.overviewText}${termCards(guide.overviewTerms, lang)}</div>` : "";
   const route = guide.topics
     .flatMap((topic, i) => (topic.glossary ? [] : [`<li style="${groupColor(i)}"><a href="#${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</a></li>`]))
     .join("");
-  return `<section class="pg-overview" id="${escapeHtml(guide.overviewId)}" aria-label="${escapeHtml(words.whole)}">${guide.overview}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
+  return `<section class="pg-overview" id="${escapeHtml(guide.overviewId)}" aria-label="${escapeHtml(words.whole)}">${guide.overview}${text}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
 }
 
 /**
@@ -583,19 +594,16 @@ function overviewHtml(guide: RenderedGuide, lang: PageLang): string {
  * 印刷の形では目次を出さずに全ての話題を書いた順に並べ、2つ目からの話題を新しい紙から始め、どの話題も紙の上に話題の名前の見出しを出す (#3956)
  */
 function guideLayout(page: RenderedPage): string {
-  const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", overviewId: "", topics: [] };
+  const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", overviewText: "", overviewTerms: [], overviewId: "", topics: [] };
   const lead = guide.lead || guide.leadTerms.length > 0 ? `<div class="pg-lead" data-terms>${guide.lead}${termCards(guide.leadTerms, page.lang)}</div>` : "";
-  // 節の番号は話題をまたいで1から数える
-  const firsts: number[] = [];
-  let next = 1;
-  for (const topic of guide.topics) {
-    firsts.push(next);
-    next += topic.sections.length;
-  }
+  // 話題の番号は用語の話題を除いて書いた順に1から数え、問いの番号は話題ごとに1から数え直す (#3969)
+  const chapters: number[] = [];
+  let chapter = 0;
+  for (const topic of guide.topics) chapters.push(topic.glossary ? 0 : ++chapter);
   const topics = guide.topics
-    .map((topic, i) => `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, firsts[i] ?? 1)}</section>`)
+    .map((topic, i) => `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, chapters[i] ?? 0)}</section>`)
     .join("");
-  const menu = guide.topics.length === 0 ? "" : menuHtml(page, guide, firsts);
+  const menu = guide.topics.length === 0 ? "" : menuHtml(page, guide, chapters);
   const main = guide.topics.length === 0 ? "" : `<main class="pg-main">${topics}</main>`;
   return `<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}">${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${overviewHtml(guide, page.lang)}${main}</div>`;
 }

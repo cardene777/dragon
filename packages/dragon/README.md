@@ -355,7 +355,7 @@ dragon embed notes.html
 ### Guide page
 
 `layout: guide` turns each `##` into a topic and each `###` into a numbered question section, and stacks every topic on one page.
-The section numbers run from 1 across the topics.
+Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
 A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
 The menu marks the question being read, and clicking a question scrolls to its section.
 On a phone, the menu folds above the text behind a button.
@@ -363,6 +363,7 @@ A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.
 `[menu: ]` with no name stops the export with the line named.
 A ```` ```dragon ```` figure before the first `##` becomes the overview at the top of the page.
+Text written before the figure stays above it, and text written after the figure is shown under it inside the overview.
 The topics follow it in the order they are written.
 A quote (`>`) right after a `###` title is shown under the title as the one-sentence answer.
 Other quotes stay quotes.

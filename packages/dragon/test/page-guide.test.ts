@@ -2,7 +2,7 @@
  * mdから書き出す説明の頁 (`layout: guide`、#3876)。
  *
  * 頭の行に`layout: guide`を書いたmdは、`##`が話題、`###`が話題の中に番号つきで縦に積む節になり、話題は1つの頁に続けて積む (#3961)。
- * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題をまたいで1から数える。
+ * 左の目次が全ての話題と問いを並べ、問いを押すとその節へ移る。節の番号は話題ごとに1から数え直し、`話題の番号-問いの番号`で出す (#3969)。
  * 節の題の直後の引用は題の下の答えになり、`<details>`と`<summary>`は答えを押すまで隠す確かめる問いになる。
  * 頁の頭の`![用語](glossary.md)`の行で読み込んだ用語のfileは頁の終わりの「用語」の話題になり、本文の`[用語](glossary.md#用語)`のリンクは押すと札が開く下線になる。
  * 印刷の形では、用語の札と箱の札と確かめる問いの答えが全て開き、左の目次を隠す。
@@ -221,6 +221,76 @@ function writeMenuGuide(files: Readonly<Record<string, string>> = {}): string {
   return join(root, "notes.md");
 }
 
+/** 全体像の頁の、図の前に書いた頭の文 (#3969) */
+const BEFORE_FIGURE = "送金が通る道の全体を見てから、問いごとに読む。";
+/** 全体像の頁の、図の後に書いた段落。書いた順。1つ目は用語のリンクを持つ (#3969) */
+const AFTER_FIGURE = ["エージェントが作った送金は、確かめる所で規則と照らしてから署名する所へ届く。", "止めた送金は、理由と共に記録の一覧に残る。"];
+
+/**
+ * 全体像の図の後の段落と、話題ごとに数え直す問いの番号を確かめる頁のmd (#3969)。
+ * 頭の文の後に用語のfileを読み込み、図の後に段落を2つ書く。話題は3つで、問いは2つ、1つ、2つ
+ */
+const OVERVIEW_GUIDE = `---
+layout: guide
+---
+
+# 送金の止め方
+
+${BEFORE_FIGURE}
+
+![用語](glossary.md)
+
+\`\`\`dragon
+architecture 送金が通る道
+
+box agent as エージェント
+box check as 確かめる所
+box signer as 署名する所
+
+step 送る
+  agent -> check: 送金
+step 通す
+  check -> signer: 合う送金
+\`\`\`
+
+[エージェント](glossary.md#エージェント)が作った送金は、確かめる所で規則と照らしてから署名する所へ届く。
+
+${AFTER_FIGURE[1]}
+
+## 止める仕組み
+
+### エージェントが作った送金のうち、規則に合わない物はどこで止まるのか [menu: 止める場所]
+
+> 確かめる所で止まり、署名する所へは届かない。
+
+### 宛先と額と期限は、1回の送金でどの順に照らし合わせるのか
+
+> 宛先、額、期限の順に照らす。
+
+## 記録
+
+### 止めた送金とその理由は、後から誰がどこで読めるのか
+
+> 記録の一覧に残り、利用者が読める。
+
+## 送り直す仕組み
+
+### 止めた送金は、規則を直した後でもう一度送れるのか
+
+> 送れる。直した規則で初めから確かめ直す。
+
+### 送り直した送金は、前に止めた記録とどう繋がるのか
+
+> 記録に前の送金の番号を残す。
+`;
+
+/** 全体像の段落と章ごとの番号を確かめる頁のmdと用語のfileを一時のdirに書き、mdのpathを返す */
+function writeOverviewGuide(files: Readonly<Record<string, string>> = {}): string {
+  const root = tempDir("guide-overview");
+  writeFiles(root, { "notes.md": OVERVIEW_GUIDE, "glossary.md": GLOSSARY, ...files });
+  return join(root, "notes.md");
+}
+
 /** 書き出したHTMLを読んで文書にする */
 const documentOf = (path: string): Document => new JSDOM(readFileSync(path, "utf8")).window.document;
 
@@ -235,13 +305,13 @@ async function exportedGuide(md = writeGuide()): Promise<Document | undefined> {
   return path === "" ? undefined : documentOf(path);
 }
 
-/** 話題 (`section.pg-topic`) の頭の題 (`h2.pg-topic-title`) と、話題ごとの節の番号と題と、隠した節か */
+/** 話題 (`section.pg-topic`) の頭の題 (`h2.pg-topic-title`) と、話題ごとの節の番号 (`話題の番号-問いの番号`) と題と、隠した節か */
 function topicsOf(doc: Document): { topic: string; sections: { number: string; title: string; hidden: boolean }[] }[] {
   return [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
     topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
     sections: [...topic.querySelectorAll(".pg-sec")].map((sec) => ({
       number: squash(sec.querySelector(".pg-sec-title .pg-num")?.textContent),
-      title: squash(sec.querySelector(".pg-sec-title")?.textContent).replace(/^\d+\s*/u, ""),
+      title: squash(sec.querySelector(".pg-sec-title")?.textContent).replace(/^\d+-\d+\s*/u, ""),
       hidden: sec.closest("[hidden]") !== null,
     })),
   }));
@@ -400,6 +470,27 @@ const printedPage = async (page: Page) => {
   });
 };
 
+/** 開いている用語の札 (`[role="dialog"]`) の名前と説明と例、例の帯の色が札と違うか、札の縁 */
+const openedCards = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
+      .filter((c) => c.checkVisibility())
+      .map((c) => {
+        const r = c.getBoundingClientRect();
+        const example = c.querySelector<HTMLElement>(".pg-tc-e");
+        return {
+          label: c.getAttribute("aria-label"),
+          name: (c.querySelector(".pg-tc-n")?.textContent ?? "").trim(),
+          text: (c.querySelector(".pg-tc-t")?.textContent ?? "").trim(),
+          example: (example?.textContent ?? "").trim(),
+          bandDiffers: example !== null && getComputedStyle(example).backgroundColor !== getComputedStyle(c).backgroundColor,
+          top: r.top,
+          left: r.left,
+          right: r.right,
+        };
+      }),
+  );
+
 /** 押す動きを 1 つの頁で順に測る。印刷の形は最後に切り替える */
 const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと確かめる問いと用語の下線を押してから印刷の形にする", () =>
   openGuide(
@@ -455,25 +546,7 @@ const PRESSED = await atLoad("説明の頁を開き、左の目次の問いと�
       const term = await step("用語の下線を押して札を開き、閉じる", async () => {
         const link = page.locator(".pg-sec:visible .pg-answer .pg-term", { hasText: "エージェント" }).first();
         const underline = await link.evaluate((el) => getComputedStyle(el).textDecorationLine);
-        const card = () =>
-          page.evaluate(() =>
-            [...document.querySelectorAll<HTMLElement>('[role="dialog"]')]
-              .filter((c) => c.checkVisibility())
-              .map((c) => {
-                const r = c.getBoundingClientRect();
-                const example = c.querySelector<HTMLElement>(".pg-tc-e");
-                return {
-                  label: c.getAttribute("aria-label"),
-                  name: (c.querySelector(".pg-tc-n")?.textContent ?? "").trim(),
-                  text: (c.querySelector(".pg-tc-t")?.textContent ?? "").trim(),
-                  example: (example?.textContent ?? "").trim(),
-                  bandDiffers: example !== null && getComputedStyle(example).backgroundColor !== getComputedStyle(c).backgroundColor,
-                  top: r.top,
-                  left: r.left,
-                  right: r.right,
-                };
-              }),
-          );
+        const card = () => openedCards(page);
         const before = await card();
         await link.click({ timeout: WAIT });
         const opened = await readUntil(card, (cards) => cards.length === 1, WAIT);
@@ -693,20 +766,47 @@ const MENU = await atLoad("左の目次と全体像の頁を開き、下へ送�
   ),
 );
 
+/** 全体像の頁で、図の後の段落の用語の下線を押し、開いた札と下線と全体像の縁を読む (#3969) */
+const OVERVIEW = await atLoad("全体像の頁を開き、全体像の図の後の段落の用語の下線を押して札を開く", () =>
+  openGuide(
+    async (page) => {
+      const step = inOrder();
+      const term = await step("全体像の図の後の段落の用語の下線を押し、開いた札を読む", async () => {
+        await figuresDrawn(page);
+        const link = page.locator("section.pg-overview .pg-term", { hasText: "エージェント" }).first();
+        const links = await link.count();
+        const before = await openedCards(page);
+        if (links === 0) return { links, before, opened: before, anchor: undefined };
+        await link.click({ timeout: WAIT });
+        const opened = await readUntil(() => openedCards(page), (cards) => cards.length === 1, WAIT);
+        const anchor = await link.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const box = el.closest("section.pg-overview")?.getBoundingClientRect();
+          return { bottom: r.bottom, boxLeft: box?.left ?? 0, boxRight: box?.right ?? 0 };
+        });
+        return { links, before, opened, anchor };
+      });
+      return { term };
+    },
+    { width: 1200, height: 900 },
+    writeOverviewGuide,
+  ),
+);
+
 describe("説明の頁 (#3876)", () => {
   it("guide-sections-stack-in-topics", async () => {
     const doc = await exportedGuide();
     if (!doc) return;
     expect(doc.body.classList.contains("pg-layout-guide"), "layout: guide の頁の組み立て").toBe(true);
-    expect(topicsOf(doc), "## の話題と、話題の中の ### の通し番号の節").toEqual([
+    expect(topicsOf(doc), "## の話題と、話題の中の ### の節。節の番号は話題ごとに1から数え直す").toEqual([
       {
         topic: "止める仕組み",
         sections: [
-          { number: "1", title: "何を止めるのか", hidden: false },
-          { number: "2", title: "どの順で確かめるのか", hidden: false },
+          { number: "1-1", title: "何を止めるのか", hidden: false },
+          { number: "1-2", title: "どの順で確かめるのか", hidden: false },
         ],
       },
-      { topic: "記録", sections: [{ number: "3", title: "どこに残すのか", hidden: false }] },
+      { topic: "記録", sections: [{ number: "2-1", title: "どこに残すのか", hidden: false }] },
       { topic: "用語", sections: [] },
     ]);
     const seen = PRESSED.get();
@@ -737,15 +837,15 @@ describe("説明の頁 (#3876)", () => {
   it("guide-question-list-jumps-to-section", () => {
     const seen = PRESSED.get();
     if (!seen) return;
-    expect(seen.list.get(), "左の目次の話題と、話題ごとの通し番号の問い").toEqual([
+    expect(seen.list.get(), "左の目次の話題と、話題ごとに1から数え直す番号の問い").toEqual([
       {
         topic: "止める仕組み",
         items: [
-          { number: "1", name: "何を止めるのか" },
-          { number: "2", name: "どの順で確かめるのか" },
+          { number: "1-1", name: "何を止めるのか" },
+          { number: "1-2", name: "どの順で確かめるのか" },
         ],
       },
-      { topic: "記録", items: [{ number: "3", name: "どこに残すのか" }] },
+      { topic: "記録", items: [{ number: "2-1", name: "どこに残すのか" }] },
       { topic: "用語", items: [] },
     ]);
     const jumped = seen.jumped.get();
@@ -959,18 +1059,18 @@ describe("左の目次と全体像 (#3961)", () => {
       {
         topic: "止める仕組み",
         questions: [
-          { number: "1", href: hrefs[0] },
-          { number: "2", href: hrefs[1] },
+          { number: "1-1", href: hrefs[0] },
+          { number: "1-2", href: hrefs[1] },
         ],
       },
       {
         topic: "記録",
         questions: [
-          { number: "3", href: hrefs[2] },
-          { number: "4", href: hrefs[3] },
+          { number: "2-1", href: hrefs[2] },
+          { number: "2-2", href: hrefs[3] },
         ],
       },
-      { topic: "送り直す仕組み", questions: [{ number: "5", href: hrefs[4] }] },
+      { topic: "送り直す仕組み", questions: [{ number: "3-1", href: hrefs[4] }] },
     ]);
     const seen = MENU.get();
     if (!seen) return;
@@ -1043,7 +1143,7 @@ describe("左の目次と全体像 (#3961)", () => {
     ).toEqual([true, true, true]);
   });
 
-  it("guide-topics-flow-with-running-numbers", async () => {
+  it("guide-topics-flow-one-after-another", async () => {
     const doc = await exportedGuide(writeMenuGuide());
     if (!doc) return;
     expect(doc.querySelectorAll('.pg-topics, .pg-qlist, [role="tablist"]').length, "話題のタブか、タブの頭の問いの一覧が残る").toBe(0);
@@ -1053,11 +1153,11 @@ describe("左の目次と全体像 (#3961)", () => {
         hidden: topic.closest("[hidden]") !== null,
         numbers: [...topic.querySelectorAll(".pg-sec-title .pg-num")].map((num) => squash(num.textContent)),
       })),
-      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む通し番号の節",
+      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む節。節の番号は話題ごとに1から数え直す",
     ).toEqual([
-      { title: "止める仕組み", hidden: false, numbers: ["1", "2"] },
-      { title: "記録", hidden: false, numbers: ["3", "4"] },
-      { title: "送り直す仕組み", hidden: false, numbers: ["5"] },
+      { title: "止める仕組み", hidden: false, numbers: ["1-1", "1-2"] },
+      { title: "記録", hidden: false, numbers: ["2-1", "2-2"] },
+      { title: "送り直す仕組み", hidden: false, numbers: ["3-1"] },
     ]);
   });
 
@@ -1100,5 +1200,105 @@ describe("左の目次と全体像 (#3961)", () => {
     expect(opened?.toggle?.expanded, "幅390pxでボタンを押しても目次が開いた印にならない").toBe("true");
     expect(opened?.shown, "幅390pxでボタンを押した後に見えている目次の問いの数").toBe(5);
     expect(opened?.overflow, "幅390pxで目次を開いた頁が横にはみ出す").toBe(0);
+  });
+});
+
+/**
+ * 全体像の図の後の段落と、話題ごとに数え直す問いの番号 (#3969)。
+ *
+ * 頭の中身のうち図の前の文は頁の頭に残し、図の後の段落は全体像 (`section.pg-overview`) の中で図の直後、話題の道筋の前に書いた順に出す。
+ * その段落の用語のリンクも、頭の文と同じく押すと札がすぐ下に開く下線になる。
+ * 問いの番号は話題ごとに1から数え直し、目次と節の題に「話題の番号-問いの番号」で出す。用語の話題は問いも番号も持たない。
+ */
+describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
+  it("guide-overview-keeps-text-after-figure", async () => {
+    const doc = await exportedGuide(writeOverviewGuide());
+    if (!doc) return;
+    const header = doc.querySelector("header.pg-top");
+    const overview = doc.querySelector("section.pg-overview");
+    expect(overview, "頭の図の全体像 (section.pg-overview) が無い").not.toBeNull();
+    const top = textWithout(header ?? doc.createElement("header"), ".pg-tc");
+    expect(top, "図の前の文が頁の頭 (header.pg-top) に無い").toContain(BEFORE_FIGURE);
+    expect(
+      AFTER_FIGURE.filter((text) => top.includes(text)),
+      "図の後の段落が図の上の頁の頭 (header.pg-top) に出る",
+    ).toEqual([]);
+    // 全体像の中は、図、図の後の段落を書いた順、話題の道筋の順に並ぶ。札と図と道筋の中の段落は数えない
+    expect(
+      [...(overview?.querySelectorAll(".pg-figure, p, ol.pg-route") ?? [])]
+        .filter((el) => !el.parentElement?.closest(".pg-figure, ol.pg-route, .pg-tc"))
+        .map((el) => (el.matches(".pg-figure") ? "図" : el.matches("ol.pg-route") ? "道筋" : squash(el.textContent))),
+      "全体像の中の図と、図の後の段落と、話題の道筋 (ol.pg-route) の並び",
+    ).toEqual(["図", ...AFTER_FIGURE, "道筋"]);
+    expect(textWithout(overview ?? doc.createElement("section"), ".pg-tc"), "図の前の文が全体像の中にも出る").not.toContain(BEFORE_FIGURE);
+    expect(
+      AFTER_FIGURE.map((text) => [...doc.querySelectorAll("p")].filter((p) => !p.closest(".pg-tc") && squash(p.textContent) === text).length),
+      "図の後の段落が頁に出る数",
+    ).toEqual(AFTER_FIGURE.map(() => 1));
+  });
+
+  it("guide-overview-text-opens-term-card", async () => {
+    const doc = await exportedGuide(writeOverviewGuide());
+    if (!doc) return;
+    // 図の後の段落の用語のリンクは、押すと札が開く下線になり、札は同じ全体像の中の札の置き場に在る
+    const overview = doc.querySelector("section.pg-overview");
+    const terms = [...(overview?.querySelectorAll(".pg-term") ?? [])].map((term) => {
+      const box = term.closest("[data-terms]");
+      const key = term.getAttribute("data-term") ?? "";
+      return {
+        text: squash(term.textContent),
+        tag: term.tagName.toLowerCase(),
+        inOverview: box !== null && box.closest("section.pg-overview") === overview,
+        card: [...(box?.querySelectorAll(".pg-tc") ?? [])].filter((card) => card.getAttribute("data-term") === key).length,
+      };
+    });
+    expect(terms, "全体像の図の後の段落の用語の下線 (.pg-term) と、同じ全体像の中の札の置き場の札の数").toEqual([
+      { text: "エージェント", tag: "button", inOverview: true, card: 1 },
+    ]);
+    const seen = OVERVIEW.get();
+    if (!seen) return;
+    const term = seen.term.get();
+    expect(term.links, "頁の全体像に用語の下線が無い").toBe(1);
+    expect(term.before, "押す前に札が開いている").toEqual([]);
+    expect(
+      term.opened.map(({ label, name, text, example }) => ({ label, name, text, example })),
+      "全体像の段落で押した用語の札",
+    ).toEqual([{ label: "エージェント", name: "エージェント", text: "利用者に代わって送金を組み立てるプログラム。", example: "毎朝の支払いを自動で頼む" }]);
+    const card = term.opened[0];
+    const anchor = term.anchor;
+    if (!card || !anchor) return;
+    expect(card.top - anchor.bottom, "札の上の縁が下線のすぐ下に無い").toBeGreaterThanOrEqual(0);
+    expect(card.top - anchor.bottom, "札の上の縁が下線のすぐ下に無い").toBeLessThanOrEqual(CARD_GAP_MAX);
+    expect(card.left, "札が全体像の左へはみ出す").toBeGreaterThanOrEqual(anchor.boxLeft - 0.5);
+    expect(card.right, "札が全体像の右へはみ出す").toBeLessThanOrEqual(anchor.boxRight + 0.5);
+  });
+
+  it("guide-numbers-restart-per-topic", async () => {
+    const doc = await exportedGuide(writeOverviewGuide());
+    if (!doc) return;
+    const want = [
+      { topic: "止める仕組み", numbers: ["1-1", "1-2"] },
+      { topic: "記録", numbers: ["2-1"] },
+      { topic: "送り直す仕組み", numbers: ["3-1", "3-2"] },
+      { topic: "用語", numbers: [] },
+    ];
+    expect(
+      menuOf(doc).map(({ topic, questions }) => ({ topic, numbers: questions.map((q) => q.number) })),
+      "左の目次の問いの番号。話題ごとに1から数え直し、話題の番号-問いの番号で出す",
+    ).toEqual(want);
+    expect(
+      [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
+        topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
+        numbers: [...topic.querySelectorAll(".pg-sec-title .pg-num")].map((num) => squash(num.textContent)),
+      })),
+      "本文の節の題の番号。左の目次の問いと同じ番号",
+    ).toEqual(want);
+    // 用語の話題は、目次の行にも本文の話題にも番号を出さない
+    const glossary = [...doc.querySelectorAll("section.pg-topic")].find((topic) => squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent) === "用語");
+    const row = [...doc.querySelectorAll("nav.pg-menu .pg-menu-topic")].find((el) => textWithout(el, "a.pg-menu-q") === "用語");
+    expect(
+      { topic: glossary !== undefined, row: row !== undefined, numbers: (glossary?.querySelectorAll(".pg-num").length ?? 0) + (row?.querySelectorAll(".pg-num").length ?? 0) },
+      "用語の話題と目次の行の番号 (.pg-num) の数",
+    ).toEqual({ topic: true, row: true, numbers: 0 });
   });
 });
