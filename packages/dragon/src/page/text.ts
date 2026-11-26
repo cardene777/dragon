@@ -12,16 +12,14 @@ export interface PageWords {
   overview: string;
   /** 入口の項目の札を並べた所の見出し */
   choose: string;
-  /** 目次の読み上げの名前 */
+  /** 目次の読み上げの名前。説明の頁 (#3961) では、携帯の幅で目次を開く釦の字にもする */
   contents: string;
   /** 上の段のタブの、段が持つ項目の数 */
   count: (n: number) => string;
   /** 注意書きに題を書かない時の題 */
   alerts: Readonly<Record<AlertKind, string>>;
-  /** 説明の頁 (#3876) の話題のタブの並びの読み上げの名前 */
+  /** 説明の頁 (#3876) の全体像の、話題を書いた順に並べた道筋の読み上げの名前 (#3961) */
   topics: string;
-  /** 説明の頁のタブの頭の、節の題を並べた一覧の見出し */
-  questions: string;
   /** 確かめる問いの枠の見出し */
   quiz: string;
   /** 確かめる問いの答えを開く釦の字 */
@@ -51,8 +49,10 @@ export interface PageMessages {
   tabBeforeItem: string;
   /** `####` のタブの外に `#####` のタブを書いた */
   subTabOutsideTab: string;
-  /** 説明の頁で、`##` の話題のタブより前に `###` の節を書いた (#3876) */
+  /** 説明の頁で、`##` の話題より前に `###` の節を書いた (#3876) */
   sectionBeforeTopic: string;
+  /** 説明の頁の節の題の終わりの `[menu: ]` に名前を書かない (#3961) */
+  emptyMenuName: string;
   /** 用語の file に同じ用語を 2 度書いた。`first` は最初に書いた file と行 */
   termTwice: (name: string, first: string) => string;
   /** 用語の file に無い用語への link を書いた */
@@ -78,8 +78,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     contents: "目次",
     count: (n) => `${n}個の項目`,
     alerts: { note: "メモ", tip: "ヒント", important: "大事な点", warning: "注意", caution: "警告" },
-    topics: "話題",
-    questions: "このタブで答える問い",
+    topics: "話題の順",
     quiz: "確かめる",
     answer: "答え",
     close: "閉じる",
@@ -90,8 +89,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     contents: "Contents",
     count: (n) => (n === 1 ? "1 item" : `${n} items`),
     alerts: { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution" },
-    topics: "Topics",
-    questions: "Questions this tab answers",
+    topics: "Topics in order",
     quiz: "Check",
     answer: "Answer",
     close: "Close",
@@ -110,7 +108,8 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
     itemBeforeGroup: "### の項目は ## の段の下に書く",
     tabBeforeItem: "段の中の #### のタブは ### の項目の下に書く",
     subTabOutsideTab: "##### のタブは #### のタブの下に書く",
-    sectionBeforeTopic: "### の節は ## の話題のタブの下に書く",
+    sectionBeforeTopic: "### の節は ## の話題の下に書く",
+    emptyMenuName: "[menu: ] に目次に出す短い名前が無い。名前を書くか、[menu: ] を消して問いの全文を目次に出す",
     termTwice: (name, first) => `用語 ${name} を2度書いた (最初は ${first})。1つの用語の説明は1か所にだけ書く`,
     missingTerm: (name, glossary) => `用語の file ${glossary} に用語 ${name} が無い。### の見出しで用語を書く`,
     noFile: (target) => `載せる file が無い: ${target}`,
@@ -132,6 +131,7 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
     tabBeforeItem: "Write a #### tab in a group under a ### item",
     subTabOutsideTab: "Write a ##### tab under a #### tab",
     sectionBeforeTopic: "Write a ### section under a ## topic",
+    emptyMenuName: "[menu: ] has no short name for the menu. Write the name, or remove [menu: ] to show the whole question in the menu",
     termTwice: (name, first) => `The term ${name} is written twice (first at ${first}). Write each term once`,
     missingTerm: (name, glossary) => `No term ${name} in the glossary ${glossary}. Write the term as a ### heading`,
     noFile: (target) => `No such file to include: ${target}`,

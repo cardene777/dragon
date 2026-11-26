@@ -60,7 +60,7 @@ const detail = (error: unknown): string => (error instanceof Error ? error.messa
 /** `path` が `root` の中か */
 const inside = (root: string, path: string): boolean => path === root || path.startsWith(root.endsWith(sep) ? root : `${root}${sep}`);
 
-/** 用語の file の 1 つの用語。`key` は link の `#` の後ろと突き合わせる名前、`entry` は「用語」のタブの中の場所の名前 */
+/** 用語の file の 1 つの用語。`key` は link の `#` の後ろと突き合わせる名前、`entry` は「用語」の話題の中の場所の名前 */
 interface Term {
   key: string;
   name: string;
@@ -145,7 +145,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     const rows = notation.split("\n");
     for (const box of parsed.diagram.blocks.box ?? []) {
       const link = box.link;
-      // 説明の頁の図の箱は、話題のタブと節と用語のタブのほかに、「用語」のタブの中の用語へも結べる
+      // 説明の頁の図の箱は、話題と節と用語の話題のほかに、「用語」の話題の中の用語へも結べる
       const entries = [...terms.values()].map((term) => term.entry);
       if (link === undefined || !link.startsWith("#") || placeExists(outline, link.slice(1).split("/"), entries)) continue;
       const at = rows.findIndex((row) => new RegExp(`\\blink:\\s*"?${link.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?=$|[\\s,\\]"])`, "u").test(row));
@@ -182,7 +182,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   // 説明の頁の用語 (#3876)。頁の頭で読み込んだ用語の file を全て読み、用語の名前ごとに 1 つだけ持つ
   const guide = outline.guide;
   const terms = new Map<string, Term>();
-  /** 用語の file の実の path と、その用語のタブの場所の名前 */
+  /** 用語の file の実の path と、その用語の話題の場所の名前 */
   const glossaryTabs = new Map<string, string>();
   const glossaryLists: { name: string; id: string; terms: Term[] }[] = [];
   const entryId = slugger(guide?.ids ?? []);
@@ -205,7 +205,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     glossaryLists.push({ name: g.name, id: g.id, terms: list });
   }
 
-  /** link の行き先が用語の file を指すなら、その用語のタブと、`#` の後ろの名前と、名前に当たる用語。用語の file でなければ `undefined` */
+  /** link の行き先が用語の file を指すなら、その用語の話題と、`#` の後ろの名前と、名前に当たる用語。用語の file でなければ `undefined` */
   const termOf = (source: Source, href: string): { tab: string; anchor?: string; term?: Term } | undefined => {
     if (glossaryTabs.size === 0 || SCHEME.test(href) || href.startsWith("#") || href.startsWith("/")) return undefined;
     const hash = href.indexOf("#");
@@ -260,7 +260,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
       cards.set(found.term.key, found.term);
       return `<button type="button" class="pg-term" data-term="${escapeHtml(found.term.key)}" aria-expanded="false">${label}</button>`;
     };
-  /** 用語の説明の中の用語の link は、「用語」のタブの中のその用語の場所へ移る link にする */
+  /** 用語の説明の中の用語の link は、「用語」の話題の中のその用語の場所へ移る link にする */
   const entryLink =
     (source: Source) =>
     (href: string, label: string): string | undefined => {
@@ -342,6 +342,8 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     checkTermLinks({ name: file, path }, linesOf(text));
     for (const term of terms.values()) checkTermLinks(term.source, [...term.text, ...term.example]);
     const lead = withCards(() => blocks(g.lead));
+    // 頭の中身の最初の図は、頁の頭の全体像に描く (#3961)
+    const overview = blocks(g.overview);
     const topics: RenderedGuide["topics"] = g.topics.map((topic) => {
       const intro = withCards(() => blocks(topic.lead));
       return {
@@ -355,12 +357,19 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
             if (section.answer) answer = renderInline(joinLines(section.answer.map((line) => line.text).filter((t) => t.trim() !== "")), main);
             return blocks(section.body);
           });
-          return { id: section.id, name: renderInline(section.name, main), ...(answer === undefined ? {} : { answer }), body: body.html, terms: body.terms };
+          return {
+            id: section.id,
+            name: renderInline(section.name, main),
+            ...(section.menu === undefined ? {} : { menu: renderInline(section.menu, main) }),
+            ...(answer === undefined ? {} : { answer }),
+            body: body.html,
+            terms: body.terms,
+          };
         }),
       };
     });
     for (const list of glossaryLists) topics.push({ id: list.id, name: escapeHtml(list.name), lead: "", leadTerms: [], sections: [], glossary: list.terms.map(termHtml) });
-    return { lead: lead.html, leadTerms: lead.terms, topics };
+    return { lead: lead.html, leadTerms: lead.terms, overview, topics };
   };
   const tab = (t: Tab): RenderedTab => ({ id: t.id, name: renderInline(t.name, main), body: blocks(t.body), tabs: t.tabs.map(tab) });
   const part = (p: Part): RenderedPart => ({ lead: blocks(p.lead), tabs: p.tabs.map(tab) });

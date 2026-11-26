@@ -10,14 +10,16 @@ Write the page in Markdown with `layout: guide` between `---` lines at the top.
 | Write | Becomes |
 |---|---|
 | `# <title>` | The page title |
-| Text before the first `##` | The opening, shown above the tabs |
-| `## <topic>` | A topic tab. Put related questions under one topic |
-| `### <question>` | A numbered section. The top of each tab lists its questions, and a click scrolls to the section |
+| Text before the first `##` | The opening, shown at the top of the page |
+| A ```` ```dragon ```` fence before the first `##` | The overview at the top of the page, followed by the topics in order |
+| `## <topic>` | A topic. Put related questions under one topic. Topics follow one another on one page |
+| `### <question>` | A numbered section. The menu on the left lists every question, and a click scrolls to the section |
+| `[menu: <short name>]` at the end of a `###` | The short name the menu shows for a long question |
 | `> <answer>` right after a `###` | The one-sentence answer, shown under the question |
 | A ```` ```dragon ```` fence | A figure. Write one sentence before it that says what to look at |
 | `<details>` with a `<summary>` | A check question whose answer opens on a click |
 | `note: pop` at the top | Every box note becomes a card that opens on a click ([cheatsheet](cheatsheet.md)) |
-| An image line `![Terms]` that points at a terms file such as `glossary.md`, before the first `##` | A Terms tab from that file, where each `###` is a term with its meaning and a `>` example |
+| An image line `![Terms]` that points at a terms file such as `glossary.md`, before the first `##` | A Terms topic at the end of the page from that file, where each `###` is a term with its meaning and a `>` example |
 
 Follow the plan: one `###` per question, its answer, then its 2 to 4 figures in the order the plan gives.
 

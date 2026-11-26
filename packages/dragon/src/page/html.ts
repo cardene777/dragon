@@ -5,7 +5,9 @@
  * 組み立て `entry` は入口に全体の図と段ごとの項目の札を並べ、札を押すと項目の頁へ移り、項目の頁の戻る link で入口へ戻る。
  * `sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブで項目を選ぶ。
  * 項目の頁の中は `####` の見出しのタブ (`data-level="4"`)、その中は `#####` の見出しのタブ (`data-level="5"`) に分ける。
- * `guide` (#3876) は上に話題のタブを並べ、タブの頭に節の題を番号つきで並べた問いの一覧を置き、その下に番号つきの節を縦に積む。
+ * `guide` (#3876、#3961) は左の目次に全ての話題と問いを並べ、右に話題と番号つきの節を1つの頁に続けて積む。番号は話題をまたいで1から数える。
+ * 目次は広い画面で画面に留まり、読んでいる節の問いに印 (`aria-current`) を付ける。携帯の幅では本文の上に畳み、釦で開く。
+ * 頭の中身に図を書いた頁は、頁の頭にその図と、話題を書いた順に並べた道筋を全体像として置く。
  * 用語の札は押した下線のすぐ下に開き、見た目と開け閉めは図の箱の札 (`blocks/pop/cards.ts`) の値 (`LOOK.note`、`TYPE.note*`) に揃える。
  * 印刷の形では、用語の札を節の終わりに全て開いて並べ、確かめる問いの答えを全て開く。
  *
@@ -61,16 +63,17 @@ export interface RenderedTerm {
   example?: string;
 }
 
-/** 説明の頁の節。`terms` は節の中の下線が開く札 */
+/** 説明の頁の節。`terms` は節の中の下線が開く札、`menu` は左の目次に出す短い名前 (#3961) */
 export interface RenderedSection {
   id: string;
   name: string;
+  menu?: string;
   answer?: string;
   body: string;
   terms: RenderedTerm[];
 }
 
-/** 説明の頁の話題のタブ。`glossary` を持つタブは用語のタブで、節を持たない */
+/** 説明の頁の話題。`glossary` を持つ話題は用語の話題で、節を持たない */
 export interface RenderedTopic {
   id: string;
   name: string;
@@ -80,9 +83,11 @@ export interface RenderedTopic {
   glossary?: RenderedTerm[];
 }
 
+/** 説明の頁。`overview` は頭の中身の最初の図のHTMLで、図が無い頁は空の字 (#3961) */
 export interface RenderedGuide {
   lead: string;
   leadTerms: RenderedTerm[];
+  overview: string;
   topics: RenderedTopic[];
 }
 
@@ -251,22 +256,32 @@ const N = LOOK.note;
 const font = (t: TextStyle): string => `font-size:${t.size}px;font-weight:${t.weight}`;
 
 const STYLE_GUIDE = `
-.pg-guide{max-width:980px}
+.pg-guide{max-width:1180px}
 .pg-top .pg-lead{position:relative}
-.pg-topics{display:flex;gap:4px;border-bottom:1px solid var(--pg-hair);margin:6px 0 18px;overflow-x:auto}
-.pg-topics [role="tab"]{font:inherit;font-size:14.5px;cursor:pointer;color:var(--pg-ink2);border:0;border-bottom:2px solid transparent;background:none;padding:8px 14px;white-space:nowrap}
-.pg-topics [role="tab"]:hover{color:var(--pg-ink)}
-.pg-topics [role="tab"][aria-selected="true"]{color:var(--pg-ink);font-weight:700;border-bottom-color:var(--pg-t-blue)}
-.pg-topics [role="tab"]:focus-visible,.pg-qlist a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
-.pg-topic:not([hidden]){animation:pg-panel .22s ease}
-@media (prefers-reduced-motion:reduce){.pg-topic:not([hidden]){animation:none}}
+.pg-overview{margin:6px 0 26px}
+.pg-overview .pg-figure{margin:0 0 12px}
+.pg-route{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pg-route li{display:flex;align-items:center;gap:8px;min-width:0}
+.pg-route li+li::before{content:"\\2192";color:var(--pg-mute)}
+.pg-route a{display:block;min-width:0;border:1px solid var(--pg-hair);border-left:4px solid var(--cc);border-radius:10px;background:var(--pg-surf);padding:6px 14px;font-size:14px;font-weight:600;line-height:1.5;color:var(--c);text-decoration:none}
+.pg-route a:hover{border-color:var(--cc)}
+.pg-body{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;align-items:start}
+.pg-menu{position:sticky;top:0;z-index:7;max-height:100vh;overflow:auto;padding:14px 4px 20px 0;font-size:13.5px;line-height:1.5}
+.pg-menu-toggle{display:none}
+.pg-menu-list{display:flex;flex-direction:column;gap:12px}
+.pg-menu-group ol{list-style:none;margin:2px 0 0;padding:0}
+.pg-menu-topic{display:block;padding:3px 8px;font-size:13px;font-weight:700;color:var(--c);text-decoration:none}
+.pg-menu-topic[aria-current="true"]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.pg-menu-q{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;color:var(--pg-ink2);text-decoration:none}
+.pg-menu-q:hover{background:var(--pg-sunk);color:var(--pg-ink)}
+.pg-menu-q[aria-current="true"]{background:var(--pg-surf);color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
+.pg-menu-q .pg-num{min-width:20px;height:20px;font-size:12px}
+.pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
+.pg-main{min-width:0;padding:14px 0 0}
+.pg-topic{margin:0 0 36px;scroll-margin-top:12px}
+.pg-topic-title{font-size:21px;line-height:1.4;margin:0 0 16px;padding:0 0 8px;color:var(--c);border-bottom:2px solid var(--cc)}
 .pg-topic-lead{position:relative;margin:0 0 14px}
-.pg-qlist{background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:var(--r);padding:12px 14px;margin:0 0 26px}
-.pg-qlist-h{font-size:13px;color:var(--pg-ink2);margin:0 0 6px}
-.pg-qlist ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:4px 16px}
-.pg-qlist a{display:flex;gap:8px;align-items:flex-start;color:var(--pg-ink);text-decoration:none;font-size:14px;line-height:1.6;padding:4px 6px;border-radius:8px}
-.pg-qlist a:hover{background:var(--pg-sunk)}
-.pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--pg-t-blue);color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;margin-top:1px}
+.pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--c,var(--pg-t-blue));color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;margin-top:1px}
 .pg-sec{position:relative;margin:0 0 34px;scroll-margin-top:12px}
 .pg-sec-title{display:flex;gap:10px;align-items:center;font-size:19px;line-height:1.5;margin:0 0 6px}
 .pg-sec-title .pg-num{min-width:28px;height:28px;font-size:15px;margin-top:0}
@@ -294,39 +309,60 @@ const STYLE_GUIDE = `
 .pg-q-btn{font:inherit;font-size:12.5px;border:1px solid var(--pg-hair);background:var(--pg-sunk);color:var(--pg-ink);border-radius:999px;padding:1px 12px;cursor:pointer}
 .pg-q-a{flex-basis:100%;color:var(--pg-t-green);font-weight:600}
 .pg-q-a p{margin:2px 0}
-@media (max-width:760px){.pg-sec-title{font-size:17px}.pg-answer{font-size:15px}}
+@media (max-width:860px){
+.pg-body{grid-template-columns:minmax(0,1fr);gap:0}
+.pg-menu{max-height:none;overflow:visible;padding:8px 0;background:var(--pg-bg);border-bottom:1px solid var(--pg-hair)}
+.pg-menu-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font:inherit;font-size:14px;font-weight:600;color:var(--pg-ink);background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:10px;padding:8px 14px;cursor:pointer}
+.pg-menu-toggle svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pg-menu-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+.pg-menu-toggle[aria-expanded="false"]+.pg-menu-list{display:none}
+.pg-menu-list{max-height:calc(100vh - 72px);overflow:auto;padding:10px 0 4px}
+.pg-topic,.pg-sec,.pg-gl{scroll-margin-top:68px}
+}
+@media (max-width:760px){.pg-topic-title{font-size:19px}.pg-sec-title{font-size:17px}.pg-answer{font-size:15px}}
 @media print{
 .pg-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:10px 0}
 .pg-tc{display:block;position:static;width:auto!important;max-width:none;box-shadow:none;break-inside:avoid}
 .pg-tc-x,.pg-q-btn{display:none}
 .pg-q-a[hidden]{display:block!important}
-.pg-topic:not([hidden]){animation:none}
+.pg-menu,.pg-menu-toggle{display:none!important}
+.pg-body{display:block}
+.pg-topic+.pg-topic{break-before:page}
 }
 `;
 
 /**
- * 説明の頁の script (#3876)。頁のURLの `#` の後ろの場所の名前を読み、その場所を持つ話題のタブを開いて場所へ移る。無い名前は最初のタブを開く。
- * 話題のタブを押すと URL を書き換えて履歴を増やさない。問いの一覧の問いと図の箱の link は URL を変えて節へ移る。
+ * 説明の頁の script (#3876、#3961)。左の目次が指す問いと話題のうち、上の縁が画面の上の縁から80pxの線を過ぎた最後の物に印 (`aria-current="true"`) を1つだけ付ける。
+ * 線は節へ移った時の節の上の余白 (`scroll-margin-top`) より下に置き、移った節に印が付くようにする。携帯の幅では、線を本文の上に留めた目次の下の縁から測る。目次のlinkと図の箱のlinkは頁の中の場所へ移り、頁のURLに場所の名前を残す。
+ * 頁を開いた時とURLの場所の名前が変わった時は、その場所へ移る。携帯の幅の目次は釦で開け閉めし、目次のlinkを押すと畳む。
  * 用語の下線を押すと、その節の札を下線のすぐ下に開き、札の外か閉じるのアイコンか同じ下線を押すと閉じる。確かめる問いの釦は答えを開けて閉じる
  */
 const RUNTIME_GUIDE = `(()=>{
-const tabs=[...document.querySelectorAll('.pg-topics [role="tab"]')];
-const panels=tabs.map((t)=>document.getElementById(t.getAttribute("aria-controls")));
-const hash=()=>{let h=location.hash.slice(1);try{h=decodeURIComponent(h)}catch(e){}return h};
-const show=(panel)=>{tabs.forEach((t,i)=>{const on=panels[i]===panel;t.setAttribute("aria-selected",String(on));t.tabIndex=on?0:-1;panels[i].hidden=!on})};
+const decode=(h)=>{try{return decodeURIComponent(h)}catch(e){return h}};
 let opened=null;
 const close=()=>{if(!opened)return;opened.card.removeAttribute("data-open");opened.term.setAttribute("aria-expanded","false");opened=null};
 const open=(term)=>{const again=opened&&opened.term===term;close();if(again)return;const box=term.closest("[data-terms]");const card=box&&[...box.querySelectorAll(".pg-tc")].find((c)=>c.dataset.term===term.dataset.term);if(!card)return;const f=box.getBoundingClientRect();const r=term.getBoundingClientRect();const w=Math.min(${N.card},f.width);card.style.width=w+"px";card.style.left=Math.max(0,Math.min(r.left+r.width/2-f.left-w/2,f.width-w))+"px";card.style.top=(r.bottom-f.top+${N.gap})+"px";card.dataset.open="";term.setAttribute("aria-expanded","true");opened={term,card}};
-const route=(first)=>{const h=hash();const target=h?document.getElementById(h):null;const panel=(target&&panels.find((p)=>p&&p.contains(target)))||panels[0];if(!panel)return;const moved=panel.hidden;close();show(panel);if(target&&target!==panel)target.scrollIntoView();else if(moved&&!first)scrollTo(0,0)};
+const menu=document.querySelector(".pg-menu");
+const toggle=document.querySelector(".pg-menu-toggle");
+const links=menu?[...menu.querySelectorAll('a[href^="#"]')]:[];
+const targets=links.map((a)=>document.getElementById(decode(a.getAttribute("href").slice(1))));
+const phone=matchMedia("(max-width:860px)");
+const fold=(on)=>{if(toggle)toggle.setAttribute("aria-expanded",String(!on))};
+let marked=null;
+const spy=()=>{const line=(phone.matches&&menu?menu.getBoundingClientRect().bottom:0)+80;let now=null;targets.forEach((t,i)=>{if(t&&t.getBoundingClientRect().top<=line)now=links[i]});if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
+let queued=false;
+addEventListener("scroll",()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;spy()})},{passive:true});
+addEventListener("resize",spy);
+const go=()=>{const h=decode(location.hash.slice(1));const target=h?document.getElementById(h):null;if(target)target.scrollIntoView();spy()};
 document.addEventListener("click",(event)=>{const t=event.target;
-const tab=t.closest?.('.pg-topics [role="tab"]');if(tab){close();show(panels[tabs.indexOf(tab)]);history.replaceState(null,"","#"+tab.dataset.topic);return}
 const term=t.closest?.(".pg-term");if(term){open(term);return}
 if(opened&&(t.closest?.(".pg-tc-x")||!opened.card.contains(t)))close();
 const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;return}
-const link=t.closest?.('a[href^="#"]');if(link){let to=link.getAttribute("href").slice(1);try{to=decodeURIComponent(to)}catch(e){}if(to===hash()){event.preventDefault();route(false)}}});
-document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();return}const tab=event.target.closest?.('.pg-topics [role="tab"]');if(!tab)return;const i=tabs.indexOf(tab);const to={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:tabs.length-1}[event.key];if(to===undefined)return;event.preventDefault();const next=tabs[(to+tabs.length)%tabs.length];next.focus();next.click()});
-addEventListener("hashchange",()=>route(false));
-route(true);
+if(t.closest?.(".pg-menu-toggle")){fold(toggle.getAttribute("aria-expanded")==="true");return}
+if(t.closest?.(".pg-menu a"))fold(true)});
+document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();fold(true)}});
+addEventListener("hashchange",go);
+go();
 })();`;
 
 /**
@@ -471,45 +507,73 @@ function termCards(terms: readonly RenderedTerm[], lang: PageLang): string {
   return `<div class="pg-tcards">${cards}</div>`;
 }
 
-/** 話題のタブの中身。用語のタブは用語ごとの説明と例を並べ、ほかのタブは頭に問いの一覧を置いて番号つきの節を縦に積む */
-function topicHtml(topic: RenderedTopic, lang: PageLang): string {
-  const words = WORDS[lang];
+/** 携帯の幅で目次を開け閉めする釦の矢印 (24の升の中の下向きの折れ線) */
+const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
+
+/** 話題の中身。頭に話題の題を置き、用語の話題は用語ごとの説明と例を並べ、ほかの話題は通し番号 (`first` から数える) の節を縦に積む */
+function topicHtml(topic: RenderedTopic, lang: PageLang, first: number): string {
+  const title = `<h2 class="pg-topic-title">${withoutLinks(topic.name)}</h2>`;
   if (topic.glossary) {
     const entries = topic.glossary
       .map((term) => `<div class="pg-gl" id="${escapeHtml(term.entry)}"><p class="pg-gl-n">${term.name}</p><div class="pg-gl-t">${term.text}</div>${term.example === undefined ? "" : `<div class="pg-gl-e">${term.example}</div>`}</div>`)
       .join("");
-    return `<div class="pg-glossary">${entries}</div>`;
+    return `${title}<div class="pg-glossary">${entries}</div>`;
   }
-  const list =
-    topic.sections.length === 0
-      ? ""
-      : `<nav class="pg-qlist" aria-label="${escapeHtml(words.questions)}"><p class="pg-qlist-h">${escapeHtml(words.questions)}</p><ol>${topic.sections
-          .map((section, n) => `<li><a href="#${escapeHtml(section.id)}"><span class="pg-num">${n + 1}</span> <span>${withoutLinks(section.name)}</span></a></li>`)
-          .join("")}</ol></nav>`;
   const lead = topic.lead || topic.leadTerms.length > 0 ? `<div class="pg-topic-lead" data-terms>${topic.lead}${termCards(topic.leadTerms, lang)}</div>` : "";
   const sections = topic.sections
     .map(
       (section, n) =>
-        `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h2 class="pg-sec-title"><span class="pg-num">${n + 1}</span><span>${section.name}</span></h2>` +
+        `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h3 class="pg-sec-title"><span class="pg-num">${first + n}</span><span>${section.name}</span></h3>` +
         `${section.answer === undefined ? "" : `<p class="pg-answer">${section.answer}</p>`}${section.body}${termCards(section.terms, lang)}</section>`,
     )
     .join("");
-  return list + lead + sections;
+  return title + lead + sections;
 }
 
-/** 説明の頁 (#3876)。頁の題と頭の中身、話題のタブ、タブごとの中身 */
+/** 左の目次 (#3961)。話題ごとに話題の名前と、通し番号と目次の名前 (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる。用語の話題は問いを持たない */
+function menuHtml(topics: readonly RenderedTopic[], firsts: readonly number[], lang: PageLang): string {
+  const words = WORDS[lang];
+  const groups = topics
+    .map((topic, i) => {
+      const questions = topic.sections
+        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}"><span class="pg-num">${(firsts[i] ?? 1) + n}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
+        .join("");
+      return `<div class="pg-menu-group" style="${groupColor(i)}"><a class="pg-menu-topic" href="#${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</a>${questions ? `<ol>${questions}</ol>` : ""}</div>`;
+    })
+    .join("");
+  const label = escapeHtml(words.contents);
+  return (
+    `<nav class="pg-menu" aria-label="${label}"><button type="button" class="pg-menu-toggle" aria-expanded="false" aria-controls="pg-menu-list"><span>${label}</span>${FOLD_ICON}</button>` +
+    `<div class="pg-menu-list" id="pg-menu-list">${groups}</div></nav>`
+  );
+}
+
+/** 頁の頭の全体像 (#3961)。頭の中身の最初の図と、`##` の話題を書いた順に並べた道筋。図の無い頁は空の字 */
+function overviewHtml(guide: RenderedGuide, lang: PageLang): string {
+  if (!guide.overview) return "";
+  const words = WORDS[lang];
+  const route = guide.topics
+    .flatMap((topic, i) => (topic.glossary ? [] : [`<li style="${groupColor(i)}"><a href="#${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</a></li>`]))
+    .join("");
+  return `<section class="pg-overview" aria-label="${escapeHtml(words.overview)}">${guide.overview}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
+}
+
+/** 説明の頁 (#3876、#3961)。頁の題と頭の中身、全体像、左の目次と、続けて積む話題 */
 function guideLayout(page: RenderedPage): string {
-  const guide = page.guide ?? { lead: "", leadTerms: [], topics: [] };
-  const words = WORDS[page.lang];
+  const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", topics: [] };
   const lead = guide.lead || guide.leadTerms.length > 0 ? `<div class="pg-lead" data-terms>${guide.lead}${termCards(guide.leadTerms, page.lang)}</div>` : "";
-  const tabs = guide.topics
-    .map((topic, i) => `<button type="button" role="tab" id="G-tab-${i + 1}" aria-controls="${escapeHtml(topic.id)}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" data-topic="${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</button>`)
+  // 節の番号は話題をまたいで1から数える
+  const firsts: number[] = [];
+  let next = 1;
+  for (const topic of guide.topics) {
+    firsts.push(next);
+    next += topic.sections.length;
+  }
+  const topics = guide.topics
+    .map((topic, i) => `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, firsts[i] ?? 1)}</section>`)
     .join("");
-  const nav = guide.topics.length === 0 ? "" : `<nav class="pg-topics" role="tablist" aria-label="${escapeHtml(words.topics)}">${tabs}</nav>`;
-  const panels = guide.topics
-    .map((topic, i) => `<section role="tabpanel" class="pg-topic" id="${escapeHtml(topic.id)}" aria-labelledby="G-tab-${i + 1}" data-topic="${escapeHtml(topic.id)}"${i === 0 ? "" : " hidden"}>${topicHtml(topic, page.lang)}</section>`)
-    .join("");
-  return `<div class="pg-wrap pg-guide"><header class="pg-top"><h1>${page.title}</h1>${lead}</header>${nav}${panels}</div>`;
+  const body = guide.topics.length === 0 ? "" : `<div class="pg-body">${menuHtml(guide.topics, firsts, page.lang)}<main class="pg-main">${topics}</main></div>`;
+  return `<div class="pg-wrap pg-guide"><header class="pg-top"><h1>${page.title}</h1>${lead}</header>${overviewHtml(guide, page.lang)}${body}</div>`;
 }
 
 /**
