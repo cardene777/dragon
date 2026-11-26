@@ -130,6 +130,73 @@ const SEEN = await atLoad("帯つきの段のある図を置いた頁を開き�
   ),
 );
 
+/** 縦に長い順の図の段の数 */
+const TALL_STEPS = 8;
+
+/** 縦に長い順の図。順の図は全ての段の線を初めから薄く描くので、どの段の止め絵も 32 本の線の高さを持つ */
+const TALL =
+  "sequence 縦に長い順の図\n\nbox ask as 頼む所\nbox take as 受ける所\nbox check as 照らす所\nbox keep as 残す所\n\n" +
+  Array.from(
+    { length: TALL_STEPS },
+    (_, i) => `step 段${i + 1}\n  say ${i + 1}つ目の段で依頼を進める。\n  ask -> take: 依頼${i + 1}\n  take -> check: 照らす${i + 1}\n  check -> take: 答え${i + 1}\n  take -> keep: 残す${i + 1}\n`,
+  ).join("");
+
+/** 縦に長い図を印刷の形で測る枠。紙の頁と同じく縦に長い */
+const PAPER = { width: 1000, height: 1400 };
+
+const TALL_SEEN = await atLoad("縦に長い帯つきの順の図を置いた頁を幅1000px、高さ1400pxで開き、印刷の形の止め絵の高さと頁の改め方を読む", () =>
+  within(
+    withSite(
+      { "index.html": cdnPage(`<pre class="dragon" data-header>${escapeHtml(TALL)}</pre>`) },
+      "index.html",
+      async (page) => {
+        await drawn(page);
+        await page.emulateMedia({ media: "print" });
+        await stillsShown(page);
+        return page.evaluate(() => {
+          const deep = (selector: string): Element[] => {
+            const out: Element[] = [];
+            const walk = (root: Document | ShadowRoot): void => {
+              out.push(...root.querySelectorAll(selector));
+              for (const host of root.querySelectorAll("*")) if (host.shadowRoot) walk(host.shadowRoot);
+            };
+            walk(document);
+            return out;
+          };
+          const stills = deep('[data-dragon="step-still"]').filter((el) => (el as HTMLElement).checkVisibility());
+          const header = deep("[data-dragon-header]")[0];
+          return {
+            pageHeight: innerHeight,
+            heights: stills.map((el) => el.getBoundingClientRect().height),
+            headerBreakAfter: header ? getComputedStyle(header).breakAfter : "(見出しの帯が無い)",
+            firstBreakBefore: stills[0] ? getComputedStyle(stills[0]).breakBefore : "(止め絵が無い)",
+          };
+        });
+      },
+      PAPER,
+    ),
+    PAGE_LIMIT_MS,
+    "縦に長い図の印刷の形を読む頁の仕事",
+  ),
+);
+
+describe("印刷の形の頁の改め方 (#3975)", () => {
+  it("player-print-keeps-header-with-first-still", () => {
+    // 見出しの帯だけが頁の下に残り、図の本体が次の頁から始まらないよう、帯と最初の段の止め絵の間で頁を分けない
+    const tall = TALL_SEEN.get();
+    expect(tall.headerBreakAfter, "印刷の形で図の見出しの帯の後ろに頁を分けうる").toBe("avoid");
+    expect(tall.firstBreakBefore, "印刷の形で最初の段の止め絵の前に頁を分けうる").toBe("avoid");
+  });
+
+  it("player-print-fits-two-stills-per-page", () => {
+    // 段の止め絵は段の題と文と合わせて頁の高さの半分に収め、1頁に2段まで並べて、送った後に頁の半分を超える空白を残さない
+    const tall = TALL_SEEN.get();
+    expect(tall.heights.length, "印刷の形の段の止め絵の数").toBe(TALL_STEPS);
+    const over = tall.heights.map((height, i) => ({ step: i + 1, height: Math.round(height) })).filter(({ height }) => height > tall.pageHeight / 2);
+    expect(over, `頁の高さ ${tall.pageHeight}px の半分を超える段の止め絵`).toEqual([]);
+  });
+});
+
 describe("図を置いた頁の印刷の形 (#3956)", () => {
   it("player-screen-shows-one-step-and-bar", () => {
     const { screen } = SEEN.get();
