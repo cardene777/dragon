@@ -73,13 +73,13 @@ import { textWidth } from "../layout/measure";
 import type { Point, Rect } from "../layout/scene";
 import { FLOW_MOVE, LIQUID_WAVE, PIPE_LOOK, PIPE_PAINT, PIPE_TYPE } from "../look/pipe";
 import { type ColorKey, EASE, LOOK, MOTION, type TextStyle } from "../look/values";
+import { Shifter } from "../pipe-shift";
 import { valveRects } from "../pipe-valve";
 import type { Timeline } from "../timeline";
 import { frameShape, partRadius } from "./corner";
 import { ALWAYS, type Shown } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, esc, cssFont as font, nodeAttr, r1, write } from "./parts";
-import { Shifter } from "./pipe-shift";
 import { far, gapOf, gridOf, PathPoints, SpotGrid } from "./pipe-spot";
 
 const P = PIPE_LOOK;
