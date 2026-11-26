@@ -369,7 +369,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
       };
     });
     for (const list of glossaryLists) topics.push({ id: list.id, name: escapeHtml(list.name), lead: "", leadTerms: [], sections: [], glossary: list.terms.map(termHtml) });
-    return { lead: lead.html, leadTerms: lead.terms, overview, topics };
+    return { lead: lead.html, leadTerms: lead.terms, overview, overviewId: g.overviewId, topics };
   };
   const tab = (t: Tab): RenderedTab => ({ id: t.id, name: renderInline(t.name, main), body: blocks(t.body), tabs: t.tabs.map(tab) });
   const part = (p: Part): RenderedPart => ({ lead: blocks(p.lead), tabs: p.tabs.map(tab) });

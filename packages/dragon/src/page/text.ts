@@ -20,6 +20,8 @@ export interface PageWords {
   alerts: Readonly<Record<AlertKind, string>>;
   /** 説明の頁 (#3876) の全体像の、話題を書いた順に並べた道筋の読み上げの名前 (#3961) */
   topics: string;
+  /** 説明の頁の頭の全体像の名前。左の目次の最初の行と、全体像の読み上げの名前に書く (#3961) */
+  whole: string;
   /** 確かめる問いの枠の見出し */
   quiz: string;
   /** 確かめる問いの答えを開く釦の字 */
@@ -79,6 +81,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     count: (n) => `${n}個の項目`,
     alerts: { note: "メモ", tip: "ヒント", important: "大事な点", warning: "注意", caution: "警告" },
     topics: "話題の順",
+    whole: "全体像",
     quiz: "確かめる",
     answer: "答え",
     close: "閉じる",
@@ -90,6 +93,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     count: (n) => (n === 1 ? "1 item" : `${n} items`),
     alerts: { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution" },
     topics: "Topics in order",
+    whole: "Overview",
     quiz: "Check",
     answer: "Answer",
     close: "Close",

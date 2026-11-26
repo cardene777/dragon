@@ -5,9 +5,9 @@
  * 組み立て `entry` は入口に全体の図と段ごとの項目の札を並べ、札を押すと項目の頁へ移り、項目の頁の戻る link で入口へ戻る。
  * `sidebar` は左の目次と右の頁、`tabs` は上の段のタブと段の中の項目のタブで項目を選ぶ。
  * 項目の頁の中は `####` の見出しのタブ (`data-level="4"`)、その中は `#####` の見出しのタブ (`data-level="5"`) に分ける。
- * `guide` (#3876、#3961) は左の目次に全ての話題と問いを並べ、右に話題と番号つきの節を1つの頁に続けて積む。番号は話題をまたいで1から数える。
- * 目次は広い画面で画面に留まり、読んでいる節の問いに印 (`aria-current`) を付ける。携帯の幅では本文の上に畳み、釦で開く。
- * 頭の中身に図を書いた頁は、頁の頭にその図と、話題を書いた順に並べた道筋を全体像として置く。
+ * `guide` (#3876、#3961) は頁の頭から左の列に目次を置き、頁の題と全ての話題と問いを並べる。右の列に頁の題と頭の中身と全体像と、話題と番号つきの節を続けて積む。
+ * 番号は話題をまたいで1から数える。目次は広い画面で画面に留まり、読んでいる節の問いに印 (`aria-current`) を付ける。携帯の幅では全体像の下、本文の上に畳み、釦で開く。
+ * 頭の中身に図を書いた頁は、頁の頭にその図と、話題を書いた順に並べた道筋を全体像として置き、目次の最初の行を全体像にする。
  * 用語の札は押した下線のすぐ下に開き、見た目と開け閉めは図の箱の札 (`blocks/pop/cards.ts`) の値 (`LOOK.note`、`TYPE.note*`) に揃える。
  * 印刷の形では、用語の札を節の終わりに全て開いて並べ、確かめる問いの答えを全て開く。
  *
@@ -83,11 +83,12 @@ export interface RenderedTopic {
   glossary?: RenderedTerm[];
 }
 
-/** 説明の頁。`overview` は頭の中身の最初の図のHTMLで、図が無い頁は空の字 (#3961) */
+/** 説明の頁。`overview` は頭の中身の最初の図のHTML、`overviewId` は全体像の場所の名前で、図が無い頁はどちらも空の字 (#3961) */
 export interface RenderedGuide {
   lead: string;
   leadTerms: RenderedTerm[];
   overview: string;
+  overviewId: string;
   topics: RenderedTopic[];
 }
 
@@ -265,16 +266,24 @@ const STYLE_GUIDE = `
 .pg-route li+li::before{content:"\\2192";color:var(--pg-mute)}
 .pg-route a{display:block;min-width:0;border:1px solid var(--pg-hair);border-left:4px solid var(--cc);border-radius:10px;background:var(--pg-surf);padding:6px 14px;font-size:14px;font-weight:600;line-height:1.5;color:var(--c);text-decoration:none}
 .pg-route a:hover{border-color:var(--cc)}
-.pg-body{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;align-items:start}
-.pg-menu{position:sticky;top:0;z-index:7;max-height:100vh;overflow:auto;padding:14px 4px 20px 0;font-size:13.5px;line-height:1.5}
+.pg-has-menu{display:grid;grid-template-columns:250px minmax(0,1fr);grid-template-rows:auto auto 1fr;grid-template-areas:"menu top" "menu over" "menu main";column-gap:36px;align-items:start}
+.pg-has-menu>.pg-top{grid-area:top}
+.pg-has-menu>.pg-overview{grid-area:over}
+.pg-has-menu>.pg-main{grid-area:main}
+.pg-menu{grid-area:menu;position:sticky;top:0;z-index:7;max-height:100vh;overflow:auto;padding:28px 4px 24px 0;font-size:13.5px;line-height:1.5}
+.pg-menu-title{margin:0 0 12px;padding:0 8px 12px;border-bottom:1px solid var(--pg-hair);font-size:15px;font-weight:700;line-height:1.5;color:var(--pg-ink)}
 .pg-menu-toggle{display:none}
 .pg-menu-list{display:flex;flex-direction:column;gap:12px}
 .pg-menu-group ol{list-style:none;margin:2px 0 0;padding:0}
-.pg-menu-topic{display:block;padding:3px 8px;font-size:13px;font-weight:700;color:var(--c);text-decoration:none}
+.pg-menu-over{display:block;padding:5px 8px;border-radius:8px;font-weight:700;color:var(--pg-ink2);text-decoration:none}
+.pg-menu-over:hover{background:var(--pg-sunk);color:var(--pg-ink)}
+.pg-menu-over[aria-current="true"]{background:var(--pg-sunk);color:var(--pg-ink);box-shadow:inset 3px 0 0 var(--pg-ink2)}
+.pg-menu-topic{display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:13px;font-weight:700;color:var(--c);text-decoration:none}
+.pg-menu-topic::before{content:"";flex:none;width:14px;height:4px;border-radius:2px;background:var(--cc)}
 .pg-menu-topic[aria-current="true"]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
 .pg-menu-q{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;color:var(--pg-ink2);text-decoration:none}
 .pg-menu-q:hover{background:var(--pg-sunk);color:var(--pg-ink)}
-.pg-menu-q[aria-current="true"]{background:var(--pg-surf);color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
+.pg-menu-q[aria-current="true"]{background:color-mix(in srgb,var(--cc) 12%,var(--pg-surf));color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
 .pg-menu-q .pg-num{min-width:20px;height:20px;font-size:12px}
 .pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-main{min-width:0;padding:14px 0 0}
@@ -310,8 +319,12 @@ const STYLE_GUIDE = `
 .pg-q-a{flex-basis:100%;color:var(--pg-t-green);font-weight:600}
 .pg-q-a p{margin:2px 0}
 @media (max-width:860px){
-.pg-body{grid-template-columns:minmax(0,1fr);gap:0}
-.pg-menu{max-height:none;overflow:visible;padding:8px 0;background:var(--pg-bg);border-bottom:1px solid var(--pg-hair)}
+.pg-has-menu{display:flex;flex-direction:column;align-items:stretch}
+.pg-has-menu>.pg-top{order:1}
+.pg-has-menu>.pg-overview{order:2}
+.pg-has-menu>.pg-main{order:4}
+.pg-menu{order:3;max-height:none;overflow:visible;padding:8px 0;background:var(--pg-bg);border-bottom:1px solid var(--pg-hair)}
+.pg-menu-title{display:none}
 .pg-menu-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font:inherit;font-size:14px;font-weight:600;color:var(--pg-ink);background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:10px;padding:8px 14px;cursor:pointer}
 .pg-menu-toggle svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pg-menu-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
@@ -326,14 +339,15 @@ const STYLE_GUIDE = `
 .pg-tc-x,.pg-q-btn{display:none}
 .pg-q-a[hidden]{display:block!important}
 .pg-menu,.pg-menu-toggle{display:none!important}
-.pg-body{display:block}
+.pg-has-menu{display:block}
 .pg-topic+.pg-topic{break-before:page}
 }
 `;
 
 /**
- * 説明の頁の script (#3876、#3961)。左の目次が指す問いと話題のうち、上の縁が画面の上の縁から80pxの線を過ぎた最後の物に印 (`aria-current="true"`) を1つだけ付ける。
- * 線は節へ移った時の節の上の余白 (`scroll-margin-top`) より下に置き、移った節に印が付くようにする。携帯の幅では、線を本文の上に留めた目次の下の縁から測る。目次のlinkと図の箱のlinkは頁の中の場所へ移り、頁のURLに場所の名前を残す。
+ * 説明の頁の script (#3876、#3961)。左の目次が印を付ける行 (`data-spy`。全体像と問いと、問いを持たない話題) のうち、
+ * 上の縁が画面の上の縁から80pxの線を過ぎた最後の物に印 (`aria-current="true"`) を1つだけ付け、どれも過ぎていない時は最初の行に付ける。
+ * 線は節へ移った時の節の上の余白 (`scroll-margin-top`) より下に置き、移った節に印が付くようにする。携帯の幅では、線を本文の上に留めた目次の釦の下から測る。目次のlinkと図の箱のlinkは頁の中の場所へ移り、頁のURLに場所の名前を残す。
  * 頁を開いた時とURLの場所の名前が変わった時は、その場所へ移る。携帯の幅の目次は釦で開け閉めし、目次のlinkを押すと畳む。
  * 用語の下線を押すと、その節の札を下線のすぐ下に開き、札の外か閉じるのアイコンか同じ下線を押すと閉じる。確かめる問いの釦は答えを開けて閉じる
  */
@@ -344,12 +358,12 @@ const close=()=>{if(!opened)return;opened.card.removeAttribute("data-open");open
 const open=(term)=>{const again=opened&&opened.term===term;close();if(again)return;const box=term.closest("[data-terms]");const card=box&&[...box.querySelectorAll(".pg-tc")].find((c)=>c.dataset.term===term.dataset.term);if(!card)return;const f=box.getBoundingClientRect();const r=term.getBoundingClientRect();const w=Math.min(${N.card},f.width);card.style.width=w+"px";card.style.left=Math.max(0,Math.min(r.left+r.width/2-f.left-w/2,f.width-w))+"px";card.style.top=(r.bottom-f.top+${N.gap})+"px";card.dataset.open="";term.setAttribute("aria-expanded","true");opened={term,card}};
 const menu=document.querySelector(".pg-menu");
 const toggle=document.querySelector(".pg-menu-toggle");
-const links=menu?[...menu.querySelectorAll('a[href^="#"]')]:[];
+const links=menu?[...menu.querySelectorAll("a[data-spy]")]:[];
 const targets=links.map((a)=>document.getElementById(decode(a.getAttribute("href").slice(1))));
 const phone=matchMedia("(max-width:860px)");
 const fold=(on)=>{if(toggle)toggle.setAttribute("aria-expanded",String(!on))};
 let marked=null;
-const spy=()=>{const line=(phone.matches&&menu?menu.getBoundingClientRect().bottom:0)+80;let now=null;targets.forEach((t,i)=>{if(t&&t.getBoundingClientRect().top<=line)now=links[i]});if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
+const spy=()=>{const line=(phone.matches&&toggle?toggle.offsetHeight+16:0)+80;let now=links[0]||null;targets.forEach((t,i)=>{if(t&&t.getBoundingClientRect().top<=line)now=links[i]});if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
 let queued=false;
 addEventListener("scroll",()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;spy()})},{passive:true});
 addEventListener("resize",spy);
@@ -530,21 +544,27 @@ function topicHtml(topic: RenderedTopic, lang: PageLang, first: number): string 
   return title + lead + sections;
 }
 
-/** 左の目次 (#3961)。話題ごとに話題の名前と、通し番号と目次の名前 (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる。用語の話題は問いを持たない */
-function menuHtml(topics: readonly RenderedTopic[], firsts: readonly number[], lang: PageLang): string {
-  const words = WORDS[lang];
-  const groups = topics
+/**
+ * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、通し番号と目次の名前
+ * (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ
+ */
+function menuHtml(page: RenderedPage, guide: RenderedGuide, firsts: readonly number[]): string {
+  const words = WORDS[page.lang];
+  const over = guide.overview ? `<a class="pg-menu-over" href="#${escapeHtml(guide.overviewId)}" data-spy>${escapeHtml(words.whole)}</a>` : "";
+  const groups = guide.topics
     .map((topic, i) => {
       const questions = topic.sections
-        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}"><span class="pg-num">${(firsts[i] ?? 1) + n}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
+        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-num">${(firsts[i] ?? 1) + n}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
         .join("");
-      return `<div class="pg-menu-group" style="${groupColor(i)}"><a class="pg-menu-topic" href="#${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</a>${questions ? `<ol>${questions}</ol>` : ""}</div>`;
+      const name = `<a class="pg-menu-topic" href="#${escapeHtml(topic.id)}"${questions ? "" : " data-spy"}>${withoutLinks(topic.name)}</a>`;
+      return `<div class="pg-menu-group" style="${groupColor(i)}">${name}${questions ? `<ol>${questions}</ol>` : ""}</div>`;
     })
     .join("");
   const label = escapeHtml(words.contents);
   return (
-    `<nav class="pg-menu" aria-label="${label}"><button type="button" class="pg-menu-toggle" aria-expanded="false" aria-controls="pg-menu-list"><span>${label}</span>${FOLD_ICON}</button>` +
-    `<div class="pg-menu-list" id="pg-menu-list">${groups}</div></nav>`
+    `<nav class="pg-menu" aria-label="${label}"><p class="pg-menu-title">${withoutLinks(page.title)}</p>` +
+    `<button type="button" class="pg-menu-toggle" aria-expanded="false" aria-controls="pg-menu-list"><span>${label}</span>${FOLD_ICON}</button>` +
+    `<div class="pg-menu-list" id="pg-menu-list">${over}${groups}</div></nav>`
   );
 }
 
@@ -555,12 +575,12 @@ function overviewHtml(guide: RenderedGuide, lang: PageLang): string {
   const route = guide.topics
     .flatMap((topic, i) => (topic.glossary ? [] : [`<li style="${groupColor(i)}"><a href="#${escapeHtml(topic.id)}">${withoutLinks(topic.name)}</a></li>`]))
     .join("");
-  return `<section class="pg-overview" aria-label="${escapeHtml(words.overview)}">${guide.overview}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
+  return `<section class="pg-overview" id="${escapeHtml(guide.overviewId)}" aria-label="${escapeHtml(words.whole)}">${guide.overview}${route ? `<ol class="pg-route" aria-label="${escapeHtml(words.topics)}">${route}</ol>` : ""}</section>`;
 }
 
-/** 説明の頁 (#3876、#3961)。頁の題と頭の中身、全体像、左の目次と、続けて積む話題 */
+/** 説明の頁 (#3876、#3961)。左の列の目次と、右の列の頁の題と頭の中身、全体像、続けて積む話題 */
 function guideLayout(page: RenderedPage): string {
-  const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", topics: [] };
+  const guide = page.guide ?? { lead: "", leadTerms: [], overview: "", overviewId: "", topics: [] };
   const lead = guide.lead || guide.leadTerms.length > 0 ? `<div class="pg-lead" data-terms>${guide.lead}${termCards(guide.leadTerms, page.lang)}</div>` : "";
   // 節の番号は話題をまたいで1から数える
   const firsts: number[] = [];
@@ -572,8 +592,9 @@ function guideLayout(page: RenderedPage): string {
   const topics = guide.topics
     .map((topic, i) => `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, firsts[i] ?? 1)}</section>`)
     .join("");
-  const body = guide.topics.length === 0 ? "" : `<div class="pg-body">${menuHtml(guide.topics, firsts, page.lang)}<main class="pg-main">${topics}</main></div>`;
-  return `<div class="pg-wrap pg-guide"><header class="pg-top"><h1>${page.title}</h1>${lead}</header>${overviewHtml(guide, page.lang)}${body}</div>`;
+  const menu = guide.topics.length === 0 ? "" : menuHtml(page, guide, firsts);
+  const main = guide.topics.length === 0 ? "" : `<main class="pg-main">${topics}</main>`;
+  return `<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}">${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${overviewHtml(guide, page.lang)}${main}</div>`;
 }
 
 /**

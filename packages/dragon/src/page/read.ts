@@ -58,10 +58,14 @@ export interface GlossaryInclude {
   line: number;
 }
 
-/** 説明の頁の組み立て。`overview` は頭の中身の最初の図の囲みの行 (#3961)、`ids` は頁の中で配った場所の名前 */
+/**
+ * 説明の頁の組み立て。`overview` は頭の中身の最初の図の囲みの行、`overviewId` はその全体像の場所の名前で、図の無い頁は空の字 (#3961)。
+ * `ids` は頁の中で配った場所の名前
+ */
 export interface Guide {
   lead: Line[];
   overview: Line[];
+  overviewId: string;
   topics: Topic[];
   glossaries: GlossaryInclude[];
   ids: string[];
@@ -263,7 +267,7 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
       topic.sections.push(section);
     }
   }
-  // 場所の名前は、話題とその節を書いた順に配り、用語の話題を最後に配る
+  // 場所の名前は、全体像を最初に、話題とその節を書いた順に配り、用語の話題を最後に配る
   const ids: string[] = [];
   const id = slugger();
   const named = (text: string): string => {
@@ -271,6 +275,8 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     ids.push(name);
     return name;
   };
+  const overview = splitOverview(lead);
+  const overviewId = overview.length > 0 ? named("overview") : "";
   for (const t of topics) {
     t.id = named(t.name);
     for (const s of t.sections) {
@@ -279,8 +285,7 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     }
   }
   for (const g of glossaries) g.id = named(g.name);
-  const overview = splitOverview(lead);
-  return { title, guide: { lead, overview, topics, glossaries, ids } };
+  return { title, guide: { lead, overview, overviewId, topics, glossaries, ids } };
 }
 
 /** mdの行の並びを頁の組み立てに分ける。誤りがあれば全ての誤りを返す */

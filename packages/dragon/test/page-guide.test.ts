@@ -545,14 +545,19 @@ const MENU = await atLoad("左の目次と全体像の頁を開き、下へ送�
   openGuide(
     async (page) => {
       const step = inOrder();
-      const layout = await step("左の目次と最初の節の並びを測る", async () => {
+      const layout = await step("頁を送る前に、左の目次と頁の題と最初の節の並びと、目次の最初の行を読む", async () => {
         await figuresDrawn(page);
         return page.evaluate(() => {
           const menu = document.querySelector<HTMLElement>("nav.pg-menu");
+          const box = menu?.getBoundingClientRect();
+          const first = document.querySelector("nav.pg-menu a");
           return {
-            menu: menu ? { visible: menu.checkVisibility(), right: menu.getBoundingClientRect().right } : null,
+            menu: menu && box ? { visible: menu.checkVisibility(), right: box.right, left: box.left, top: box.top + scrollY } : null,
+            h1Left: document.querySelector("h1")?.getBoundingClientRect().left,
             secLeft: document.querySelector(".pg-sec")?.getBoundingClientRect().left,
             links: [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")].filter((a) => a.checkVisibility()).length,
+            first: first ? { href: decodeURIComponent(first.getAttribute("href") ?? ""), current: first.getAttribute("aria-current") } : null,
+            overviewId: document.querySelector("section.pg-overview")?.id ?? "",
           };
         });
       });
@@ -835,6 +840,9 @@ describe("左の目次と全体像 (#3961)", () => {
     expect(layout.menu?.visible, "幅1200pxで左の目次が見えない").toBe(true);
     expect(layout.menu?.right ?? Number.POSITIVE_INFINITY, "幅1200pxで左の目次が本文の節の左に並ばない").toBeLessThanOrEqual((layout.secLeft ?? 0) + 0.5);
     expect(layout.links, "幅1200pxで見えている左の目次の問いの数").toBe(5);
+    // 目次は頁の頭から左の列に在り、頁の題と全体像も目次の右に並ぶ
+    expect(layout.menu?.top ?? Number.POSITIVE_INFINITY, "幅1200pxで左の目次が頁の頭から始まらない").toBeLessThanOrEqual(40);
+    expect(layout.menu?.left ?? Number.POSITIVE_INFINITY, "幅1200pxで左の目次が頁の題の左に無い").toBeLessThan(layout.h1Left ?? 0);
   });
 
   it("guide-menu-uses-short-name", async () => {
@@ -882,6 +890,13 @@ describe("左の目次と全体像 (#3961)", () => {
       [...(overview?.querySelectorAll(".pg-figure, ol.pg-route") ?? [])].map((el) => (el.matches(".pg-figure") ? "図" : "道筋")),
       "全体像の中の図と、その後の話題の道筋 (ol.pg-route)",
     ).toEqual(["図", "道筋"]);
+    // 左の目次の最初の行は全体像へ移る
+    expect(overview?.id ?? "", "全体像に場所の名前が無い").not.toBe("");
+    const first = doc.querySelector("nav.pg-menu a");
+    expect(
+      { href: decodeURIComponent(first?.getAttribute("href") ?? ""), text: squash(first?.textContent) },
+      "左の目次の最初の行が全体像へ移らない",
+    ).toEqual({ href: `#${overview?.id ?? ""}`, text: "全体像" });
     const route = [...(overview?.querySelectorAll("ol.pg-route a") ?? [])].map((a) => decodeURIComponent(a.getAttribute("href") ?? ""));
     expect(route, "道筋が書いた順に話題を指さない").toEqual(["#止める仕組み", "#記録", "#送り直す仕組み"]);
     expect(
@@ -911,6 +926,10 @@ describe("左の目次と全体像 (#3961)", () => {
   it("guide-menu-marks-current-question", () => {
     const seen = MENU.get();
     if (!seen) return;
+    // 頁を送る前は、全体像を読んでいるので目次の最初の行の全体像に印が付く
+    const layout = seen.layout.get();
+    expect(layout.overviewId, "全体像に場所の名前が無い").not.toBe("");
+    expect(layout.first, "頁を送る前に、目次の最初の行の全体像に印が付かない").toEqual({ href: `#${layout.overviewId}`, current: "true" });
     const { second, fourth } = seen.marked.get();
     for (const [name, at] of [
       ["2つ目", second],
