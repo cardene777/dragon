@@ -732,9 +732,9 @@ describe("札と印", () => {
     expect(overlapsOf(many), "積んだ札の重なり").toEqual([]);
   });
 
-  it("pipe-prev-value-under-box", () => {
-    // パッチの並べ方 (#3761) は、値の箱の前の値を線で消して箱の下の行に置き、状態の語 (確定) を右に添える。行は槽の下の額と同じ高さに並ぶ。
-    // #3721 は消す線をやめて「前」の札を足したが、Tracelythの図をパッチを当てた時のまま描くので戻した
+  it("pipe-prev-value-inside-card", () => {
+    // 値の箱の前の値を線で消し、状態の語 (確定) を右に添える (#3761)。
+    // 仕様の変更 (#3990): 前の値と状態の語は箱の中の大きな値の下に置く。槽の下の額の行に置くと箱から離れ、網型では値の管がその字の上を通った
     for (const shape of [...SHAPES, undefined]) {
       const f = drawOnce(gridText(2, 2, shape ? { layout: shape } : {}));
       const L = f.layout;
@@ -746,23 +746,20 @@ describe("札と印", () => {
         const frame = L.housings.find((h) => h.party === p.party);
         expect(was && strike && tag && frame, `${what} の前の値か消す線か状態の語か持ち主の枠が無い`).toBeTruthy();
         if (!was || !strike || !tag || !frame) continue;
-        // 前の値と状態の語は箱の下端より下で、持ち主の点線の枠の中に置く
+        // 前の値と状態の語は箱の四角の内側で、箱の大きな値の字より下に置く
         for (const [name, t] of [
           ["前の値", was],
           ["状態の語", tag],
         ] as [string, Text][]) {
-          expect(t.y, `${what} の${name}が箱の下端より上`).toBeGreaterThanOrEqual(p.y + p.h - D);
-          expect(t.y + t.h, `${what} の${name}が枠の下の縁より下`).toBeLessThanOrEqual(frame.y + frame.h + D);
+          expect(t.x >= p.x - D && t.x + t.w <= p.x + p.w + D, `${what} の${name}が箱の左右からはみ出す`).toBe(true);
+          expect(t.y + t.h, `${what} の${name}が箱の下端より下`).toBeLessThanOrEqual(p.y + p.h + D);
+          expect(t.y, `${what} の${name}が箱の大きな値の字より上`).toBeGreaterThanOrEqual(p.text.y + p.text.h - D);
         }
         // 消す線は前の値の字を横に貫く
         expect(strike.x <= was.x + D && strike.x + strike.w >= was.x + was.w - D, `${what} の消す線が前の値の字の端まで届かない`).toBe(true);
         expect(strike.y >= was.y && strike.y + strike.h <= was.y + was.h, `${what} の消す線が前の値の字の高さの外`).toBe(true);
         // 状態の語は前の値の右に、重ねずに置く
         expect(tag.x, `${what} の状態の語が前の値に重なる`).toBeGreaterThanOrEqual(was.x + was.w);
-        // 槽の下の額と同じ行に並ぶ
-        const amounts = L.levels.filter((lv) => lv.step === p.step).map((lv) => lv.text);
-        expect(amounts.length, `${what} と同じ段の槽の額`).toBeGreaterThan(0);
-        for (const a of amounts) expect(was.y < a.y + a.h && a.y < was.y + was.h, `${what} の前の値が槽の ${a.text} と同じ行に無い`).toBe(true);
       }
     }
   });

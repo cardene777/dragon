@@ -1,0 +1,46 @@
+pipe DvPの決済
+layout mesh
+
+box bob as Bob
+box canton as Canton
+box dvp as DvpProposal
+box bond as BOND [note: Holding]
+box usdc as USDC [note: Holding]
+box alice as Alice
+
+hold bob: 0 BOND, 1000 USDC
+hold alice: 10 BOND, 0 USDC
+hold canton: "DvpProposal #1" 有効
+hold canton: "Holding #2" 有効 [on: alice]
+hold canton: "Holding #3" 有効 [on: bob]
+hold canton: "Holding #4" なし [on: bob]
+hold canton: "Holding #5" なし [on: alice]
+
+step BobがSettleを実行する
+  say BobがCantonへコマンドを送り、CantonがSettleを動かします。
+  bob -> canton: Exercise Settle
+  canton -> dvp: Settle()
+  write canton: "DvpProposal #1" Archive
+
+step BONDの持ち分を移す
+  say DvpProposalがAliceのBONDの持ち分をArchiveし、Bobの持ち分をCreateします。
+  dvp -> bond: TransferTo(newOwner: Bob)
+  write canton: "Holding #2" Archive
+  write canton: "Holding #4" 有効
+  move bond: 10 alice -> bob
+  return bond: Holding #4
+
+step USDCの持ち分を移す
+  say DvpProposalがBobのUSDCの持ち分をArchiveし、Aliceの持ち分をCreateします。
+  dvp -> usdc: TransferTo(newOwner: Alice)
+  write canton: "Holding #3" Archive
+  write canton: "Holding #5" 有効
+  move usdc: 1000 bob -> alice
+  return usdc: Holding #5
+  return dvp: (Holding #4, Holding #5)
+
+step Cantonが確定する
+  say Cantonが署名を確かめて確定します。
+  gist ここで全ての変化が確定する
+  check canton: 署名 == AliceとBob
+  return canton: 確定
