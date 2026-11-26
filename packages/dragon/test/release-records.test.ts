@@ -223,6 +223,28 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-86-0-lists-mind-trunk-once", () => {
+    // マインドマップの線を親の縁の1か所から出る幹にまとめる変更 (#3960) を Changed の1項に持って 0.86.0 で出す (#3988)。
+    // 0.85.0 では取り込みで混ざった項を未公開へ戻した (#3985)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 86, `package の版 ${version()} が 0.86.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.86\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.86.0"), "0.86.0");
+      expect(released, `${file} に日付付きの ## [0.86.0] の節が無い`).not.toBe("");
+      expect(released.split("(#3960)").length - 1, `${file} の 0.86.0 の節が (#3960) の項を 1 回持たない`).toBe(1);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3960) が残る`).not.toContain("(#3960)");
+    }
+  });
+
+  it("readme-mind-images-follow-mind-renderer", () => {
+    // README の図の種類の一覧のマインドマップの絵は、マインドマップの並べ方と描き方を変えた commit と同じかそれより後の commit で描き直す (#3988)。
+    // 線を幹にまとめた変更 (#3960) は絵を描き直さず、npm の頁に前の線の形が残った
+    const { renderer, images } = MIND_COMMITS.get();
+    expect(renderer, "マインドマップの描き方の file の commit を git から読めない").toBeGreaterThan(0);
+    for (const [image, at] of images) expect(at, `${image} をマインドマップの描き方を変えた後に描き直していない`).toBeGreaterThanOrEqual(renderer);
+  });
+
   it("changelog-0-85-0-lists-guide-pages-once", () => {
     // 話題が2つ以上ある説明の頁を、全体像の頁と問いごとの頁に分ける変更 (#3983) を Changed の1項に持って 0.85.0 で出す (#3985)
     const [major = 0, minor = 0] = version().split(".").map(Number);
@@ -1396,4 +1418,15 @@ describe("Release の本文 (#3335)", () => {
     expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
     expect(text, "次の版の節まで出した").not.toContain("Older");
   });
+});
+
+/** README のマインドマップの絵 4 枚と、マインドマップの並べ方と描き方の file を、最後に変えた commit の時刻 (#3988)。git を起こすので読み込む段で済ませる (#3738) */
+const MIND_COMMITS = await atLoad("README のマインドマップの絵と描き方の file の commit を git から読む", () => {
+  const committed = (paths: string[]): number =>
+    Number(execFileSync("git", ["log", "-1", "--format=%ct", "--", ...paths], { cwd: ROOT, encoding: "utf8" }).trim() || "0");
+  const renderer = committed(["packages/dragon/src/kinds/mind", "packages/dragon/src/blocks/idea/draw.ts", "packages/dragon/src/look/mind.ts", "packages/dragon/src/render/mind.ts"]);
+  const images = ["docs/readme/kinds/mind.png", "docs/readme/kinds/mind-dark.png", "docs/readme/ja/kinds/mind.png", "docs/readme/ja/kinds/mind-dark.png"].map(
+    (image) => [image, committed([image])] as const,
+  );
+  return { renderer, images };
 });
