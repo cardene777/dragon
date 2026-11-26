@@ -8,7 +8,11 @@
  */
 import { PIPE_FIRST, type TextStyle } from "./values";
 
-const text = (size: number, weight: number, family: TextStyle["family"] = "sans"): TextStyle => ({ size, weight, family });
+const text = (size: number, weight: number, family: TextStyle["family"] = "sans"): TextStyle => ({
+  size,
+  weight,
+  family,
+});
 
 /**
  * 配管の図の字。関係者の名前は丸の名札も箱もトークンの箱も同じ大きさで描く。
@@ -55,7 +59,16 @@ export const PIPE_TYPE = {
  * 値のパイプを流れる値と移す額の札の動き (Tracelyth #168)。`dots` と `call` は流れの点線の間合い、`coinH` と `coinPad` は額の札の高さと左右の余白、
  * `travel` は札が道を進む秒、`linger` は着いた後に残る秒、`scale` は札を大きく描く倍率、`pause` は着いた後に止まる秒
  */
-export const FLOW_MOVE = { dots: 22, call: 34, coinH: 24, coinPad: 10, travel: PIPE_FIRST.moveTravel, linger: 0.15, scale: 1.3, pause: PIPE_FIRST.movePause } as const;
+export const FLOW_MOVE = {
+  dots: 22,
+  call: 34,
+  coinH: 24,
+  coinPad: 10,
+  travel: PIPE_FIRST.moveTravel,
+  linger: 0.15,
+  scale: 1.3,
+  pause: PIPE_FIRST.movePause,
+} as const;
 
 /**
  * 色味に依らない白 (Tracelyth #168)。`reveal` は流れの先を見せる mask の線で、mask は白の明るさだけを読むので色味を混ぜない。
@@ -71,7 +84,10 @@ export const LIQUID_WAVE = (() => {
   const [w, h, edge] = [60, 10, 9];
   const shape = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="M0 ${h / 2} Q${w / 4} 0 ${w / 2} ${h / 2} T${w} ${h / 2} V${h} H0 Z"/></svg>`;
   // CSS の url() の中で括弧と引用符が値を切らないよう、encodeURIComponent が残す分も符号にする
-  const url = encodeURIComponent(shape).replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  const url = encodeURIComponent(shape).replace(
+    /[()']/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
   return {
     mask: `url(data:image/svg+xml,${url}) repeat-x 0 0 / ${w}px ${h}px,linear-gradient(#000,#000) no-repeat 0 ${edge}px / 100% 100%`,
     to: `-${w}px 0,0 ${edge}px`,
@@ -84,7 +100,16 @@ export const LIQUID_WAVE = (() => {
  * `side` は札と線の端の間、`arrow` は矢印の頭の半分の幅、`lift` は札を線の上に持ち上げる高さ。
  * 線の札と増減の札は間を空けずにつなぐ (`deltaGap` が 0)。間を空けると、間に線の切れ端が見える (Tracelyth #221)
  */
-export const LINK = { h: 26, padX: 10, gap: 10, deltaGap: 0, deltaPadX: 8, side: 12, arrow: 6, lift: 12 } as const;
+export const LINK = {
+  h: 26,
+  padX: 10,
+  gap: 10,
+  deltaGap: 0,
+  deltaPadX: 8,
+  side: 12,
+  arrow: 6,
+  lift: 12,
+} as const;
 
 /**
  * トークンの箱の残高の行 (Tracelyth #171、#175)。`head` は箱の上の辺から最初の行までの見出しの高さ、`subY` は見出しの下の字の基準線、`pitch` は行の送り、
@@ -135,6 +160,8 @@ export const PIPE_ROWS = {
  * - `valve` は弁で、三角の長さ `r` と幅の半分 `half`、管から取っ手の軸まで `stem`、取っ手の長さ `lever` と太さ `leverH`、軸の半径 `pivot`、取っ手を回す間 `turn`
  * - `gauge` は計器で、半径 `r` (呼び出しの管も値の管も同じ)、値の管から計器の真ん中まで `up`、通ったかの印の離れ `lampGap` と半径 `lamp`、
  *   針の先の空き `needle` と付け根の半径 `hub`、目盛りの帯の内側 `zone`、針の向き (確かめる前 `unseen`、通った `ok`、落ちた `fail`)、管の上の離れ `stemGap`
+ * - `undo` は落ちた箱に添える取り消しの札 (#3974) で、札の高さと字は図の中の札 (`chip`) と同じ。×の印の丸の半径 `r`、丸と字の間 `gap`、
+ *   箱の縁から札までの離れ `off`、札を探す箱の縁からの離れの上限 `reach`
  * - `converter` は変換器の半径
  * - `tank` は槽で、幅 `w`、同じ持ち主の槽の間 `inner`、ガラスの高さ `h`、ガラスの内側の余白 `pad`、角 `radius` と水の角 `innerRadius`、ガラスの上の端から外の上の名前の字の箱の下の端まで `titleGap`、上から管が2本以上入る槽でガラスの中に置く名前の基準線 `titleY` と字の間 (字の大きさに対する割合) `titleTrack`、
  *   つや `shine`、目盛り `tick`、一番多い量の水位の割合 `fill`、0 より多い量の水位の下限 `least`、槽の下から残高の基準線まで `numberY`、
@@ -159,15 +186,50 @@ export const PIPE_LOOK = {
   edge: 60,
   radius: 8,
   grid: { step: 24, dot: 1 },
-  chip: { h: 22, padX: 8, gap: 8, argsGap: 6, rx: 4, off: PIPE_FIRST.chipOff, beside: 12, slide: 4 },
+  chip: {
+    h: 22,
+    padX: 8,
+    gap: 8,
+    argsGap: 6,
+    rx: 4,
+    off: PIPE_FIRST.chipOff,
+    beside: 12,
+    slide: 4,
+  },
   row: { pitch: 84, top: 48 },
   avatar: { size: 80, r: 32, halo: 40, nameY: 64, initialY: 10 },
   cabinet: { h: 80, pad: 52, end: 22, mark: 26, name: 46, radius: 12, icon: 1, gap: 16 },
-  token: { w: 84, nameW: 36, keyW: 28, h: 38, line: 34, nameY: 25, keyY: 44, valueY: 16, radius: 6, plateX: 8, arrowGap: 6, up: 58 },
+  token: {
+    w: 84,
+    nameW: 36,
+    keyW: 28,
+    h: 38,
+    line: 34,
+    nameY: 25,
+    keyY: 44,
+    valueY: 16,
+    radius: 6,
+    plateX: 8,
+    arrowGap: 6,
+    up: 58,
+  },
   tie: { gap: 6 },
   call: { case: 12, flow: 6, core: 0.45, valveAt: 30, room: 16 },
   valve: { r: 10, half: 9, stem: 18, lever: 30, leverH: 8, pivot: 4, turn: 0.35 },
-  gauge: { r: 24, up: 62, lampGap: 12, lamp: 10, needle: 7, hub: 4, zone: 5, unseen: -118, ok: 58, fail: -64, stemGap: 10 },
+  gauge: {
+    r: 24,
+    up: 62,
+    lampGap: 12,
+    lamp: 10,
+    needle: 7,
+    hub: 4,
+    zone: 5,
+    unseen: -118,
+    ok: 58,
+    fail: -64,
+    stemGap: 10,
+  },
+  undo: { r: 7, gap: 6, off: 8, reach: 24 },
   converter: { r: 24 },
   tank: {
     w: 112,
