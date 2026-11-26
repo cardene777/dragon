@@ -1650,6 +1650,7 @@ describe("話題のタブ (#3991)", () => {
     const glossary = seen.glossary.get();
     expect(glossary.links, "「記録」の札の中の「規則」のlinkの数").toBe(1);
     expect(glossary.state.topics, "札の中のlinkを押した後に見えている話題").toEqual(["用語"]);
+    expect(glossary.state.tabs.filter((tab) => tab.current).map((tab) => tab.text), "札の中のlinkを押した後に印の付いたタブ").toEqual(["用語"]);
     expect(glossary.state.sections, "札の中のlinkを押した後に見えている問いの節").toEqual([]);
     expect(glossary.state.hash, "札の中のlinkを押した後のURLの#の後ろ").toBe(glossary.href);
     const entry = glossary.entry;
