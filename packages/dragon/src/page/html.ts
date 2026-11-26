@@ -261,6 +261,7 @@ const STYLE_GUIDE = `
 .pg-topic:not([hidden]){animation:pg-panel .22s ease}
 @media (prefers-reduced-motion:reduce){.pg-topic:not([hidden]){animation:none}}
 .pg-topic-lead{position:relative;margin:0 0 14px}
+.pg-topic-h{display:none}
 .pg-qlist{background:var(--pg-surf);border:1px solid var(--pg-hair);border-radius:var(--r);padding:12px 14px;margin:0 0 26px}
 .pg-qlist-h{font-size:13px;color:var(--pg-ink2);margin:0 0 6px}
 .pg-qlist ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:4px 16px}
@@ -301,6 +302,10 @@ const STYLE_GUIDE = `
 .pg-tc-x,.pg-q-btn{display:none}
 .pg-q-a[hidden]{display:block!important}
 .pg-topic:not([hidden]){animation:none}
+.pg-topics{display:none}
+.pg-topic[hidden]{display:block!important}
+.pg-topic+.pg-topic{break-before:page}
+.pg-topic-h{display:block;font-size:22px;line-height:1.4;margin:0 0 14px}
 }
 `;
 
@@ -497,7 +502,11 @@ function topicHtml(topic: RenderedTopic, lang: PageLang): string {
   return list + lead + sections;
 }
 
-/** 説明の頁 (#3876)。頁の題と頭の中身、話題のタブ、タブごとの中身 */
+/**
+ * 説明の頁 (#3876)。頁の題と頭の中身、話題のタブ、タブごとの中身。
+ * 印刷の形では、タブの列を出さずに全てのタブの中身を書いた順に並べ、2つ目からのタブを新しい紙から始め、
+ * どのタブも紙の上にタブの名前の見出し (画面では隠す) を出す (#3956)
+ */
 function guideLayout(page: RenderedPage): string {
   const guide = page.guide ?? { lead: "", leadTerms: [], topics: [] };
   const words = WORDS[page.lang];
@@ -507,7 +516,11 @@ function guideLayout(page: RenderedPage): string {
     .join("");
   const nav = guide.topics.length === 0 ? "" : `<nav class="pg-topics" role="tablist" aria-label="${escapeHtml(words.topics)}">${tabs}</nav>`;
   const panels = guide.topics
-    .map((topic, i) => `<section role="tabpanel" class="pg-topic" id="${escapeHtml(topic.id)}" aria-labelledby="G-tab-${i + 1}" data-topic="${escapeHtml(topic.id)}"${i === 0 ? "" : " hidden"}>${topicHtml(topic, page.lang)}</section>`)
+    .map(
+      (topic, i) =>
+        `<section role="tabpanel" class="pg-topic" id="${escapeHtml(topic.id)}" aria-labelledby="G-tab-${i + 1}" data-topic="${escapeHtml(topic.id)}"${i === 0 ? "" : " hidden"}>` +
+        `<h2 class="pg-topic-h">${withoutLinks(topic.name)}</h2>${topicHtml(topic, page.lang)}</section>`,
+    )
     .join("");
   return `<div class="pg-wrap pg-guide"><header class="pg-top"><h1>${page.title}</h1>${lead}</header>${nav}${panels}</div>`;
 }

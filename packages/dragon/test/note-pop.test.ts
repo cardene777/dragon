@@ -324,7 +324,7 @@ describe("箱の説明の札 (#3877)", () => {
     const cards = [...host.querySelectorAll<HTMLElement>('[data-dragon="note-card"]')];
     expect(cards.map((card) => card.getAttribute("data-box")).sort(), "押す前に持つ札").toEqual(["bank", "shop"]);
     expect(openCards(host), "押す前に開いている札").toEqual([]);
-    // 印刷の形では、閉じた札も箱の下に開いて描く。札の位置は図の幅と高さに対する箱の真ん中と下端の割合
+    // 札は画面で押した箱の下に開くため、図の幅と高さに対する箱の真ん中と下端の割合を持つ
     for (const card of cards) {
       const box = boxesOf(rendered).find((b) => b.id === card.getAttribute("data-box"));
       if (!box) continue;
@@ -339,10 +339,39 @@ describe("箱の説明の札 (#3877)", () => {
       .filter((rule): rule is CSSMediaRule => isMedia(rule) && rule.media.mediaText.includes("print"))
       .flatMap((rule) => [...rule.cssRules])
       .filter((rule): rule is CSSStyleRule => isStyle(rule) && rule.selectorText.includes(".dg-nc") && !rule.selectorText.includes("[data-open]"));
+    // 印刷の形では、閉じた札も開いて描く。札を並べる所は note-pop-print-lists-cards-below-figure が確かめる (#3956)
     const shown = printRules.find((rule) => rule.style.display === "block");
     expect(shown, "印刷の形で閉じた札を開いて描く決まりが無い").toBeDefined();
-    expect(shown?.style.getPropertyValue("left") ?? "", "印刷の形の札の横の位置").toContain("--nx");
-    expect(shown?.style.getPropertyValue("top") ?? "", "印刷の形の札の縦の位置").toContain("--ny");
+  });
+
+  it("note-pop-print-lists-cards-below-figure", () => {
+    const placed = mount(notation("sequence"));
+    if (!placed) return;
+    const { host } = placed;
+    // 札は箱の名前を持ち、紙の上でどの箱の札かが読める
+    const names: Record<string, string> = { shop: "店", bank: "銀行" };
+    const cards = [...host.querySelectorAll<HTMLElement>('[data-dragon="note-card"]')];
+    expect(cards.map((card) => card.getAttribute("data-box")).sort(), "印刷の前に持つ札").toEqual(["bank", "shop"]);
+    for (const card of cards) {
+      const id = card.getAttribute("data-box") ?? "";
+      expect(card.querySelector('[data-dragon="note-name"]')?.textContent, `箱 ${id} の札の箱の名前`).toBe(names[id]);
+    }
+    // 再生の部品の見た目の規則を、頁の見た目の規則の読み方 (CSSOM) で読む
+    const sheet = (document.getElementById("dragon-player-css") as HTMLStyleElement | null)?.sheet;
+    const isMedia = (rule: CSSRule): rule is CSSMediaRule => "media" in rule && "cssRules" in rule;
+    const isStyle = (rule: CSSRule): rule is CSSStyleRule => "selectorText" in rule && "style" in rule;
+    const printRules = [...(sheet?.cssRules ?? [])]
+      .filter((rule): rule is CSSMediaRule => isMedia(rule) && rule.media.mediaText.includes("print"))
+      .flatMap((rule) => [...rule.cssRules])
+      .filter((rule): rule is CSSStyleRule => isStyle(rule));
+    // 印刷の形では、札の層を図の上に重ねず図の後ろに置き、札を層の中に並べる (#3956)
+    const layer = printRules.find((rule) => rule.selectorText.includes(".dg-notes"));
+    expect(layer?.style.position, "印刷の形の札の層が図の上に重なる").toBe("static");
+    const shown = printRules.find((rule) => rule.selectorText.includes(".dg-nc") && !rule.selectorText.includes("[data-open]") && rule.style.display === "block");
+    expect(shown, "印刷の形で閉じた札を開いて描く決まりが無い").toBeDefined();
+    expect(shown?.style.position, "印刷の形の札が箱の上の位置に置かれる").toBe("static");
+    expect(shown?.style.getPropertyValue("left") ?? "", "印刷の形の札の横の位置が箱の位置 (--nx) に依る").not.toContain("--nx");
+    expect(shown?.style.getPropertyValue("top") ?? "", "印刷の形の札の縦の位置が箱の位置 (--ny) に依る").not.toContain("--ny");
   });
 
   it("note-mode-unknown-refused", () => {

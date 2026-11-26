@@ -8,6 +8,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Fixed
 
+- Printing a page no longer loses most of it. A guide page (`layout: guide`) prints the sections of every tab in written order instead of only the open tab, starts each tab after the first on a new sheet, and puts the tab name at the top. On every page that places a diagram, the player bar and the buttons of the bar above the diagram are left out, a diagram with steps prints the still of every step in order with its step number, title, and `say` text, and `note: pop` box cards are listed below the diagram with their box names instead of opening on top of it. A scenes diagram prints every step of each scene the same way. Blocks in hidden tabs are drawn before printing (#3956)
 - In the follow view, a step whose moving parts do not fit the window now zooms the window out, at most down to the scale where box names are 10.5px, instead of leaving the box its line points to outside the window. This happens on phone widths in state, architecture, mind, and other diagrams. When everything still does not fit at that scale, the window keeps the box that the step's first line points to and its label, then the step badge, and puts a name tag on each line end it cuts. Architecture diagrams now get these tags too. The frame in the overview grows with the zoomed window. Steps that fit, sequence diagrams, and kinds that choose their own window keep the window as before. In the arcade palette the tags have square corners like other small parts (#3871)
 
 ## [0.81.0] - 2026-11-26
