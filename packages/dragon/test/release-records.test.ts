@@ -240,18 +240,9 @@ describe("版の記録 (#3151)", () => {
   it("readme-mind-images-follow-mind-renderer", () => {
     // README の図の種類の一覧のマインドマップの絵は、マインドマップの並べ方と描き方を変えた commit と同じかそれより後の commit で描き直す (#3988)。
     // 線を幹にまとめた変更 (#3960) は絵を描き直さず、npm の頁に前の線の形が残った
-    const committed = (paths: string[]): number =>
-      Number(execFileSync("git", ["log", "-1", "--format=%ct", "--", ...paths], { cwd: ROOT, encoding: "utf8" }).trim() || "0");
-    const renderer = committed([
-      "packages/dragon/src/kinds/mind",
-      "packages/dragon/src/blocks/idea/draw.ts",
-      "packages/dragon/src/look/mind.ts",
-      "packages/dragon/src/render/mind.ts",
-    ]);
+    const { renderer, images } = MIND_COMMITS.get();
     expect(renderer, "マインドマップの描き方の file の commit を git から読めない").toBeGreaterThan(0);
-    for (const image of ["docs/readme/kinds/mind.png", "docs/readme/kinds/mind-dark.png", "docs/readme/ja/kinds/mind.png", "docs/readme/ja/kinds/mind-dark.png"]) {
-      expect(committed([image]), `${image} をマインドマップの描き方を変えた後に描き直していない`).toBeGreaterThanOrEqual(renderer);
-    }
+    for (const [image, at] of images) expect(at, `${image} をマインドマップの描き方を変えた後に描き直していない`).toBeGreaterThanOrEqual(renderer);
   });
 
   it("changelog-0-85-0-lists-guide-pages-once", () => {
@@ -1427,4 +1418,15 @@ describe("Release の本文 (#3335)", () => {
     expect(text, "頁の中の link を書き換えた").toContain("[below](#notes)");
     expect(text, "次の版の節まで出した").not.toContain("Older");
   });
+});
+
+/** README のマインドマップの絵 4 枚と、マインドマップの並べ方と描き方の file を、最後に変えた commit の時刻 (#3988)。git を起こすので読み込む段で済ませる (#3738) */
+const MIND_COMMITS = await atLoad("README のマインドマップの絵と描き方の file の commit を git から読む", () => {
+  const committed = (paths: string[]): number =>
+    Number(execFileSync("git", ["log", "-1", "--format=%ct", "--", ...paths], { cwd: ROOT, encoding: "utf8" }).trim() || "0");
+  const renderer = committed(["packages/dragon/src/kinds/mind", "packages/dragon/src/blocks/idea/draw.ts", "packages/dragon/src/look/mind.ts", "packages/dragon/src/render/mind.ts"]);
+  const images = ["docs/readme/kinds/mind.png", "docs/readme/kinds/mind-dark.png", "docs/readme/ja/kinds/mind.png", "docs/readme/ja/kinds/mind-dark.png"].map(
+    (image) => [image, committed([image])] as const,
+  );
+  return { renderer, images };
 });
