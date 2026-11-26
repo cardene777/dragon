@@ -32,7 +32,6 @@
 | scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3755 |
 | 見本帳が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`page-bundle-within-budget`が通る | #3755 |
 | 頭の行に`layout: guide`を書いたmdを書き出した時、`##`が話題になり、`###`がその話題の中に番号つきの節として縦に積まれ、話題は1つの頁に続けて積まれる (#3961で話題のタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-sections-stack-in-topics` passes | #3876 |
-| `layout: guide`の頁の左の目次に、話題ごとに節の題を番号つきで並べた問いが出て、問いを押すとその節へ移る (#3961でタブの頭の一覧から左の目次に移した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-list-jumps-to-section` passes | #3876 |
 | 節の題の直後の引用は題の下の答えとして出て、題の直後でない引用は今の引用のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3876 |
 | `<details>`と`<summary>`は確かめる問いとして出て、答えは押すまで隠れ、もう一度押すと隠れる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-quiz-hides-answer-until-pressed` passes | #3876 |
 | 用語のfileへのリンク (`[用語](glossary.md#用語)`) は下線になり、押すとすぐ下に用語の名前と説明と例の帯を持つ札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-link-opens-card` passes | #3876 |
@@ -70,17 +69,23 @@
 | 同じ用語が2度在るか、用語のfileに無い用語へのリンクが在ると、書き出しは断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-twice-or-missing-refused` passes | #3961 |
 | 頁の説明の文で全体像の図より後に書いた段落は、全体像の図より後、読む順の矢印より前に出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-keeps-text-after-figure` passes | #3969 |
 | 全体像の図より後の段落の用語のリンクは、押すとすぐ下に用語の札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-text-opens-term-card` passes | #3969 |
-| 問いの番号は章 (話題) ごとの連番で、章の番号と章の中の問いの番号を並べた`1-1`、`1-2`、`2-1`の形で、目次と本文の見出しの両方に同じ番号が出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-numbers-restart-per-topic` passes | #3969 |
 | 頁の説明の文に置いた図は頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3969 |
-| 話題が1つだけの説明の頁は、全ての節を1枚に積み、前と次のlinkを持たない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-single-topic-stacks` passes | #3983 #3991 |
+| 話題が1つだけの説明の頁は、全ての節を1枚に積み、前と次のlinkを持たない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-single-topic-stacks` passes | #3983 #3991 #3998 |
 | 印刷の形では、話題が2つ以上でも全ての話題を書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3983 #3991 |
 | 印刷の形では、2つ目からの話題を新しい紙から始める | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-starts-each-topic-on-new-paper` passes | #3983 |
-| 幅1200pxと728pxと390pxで、頁の字が読める大きさで横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-readable-and-fits` passes | #3983 #3991 |
+| 幅1200pxと728pxと390pxで、頁の字が読める大きさで横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-readable-and-fits` passes | #3983 #3991 #3998 |
 | 話題が2つ以上ある説明の頁を開くと、頁の上に全体像と話題ごとのタブが並び、全体像のタブだけが見え、話題の節を1つも見せない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-open-on-overview` passes | #3991 |
-| 話題のタブを押すと、その話題の節が全て書いた順に見え、他の話題の節は見えず、URLの`#`の後ろがその話題のidになり、目次はその話題の問いだけを出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-shows-every-question` passes | #3991 |
-| 話題のタブで目次の問いを押すと、その問いの節が画面の上に来て、目次がその問いに印を付ける | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-menu-moves-to-question` passes | #3991 |
 | 話題のタブの頭に、その話題の問いの番号と短い名前と答え1文を順に並べた一覧が在り、行を押すとその問いの節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-lists-answers` passes | #3991 |
 | 全体像の図で`link: #<話題のid>`を持つ箱を押すと、その話題のタブに切り替わる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-overview-box-opens-topic` passes | #3991 |
 | 話題のタブの頭に、全体像の図のうちその話題への`link:`を持つ箱だけに色を残した止め絵が在り、`link:`を持つ箱が無い話題には止め絵が無い | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-focus-figure` passes | #3991 |
-| 話題のタブの終わりに前と次の話題のタブへのlinkが在り、印刷の形ではタブとlinkを出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-end-links-neighbors` passes | #3991 |
 | 用語の札の中のlinkを押すと、用語の話題のタブに切り替わり、その用語の説明が画面に入る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-term-link-opens-glossary-tab` passes | #3991 |
+| 話題のタブを押すと、その話題の地図と頭の中身だけが見え、問いの節は1つも見えない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-topic-shows-map-only` passes | #3998 |
+| 左の目次の問いは番号を持たず、目次の名前だけを出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-without-numbers` passes | #3998 |
+| 目次の問いを押すと、その問いの節だけが見え、地図と他の問いの節は見えず、URLの`#`の後ろがその問いのidになる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-opens-one-question` passes | #3998 |
+| 話題の地図の一覧の行を押すと、その問いの節だけが見える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-map-row-opens-question` passes | #3998 |
+| 目次は開いた問いの下に、その問いの図の題を書いた順に並べる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-lists-open-figures` passes | #3998 |
+| 目次は閉じた問いの下に図の題を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-hides-closed-figures` passes | #3998 |
+| 目次の図の題を押すと、その図が画面の上に来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-figure-row-scrolls` passes | #3998 |
+| 話題の地図と問いの頁の終わりに、全体像、話題の地図、問いを書いた順に並べた前と次の頁へのlinkが在る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-pager-follows-order` passes | #3998 |
+| 頁を開くと全体像のタブだけが見え、問いの節は見えない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-open-on-overview` passes | #3998 |
+| 印刷の形では、全ての話題と問いを書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3998 |
