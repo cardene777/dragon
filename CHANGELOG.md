@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.84.0] - 2026-11-26
+
 ### Added
 
 - A `<pre class="dragon">` block with `data-step="3"` opens paused on step 3, counting from 1 as the step bar does. The reader can still play it or move between steps. A number larger than the step count pauses on the last step, and a value that is not a whole number from 1 turns the block into an error message (#3831)
