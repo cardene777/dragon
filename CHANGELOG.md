@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.88.0] - 2026-11-27
+
 ### Changed
 
 - An explainer page (`layout: guide`) with topic tabs now splits each tab into pages: the tab opens on the list of questions and answers, and a question in the menu or a row of the list shows only that question. The left menu no longer shows question numbers, and lists the figure titles under the open question; clicking one scrolls to the figure. Each page ends with links to the previous and next pages, in the order overview, then each topic's list and its questions (#3998)
