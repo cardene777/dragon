@@ -237,9 +237,25 @@ const sectionTop = (page: Page, title: string): Promise<number | undefined> =>
     return sec?.getBoundingClientRect().top;
   }, title);
 
+/** 印刷の形で段の止め絵が見えるまで待つ。止め絵は印刷の形に切り替わった時に作る。待ちきれなくても投げず、判定に任せる */
+const stillsShown = (page: Page): Promise<unknown> =>
+  page
+    .waitForFunction(
+      () => {
+        const walk = (root: Document | ShadowRoot): boolean =>
+          [...root.querySelectorAll<HTMLElement>('[data-dragon="step-still"]')].some((el) => el.checkVisibility()) ||
+          [...root.querySelectorAll("*")].some((host) => host.shadowRoot !== null && walk(host.shadowRoot));
+        return walk(document);
+      },
+      null,
+      { timeout: WAIT },
+    )
+    .catch(() => undefined);
+
 /** 印刷の形の頁で、タブごとの面と節、箱の札と同じ図の絵、段の止め絵を読む (#3956) */
-const printedPage = (page: Page) =>
-  page.evaluate(() => {
+const printedPage = async (page: Page) => {
+  await stillsShown(page);
+  return page.evaluate(() => {
     const squash = (text: string | null | undefined): string => (text ?? "").replace(/\s+/gu, " ").trim();
     const deep = (selector: string): Element[] => {
       const out: Element[] = [];
@@ -296,6 +312,7 @@ const printedPage = (page: Page) =>
       );
     return { topics, written, notes, stills };
   });
+};
 
 /** 押す動きを 1 つの頁で順に測る。印刷の形は最後に切り替える */
 const PRESSED = await atLoad("説明の頁を開き、問いと確かめる問いと用語の下線を押してから印刷の形にする", () =>

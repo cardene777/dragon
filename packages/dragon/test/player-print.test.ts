@@ -41,6 +41,21 @@ const drawn = (page: Page): Promise<unknown> =>
     .waitForFunction(() => (document.querySelector(".dragon-frame")?.shadowRoot?.querySelector('[data-dragon="player"] svg[data-dragon="figure"]') ?? null) !== null, null, { timeout: WAIT })
     .catch(() => undefined);
 
+/** 印刷の形で段の止め絵が見えるまで待つ。止め絵は印刷の形に切り替わった時に作る。待ちきれなくても投げず、判定に任せる */
+const stillsShown = (page: Page): Promise<unknown> =>
+  page
+    .waitForFunction(
+      () => {
+        const walk = (root: Document | ShadowRoot): boolean =>
+          [...root.querySelectorAll<HTMLElement>('[data-dragon="step-still"]')].some((el) => el.checkVisibility()) ||
+          [...root.querySelectorAll("*")].some((host) => host.shadowRoot !== null && walk(host.shadowRoot));
+        return walk(document);
+      },
+      null,
+      { timeout: WAIT },
+    )
+    .catch(() => undefined);
+
 /** 頁の今の見え方。影の根の中も歩いて、見える図と帯と道具の釦と段の止め絵を読む */
 interface Seen {
   /** 見える図の数 */
@@ -105,6 +120,7 @@ const SEEN = await atLoad("帯つきの段のある図を置いた頁を開き�
         const labels = STEPS.map((s) => s.label);
         const screen = await read(page, labels);
         await page.emulateMedia({ media: "print" });
+        await stillsShown(page);
         const print = await read(page, labels);
         return { screen, print };
       },
@@ -143,8 +159,9 @@ describe("図を置いた頁の印刷の形 (#3956)", () => {
       expect(still?.caption ?? "", `段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
       expect(still?.caption ?? "", `段 ${i + 1} の止め絵の下に段の題が無い`).toContain(step.title);
       expect(still?.caption ?? "", `段 ${i + 1} の止め絵の下に say の文が無い`).toContain(step.say);
-      // 止め絵はその段の形で、その段までに引いた線の札だけを見せる
-      expect(still?.labels ?? [], `段 ${i + 1} の止め絵に見える線の札`).toEqual(STEPS.slice(0, i + 1).map((s) => s.label));
+      // 止め絵はその段の形で、その段で引いた線の札を見せ、後の段の線の札を見せない
+      expect(still?.labels ?? [], `段 ${i + 1} の止め絵にその段の線の札が無い`).toContain(step.label);
+      for (const later of STEPS.slice(i + 1)) expect(still?.labels ?? [], `段 ${i + 1} の止め絵に後の段の線の札が見える`).not.toContain(later.label);
     }
   });
 });

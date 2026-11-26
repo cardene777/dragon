@@ -392,35 +392,47 @@ describe("1 つの図の場面 (#3878)", () => {
   });
 
   it("scenes-print-stacks-every-step", () => {
-    for (const head of ["", " [scenes: pick]"]) {
-      const placed = mount(flowScenes(head));
-      const read = scenesOf(flowScenes(head));
-      if (!placed || !read) continue;
-      // 場面ごとに、全ての段の止め絵を段の順に持ち、各絵の下に段の番号と say の文を置く (#3956)
-      for (const [k, scene] of read.scenes.entries()) {
-        const panel = panelsOf(placed.host)[k];
-        const stills = [...(panel?.querySelectorAll<HTMLElement>('[data-dragon="step-still"]') ?? [])];
-        expect(stills.length, `${head || "既定"} の ${scene.name} の段の止め絵の数`).toBe(COUNTS[k]);
-        for (const [i, still] of stills.entries()) {
-          const svg = still.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
-          const at = scene.timeline.stills[i] ?? Number.NaN;
-          expect(Number.parseFloat(svg?.style.getPropertyValue("--at") ?? ""), `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の時刻`).toBeCloseTo(at, 3);
-          const caption = [...still.childNodes]
-            .filter((node) => !(node instanceof SVGElement) && !(node instanceof Element && node.querySelector("svg")))
-            .map((node) => node.textContent ?? "")
-            .join(" ");
-          const step = scene.diagram.steps[i] as { title?: string; body?: string } | undefined;
-          expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
-          expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に say の文が無い`).toContain(step?.body ?? "(say の文が無い)");
+    // 止め絵は印刷する間だけ置く。jsdom は印刷の形の見張りを持たないので、印刷の前と後の知らせを送る
+    try {
+      for (const head of ["", " [scenes: pick]"]) {
+        const placed = mount(flowScenes(head));
+        const read = scenesOf(flowScenes(head));
+        if (!placed || !read) continue;
+        expect(placed.host.querySelectorAll('[data-dragon="step-still"]').length, `${head || "既定"} の印刷の前の段の止め絵`).toBe(0);
+        window.dispatchEvent(new Event("beforeprint"));
+        // 場面ごとに、全ての段の止め絵を段の順に持ち、各絵の下に段の番号と say の文を置く (#3956)
+        for (const [k, scene] of read.scenes.entries()) {
+          const panel = panelsOf(placed.host)[k];
+          const stills = [...(panel?.querySelectorAll<HTMLElement>('[data-dragon="step-still"]') ?? [])];
+          expect(stills.length, `${head || "既定"} の ${scene.name} の段の止め絵の数`).toBe(COUNTS[k]);
+          for (const [i, still] of stills.entries()) {
+            const svg = still.querySelector<SVGSVGElement>('svg[data-dragon="figure"]');
+            const at = scene.timeline.stills[i] ?? Number.NaN;
+            expect(Number.parseFloat(svg?.style.getPropertyValue("--at") ?? ""), `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の時刻`).toBeCloseTo(at, 3);
+            const caption = [...still.childNodes]
+              .filter((node) => !(node instanceof SVGElement) && !(node instanceof Element && node.querySelector("svg")))
+              .map((node) => node.textContent ?? "")
+              .join(" ");
+            const step = scene.diagram.steps[i] as { title?: string; body?: string } | undefined;
+            expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
+            expect(caption, `${head || "既定"} の ${scene.name} の段 ${i + 1} の止め絵の下に say の文が無い`).toContain(step?.body ?? "(say の文が無い)");
+          }
         }
+        // 段の止め絵の束は印刷の形で見せる
+        const box = placed.host.querySelector('[data-dragon="step-still"]')?.parentElement;
+        const name = box?.classList[0] ?? "(止め絵の束が無い)";
+        const print = ["dragon-player-css", "dragon-scenes-css"]
+          .map((id) => document.getElementById(id)?.textContent ?? "")
+          .flatMap((css) => [...css.matchAll(/@media print\{(.*?)\}\}/gsu)].map((m) => m[1] ?? ""))
+          .join("");
+        expect(print, "印刷の形で段の止め絵の束を見せる決まりが無い").toMatch(new RegExp(`\\.${name}\\{display:(?!none)`, "u"));
+        // 印刷の後は止め絵を外し、画面の頁に図の写しを残さない
+        window.dispatchEvent(new Event("afterprint"));
+        expect(placed.host.querySelectorAll('[data-dragon="step-still"]').length, `${head || "既定"} の印刷の後の段の止め絵`).toBe(0);
       }
+    } finally {
+      window.dispatchEvent(new Event("afterprint"));
     }
-    // 段の止め絵は印刷の形で見せる
-    const print = ["dragon-player-css", "dragon-scenes-css"]
-      .map((id) => document.getElementById(id)?.textContent ?? "")
-      .flatMap((css) => [...css.matchAll(/@media print\{(.*?)\}\}/gsu)].map((m) => m[1] ?? ""))
-      .join("");
-    expect(print, "印刷の形で段の止め絵を見せる決まりが無い").toMatch(/step-still[^{]*\{display:(?!none)/u);
   });
 
   it("scenes-text-readable-at-728", () => {
