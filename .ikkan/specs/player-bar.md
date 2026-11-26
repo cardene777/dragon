@@ -13,3 +13,12 @@
 | 帯の無い図の再生の帯は、自分で左右と下の余白を付けることを拒み、置いた頁の余白に任せる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-bar-leaves-room-to-page`が通る | #3752 |
 | 帯の段のボタンの絵柄は、今どおり1.6pxの線で描き、塗らない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`frame-icons-keep-their-lines`が通る | #3752 |
 | scriptの1行の入口が最初に読むscriptのgzip後の合計が90,000バイト以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3752 |
+| 頁がボタンのCSSを持つ時、帯の無い図 (`mountDiagram`) の再生の帯の4つのボタンの計算値と寸法は、頁のCSSが無い時と同じで、頁の指定が入らない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-bar-buttons-ignore-page-button-css`が通る | #3799 |
+| 同じ頁で、帯の無い図の再生の帯 (`.dg-bar`) の高さは、頁のCSSが無い時と同じになる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-bar-height-ignores-page-button-css`が通る | #3799 |
+| 頁がボタンのCSSを持つ時、帯の無い配管の図の拡大と縮小のボタンの計算値と寸法は、頁のCSSが無い時と同じになる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-zoom-buttons-ignore-page-button-css`が通る | #3799 |
+| 頁がボタンのCSSを持つ時、帯の無い場面の図 (`[scenes: pick]`) の帯のボタンと場面を選ぶ札の計算値と寸法は、頁のCSSが無い時と同じになる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-scene-buttons-ignore-page-button-css`が通る | #3799 |
+| 頁がボタンのCSSを持つ時、帯の無い図の開いた箱の札を閉じるボタンの計算値と寸法は、頁のCSSが無い時と同じになる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-note-close-ignores-page-button-css`が通る | #3799 |
+| 頁のCSSが無い時、帯の無い図の再生の帯のボタンの高さは`LOOK.player.button`の値で、やり直しと前と次のボタンの幅も同じ値のまま描かれる | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`plain-bar-buttons-keep-bare-size`が通る | #3799 |
+| 帯つきの図の再生の部品の見た目は、帯の内側に届く | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`frame-player-styled-inside-frame`が通る | #3799 |
+| 再生の帯の釦の絵柄は、釦の真ん中に在る | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`player-icons-centered-in-buttons`が通る | #3799 |
+| 帯の頭のボタンは、頁の`button`の指定の影と最小の幅と大文字を受けない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`figure-header-ignores-page-css`が通る | #3799 |
