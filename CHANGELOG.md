@@ -6,12 +6,15 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- In a `mind` diagram, the lines from one idea to its children on the same side no longer leave the idea's edge at separate spots, which made a branch with many leaves look like a row of parallel lines stuck into its box. They now leave the middle of the edge as one short trunk in the idea's color, 35% of the way to the children, and split from the tip of the trunk into curves in each child's color. Lines from the centre to its branches take the same form on each side. The trunk is drawn with the first child on that side, and later children draw only their curve from the tip. `dragon check --layout` reads these lines as gathering into the parent, as it does for tree diagrams, so a branch with six leaves gets no warning (#3960)
+
 ## [0.85.0] - 2026-11-26
 
 ### Changed
 
 - A guide page (`layout: guide`) with two or more topics no longer stacks every topic on one long page. It opens on a first page with the title, the text before the first topic, the overview, and the topics in order, and shows each question on its own page. A topic without questions, such as the glossary, is one page. The menu and the links at the end of each page to the previous and next pages change the page without reloading, and the address keeps the place, so a link to a question opens its page. A guide page with one topic still stacks every section, and a printed guide page still shows every topic in order (#3983)
-- In a `mind` diagram, the lines from one idea to its children on the same side no longer leave the idea's edge at separate spots, which made a branch with many leaves look like a row of parallel lines stuck into its box. They now leave the middle of the edge as one short trunk in the idea's color, 35% of the way to the children, and split from the tip of the trunk into curves in each child's color. Lines from the centre to its branches take the same form on each side. The trunk is drawn with the first child on that side, and later children draw only their curve from the tip. `dragon check --layout` reads these lines as gathering into the parent, as it does for tree diagrams, so a branch with six leaves gets no warning (#3960)
 
 ## [0.84.0] - 2026-11-26
 
