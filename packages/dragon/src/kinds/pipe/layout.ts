@@ -4313,7 +4313,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
     ...(out.housings ?? []),
     ...(out.tanks ?? []),
     ...(out.plates ?? []).filter((p) => !p.row),
-    ...out.enclosures,
+    ...(out.enclosures ?? []),
     ...(out.gauges ?? []).map((g): Rect => ({ x: g.x, y: g.y, w: g.w, h: g.h })),
     // ログの札は札の帯を持つ形 (#3721) の時だけ避ける。ほかの形のログの札はここでは仮の置き場に在り、描く段が線の札を避けて置き直す。
     // 仮の置き場を避けると、描いた図では空いている管の横まで断り、札が管の上に落ちて戻りの札に重なる (#3949)
@@ -4385,7 +4385,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
         return { x: px - x.w / 2, y: py - x.h / 2, w: x.w, h: x.h };
       });
     });
-    const clear = (r: Rect, top = M): boolean =>
+    const clear = (r: Rect, top: number = M): boolean =>
       r.y >= top &&
       r.x >= M &&
       r.x + r.w <= out.width - M &&
