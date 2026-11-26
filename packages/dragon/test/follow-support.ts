@@ -23,8 +23,10 @@ export interface Placed {
   value(el: Element, prop: string, t: number): number[] | undefined;
   /** 部品と、図の中でそれを包む部品の濃さを掛けた、時刻 `t` 秒の見える濃さ (0 から 1) */
   opacity(el: Element, t: number): number;
-  /** 段 `step` で窓が止まっている時の、図の上での窓の四角 */
+  /** 段 `step` で窓が止まっている時の、図の上での窓の四角。窓を引いた段 (#3871) は、引いた倍率で割った広さを映す */
   windowAt(step: number): Rect;
+  /** 段 `step` で窓が止まっている時の、窓の中身の倍率。引かない段は 1 (#3871) */
+  scaleAt(step: number): number;
   /** 段 `step` の番号の丸の塗りの中心と半径 */
   badgeAt(step: number): { x: number; y: number; r: number };
 }
@@ -74,8 +76,13 @@ export function place(name: string, source: string | Diagramish, width: number):
       return o;
     },
     windowAt(step) {
-      const [tx = 0, ty = 0] = value(camera as Element, "transform", stillAt(step)) ?? [];
-      return { x: -tx, y: -ty, w, h };
+      // 窓の中身は translate(tx, ty) scale(s) で動くので、窓の左上は図の上の (-tx / s, -ty / s) に在り、窓は s で割った広さを映す
+      const [tx = 0, ty = 0, s = 1] = value(camera as Element, "transform", stillAt(step)) ?? [];
+      return { x: -tx / s, y: -ty / s, w: w / s, h: h / s };
+    },
+    scaleAt(step) {
+      const [, , s = 1] = value(camera as Element, "transform", stillAt(step)) ?? [];
+      return s;
     },
     badgeAt(step) {
       const dot = figure.querySelector(`g.dg-bd[data-step="${step}"] .dg-bdf`);

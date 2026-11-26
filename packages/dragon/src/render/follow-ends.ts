@@ -15,6 +15,9 @@
  * 箱が窓の外に在る時は、箱へ向かう線が窓の端を横切る所に札を出し、段の札と箱に重ならない所までずらす。
  * 札は窓が段の所へ寄り終えてから出し、次の段へ動き始めると消して、その段の止め絵でだけ見せる。
  * 札は窓と一緒に動く中身の層の、番号の丸より下に描き、番号の丸と処理の札を覆わない。
+ *
+ * 段で動く物が窓に収まらずに窓を引いた段 (#3871) は、引いた窓の広さで札を置き、札の組を引いた倍率で戻して窓に映る札の大きさを変えない。
+ * その段は、種類が挙げた足した物 (`named`) も窓の端で切れると札を出す。
  */
 import { cs } from "../blocks/color/draw";
 import type { EndView, FollowEnds } from "../kinds/parts";
@@ -23,6 +26,7 @@ import { type Layout, type Point, type Rect, unionRect } from "../layout/scene";
 import { FOLLOW_ENDS_LOOK } from "../look/follow-ends";
 import { type ColorKey, LOOK, TYPE } from "../look/values";
 import type { DiagramModel } from "../schema";
+import { partRadius } from "./corner";
 import { cssFont as font, esc } from "./parts";
 
 /** 線の端の箱。`rect` は窓に入れる所、`paths` はその段で箱へ向かう線の点 */
@@ -41,6 +45,18 @@ export interface StepEnds {
   added: Rect[];
   ends: LineEnd[];
   blocks?: Rect[];
+  /** 段で足した物のうち、窓を引いた段 (#3871) で窓の端で切れると名前の札を出す物 */
+  named?: LineEnd[];
+}
+
+/** 段 `step` で引いた線の両端の箱を線の端の箱に挙げる。状態遷移図と構成図が使う (#3836、#3871) */
+export function edgeEnds(layout: Layout, step: number): StepEnds {
+  const edges = layout.edges.filter((edge) => edge.step === step);
+  const on = (id: string) => edges.filter((edge) => edge.from === id || edge.to === id);
+  return {
+    added: [],
+    ends: layout.boxes.filter((box) => on(box.id).length > 0).map((box) => ({ rect: box, name: box.name, color: box.color, paths: on(box.id).map((edge) => edge.points) })),
+  };
 }
 
 const E = FOLLOW_ENDS_LOOK;
@@ -71,7 +87,7 @@ function chevron(x: number, y: number, side: string): string {
 export function followEnds<L extends Layout>(
   list: (layout: L, diagram: DiagramModel, step: number) => StepEnds,
 ): (layout: L, diagram: DiagramModel, view: EndView) => FollowEnds {
-  return (layout, diagram, { vw, vh, strip, top, sh, clamp, moving }) => {
+  return (layout, diagram, { vw, vh, strip, top, sh, clamp, moving, corner }) => {
     const memo = new Map<number, StepEnds>();
     const at = (s: number): StepEnds => {
       const hit = memo.get(s);
@@ -187,7 +203,7 @@ export function followEnds<L extends Layout>(
       const gx = q.x + (tw - inner) / 2;
       const arrow = side === "right" ? chevron(gx + inner - T.chevron, cy, side) : chevron(gx + T.chevron, cy, side);
       const nameX = side === "right" ? gx + nameW / 2 : gx + T.arrow + nameW / 2;
-      const r = Math.min(h, tw, T.high) / 2;
+      const r = partRadius(corner, Math.min(h, tw, T.high) / 2);
       // 札の丸い端と窓の枠の間に残る箱の所を、箱の縁の太さの分まで窓の地で覆う。
       // 札は箱と同じ所を同じ影で覆うので、残りを覆わない。覆うと箱の影が地の縁で途切れて見える。
       // 札が箱の映る所を覆いきらない時は、映る所を全部覆う
@@ -207,19 +223,32 @@ export function followEnds<L extends Layout>(
 
     return {
       aim,
-      tags: (middles, m, timeline) =>
+      boxes: (s) => ({ ends: at(s).ends.map((e) => e.rect), named: (at(s).named ?? []).map((e) => e.rect) }),
+      tags: (middles, m, timeline, zooms) =>
         timeline.steps
           .map((span, s) => {
-            const w = win(middles[s] as [number, number]);
+            const k = zooms?.[s] ?? 1;
+            const [cx, cy] = middles[s] as [number, number];
+            // 引いた窓 (#3871) は、窓の左上を原点に倍率を掛けた窓の上の四角で札を置く。同じ四角は同じ物に写し、札が自分の箱を避けないようにする
+            const w: Rect = { x: cx - vw / 2 / k, y: cy - vh / 2 / k, w: vw / k, h: vh / k };
+            const seen = new Map<Rect, Rect>();
+            const to = (q: Rect): Rect => {
+              const hit = seen.get(q) ?? { x: (q.x - w.x) * k, y: (q.y - w.y) * k, w: q.w * k, h: q.h * k };
+              seen.set(q, hit);
+              return hit;
+            };
             const next = timeline.steps[s + 1]?.start ?? timeline.last;
             const blocks = [...layout.labels.filter((l) => l.step === s), ...layout.boxes, ...at(s).added, ...(at(s).blocks ?? [])];
-            return at(s)
-              .ends.map((e) => {
-                const body = tag(e, w, blocks);
-                // 札は窓と一緒に動く中身の層に入れ、その段の窓の左上へ移す
+            return [...at(s).ends, ...(k < 1 ? (at(s).named ?? []) : [])]
+              .map((e) => {
+                const body =
+                  k < 1
+                    ? tag({ ...e, rect: to(e.rect), paths: e.paths.map((pts) => pts.map(([x, y]): Point => [(x - w.x) * k, (y - w.y) * k])) }, { x: 0, y: 0, w: vw, h: vh }, blocks.map(to))
+                    : tag(e, w, blocks);
+                // 札は窓と一緒に動く中身の層に入れ、その段の窓の左上へ移す。引いた窓は倍率で戻す
                 return body === ""
                   ? ""
-                  : `<g class="dg-a dg-tag" data-step="${s}" transform="translate(${w.x} ${w.y - strip})" style="${cs(e.color)};${m.vis(span.start + LOOK.follow.ease, next)}">${body}</g>`;
+                  : `<g class="dg-a dg-tag" data-step="${s}" transform="translate(${w.x} ${w.y - strip})${k < 1 ? ` scale(${1 / k})` : ""}" style="${cs(e.color)};${m.vis(span.start + LOOK.follow.ease, next)}">${body}</g>`;
               })
               .join("");
           })

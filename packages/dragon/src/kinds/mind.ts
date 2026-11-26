@@ -9,7 +9,7 @@ export const parts: KindParts<MindLayout> = {
   draw: (layout, _diagram, ctx) => drawMind(layout, ctx),
   // その段で書いた考えを見る
   focus: (layout, _diagram, step) => layout.ideas.filter((idea) => idea.step === step),
-  // 段で書いた考えの親を線の端の箱に挙げる (#3836)
+  // 段で書いた考えの親を線の端の箱に挙げる (#3836)。窓を引いた段で窓の端で切れる、段で書いた考えにも名前の札を出す (#3871)
   ends: followEnds((layout, _diagram, step) => {
     const added = layout.ideas.filter((idea) => idea.step === step);
     const ids = new Set(added.map((idea) => idea.id));
@@ -19,6 +19,7 @@ export const parts: KindParts<MindLayout> = {
       ends: layout.ideas
         .filter((idea) => !ids.has(idea.id) && added.some((a) => a.parent === idea.id))
         .map((idea) => ({ rect: idea, name: idea.name, color: idea.color, paths: links.filter((link) => link.from === idea.id).map((link) => link.points) })),
+      named: added.map((idea) => ({ rect: idea, name: idea.name, color: idea.color, paths: links.filter((link) => link.to === idea.id).map((link) => link.points) })),
     };
   }),
   overview: (layout) => layout.ideas.map((idea) => ({ rect: idea, band: false, color: idea.color })),

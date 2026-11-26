@@ -55,6 +55,7 @@ import {
   type Palette,
   paletteVars,
   PLAIN_TEXT,
+  READABLE_PX,
   resolvePalette,
   type Theme,
   TYPE,
@@ -66,6 +67,7 @@ import { buildTimeline, type Span, type Timeline } from "../timeline";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { badge, cssFont as font, cssMix as mix, type Ctx, doneMark, esc, sansOf } from "./parts";
 import { frameShape, partRadius, sharpJoins } from "./corner";
+import { architectureEnds } from "./follow-ends-store";
 import { type SequenceLook, sequenceLookFor } from "./look-store";
 import { drawLines, type LineStyle } from "./pen-store";
 import type { BreakFinder, LayoutBreak, PipePiece } from "./breaks";
@@ -879,8 +881,9 @@ function followView(
     prev = [near.x + near.w / 2, near.y + near.h / 2];
     return [clampX(prev[0]), clampY(prev[1])] as [number, number];
   };
-  // 線の端の箱を挙げる種類は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、窓の端で切れる箱に名前の札を出す (#3836)
-  const ends = parts?.ends?.(layout, diagram, {
+  // 線の端の箱を挙げる種類は、段で引いた線の端の箱を窓に入れる所へ寄せ直し、窓の端で切れる箱に名前の札を出す (#3836)。
+  // 種類の部品の組を持たない構成図は、置き場に置いた部品で挙げる (#3871)
+  const ends = (parts?.ends ?? (layout.kind === "architecture" ? architectureEnds() : undefined))?.(layout, diagram, {
     vw,
     vh: below,
     strip,
@@ -888,9 +891,63 @@ function followView(
     sh: `filter="url(#dg-sh-${id})"`,
     clamp: ([x, y]) => [clampX(x), clampY(y)],
     moving: (s) => focusParts(layout, diagram, s),
+    corner,
   });
+  /**
+   * 段 `s` で窓を引く倍率と、引いた窓の真ん中 (#3871)。段で動く物が今の大きさの窓に収まる段は `undefined` を返し、今の寄せ方のまま寄る。
+   * 引くのは箱の名前の字が読める大きさ (`READABLE_PX`) になる所までで、段で動く物と線の端の箱と番号の丸の全てが入るならそこで止める。
+   * 全てが入らない段は、段の最初の線の先の箱と線の札を先に入れ、次に番号の丸を、残りは番号の丸に近い順に入る間だけ入れ、
+   * 囲んだ所を窓に残したまま全てを囲んだ所の真ん中へ寄せる。引いた窓が図より広い向きは図の真ん中に置く
+   */
+  const zoomAt = (s: number): { k: number; at: [number, number] } | undefined => {
+    const moving = focusParts(layout, diagram, s);
+    if (moving.length === 0) return undefined;
+    const u0 = unionRect(moving);
+    if (u0.w <= vw && u0.h <= below) return undefined;
+    const b = layout.badges.find((x) => x.step === s && !onStrip(layout, x) && x.y >= top);
+    const near = ends?.boxes(s) ?? { ends: [], named: [] };
+    const disc = b ? [{ x: b.x - r, y: b.y - r, w: r * 2, h: r * 2 }] : [];
+    const all = [...moving, ...near.ends, ...disc];
+    const u = unionRect(all);
+    const room = F.zoomRoom;
+    const k = Math.max(Math.min(1, READABLE_PX / TYPE.boxName.size), Math.min(1, vw / (u.w + room * 2), below / (u.h + room * 2)));
+    const [W, H] = [vw / k, below / k];
+    const away = (p: Rect): number => (b ? Math.hypot(Math.max(0, p.x - b.x, b.x - p.x - p.w), Math.max(0, p.y - b.y, b.y - p.y - p.h)) : 0);
+    const near1 = (list: Rect[]): Rect[] => [...list].sort((p, q) => away(p) - away(q));
+    const first = layout.edges.filter((e) => e.step === s).sort((p, q) => p.event - q.event)[0];
+    const lead = first ? [...layout.boxes.filter((x) => x.id === first.to), ...layout.labels.filter((l) => l.step === s && l.event === first.event)] : [];
+    let held: Rect | undefined;
+    for (const p of [...(lead.length > 0 ? [unionRect(lead)] : []), ...disc, ...near1([...layout.labels.filter((l) => l.step === s), ...near.named, ...all])]) {
+      const next = held ? unionRect([held, p]) : p;
+      if (next.w + room * 2 <= W && next.h + room * 2 <= H) held = next;
+    }
+    const f = held ?? u;
+    // 囲んだ所を窓に残せる範囲で全てを囲んだ所の真ん中へ寄せ、全てを囲んだ所が窓より大きい向きは、窓をその外へはみ出させない
+    const axis = (want: number, lo: number, size: number, span: number, ulo: number, usize: number): number => {
+      const a = lo + size + room - span / 2;
+      const z = lo - room + span / 2;
+      const c = a <= z ? Math.min(z, Math.max(a, want)) : lo + size / 2;
+      return usize > span ? Math.min(ulo + usize - span / 2, Math.max(ulo + span / 2, c)) : c;
+    };
+    // 引いた窓が図より広い向きは図の真ん中に置く。値の表を持つ図の縦は、窓が表の在った所を映さないよう窓の下の端を表の上に揃える (#3270)
+    const keep = (v: number, lo: number, hi: number, span: number, bottom = false): number =>
+      hi - lo <= span ? (bottom ? hi - span / 2 : (lo + hi) / 2) : Math.min(hi - span / 2, Math.max(lo + span / 2, v));
+    return {
+      k,
+      at: [keep(axis(u.x + u.w / 2, f.x, f.w, W, u.x, u.w), 0, layout.width, W), keep(axis(u.y + u.h / 2, f.y, f.h, H, u.y, u.h), top, worldH, H, layout.strip !== undefined)],
+    };
+  };
+  // 時系列図 (頭の列を窓の上端に留める) と、寄せる所を種類か見た目が決める図は窓を引かない (#3871)
+  const zooms = timeline.steps.map((_, s) => (look || parts?.aim || layout.kind === "sequence" ? undefined : zoomAt(s)));
+  const ks = zooms.map((z) => z?.k ?? 1);
   // 頭の列の下の残りの窓の真ん中。窓の真ん中は、これより頭の列の高さの半分だけ上に在る
   const middles = timeline.steps.map((_, s): [number, number] => {
+    const z = zooms[s];
+    if (z) {
+      // 引いた段の窓の真ん中を、次の動く物の無い段が留まる所にする
+      prev = z.at;
+      return z.at;
+    }
     if (!ends) return aimAt(s);
     // 寄せ直した所を次の段が留まる所にする
     prev = ends.aim(aimAt(s), s);
@@ -898,19 +955,22 @@ function followView(
   });
   const centers = middles.map(([x, y]): [number, number] => [x, y - strip / 2]);
   const c0 = centers[0] as [number, number];
+  // 4 つ目の値は窓の中身の倍率で、窓を引いた段 (#3871) は 1 より小さい
+  const k0 = ks[0] as number;
   const cam: [number, number, number, number?, string?][] = [
-    [0, c0[0], c0[1]],
-    [(timeline.steps[0] as Span).start, c0[0], c0[1]],
+    [0, c0[0], c0[1], k0],
+    [(timeline.steps[0] as Span).start, c0[0], c0[1], k0],
   ];
   centers.forEach((c, s) => {
     if (s === 0) return;
     const before = centers[s - 1] as [number, number];
     const start = (timeline.steps[s] as Span).start;
-    cam.push([start, before[0], before[1], 1, EASE.inOut], [start + F.ease, c[0], c[1]]);
+    cam.push([start, before[0], before[1], ks[s - 1], EASE.inOut], [start + F.ease, c[0], c[1], ks[s]]);
   });
   const cl = centers[centers.length - 1] as [number, number];
-  cam.push([timeline.last, cl[0], cl[1], 1, EASE.inOut], [timeline.total, c0[0], c0[1]]);
-  const camKf = m.move(cam.map(([t, cx, cy, s, e]) => [t, vw / 2 - cx, vh / 2 - cy, s, e]));
+  cam.push([timeline.last, cl[0], cl[1], ks[ks.length - 1], EASE.inOut], [timeline.total, c0[0], c0[1], k0]);
+  // 窓の真ん中の図の上の点 (cx, cy) を窓の真ん中に映す。倍率 s の中身は左上を原点に縮むので、動かす量にも s を掛ける
+  const camKf = m.move(cam.map(([t, cx, cy, s = 1, e]) => [t, vw / 2 - cx * s, vh / 2 - cy * s, s, e]));
 
   // 右に出す時は窓の上端に揃え、下に出す時は窓の右端から内へ寄せる
   const bgX = beside ? vw + M.inset : vw - bgW - M.inset;
@@ -946,8 +1006,9 @@ function followView(
         return `<rect class="${s.band ? "dg-mm-band" : "dg-mm-card"}" ${style} x="${mx + t.x * k}" y="${my + t.y * k}" width="${t.w * k}" height="${t.h * k}" rx="${partRadius(corner, s.band ? M.band : M.card)}"/>`;
       }),
     ].join("");
+    // 窓を引いた段 (#3871) の枠は、窓が映す図の広さ (窓の幅と高さを倍率で割った広さ) に合わせて広げる
     const vp = m.move(
-      cam.map(([t, cx, cy, , e]) => [t, mx + (cx - vw / 2) * k, my + (cy - vh / 2) * k, 1, e]),
+      cam.map(([t, cx, cy, s = 1, e]) => [t, mx + (cx - vw / 2 / s) * k, my + (cy - vh / 2 / s) * k, 1 / s, e]),
     );
     return {
       css: own.some((shape) => !("rect" in shape)) ? MINI_SHAPE_CSS : "",
@@ -970,7 +1031,7 @@ function followView(
       ? ""
       : `<g class="dg-hd"><rect class="dg-hd-bg" width="${vw}" height="${strip}"/><line class="dg-sep" x1="0" y1="${strip}" x2="${vw}" y2="${strip}"/>` +
         `<g class="dg-a" style="${m.move(cam.map(([t, cx, , s, e]) => [t, vw / 2 - cx, 0, s, e]))}">${pinned}</g></g>`;
-  const tags = ends ? ends.tags(middles, m, timeline) : "";
+  const tags = ends ? ends.tags(middles, m, timeline, ks) : "";
   const body =
     `<defs><clipPath id="dg-vp-${id}">${frameShape(corner, "", { x: 0, y: 0, w: vw, h: vh }, `<rect width="${vw}" height="${vh}" rx="${LOOK.region.radius}"/>`)}</clipPath>${mini.clip}</defs>` +
     `<g clip-path="url(#dg-vp-${id})"><rect class="dg-vp-bg" width="${vw}" height="${vh}"/><g class="dg-a" style="${camKf}">${content.slice(0, under)}${tags}${content.slice(under)}</g>${head}</g>` +
