@@ -370,7 +370,8 @@ In the text, a link such as `[order](glossary.md#order)` is underlined.
 Clicking it opens a card just below it with the term, its meaning, and a gray example band.
 The card closes on a click outside it, on its close icon, or on the term again.
 A term written twice, or a link to a term the file does not have, stops the export with the file and line named.
-When the page is printed, the tab row is left out and the sections of every tab follow in written order; each tab after the first starts on a new sheet with the tab name at the top.
+When the page is printed, the tab row is left out and the sections of every tab follow in written order.
+Each tab after the first starts on a new sheet, and every tab shows its name at the top.
 Every term card and check answer is drawn open, and box cards are listed below their diagram with their box names instead of over it.
 The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).
 
