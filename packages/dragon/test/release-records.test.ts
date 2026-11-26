@@ -223,6 +223,19 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-87-0-lists-guide-tabs-once", () => {
+    // 話題が2つ以上ある説明の頁を話題ごとのタブに分ける変更 (#3991) を Changed の1項に持って 0.87.0 で出す (#3994)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 87, `package の版 ${version()} が 0.87.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.87\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.87.0"), "0.87.0");
+      expect(released, `${file} に日付付きの ## [0.87.0] の節が無い`).not.toBe("");
+      expect(released.split("(#3991)").length - 1, `${file} の 0.87.0 の節が (#3991) の項を 1 回持たない`).toBe(1);
+      expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 (#3991) が残る`).not.toContain("(#3991)");
+    }
+  });
+
   it("changelog-0-86-0-lists-mind-trunk-once", () => {
     // マインドマップの線を親の縁の1か所から出る幹にまとめる変更 (#3960) を Changed の1項に持って 0.86.0 で出す (#3988)。
     // 0.85.0 では取り込みで混ざった項を未公開へ戻した (#3985)
