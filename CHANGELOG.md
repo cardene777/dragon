@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.86.0] - 2026-11-26
+
 ### Changed
 
 - In a `mind` diagram, the lines from one idea to its children on the same side no longer leave the idea's edge at separate spots, which made a branch with many leaves look like a row of parallel lines stuck into its box. They now leave the middle of the edge as one short trunk in the idea's color, 35% of the way to the children, and split from the tip of the trunk into curves in each child's color. Lines from the centre to its branches take the same form on each side. The trunk is drawn with the first child on that side, and later children draw only their curve from the tip. `dragon check --layout` reads these lines as gathering into the parent, as it does for tree diagrams, so a branch with six leaves gets no warning (#3960)

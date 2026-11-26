@@ -36,7 +36,7 @@ export type SiteFiles = Readonly<Record<string, string | Buffer>>;
 /** script の1行の入口を読む HTML の頁。`body` は頁の中身 */
 export const cdnPage = (body: string, lang = "ja"): string =>
   `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">` +
-  `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.85/dist/cdn/dragon.js"></script></head><body>${body}</body></html>`;
+  `<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.86/dist/cdn/dragon.js"></script></head><body>${body}</body></html>`;
 
 /** HTML の字として書けるよう、`<` と `&` を逃がす */
 export const escapeHtml = (text: string): string =>
