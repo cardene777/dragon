@@ -66,7 +66,13 @@ export interface RenderedTerm {
   example?: string;
 }
 
-/** 説明の頁の節。`terms` は節の中の下線が開く札、`menu` は左の目次に出す短い名前 (#3961) */
+/** 説明の頁の節の図 (#3998)。`id` は図の塊の場所の名前、`title` は図の記法の頭の行の題 */
+export interface RenderedFigure {
+  id: string;
+  title: string;
+}
+
+/** 説明の頁の節。`terms` は節の中の下線が開く札、`menu` は左の目次に出す短い名前 (#3961)、`figures` は題を持つ図を書いた順に並べた物 (#3998) */
 export interface RenderedSection {
   id: string;
   name: string;
@@ -74,6 +80,7 @@ export interface RenderedSection {
   answer?: string;
   body: string;
   terms: RenderedTerm[];
+  figures?: RenderedFigure[];
 }
 
 /** 説明の頁の話題。`glossary` を持つ話題は用語の話題で、節を持たない */
@@ -306,11 +313,15 @@ const STYLE_GUIDE = `
 .pg-menu-over[aria-current="true"]{background:var(--pg-sunk);color:var(--pg-ink);box-shadow:inset 3px 0 0 var(--pg-ink2)}
 .pg-menu-topic{display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:13px;font-weight:700;color:var(--c);text-decoration:none}
 .pg-menu-topic::before{content:"";flex:none;width:14px;height:4px;border-radius:2px;background:var(--cc)}
-.pg-menu-topic[aria-current="true"]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.pg-menu-topic[aria-current="true"],.pg-menu-topic[data-open]{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
 .pg-menu-q{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;color:var(--pg-ink2);text-decoration:none}
 .pg-menu-q:hover{background:var(--pg-sunk);color:var(--pg-ink)}
-.pg-menu-q[aria-current="true"]{background:color-mix(in srgb,var(--cc) 12%,var(--pg-surf));color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
-.pg-menu-q .pg-num{min-width:20px;height:20px;padding:0 4px;font-size:12px}
+.pg-menu-q[aria-current="true"],.pg-menu-q[data-open]{background:color-mix(in srgb,var(--cc) 12%,var(--pg-surf));color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
+.pg-menu-figs{display:none;list-style:none;margin:2px 0 6px 16px;padding:0 0 0 8px;border-left:2px solid var(--pg-hair)}
+.pg-menu-q[data-open]+.pg-menu-figs{display:block}
+.pg-menu-fig{display:block;padding:3px 8px;border-radius:6px;font-size:13px;line-height:1.5;color:var(--pg-ink2);text-decoration:none}
+.pg-menu-fig:hover{background:var(--pg-sunk);color:var(--pg-ink)}
+.pg-menu-fig[aria-current="true"]{background:var(--pg-sunk);color:var(--pg-ink);font-weight:600}
 .pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-main{min-width:0;padding:14px 0 0}
 .pg-topic{margin:0 0 36px;scroll-margin-top:12px}
@@ -352,7 +363,7 @@ const STYLE_GUIDE = `
 .pg-pager .pg-pager-next{margin-left:auto;align-items:flex-end;text-align:right}
 .pg-pager-dir{font-size:12.5px;line-height:1.4;color:var(--pg-mute)}
 .pg-pager-to{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
-@media screen{.pg-split [data-off]{display:none!important}.pg-split>.pg-main{padding-top:20px}.pg-split .pg-topic-title,.pg-split .pg-menu-over,.pg-split>.pg-menu[data-whole] .pg-menu-group ol{display:none}.pg-split .pg-topic,.pg-split .pg-sec,.pg-split .pg-gl{scroll-margin-top:70px}}
+@media screen{.pg-split [data-off]{display:none!important}.pg-split>.pg-main{padding-top:20px}.pg-split .pg-topic-title,.pg-split .pg-menu-over,.pg-split>.pg-menu[data-whole] .pg-menu-group ol{display:none}.pg-split .pg-topic,.pg-split .pg-sec,.pg-split .pg-gl,.pg-split .pg-figure[id]{scroll-margin-top:70px}}
 @media (max-width:860px){
 .pg-has-menu{display:flex;flex-direction:column;align-items:stretch}
 .pg-has-menu>.pg-tabs{order:0;position:static;padding-top:6px}
@@ -367,7 +378,7 @@ const STYLE_GUIDE = `
 .pg-menu-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
 .pg-menu-toggle[aria-expanded="false"]+.pg-menu-list{display:none}
 .pg-menu-list{max-height:calc(100vh - 72px);overflow:auto;padding:10px 0 4px}
-.pg-topic,.pg-sec,.pg-gl{scroll-margin-top:68px}
+.pg-topic,.pg-sec,.pg-gl,.pg-figure[id]{scroll-margin-top:68px}
 }
 @media (max-width:760px){.pg-topic-title{font-size:19px}.pg-sec-title{font-size:17px}.pg-answer{font-size:15px}}
 @media print{
@@ -391,6 +402,8 @@ const STYLE_GUIDE = `
  * 話題ごとのタブに分けた説明の頁 (`pg-split`、#3983、#3991) は、URLの場所の名前が指す要素を含む話題を1つのタブとして見せ、ほかの話題と頭のタブに`data-off`を付けて隠す。
  * 名前が無いか頭のタブの中を指す時は頭のタブを見せる。頁の上のタブは見せているタブに印 (`aria-current="page"`) を付け、目次は見せている話題の行だけを出し、頭のタブでは話題の名前だけを出す。
  * 場所の名前が話題を指す時はタブの頭へ戻り、話題の中の要素 (問いの節や用語の説明) を指す時はその要素へ移る。頁の終わりまで送った時は、見えている最後の行に印を付ける。
+ * 話題のタブの中は問いごとの頁に分ける (#3998)。場所の名前が話題を指す時は話題の頭の地図の頁 (`pg-topic-head`) だけを見せ、問いの節か節の中の図を指す時はその節だけを見せる。
+ * 目次は開いた頁の行 (話題の名前か問い) に`data-open`を付け、開いた問いの下の図の題を出す。読んでいる所の印は図の題に付け、問いの行には付けない。
  * 開いた時はブラウザがURLの場所の要素まで送るので、読み込みが終わった時にもう一度場所へ移る
  */
 const RUNTIME_GUIDE = `(()=>{
@@ -400,12 +413,12 @@ const close=()=>{if(!opened)return;opened.card.removeAttribute("data-open");open
 const open=(term)=>{const again=opened&&opened.term===term;close();if(again)return;const box=term.closest("[data-terms]");const card=box&&[...box.querySelectorAll(".pg-tc")].find((c)=>c.dataset.term===term.dataset.term);if(!card)return;const f=box.getBoundingClientRect();const r=term.getBoundingClientRect();const w=Math.min(${N.card},f.width);card.style.width=w+"px";card.style.left=Math.max(0,Math.min(r.left+r.width/2-f.left-w/2,f.width-w))+"px";card.style.top=(r.bottom-f.top+${N.gap})+"px";card.dataset.open="";term.setAttribute("aria-expanded","true");opened={term,card}};
 const menu=document.querySelector(".pg-menu");
 const toggle=document.querySelector(".pg-menu-toggle");
-const links=menu?[...menu.querySelectorAll("a[data-spy]")]:[];
+const wrap=document.querySelector(".pg-split");
+const links=menu?[...menu.querySelectorAll("a[data-spy]")].filter((a)=>!(wrap&&a.matches(".pg-menu-q"))):[];
 const targets=links.map((a)=>document.getElementById(decode(a.getAttribute("href").slice(1))));
 const phone=matchMedia("(max-width:860px)");
 const fold=(on)=>{if(toggle)toggle.setAttribute("aria-expanded",String(!on))};
 let marked=null;
-const wrap=document.querySelector(".pg-split");
 const main=wrap?wrap.querySelector(":scope>.pg-main"):null;
 const heads=wrap?[...wrap.querySelectorAll(":scope>.pg-top,:scope>.pg-overview,:scope>.pg-start")]:[];
 const over=document.querySelector(".pg-menu-over");
@@ -413,8 +426,11 @@ const overId=over?decode(over.getAttribute("href").slice(1)):"";
 const off=(el,on)=>{if(on)el.setAttribute("data-off","");else el.removeAttribute("data-off")};
 const tabs=wrap?[...wrap.querySelectorAll(":scope>.pg-tabs a")]:[];
 const groups=menu?[...menu.querySelectorAll(".pg-menu-group")]:[];
+const opens=menu?[...menu.querySelectorAll(".pg-menu-topic,.pg-menu-q")]:[];
 const topicOf=(el)=>!el||!main||!main.contains(el)?null:el.closest(".pg-topic");
-const show=(topic)=>{for(const h of heads)off(h,!!topic);off(main,!topic);for(const t of main.querySelectorAll(":scope>.pg-topic"))off(t,t!==topic);
+const show=(topic,sec)=>{for(const h of heads)off(h,!!topic);off(main,!topic);for(const t of main.querySelectorAll(":scope>.pg-topic"))off(t,t!==topic);
+if(topic){const head=topic.querySelector(":scope>.pg-topic-head");if(head)off(head,!!sec);for(const s of topic.querySelectorAll(":scope>.pg-sec"))off(s,s!==sec)}
+const at=sec?sec.id:topic?topic.id:"";for(const a of opens){if(at&&decode(a.getAttribute("href").slice(1))===at)a.setAttribute("data-open","");else a.removeAttribute("data-open")}
 const id=topic?topic.id:overId;for(const a of tabs){if(decode(a.getAttribute("href").slice(1))===id)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")}
 if(menu){if(topic)menu.removeAttribute("data-whole");else menu.setAttribute("data-whole","")}
 for(const g of groups){const name=g.querySelector(".pg-menu-topic");off(g,!!topic&&!!name&&decode(name.getAttribute("href").slice(1))!==topic.id)}};
@@ -425,7 +441,7 @@ let queued=false;
 addEventListener("scroll",()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;spy()})},{passive:true});
 addEventListener("resize",spy);
 const go=()=>{const h=decode(location.hash.slice(1));const target=h?document.getElementById(h):null;
-if(wrap&&main){const topic=topicOf(target);show(topic);if(target&&topic&&target!==topic)target.scrollIntoView();else scrollTo(0,0);if(topic)spy();else markAt(overId);return}
+if(wrap&&main){const topic=topicOf(target);const sec=topic&&target!==topic?target.closest(".pg-sec"):null;show(topic,sec);if(target&&topic&&target!==topic&&target!==sec)target.scrollIntoView();else scrollTo(0,0);if(topic)spy();else markAt(overId);return}
 if(target)target.scrollIntoView();spy()};
 document.addEventListener("click",(event)=>{const t=event.target;
 const term=t.closest?.(".pg-term");if(term){open(term);return}
@@ -617,39 +633,54 @@ function mapHtml(topic: RenderedTopic, lang: PageLang, chapter: number, overview
 }
 
 /**
- * 話題の中身。頭に話題の題を置き、用語の話題は用語ごとの説明と例を並べ、ほかの話題は節を縦に積む。節の番号は話題の番号`chapter`と話題の中の問いの番号を`-`で繋ぐ (#3969)。
- * `map`は話題の題の後に置く地図、`end`は話題の終わりに置く前と次の話題へのlink (#3991)
+ * 話題のタブに分けた頁の、1つの話題の頁の組み立て (#3991、#3998)。`map`は話題の頭の地図、`head`は地図の頁の終わりの前と次のlink、
+ * `ends`は問いの節ごとの頁の終わりの前と次のlink
  */
-function topicHtml(topic: RenderedTopic, lang: PageLang, chapter: number, map = "", end = ""): string {
+interface TopicPaging {
+  map: string;
+  head: string;
+  ends: readonly string[];
+}
+
+/**
+ * 話題の中身。頭に話題の題を置き、用語の話題は用語ごとの説明と例を並べ、ほかの話題は節を縦に積む。節の番号は話題の番号`chapter`と話題の中の問いの番号を`-`で繋ぐ (#3969)。
+ * 話題のタブに分けた頁 (`paging`、#3998) は、話題の題の後に地図と頭の中身と前と次のlinkを地図の頁 (`pg-topic-head`) にまとめ、問いの節の終わりにも前と次のlinkを置く
+ */
+function topicHtml(topic: RenderedTopic, lang: PageLang, chapter: number, paging?: TopicPaging): string {
   const title = `<h2 class="pg-topic-title">${withoutLinks(topic.name)}</h2>`;
   if (topic.glossary) {
     const entries = topic.glossary
       .map((term) => `<div class="pg-gl" id="${escapeHtml(term.entry)}"><p class="pg-gl-n">${term.name}</p><div class="pg-gl-t">${term.text}</div>${term.example === undefined ? "" : `<div class="pg-gl-e">${term.example}</div>`}</div>`)
       .join("");
-    return `${title}<div class="pg-glossary">${entries}</div>${end}`;
+    return `${title}<div class="pg-glossary">${entries}</div>${paging?.head ?? ""}`;
   }
   const lead = topic.lead || topic.leadTerms.length > 0 ? `<div class="pg-topic-lead" data-terms>${topic.lead}${termCards(topic.leadTerms, lang)}</div>` : "";
   const sections = topic.sections
     .map(
       (section, n) =>
         `<section class="pg-sec" id="${escapeHtml(section.id)}" data-terms><h3 class="pg-sec-title"><span class="pg-num">${chapter}-${n + 1}</span><span>${section.name}</span></h3>` +
-        `${section.answer === undefined ? "" : `<p class="pg-answer">${section.answer}</p>`}${section.body}${termCards(section.terms, lang)}</section>`,
+        `${section.answer === undefined ? "" : `<p class="pg-answer">${section.answer}</p>`}${section.body}${termCards(section.terms, lang)}${paging?.ends[n] ?? ""}</section>`,
     )
     .join("");
-  return title + map + lead + sections + end;
+  if (!paging) return title + lead + sections;
+  return `${title}<div class="pg-topic-head">${paging.map}${lead}${paging.head}</div>${sections}`;
 }
 
 /**
- * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、`話題の番号-問いの番号`と目次の名前
- * (`[menu: 短い名前]` の名前か問いの全文) の問いを並べる (#3969)。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ
+ * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、目次の名前
+ * (`[menu: 短い名前]` の名前か問いの全文) の問いを番号を付けずに並べる (#3969、#3998)。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ。
+ * 話題のタブに分けた頁 (`split`) は、問いの下にその問いの図の題を並べ、開いた問いの下だけに見せる (#3998)
  */
-function menuHtml(page: RenderedPage, guide: RenderedGuide, chapters: readonly number[]): string {
+function menuHtml(page: RenderedPage, guide: RenderedGuide, split: boolean): string {
   const words = WORDS[page.lang];
   const over = guide.overview ? `<a class="pg-menu-over" href="#${escapeHtml(guide.overviewId)}" data-spy>${escapeHtml(words.whole)}</a>` : "";
   const groups = guide.topics
     .map((topic, i) => {
       const questions = topic.sections
-        .map((section, n) => `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-num">${chapters[i] ?? 0}-${n + 1}</span><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a></li>`)
+        .map((section) => {
+          const figures = split && section.figures && section.figures.length > 0 ? `<ol class="pg-menu-figs">${section.figures.map((figure) => `<li><a class="pg-menu-fig" href="#${escapeHtml(figure.id)}" data-spy>${escapeHtml(figure.title)}</a></li>`).join("")}</ol>` : "";
+          return `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a>${figures}</li>`;
+        })
         .join("");
       const name = `<a class="pg-menu-topic" href="#${escapeHtml(topic.id)}"${questions ? "" : " data-spy"}>${withoutLinks(topic.name)}</a>`;
       return `<div class="pg-menu-group" style="${groupColor(i)}">${name}${questions ? `<ol>${questions}</ol>` : ""}</div>`;
@@ -709,7 +740,8 @@ function tabsBarHtml(lang: PageLang, head: GuidePage, pages: readonly GuidePage[
 /**
  * 説明の頁 (#3876、#3961)。左の列の目次と、右の列の頁の題と頭の中身、全体像、続けて積む話題。
  * 話題が2つ以上の頁 (`pg-split`) は、頁の上に全体像と話題ごとのタブを並べ、頁の題と頭の中身と全体像と話題の道筋を頭のタブにし、話題ごとに1つのタブにする (#3991)。
- * 話題のタブの頭に地図を置き、タブの終わりに前と次の話題へのlinkを置く。全体像の無い頁は、頭の中身の後に話題の道筋と最初の話題へのlinkを置く (#3983)。
+ * 話題のタブの頭に地図を置き、話題のタブの中は地図の頁と問いごとの頁に分ける (#3998)。頁は全体像、話題ごとの地図と問いを書いた順に並べ、地図と問いの頁の終わりに前と次の頁へのlinkを置く。
+ * 全体像の無い頁は、頭の中身の後に話題の道筋と最初の話題へのlinkを置く (#3983)。
  * 印刷の形では目次とタブを出さずに全ての話題を書いた順に並べ、2つ目からの話題を新しい紙から始め、どの話題も紙の上に話題の名前の見出しを出す (#3956)
  */
 function guideLayout(page: RenderedPage): string {
@@ -725,17 +757,30 @@ function guideLayout(page: RenderedPage): string {
     ? guide.topics.map((topic, i) => ({ id: topic.id, number: topic.glossary ? "" : String(chapters[i] ?? 0), name: withoutLinks(topic.name), color: groupColor(i) }))
     : [];
   const head: GuidePage = { id: guide.overview ? guide.overviewId : "", number: "", name: escapeHtml(WORDS[page.lang].whole), color: "" };
+  // 頁の並び。全体像の後に、話題ごとに地図の頁とその話題の問いの頁を書いた順に並べる (#3998)
+  const order: GuidePage[] = [head];
+  if (split) {
+    guide.topics.forEach((topic, i) => {
+      const tab = pages[i];
+      if (tab) order.push(tab);
+      if (topic.glossary) return;
+      topic.sections.forEach((section, n) => order.push({ id: section.id, number: `${chapters[i] ?? 0}-${n + 1}`, name: withoutLinks(section.menu ?? section.name), color: groupColor(i) }));
+    });
+  }
+  const end = (id: string): string => {
+    const at = order.findIndex((p) => p.id === id);
+    return pagerHtml(page.lang, order[at - 1], order[at + 1]);
+  };
   const topics = guide.topics
     .map((topic, i) => {
       const chapter = chapters[i] ?? 0;
-      const map = split ? mapHtml(topic, page.lang, chapter, guide.overview) : "";
-      const end = split ? pagerHtml(page.lang, i === 0 ? head : pages[i - 1], pages[i + 1]) : "";
-      return `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, chapter, map, end)}</section>`;
+      const paging = split ? { map: mapHtml(topic, page.lang, chapter, guide.overview), head: end(topic.id), ends: topic.sections.map((section) => end(section.id)) } : undefined;
+      return `<section class="pg-topic" id="${escapeHtml(topic.id)}" style="${groupColor(i)}">${topicHtml(topic, page.lang, chapter, paging)}</section>`;
     })
     .join("");
-  const menu = guide.topics.length === 0 ? "" : menuHtml(page, guide, chapters);
+  const menu = guide.topics.length === 0 ? "" : menuHtml(page, guide, split);
   const main = guide.topics.length === 0 ? "" : `<main class="pg-main">${topics}</main>`;
-  const go = split ? pagerHtml(page.lang, undefined, pages[0]) : "";
+  const go = split ? pagerHtml(page.lang, undefined, order[1]) : "";
   const start = guide.overview ? overviewHtml(guide, page.lang, go) : split ? `<div class="pg-start">${routeHtml(guide, page.lang)}${go}</div>` : "";
   const bar = split ? tabsBarHtml(page.lang, head, pages) : "";
   return `<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}${split ? " pg-split" : ""}">${bar}${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${start}${main}</div>`;

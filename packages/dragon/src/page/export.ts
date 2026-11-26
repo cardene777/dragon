@@ -19,7 +19,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parseNotation } from "../parser";
 import { DEFAULT_LANG, hasKanaKanji } from "../words";
-import { pageHtml, type RenderedGroup, type RenderedGuide, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
+import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
 import { codeHtml, escapeHtml, fenceCloses, fenceOpen, figureHtml, headingOf, joinLines, type Line, linesOf, linksIn, quoteOf, type RenderHooks, renderBlocks, renderInline } from "./markdown";
 import { type Guide, type Part, placeExists, readOutline, type Tab } from "./read";
 import { slugger, slugOf } from "./slug";
@@ -48,6 +48,10 @@ const IMAGES = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif
 const DEPTH = 8;
 /** scheme を持つ行き先 (`https:` など) */
 const SCHEME = /^[a-z][a-z0-9+.-]*:/iu;
+
+/** `escapeHtml` が逃がした字を元に戻す (#3998) */
+const unescapeHtml = (text: string): string =>
+  text.replaceAll("&lt;", "<").replaceAll("&gt;", ">").replaceAll("&quot;", '"').replaceAll("&#39;", "'").replaceAll("&amp;", "&");
 
 /** 読んでいるfile。`name` は誤りの文に書く名前、`path` は実の path */
 interface Source {
@@ -338,6 +342,22 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     cards = outer;
     return { html, terms };
   };
+  /**
+   * 問いの節の図に場所の名前 (`<節の場所の名前>-fig-<番号>`) を付け、図の題を書いた順に返す (#3998)。左の目次が開いた問いの下に題を並べ、押すとその図へ移る。
+   * 題は図の記法の頭の行の題で、図の帯が出す題と同じ。題の無い図と読めない図は目次に出さない
+   */
+  const figuresOf = (html: string, id: string): { html: string; figures: RenderedFigure[] } => {
+    const figures: RenderedFigure[] = [];
+    const named = html.replace(/<div class="pg-figure([^"]*)"><pre class="dragon"([^>]*)>([\s\S]*?)<\/pre>/gu, (whole, kind: string, attrs: string, escaped: string) => {
+      const parsed = parseNotation(unescapeHtml(escaped), { lang, ...(note ? { note } : {}) });
+      const title = parsed.ok ? parsed.diagram.title.trim() : "";
+      if (title === "") return whole;
+      const place = `${id}-fig-${figures.length + 1}`;
+      figures.push({ id: place, title });
+      return `<div class="pg-figure${kind}" id="${escapeHtml(place)}"><pre class="dragon"${attrs}>${escaped}</pre>`;
+    });
+    return { html: named, figures };
+  };
   const guideOf = (g: Guide): RenderedGuide => {
     checkTermLinks({ name: file, path }, linesOf(text));
     for (const term of terms.values()) checkTermLinks(term.source, [...term.text, ...term.example]);
@@ -358,13 +378,15 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
             if (section.answer) answer = renderInline(joinLines(section.answer.map((line) => line.text).filter((t) => t.trim() !== "")), main);
             return blocks(section.body);
           });
+          const named = figuresOf(body.html, section.id);
           return {
             id: section.id,
             name: renderInline(section.name, main),
             ...(section.menu === undefined ? {} : { menu: renderInline(section.menu, main) }),
             ...(answer === undefined ? {} : { answer }),
-            body: body.html,
+            body: named.html,
             terms: body.terms,
+            ...(named.figures.length === 0 ? {} : { figures: named.figures }),
           };
         }),
       };

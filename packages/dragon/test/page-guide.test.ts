@@ -638,7 +638,7 @@ const pageState = (page: Page) =>
         .filter(vis)
         .map((a) => ({ text: sq(a.textContent), href: dec(a.getAttribute("href") ?? ""), current: a.getAttribute("aria-current") === "page" })),
       menu: [...document.querySelectorAll("nav.pg-menu a.pg-menu-q")].filter(vis).map((a) => sq(a.querySelector(".pg-menu-name")?.textContent)),
-      map: [...document.querySelectorAll(".pg-map a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
+      map: [...document.querySelectorAll(".pg-map-list a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
     };
   });
 
@@ -661,14 +661,14 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         const question = page.locator("nav.pg-menu a.pg-menu-q:visible", { hasText: "どの順で確かめるのか" });
         if ((await question.count()) === 0) return { ...(await pageState(page)), top: undefined };
         await question.first().click({ timeout: WAIT });
-        const state = await readUntil(() => pageState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.sections.length === 1, WAIT);
+        const state = await readUntil(() => pageState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.sections.join() === "1-2 どの順で確かめるのか", WAIT);
         return { ...state, top: await sectionTop(page, "どの順で確かめるのか") };
       });
       const mapped = await step("1つ目の話題のタブを押して頭へ戻り、話題の頭の一覧の2つ目の行を押して、その節が画面の上に来るのを待つ", async () => {
         const tab = page.locator("nav.pg-tabs a", { hasText: "止める仕組み" });
         if ((await tab.count()) === 0) return { count: 0, top: undefined, hash: "" };
         await tab.first().click({ timeout: WAIT });
-        await readUntil(() => pageState(page), (shown) => shown.hash === "#止める仕組み", WAIT);
+        await readUntil(() => pageState(page), (shown) => shown.hash === "#止める仕組み" && shown.map.length > 0, WAIT);
         const rows = page.locator(".pg-map a:visible");
         const count = await rows.count();
         if (count < 2) return { count, top: undefined, hash: "" };
@@ -681,7 +681,7 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         const question = page.locator("nav.pg-menu a.pg-menu-q:visible", { hasText: "何を止めるのか" });
         if ((await question.count()) === 0) return pageState(page);
         await question.first().click({ timeout: WAIT });
-        return readUntil(() => pageState(page), (shown) => shown.hash === "#何を止めるのか" && shown.sections.length === 1, WAIT);
+        return readUntil(() => pageState(page), (shown) => shown.hash === "#何を止めるのか" && shown.sections.join() === "1-1 何を止めるのか", WAIT);
       });
       const quiz = await step("確かめる問いの答えを押して開き、もう一度押して隠す", async () => {
         await page.evaluate(() => scrollTo(0, 0));
@@ -729,10 +729,13 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
       // 頁の並びは全体像、話題ごとの地図と問いなので、1つ目の問いの頁から次のlinkを2度押すと2つ目の話題の地図に着く (#3998)
       const ended = await step("1つ目の問いの頁の次のlinkを2度押して2つ目の話題のタブに切り替わり、目次でその話題の問いを開く", async () => {
         const next = page.locator(".pg-pager a.pg-pager-next:visible");
-        for (const at of ["#どの順で確かめるのか", "#記録"]) {
+        for (const [at, sections] of [
+          ["#どの順で確かめるのか", "1-2 どの順で確かめるのか"],
+          ["#記録", ""],
+        ] as const) {
           if ((await next.count()) === 0) break;
           await next.first().click({ timeout: WAIT });
-          await readUntil(() => pageState(page), (shown) => shown.hash === at, WAIT);
+          await readUntil(() => pageState(page), (shown) => shown.hash === at && shown.sections.join() === sections, WAIT);
         }
         const question = page.locator("nav.pg-menu a.pg-menu-q:visible", { hasText: "どこに残すのか" });
         if ((await question.count()) > 0) await question.first().click({ timeout: WAIT });
@@ -1052,7 +1055,7 @@ const PAGED = await atLoad("問いごとの頁に分けた説明の頁を開き�
       });
       const question = await step("目次で1つ目の問いを押し、その問いの頁が開くのを待つ", async () => {
         await page.locator("nav.pg-menu a.pg-menu-q:visible", { hasText: "止める物" }).first().click({ timeout: WAIT });
-        return readUntil(() => pagesState(page), (shown) => shown.hash === "#何を止めるのか" && shown.sections.length === 1, WAIT);
+        return readUntil(() => pagesState(page), (shown) => shown.hash === "#何を止めるのか" && shown.sections.join() === "何を止めるのか", WAIT);
       });
       const figure = await step("目次で開いた問いの2つ目の図の題を押し、その図が画面の上に来るのを待つ", async () => {
         const rows = page.locator("nav.pg-menu a.pg-menu-fig:visible");
@@ -1068,7 +1071,7 @@ const PAGED = await atLoad("問いごとの頁に分けた説明の頁を開き�
         await readUntil(() => pagesState(page), (shown) => shown.hash === "#止める仕組み" && shown.map, WAIT);
         const rows = page.locator(".pg-map a:visible");
         if ((await rows.count()) >= 2) await rows.nth(1).click({ timeout: WAIT });
-        return readUntil(() => pagesState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.sections.length === 1, WAIT);
+        return readUntil(() => pagesState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.sections.join() === "どの順で確かめるのか", WAIT);
       });
       const next = await step("2つ目の問いの頁の次のlinkを押し、2つ目の話題の頭の地図が開くのを待つ", async () => {
         const link = page.locator(".pg-pager a.pg-pager-next:visible");
@@ -1681,7 +1684,7 @@ describe("話題のタブ (#3991)", () => {
     expect(
       [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
         topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
-        rows: [...topic.querySelectorAll(":scope > .pg-map a")].map((a) => ({
+        rows: [...topic.querySelectorAll(":scope > .pg-topic-head > .pg-map a")].map((a) => ({
           number: squash(a.querySelector(".pg-num")?.textContent),
           name: squash(a.querySelector(".pg-map-name")?.textContent),
           answer: squash(a.querySelector(".pg-map-answer")?.textContent),
@@ -1734,7 +1737,7 @@ describe("話題のタブ (#3991)", () => {
     expect(
       [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
         topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
-        focus: [...topic.querySelectorAll(":scope > .pg-map pre.dragon[data-still]")].map((pre) => pre.getAttribute("data-focus")),
+        focus: [...topic.querySelectorAll(":scope > .pg-topic-head > .pg-map pre.dragon[data-still]")].map((pre) => pre.getAttribute("data-focus")),
       })),
       "話題の頭の止め絵と、色を残す箱の行き先",
     ).toEqual([
