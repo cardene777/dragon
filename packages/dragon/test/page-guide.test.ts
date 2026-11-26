@@ -1385,11 +1385,15 @@ describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
       })),
       "本文の節の題の番号。左の目次の問いと同じ番号",
     ).toEqual(want);
-    // 用語の話題は、目次の行にも本文の話題にも番号を出さない
+    // 用語の話題は、目次の行にも本文の話題にも番号を出さない。頁の下の前と次のlink (#3983) が出す、ほかの問いの番号は数えない
     const glossary = [...doc.querySelectorAll("section.pg-topic")].find((topic) => squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent) === "用語");
     const row = [...doc.querySelectorAll("nav.pg-menu .pg-menu-topic")].find((el) => textWithout(el, "a.pg-menu-q") === "用語");
     expect(
-      { topic: glossary !== undefined, row: row !== undefined, numbers: (glossary?.querySelectorAll(".pg-num").length ?? 0) + (row?.querySelectorAll(".pg-num").length ?? 0) },
+      {
+        topic: glossary !== undefined,
+        row: row !== undefined,
+        numbers: [...(glossary?.querySelectorAll(".pg-num") ?? [])].filter((num) => !num.closest(".pg-pager")).length + (row?.querySelectorAll(".pg-num").length ?? 0),
+      },
       "用語の話題と目次の行の番号 (.pg-num) の数",
     ).toEqual({ topic: true, row: true, numbers: 0 });
   });
