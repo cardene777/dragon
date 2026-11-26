@@ -17,6 +17,7 @@ import { dirname, extname, join, resolve } from "node:path";
 import { PNG } from "pngjs";
 import type { Page } from "playwright-core";
 import { describe, expect, it } from "vitest";
+import { LOOK } from "../src/look/values";
 import { atLoad, type Loaded } from "./at-load";
 import { cdnPage, escapeHtml } from "./cdn-page-support";
 import { MONO_STACK, SANS_STACK } from "./font-stacks";
@@ -1886,5 +1887,168 @@ describe("再生の帯の釦と進み具合 (#3752)", () => {
     expect(after.now, "2度測る間に今の段が替わった").toBe(before.now);
     expect(after.scale, "400ms後の今の段の塗りが増えていない").toBeGreaterThan(before.scale);
     expect(after.scale, "400ms後の今の段の帯を塗り切った").toBeLessThan(1);
+  });
+});
+
+/**
+ * 頁のボタンのCSS (#3799)。帯の頭を確かめた`PAGE_BUTTONS`に、字の間と余白と変形と字の影と下線と行の高さと最大の高さを足す。
+ * 帯の無い図のボタンは頁の中に直に在るので、頁の`button`の指定が`.dg-btn`の決めない性質へそのまま入る
+ */
+const PAGE_BUTTONS_MORE = `${PAGE_BUTTONS}button{letter-spacing:4px;margin:6px;transform:translateY(2px);text-shadow:0 1px 0 #000;text-decoration:underline;line-height:3;max-height:20px}`;
+/** 場面を選ぶ札を持つ帯の無い場面の図 (#3799) */
+const SCENE_PICK_SOURCE =
+  "flow 送金 [scenes: pick]\n\nbox ask as 送金を頼む\nbox send as 送る\nbox back as 差し戻す\n\n" +
+  "step 頼む\n  say 利用者が送金を頼む。\n  start -> ask\n\n" +
+  "scene 通る送金\n  step 送る\n    say 宛先が正しいので送る。\n    ask -> send: 正しい\nend\n\n" +
+  "scene 宛先が違う送金\n  step 差し戻す\n    say 宛先が違うので差し戻す。\n    ask -> back: 違う\n    stop 宛先が登録されていない\nend\n";
+/** 押すと箱の下に札を出す帯の無い図 (#3799)。店の箱だけが札を持つ */
+const NOTE_POP_SOURCE = "sequence 注文 [note: pop]\n\nbox shop as 店 [note: 代金を受け取る]\nbox bank as 銀行\n\nstep 頼む\n  say 店が銀行に代金を頼む。\n  shop -> bank: 代金\n";
+/** 帯の無い図を置く所の名前。手順の図、配管の図、場面の図、箱の札を持つ図 */
+type PlainKind = "seq" | "pipe" | "scene" | "note";
+/** 帯の無い図を置く所と、置く記法 */
+const PLAIN_KINDS: Record<PlainKind, string> = {
+  seq: SOURCE,
+  pipe: readFileSync(join(ROOT, "examples/swap-retry.dragon"), "utf8"),
+  scene: SCENE_PICK_SOURCE,
+  note: NOTE_POP_SOURCE,
+};
+
+/** ボタンの計算値と描いた寸法 */
+interface ButtonLook {
+  name: string;
+  boxShadow: string;
+  textTransform: string;
+  letterSpacing: string;
+  margin: string;
+  transform: string;
+  textShadow: string;
+  textDecorationLine: string;
+  maxHeight: string;
+  height: number;
+  width: number;
+}
+
+/** 帯の無い図ごとの、再生の帯の高さと、帯のボタン、拡大と縮小のボタン、場面を選ぶ札、札を閉じるボタン */
+interface PlainButtons {
+  barHeight: Record<PlainKind, number>;
+  bar: Record<PlainKind, ButtonLook[]>;
+  zoom: ButtonLook[];
+  picks: ButtonLook[];
+  close: ButtonLook[];
+}
+
+/** 置いた帯の無い図の全てのボタンを測る */
+async function readPlainButtons(page: Page): Promise<PlainButtons> {
+  return page.evaluate((names) => {
+    const round = (n: number): number => Math.round(n * 10) / 10;
+    const read = (el: Element): ButtonLook => {
+      const style = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      return {
+        name: el.getAttribute("data-dragon") ?? "",
+        boxShadow: style.boxShadow,
+        textTransform: style.textTransform,
+        letterSpacing: style.letterSpacing,
+        margin: style.margin,
+        transform: style.transform,
+        textShadow: style.textShadow,
+        textDecorationLine: style.textDecorationLine,
+        maxHeight: style.maxHeight,
+        height: round(box.height),
+        width: round(box.width),
+      };
+    };
+    const hostOf = (name: string): Element => document.getElementById(`plain-${name}`)!;
+    const all = (name: string, selector: string): ButtonLook[] => [...hostOf(name).querySelectorAll(selector)].map(read);
+    return {
+      barHeight: Object.fromEntries(names.map((name) => [name, round(hostOf(name).querySelector(".dg-bar")?.getBoundingClientRect().height ?? 0)])) as PlainButtons["barHeight"],
+      bar: Object.fromEntries(names.map((name) => [name, all(name, ".dg-btns button")])) as PlainButtons["bar"],
+      zoom: all("pipe", ".dg-zm button"),
+      picks: all("scene", '[data-dragon="scene-pick"]'),
+      close: all("note", '[data-dragon="note-close"]'),
+    };
+  }, Object.keys(PLAIN_KINDS));
+}
+
+const PLAIN_BUTTONS = await atLoad("帯の無い図を4種類置き、頁のボタンのCSSを足す前と後で全てのボタンを測る", () =>
+  withFrame({ lang: "ja" }, async (page) => {
+    await page.evaluate((kinds) => {
+      const core = (
+        window as unknown as {
+          dragonCore: { parseNotation(text: string): { ok: boolean; diagram?: unknown }; mountDiagram(host: HTMLElement, diagram: unknown, options: object): unknown };
+        }
+      ).dragonCore;
+      for (const [name, text] of Object.entries(kinds)) {
+        const host = document.createElement("div");
+        host.id = `plain-${name}`;
+        host.style.width = "760px";
+        document.body.append(host);
+        const parsed = core.parseNotation(text);
+        if (!parsed.ok) throw new Error(`帯の無い図 ${name} の記法を読めない`);
+        core.mountDiagram(host, parsed.diagram, { pausedAt: 0 });
+      }
+      // 札を閉じるボタンは開いた札にだけ描かれるので、店の札を開いて置く
+      document.querySelector('#plain-note [data-dragon="note-card"]')?.setAttribute("data-open", "");
+    }, PLAIN_KINDS);
+    await page.evaluate(() => document.fonts.ready);
+    const bare = await readPlainButtons(page);
+    await setPageCss(page, PAGE_BUTTONS_MORE);
+    const styled = await readPlainButtons(page);
+    return { bare, styled };
+  }),
+);
+
+describe("頁のbuttonの指定が帯の無い図のボタンに入らない (#3799)", () => {
+  it("plain-bar-buttons-ignore-page-button-css", () => {
+    const { bare, styled } = frameResult(PLAIN_BUTTONS.get());
+    expect(
+      bare.bar.seq.map((button) => button.name),
+      "帯の無い図の再生の帯のボタンが4つ並んでいない",
+    ).toEqual(["restart", "prev", "toggle", "next"]);
+    expect(styled.bar.seq, "頁のbuttonの指定が帯の無い図の再生の帯のボタンの見た目か寸法を変えた").toEqual(bare.bar.seq);
+  });
+
+  it("plain-bar-height-ignores-page-button-css", () => {
+    const { bare, styled } = frameResult(PLAIN_BUTTONS.get());
+    expect(bare.barHeight.seq, "帯の無い図の再生の帯を測れない").toBeGreaterThan(0);
+    expect(styled.barHeight.seq, "頁のbuttonの指定が帯の無い図の再生の帯の高さを変えた").toBe(bare.barHeight.seq);
+  });
+
+  it("plain-zoom-buttons-ignore-page-button-css", () => {
+    const { bare, styled } = frameResult(PLAIN_BUTTONS.get());
+    expect(
+      bare.zoom.map((button) => button.name),
+      "帯の無い配管の図に拡大と縮小のボタンが無い",
+    ).toEqual(["zoom-out", "zoom-in"]);
+    expect(styled.zoom, "頁のbuttonの指定が拡大と縮小のボタンの見た目か寸法を変えた").toEqual(bare.zoom);
+    expect(styled.bar.pipe, "頁のbuttonの指定が配管の図の再生の帯のボタンを変えた").toEqual(bare.bar.pipe);
+  });
+
+  it("plain-scene-buttons-ignore-page-button-css", () => {
+    const { bare, styled } = frameResult(PLAIN_BUTTONS.get());
+    expect(bare.picks.length, "帯の無い場面の図に場面を選ぶ札が2つ無い").toBe(2);
+    expect(bare.bar.scene.length, "帯の無い場面の図の帯にボタンが4つ無い").toBe(4);
+    expect(styled.picks, "頁のbuttonの指定が場面を選ぶ札の見た目か寸法を変えた").toEqual(bare.picks);
+    expect(styled.bar.scene, "頁のbuttonの指定が場面の図の帯のボタンの見た目か寸法を変えた").toEqual(bare.bar.scene);
+  });
+
+  it("plain-note-close-ignores-page-button-css", () => {
+    const { bare, styled } = frameResult(PLAIN_BUTTONS.get());
+    expect(bare.close.length, "開いた箱の札に閉じるボタンが無い").toBe(1);
+    expect(bare.close[0]?.height, "開いた箱の札の閉じるボタンを測れない").toBeGreaterThan(0);
+    expect(styled.close, "頁のbuttonの指定が箱の札を閉じるボタンの見た目か寸法を変えた").toEqual(bare.close);
+  });
+
+  it("plain-bar-buttons-keep-bare-size", () => {
+    const { bare } = frameResult(PLAIN_BUTTONS.get());
+    const size = LOOK.player.button;
+    expect(
+      bare.bar.seq.map((button) => button.height),
+      "頁のCSSが無い時の再生の帯のボタンの高さ",
+    ).toEqual([size, size, size, size]);
+    expect(
+      bare.bar.seq.filter((button) => button.name !== "toggle").map((button) => button.width),
+      "頁のCSSが無い時のやり直しと前と次のボタンの幅",
+    ).toEqual([size, size, size]);
   });
 });

@@ -10,6 +10,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. The section numbers run from 1 across the topics, and the terms file becomes a `Terms` topic at the end. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961)
 
+### Fixed
+
+- Buttons of a diagram placed on a page without the bar (`mountDiagram`) no longer take the page's own `button` styles. The step buttons, the zoom buttons of a pipe diagram, the scene buttons, and the close button of a box card used to get the page's shadow, uppercase text, minimum height, margin, and transform, and the step bar grew taller. They now reset every inherited and page style first, so they look the same on any page. Page rules stronger than a plain `button` selector, such as `.site button` or `!important`, still reach them; use the framed diagram on such pages (#3799)
+
 ## [0.81.1] - 2026-11-26
 
 ### Fixed
