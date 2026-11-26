@@ -386,13 +386,16 @@ dragon embed notes.html
 
 `layout: guide` turns each `##` into a topic and each `###` into a numbered question section.
 A page with one topic stacks every section on one page.
-A page with two or more topics is split into pages.
-The first page shows the title, the text before the first `##`, the overview, and the topics in order, and each question has its own page.
-A topic without questions, such as a glossary, is one page.
-Each page ends with links to the previous and next pages, and changing pages does not reload the file.
+A page with two or more topics shows the overview and one tab per topic at the top.
+The overview tab shows the title, the text before the first `##`, the overview, and the topics in order.
+A topic tab shows every question of that topic in the order written, after a list of the question numbers, short names, and one-sentence answers.
+Write `link: #<topic id>` on a box of the overview figure to open that topic's tab from the box.
+That tab then starts with a still of the overview where only the linked boxes keep their colors.
+Each tab ends with links to the previous and next topics, and changing tabs does not reload the file.
 Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
 A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
-The menu marks the question being read, and clicking a question scrolls to its section, or opens its page when the page is split.
+The menu marks the question being read, and clicking a question scrolls to its section.
+When the page has topic tabs, the menu lists only the questions of the open topic.
 On a phone, the menu folds above the text behind a button.
 A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.
