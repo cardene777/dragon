@@ -222,7 +222,9 @@ function playerCss(): string {
     `.dg-ctl{display:flex;align-items:center;gap:${px(P.gap)};min-width:0}`,
     `.dg-btns{display:flex;gap:${px(P.segmentGap)};flex:none}`,
     // 釦は絵柄 (と再生の釦の名前) を縦横の真ん中に置く。字の並ぶ基準の線に置くと、絵柄が釦の真ん中より下に寄る (#3752)
-    `.dg-btn{display:inline-flex;align-items:center;justify-content:center;gap:${px(P.iconGap)};min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
+    // 帯の無い図の釦は頁の中に直に在り、置いた頁の`button`の指定 (影、大文字、最小の高さ、余白など) を受ける。
+    // 頭の`all:unset`で頁と既定の見た目の全てを外してから dragon の値を置く。重みは型の名前だけの頁の指定より強い (#3799)
+    `.dg-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:${px(P.iconGap)};min-width:${px(P.button)};height:${px(P.button)};padding:0;border-radius:${px(P.radius)};border:${px(LOOK.stroke.hair)} solid var(--line);background:var(--surf);color:var(--ink);${font(TYPE.button)};cursor:pointer;white-space:nowrap}`,
     `.dg-btn[data-dragon="toggle"]{padding:0 ${px(P.button / 2)};background:var(--c-blue);border-color:var(--c-blue);color:var(--on-c)}`,
     `.dg-btn:focus-visible{outline:${px(P.focus)} solid var(--c-blue);outline-offset:${px(P.focus)}}`,
     iconCss(),
@@ -270,7 +272,8 @@ function playerCss(): string {
     `.dg-nc>.dg-nc-n{${font(TYPE.noteName)};color:var(--mute);margin:0 ${px(N.close)} ${px(N.nameGap)} 0}`,
     `.dg-nc>.dg-nc-t{${font(TYPE.noteBody)};line-height:${N.bodyLine};white-space:pre-line}`,
     `.dg-nc>.dg-nc-e{${font(TYPE.noteExample)};line-height:${N.bodyLine};margin:${px(N.exampleGap)} -${px(N.padX)} -${px(N.padY)};padding:${px(N.exampleGap)} ${px(N.padX)};background:var(--sunk);color:var(--ink2)}`,
-    `.dg-nc-x{position:absolute;top:${px(N.padY / 2)};right:${px(N.padY / 2)};width:${px(N.close)};height:${px(N.close)};padding:0;border:0;border-radius:${px(N.close / 2)};background:none;color:var(--mute);cursor:pointer;display:grid;place-items:center}`,
+    // 札を閉じるボタンも頁の`button`の指定を受けないよう、頭で全てを外す (#3799)
+    `.dg-nc-x{all:unset;box-sizing:border-box;position:absolute;top:${px(N.padY / 2)};right:${px(N.padY / 2)};width:${px(N.close)};height:${px(N.close)};padding:0;border:0;border-radius:${px(N.close / 2)};background:none;color:var(--mute);cursor:pointer;display:grid;place-items:center}`,
     `.dg-nc-x:hover{color:var(--ink);background:var(--sunk)}.dg-nc-x:focus-visible{outline:${px(P.focus)} solid var(--c-blue)}`,
     `.dg-nc-x svg{width:${px(N.icon)};height:${px(N.icon)};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}`,
     // 印刷の形で並べる段ごとの止め絵 (#3956)。画面では隠す

@@ -1903,8 +1903,10 @@ const SCENE_PICK_SOURCE =
   "scene 宛先が違う送金\n  step 差し戻す\n    say 宛先が違うので差し戻す。\n    ask -> back: 違う\n    stop 宛先が登録されていない\nend\n";
 /** 押すと箱の下に札を出す帯の無い図 (#3799)。店の箱だけが札を持つ */
 const NOTE_POP_SOURCE = "sequence 注文 [note: pop]\n\nbox shop as 店 [note: 代金を受け取る]\nbox bank as 銀行\n\nstep 頼む\n  say 店が銀行に代金を頼む。\n  shop -> bank: 代金\n";
-/** 帯の無い図を置く所と、置く記法。手順の図、配管の図、場面の図、箱の札を持つ図 */
-const PLAIN_KINDS: Record<string, string> = {
+/** 帯の無い図を置く所の名前。手順の図、配管の図、場面の図、箱の札を持つ図 */
+type PlainKind = "seq" | "pipe" | "scene" | "note";
+/** 帯の無い図を置く所と、置く記法 */
+const PLAIN_KINDS: Record<PlainKind, string> = {
   seq: SOURCE,
   pipe: readFileSync(join(ROOT, "examples/swap-retry.dragon"), "utf8"),
   scene: SCENE_PICK_SOURCE,
@@ -1928,8 +1930,8 @@ interface ButtonLook {
 
 /** 帯の無い図ごとの、再生の帯の高さと、帯のボタン、拡大と縮小のボタン、場面を選ぶ札、札を閉じるボタン */
 interface PlainButtons {
-  barHeight: Record<string, number>;
-  bar: Record<string, ButtonLook[]>;
+  barHeight: Record<PlainKind, number>;
+  bar: Record<PlainKind, ButtonLook[]>;
   zoom: ButtonLook[];
   picks: ButtonLook[];
   close: ButtonLook[];
@@ -1959,8 +1961,8 @@ async function readPlainButtons(page: Page): Promise<PlainButtons> {
     const hostOf = (name: string): Element => document.getElementById(`plain-${name}`)!;
     const all = (name: string, selector: string): ButtonLook[] => [...hostOf(name).querySelectorAll(selector)].map(read);
     return {
-      barHeight: Object.fromEntries(names.map((name) => [name, round(hostOf(name).querySelector(".dg-bar")?.getBoundingClientRect().height ?? 0)])),
-      bar: Object.fromEntries(names.map((name) => [name, all(name, ".dg-btns button")])),
+      barHeight: Object.fromEntries(names.map((name) => [name, round(hostOf(name).querySelector(".dg-bar")?.getBoundingClientRect().height ?? 0)])) as PlainButtons["barHeight"],
+      bar: Object.fromEntries(names.map((name) => [name, all(name, ".dg-btns button")])) as PlainButtons["bar"],
       zoom: all("pipe", ".dg-zm button"),
       picks: all("scene", '[data-dragon="scene-pick"]'),
       close: all("note", '[data-dragon="note-close"]'),
