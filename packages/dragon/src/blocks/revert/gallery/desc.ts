@@ -2,6 +2,6 @@
 import type { BlockDesc } from "../../gallery";
 
 export const desc: BlockDesc = {
-  ja: "配管の図だけの部品。段の中の revert <者>: <理由> で今いちばん内側の呼び出しが落ち、その内側の変更が元へ戻る。",
-  en: "Pipe diagrams only. revert <who>: <reason> in a step makes the innermost call fail, and the changes inside it are undone.",
+  ja: "配管の図だけの部品。段の中の revert <者>: <理由> で今いちばん内側の呼び出しが落ち、その内側の変更が元へ戻る。落ちた箱には×の印と理由の札が付く。",
+  en: "Pipe diagrams only. revert <who>: <reason> in a step makes the innermost call fail, and the changes inside it are undone. The failing box gets a tag with a cross and the reason.",
 };

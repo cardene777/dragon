@@ -342,8 +342,9 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     checkTermLinks({ name: file, path }, linesOf(text));
     for (const term of terms.values()) checkTermLinks(term.source, [...term.text, ...term.example]);
     const lead = withCards(() => blocks(g.lead));
-    // 頭の中身の最初の図は、頁の頭の全体像に描く (#3961)
+    // 頭の中身の最初の図は、頁の頭の全体像に描く (#3961)。図の後に書いた中身は全体像の中の図の下に描き、頭の中身と同じく用語の札を持つ (#3969)
     const overview = blocks(g.overview);
+    const overviewText = withCards(() => blocks(g.overviewText));
     const topics: RenderedGuide["topics"] = g.topics.map((topic) => {
       const intro = withCards(() => blocks(topic.lead));
       return {
@@ -369,7 +370,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
       };
     });
     for (const list of glossaryLists) topics.push({ id: list.id, name: escapeHtml(list.name), lead: "", leadTerms: [], sections: [], glossary: list.terms.map(termHtml) });
-    return { lead: lead.html, leadTerms: lead.terms, overview, overviewId: g.overviewId, topics };
+    return { lead: lead.html, leadTerms: lead.terms, overview, overviewText: overviewText.html, overviewTerms: overviewText.terms, overviewId: g.overviewId, topics };
   };
   const tab = (t: Tab): RenderedTab => ({ id: t.id, name: renderInline(t.name, main), body: blocks(t.body), tabs: t.tabs.map(tab) });
   const part = (p: Part): RenderedPart => ({ lead: blocks(p.lead), tabs: p.tabs.map(tab) });

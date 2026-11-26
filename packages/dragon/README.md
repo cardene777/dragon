@@ -163,7 +163,7 @@ The block turns into a diagram that plays.
 There is nothing to install or build.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.82/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -385,7 +385,7 @@ dragon embed notes.html
 ### Guide page
 
 `layout: guide` turns each `##` into a topic and each `###` into a numbered question section, and stacks every topic on one page.
-The section numbers run from 1 across the topics.
+Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
 A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
 The menu marks the question being read, and clicking a question scrolls to its section.
 On a phone, the menu folds above the text behind a button.
@@ -393,6 +393,7 @@ A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.
 `[menu: ]` with no name stops the export with the line named.
 A ```` ```dragon ```` figure before the first `##` becomes the overview at the top of the page.
+Text written before the figure stays above it, and text written after the figure is shown under it inside the overview.
 The topics follow it in the order they are written.
 A quote (`>`) right after a `###` title is shown under the title as the one-sentence answer.
 Other quotes stay quotes.
@@ -464,7 +465,7 @@ A new notation word gets its element with the next release, so `dragon convert d
 HTML does not close `<dg-box/>`, so close every element with its end tag.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.82/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="Take an order">
   <dg-box id="shop">Shop</dg-box>
@@ -629,7 +630,7 @@ Custom buttons need a click handler, so they cannot go here.
 If the settings block is not valid JSON or names an unknown button, every `data-header` block shows that error instead.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.81/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.82/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order

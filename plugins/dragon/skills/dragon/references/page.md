@@ -10,10 +10,10 @@ Write the page in Markdown with `layout: guide` between `---` lines at the top.
 | Write | Becomes |
 |---|---|
 | `# <title>` | The page title |
-| Text before the first `##` | The opening, shown at the top of the page |
+| Text before the first `##` | The opening, shown at the top of the page. Text after the overview fence is shown under the overview figure instead |
 | A ```` ```dragon ```` fence before the first `##` | The overview at the top of the page, followed by the topics in order |
 | `## <topic>` | A topic. Put related questions under one topic. Topics follow one another on one page |
-| `### <question>` | A numbered section. The menu on the left lists every question, and a click scrolls to the section |
+| `### <question>` | A section numbered `<topic>-<question>`, such as `2-1`. The menu on the left lists every question, and a click scrolls to the section |
 | `[menu: <short name>]` at the end of a `###` | The short name the menu shows for a long question |
 | `> <answer>` right after a `###` | The one-sentence answer, shown under the question |
 | A ```` ```dragon ```` fence | A figure. Write one sentence before it that says what to look at |

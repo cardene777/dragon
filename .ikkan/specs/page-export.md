@@ -61,10 +61,14 @@
 | 問いの見出しの末尾に`[menu: 短い名前]`を書くと、目次はその短い名前を出し、本文の見出しは問いの文のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-uses-short-name` passes | #3961 |
 | `[menu: ]`のように名前が空の時、書き出しは行の番号を付けて断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-empty-name-refused` passes | #3961 |
 | 頁の説明の文 (最初の`##`より前) に置いた図は、頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながって並ぶ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3961 |
-| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、問いの番号が話題をまたいで1から通る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-with-running-numbers` passes | #3961 |
+| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、問いの番号は話題ごとに1から数え直す (#3969で通し番号をやめた) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-one-after-another` passes | #3961 |
 | 頁を下へ読み進めると、目次で今読んでいる問いに色が付き、目次の問いを押すとその節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-marks-current-question` passes | #3961 |
 | 幅390pxでは、目次が本文の横に並ばず、本文が横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-folds-on-phone` passes | #3961 |
 | 節の題の直後の引用は題の下の答えとして出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3961 |
 | 確かめる問いの答えは押すまで隠れ、もう一度押すと隠れる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-quiz-hides-answer-until-pressed` passes | #3961 |
-| 用語のfileへのリンクを押すと、すぐ下に用語の札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-link-opens-card` passes | #3961 |
+| 用語のfileへのリンクを押すと、すぐ下に用語の札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-link-opens-card` passes | #3961 #3969 |
 | 同じ用語が2度在るか、用語のfileに無い用語へのリンクが在ると、書き出しは断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-twice-or-missing-refused` passes | #3961 |
+| 頁の説明の文で全体像の図より後に書いた段落は、全体像の図より後、読む順の矢印より前に出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-keeps-text-after-figure` passes | #3969 |
+| 全体像の図より後の段落の用語のリンクは、押すとすぐ下に用語の札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-text-opens-term-card` passes | #3969 |
+| 問いの番号は章 (話題) ごとの連番で、章の番号と章の中の問いの番号を並べた`1-1`、`1-2`、`2-1`の形で、目次と本文の見出しの両方に同じ番号が出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-numbers-restart-per-topic` passes | #3969 |
+| 頁の説明の文に置いた図は頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3969 |

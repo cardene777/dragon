@@ -9,15 +9,24 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Added
 
 - A `<pre class="dragon">` block with `data-step="3"` opens paused on step 3, counting from 1 as the step bar does. The reader can still play it or move between steps. A number larger than the step count pauses on the last step, and a value that is not a whole number from 1 turns the block into an error message (#3831)
+- A pipe diagram now draws an undo tag by the box that fails in a `revert <box>: <reason>` step. The tag has a rose border, the same cross circle as a failed check's lamp on the left, and the reason on the right, and it shows only during the failing step, 8px to 24px from the box's edge where the space is free. A `revert <box>` with no reason writes the same word as the undone tank's tag (`Undone`, which `words.pipe.tags.rolled` can replace). The tag is part of the figure, so the reason stays readable when the step caption and the step bar are hidden. When calls fail one after another from the inside out in the same step, only the box where the failure started gets the tag, and that box gets none when it wrote a failing `check` during the call, since the gauge's cross and formula already mark it. Diagrams that write `revert` after `check ... [fail]` look the same as before (#3974)
 
 ### Changed
 
 - Sequence and architecture diagrams now keep the labels of earlier steps in faint gray until the last step, like state and flow diagrams, so a diagram paused on a middle step shows the names of every line before it. The faint labels of all four kinds sit on a patch of the figure background, so a lifeline no longer runs through them. A faint label goes away when a later step puts its own label in the same place (#3831)
-- Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. The section numbers run from 1 across the topics, and the terms file becomes a `Terms` topic at the end. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961)
 
 ### Fixed
 
 - `mountDiagram` with `still: true` alone now stops on the last step and shows every line label, as the README says, instead of playing in a loop. With `pausedAt` it still stops on that step, and with `playOnce` it plays once (#3831)
+
+## [0.82.0] - 2026-11-26
+
+### Changed
+
+- Guide pages (`layout: guide`) now list every topic and question in a menu on the left, instead of topic tabs with a question list at the top of each tab, and stack the topics one after another on one page. Each section is numbered `<topic>-<question>`, such as `2-1`, so the numbers start again in each topic, and the terms file becomes a `Terms` topic at the end without a number. The menu stays on screen and marks the question being read, and on phone widths it folds above the text behind a button. A `###` title can end with `[menu: <short name>]` to show a short name in the menu, and `[menu: ]` with no name stops the export with the line named. A dragon figure before the first `##` becomes an overview at the top of the page, with the text written after the figure shown under it, followed by the topics in order. A printed page hides the menu and starts each topic on a new page (#3961, #3969)
+
+### Fixed
+
 - Buttons of a diagram placed on a page without the bar (`mountDiagram`) no longer take the page's own `button` styles. The step buttons, the zoom buttons of a pipe diagram, the scene buttons, and the close button of a box card used to get the page's shadow, uppercase text, minimum height, margin, and transform, and the step bar grew taller. They now reset every inherited and page style first, so they look the same on any page. Page rules stronger than a plain `button` selector, such as `.site button` or `!important`, still reach them; use the framed diagram on such pages (#3799)
 
 ## [0.81.1] - 2026-11-26

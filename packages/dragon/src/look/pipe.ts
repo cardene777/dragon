@@ -135,6 +135,8 @@ export const PIPE_ROWS = {
  * - `valve` は弁で、三角の長さ `r` と幅の半分 `half`、管から取っ手の軸まで `stem`、取っ手の長さ `lever` と太さ `leverH`、軸の半径 `pivot`、取っ手を回す間 `turn`
  * - `gauge` は計器で、半径 `r` (呼び出しの管も値の管も同じ)、値の管から計器の真ん中まで `up`、通ったかの印の離れ `lampGap` と半径 `lamp`、
  *   針の先の空き `needle` と付け根の半径 `hub`、目盛りの帯の内側 `zone`、針の向き (確かめる前 `unseen`、通った `ok`、落ちた `fail`)、管の上の離れ `stemGap`
+ * - `undo` は落ちた箱に添える取り消しの札 (#3974) で、札の高さと字は図の中の札 (`chip`) と同じ。×の印の丸の半径 `r`、丸と字の間 `gap`、
+ *   箱の縁から札までの離れ `off`、札を探す箱の縁からの離れの上限 `reach`
  * - `converter` は変換器の半径
  * - `tank` は槽で、幅 `w`、同じ持ち主の槽の間 `inner`、ガラスの高さ `h`、ガラスの内側の余白 `pad`、角 `radius` と水の角 `innerRadius`、ガラスの上の端から外の上の名前の字の箱の下の端まで `titleGap`、上から管が2本以上入る槽でガラスの中に置く名前の基準線 `titleY` と字の間 (字の大きさに対する割合) `titleTrack`、
  *   つや `shine`、目盛り `tick`、一番多い量の水位の割合 `fill`、0 より多い量の水位の下限 `least`、槽の下から残高の基準線まで `numberY`、
@@ -168,6 +170,7 @@ export const PIPE_LOOK = {
   call: { case: 12, flow: 6, core: 0.45, valveAt: 30, room: 16 },
   valve: { r: 10, half: 9, stem: 18, lever: 30, leverH: 8, pivot: 4, turn: 0.35 },
   gauge: { r: 24, up: 62, lampGap: 12, lamp: 10, needle: 7, hub: 4, zone: 5, unseen: -118, ok: 58, fail: -64, stemGap: 10 },
+  undo: { r: 7, gap: 6, off: 8, reach: 24 },
   converter: { r: 24 },
   tank: {
     w: 112,

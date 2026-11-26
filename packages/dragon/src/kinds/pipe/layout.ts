@@ -573,6 +573,16 @@ export interface PipeCallTag extends Rect {
   to: string;
   text: string;
 }
+/**
+ * 落ちの連なりの元の箱に添える取り消しの札 (#3974)。左に桃色の×の印、右に落ちた理由 (理由を書かない `revert` は取り消しの語) を書き、落ちた段だけ出す。
+ * 元の箱が呼び出しの開いている間に落ちた `check` を書いた落ちは、計器の×と式の札が印になるので持たない
+ */
+export interface PipeRevertTag extends Rect {
+  party: string;
+  step: number;
+  event: number;
+  text: string;
+}
 export interface PipeLayout extends Layout {
   kind: "pipe";
   /** 広い枠は縮めずに横に長いまま並べ、狭い枠は枠の幅に縮める */
@@ -635,6 +645,13 @@ export interface PipeLayout extends Layout {
   callTags?: PipeCallTag[];
   /** 槽の値を持つコントラクトの箱と入れ物を囲う枠 */
   enclosures?: PipeEnclosure[];
+  /** 落ちた箱の取り消しの札 (#3974)。札を持たない図は欄を持たない */
+  revertTags?: PipeRevertTag[];
+  /**
+   * 組む段 (`compose`) が仕上げる段 (`finishPipe`) へ渡す、置く前の取り消しの札。置き直し (`placeTop`、`placeRows`) が箱を動かした後に置くため、
+   * 座標を持たずに渡し、仕上げる段が `revertTags` に置き換えて消す
+   */
+  undone?: Pick<PipeRevertTag, "party" | "step" | "event" | "text">[];
 }
 
 /** 記録の札と呼び出しの札の引数の 1 行。名前を持たない引数は `name` が空 */
@@ -920,7 +937,8 @@ export interface Simulated {
   calcs: CalcRec[];
   /** 値の書き換え。`gauge` は槽で描く値 (`[tank]`) への書き換えで、`amount` は書いて変わった差 (Tracelyth #207) */
   writes: { step: number; event: number; from: string; to: string; name: string; gauge?: boolean; amount?: string }[];
-  reverts: { step: number; event: number; party: string; reason?: string }[];
+  /** 落ちた呼び出し。`tag` は落ちの連なりの元で、落ちた `check` を書いていない落ち (取り消しの札を持つ、#3974) */
+  reverts: { step: number; event: number; party: string; reason?: string; tag?: true }[];
   returns: { step: number; event: number; call: number; value: string }[];
   snaps: Snap[];
   tokens: Map<string, string>;
@@ -937,6 +955,11 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
   const sets: Set<string>[] = [new Set()];
   const finals = new Set<string>();
   const opened: CallRec[] = [];
+  /**
+   * 開いている呼び出しごとの落ちの印 (#3974)。`opened` と同じ順に積む。`failed` は呼ばれた者が開いている間に落ちた `check` を書いたか、
+   * `fell` は内側の呼び出しが最後に落ちて閉じた段 (無ければ -1)。同じ段で内側の落ちの後に落ちる呼び出しは、落ちの連なりの続き
+   */
+  const falls: { failed: boolean; fell: number }[] = [];
   const valueOf = (k: string): string | undefined => (k.startsWith("b") ? run.balances.get(k.slice(1)) : k.startsWith("v") ? run.values.get(k.slice(1)) : undefined);
   const stored = (k: string): boolean => k.startsWith("b") || k.startsWith("v");
 
@@ -969,6 +992,7 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
           out.calls.push(rec);
           if (run.call(e)) break;
           opened.push(rec);
+          falls.push({ failed: false, fell: -1 });
           sets.push(new Set());
           if (e.value !== undefined) {
             const id = out.flows.length;
@@ -986,8 +1010,11 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
           if (isFault(closed)) break;
           const rec = opened.pop();
           if (rec) rec.close = { step: s, event: ei, how: e.type };
+          const fall = falls.pop();
+          const outer = falls[falls.length - 1];
           const inside = sets.pop() ?? new Set<string>();
           if (e.type === "return") {
+            if (outer) outer.fell = -1;
             for (const k of inside) (sets[sets.length - 1] as Set<string>).add(k);
             if (e.value !== undefined && rec) out.returns.push({ step: s, event: ei, call: rec.index, value: e.value });
             if (run.frames.length === 0) {
@@ -1010,7 +1037,11 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
               changed.set(k, ei);
             }
             if ([...inside].some(stored)) statusEvent = ei;
-            out.reverts.push({ step: s, event: ei, party: e.box, ...(e.reason !== undefined ? { reason: e.reason } : {}) });
+            // 取り消しの札は落ちの連なりの元だけが持つ。同じ段で内側の落ちを受けて落ちる外の呼び出しは連なりの続きで、
+            // 落ちた check を書いた元は計器の×と式の札が印になる (#3974)
+            const tag = fall !== undefined && fall.fell !== s && !fall.failed;
+            out.reverts.push({ step: s, event: ei, party: e.box, ...(e.reason !== undefined ? { reason: e.reason } : {}), ...(tag ? { tag: true as const } : {}) });
+            if (outer) outer.fell = s;
           }
           break;
         }
@@ -1043,9 +1074,18 @@ export function simulate(diagram: DiagramModel, foldSteps: ReadonlySet<number>):
           out.emits.push({ id, step: s, event: ei, party: e.box, name: e.name, ...(e.args ? { args: e.args } : {}) });
           break;
         }
-        case "check":
-          out.checks.push({ step: s, event: ei, party: e.box, ok: checkPasses(e), check: e });
+        case "check": {
+          const ok = checkPasses(e);
+          out.checks.push({ step: s, event: ei, party: e.box, ok, check: e });
+          // 落ちた check は、それを書いた者が呼ばれている一番内側の呼び出しに印を付ける (#3974)
+          if (!ok)
+            for (let i = opened.length - 1; i >= 0; i--)
+              if ((opened[i] as CallRec).to === e.box) {
+                (falls[i] as { failed: boolean }).failed = true;
+                break;
+              }
           break;
+        }
         case "calc":
           out.calcs.push({ step: s, event: ei, party: e.box, input: e.in, output: e.out, rate: rateOf(e.in, e.out) });
           break;
@@ -4429,7 +4469,82 @@ function finishPipe(out: PipeLayout): PipeLayout {
     pick ??= onPipe.find(clearOnPipe) ?? onPipeAt(4 * Math.ceil(total / 8 - 0.5));
     out.callTags.push({ call: c.index, from: c.from, to: c.to, text, ...pick });
   }
+  placeRevertTags(out, { overlap, crosses, restOf, solid, lines, tieLines });
   return out;
+}
+
+/**
+ * 落ちの連なりの元の箱に取り消しの札を置く (#3974)。箱の縁から `undo.off` (8px) 離した下、上、右、左の真ん中を先に試し、
+ * 置けなければ縁に沿って4pxずつずらした所と、縁から4pxずつ離した所を `undo.reach` (24px) まで、箱に近い順に試す。
+ * 札はその段だけ出るので、同じ段の札と戻りの札の止まる所だけを避け、管と名札と槽と計器と線の札はどの段の物も避ける。
+ * どこにも置けない時は、部品に重ならない最初の所、それも無ければ箱の下の真ん中に置く
+ */
+function placeRevertTags(
+  out: PipeLayout,
+  tools: {
+    overlap: (a: Rect, b: Rect, pad: number) => boolean;
+    crosses: (r: Rect, s: [Point, Point], pad: number) => boolean;
+    restOf: (c: PipeChip) => Rect;
+    solid: readonly Rect[];
+    lines: readonly [Point, Point][];
+    tieLines: readonly [Point, Point][];
+  },
+): void {
+  const undone = out.undone ?? [];
+  delete out.undone;
+  if (undone.length === 0) return;
+  const { overlap, crosses, restOf, solid, lines, tieLines } = tools;
+  const M = PIPE_LOOK.margin;
+  const U = PIPE_LOOK.undo;
+  const h = PIPE_LOOK.chip.h;
+  const tags: PipeRevertTag[] = [];
+  const linkLabels = (out.links ?? []).map((l) => l.label);
+  for (const u of undone) {
+    const box = (out.parties ?? []).find((p) => p.id === u.party);
+    if (!box) continue;
+    const w = textWidth(u.text, PIPE_TYPE.chip) + PIPE_LOOK.chip.padX * 2 + U.r * 2 + U.gap;
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    const spots: Rect[] = [];
+    for (let d = U.off; d <= U.reach; d += 4) {
+      // 縁に沿ってずらす量。札が箱の幅 (縦の縁は高さ) の内に残る量までにし、縁からの離れが d を超えないようにする
+      const alongX = Math.max(0, (box.w + w) / 2 - 1);
+      const alongY = Math.max(0, (box.h + h) / 2 - 1);
+      for (let k = 0; k <= Math.max(alongX, alongY); k += 4)
+        for (const sign of k === 0 ? [1] : [1, -1]) {
+          const dx = sign * k;
+          if (k <= alongX) spots.push({ x: cx - w / 2 + dx, y: box.y + box.h + d, w, h }, { x: cx - w / 2 + dx, y: box.y - d - h, w, h });
+          if (k <= alongY) spots.push({ x: box.x + box.w + d, y: cy - h / 2 + dx, w, h }, { x: box.x - d - w, y: cy - h / 2 + dx, w, h });
+        }
+    }
+    const inFigure = (r: Rect): boolean => r.x >= M && r.y >= M && r.x + r.w <= out.width - M && r.y + r.h <= out.height - M;
+    const free = (r: Rect): boolean => inFigure(r) && !solid.some((o) => overlap(r, o, 8)) && !(out.callTags ?? []).some((o) => overlap(r, o, 8));
+    const sameStep = [
+      ...(out.chips ?? []).filter((c) => c.step === u.step && c.w > 0).map((c) => (c.kind === "return" ? restOf(c) : c)),
+      ...tags.filter((t) => t.step === u.step),
+    ];
+    const clear = (r: Rect): boolean =>
+      free(r) &&
+      !sameStep.some((o) => overlap(r, o, 8)) &&
+      !linkLabels.some((o) => overlap(r, o, 8)) &&
+      !lines.some((s) => crosses(r, s, 16)) &&
+      !tieLines.some((s) => crosses(r, s, 4));
+    const first = spots[0];
+    if (!first) continue;
+    const pick = spots.find(clear) ?? spots.find(free) ?? first;
+    tags.push({ party: u.party, step: u.step, event: u.event, text: u.text, ...pick });
+    // 寄って追う窓は段ごとの囲む所を見るので、札を出す段の囲む所に札を入れる
+    for (const f of out.focus ?? [])
+      if (f.step === u.step) {
+        const x2 = Math.max(f.x + f.w, pick.x + pick.w);
+        const y2 = Math.max(f.y + f.h, pick.y + pick.h);
+        f.x = Math.min(f.x, pick.x);
+        f.y = Math.min(f.y, pick.y);
+        f.w = x2 - f.x;
+        f.h = y2 - f.y;
+      }
+  }
+  if (tags.length > 0) out.revertTags = tags;
 }
 
 /** 値の管の定め。同じトークンの、同じ 2 人の間の流れは 1 本の管を通る */
@@ -7595,6 +7710,8 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       heightFinal = top + bigH + P.margin;
     }
 
+    // 取り消しの札は箱の置き直しの後に仕上げる段が置くので、ここでは座標を持たずに渡す (#3974)
+    const undone = sim.reverts.filter((r) => r.tag).map((r) => ({ party: r.party, step: r.step, event: r.event, text: r.reason ?? words.tags.rolled }));
     return {
       kind: "pipe",
       arrangement: narrow ? "fit" : "wide",
@@ -7639,6 +7756,7 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
       links,
       narrow,
       focus,
+      ...(undone.length > 0 ? { undone } : {}),
     };
 
     function spanOf(k: number): number {

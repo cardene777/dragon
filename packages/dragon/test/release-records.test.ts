@@ -223,6 +223,22 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-82-0-lists-guide-menu-once", () => {
+    // 説明の頁の左の目次と全体像 (#3961) と、全体像の後の段落の位置と章ごとの番号の直し (#3969) を 1 項に、
+    // v0.81.1 の後に既定の枝へ入った帯の無い図のボタンの直し (#3799) を 1 項に持って 0.82.0 で出す (#3972)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 82, `package の版 ${version()} が 0.82.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.82\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.82.0"), "0.82.0");
+      expect(released, `${file} に日付付きの ## [0.82.0] の節が無い`).not.toBe("");
+      for (const issue of ["#3961", "#3969", "(#3799)"]) {
+        expect(released.split(issue).length - 1, `${file} の 0.82.0 の節が ${issue} を 1 回だけ持たない`).toBe(1);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-81-1-lists-tag-over-boxes-fix-once", () => {
     // 箱の上を横へ走る管の delegatecall() の札の直し (#3962) と、v0.81.0 の後に既定の枝へ入った印刷の直し (#3956) と寄って追う図の窓の直し (#3871) を 0.81.1 で出す (#3966)
     const [major = 0, minor = 0, patch = 0] = version().split(".").map(Number);

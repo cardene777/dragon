@@ -60,11 +60,13 @@ export interface GlossaryInclude {
 
 /**
  * 説明の頁の組み立て。`overview` は頭の中身の最初の図の囲みの行、`overviewId` はその全体像の場所の名前で、図の無い頁は空の字 (#3961)。
+ * `overviewText` は頭の中身のうち図の後に書いた行で、全体像の中の図の下に出す (#3969)。`lead` は図の前に書いた行。
  * `ids` は頁の中で配った場所の名前
  */
 export interface Guide {
   lead: Line[];
   overview: Line[];
+  overviewText: Line[];
   overviewId: string;
   topics: Topic[];
   glossaries: GlossaryInclude[];
@@ -180,24 +182,31 @@ const GLOSSARY_TARGET = /^(?![a-z][a-z0-9+.-]*:)(?![#/])[^#?]*\.md$/iu;
 /** 節の題の終わりの `[menu: 短い名前]` (#3961)。名前は前後の空白を外した字 */
 const MENU_NAME = /\s*\[menu:([^\]]*)\]$/u;
 
-/** 頭の中身から最初の ```` ```dragon ```` の囲みの行を抜き出す。囲みが無ければ空 (#3961) */
-function splitOverview(lead: Line[]): Line[] {
+/**
+ * 頭の中身から、最初の ```` ```dragon ```` の囲みの行 (`figure`) と、その後に書いた行 (`after`) を抜き出す (#3961)。
+ * 図の後の行は頁の頭でなく全体像の中の図の下に出すので、頭の中身には図の前の行だけを残す (#3969)。囲みが無ければどちらも空
+ */
+function splitOverview(lead: Line[]): { figure: Line[]; after: Line[] } {
   let fence: string | undefined;
   let start = -1;
+  // 閉じない囲みは頭の中身の終わりまでを図にする
+  let end = lead.length;
   for (const [i, line] of lead.entries()) {
     if (fence !== undefined) {
       if (!fenceCloses(line.text, fence)) continue;
-      if (start >= 0) return lead.splice(start, i - start + 1);
       fence = undefined;
-      continue;
+      if (start < 0) continue;
+      end = i + 1;
+      break;
     }
     const open = fenceOpen(line.text);
     if (!open) continue;
     fence = open.mark;
     if (open.lang === "dragon") start = i;
   }
-  // 閉じない囲みは頁の終わりまでを図にする
-  return start >= 0 ? lead.splice(start) : [];
+  if (start < 0) return { figure: [], after: [] };
+  const rest = lead.splice(start);
+  return { figure: rest.slice(0, end - start), after: rest.slice(end - start) };
 }
 
 /** 節の中身の頭の引用を答えに分ける。注意書きの引用と、頭が引用でない節は答えを持たない */
@@ -275,7 +284,7 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     ids.push(name);
     return name;
   };
-  const overview = splitOverview(lead);
+  const { figure: overview, after: overviewText } = splitOverview(lead);
   const overviewId = overview.length > 0 ? named("overview") : "";
   for (const t of topics) {
     t.id = named(t.name);
@@ -285,7 +294,7 @@ function readGuide(lines: readonly Line[], m: PageMessages, errors: OutlineError
     }
   }
   for (const g of glossaries) g.id = named(g.name);
-  return { title, guide: { lead, overview, overviewId, topics, glossaries, ids } };
+  return { title, guide: { lead, overview, overviewText, overviewId, topics, glossaries, ids } };
 }
 
 /** mdの行の並びを頁の組み立てに分ける。誤りがあれば全ての誤りを返す */
