@@ -128,3 +128,60 @@ describe("止め絵を選んだ図 (#3200)", () => {
     ).toEqual([last]);
   });
 });
+
+/** 線の名前の時刻。段の後に薄く残す間 (`after`) を持つ */
+type LabelSpan = Rendered["timeline"]["labels"][number] & { after?: { start: number; end: number } };
+
+/** 見本のうち種類が `kind` の物の名前 */
+const examplesOf = (kind: string): string[] => EXAMPLES.filter((name) => (exampleJson(`${name}.json`) as unknown as Source).kind === kind);
+
+/**
+ * 止め絵を選ばずに描いた見本の、過ぎた段の線の名前 (#3831)。最後の段より前に札を下ろす名前は、札を下ろした時から最後の段まで薄い灰の字で残り、
+ * 札を出す間は薄い字を出さない。描いた薄い字は最後の段の止め絵の時刻に見える
+ */
+function expectPastNamesFaint(kind: string): void {
+  const names = examplesOf(kind);
+  expect(names.length, `${kind} の見本が無い`).toBeGreaterThan(0);
+  for (const name of names) {
+    const rendered = draw("renderDiagram")(exampleJson(`${name}.json`));
+    const { timeline } = rendered;
+    const labels = timeline.labels as LabelSpan[];
+    const leaving = labels.filter((label) => label.end < timeline.last - 1e-9);
+    expect(leaving.length, `${name} に最後の段より前に札を下ろす線の名前が無い`).toBeGreaterThan(0);
+    for (const label of leaving) {
+      expect(label.after, `${name} の段 ${label.step + 1} の線の名前が段の後に薄く残らない`).toBeDefined();
+      expect((label.after?.start ?? Number.POSITIVE_INFINITY) >= label.end - 1e-9, `${name} の段 ${label.step + 1} の線の名前が札を下ろす前に薄い字でも出る`).toBe(true);
+      expect(label.after?.end ?? 0, `${name} の段 ${label.step + 1} の線の名前が最後の段まで薄く残らない`).toBeGreaterThanOrEqual(timeline.last - 1e-9);
+    }
+    const motion = motionFrom(rendered);
+    const past = [...motion.doc.querySelectorAll("g.dg-cap-past")];
+    expect(past.length, `${name} の薄く残す線の名前の数が、最後の段より前に札を下ろす名前の数と違う`).toBe(leaving.length);
+    const t = stillOf(rendered);
+    for (const group of past) expect(motion.opacity(group, t), `${name} の線の名前「${group.textContent}」が最後の段の止め絵で薄く残っていない`).toBeGreaterThan(FULL);
+  }
+}
+
+describe("過ぎた段の線の名前を薄く残す (#3831)", () => {
+  it("sequence-keeps-past-line-names-faint", () => {
+    expectPastNamesFaint("sequence");
+  });
+
+  it("architecture-keeps-past-line-names-faint", () => {
+    expectPastNamesFaint("architecture");
+  });
+
+  it("past-line-names-sit-on-figure-ground", () => {
+    for (const name of [...examplesOf("sequence"), ...examplesOf("architecture")]) {
+      const motion = motionFrom(draw("renderDiagram")(exampleJson(`${name}.json`)));
+      const past = [...motion.doc.querySelectorAll("g.dg-cap-past")];
+      expect(past.length, `${name} に薄く残す線の名前が無い`).toBeGreaterThan(0);
+      for (const group of past) {
+        // 字の下に図の地の色の四角を敷き、後ろを通る線 (時系列図の縦の点線など) を字の後ろに隠す
+        const [ground, text] = [...group.children];
+        expect(ground?.tagName, `${name} の薄い字「${group.textContent}」の下に四角が無い`).toBe("rect");
+        expect(ground?.getAttribute("style") ?? "", `${name} の薄い字「${group.textContent}」の下の四角が図の地の色で塗られない`).toContain("fill:var(--bg)");
+        expect(text?.tagName, `${name} の薄い字「${group.textContent}」が四角の上に無い`).toBe("text");
+      }
+    }
+  });
+});
