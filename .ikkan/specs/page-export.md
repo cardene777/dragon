@@ -52,7 +52,7 @@
 | 図の上の道具の帯 (コード、エディタ、コピー、エクスポート、拡大の釦) は、印刷すると紙に出ない | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`frame-print-hides-tool-bar`が通る | #3956 |
 | 図を置く頁で段のある図を印刷すると、全ての段の止め絵が段の順に並び、各絵の下に段の番号と`say`の文が出る | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`player-print-stacks-every-step`が通る | #3956 |
 | 画面では、段のある図は1つの段だけを映し、再生の帯を出す | `pnpm exec vitest run packages/dragon/test/player-print.test.ts`の検査`player-screen-shows-one-step-and-bar`が通る | #3956 |
-| 画面では、説明の頁のタブは押したタブの話題だけを映す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-sections-stack-in-topic-tabs`が通る | #3956 |
+| 画面では、説明の頁は全ての話題を1つの頁に続けて積む (#3961でタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-sections-stack-in-topics`が通る | #3956 |
 | 画面では、箱の札は押した箱の下に開く | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts`の検査`note-pop-opens-card-under-box`が通る | #3956 |
 | 説明の頁を印刷すると、用語の札と確かめる問いの答えが開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-opens-cards-and-answers`が通る | #3956 |
 | 場面の図を印刷すると、場面ごとに全ての段の止め絵が段の順に並び、各絵の下に段の番号と`say`の文が出る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts`の検査`scenes-print-stacks-every-step`が通る | #3956 |
