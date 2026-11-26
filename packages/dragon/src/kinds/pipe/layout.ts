@@ -3744,8 +3744,27 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
   }
 
   // 確かめの計器。網型は箱の上に載せ、帳簿型は囲みの下に、母線型は箱の下に吊るす
+  // 網型で表の形でない箱 (コントラクト) の計器は、その箱へ入る呼び出しの管の上の、箱の縁の手前に載せる (#3990)。
+  // 箱の並びの端に吊るす決まりはトークンの箱の物で、コントラクトの箱の計器は置き直されず、図の端に残っていた。
+  // 計器の右の印と箱の縁の間を 16px 空ける。確かめた段かその前の段の呼び出しを選び、無ければ最初の呼び出しを使う
+  const onCall = (g: PipeGauge): void => {
+    const into = (out.calls ?? []).filter((c) => c.to === g.party && c.from !== g.party && c.points.length > 1);
+    const call = [...into].reverse().find((c) => c.step <= g.step) ?? into[0];
+    if (!call) return;
+    const end = call.points[call.points.length - 1] as Point;
+    const prev = call.points[call.points.length - 2] as Point;
+    const len = Math.hypot(end[0] - prev[0], end[1] - prev[1]);
+    const back = 16 + g.lamp.r * 2 + P.gauge.lampGap + g.r;
+    if (len < back + g.r) return;
+    const cx = round3(end[0] + ((prev[0] - end[0]) / len) * back);
+    const cy = round3(end[1] + ((prev[1] - end[1]) / len) * back);
+    Object.assign(g, { cx, cy, x: cx - g.r, y: cy - g.r, on: "call", lamp: { ...g.lamp, x: cx + g.r + P.gauge.lampGap, y: cy - g.r + 4 } });
+    delete g.stem;
+    delete g.side;
+  };
   for (const g of out.gauges ?? []) {
     const p = parties.get(g.party);
+    if (p && mesh && !boxes.includes(g.party)) onCall(g);
     if (!p || !boxes.includes(g.party)) continue;
     const l = out.ledgers.find((x) => x.box === g.party);
     // 網型は、箱の並びの左端の箱の計器を箱の左に、右端の箱の計器を箱の右に、箱の上端の高さで吊るす。
@@ -3773,6 +3792,17 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
             : undefined;
     if (d) move(c, d[0], d[1]);
     else underChips.push(...chipUnderFlow(c, out.flows ?? []));
+  }
+  // 網型の確かめの式の札は、札入れに入れず計器の左の同じ高さに置く (#3990)。札入れは箱の並びの左に出るので、式の札が計器から離れて出ていた。
+  // 同じ段の同じ計器の式が2つ以上の時は、計器の高さの真ん中を挟んで縦に並べる
+  const formulas = mesh ? (out.chips ?? []).filter((c) => c.kind === "formula") : [];
+  for (const c of formulas) {
+    const g = (out.gauges ?? []).find((x) => x.party === c.party && x.step === c.step);
+    if (!g) continue;
+    const peers = formulas.filter((x) => x.party === c.party && x.step === c.step);
+    const k = peers.indexOf(c);
+    // 札は上の段で箱と一緒に動かし済みなので、動かした物の記録を分けてもう一度動かす
+    moveParts(c, round3(g.x - PART_GAP - c.w) - c.x, round3(g.cy - c.h / 2 + (k - (peers.length - 1) / 2) * (c.h + 4)) - c.y, new WeakSet<object>());
   }
   // 自分の札への書き換えと、箱の中の札への書き換えは、札を持つ物と一緒に動かす。人の下の札への書き換えは、書いた物から札の上へ真っすぐ引く
   for (const w of out.writes ?? []) {
@@ -3957,6 +3987,7 @@ function placeRows(composed: PipeLayout, diagram: DiagramModel, shape: "ledger" 
     ...out.ledgers.flatMap((l) => [l.enclosure, l.tab, ...(gauged(l.box) ? [{ x: l.enclosure.x, y: l.enclosure.y + l.enclosure.h, w: 1, h: R.gauge }] : [])]),
     ...out.busLines.map((b) => ({ x: b.x1, y: b.y - 12, w: b.x2 - b.x1, h: 24 })),
     ...underChips.map(rectOf),
+    ...formulas.map(rectOf),
   ];
   const all = union(rects);
   const lowestBox = Math.max(-Infinity, ...rowBoxes.filter(carded).map((id) => box(id).y + box(id).h));
@@ -4087,6 +4118,8 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     const want = Math.ceil(((P.narrow.px * out.width) / (frame as number)) * NARROW_OVER * 10) / 10;
     sizes = { amount: Math.max(T.amount.size, want), chip: Math.max(T.chip.size, want) };
     out = compose(diagram, words, sizes, true, PLAN_OF.get(out) ?? 0);
+    // 狭い枠は仕上げの段 (`finishPipe`) を通らないので、札だけの入れ物と図の下の空きはここで詰める (#3990)
+    if (fitPlateHousings(out)) trimBottom(out);
   }
   return handOut(narrow ? remember(key, out) : out);
 }
@@ -4144,7 +4177,58 @@ function placeTankTitles(out: PipeLayout): void {
 
 // 並べ終えた図の仕上げ (Tracelyth #207)。槽へ書く値の書き込みの線を、書いた箱から槽への管と書いた段に流れる差の玉に変え、
 // 槽の値を持つコントラクトを箱と槽ごと1つの枠で囲み、処理を借りる呼び出しの線に札を付け、置き直した箱に重なるログの札をずらす
+/**
+ * 槽を持たず値の札だけを囲う入れ物を、札と札に添えた字を囲む高さに詰める (#3990)。
+ * 入れ物は瓶と瓶の下の数字の行を囲む高さで作るので、札だけの入れ物は札の上と下に札ほどの空きが出た。
+ * 網型は瓶の右に札の入れ物を並べ直すので、置き終えた後に中身へ合わせる。人から入れ物の上の縁へ下ろす線も、詰めた上の縁まで伸ばす
+ */
+function fitPlateHousings(out: PipeLayout): boolean {
+  let fitted = false;
+  for (const h of out.housings ?? []) {
+    if (h.enclosed) continue;
+    const within = (r: Rect): boolean => r.x >= h.x - 0.5 && r.x + r.w <= h.x + h.w + 0.5 && r.y >= h.y - 0.5 && r.y + r.h <= h.y + h.h + 0.5;
+    if ((out.tanks ?? []).some((t) => t.party === h.party && within(t))) continue;
+    const cards = (out.plates ?? []).filter((p) => p.party === h.party && !p.boxed && !p.row && within(p));
+    if (cards.length === 0) continue;
+    const top = round3(Math.min(...cards.map((p) => p.y)) - P.housing.pad);
+    const bottom = Math.max(...cards.flatMap((p) => [p.y + p.h, ...[p.was, p.tag].flatMap((t) => (t ? [t.y + t.h] : []))])) + P.housing.pad;
+    for (const t of out.ties ?? []) if (t.party === h.party && Math.abs(Math.max(t.y1, t.y2) - h.y) < 1) t.y2 = top;
+    if (top === h.y && round3(bottom - top) === h.h) continue;
+    // 持ち主の列は入れ物の下の縁まで伸びるので、詰める前の下の縁で終わる列は詰めた下の縁まで縮める
+    for (const c of out.columns ?? []) if (c.party === h.party && Math.abs(c.y + c.h - (h.y + h.h)) < 1) c.h = round3(bottom - c.y);
+    h.y = top;
+    h.h = round3(bottom - top);
+    fitted = true;
+  }
+  return fitted;
+}
+
+/** 図の下の空きを詰める。描く物の一番下に余白を足した高さが今の高さより低い時だけ、図の高さを縮める */
+function trimBottom(out: PipeLayout): void {
+  const M = PIPE_LOOK.margin;
+  let low = 0;
+  const walk = (v: unknown): void => {
+    if (v === null || typeof v !== "object") return;
+    if (Array.isArray(v)) {
+      if (v.length === 2 && typeof v[0] === "number" && typeof v[1] === "number") low = Math.max(low, v[1]);
+      else for (const x of v) walk(x);
+      return;
+    }
+    if (typeof (v as Partial<Coords>).y === "number") low = Math.max(low, (v as Coords).y + (typeof (v as Partial<Coords>).h === "number" ? (v as Coords).h : 0));
+    if (typeof (v as Partial<Coords>).base === "number") low = Math.max(low, (v as Coords).base + 6);
+    for (const [_k, x] of Object.entries(v)) if (typeof x === "object") walk(x);
+  };
+  for (const [k, v] of Object.entries(out)) if (k !== "focus" && k !== "fixed" && typeof v === "object") walk(v);
+  const height = Math.ceil(low + M);
+  if (height < out.height) {
+    out.height = height;
+    for (const f of out.focus ? [out.focus].flat() : []) Object.assign(f, { x: M, y: M, w: out.width - M * 2, h: out.height - M * 2 });
+  }
+}
+
 function finishPipe(out: PipeLayout): PipeLayout {
+  // 札だけの入れ物を詰めた図は、仕上げの最後に図の下の空きも詰める (#3990)
+  const fitted = fitPlateHousings(out);
   const M = PIPE_LOOK.margin;
   const overlap = (a: Rect, b: Rect, pad: number): boolean => a.x - pad < b.x + b.w && b.x - pad < a.x + a.w && a.y - pad < b.y + b.h && b.y - pad < a.y + a.h;
   const segsOf = (pts: readonly Point[] | undefined): [Point, Point][] => (pts ?? []).slice(1).map((q, i) => [(pts as readonly Point[])[i] as Point, q]);
@@ -4189,24 +4273,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
       for (const c of mine("columns") as PipeColumn[]) c.h += dy;
     }
     // 寄せて空いた図の下を詰める
-    let low = 0;
-    const walk = (v: unknown): void => {
-      if (v === null || typeof v !== "object") return;
-      if (Array.isArray(v)) {
-        if (v.length === 2 && typeof v[0] === "number" && typeof v[1] === "number") low = Math.max(low, v[1]);
-        else for (const x of v) walk(x);
-        return;
-      }
-      if (typeof (v as Partial<Coords>).y === "number") low = Math.max(low, (v as Coords).y + (typeof (v as Partial<Coords>).h === "number" ? (v as Coords).h : 0));
-      if (typeof (v as Partial<Coords>).base === "number") low = Math.max(low, (v as Coords).base + 6);
-      for (const [_k, x] of Object.entries(v)) if (typeof x === "object") walk(x);
-    };
-    for (const [k, v] of Object.entries(out)) if (k !== "focus" && k !== "fixed" && typeof v === "object") walk(v);
-    const height = Math.ceil(low + M);
-    if (height < out.height) {
-      out.height = height;
-      for (const f of out.focus ? [out.focus].flat() : []) Object.assign(f, { x: M, y: M, w: out.width - M * 2, h: out.height - M * 2 });
-    }
+    trimBottom(out);
   }
   const gauged = (out.writes ?? []).filter((w) => w.gauge);
   if (gauged.length > 0) {
@@ -4470,6 +4537,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
     out.callTags.push({ call: c.index, from: c.from, to: c.to, text, ...pick });
   }
   placeRevertTags(out, { overlap, crosses, restOf, solid, lines, tieLines });
+  if (fitted) trimBottom(out);
   return out;
 }
 
@@ -7286,8 +7354,9 @@ function compose(diagram: DiagramModel, words: PipeWords, sizes: Sizes, narrow: 
           let strike: Rect | undefined;
           let tag: PipeText | undefined;
           if (old !== undefined && state !== "none") {
-            // 前の値と語は槽の数字と同じ行に置く。札のすぐ下は、槽の右の口から出る管が札の下を通る所
-            const base = tankTop(party) + P.tank.h + P.tank.numberY;
+            // 前の値と語は札の中の大きな値の下に置く (#3990)。槽の数字の行に置くと札から離れ、網型では値の管がその字の上を通った。
+            // 札のすぐ下は、槽の右の口から出る管が札の下を通る所なので置かない
+            const base = p.y + p.h - P.plate.wasY;
             const ww = textWidth(old, T.sub);
             const total = ww + PART_GAP + textWidth(words.tags[state], T.tag);
             was = textAt(old, cx - total / 2, base, T.sub);

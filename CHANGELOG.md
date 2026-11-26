@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- In a pipe diagram, the previous value and the provisional or final word of a value card rewritten with `write` now sit inside the card, under the big value, instead of on the tank number row about 74px below the card. A dashed frame that holds only value cards is now as tall as its cards instead of as tall as a frame with tanks (#3990)
+
+### Fixed
+
+- In a pipe diagram with `layout mesh`, the meter of a `check` on a box that is not a token box stayed at the left edge of the diagram. It now sits on the call tube that enters the checked box, and the formula chip of a mesh check sits on the left of its meter instead of in a card tray away from it (#3990)
+
 ## [0.87.0] - 2026-11-26
 
 ### Changed

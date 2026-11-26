@@ -422,7 +422,8 @@ export function drawPipe(layout: PipeLayout, timeline: Timeline, ctx: Ctx): { ba
   // 固定した形の図で箱を持たないトークン (ETH) の額の札は、札入れに入れず流れのパイプの下に置いたままにする
   const looseAmount = (c: PipeChip): boolean => layout.fixed !== undefined && c.kind === "amount" && tokenHome(c.token) === undefined;
   const itemsOf = (s: number): CardItem[] => [
-    ...layout.chips.filter((c) => c.step === s && (c.kind === "formula" || c.kind === "amount") && !looseAmount(c)).map((c): CardItem => ({ key: c, kind: c.kind as CardKind, party: c.party, token: c.token, x: c.x, y: c.y, w: c.w, h: c.h, t: timeOf(s, c.event) ?? -1 })),
+    // 網型の式の札は、置き直しが計器の横に置くので札入れに入れない (#3990)
+    ...layout.chips.filter((c) => c.step === s && ((c.kind === "formula" && layout.fixed?.shape !== "mesh") || c.kind === "amount") && !looseAmount(c)).map((c): CardItem => ({ key: c, kind: c.kind as CardKind, party: c.party, token: c.token, x: c.x, y: c.y, w: c.w, h: c.h, t: timeOf(s, c.event) ?? -1 })),
     // 札の帯を持つ形 (#3721) は、ログの札を札入れに入れず、置き直しが決めた札の帯の所に出す
     ...(layout.fixed?.band ? [] : layout.events.filter((e) => e.step === s).map((e): CardItem => ({ key: e, kind: "event", party: e.party, x: e.x, y: e.y, w: logSize(e).w, h: logSize(e).h, t: timeOf(s, e.event) ?? -1 })))
   ];
