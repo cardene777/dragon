@@ -19,7 +19,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parseNotation } from "../parser";
 import { DEFAULT_LANG, hasKanaKanji } from "../words";
-import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
+import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedHead, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
 import { codeHtml, escapeHtml, fenceCloses, fenceOpen, figureHtml, headingOf, joinLines, type Line, linesOf, linksIn, quoteOf, type RenderHooks, renderBlocks, renderInline } from "./markdown";
 import { type Guide, type Part, placeExists, readOutline, type Tab } from "./read";
 import { slugger, slugOf } from "./slug";
@@ -358,6 +358,19 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     });
     return { html: named, figures };
   };
+  /**
+   * 問いの節の`####`の見出しに場所の名前 (`<節の場所の名前>-h-<番号>`) を付け、見出しを書いた順に返す (#4010)。
+   * 左の目次が開いた問いの下に見出しを並べ、押すとその見出しへ移る。見出しを持たない節は図の題を並べる
+   */
+  const headsOf = (html: string, id: string): { html: string; heads: RenderedHead[] } => {
+    const heads: RenderedHead[] = [];
+    const named = html.replace(/<h4 class="pg-h">([\s\S]*?)<\/h4>/gu, (_whole, inner: string) => {
+      const place = `${id}-h-${heads.length + 1}`;
+      heads.push({ id: place, html: inner });
+      return `<h4 class="pg-h" id="${escapeHtml(place)}">${inner}</h4>`;
+    });
+    return { html: named, heads };
+  };
   const guideOf = (g: Guide): RenderedGuide => {
     checkTermLinks({ name: file, path }, linesOf(text));
     for (const term of terms.values()) checkTermLinks(term.source, [...term.text, ...term.example]);
@@ -378,7 +391,8 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
             if (section.answer) answer = renderInline(joinLines(section.answer.map((line) => line.text).filter((t) => t.trim() !== "")), main);
             return blocks(section.body);
           });
-          const named = figuresOf(body.html, section.id);
+          const titled = headsOf(body.html, section.id);
+          const named = figuresOf(titled.html, section.id);
           return {
             id: section.id,
             name: renderInline(section.name, main),
@@ -387,6 +401,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
             body: named.html,
             terms: body.terms,
             ...(named.figures.length === 0 ? {} : { figures: named.figures }),
+            ...(titled.heads.length === 0 ? {} : { heads: titled.heads }),
           };
         }),
       };

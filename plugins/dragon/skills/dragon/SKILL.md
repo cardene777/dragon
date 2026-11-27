@@ -139,7 +139,7 @@ npx playwright-core screenshot --viewport-size 390,900 --full-page shots/order.h
 
 ## 7. Show it
 
-When the plan has several figures, put them on one HTML page: write a guide page in Markdown with `layout: guide`, one `###` per question with its figures under it, and run `dragon export page.md`, which writes `page.html`.
+When the plan has several figures, put them on one HTML page: write a guide page in Markdown with `layout: guide`, one `###` per question with its figures under it and `####` headings for its parts, which the side menu lists under the open question, and run `dragon export page.md`, which writes `page.html`.
 Check the page with `dragon check --layout page.md`, and take screenshots of it 728px and 390px wide as with one figure. See [page](references/page.md).
 
 For one figure, pick the way the destination supports. Details and code are in [setup](references/setup.md).
