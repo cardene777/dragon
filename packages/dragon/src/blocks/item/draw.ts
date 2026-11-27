@@ -82,9 +82,16 @@ export function backGlyph(cx: number, cy: number, size: number): string {
   return `<path class="dg-lb-glyph" d="M${p(4, 6)}L${p(4, 0.5)}Q${p(4, -3)} ${p(0.5, -3)}L${p(-4.5, -3)}M${p(-1.4, -6)}L${p(-4.5, -3)}L${p(-1.4, 0)}"/>`;
 }
 
-/** 折った字を 1 行ずつ描く。等幅の字で和文を含む行は、和文の字の class `wide` を足す */
+/**
+ * 折った字を 1 行ずつ描く。等幅の字で和文を含む行は、和文の字の class `wide` を足す。
+ * 2 行以上に折った字は、1 行目の字の記録に折った幅と字の大きさと全文を残す (#4009)。崩れの確かめが、16 字より狭く折った字を探す
+ */
 export function lines(ctx: Ctx, cls: string, t: LineupText, style: TextStyle, shown: Shown[] = ALWAYS, wide = ""): string {
-  return t.lines.map((l) => write(ctx.ink, wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls, l.x, l.baseline, l.text, style, shown)).join("");
+  const first = ctx.ink.length;
+  const svg = t.lines.map((l) => write(ctx.ink, wide !== "" && style.family === "mono" && hasWide(l.text) ? `${cls} ${wide}` : cls, l.x, l.baseline, l.text, style, shown)).join("");
+  const ink = ctx.ink[first];
+  if (ink && t.room !== undefined && t.lines.length > 1) ink.wrap = { width: t.room, size: style.size, text: t.text };
+  return svg;
 }
 
 /** 札と控えと跡の字の形。ボードと流れの線の、広い枠と狭い枠で違う */

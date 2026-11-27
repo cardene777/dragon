@@ -31,11 +31,12 @@
  * 既定の幅では目盛りを階段の右に縦に置いて上から下へ時間を進め、携帯の幅では階段を幅いっぱいに描き、目盛りを階段の下に横に置いて左から右へ時間を進める。
  */
 import { type FigureText, FIGURE_TEXT } from "../../figure-text";
-import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../look/values";
+import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE, WRAP } from "../../look/values";
 import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
-import { hasWide, textWidth, wrap } from "../../layout/measure";
+import { hasWide, textWidth } from "../../layout/measure";
+import { wrap } from "../../layout/wrap";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
@@ -49,10 +50,11 @@ export interface TextLine {
   baseline: number;
 }
 
-/** 字。`text` は全文、`lines` は幅で折った行で、四角は全ての行の字の形を囲む */
+/** 字。`text` は全文、`lines` は幅で折った行で、四角は全ての行の字の形を囲む。`room` は 2 行以上に折った字の、字を折る処理に渡した幅 (#4009) */
 export interface LineupText extends Rect {
   text: string;
   lines: TextLine[];
+  room?: number;
 }
 
 /**
@@ -355,10 +357,20 @@ function wrapped(text: string, x: number, baseline: number, style: TextStyle, wi
   const lines = rows.map((t, k) => ({ text: t, x, baseline: baseline + k * pitch }));
   const w = Math.max(0, ...rows.map((t) => textWidth(t, style)));
   const top = baseline - style.size * 0.8;
-  return { text, lines, x, y: top, w, h: (rows.length - 1) * pitch + style.size };
+  return { text, lines, x, y: top, w, h: (rows.length - 1) * pitch + style.size, ...(rows.length > 1 ? { room: width } : {}) };
 }
 
 const bottomOf = (r: Rect): number => r.y + r.h;
+
+/**
+ * 字 `text` を折る所に要る幅 (#4009)。1 行に収まる字は字の幅、収まらない字は 1 行に `WRAP.least` 字入る幅。
+ * 描き方は字を折る所をこの幅まで広げ、16 字より狭い所に字を折らない
+ */
+const wrapRoom = (text: string, style: TextStyle): number => Math.min(textWidth(text, style), WRAP.least * style.size);
+
+/** 段の題と文を図の中の幅で折るのに要る、図の中の幅 (#4009) */
+const headNeed = (diagram: DiagramModel): number =>
+  Math.max(0, ...diagram.steps.flatMap((step) => [wrapRoom(step.title, TYPE.lineupHead), ...(step.body ? [wrapRoom(step.body, TYPE.lineupSay)] : [])]));
 
 /** 段の中の `line` 1 つ。宣言したチップだけを、同じチップは最初の 1 枚だけ、上限の枚数まで持つ */
 interface Line extends LineupAt {
@@ -572,8 +584,14 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     ...walk.ghosts.map((g) => card.plainX + widthOf(nameOf(g.id), T.card) + (g.kind === "gone" ? B.tag.gap + goneW + card.tagInset : card.padR)),
   );
 
+  // 札の下の一言を帯の幅で折るのに要る帯の幅 (#4009)
+  const remarkNeed = (lane: string): number => Math.max(0, ...remarkSpecs.filter((r) => r.lane === lane).map((r) => wrapRoom(r.text, TYPE.remark) + L.remark.bar + L.remark.gap));
+
   // ボードの帯の幅。名前と札の数が 1 行に収まらない帯が 1 つでもあれば、どの帯も札の数を 2 行目の左に置く
-  let laneW = Math.max(B.minW, cardNeed + B.padX * 2, ...order.map((l) => B.nameX + nameW(l) + B.dotX), ...order.map((l) => B.dotX * 2 + row2W(l, false)), ...order.map(gaugeNeed));
+  let laneW = Math.max(B.minW, cardNeed + B.padX * 2, ...order.map((l) => B.nameX + nameW(l) + B.dotX), ...order.map((l) => B.dotX * 2 + row2W(l, false)), ...order.map(gaugeNeed), ...order.map(remarkNeed));
+  // 段の題と文と凡例の説明は図の中の幅で折るので、16 字より狭く折らない幅まで図を広げる (#4009)
+  const legendNeed = Math.max(0, ...items.flatMap((item) => (item.note === undefined ? [] : [wrapRoom(item.note, TYPE.legend) + L.legend.swatch + L.legend.gap])));
+  const textNeed = Math.max(headNeed(diagram), legendNeed);
   const countBelow = !stacked && !stations && order.some((l) => B.nameX + nameW(l) + B.count.gap + countMost(l) + B.dotX > laneW);
   if (countBelow) laneW = Math.max(laneW, ...order.map((l) => B.dotX * 2 + row2W(l, true)));
 
@@ -584,7 +602,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
     const parts = [...(pools.has(lane) ? [noOrderW] : []), ...(valuesIn(lane).length > 0 ? [valueMost(lane)] : [])];
     return parts.reduce((sum, w, k) => sum + w + (k > 0 ? ST.rowGap : 0), 0);
   };
-  const blockOf = (lane: string): number => Math.max(nameBlock(lane), row2Block(lane), stopCard, gaugeNeed(lane));
+  const blockOf = (lane: string): number => Math.max(nameBlock(lane), row2Block(lane), stopCard, gaugeNeed(lane), remarkNeed(lane));
   const stepX = Math.max(ST.step, ...order.map((l) => blockOf(l) + ST.laneGap));
   const first = order[0] ?? "";
   const last = order.at(-1) ?? "";
@@ -596,12 +614,22 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   const roleNeed = Math.max(0, ...roleDecl.map((r) => Math.max(textWidth(r.id, TYPE.roleName), r.note === undefined ? 0 : textWidth(r.note, TYPE.roleNote)) + L.role.padX * 2));
   const rolesW = roleDecl.length * Math.max(L.role.w, roleNeed) + Math.max(0, roleDecl.length - 1) * L.role.gap;
   const n = order.length;
+  // 段の題と文と凡例の説明が図の幅を決める横に並べたボードは、帯を広げて図の幅を埋める (#4009)。帯を左に寄せて右を空けない
+  if (!stations && !stacked && n > 0 && textNeed > Math.max(n * laneW + (n - 1) * B.gap, rolesW, widest(plans.top), stripNeed(diagram))) laneW = (textNeed - (n - 1) * B.gap) / n;
   const rowSpan = stations ? before + (n - 1) * stepX + after : n * laneW + (n - 1) * B.gap;
   // 目盛りは縦に組んだ形の帯の幅にも収める。帯は図の左の端から、流れの線は線の右の札の列から始まる
   const gaugeLeft = stations ? ST.narrowCards : margin + (hasBack ? N.rail : 0);
+  // 縦に組んだ形の帯の名前と一言は帯の幅で折るので、16 字より狭く折らない幅まで広げる (#4009)
+  const stackLeft = stations ? ST.narrowCards : margin + (hasBack ? N.rail : 0);
+  const stackNeed = Math.max(
+    0,
+    ...order.map((l) => wrapRoom(boxOf.get(l)?.name ?? l, T.name) + (stations ? ST.nameGap : B.nameX + B.count.gap + B.dotX) + countMost(l)),
+    ...order.map(remarkNeed),
+  );
   const width = Math.max(
-    stacked ? Math.max(N.width, roleNeed + margin * 2, gaugeWide > 0 ? gaugeLeft + gaugeWide + margin : 0) : Math.max(rowSpan, rolesW, widest(plans.top)) + margin * 2,
+    stacked ? Math.max(N.width, roleNeed + margin * 2, gaugeWide > 0 ? gaugeLeft + gaugeWide + margin : 0, stackLeft + stackNeed + margin) : Math.max(rowSpan, rolesW, widest(plans.top)) + margin * 2,
     stripNeed(diagram) + margin * 2,
+    textNeed + margin * 2,
   );
   const inner = width - margin * 2;
 
@@ -1177,9 +1205,11 @@ function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean
   const steps = Math.max(0, diagram.boxes.length - 1);
   const room = L.stack.width - margin * 2;
   const shift = !stairs || steps === 0 ? 0 : narrow ? Math.max(STAIRS.leastShift, Math.min(STAIRS.phoneShift, (room - narrowNeed) / steps)) : STAIRS.shift;
-  const laneMin = narrow ? narrowNeed : Math.max(stairs ? STAIRS.width : Y.width, wideNeed);
+  // 携帯の幅は説明を帯の幅で折るので、16 字より狭く折らない帯の幅まで広げる (#4009)
+  const descNeed = Math.max(0, ...diagram.boxes.map((b) => (b.sub === undefined ? 0 : wrapRoom(b.sub, T.desc) + Y.textX + Y.padR)));
+  const laneMin = narrow ? Math.max(narrowNeed, descNeed) : Math.max(stairs ? STAIRS.width : Y.width, wideNeed);
   const scaleW = timing && !narrow ? scaleColumn(timing) : 0;
-  const inner = Math.max(narrow ? room : 0, laneMin + shift * steps + scaleW, stripNeed(diagram));
+  const inner = Math.max(narrow ? room : 0, laneMin + shift * steps + scaleW, stripNeed(diagram), headNeed(diagram));
   const laneW = stairs ? inner - shift * steps - scaleW : inner;
   const width = inner + margin * 2;
   /** 層に出る印の幅と札の列の幅。縦に組んだ帯は層ごとにこれで行の数を決め、印の短い層まで長い印の層に合わせて間延びさせない */

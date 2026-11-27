@@ -18,7 +18,8 @@ import { parseNotation, renderDiagram } from "../src/core";
 import "../src/kind-use/judge";
 import "../src/kind-use/lineup";
 import type { LineupLayout, LineupText } from "../src/kinds/lineup/layout";
-import { hasWide, textWidth, wrap } from "../src/layout/measure";
+import { hasWide, textWidth } from "../src/layout/measure";
+import { wrap } from "../src/layout/wrap";
 import { TYPE, type TextStyle } from "../src/look/values";
 import { atLoad } from "./at-load";
 
@@ -33,8 +34,8 @@ interface WrapCall {
 const recorded = vi.hoisted((): WrapCall[] => []);
 
 // 字を折る処理を包み、描き方が渡した幅と折った行を記録する。折り方そのものは元の処理のまま
-vi.mock("../src/layout/measure", async (importOriginal) => {
-  const real = await importOriginal<typeof import("../src/layout/measure")>();
+vi.mock("../src/layout/wrap", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../src/layout/wrap")>();
   return {
     ...real,
     wrap: (text: string, style: TextStyle, width: number): string[] => {
@@ -299,11 +300,10 @@ describe("判定の表の静止画は名前の長い規則の note も 16 字以
     const frame = Number(/viewBox="0 0 ([\d.]+) /u.exec(svg)?.[1] ?? Number.NaN);
     expect(frame, "絵の幅を読めない").toBeGreaterThan(0);
     const note: TextStyle = { family: "sans", size: mine[0]?.size ?? 12, weight: 500 };
-    const lines = [
-      ...svg.matchAll(
-        /<text\b[^>]*\bx="([\d.]+)"[^>]*data-dragon="judge-rule-note"[^>]*>([^<]*)<\/text>/gu,
-      ),
-    ].map((m) => ({ x: Number(m[1]), text: m[2] ?? "" }));
+    // 字の要素の属性の順に依らず、規則の note の行の左端と字を読む
+    const lines = [...svg.matchAll(/<text\b([^>]*)>([^<]*)<\/text>/gu)]
+      .filter((m) => (m[1] ?? "").includes('data-dragon="judge-rule-note"'))
+      .map((m) => ({ x: Number(/\bx="([\d.]+)"/u.exec(m[1] ?? "")?.[1]), text: m[2] ?? "" }));
     expect(lines.length, "規則の note の行を描いていない").toBeGreaterThan(0);
     expect(
       lines

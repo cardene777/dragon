@@ -32,8 +32,8 @@ interface WrapCall {
 const wrapLog = vi.hoisted(() => ({ on: false, calls: [] as WrapCall[] }));
 
 // 字を折る処理を包み、描き方が渡した幅と折った行を記録する (#4009)。折り方そのものは元の処理のまま
-vi.mock("../src/layout/measure", async (importOriginal) => {
-  const real = await importOriginal<typeof import("../src/layout/measure")>();
+vi.mock("../src/layout/wrap", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../src/layout/wrap")>();
   return {
     ...real,
     wrap: (text: string, style: TextStyle, width: number): string[] => {

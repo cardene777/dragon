@@ -939,6 +939,12 @@ export const MOTION = {
 export const READABLE_PX = 10.5;
 /** 図の幅と高さに収める枠 (`fitWide` と `fitNarrow`) で、人の名前の字を描く大きさの下限 (px)。関数のモーダルで広い図の名前が読めなくなるのを防ぐ (Tracelyth #230) */
 export const FILL_NAME_PX = 8;
+/**
+ * 字を折る決まり (#4009、`docs/adr/0017-wrapped-text-keeps-16-chars.md`)。並べ方で幅を測って折る字は、1 行に `least` 字 (字の大きさの `least` 倍) 入らない幅で折らない。
+ * 折った最後の行が `last` 字に満たない時は、前の行の最後の句読点の後で折り直し、句読点が無ければ行数を変えずに行の長さを均す。
+ * 字数は全角に直した数で、半角は 2 字で全角 1 字に数える
+ */
+export const WRAP = { least: 16, last: 4 } as const;
 
 /**
  * 配管の図の値のうち、最初に読む処理が使う物 (#3720)。`narrowPx` は再生の部品が狭い枠で槽の残高の字を読める大きさにする字の大きさ (px)、
