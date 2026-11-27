@@ -16,3 +16,9 @@
 | 見本と検査の記法と部品の図を日本語と英語で全て描くと、2行以上に折った字は全て16字以上の幅で折る | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `examples-wrap-at-16-chars-or-more` passes | #4009 |
 | 見本と検査の記法と部品の図を日本語と英語で全て描くと、2行以上に折った字の最後の行は全て4字以上ある | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `examples-last-wrapped-line-has-4-chars` passes | #4009 |
 | 見本の崩れの記録は今のまま変わらず、図を広げても新しい崩れを出さない | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `layout-check-examples-match-recorded` passes | #4009 |
+| 字を折る処理 (`wrap`) に改行を持つ字を渡すと、改行の所で行を替え、分けた行ごとに幅で折った行を返し、行に改行を残さない | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `wrap-breaks-at-newlines` passes | #4016 |
+| 分けた行ごとに16字の幅の下限と最後の行の折り直しを当て、書き手が改行で作った1行だけの短い行は、折り直さずにそのまま返す | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `wrap-keeps-short-lines-the-writer-made` passes | #4016 |
+| 改行を持たない字は、今と同じ行に折る | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `wrap-keeps-greedy-lines-when-last-line-is-long` passes | #4016 |
+| 段の部品の図 (日本語と英語) の図の上の段の文は、書き手が`say`を分けた所で行を替え、行の間は折った行の間と同じで、図の枠に収まる | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `lineup-step-text-breaks-at-say-lines` passes | #4016 |
+| 見本と検査の記法と部品の図を全て描くと、2行以上に折った字は全て16字以上の幅で折る | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `examples-wrap-at-16-chars-or-more` passes | #4016 |
+| 見本と検査の記法と部品の図を全て描くと、分けた行ごとに2行以上に折った字の最後の行は全て4字以上ある | `pnpm exec vitest run packages/dragon/test/wrap.test.ts packages/dragon/test/layout-check.test.ts` check `examples-last-wrapped-line-has-4-chars` passes | #4016 |
