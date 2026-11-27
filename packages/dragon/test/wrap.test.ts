@@ -7,18 +7,19 @@
  * 字数は全角に直した数で、半角は 2 字で全角 1 字に数える。
  *
  * 描き方が字を折る所を広げたかは、描き方が字を折る処理 (`wrap`) に渡した幅で確かめる。処理を包んで、渡した幅と折った行を記録する。
- * 見本を描く仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は記録を読んで確かめる。
+ * 図を描く仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は記録を読んで確かめる。
+ * 全ての見本を描いて確かめる件と、`dragon check --layout` の件は、全ての種類を読む崩れの検査 (`layout-check.test.ts`) が持つ。
+ * この file は列の図と判定の表の種類だけを読み、関係する検査を選ぶ命令がほかの種類の変更で選ばないようにする
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { parseNotation, renderDiagram } from "./all-kinds";
+import { parseNotation, renderDiagram } from "../src/core";
+import "../src/kind-use/judge";
+import "../src/kind-use/lineup";
 import type { LineupLayout, LineupText } from "../src/kinds/lineup/layout";
 import { hasWide, textWidth, wrap } from "../src/layout/measure";
 import { TYPE, type TextStyle } from "../src/look/values";
-import { findBreaks, type LayoutBreak } from "../src/render/breaks";
-import { ALWAYS } from "../src/render/ink";
-import { checkLayoutText, describeBreak } from "../src/render/layout-check";
 import { atLoad } from "./at-load";
 
 /** 描き方が字を折る処理に渡した字と字の大きさと幅、折った行 */
@@ -54,10 +55,6 @@ const SAY_LEAST = LEAST * SAY.size;
 
 /** 全角に直した字数。和文の字は 1 字、ほかの字 (欧文と空白) は半字に数える */
 const chars = (line: string): number => [...line].reduce((n, ch) => n + (hasWide(ch) ? 1 : 0.5), 0);
-
-/** 16 字より狭い幅で 2 行以上に折った記録か */
-const narrow = (call: WrapCall): boolean =>
-  call.lines.length > 1 && call.width < LEAST * call.size - 1e-9;
 
 /** `work` の間に字を折る処理へ渡された記録 */
 function callsDuring<T>(work: () => T): { value: T; calls: WrapCall[] } {
@@ -275,149 +272,6 @@ describe("今の幅で 16 字以上に折れる列の図は幅を変えない (#
   });
 });
 
-/** 列の図で字を折る所ごとに、長い字を書いた記法。`long` は折れる長い字 (一言は描き方が作る文に含まれる字)、`width` は描く枠の幅 */
-const PLACES: { place: string; long: string; text: string; width?: number }[] = [
-  {
-    place: "段の題",
-    long: "列に並んだチップを1枚ずつ送って中身を確かめる",
-    text: [
-      "lineup 長い段の題",
-      "",
-      "box 待ち",
-      "",
-      "item 甲",
-      "",
-      "step 列に並んだチップを1枚ずつ送って中身を確かめる",
-      "  say 段の題が長い時も、図を広げて題を折る。",
-      "  line 待ち: 甲",
-    ].join("\n"),
-  },
-  {
-    place: "列の名前 (携帯の幅)",
-    long: "受付の窓口で書類を受け取って中身を確かめる係",
-    width: 390,
-    text: [
-      "lineup 長い列の名前",
-      "",
-      "box desk as 受付の窓口で書類を受け取って中身を確かめる係",
-      "box check as 審査",
-      "",
-      "item 甲, 乙",
-      "",
-      "step 並べる",
-      "  say 列の名前が長い時も、列を広げて名前を折る。",
-      "  line desk: 甲",
-      "  line check: 乙",
-    ].join("\n"),
-  },
-  {
-    place: "駅の名前 (携帯の幅)",
-    long: "受付の窓口で書類を受け取って中身を確かめる係",
-    width: 390,
-    text: [
-      "lineup 長い駅の名前 [shape: stations]",
-      "",
-      "box desk as 受付の窓口で書類を受け取って中身を確かめる係",
-      "box check as 審査",
-      "",
-      "item 甲, 乙",
-      "",
-      "step 並べる",
-      "  say 駅の名前が長い時も、駅の間を広げて名前を折る。",
-      "  line desk: 甲",
-      "  line check: 乙",
-    ].join("\n"),
-  },
-  {
-    place: "凡例",
-    long: "窓口に届いた書類のうち、まだ誰も中身を確かめていない物",
-    text: [
-      "lineup 長い凡例",
-      "",
-      "box 窓口",
-      "",
-      "item 申請 [note: 窓口に届いた書類のうち、まだ誰も中身を確かめていない物]",
-      "",
-      "step 並べる",
-      "  say 凡例の説明が長い時も、図を広げて説明を折る。",
-      "  line 窓口: 申請",
-    ].join("\n"),
-  },
-  {
-    place: "帯の一言",
-    long: "甲、乙、丙、丁、戊、己、庚、辛",
-    text: [
-      "lineup 長い一言",
-      "",
-      "box pool as 置き場 [order: none]",
-      "box lane as 列",
-      "",
-      "item 書類",
-      "item 甲, 乙, 丙, 丁, 戊, 己, 庚, 辛",
-      "",
-      "step 置く",
-      "  say 書類を置き場に置く。",
-      "  line pool: 書類",
-      "",
-      "step 並べる",
-      "  say 置き場に無かった書類を列に足すと、列の下に一言が出る。",
-      "  line lane: 書類, 甲, 乙, 丙, 丁, 戊, 己, 庚, 辛",
-    ].join("\n"),
-  },
-  {
-    place: "層の説明 (携帯の幅)",
-    long: "画面で交換を頼み、送った取引がL1で戻せなくなるまで待ってから結果を見せる",
-    width: 390,
-    text: [
-      "lineup 長い層の説明 [shape: layers]",
-      "",
-      "box app as アプリ [note: 画面で交換を頼み、送った取引がL1で戻せなくなるまで待ってから結果を見せる]",
-      "box l1 as L1 [note: 戻せなくなるまで待つ]",
-      "",
-      "item 取引",
-      "",
-      "step 頼む",
-      "  say 層の説明が長い時も、帯を広げて説明を折る。",
-      "  line app: 取引",
-    ].join("\n"),
-  },
-];
-const PLACES_DRAWN = await atLoad(
-  "列の図で字を折る所に長い字を書いた記法を描いて崩れを数える",
-  () =>
-    PLACES.map((one) => ({
-      ...one,
-      wraps: drawn(one.text, "ja", one.width).calls,
-      breaks: checkLayoutText(one.text, { lang: "ja" }),
-    })),
-);
-
-describe("列の図は字を折る所を広げて 16 字以上の幅で折る (#4009)", () => {
-  describe.for(PLACES.map((one) => [one.place] as const))("%s", ([place]) => {
-    it("lineup-wrapped-texts-widen-their-area", () => {
-      const one = PLACES_DRAWN.get().find((p) => p.place === place);
-      expect(one, `${place} を描けない`).toBeDefined();
-      if (one === undefined) return;
-      const mine = one.wraps.filter(
-        (call) => call.text.includes(one.long) && call.lines.length > 1,
-      );
-      expect(mine.length, `${place} の長い字を 2 行以上に折らない`).toBeGreaterThan(0);
-      expect(
-        one.wraps
-          .filter(narrow)
-          .map(
-            (call) => `「${call.text}」を ${(call.width / call.size).toFixed(1)} 字の幅で折った`,
-          ),
-        `${place} で 16 字より狭く折った字`,
-      ).toEqual([]);
-      expect(
-        one.breaks.map((b) => describeBreak(b, "ja")),
-        `${place} の崩れ`,
-      ).toEqual([]);
-    });
-  });
-});
-
 /** 規則の名前が長く、`note` を名前の右の狭い所に折る判定の表 */
 const LONG_RULE = [
   "judge Rules with long names",
@@ -457,126 +311,5 @@ describe("判定の表の静止画は名前の長い規則の note も 16 字以
         .map((line) => line.text),
       "絵の幅をはみ出す note の行",
     ).toEqual([]);
-  });
-});
-
-/** 崩れを数える材料。字だけを持ち、線と箱を持たない */
-const inputOf = (inks: unknown[]): Parameters<typeof findBreaks>[0] =>
-  ({
-    inks,
-    traces: [],
-    framed: [],
-    stills: [0, 1],
-    frame: { w: 800, h: 600 },
-    boxes: [],
-    edges: [],
-    outlines: new Map(),
-  }) as never;
-/** 描き方が 2 行に折った字の 1 行目の記録。`wrap` は描き方が折る処理に渡した幅と字の大きさと全文 */
-const firstLine = (whole: string, width: number): unknown => ({
-  text: whole.slice(0, 10),
-  rect: { x: 20, y: 40, w: 160, h: 12.5 },
-  shown: ALWAYS,
-  wrap: { width, size: SAY.size, text: whole },
-});
-
-describe("dragon check --layout は 16 字より狭く折った字を知らせる (#4009)", () => {
-  const whole = "step で段を区切り、say で段の本文を書く。";
-
-  it("layout-check-finds-narrow-wrap", () => {
-    const breaks = findBreaks(inputOf([firstLine(whole, 166)])).filter(
-      (b) => b.kind === ("text-wrapped-narrow" as LayoutBreak["kind"]),
-    );
-    expect(breaks, "16 字より狭く折った字を崩れにしない").toHaveLength(1);
-    const found = breaks[0] as LayoutBreak;
-    expect(found.step, "崩れが見え始める段").toBe(1);
-    expect(found.parts[0], "崩れの 1 つ目の部品は折った字の全文").toEqual({
-      kind: "text",
-      text: whole,
-    });
-    for (const lang of ["ja", "en"] as const) {
-      const sentence = describeBreak(found, lang);
-      expect(sentence, `${lang} の文が字を名指す`).toContain(whole);
-      expect(sentence, `${lang} の文が 16 字の決まりを言う`).toContain("16");
-    }
-  });
-
-  it("layout-check-skips-wraps-at-16-chars", () => {
-    const one = {
-      text: "段は1つずつ送って見る。",
-      rect: { x: 20, y: 40, w: 145, h: 12.5 },
-      shown: ALWAYS,
-    };
-    const breaks = findBreaks(inputOf([firstLine(whole, SAY_LEAST), one]));
-    expect(
-      breaks.map((b) => b.kind),
-      "16 字の幅で折った字と 1 行の字の崩れ",
-    ).toEqual([]);
-  });
-});
-
-/** 見本と検査の記法と部品の図の file の名前と記法か原本。指紋を取る script (`scripts/snapshot-examples.mjs`) と同じ範囲 */
-function sources(): { file: string; diagram: unknown; lang: "ja" | "en" }[] {
-  const listed = (dir: string, ext: (file: string) => boolean): string[] =>
-    existsSync(dir) ? readdirSync(dir).filter(ext) : [];
-  const blocks = join(ROOT, "src/blocks");
-  const files = [
-    ...listed(join(ROOT, "examples"), (f) => f.endsWith(".json") || f.endsWith(".dragon")).map(
-      (f) => ({ file: `examples/${f}`, path: join(ROOT, "examples", f) }),
-    ),
-    ...listed(join(ROOT, "test/fixtures"), (f) => f.endsWith(".dragon")).map((f) => ({
-      file: `test/fixtures/${f}`,
-      path: join(ROOT, "test/fixtures", f),
-    })),
-    ...readdirSync(blocks).flatMap((name) =>
-      listed(join(blocks, name, "gallery"), (f) => f.endsWith(".dragon")).map((f) => ({
-        file: `parts/${f}`,
-        path: join(blocks, name, "gallery", f),
-      })),
-    ),
-  ];
-  return files.map(({ file, path }) => {
-    const text = readFileSync(path, "utf8");
-    const lang = file.endsWith(".en.dragon") ? "en" : "ja";
-    return {
-      file,
-      lang,
-      diagram: file.endsWith(".json") ? (JSON.parse(text) as unknown) : diagramOf(text, lang),
-    };
-  });
-}
-
-/** 全ての見本を既定の幅と携帯の幅 (390) で描き、字を折る処理に渡された記録を見本と幅と共に集める */
-const SWEEP = await atLoad("見本と検査の記法と部品の図を全て描く", () =>
-  sources().flatMap(({ file, diagram, lang }) =>
-    [undefined, 390].flatMap((width) =>
-      callsDuring(() =>
-        renderDiagram(diagram, { lang, ...(width === undefined ? {} : { width }) }),
-      ).calls.map((call) => ({ file, frame: width, ...call })),
-    ),
-  ),
-);
-/** 記録の見本と描いた枠の幅と字 */
-const where = (call: WrapCall & { file: string; frame: number | undefined }): string =>
-  `${call.file} (${call.frame === undefined ? "既定の幅" : `幅 ${call.frame}`}) の「${call.text}」`;
-
-describe("見本と部品の図は 16 字以上の幅で折り、最後の行に 4 字以上を残す (#4009)", () => {
-  it("examples-wrap-at-16-chars-or-more", () => {
-    const all = SWEEP.get();
-    expect(
-      all.filter((call) => call.lines.length > 1).length,
-      "2 行以上に折った字が見本に無い",
-    ).toBeGreaterThan(0);
-    const offenders = all
-      .filter(narrow)
-      .map((call) => `${where(call)} を ${(call.width / call.size).toFixed(1)} 字の幅で折った`);
-    expect(offenders, "16 字より狭い幅で折った字").toEqual([]);
-  });
-
-  it("examples-last-wrapped-line-has-4-chars", () => {
-    const offenders = SWEEP.get()
-      .filter((call) => call.lines.length > 1 && chars(call.lines.at(-1) ?? "") < LAST)
-      .map((call) => `${where(call)} の最後の行「${call.lines.at(-1)}」`);
-    expect(offenders, "最後の行が 4 字に満たない字").toEqual([]);
   });
 });
