@@ -352,7 +352,8 @@ export const LOOK = {
    * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み、`stroke` は✓と✕の線の太さ。
    * `picture` は書き出す絵の形 (#3891) の寸法。`width` は絵の幅 (記事の本文ほどの枠) で、収まらない表は規則の列を分けて `blockGap` の間を空けて縦に積む。
    * `noteGap` は帯の例の名前と添え書きの間、`markTop` は帯の下の印の行の上の余白、`lead` は字の大きさに掛けて行の高さにする割合、
-   * `mid` は行の真ん中から字の基準線までの字の大きさに対する割合
+   * `mid` は行の真ん中から字の基準線までの字の大きさに対する割合。
+   * `notes` は札で見せない表の規則の `note` を表の下に並べる形 (#4008) の寸法。`top` は表と並びの間、`gap` は項の間、`nameGap` は規則の名前と `note` の間
    */
   judge: {
     text: 14,
@@ -375,6 +376,7 @@ export const LOOK = {
     line: 1,
     stroke: 2.6,
     picture: { width: 728, blockGap: 12, noteGap: 8, markTop: 4, lead: 1.5, mid: 0.35 },
+    notes: { top: 12, gap: 4, nameGap: 8 },
   },
   region: {
     pad: 18,

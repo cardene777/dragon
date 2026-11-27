@@ -59,7 +59,6 @@
 | Markdownの頁の上の設定の行に`note: pop`を書くと、頁の判定の表も札で見せる | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-page-default` passes | #3890 |
 | 札で見せる表を書き戻すと、1行目の`[note: pop]`と、規則の行と例の行の`note`と`example`が同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-notation-round-trip` passes | #3890 |
 | 札で見せない表の規則の行か、`note`を持たない規則の行か例の行に`example`を書くと、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-example-without-pop-refused` passes | #3890 |
-| 札で見せない表の規則に`note`を書くと、見出しの値の下に小さな字で描く | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-rule-note-under-value` passes | #3890 |
 | 止める判定の札は「止める」の語 (替えた時はその語) だけを持ち、外れた規則の番号と名前を持たない | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-verdict-word-only` passes | #3890 |
 | 書き出す静止画でも、止める判定の札は語だけを持ち、札で見せる表の例の`note`を名前の下に描かず、`note`を持つ名前の右にiの丸を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-picture-verdict-word-and-marks` passes | #3890 |
 | 箱の札のiの丸と判定の表のiの丸は、斜めのiの字の形の上下左右の真ん中が丸の真ん中から0.3px以内に在る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mark-glyph-centered` passes | #3890 |
@@ -68,3 +67,11 @@
 | 札で見せる図の箱を押すと、今と同じく箱のすぐ下に札が開く | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-opens-card-under-box` passes | #3890 |
 | 箱の札は、今と同じく札の外を押すと閉じる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-closes-outside` passes | #3890 |
 | 箱の札は、今と同じく印刷の形で図の下に箱の名前と並ぶ | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-print-lists-cards-below-figure` passes | #3890 |
+| 1行目に`[note: pop]`を書かない判定の表で、頁は`note`を持つ規則だけを、表の下に書いた順に1項ずつ並べ、1項は番号の丸と規則の名前と`note`の全文を持つ | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-rule-notes-below-table` passes | #4008 |
+| `[note: pop]`を書かない表の頁の規則の見出しは、`note`の字を持たない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-rule-note-not-in-head` passes | #4008 |
+| `[note: pop]`を書かない表を書き出した静止画は、`note`を持つ規則だけを表の下に書いた順に並べ、1項は番号の丸と規則の名前と`note`の全文を持ち、見出しには`note`の字を描かない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-picture-rule-notes-below-table` passes | #4008 |
+| 規則10個で段に分かれる表の静止画は、規則の`note`を最後の段の後にまとめて並べ、`note`を持たない段の見出しを高くしない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-picture-rule-notes-after-last-block` passes | #4008 |
+| 規則の`note`を持つ表の静止画も幅が728px以下で、表の下の`note`の字は10.5px以上で、表の幅を越えて伸びず折って並べる | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-picture-rule-notes-readable` passes | #4008 |
+| 1行目に`[note: pop]`を書いた表は、頁でも静止画でも規則の`note`を表の下に並べない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-pop-rule-notes-not-below` passes | #4008 |
+| 例の`note`は、頁でも静止画でも今のまま例の名前の横に出し、表の下に並べない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-case-notes-stay-on-band` passes | #4008 |
+| 手引き (日本語と英語) が、`[note: pop]`を書かない表の規則の`note`を表の下に並べると書き、値の下に出すとは書かない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts packages/dragon/test/judge-picture.test.ts` check `judge-rule-notes-documented` passes | #4008 |
