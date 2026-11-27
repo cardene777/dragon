@@ -173,6 +173,8 @@ interface PipeLayout {
   writes: Write[];
   pills: Pill[];
   fixed?: { shape: string; order: string[] };
+  /** 段ごとの寄る所。再生の枠はこの四角を見て段の関係者の所へ送る */
+  focus?: (Rect & { step: number })[];
   callCards?: CallCard[];
   logCards?: LogCard[];
 }
@@ -1329,5 +1331,26 @@ describe("描いたログの札と線の札の隙間 (#3949)", () => {
           if (gap < 6 - 1e-6) near.push(`${name} ${tag.text} とログの札 ${card.title} の隙間 ${gap.toFixed(1)}px`);
         }
     expect(near, "線の札から 6px 未満のログの札").toEqual([]);
+  });
+});
+
+describe("札の入れ物を詰めた図の段ごとの寄る所 (#4005)", () => {
+  it("pipe-focus-stays-per-step-after-trim", () => {
+    // 札だけの入れ物を詰めて図の下を詰めた図でも、段ごとの寄る所は段に関わる所を指したまま残り、図の下の縁を越えない。
+    // 仕上げの最後の詰め (#3990) が寄る所を図の全体の四角に置き換え、横に広い図の再生の枠が段の関係者の所へ送らなかった
+    const M = PIPE_LOOK.margin;
+    const figures: [string, Rendered][] = [
+      ["見本 aggregator の箱 2 を開いた図", api.renderDiagram(JSON.parse(exampleText("aggregator.json")), { lang: "ja", open: [2], width: 1200 })],
+      ["既定 2人2箱", drawOnce(gridText(2, 2))],
+    ];
+    for (const [what, f] of figures) {
+      const L = f.layout;
+      const focus = L.focus ?? [];
+      expect(focus.length, `${what} の段ごとの寄る所の数`).toBeGreaterThan(1);
+      const whole = (r: Rect): boolean => Math.abs(r.x - M) < D && Math.abs(r.y - M) < D && Math.abs(r.w - (L.width - M * 2)) < D && Math.abs(r.h - (L.height - M * 2)) < D;
+      expect(focus.filter((r) => !whole(r)).length, `${what} の段ごとの寄る所が全て図の全体の四角`).toBeGreaterThan(0);
+      expect(new Set(focus.map((r) => `${Math.round(r.x)} ${Math.round(r.w)}`)).size, `${what} の段ごとの寄る所の横の位置と幅が1通りしかない`).toBeGreaterThan(1);
+      for (const r of focus) expect(r.y + r.h, `${what} 段${r.step + 1} の寄る所が図の下の縁を越える`).toBeLessThanOrEqual(L.height - M + D);
+    }
   });
 });
