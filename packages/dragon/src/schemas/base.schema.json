@@ -2127,6 +2127,10 @@
           "description": "札の下の灰色の例の帯 (#3890)。札で見せる表の note を持つ例だけが持てる",
           "$ref": "#/definitions/text"
         },
+        "scene": {
+          "description": "説明の頁の同じ問い (###) の節の場面の図の場面の名前 (#3892)。例の行を押すと、場面の図がその場面を止まる段まで追う",
+          "$ref": "#/definitions/text"
+        },
         "fails": {
           "description": "例が外れる規則。書いた規則のセルだけが✕になる",
           "type": "array",

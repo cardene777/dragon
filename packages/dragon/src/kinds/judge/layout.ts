@@ -26,10 +26,11 @@ export interface JudgeCell {
   value?: string;
 }
 
-/** 例の行。`note` は札で見せない表で名前の下に出す添え書き */
+/** 例の行。`note` は札で見せない表で名前の下に出す添え書き。`scene` は押すと追う場面の名前 (#3892) */
 export interface JudgeRow {
   name: string;
   note?: string;
+  scene?: string;
   cells: JudgeCell[];
   verdict: "pass" | "block";
 }
@@ -72,7 +73,7 @@ export function layoutJudge(diagram: DiagramModel, lang: NotationLang, options: 
       return { rule: rule.id, col, mark: "fail", ...(failed.value !== undefined ? { value: failed.value } : {}) };
     });
     // 札で見せる表は、例の note を名前の下に描かず札へ移す (#3890)
-    return { name: item.name, ...(item.note !== undefined && !pop ? { note: item.note } : {}), cells, verdict: cells.some((cell) => cell.mark === "fail") ? "block" : "pass" };
+    return { name: item.name, ...(item.note !== undefined && !pop ? { note: item.note } : {}), ...(item.scene !== undefined ? { scene: item.scene } : {}), cells, verdict: cells.some((cell) => cell.mark === "fail") ? "block" : "pass" };
   });
   // 札の一覧。HTML の表は印を描く座標を持たないので、印の丸の真ん中は 0 にし、札は押したセルの四角から置く
   const card = (box: string, name: string, text: string, example: string | undefined): SceneNote => ({ box, name, text, ...(example !== undefined ? { example } : {}), x: 0, y: 0 });

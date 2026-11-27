@@ -22,6 +22,7 @@ import { describe, expect, it } from "vitest";
 
 import { atLoad } from "./at-load";
 import { withSite } from "./cdn-page-support";
+import { runCli } from "./export-support";
 import { expectWritten, exportPageTool, tempDir, writeFiles } from "./page-export-support";
 import { ACTION_LIMIT_MS, inOrder, PAGE_LIMIT_MS, readUntil, within } from "./page-wait";
 
@@ -2164,5 +2165,326 @@ describe("左の目次の3段 (#4010)", () => {
     expect(opened.folds["記録"], "閉じた話題の中の問いをURLで開いた後の、その話題の開け閉めの印").toBe("true");
     expect(opened.questions, "閉じた話題の中の問いをURLで開いた後に見えている問い").toContain("残す場所");
     expect(opened.heads.map((h) => h.text), "閉じた話題の中の問いをURLで開いた後に目次に見えている頁の見出し").toEqual(DOCS_HEADS.third);
+  });
+});
+
+/** 判定の表の例の行から追う場面の図 (#3892)。2つの場面を持つ手順の図で、通る送金は4段、宛先が違う送金は3段目で止まる */
+const JUDGE_SCENES = (show: "pick" | "stack"): string => `flow 送金 [scenes: ${show}]
+
+box ask as 送金を頼む
+box look as 宛先を確かめる
+box send as 送る
+box back as 差し戻す
+
+step 頼む
+  say 利用者が送金を頼む。
+  start -> ask
+
+step 確かめる
+  say 宛先を確かめる。
+  ask -> look: 宛先
+
+scene 通る送金
+  step 送る
+    say 宛先が正しいので送る。
+    look -> send: 正しい
+  step 終える
+    say 送金を終える。
+    send -> finish
+end
+
+scene 宛先が違う送金
+  step 差し戻す
+    say 宛先が違うので差し戻す。
+    look -> back: 違う
+    stop 宛先が登録されていない
+end`;
+
+/** 場面の図の宛先が違う送金が止まる段 (0から数える) と、止まる理由 */
+const WRONG_STOP = 2;
+const WRONG_REASON = "宛先が登録されていない";
+
+/** 例の行が`[scene: <場面の名前>]`で同じ問いの節の場面を名指す判定の表 (#3892) */
+const judgeWith = (pass: string, wrong: string): string => `judge どの送金を止めるのか
+
+rule to as 宛先 [value: 0x2222…]
+rule once as 1回 [value: 30まで]
+
+case 通る送金 [scene: ${pass}]
+case 宛先が違う送金 [scene: ${wrong}]
+  fail to: 0x9999 [stop]`;
+
+/** 判定の表と場面の図の間に置く長い箇条書き。押す前の場面の図を画面の外に置くため */
+const SCENE_FILLER = Array.from({ length: 40 }, (_, n) => `- 照らす所${n + 1}`).join("\n");
+
+/** `dragon`の囲み */
+const fenced = (text: string): string => `\`\`\`dragon\n${text}\n\`\`\``;
+
+/** 選ぶ見せ方の場面の図を置いた問いと、並べる見せ方の場面の図を置いた問いの題 */
+const PICK_TITLE = "どの送金が止まるのか";
+const STACK_TITLE = "並べた場面のどれが止まるのか";
+
+/**
+ * 判定の表と場面の図を同じ問いの節に置いた説明の頁のmd (#3892)。話題は1つで、問いは2つ。
+ * 1つ目の問いは選ぶ見せ方、2つ目の問いは並べる見せ方の場面の図を置き、どちらの問いも同じ名前の場面を持つ。場面は問いの節の中で探すので、断らない
+ */
+const JUDGE_GUIDE = `---
+layout: guide
+---
+
+# 送金の判定
+
+## 送金
+
+### ${PICK_TITLE}
+
+> 宛先が違う送金は、宛先の規則で止まる。
+
+表の行を押すと、下の図がその送金を追う。
+
+${fenced(judgeWith("通る送金", "宛先が違う送金"))}
+
+${SCENE_FILLER}
+
+送金を場面ごとに1つずつ追う。
+
+${fenced(JUDGE_SCENES("pick"))}
+
+### ${STACK_TITLE}
+
+> 並べた図でも、押した送金の場面が止まる段まで進む。
+
+表の行を押すと、下の図がその送金の場面を目立たせる。
+
+${fenced(judgeWith("通る送金", "宛先が違う送金"))}
+
+${SCENE_FILLER}
+
+送金の場面を並べて追う。
+
+${fenced(JUDGE_SCENES("stack"))}
+`;
+
+/** 判定の表と場面の図の説明の頁のmdを一時のdirに書き、mdのpathを返す (#3892) */
+function writeJudgeGuide(md: string = JUDGE_GUIDE): string {
+  const root = tempDir("guide-judge");
+  writeFiles(root, { "notes.md": md });
+  return join(root, "notes.md");
+}
+
+/** 場面の図が止まる段まで進むのを待つ長さと、止まった後に留まるかを見る長さ */
+const PLAY_WAIT = 20_000;
+const HOLD_WAIT = 3_000;
+
+/** 問い`title`の節の判定の表の例の行の、名前のセルより右の最初のセル */
+const rowCell = (page: Page, title: string, row: number) =>
+  page
+    .locator(".pg-sec", { has: page.locator(".pg-sec-title", { hasText: title }) })
+    .locator(`tr[data-case="${row}"] td[data-rule]`)
+    .first();
+
+/** 問い`title`の節の、判定の表の行の印と、場面の図の場面ごとの段と止まりと濃さと理由、選ぶ釦、場面の図の上と下の縁を読む (#3892) */
+const judgeSceneState = (page: Page, title: string) =>
+  page.evaluate((t) => {
+    const sq = (text: string | null | undefined): string => (text ?? "").replace(/\s+/gu, " ").trim();
+    const sec = [...document.querySelectorAll(".pg-sec")].find((s) => sq(s.querySelector(".pg-sec-title")?.textContent).endsWith(t));
+    const figures = sec ? [...sec.querySelectorAll(".dragon-figure")] : [];
+    const rootOf = (f: Element): ParentNode => f.querySelector(".dragon-frame")?.shadowRoot ?? f;
+    const table = figures.map((f) => rootOf(f).querySelector('[data-dragon="judge"]')).find((el) => el !== null) ?? null;
+    const sceneFigure = figures.find((f) => rootOf(f).querySelector('[data-dragon="scene"]') !== null);
+    const scenes = sceneFigure ? rootOf(sceneFigure) : null;
+    const box = sceneFigure?.getBoundingClientRect();
+    return {
+      rows: table ? [...table.querySelectorAll("tbody tr[data-case]")].map((tr) => tr.getAttribute("aria-current") === "true") : [],
+      scenes: scenes
+        ? [...scenes.querySelectorAll<HTMLElement>('[data-dragon="scene"]')].map((el) => {
+            const reason = el.querySelector('[data-dragon="scene-stop"]');
+            return {
+              name: el.dataset.scene ?? "",
+              shown: el.checkVisibility(),
+              step: Number(el.dataset.step),
+              stopped: el.hasAttribute("data-stopped"),
+              opacity: Number(getComputedStyle(el).opacity),
+              reason: reason && reason.checkVisibility() ? sq(reason.textContent) : "",
+            };
+          })
+        : [],
+      pressed: scenes ? [...scenes.querySelectorAll('[data-dragon="scene-pick"]')].map((b) => b.getAttribute("aria-pressed") === "true") : [],
+      top: box?.top ?? Number.NaN,
+      bottom: box?.bottom ?? Number.NaN,
+      height: innerHeight,
+    };
+  }, title);
+
+type JudgeSceneState = Awaited<ReturnType<typeof judgeSceneState>>;
+
+/** 状態`state`の場面`name` */
+const sceneIn = (state: JudgeSceneState, name: string) => state.scenes.find((s) => s.name === name);
+
+/** 問い`title`の節で場面`name`が止まるまで読み続け、通った段を書いた順に返す。止まった後に`HOLD_WAIT`だけ待ってもう1度読む */
+async function followScene(page: Page, title: string, name: string): Promise<{ steps: number[]; last: JudgeSceneState; held: JudgeSceneState }> {
+  const steps: number[] = [];
+  let last = await judgeSceneState(page, title);
+  const until = Date.now() + PLAY_WAIT;
+  while (Date.now() < until) {
+    last = await judgeSceneState(page, title);
+    const chosen = sceneIn(last, name);
+    if (chosen && chosen.step !== steps.at(-1)) steps.push(chosen.step);
+    if (chosen?.stopped) break;
+    await page.waitForTimeout(100);
+  }
+  await page.waitForTimeout(HOLD_WAIT);
+  return { steps, last, held: await judgeSceneState(page, title) };
+}
+
+/**
+ * 判定の表と場面の図の頁 (`writeJudgeGuide`) を`dragon export`で書き出し、頁を`viewport`の大きさで開いて`run`を回す。
+ * Nodeの入口の`exportPage`は後から読む種類 (判定の表と、手順の図が読む分かれ道) を登録しないので、全ての種類を読むコマンドで書き出す
+ */
+async function openJudgeGuide<T>(run: (page: Page) => Promise<T>, viewport: { width: number; height: number }): Promise<T | undefined> {
+  const md = writeJudgeGuide();
+  const ran = await runCli(["export", md]);
+  expect(ran.code, `判定の表と場面の図の頁を書き出せない: ${ran.stderr}`).toBe(0);
+  const path = join(dirname(md), "notes.html");
+  if (ran.code !== 0 || !existsSync(path)) return undefined;
+  return within(withSite({ "notes.html": readFileSync(path, "utf8") }, "notes.html", run, viewport), PAGE_LIMIT_MS, "判定の表と場面の図の頁の仕事");
+}
+
+const JUDGED = await atLoad("判定の表と場面の図を置いた説明の頁を開き、例の行を押して場面の図が止まる段まで進むのを読む", () =>
+  openJudgeGuide(
+    async (page) => {
+      const step = inOrder();
+      await figuresDrawn(page);
+      const picked = await step("1つ目の問いの節で宛先が違う送金の行を押し、選ぶ見せ方の場面の図が止まる段まで進むのを読む", async () => {
+        const before = await judgeSceneState(page, PICK_TITLE);
+        await rowCell(page, PICK_TITLE, 1).click({ timeout: WAIT });
+        const marked = await judgeSceneState(page, PICK_TITLE);
+        return { before, marked, ...(await followScene(page, PICK_TITLE, "宛先が違う送金")) };
+      });
+      const again = await step("同じ節で通る送金の行を押し、行の印が移るのを読む", async () => {
+        await rowCell(page, PICK_TITLE, 0).click({ timeout: WAIT });
+        return readUntil(
+          () => judgeSceneState(page, PICK_TITLE),
+          (state) => state.rows[0] === true,
+          WAIT,
+        );
+      });
+      const stacked = await step("2つ目の問いの節で宛先が違う送金の行を押し、並べる見せ方の場面の図を読む", async () => {
+        await rowCell(page, STACK_TITLE, 1).click({ timeout: WAIT });
+        return followScene(page, STACK_TITLE, "宛先が違う送金");
+      });
+      return { picked, again, stacked };
+    },
+    { width: 1200, height: 900 },
+  ),
+);
+
+/** 1つ目の問いの節で`line`を含む最初の行の番号 (1から数える) */
+const lineOf = (md: string, line: string): number => md.split("\n").findIndex((row) => row.includes(line)) + 1;
+
+/** 場面が無い例の行を持つ頁と、1つ目の問いの節に同じ場面を持つ場面の図を2つ置いた頁 */
+const MISSING_GUIDE = JUDGE_GUIDE.replace("case 宛先が違う送金 [scene: 宛先が違う送金]", "case 宛先が違う送金 [scene: 無い場面]");
+const TWICE_GUIDE = JUDGE_GUIDE.replace(`${fenced(JUDGE_SCENES("pick"))}\n`, `${fenced(JUDGE_SCENES("pick"))}\n\nもう1つの図でも追う。\n\n${fenced(JUDGE_SCENES("pick"))}\n`);
+
+const REFUSED = await atLoad("例の行が無い場面を指した頁と、2つ以上の場面に当たる頁を、dragon exportとdragon checkに通す", async () => {
+  const run = async (md: string) => {
+    const path = writeJudgeGuide(md);
+    const exported = await runCli(["export", path]);
+    const written = existsSync(join(dirname(path), "notes.html"));
+    return { path, exported, written, checked: await runCli(["check", path]) };
+  };
+  return { missing: await run(MISSING_GUIDE), twice: await run(TWICE_GUIDE) };
+});
+
+/**
+ * 判定の表の例の行から場面の図を追う (#3892)。
+ *
+ * 説明の頁の同じ問いの節に判定の表と場面の図を置き、例の行に`[scene: <場面の名前>]`を書くと、例の行 (名前のセルより右) を押した時に、
+ * 場面の図がその場面を選んで1段目に戻し、止まる段まで1段ずつ進めて止め、止まる理由を出す。押した行には印 (`aria-current`) が残り、場面の図が画面の外なら図まで移る。
+ * 並べる見せ方の場面の図では、ほかの場面を薄くし、全ての場面を選んだ場面の止まる段まで進める。場面が無いか2つ以上当たる例の行は、`dragon export`と`dragon check`が断る
+ */
+describe("判定の表の例の行から場面の図を追う (#3892)", () => {
+  it("guide-judge-row-plays-scene", () => {
+    const seen = JUDGED.get();
+    if (!seen) return;
+    const { steps, last, held } = seen.picked.get();
+    expect(last.pressed, "例の行を押した後に選ばれた場面の釦").toEqual([false, true]);
+    expect(
+      last.scenes.map((s) => ({ name: s.name, shown: s.shown })),
+      "例の行を押した後に見えている場面",
+    ).toEqual([
+      { name: "通る送金", shown: false },
+      { name: "宛先が違う送金", shown: true },
+    ]);
+    expect(steps, "例の行を押した後に、宛先が違う送金の場面が通った段").toEqual(Array.from({ length: WRONG_STOP + 1 }, (_, n) => n));
+    const stopped = sceneIn(last, "宛先が違う送金");
+    expect({ stopped: stopped?.stopped, reason: stopped?.reason }, "止まる段に着いた場面の止まりと理由").toEqual({ stopped: true, reason: WRONG_REASON });
+    const after = sceneIn(held, "宛先が違う送金");
+    expect({ step: after?.step, stopped: after?.stopped }, "止まった後も止まる段に留まらない").toEqual({ step: WRONG_STOP, stopped: true });
+  });
+
+  it("guide-judge-row-marks-and-scrolls", () => {
+    const seen = JUDGED.get();
+    if (!seen) return;
+    const { before, marked, last } = seen.picked.get();
+    expect(before.rows, "押す前の行の印").toEqual([false, false]);
+    expect(before.top, "押す前から場面の図が画面の中に在り、移ったかを測れない").toBeGreaterThan(before.height);
+    expect(marked.rows, "宛先が違う送金の行を押した後の行の印").toEqual([false, true]);
+    expect(last.top >= 0 && last.top < last.height, `例の行を押しても場面の図が画面の中に入らない (上の縁 ${last.top}、画面の高さ ${last.height})`).toBe(true);
+    expect(seen.again.get().rows, "通る送金の行を押した後の行の印").toEqual([true, false]);
+  });
+
+  it("guide-judge-row-stacked-scene", () => {
+    const seen = JUDGED.get();
+    if (!seen) return;
+    const { steps, last, held } = seen.stacked.get();
+    const chosen = sceneIn(last, "宛先が違う送金");
+    const other = sceneIn(last, "通る送金");
+    expect({ chosen: chosen?.shown, other: other?.shown }, "並べる見せ方で見えている場面").toEqual({ chosen: true, other: true });
+    expect(chosen?.opacity, "押した例の場面が薄い").toBe(1);
+    expect(other?.opacity ?? 1, "ほかの場面が薄くならない").toBeLessThan(1);
+    expect(steps, "例の行を押した後に、宛先が違う送金の場面が通った段").toEqual(Array.from({ length: WRONG_STOP + 1 }, (_, n) => n));
+    expect({ stopped: chosen?.stopped, reason: chosen?.reason }, "止まる段に着いた場面の止まりと理由").toEqual({ stopped: true, reason: WRONG_REASON });
+    expect(
+      { chosen: sceneIn(held, "宛先が違う送金")?.step, other: sceneIn(held, "通る送金")?.step },
+      "全ての場面が選んだ場面の止まる段まで進んで留まらない",
+    ).toEqual({ chosen: WRONG_STOP, other: WRONG_STOP });
+  });
+
+  it("guide-judge-scene-missing-refused", () => {
+    const { missing, twice } = REFUSED.get();
+    const cases = [
+      { name: "無い場面を指した", md: MISSING_GUIDE, ran: missing, lines: [lineOf(MISSING_GUIDE, "[scene: 無い場面]")], word: "無い場面" },
+      {
+        name: "2つ以上の場面に当たる",
+        md: TWICE_GUIDE,
+        ran: twice,
+        lines: [lineOf(TWICE_GUIDE, "case 通る送金 [scene: 通る送金]"), lineOf(TWICE_GUIDE, "case 宛先が違う送金 [scene: 宛先が違う送金]")],
+        word: "通る送金",
+      },
+    ];
+    /** 命令が`<file>:<行>`で始めて出した行の、行の番号と行の全文 */
+    const refusals = (out: string, path: string): { line: number; text: string }[] =>
+      out
+        .split("\n")
+        .filter((row) => row.startsWith(`${path}:`))
+        .map((row) => ({ line: Number(row.slice(path.length + 1).split(/[:\s]/u)[0]), text: row }));
+    for (const { name, ran, lines, word } of cases) {
+      expect(ran.exported.code, `${name}頁をdragon exportが断らない ${ran.exported.stdout}`).toBe(1);
+      const exported = refusals(ran.exported.stderr, ran.path);
+      expect(
+        exported.map((e) => e.line),
+        `${name}頁でdragon exportが断った行`,
+      ).toEqual(lines);
+      expect(exported[0]?.text ?? "", `${name}頁のdragon exportの断りの文が場面の名前を名指さない`).toContain(word);
+      expect(ran.written, `${name}のに頁を書いた`).toBe(false);
+      expect(ran.checked.code, `${name}頁をdragon checkが断らない ${ran.checked.stdout}`).toBe(1);
+      const said = refusals(ran.checked.stdout, ran.path);
+      expect(
+        said.map((e) => e.line),
+        `${name}頁でdragon checkが断った行`,
+      ).toEqual(lines);
+      expect(said[0]?.text ?? "", `${name}頁のdragon checkの断りの文が場面の名前を名指さない`).toContain(word);
+    }
   });
 });

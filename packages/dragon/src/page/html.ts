@@ -345,6 +345,7 @@ const STYLE_GUIDE = `
 .pg-topic-lead{position:relative;margin:0 0 14px}
 .pg-num{flex:none;display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:var(--c,var(--pg-t-blue));color:var(--pg-surf);font-size:12.5px;font-weight:700;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;margin-top:1px}
 .pg-sec{position:relative;margin:0 0 34px;scroll-margin-top:12px}
+.pg-figure{scroll-margin-top:12px}
 .pg-sec-title{display:flex;gap:10px;align-items:center;font-size:19px;line-height:1.5;margin:0 0 6px}
 .pg-sec-title .pg-num{min-width:28px;height:28px;padding:0 7px;font-size:15px;margin-top:0}
 .pg-answer{font-size:15.5px;margin:0 0 14px}
@@ -468,6 +469,13 @@ if(t.closest?.(".pg-menu-toggle")){fold(toggle.getAttribute("aria-expanded")==="
 const f=t.closest?.(".pg-menu-fold");if(f){setFold(f,f.getAttribute("aria-expanded")!=="true");return}
 if(t.closest?.(".pg-menu a"))fold(true)});
 document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();fold(true)}});
+document.addEventListener("dragon-scene",(event)=>{const name=event.detail?.scene;const sec=event.target.closest?.(".pg-sec");if(!name||!sec)return;
+for(const fig of sec.querySelectorAll(".dragon-figure")){const root=fig.querySelector(".dragon-frame")?.shadowRoot??fig;
+const player=[...root.querySelectorAll('[data-dragon="player"]')].find((p)=>[...p.querySelectorAll('[data-dragon="scene"]')].some((s)=>s.dataset.scene===name));if(!player)continue;
+const behavior=matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";
+const panel=player.dataset.scenes==="stack"?[...player.querySelectorAll('[data-dragon="scene"]')].find((s)=>s.dataset.scene===name):null;
+if(panel)panel.scrollIntoView({behavior,block:"center"});else(fig.closest(".pg-figure")??fig).scrollIntoView({behavior,block:"start"});
+player.dispatchEvent(new CustomEvent("dragon-follow",{detail:{scene:name}}));return}});
 addEventListener("hashchange",go);
 go();
 if(wrap)addEventListener("load",go);

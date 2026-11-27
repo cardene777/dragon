@@ -23,6 +23,7 @@ import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, 
 import { codeHtml, escapeHtml, fenceCloses, fenceOpen, figureHtml, headingOf, joinLines, type Line, linesOf, linksIn, quoteOf, type RenderHooks, renderBlocks, renderInline } from "./markdown";
 import { type Guide, type Part, placeExists, readOutline, type Tab } from "./read";
 import { slugger, slugOf } from "./slug";
+import { type SectionFigure, sceneLinkErrors } from "./scene-links";
 import { MESSAGES, type PageLang, WORDS } from "./text";
 
 /** 書き出せなかった訳。mdか載せたfileの名前と行と文 */
@@ -139,6 +140,8 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
 
   /** 頭の `note: pop` (#3877)。1 行目に `note` を書かない図を札で見せる既定として、図を読む時と頁の図の塊に渡す */
   const note = outline.note;
+  /** 描いている問いの節の図 (#3892)。判定の表の例の行が名指す場面を、同じ節の場面の図から探す。問いの節の外では `undefined` */
+  let sectionFigures: SectionFigure[] | undefined;
   /** 図の記法を読み、誤りと頁に無い場所を指す飛び先を残す */
   const checkDiagram = (source: Source, notation: string, first: number): void => {
     const parsed = parseNotation(notation, { lang, ...(note ? { note } : {}) });
@@ -146,6 +149,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
       for (const error of parsed.errors) errors.push({ file: source.name, line: first + error.line - 1, message: error.message });
       return;
     }
+    sectionFigures?.push({ file: source.name, first, notation, diagram: parsed.diagram });
     const rows = notation.split("\n");
     for (const box of parsed.diagram.blocks.box ?? []) {
       const link = box.link;
@@ -387,10 +391,14 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
         leadTerms: intro.terms,
         sections: topic.sections.map((section) => {
           let answer: string | undefined;
+          sectionFigures = [];
           const body = withCards(() => {
             if (section.answer) answer = renderInline(joinLines(section.answer.map((line) => line.text).filter((t) => t.trim() !== "")), main);
             return blocks(section.body);
           });
+          // 判定の表の例の行が名指す場面が、同じ問いの節の場面の図に 1 つだけ在るか (#3892)
+          for (const error of sceneLinkErrors(sectionFigures, lang)) errors.push({ file: error.file, line: error.line, message: error.message });
+          sectionFigures = undefined;
           const titled = headsOf(body.html, section.id);
           const named = figuresOf(titled.html, section.id);
           return {

@@ -462,3 +462,29 @@ describe("判定の表 (#3879)", () => {
     }
   });
 });
+
+/**
+ * 判定の表の例の行から場面の図を追う (#3892)。
+ * 例の行の`[scene: <場面の名前>]`は、説明の頁の同じ問いの節の場面の図の場面を名指す。頁の中で探して押した時の動きは`page-guide.test.ts`が確かめる
+ */
+describe("判定の表の例の行から場面の図を追う (#3892)", () => {
+  it("judge-case-scene-round-trips", () => {
+    const text = BASIC.replace("case 0x2222…へ20 USDC [note: 11/24 その日1件目]", "case 0x2222…へ20 USDC [note: 11/24 その日1件目, scene: 通る送金]").replace(
+      "case 0x9999…へ35 USDC\n",
+      "case 0x9999…へ35 USDC [scene: 宛先と額が違う送金]\n",
+    );
+    expect(text, "場面を名指す例の行を書けていない").not.toBe(BASIC);
+    const read = diagramOf(text);
+    if (read === undefined) return;
+    const cases = (read.judge as { cases: { scene?: string }[] }).cases;
+    expect(
+      cases.map((c) => c.scene),
+      "例ごとに読んだ場面の名前",
+    ).toEqual(["通る送金", undefined, undefined, undefined, undefined, "宛先と額が違う送金"]);
+    expect(dragon.validateDiagram(read), "場面を名指す例を持つ原本を形の検査が受け付けない").toEqual({ ok: true });
+    // 記法を読んで書き戻すと同じ記法に戻り、書き戻した記法を読むと同じ原本に戻る
+    const printed = dragon.printNotation(read as unknown as Parameters<typeof dragon.printNotation>[0]);
+    expect(printed.trimEnd(), "書き戻した記法").toBe(text.trimEnd());
+    expect(diagramOf(printed), "書き戻した記法を読んだ原本").toEqual(read);
+  });
+});

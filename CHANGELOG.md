@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- On a guide page (`layout: guide`), a judge table case can name a scene with `[scene: <scene name>]`. Clicking the row right of the case name makes the scene figure in the same question (`###`) section pick that scene, play it from the first step one step at a time to the step where it stops, and show the reason. The clicked row keeps a mark, and the page scrolls to the scene figure when it is off screen. A stacked scene figure dims the other scenes and moves every scene to the same step. `dragon check` and `dragon export` refuse the case line when no scene figure of the same section has the scene, or when two or more do. The dragon skill's `judge` reference describes it and the skill raises the version of its `judge` content to 1.1.0 (#3892)
+
 ### Changed
 
 - In a judge table without `[note: pop]`, the rule notes are no longer squeezed into the narrow rule headings but listed below the table with the rule number and name, in the page and in the exported picture. A table split into blocks in the picture lists them after the last block (#4008)

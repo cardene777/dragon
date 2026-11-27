@@ -19,6 +19,7 @@ The table is an HTML table, not an SVG picture, so its text is never shrunk to f
 | `judge <title> [pass: <word>, block: <word>]` | The first line with your own verdict words, such as `[pass: allow, block: deny]`. There are only two verdicts |
 | `rule <id> as <name> [value: <value>]` | A rule column, written before the first `case`. The header shows the rule number, the name, and the value under it |
 | `case <name> [note: <note>]` | A case row. The note is shown under the name |
+| `case <name> [scene: <scene name>]` | On a guide page (`layout: guide`), clicking the row makes the scene figure in the same `###` section play that scene to the step where it stops. The scene must be in exactly one scene figure of that section |
 | `fail <rule id>: <value>` | Written under a case. That rule's cell is ✕ with the value under it. Every rule the case does not name is ✓ |
 | `fail <rule id>: <value> [stop]` | The case cannot be checked past this rule. The cells of the later columns are "—" |
 
