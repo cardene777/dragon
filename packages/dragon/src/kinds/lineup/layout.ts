@@ -539,7 +539,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   // 量の目盛り (#3880)。帯の下に宣言した順に積み、図の上の帯の目盛りは帯の並びの上に置く。
   // 札を押した帯は札が帯の下の端からはみ出すので、目盛りを札の下から始める
   const GA = LOOK.gauge;
-  const plans = planGauges(diagram, order, words.gaugeOver);
+  const plans = planGauges(diagram, order, words.gaugeOver, [words.gaugeConfirmed, words.gaugeHeld]);
   const stamped = new Set(diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "stamp" && "box" in e ? [e.box] : []))));
   const gaugeGap = (lane: string): number => (stamped.has(lane) ? L.stamp.h - L.stamp.drop + GA.below : GA.below);
   const gaugeRoom = (lane: string): number => roomUnder(plans.under.get(lane), gaugeGap(lane));
