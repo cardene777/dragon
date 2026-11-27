@@ -10,6 +10,7 @@
  *
  * 検査は手順の図と列の図に同じ書き方で 2 つの場面を書き、場面ごとに描いた図 (`renderDiagram` の `scenes`) と、頁に置いた再生の部品を確かめる。
  * 画面の大きさを測れない jsdom では、押した箱と場面の枠の四角を検査が決め、札をその四角から置く位置を確かめる。
+ * 場面を持つ図は寄って追わず、見せ方を選ぶ決まりは枠の幅に依らず止めた形を選ぶ (#4018)。
  * 検査は種類を登録しない入口と、使う 2 つの種類の登録の file だけを読む (#3763)。
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,6 +18,7 @@ import "./built-globals";
 import * as dragon from "../src/core";
 import "../src/kind-use/flow";
 import "../src/kind-use/lineup";
+import { atLoad } from "./at-load";
 
 /** 2 つの場面の名前。どちらの種類の図も同じ名前で書く */
 const PASS = "通る送金";
@@ -172,6 +174,25 @@ afterEach(() => {
   document.body.innerHTML = "";
   document.head.innerHTML = "";
 });
+
+/**
+ * 場面を持つ図を描き、図の幅の半分の枠で見せ方を選ぶ決まり (`chooseView`) が選んだ見せ方 (#4018)。
+ * 半分の幅に収めると箱の名前の字が 10.5px を下回り、場面を持たない図なら寄って追う形を選ぶ
+ */
+const HALF_VIEWS = await atLoad("場面を持つ図の見せ方を半分の幅で選ぶ", () =>
+  (
+    [
+      ["flow", flowScenes()],
+      ["lineup", lineupScenes()],
+    ] as const
+  ).map(([kind, text]) => {
+    const parsed = dragon.parseNotation(text, { lang: "ja" });
+    if (!parsed.ok) throw new Error(`${kind} の記法を読めない: ${JSON.stringify(parsed.errors)}`);
+    const rendered = dragon.renderDiagram(parsed.diagram, { lang: "ja" });
+    const frame = rendered.layout.width / 2;
+    return { kind, frame, scenes: rendered.scenes?.length ?? 0, view: dragon.chooseView(rendered, frame) };
+  }),
+);
 
 describe("1 つの図の場面 (#3878)", () => {
   it("scenes-stack-same-box-positions", () => {
@@ -562,3 +583,14 @@ describe("1 つの図の場面 (#3878)", () => {
 function textOf(markup: string): string[] {
   return [...svgOf(markup).querySelectorAll("text")].map((t) => t.textContent ?? "");
 }
+
+describe("場面を持つ図は寄って追わない (#4018)", () => {
+  // 再生の部品は場面ごとの図を枠ごと並べて寄って追わないので、見せ方を選ぶ決まりも枠の幅に依らず止めた形を選び、書き出しもそれに従う
+  it("scene-figures-stay-fixed", () => {
+    for (const { kind, frame, scenes, view } of HALF_VIEWS.get()) {
+      expect(scenes, `${kind} の場面の数`).toBe(2);
+      expect(view.textPx, `${kind} を幅 ${frame} に収めた箱の名前の字が、寄って追う形を選ぶ 10.5px を下回らない`).toBeLessThan(10.5);
+      expect(view.mode, `${kind} を幅 ${frame} で見せる形`).toBe("fixed");
+    }
+  });
+});
