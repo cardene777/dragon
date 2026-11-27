@@ -2,6 +2,7 @@
  * mdから1つのHTMLの頁を書き出す (#3755)。
  *
  * `dragon export notes.md` とNodeの入口の`exportPage`が、mdの説明と図を見出しごとのタブに分けた頁を書く。
+ * Nodeの入口も命令と同じく、後から読む種類 (判定の表と、手順の図の分かれ道) の図を載せたmdを書き出す (#4026)。
  * `#`は頁の題、最初の`##`より前は入口、`##`は段、`###`は項目、`####`はタブ、`#####`はタブの中のタブになる。
  * `![名前](path)`だけの行は別のfileの中身を載せ、mdの在るフォルダの外のfileは拒む。
  * 入口の図の箱は`[link: #<場所の名前>]`で項目に結び、無い項目を指す飛び先は拒む。
@@ -70,6 +71,61 @@ const REFUSED = {
 const CLI_WRITTEN = await atLoad("exportPage と比べるmdを命令で書き出す", async () => {
   const md = writeNote();
   const cli = tempDir("cli");
+  const ran = await runCli(["export", md, "--out", cli]);
+  return { md, cli, ran };
+});
+
+/** 判定の表 (#4026)。後から読む種類の図で、行の頭の`rule`は判定の表を登録した時だけ読める */
+const LATE_JUDGE = `judge どの送金を止めるのか
+
+rule to as 宛先 [value: 0x2222…]
+rule once as 1回 [value: 30まで]
+
+case 通る送金
+case 宛先が違う送金
+  fail to: 0x9999 [stop]`;
+
+/** 分かれ道 (`choice`) を持つ手順の図 (#4026)。分かれ道は手順の図を登録した時だけ読める */
+const LATE_CHOICE = `flow ログインの判断
+
+box input as 入力
+choice pw as パスワードは正しい？
+box done as ログイン
+box err as エラーを出す
+
+pw -> err: いいえ
+
+step 入力する
+  say 利用者がIDとパスワードを入れる。
+  start -> input
+
+step 確かめる
+  say サーバーがパスワードを照らし合わせる。
+  input -> pw: 送る
+
+step ログインする
+  say パスワードが合い、ログインが済む。
+  pw -> done: はい
+  done -> finish`;
+
+/** 後から読む種類の図の名前と、その図の記法 */
+const LATE_KINDS = { judge: LATE_JUDGE, choice: LATE_CHOICE } as const;
+
+/** `kinds`の図を項目ごとに1つずつ載せたmdを一時のdirに書き、mdのpathを返す (#4026) */
+function writeLateKinds(kinds: readonly (keyof typeof LATE_KINDS)[]): string {
+  const root = tempDir("late-kinds");
+  const items = kinds.map((kind) => `### ${kind}\n\n\`\`\`dragon\n${LATE_KINDS[kind]}\n\`\`\`\n`).join("\n");
+  writeFiles(root, { "notes.md": `# 後から読む種類\n\n送金を確かめる表と、ログインの手順。\n\n## 段\n\n${items}` });
+  return join(root, "notes.md");
+}
+
+/** 書いた頁に載った図の、記法の1行目の並び */
+const figureHeads = (path: string): string[] =>
+  [...documentOf(path).querySelectorAll(".pg-figure pre.dragon")].map((pre) => (pre.textContent ?? "").split("\n")[0] ?? "");
+
+const LATE_CLI = await atLoad("判定の表と手順の図の分かれ道を載せたmdを命令で書き出す", async () => {
+  const md = writeLateKinds(["judge", "choice"]);
+  const cli = tempDir("late-cli");
   const ran = await runCli(["export", md, "--out", cli]);
   return { md, cli, ran };
 });
@@ -309,6 +365,49 @@ describe("mdから頁を書き出す (#3755)", () => {
     expect(path, "exportPage が書いた file").toBe(join(api, "notes.html"));
     expect(ran.code, `命令の書き出し: ${ran.stderr}`).toBe(0);
     expect(readFileSync(path, "utf8"), "exportPage と命令が書いた頁").toBe(
+      readFileSync(join(cli, "notes.html"), "utf8"),
+    );
+  });
+
+  it("node-export-page-writes-judge-table", async () => {
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const md = writeLateKinds(["judge"]);
+    const result = await exportPage(md);
+    expect(result, "Nodeの入口のexportPageが、判定の表を載せたmdを書き出さない").toEqual({
+      ok: true,
+      path: join(dirname(md), "notes.html"),
+    });
+    if (!result.ok) return;
+    expect(figureHeads(result.path), "書いた頁に載った図").toEqual(["judge どの送金を止めるのか"]);
+  });
+
+  it("node-export-page-writes-flow-choice", async () => {
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const md = writeLateKinds(["choice"]);
+    const result = await exportPage(md);
+    expect(result, "Nodeの入口のexportPageが、手順の図の分かれ道を載せたmdを書き出さない").toEqual({
+      ok: true,
+      path: join(dirname(md), "notes.html"),
+    });
+    if (!result.ok) return;
+    expect(figureHeads(result.path), "書いた頁に載った図").toEqual(["flow ログインの判断"]);
+  });
+
+  it("node-export-page-matches-command", async () => {
+    const exportPage = await exportPageTool();
+    if (!exportPage) return;
+    const { md, cli, ran } = LATE_CLI.get();
+    expect(ran.code, `命令の書き出し: ${ran.stderr}`).toBe(0);
+    const api = tempDir("late-api");
+    const result = await exportPage(md, { outDir: api });
+    expect(result, "Nodeの入口のexportPageが、判定の表と手順の図の分かれ道を載せたmdを書き出さない").toEqual({
+      ok: true,
+      path: join(api, "notes.html"),
+    });
+    if (!result.ok) return;
+    expect(readFileSync(result.path, "utf8"), "Nodeの入口のexportPageと命令が書いた頁").toBe(
       readFileSync(join(cli, "notes.html"), "utf8"),
     );
   });

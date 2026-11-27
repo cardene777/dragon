@@ -90,6 +90,9 @@
 | `####`の見出しを持たない問いの頁は、開いた問いの下に図の題を並べ、見出しを持つ頁は図の題を並べない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-falls-back-to-figures` passes | #4010 |
 | 頁の終わりの前と次のlinkは、全体像、話題ごとの地図と問いを書いた順に並べる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-question-pages-pager-follows-order` passes | #4010 |
 | 話題が1つの頁は頁に分けず、節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4010 |
+| Nodeの入口 (`@cardenelabs/dragon/node`) の`exportPage`で、判定の表を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に判定の表が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-judge-table` passes | #4026 |
+| Nodeの入口の`exportPage`で、手順の図の分かれ道 (`choice`) を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に手順の図が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-flow-choice` passes | #4026 |
+| 判定の表と手順の図の分かれ道を載せた同じmdを、Nodeの入口の`exportPage`と`dragon export`の命令で書き出すと、同じHTMLになる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-matches-command` passes | #4026 |
 | 話題を2つ以上持つ説明の頁は、頁の上のヘッダーに題と全体像と章のタブを並べ、開いているページの章のタブに印 (`aria-current`) が付く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tabs-mark-open-chapter` passes | #4024 |
 | ヘッダーの章のタブを押すと、その章の地図の頁が開き、URLの`#`の後ろがその章のidになる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tab-opens-chapter` passes | #4024 |
 | 左の目次は開いている章のページと開いているページの見出しだけを並べ、他の章のページと開閉の矢印 (`pg-menu-fold`) を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-lists-open-chapter-only` passes | #4024 |
