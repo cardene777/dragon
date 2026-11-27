@@ -30,3 +30,37 @@ export function textBox(text: string, x: number, y: number, style: TextStyle, an
   const w = textWidth(text, style);
   return { x: anchor === "middle" ? x - w / 2 : x, y: y - style.size * 0.8, w, h: style.size };
 }
+
+/** 字の後ろで折ってよい字か。読点と句点と閉じ括弧の前では折らない */
+const CLOSING = new Set([..."、。，．）」』！？,.)"]);
+
+/** 字を幅 `width` に収まる行に折る。和文は字の間で、欧文は空白の後で折る */
+export function wrap(text: string, style: TextStyle, width: number): string[] {
+  if (textWidth(text, style) <= width) return [text];
+  const chars = [...text];
+  const tokens: string[] = [];
+  let cur = "";
+  chars.forEach((ch, i) => {
+    const prev = chars[i - 1] ?? "";
+    const breakable = cur !== "" && !CLOSING.has(ch) && (hasWide(ch) || hasWide(prev) || /\s/u.test(prev));
+    if (breakable) {
+      tokens.push(cur);
+      cur = "";
+    }
+    cur += ch;
+  });
+  if (cur !== "") tokens.push(cur);
+  const lines: string[] = [];
+  let line = "";
+  for (const token of tokens) {
+    const next = line + token;
+    if (line !== "" && textWidth(next.trimEnd(), style) > width) {
+      lines.push(line.trimEnd());
+      line = token.trimStart();
+    } else {
+      line = next;
+    }
+  }
+  if (line !== "") lines.push(line.trimEnd());
+  return lines;
+}

@@ -59,7 +59,6 @@
 | Markdownの頁の上の設定の行に`note: pop`を書くと、頁の判定の表も札で見せる | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-page-default` passes | #3890 |
 | 札で見せる表を書き戻すと、1行目の`[note: pop]`と、規則の行と例の行の`note`と`example`が同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-notation-round-trip` passes | #3890 |
 | 札で見せない表の規則の行か、`note`を持たない規則の行か例の行に`example`を書くと、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-example-without-pop-refused` passes | #3890 |
-| 札で見せない表の規則に`note`を書くと、見出しの値の下に小さな字で描く | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-rule-note-under-value` passes | #3890 |
 | 止める判定の札は「止める」の語 (替えた時はその語) だけを持ち、外れた規則の番号と名前を持たない | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-verdict-word-only` passes | #3890 |
 | 書き出す静止画でも、止める判定の札は語だけを持ち、札で見せる表の例の`note`を名前の下に描かず、`note`を持つ名前の右にiの丸を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-picture-verdict-word-and-marks` passes | #3890 |
 | 箱の札のiの丸と判定の表のiの丸は、斜めのiの字の形の上下左右の真ん中が丸の真ん中から0.3px以内に在る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mark-glyph-centered` passes | #3890 |

@@ -10,7 +10,7 @@
  * 角を落とす色味 (`corner: "cut"`) では、頁の表と同じく枠の右上と左下を落とし、番号の丸と判定の札の角を丸めない
  */
 import type { JudgeLayout, JudgeRow } from "../kinds/judge/layout";
-import { textWidth } from "../layout/measure";
+import { textWidth, wrap } from "../layout/measure";
 import {
   FONT_VARS,
   LOOK,
@@ -237,6 +237,36 @@ function pillEl(row: JudgeRow, judge: Judge, cx: number, mid: number, ink: Ink):
     }),
   ];
   return `<g class="jp">${items.join("")}</g>`;
+}
+
+/**
+ * 札で見せない表 (#4008) の、表の下 (段に分けた時は最後の段の後) に並べる規則の note。`top` は表の下端。
+ * 1 項は番号の丸と規則の名前と note で、note は絵の幅で折り、2 行目からは note の左端に揃える。並べる規則が無い時は何も描かない
+ */
+function ruleNotesEl(judge: Judge, W: number, top: number, ink: Ink): { svg: string; bottom: number } {
+  if (judge.pop) return { svg: "", bottom: top };
+  const x = L + J.padX;
+  let y = top + J.notes.top;
+  const items = judge.rules.flatMap((rule, i) => {
+    if (rule.note === undefined) return [];
+    const mid = y + lineOf(J.text) / 2;
+    const base = mid + STYLE.head.size * P.mid;
+    const badge = badgeOf(i + 1, J.badge, STYLE.no);
+    const indent = badge + J.badgeGap + textWidth(rule.name, STYLE.head) + J.notes.nameGap;
+    const lines = wrap(rule.note, STYLE.note, W - 2 * L - 2 * J.padX - indent);
+    const parts = [
+      `<rect x="${r1(x)}" y="${r1(mid - J.badge / 2)}" width="${r1(badge)}" height="${J.badge}" rx="${ink.cut ? 0 : J.badge / 2}" fill="${esc(mix(ink.blue, 0.14, ink.sunk))}"/>`,
+      textEl(String(i + 1), x + badge / 2, mid, STYLE.no, ink.blue, { anchor: "middle", dragon: "judge-rule-note-no" }),
+      textEl(rule.name, x + badge + J.badgeGap, mid, STYLE.head, ink.ink, { dragon: "judge-rule-note-name" }),
+      ...lines.map((line, k) =>
+        textEl(line, x + indent, mid, STYLE.note, ink.mute, { dragon: "judge-rule-note", base: base + k * lineOf(J.small) }),
+      ),
+    ];
+    y += lineOf(J.text) + Math.max(0, lines.length - 1) * lineOf(J.small) + J.notes.gap;
+    return [`<g data-dragon="judge-rule-note-item" data-rule="${esc(rule.id)}">${parts.join("")}</g>`];
+  });
+  if (items.length === 0) return { svg: "", bottom: top };
+  return { svg: `<g data-dragon="judge-rule-notes">${items.join("")}</g>`, bottom: y - J.notes.gap };
 }
 
 /** 規則の列の見出し。番号の丸と名前を 1 行に並べ、値をその下に置く。札を持つ規則 (`marked`) は名前の右に i の丸を置く */
@@ -509,6 +539,10 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
     blocks.push(`<g data-dragon="judge-block" data-block="${b}">${parts.join("")}</g>`);
     top += H + (b === groups.length - 1 ? 0 : P.blockGap);
   });
+  // 札で見せない表の規則の note は、見出しの狭い列に折らず、最後の段の後にまとめて並べる (#4008)
+  const notes = ruleNotesEl(judge, W, top, ink);
+  blocks.push(notes.svg);
+  top = notes.bottom;
 
   // 段を送る間は、照らす前の列の印と判定を見せず、今照らしている列を頁の表と同じ色の地で示す
   const now = mix(ink.blue, 0.16, ink.sunk);

@@ -35,7 +35,7 @@ import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE } from "../../lo
 import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
 import { DEFAULT_LANG, LANE_MOST, type NotationLang } from "../../words";
-import { hasWide, textWidth } from "../../layout/measure";
+import { hasWide, textWidth, wrap } from "../../layout/measure";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
@@ -348,39 +348,6 @@ function single(text: string, x: number, baseline: number, style: TextStyle): Li
   return { text, lines: [{ text, x, baseline }], x, y: baseline - style.size * 0.8, w, h: style.size };
 }
 
-/** 字の後ろで折ってよい字か。読点と句点と閉じ括弧の前では折らない */
-const CLOSING = new Set([..."、。，．）」』！？,.)"]);
-
-/** 字を幅 `width` に収まる行に折る。和文は字の間で、欧文は空白の後で折る */
-export function wrap(text: string, style: TextStyle, width: number): string[] {
-  if (textWidth(text, style) <= width) return [text];
-  const chars = [...text];
-  const tokens: string[] = [];
-  let cur = "";
-  chars.forEach((ch, i) => {
-    const prev = chars[i - 1] ?? "";
-    const breakable = cur !== "" && !CLOSING.has(ch) && (hasWide(ch) || hasWide(prev) || /\s/u.test(prev));
-    if (breakable) {
-      tokens.push(cur);
-      cur = "";
-    }
-    cur += ch;
-  });
-  if (cur !== "") tokens.push(cur);
-  const lines: string[] = [];
-  let line = "";
-  for (const token of tokens) {
-    const next = line + token;
-    if (line !== "" && textWidth(next.trimEnd(), style) > width) {
-      lines.push(line.trimEnd());
-      line = token.trimStart();
-    } else {
-      line = next;
-    }
-  }
-  if (line !== "") lines.push(line.trimEnd());
-  return lines;
-}
 
 /** 幅 `width` で折った字。1 行目の基準線を `baseline` に置き、`pitch` ずつ下げる */
 function wrapped(text: string, x: number, baseline: number, style: TextStyle, width: number, pitch: number): LineupText {
