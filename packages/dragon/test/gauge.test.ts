@@ -9,6 +9,7 @@
  * 値が変わった段は、棒の横に増えた量か減った量の札を出す。手順の図と列の図で同じ書き方で置ける。
  *
  * 描いた SVG の目盛りは `data-gauge` を持つ組で、値ごとの組 (`data-gauge-value`) はその値を段の終わりに見せる段の番号を `data-steps` に持つ。
+ * 場面の図では、目盛りは場面ごとの図に 1 つずつ出て、場面の中の段の `set` はその場面の目盛りだけを動かす (#3894)。
  * 検査は種類を登録しない入口と、使う 2 つの種類の登録の file だけを読む (#3763)。
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -395,6 +396,93 @@ describe("量の目盛り (#3880)", () => {
           expect(error?.message, `${kind} (${lang}) の${name}の誤りの文が ${word} を挙げない`).toContain(word);
         }
       }
+    }
+  });
+});
+
+/** 場面を 2 つ持つ図の場面の名前。1 つ目は上限の内で通り、2 つ目は上限を超える */
+const SCENES = ["通る送金", "超える送金"] as const;
+
+/**
+ * 場面を 2 つ持つ図 (#3894)。共通の段で `set budget: 40` を書き、`SCENES` の場面ごとに 1 段を足して `sets` の行 (空の字は書かない) を書く。
+ * `show` は場面の見せ方、`gauges` は最初の段より前の行 (目盛りの宣言)。手順の図は線で箱を結び、列の図は札を置く
+ */
+function sceneNotation(kind: Kind, show: "stack" | "pick", sets: [string, string], gauges: string[] = [BUDGET()]): string {
+  const boxes = "box agent as AIエージェント\nbox vi as VeriIntent\nbox signer as Signer\n";
+  const items = kind === "lineup" ? "item p1\n" : "";
+  const common = kind === "flow" ? "agent -> vi: 1件目" : "line vi: p1";
+  const later = kind === "flow" ? "vi -> signer: 2件目" : "line signer: p1";
+  const scenes = SCENES.map((name, k) => {
+    const set = sets[k] ?? "";
+    return `scene ${name}\n  step ${name}の段\n    say ${name}の段。\n    ${later}\n${set === "" ? "" : `    ${set}\n`}end`;
+  }).join("\n\n");
+  return `${kind} 予算で止める [scenes: ${show}]\n\n${boxes}${items}\n${gauges.join("\n")}\n\nstep 1件目\n  say どの場面も通る段。\n  ${common}\n  set budget: 40\n\n${scenes}`;
+}
+
+/** 場面 `name` の図の組。無い時は判定の文で落とし、`null` を返す */
+function sceneOf(svg: Element, name: string): Element | null {
+  const found = svg.querySelector(`[data-scene="${name}"]`);
+  expect(found, `場面 ${name} の図を描いていない`).not.toBeNull();
+  return found;
+}
+
+/** 場面の図の中の、箱か列の図の帯 `id` の下の端と横の幅。箱の組の中の四角を全て囲む */
+function boxIn(scene: Element, id: string): { bottom: number; x: number; w: number } {
+  const rects = [...scene.querySelectorAll(`[data-node="${id}"] rect`)];
+  expect(rects.length, `場面の図に箱 ${id} を描いていない`).toBeGreaterThan(0);
+  const left = Math.min(...rects.map((r) => num(r, "x")));
+  const right = Math.max(...rects.map((r) => num(r, "x") + num(r, "width")));
+  return { bottom: Math.max(...rects.map((r) => num(r, "y") + num(r, "height"))), x: left, w: right - left };
+}
+
+describe("場面の図の目盛りは場面ごとに値を持つ (#3894)", () => {
+  it("scene-gauge-moves-only-its-scene", () => {
+    for (const kind of KINDS) {
+      for (const show of ["stack", "pick"] as const) {
+        const drawn = draw(sceneNotation(kind, show, ["set budget: 80", "set budget: 110"]));
+        if (!drawn) return;
+        expect(drawn.svg.querySelectorAll("[data-scene]").length, `${kind} (${show}) の場面の図の数`).toBe(SCENES.length);
+        const values = SCENES.map((name) => {
+          const scene = sceneOf(drawn.svg, name);
+          const gauge = scene?.querySelector('[data-gauge="budget"]');
+          return gauge ? valueText(shownAt(gauge, 1)) : "";
+        });
+        expect(values, `${kind} (${show}) の場面ごとの最後の段の値の字`).toEqual(["80 / 100 USDC", "110 / 100 USDC"]);
+      }
+    }
+  });
+
+  it("scene-gauge-under-each-scene-box", () => {
+    const top = "gauge total as 全体の予算 [limit: 1000, unit: USDC]";
+    for (const kind of KINDS) {
+      const drawn = draw(sceneNotation(kind, "stack", ["set budget: 80", "set budget: 110"], [BUDGET(), top]));
+      if (!drawn) return;
+      for (const name of SCENES) {
+        const scene = sceneOf(drawn.svg, name);
+        if (!scene) return;
+        for (const id of ["budget", "total"])
+          expect(scene.querySelectorAll(`[data-gauge="${id}"]`).length, `${kind} の場面 ${name} の目盛り ${id} の数`).toBe(1);
+        const vi = boxIn(scene, "vi");
+        const track = trackOf(scene.querySelector('[data-gauge="budget"]') as Element);
+        const y = num(scene.querySelector('[data-gauge="budget"] .dg-gk'), "y");
+        expect(y, `${kind} の場面 ${name} の目盛りが箱の下の端より上にある`).toBeGreaterThanOrEqual(vi.bottom);
+        expect(track.x < vi.x + vi.w && track.x + track.w > vi.x, `${kind} の場面 ${name} の目盛りが箱の横の幅に重ならない`).toBe(true);
+      }
+    }
+  });
+
+  it("scene-gauge-keeps-common-value", () => {
+    for (const kind of KINDS) {
+      const drawn = draw(sceneNotation(kind, "stack", ["", "set budget: 110"]));
+      if (!drawn) return;
+      const values = SCENES.map((name) => {
+        const gauge = sceneOf(drawn.svg, name)?.querySelector('[data-gauge="budget"]');
+        return gauge ? [0, 1].map((s) => valueText(shownAt(gauge, s))) : [];
+      });
+      expect(values, `${kind} の場面ごとの段の値の字`).toEqual([
+        ["40 / 100 USDC", "40 / 100 USDC"],
+        ["40 / 100 USDC", "110 / 100 USDC"],
+      ]);
     }
   });
 });
