@@ -28,8 +28,6 @@ export interface PageWords {
   next: string;
   /** 話題ごとのタブに分けた説明の頁の、前と次のlinkの並びの読み上げの名前 */
   pages: string;
-  /** 話題ごとのタブに分けた説明の頁の、頁の上のタブの並びの読み上げの名前 (#3991) */
-  tabs: string;
   /** 話題のタブの頭の、問いと答えの一覧の読み上げの名前 (#3991) */
   questions: string;
   /** 確かめる問いの枠の見出し */
@@ -95,7 +93,6 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     prev: "前へ",
     next: "次へ",
     pages: "前と次の話題",
-    tabs: "話題",
     questions: "この話題の問いと答え",
     quiz: "確かめる",
     answer: "答え",
@@ -112,7 +109,6 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     prev: "Previous",
     next: "Next",
     pages: "Previous and next topics",
-    tabs: "Topics",
     questions: "Questions and answers in this topic",
     quiz: "Check",
     answer: "Answer",

@@ -72,7 +72,16 @@ export interface RenderedFigure {
   title: string;
 }
 
-/** 説明の頁の節。`terms` は節の中の下線が開く札、`menu` は左の目次に出す短い名前 (#3961)、`figures` は題を持つ図を書いた順に並べた物 (#3998) */
+/** 説明の頁の節の`####`の見出し (#4010)。`id` は見出しの場所の名前、`html` は見出しの中身 */
+export interface RenderedHead {
+  id: string;
+  html: string;
+}
+
+/**
+ * 説明の頁の節。`terms` は節の中の下線が開く札、`menu` は左の目次に出す短い名前 (#3961)、`figures` は題を持つ図を書いた順に並べた物 (#3998)、
+ * `heads` は`####`の見出しを書いた順に並べた物 (#4010)
+ */
 export interface RenderedSection {
   id: string;
   name: string;
@@ -81,6 +90,7 @@ export interface RenderedSection {
   body: string;
   terms: RenderedTerm[];
   figures?: RenderedFigure[];
+  heads?: RenderedHead[];
 }
 
 /** 説明の頁の話題。`glossary` を持つ話題は用語の話題で、節を持たない */
@@ -283,7 +293,6 @@ const STYLE_GUIDE = `
 .pg-route a{display:block;min-width:0;border:1px solid var(--pg-hair);border-left:4px solid var(--cc);border-radius:10px;background:var(--pg-surf);padding:6px 14px;font-size:14px;font-weight:600;line-height:1.5;color:var(--c);text-decoration:none}
 .pg-route a:hover{border-color:var(--cc)}
 .pg-has-menu{display:grid;grid-template-columns:250px minmax(0,1fr);grid-template-rows:auto auto 1fr;grid-template-areas:"menu top" "menu over" "menu main";column-gap:36px;align-items:start}
-.pg-has-menu.pg-split{grid-template-rows:auto auto auto 1fr;grid-template-areas:"tabs tabs" "menu top" "menu over" "menu main"}
 .pg-tabs{grid-area:tabs;position:sticky;top:0;z-index:8;display:flex;gap:4px;overflow-x:auto;margin:0 0 4px;padding:10px 0 0;background:var(--pg-bg);border-bottom:1px solid var(--pg-hair);scrollbar-width:thin}
 .pg-tab{flex:none;display:flex;align-items:center;gap:8px;padding:9px 14px 11px;border-radius:10px 10px 0 0;border-bottom:3px solid transparent;margin-bottom:-1px;font-size:14.5px;font-weight:700;line-height:1.4;color:var(--pg-ink2);text-decoration:none;white-space:nowrap}
 .pg-tab:hover{background:var(--pg-sunk);color:var(--pg-ink)}
@@ -303,7 +312,6 @@ const STYLE_GUIDE = `
 .pg-has-menu>.pg-overview,.pg-has-menu>.pg-start{grid-area:over}
 .pg-has-menu>.pg-main{grid-area:main}
 .pg-menu{grid-area:menu;position:sticky;top:0;z-index:7;max-height:100vh;overflow:auto;padding:28px 4px 24px 0;font-size:13.5px;line-height:1.5}
-.pg-split>.pg-menu{top:54px;max-height:calc(100vh - 54px);padding-top:18px}
 .pg-menu-title{margin:0 0 12px;padding:0 8px 12px;border-bottom:1px solid var(--pg-hair);font-size:15px;font-weight:700;line-height:1.5;color:var(--pg-ink)}
 .pg-menu-toggle{display:none}
 .pg-menu-list{display:flex;flex-direction:column;gap:12px}
@@ -317,12 +325,20 @@ const STYLE_GUIDE = `
 .pg-menu-q{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;color:var(--pg-ink2);text-decoration:none}
 .pg-menu-q:hover{background:var(--pg-sunk);color:var(--pg-ink)}
 .pg-menu-q[aria-current="true"],.pg-menu-q[data-open]{background:color-mix(in srgb,var(--cc) 12%,var(--pg-surf));color:var(--pg-ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cc)}
-.pg-menu-figs{display:none;list-style:none;margin:2px 0 6px 16px;padding:0 0 0 8px;border-left:2px solid var(--pg-hair)}
-.pg-menu-q[data-open]+.pg-menu-figs{display:block}
-.pg-menu-fig{display:block;padding:3px 8px;border-radius:6px;font-size:13px;line-height:1.5;color:var(--pg-ink2);text-decoration:none}
-.pg-menu-fig:hover{background:var(--pg-sunk);color:var(--pg-ink)}
-.pg-menu-fig[aria-current="true"]{background:var(--pg-sunk);color:var(--pg-ink);font-weight:600}
-.pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
+.pg-menu-group .pg-menu-figs{list-style:none;margin:2px 0 6px 32px;padding:0 0 0 8px;border-left:2px solid var(--pg-hair)}
+.pg-menu-figs[hidden],.pg-menu-qs[hidden]{display:none}
+.pg-menu-fig,.pg-menu-head{display:block;padding:3px 8px;border-radius:6px;font-size:13px;line-height:1.5;color:var(--pg-ink2);text-decoration:none}
+.pg-menu-fig:hover,.pg-menu-head:hover{background:var(--pg-sunk);color:var(--pg-ink)}
+.pg-menu-fig[aria-current="true"],.pg-menu-head[aria-current="true"]{background:var(--pg-sunk);color:var(--pg-ink);font-weight:600}
+.pg-menu-row{display:flex;align-items:flex-start;gap:2px}
+.pg-menu-row>a{flex:1 1 auto;min-width:0}
+.pg-menu-fold,.pg-menu-gap{flex:none;width:22px;height:22px;margin-top:3px}
+.pg-menu-fold{display:grid;place-items:center;padding:0;border:0;border-radius:6px;background:none;color:var(--pg-mute);cursor:pointer}
+.pg-menu-fold:hover{background:var(--pg-sunk);color:var(--pg-ink)}
+.pg-menu-fold svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.pg-menu-fold[aria-expanded="true"] svg{transform:rotate(90deg)}
+.pg-menu-group .pg-menu-qs{margin:2px 0 0 14px}
+.pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-menu-fold:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-main{min-width:0;padding:14px 0 0}
 .pg-topic{margin:0 0 36px;scroll-margin-top:12px}
 .pg-topic-title{font-size:21px;line-height:1.4;margin:0 0 16px;padding:0 0 8px;color:var(--c);border-bottom:2px solid var(--cc)}
@@ -363,7 +379,7 @@ const STYLE_GUIDE = `
 .pg-pager .pg-pager-next{margin-left:auto;align-items:flex-end;text-align:right}
 .pg-pager-dir{font-size:12.5px;line-height:1.4;color:var(--pg-mute)}
 .pg-pager-to{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
-@media screen{.pg-split [data-off]{display:none!important}.pg-split>.pg-main{padding-top:20px}.pg-split .pg-topic-title,.pg-split .pg-menu-over,.pg-split>.pg-menu[data-whole] .pg-menu-group ol{display:none}.pg-split .pg-topic,.pg-split .pg-sec,.pg-split .pg-gl,.pg-split .pg-figure[id]{scroll-margin-top:70px}}
+@media screen{.pg-split [data-off]{display:none!important}.pg-split .pg-topic,.pg-split .pg-sec,.pg-split .pg-gl,.pg-split .pg-figure[id],.pg-split .pg-sec h4[id]{scroll-margin-top:16px}}
 @media (max-width:860px){
 .pg-has-menu{display:flex;flex-direction:column;align-items:stretch}
 .pg-has-menu>.pg-tabs{order:0;position:static;padding-top:6px}
@@ -378,7 +394,7 @@ const STYLE_GUIDE = `
 .pg-menu-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
 .pg-menu-toggle[aria-expanded="false"]+.pg-menu-list{display:none}
 .pg-menu-list{max-height:calc(100vh - 72px);overflow:auto;padding:10px 0 4px}
-.pg-topic,.pg-sec,.pg-gl,.pg-figure[id]{scroll-margin-top:68px}
+.pg-topic,.pg-sec,.pg-gl,.pg-figure[id],.pg-sec h4[id]{scroll-margin-top:68px}
 }
 @media (max-width:760px){.pg-topic-title{font-size:19px}.pg-sec-title{font-size:17px}.pg-answer{font-size:15px}}
 @media print{
@@ -399,11 +415,12 @@ const STYLE_GUIDE = `
  * 線は節へ移った時の節の上の余白 (`scroll-margin-top`) より下に置き、移った節に印が付くようにする。携帯の幅では、線を本文の上に留めた目次の釦の下から測る。目次のlinkと図の箱のlinkは頁の中の場所へ移り、頁のURLに場所の名前を残す。
  * 頁を開いた時とURLの場所の名前が変わった時は、その場所へ移る。携帯の幅の目次は釦で開け閉めし、目次のlinkを押すと畳む。
  * 用語の下線を押すと、その節の札を下線のすぐ下に開き、札の外か閉じるのアイコンか同じ下線を押すと閉じる。確かめる問いの釦は答えを開けて閉じる。
- * 話題ごとのタブに分けた説明の頁 (`pg-split`、#3983、#3991) は、URLの場所の名前が指す要素を含む話題を1つのタブとして見せ、ほかの話題と頭のタブに`data-off`を付けて隠す。
- * 名前が無いか頭のタブの中を指す時は頭のタブを見せる。頁の上のタブは見せているタブに印 (`aria-current="page"`) を付け、目次は見せている話題の行だけを出し、頭のタブでは話題の名前だけを出す。
+ * 話題ごとの頁に分けた説明の頁 (`pg-split`、#3983、#3991) は、URLの場所の名前が指す要素を含む話題を1つの頁として見せ、ほかの話題と頭の頁に`data-off`を付けて隠す。
+ * 名前が無いか頭の頁の中を指す時は頭の頁 (全体像) を見せる。上のタブは持たず、左の目次に全体像と全ての話題と問いを並べる (#4010)。
+ * 話題と、見出しか図を持つ問いは、矢印 (`pg-menu-fold`) で並びを開け閉めする。頁を開くと、その頁の話題の並びと、開いた問いの並びを開き、ほかの問いの並びを閉じる。
  * 場所の名前が話題を指す時はタブの頭へ戻り、話題の中の要素 (問いの節や用語の説明) を指す時はその要素へ移る。頁の終わりまで送った時は、見えている最後の行に印を付ける。
  * 話題のタブの中は問いごとの頁に分ける (#3998)。場所の名前が話題を指す時は話題の頭の地図の頁 (`pg-topic-head`) だけを見せ、問いの節か節の中の図を指す時はその節だけを見せる。
- * 目次は開いた頁の行 (話題の名前か問い) に`data-open`を付け、開いた問いの下の図の題を出す。読んでいる所の印は図の題に付け、問いの行には付けない。
+ * 目次は開いた頁の行 (話題の名前か問い) に`data-open`を付け、開いた問いの下の頁の見出しか図の題を出す (#4010)。読んでいる所の印は見出しか図の題に付け、問いの行には付けない。
  * 開いた時はブラウザがURLの場所の要素まで送るので、読み込みが終わった時にもう一度場所へ移る
  */
 const RUNTIME_GUIDE = `(()=>{
@@ -424,16 +441,16 @@ const heads=wrap?[...wrap.querySelectorAll(":scope>.pg-top,:scope>.pg-overview,:
 const over=document.querySelector(".pg-menu-over");
 const overId=over?decode(over.getAttribute("href").slice(1)):"";
 const off=(el,on)=>{if(on)el.setAttribute("data-off","");else el.removeAttribute("data-off")};
-const tabs=wrap?[...wrap.querySelectorAll(":scope>.pg-tabs a")]:[];
-const groups=menu?[...menu.querySelectorAll(".pg-menu-group")]:[];
+const folds=menu?[...menu.querySelectorAll(".pg-menu-fold")]:[];
+const setFold=(b,on)=>{b.setAttribute("aria-expanded",String(on));const list=b.closest(".pg-menu-row")?.nextElementSibling;if(list)list.hidden=!on};
+const foldOf=(id)=>folds.find((b)=>{const a=b.parentElement.querySelector(":scope>a");return a&&decode(a.getAttribute("href").slice(1))===id});
 const opens=menu?[...menu.querySelectorAll(".pg-menu-topic,.pg-menu-q")]:[];
 const topicOf=(el)=>!el||!main||!main.contains(el)?null:el.closest(".pg-topic");
 const show=(topic,sec)=>{for(const h of heads)off(h,!!topic);off(main,!topic);for(const t of main.querySelectorAll(":scope>.pg-topic"))off(t,t!==topic);
 if(topic){const head=topic.querySelector(":scope>.pg-topic-head");if(head)off(head,!!sec);for(const s of topic.querySelectorAll(":scope>.pg-sec"))off(s,s!==sec)}
 const at=sec?sec.id:topic?topic.id:"";for(const a of opens){if(at&&decode(a.getAttribute("href").slice(1))===at)a.setAttribute("data-open","");else a.removeAttribute("data-open")}
-const id=topic?topic.id:overId;for(const a of tabs){if(decode(a.getAttribute("href").slice(1))===id)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")}
-if(menu){if(topic)menu.removeAttribute("data-whole");else menu.setAttribute("data-whole","")}
-for(const g of groups){const name=g.querySelector(".pg-menu-topic");off(g,!!topic&&!!name&&decode(name.getAttribute("href").slice(1))!==topic.id)}};
+const group=topic?foldOf(topic.id):null;if(group)setFold(group,true);
+for(const b of folds){if(b.parentElement.querySelector(":scope>a.pg-menu-q"))setFold(b,!!sec&&b===foldOf(sec.id))}};
 const markAt=(id)=>{const now=links.find((a)=>decode(a.getAttribute("href").slice(1))===id)||null;if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
 const spy=()=>{const line=(phone.matches&&toggle?toggle.offsetHeight+16:0)+(wrap?120:80);const shown=links.map((a,i)=>[a,targets[i]]).filter(([,t])=>t&&!(wrap&&t.closest("[data-off]")));let now=shown.length>0?shown[0][0]:null;for(const [a,t] of shown)if(t.getBoundingClientRect().top<=line)now=a;
 if(wrap&&shown.length>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-2)now=shown[shown.length-1][0];if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
@@ -448,6 +465,7 @@ const term=t.closest?.(".pg-term");if(term){open(term);return}
 if(opened&&(t.closest?.(".pg-tc-x")||!opened.card.contains(t)))close();
 const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;return}
 if(t.closest?.(".pg-menu-toggle")){fold(toggle.getAttribute("aria-expanded")==="true");return}
+const f=t.closest?.(".pg-menu-fold");if(f){setFold(f,f.getAttribute("aria-expanded")!=="true");return}
 if(t.closest?.(".pg-menu a"))fold(true)});
 document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();fold(true)}});
 addEventListener("hashchange",go);
@@ -599,6 +617,8 @@ function termCards(terms: readonly RenderedTerm[], lang: PageLang): string {
 
 /** 携帯の幅で目次を開け閉めする釦の矢印 (24の升の中の下向きの折れ線) */
 const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
+/** 左の目次の並びを開け閉めする矢印の絵。閉じた時は右を、開いた時は下を向く (#4010) */
+const FOLD_ARROW = '<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg>';
 
 /** 字の飾りだけを残し、link と下線の釦を外した HTML。一覧の行は link なので、中に押せる物を入れない */
 const plainInline = (html: string): string => html.replace(/<(?!\/?(?:code|strong|em|b|i)\b)[^>]*>/gu, "");
@@ -669,21 +689,32 @@ function topicHtml(topic: RenderedTopic, lang: PageLang, chapter: number, paging
 /**
  * 左の目次 (#3961)。頭に頁の題を置き、全体像の在る頁は最初の行を全体像にする。話題ごとに色の帯つきの話題の名前と、目次の名前
  * (`[menu: 短い名前]` の名前か問いの全文) の問いを番号を付けずに並べる (#3969、#3998)。用語の話題は問いを持たない。読んでいる所の印を付ける行は `data-spy` を持つ。
- * 話題のタブに分けた頁 (`split`) は、問いの下にその問いの図の題を並べ、開いた問いの下だけに見せる (#3998)
+ * 話題ごとの頁に分けた頁 (`split`) は、話題と問いの名前の前に並びを開け閉めする矢印を置き、問いの下にその頁の`####`の見出しを、
+ * 見出しを持たない問いはその問いの図の題を並べる (#3998、#4010)。問いの下の並びは開いた問いの下だけを開いた形で始める
  */
 function menuHtml(page: RenderedPage, guide: RenderedGuide, split: boolean): string {
   const words = WORDS[page.lang];
-  const over = guide.overview ? `<a class="pg-menu-over" href="#${escapeHtml(guide.overviewId)}" data-spy>${escapeHtml(words.whole)}</a>` : "";
+  // 頁に分けた頁は上のタブを持たないので、全体像の図が無くても頭の頁へ戻る行を置く (#4010)
+  const over = guide.overview || split ? `<a class="pg-menu-over" href="#${escapeHtml(guide.overview ? guide.overviewId : "")}" data-spy>${escapeHtml(words.whole)}</a>` : "";
   const groups = guide.topics
     .map((topic, i) => {
       const questions = topic.sections
         .map((section) => {
-          const figures = split && section.figures && section.figures.length > 0 ? `<ol class="pg-menu-figs">${section.figures.map((figure) => `<li><a class="pg-menu-fig" href="#${escapeHtml(figure.id)}" data-spy>${escapeHtml(figure.title)}</a></li>`).join("")}</ol>` : "";
-          return `<li><a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-menu-name">${withoutLinks(section.menu ?? section.name)}</span></a>${figures}</li>`;
+          const name = withoutLinks(section.menu ?? section.name);
+          const link = `<a class="pg-menu-q" href="#${escapeHtml(section.id)}" data-spy><span class="pg-menu-name">${name}</span></a>`;
+          if (!split) return `<li>${link}</li>`;
+          const rows =
+            section.heads && section.heads.length > 0
+              ? section.heads.map((head) => `<li><a class="pg-menu-head" href="#${escapeHtml(head.id)}" data-spy>${withoutLinks(head.html)}</a></li>`)
+              : (section.figures ?? []).map((figure) => `<li><a class="pg-menu-fig" href="#${escapeHtml(figure.id)}" data-spy>${escapeHtml(figure.title)}</a></li>`);
+          if (rows.length === 0) return `<li><div class="pg-menu-row"><span class="pg-menu-gap"></span>${link}</div></li>`;
+          return `<li><div class="pg-menu-row">${foldHtml(name)}${link}</div><ol class="pg-menu-figs" hidden>${rows.join("")}</ol></li>`;
         })
         .join("");
       const name = `<a class="pg-menu-topic" href="#${escapeHtml(topic.id)}"${questions ? "" : " data-spy"}>${withoutLinks(topic.name)}</a>`;
-      return `<div class="pg-menu-group" style="${groupColor(i)}">${name}${questions ? `<ol>${questions}</ol>` : ""}</div>`;
+      if (!split) return `<div class="pg-menu-group" style="${groupColor(i)}">${name}${questions ? `<ol>${questions}</ol>` : ""}</div>`;
+      const row = `<div class="pg-menu-row">${questions ? foldHtml(withoutLinks(topic.name), true) : '<span class="pg-menu-gap"></span>'}${name}</div>`;
+      return `<div class="pg-menu-group" style="${groupColor(i)}">${row}${questions ? `<ol class="pg-menu-qs">${questions}</ol>` : ""}</div>`;
     })
     .join("");
   const label = escapeHtml(words.contents);
@@ -692,6 +723,12 @@ function menuHtml(page: RenderedPage, guide: RenderedGuide, split: boolean): str
     `<button type="button" class="pg-menu-toggle" aria-expanded="false" aria-controls="pg-menu-list"><span>${label}</span>${FOLD_ICON}</button>` +
     `<div class="pg-menu-list" id="pg-menu-list">${over}${groups}</div></nav>`
   );
+}
+
+/** 左の目次の並びを開け閉めする矢印 (#4010)。`name` は並びの持ち主の名前の HTML で、読み上げの名前にする */
+function foldHtml(name: string, open = false): string {
+  const label = name.replace(/<[^>]*>/gu, "");
+  return `<button type="button" class="pg-menu-fold" aria-expanded="${open}" aria-label="${label}">${FOLD_ARROW}</button>`;
 }
 
 /**
@@ -730,16 +767,9 @@ function pagerHtml(lang: PageLang, prev: GuidePage | undefined, next: GuidePage 
   return `<nav class="pg-pager" aria-label="${escapeHtml(words.pages)}">${prev ? link(prev, "prev") : ""}${next ? link(next, "next") : ""}</nav>`;
 }
 
-/** 頁の上のタブの並び (#3991)。頭のタブ (全体像) と、話題を書いた順に並べたタブ。用語でない話題は番号を付ける */
-function tabsBarHtml(lang: PageLang, head: GuidePage, pages: readonly GuidePage[]): string {
-  const tab = (page: GuidePage): string =>
-    `<a class="pg-tab" href="#${escapeHtml(page.id)}"${page.color ? ` style="${page.color}"` : ""}>${page.number ? `<span class="pg-num">${page.number}</span>` : ""}<span>${page.name}</span></a>`;
-  return `<nav class="pg-tabs" aria-label="${escapeHtml(WORDS[lang].tabs)}">${[head, ...pages].map(tab).join("")}</nav>`;
-}
-
 /**
  * 説明の頁 (#3876、#3961)。左の列の目次と、右の列の頁の題と頭の中身、全体像、続けて積む話題。
- * 話題が2つ以上の頁 (`pg-split`) は、頁の上に全体像と話題ごとのタブを並べ、頁の題と頭の中身と全体像と話題の道筋を頭のタブにし、話題ごとに1つのタブにする (#3991)。
+ * 話題が2つ以上の頁 (`pg-split`) は、頁の題と頭の中身と全体像と話題の道筋を頭の頁にし、話題ごとに1つの頁にする (#3991)。上のタブは持たず、左の目次から頁を開く (#4010)。
  * 話題のタブの頭に地図を置き、話題のタブの中は地図の頁と問いごとの頁に分ける (#3998)。頁は全体像、話題ごとの地図と問いを書いた順に並べ、地図と問いの頁の終わりに前と次の頁へのlinkを置く。
  * 全体像の無い頁は、頭の中身の後に話題の道筋と最初の話題へのlinkを置く (#3983)。
  * 印刷の形では目次とタブを出さずに全ての話題を書いた順に並べ、2つ目からの話題を新しい紙から始め、どの話題も紙の上に話題の名前の見出しを出す (#3956)
@@ -782,8 +812,7 @@ function guideLayout(page: RenderedPage): string {
   const main = guide.topics.length === 0 ? "" : `<main class="pg-main">${topics}</main>`;
   const go = split ? pagerHtml(page.lang, undefined, order[1]) : "";
   const start = guide.overview ? overviewHtml(guide, page.lang, go) : split ? `<div class="pg-start">${routeHtml(guide, page.lang)}${go}</div>` : "";
-  const bar = split ? tabsBarHtml(page.lang, head, pages) : "";
-  return `<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}${split ? " pg-split" : ""}">${bar}${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${start}${main}</div>`;
+  return `<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}${split ? " pg-split" : ""}">${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${start}${main}</div>`;
 }
 
 /**

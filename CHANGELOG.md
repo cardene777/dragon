@@ -13,6 +13,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- An explainer page (`layout: guide`) with two or more topics no longer has tabs at the top: the menu on the left lists the overview, every topic, and its questions. Under the open question the menu lists the `####` headings of that page instead of the figure titles, and clicking one scrolls to it. The arrow before a topic or a question opens and closes its list, and opening a page opens the lists of its topic and question. A question page without `####` headings still lists its figure titles (#4010)
 - A judge table's verdict now holds only the word (`block` or the word you set) and no longer lists the numbers and names of the failed rules under it, in the page and in the exported picture. The ✕ cells show which rules stopped the case. The i mark of note cards on boxes is now the same slanted i shape as the judge table mark, centered in its circle (#3890)
 
 ## [0.88.0] - 2026-11-27

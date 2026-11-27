@@ -74,12 +74,10 @@
 | 印刷の形では、話題が2つ以上でも全ての話題を書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3983 #3991 |
 | 印刷の形では、2つ目からの話題を新しい紙から始める | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-starts-each-topic-on-new-paper` passes | #3983 |
 | 幅1200pxと728pxと390pxで、頁の字が読める大きさで横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-readable-and-fits` passes | #3983 #3991 #3998 |
-| 話題が2つ以上ある説明の頁を開くと、頁の上に全体像と話題ごとのタブが並び、全体像のタブだけが見え、話題の節を1つも見せない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-open-on-overview` passes | #3991 |
 | 話題のタブの頭に、その話題の問いの番号と短い名前と答え1文を順に並べた一覧が在り、行を押すとその問いの節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-lists-answers` passes | #3991 |
 | 全体像の図で`link: #<話題のid>`を持つ箱を押すと、その話題のタブに切り替わる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-overview-box-opens-topic` passes | #3991 |
 | 話題のタブの頭に、全体像の図のうちその話題への`link:`を持つ箱だけに色を残した止め絵が在り、`link:`を持つ箱が無い話題には止め絵が無い | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-focus-figure` passes | #3991 |
 | 用語の札の中のlinkを押すと、用語の話題のタブに切り替わり、その用語の説明が画面に入る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-term-link-opens-glossary-tab` passes | #3991 |
-| 話題のタブを押すと、その話題の地図と頭の中身だけが見え、問いの節は1つも見えない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-topic-shows-map-only` passes | #3998 |
 | 左の目次の問いは番号を持たず、目次の名前だけを出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-without-numbers` passes | #3998 |
 | 目次の問いを押すと、その問いの節だけが見え、地図と他の問いの節は見えず、URLの`#`の後ろがその問いのidになる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-opens-one-question` passes | #3998 |
 | 話題の地図の一覧の行を押すと、その問いの節だけが見える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-map-row-opens-question` passes | #3998 |
@@ -87,5 +85,11 @@
 | 目次は閉じた問いの下に図の題を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-menu-hides-closed-figures` passes | #3998 |
 | 目次の図の題を押すと、その図が画面の上に来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-figure-row-scrolls` passes | #3998 |
 | 話題の地図と問いの頁の終わりに、全体像、話題の地図、問いを書いた順に並べた前と次の頁へのlinkが在る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-pager-follows-order` passes | #3998 |
-| 頁を開くと全体像のタブだけが見え、問いの節は見えない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-open-on-overview` passes | #3998 |
 | 印刷の形では、全ての話題と問いを書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3998 |
+| 話題を2つ以上持つ説明の頁は上のタブ (`nav.pg-tabs`) を持たず、開いた時に左の目次に全体像と全ての話題とその問いが見える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-no-top-tabs` passes | #4010 |
+| 左の目次の話題の矢印 (`pg-menu-fold`) を押すと、その話題の問いの並びが閉じ、もう一度押すと開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-topic-folds` passes | #4010 |
+| 開いた問いの下に、その頁の`####`の見出しを書いた順に並べ、見出しを押すとその見出しが画面の上へ来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-lists-page-headings` passes | #4010 |
+| `####`の見出しを持たない問いの頁は、開いた問いの下に図の題を並べ、見出しを持つ頁は図の題を並べない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-falls-back-to-figures` passes | #4010 |
+| 閉じた話題の中の問いの頁をURLで開くと、その話題の並びとその問いの見出しの並びが開いた形になる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-opens-current` passes | #4010 |
+| 頁の終わりの前と次のlinkは、全体像、話題ごとの地図と問いを書いた順に並べる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-question-pages-pager-follows-order` passes | #4010 |
+| 話題が1つの頁は頁に分けず、節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4010 |
