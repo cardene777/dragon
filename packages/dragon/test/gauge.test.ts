@@ -10,8 +10,11 @@
  *
  * 描いた SVG の目盛りは `data-gauge` を持つ組で、値ごとの組 (`data-gauge-value`) はその値を段の終わりに見せる段の番号を `data-steps` に持つ。
  * 場面の図では、目盛りは場面ごとの図に 1 つずつ出て、場面の中の段の `set` はその場面の目盛りだけを動かす (#3894)。
+ * `set <目盛り>: <確定> [hold: <予約>]` は、確定を濃い色、続けて予約を同じ色の淡い塗りで塗り、棒の下に内訳の行を出す。`hold` を書かない `set` は予約を 0 に戻す (#3895)。
  * 検査は種類を登録しない入口と、使う 2 つの種類の登録の file だけを読む (#3763)。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import "./built-globals";
 import * as dragon from "../src/core";
@@ -397,6 +400,204 @@ describe("量の目盛り (#3880)", () => {
         }
       }
     }
+  });
+});
+
+/** 級 `cls` の規則の塗り (`fill:` の値)。規則が無い時は空の字 */
+function fillOf(svg: Element, cls: string): string {
+  const css = svg.querySelector("style")?.textContent ?? "";
+  return new RegExp(`\\.${cls}\\{[^}]*?fill:([^;}]+)`, "u").exec(css)?.[1] ?? "";
+}
+
+/** 要素の級の規則の塗り。最後に当たった級の塗りを返す */
+const fillOfElement = (svg: Element, el: Element): string =>
+  [...el.classList].map((cls) => fillOf(svg, cls)).filter((fill) => fill !== "").at(-1) ?? "";
+
+/** 段ごとに書いた`set`の出来事 */
+type GaugeSet = { type: string; gauge: string; value: number; hold?: number };
+
+/** 予約の量を書ける目盛りの検査が見る文書と、文書が書く字 (#3895) */
+const HOLD_DOCS = [
+  "packages/dragon/src/blocks/gauge/gallery/docs.ts",
+  "packages/dragon/examples/quick-start.md",
+  "packages/dragon/examples/quick-start.en.md",
+  "plugins/dragon/skills/dragon/references/cheatsheet.md",
+];
+
+describe("目盛りの予約と確定 (#3895)", () => {
+  it("gauge-hold-paints-pale-after-confirmed", () => {
+    for (const kind of KINDS) {
+      const drawn = draw(notation(kind, [BUDGET()], ["set budget: 40 [hold: 30]"]));
+      if (!drawn) return;
+      const gauge = gaugeOf(drawn.svg, "budget");
+      if (!gauge) return;
+      const shown = shownAt(gauge, 0);
+      const track = trackOf(gauge);
+      const span = track.limit - track.x;
+      expect(num(shown?.querySelector(".dg-gf"), "width") / span, `${kind} の確定の濃い棒が上限の4割まで伸びない`).toBeCloseTo(0.4, 2);
+      const held = shown?.querySelector(".dg-gh");
+      expect(held, `${kind} の予約の淡い塗りが無い`).not.toBeNull();
+      expect((num(held, "x") + num(held, "width") - track.x) / span, `${kind} の予約の淡い塗りが上限の7割まで伸びない`).toBeCloseTo(0.7, 2);
+      expect(num(held, "x"), `${kind} の予約の淡い塗りと確定の棒の間が空く`).toBeLessThanOrEqual(track.x + 0.4 * span + 0.05);
+      expect(fillOf(drawn.svg, "dg-gh"), `${kind} の予約の塗りが目盛りの色を淡くした色でない`).toMatch(/^color-mix\(in srgb,var\(--c\) \d+%,var\(--surf\)\)$/u);
+      expect(valueText(shown), `${kind} の値の字が確定と予約の合計でない`).toBe("70 / 100 USDC");
+    }
+  });
+
+  it("gauge-hold-breakdown-row", () => {
+    const langs: { lang: "ja" | "en"; words: string[] }[] = [
+      { lang: "ja", words: ["確定 40", "予約 30"] },
+      { lang: "en", words: ["confirmed 40", "held 30"] },
+    ];
+    for (const kind of KINDS) {
+      for (const { lang, words } of langs) {
+        const drawn = draw(notation(kind, [BUDGET()], ["set budget: 40 [hold: 30]", "set budget: 70"]), lang);
+        if (!drawn) return;
+        const gauge = gaugeOf(drawn.svg, "budget");
+        if (!gauge) return;
+        const row = shownAt(gauge, 0)?.querySelector("[data-gauge-split]");
+        expect(row, `${kind} (${lang}) の予約を持つ段に内訳の行が無い`).not.toBeNull();
+        if (!row) return;
+        expect([...row.querySelectorAll("text")].map((t) => t.textContent), `${kind} (${lang}) の内訳の字`).toEqual(words);
+        const swatches = [...row.querySelectorAll("rect")];
+        expect(
+          swatches.map((r) => fillOfElement(drawn.svg, r)),
+          `${kind} (${lang}) の内訳の四角が棒の確定と予約の色でない`,
+        ).toEqual([fillOf(drawn.svg, "dg-gf"), fillOf(drawn.svg, "dg-gh")]);
+        const bar = gauge.querySelector(".dg-gk");
+        const top = Math.min(...swatches.map((r) => num(r, "y")));
+        expect(top, `${kind} (${lang}) の内訳の行が棒の下に無い`).toBeGreaterThanOrEqual(num(bar, "y") + num(bar, "height"));
+        expect(shownAt(gauge, 1)?.querySelector("[data-gauge-split]"), `${kind} (${lang}) の予約が0の段に内訳の行がある`).toBeNull();
+      }
+    }
+  });
+
+  it("gauge-hold-confirm-or-cancel", () => {
+    for (const kind of KINDS) {
+      const confirmed = draw(notation(kind, [BUDGET()], ["set budget: 40 [hold: 30]", "set budget: 70"]));
+      const canceled = draw(notation(kind, [BUDGET()], ["set budget: 40 [hold: 30]", "set budget: 40"]));
+      if (!confirmed || !canceled) return;
+      const moved = gaugeOf(confirmed.svg, "budget");
+      const dropped = gaugeOf(canceled.svg, "budget");
+      if (!moved || !dropped) return;
+      const track = trackOf(moved);
+      const span = track.limit - track.x;
+      // 予約を確定に移した段は、合計の70まで濃い色になり、淡い分と内訳の行が消え、合計が変わらないので札を出さない
+      const after = shownAt(moved, 1);
+      expect(after, `${kind} の確定に移した段の値の組が無い`).toBeDefined();
+      expect(num(after?.querySelector(".dg-gf"), "width") / span, `${kind} の確定に移した段の濃い棒が7割まで伸びない`).toBeCloseTo(0.7, 2);
+      expect(after?.querySelector(".dg-gh"), `${kind} の確定に移した段に淡い塗りが残る`).toBeNull();
+      expect(
+        [...moved.querySelectorAll("[data-gauge-delta]")].map((c) => c.getAttribute("data-step")),
+        `${kind} の確定に移した図で札を出した段`,
+      ).toEqual(["0"]);
+      // 予約を取り消した段は、淡い分が消えて4割の濃い棒だけになり、減った量の札を出す
+      const cut = shownAt(dropped, 1);
+      expect(num(cut?.querySelector(".dg-gf"), "width") / span, `${kind} の取り消した段の濃い棒が4割でない`).toBeCloseTo(0.4, 2);
+      expect(cut?.querySelector(".dg-gh"), `${kind} の取り消した段に淡い塗りが残る`).toBeNull();
+      const chip = [...dropped.querySelectorAll("[data-gauge-delta]")].find((c) => c.getAttribute("data-step") === "1");
+      expect(chip?.textContent, `${kind} の取り消した段の減った量の札`).toBe("−30");
+    }
+  });
+
+  it("gauge-hold-over-limit-by-total", () => {
+    for (const kind of KINDS) {
+      const drawn = draw(notation(kind, [BUDGET()], ["set budget: 80 [hold: 40]"]));
+      if (!drawn) return;
+      const gauge = gaugeOf(drawn.svg, "budget");
+      if (!gauge) return;
+      const shown = shownAt(gauge, 0);
+      const track = trackOf(gauge);
+      const span = track.limit - track.x;
+      expect(num(shown?.querySelector(".dg-gf"), "width") / span, `${kind} の確定の濃い棒が8割まで伸びない`).toBeCloseTo(0.8, 2);
+      const held = shown?.querySelector(".dg-gh");
+      expect((num(held, "x") + num(held, "width") - track.x) / span, `${kind} の予約の淡い塗りが上限の位置で止まらない`).toBeCloseTo(1, 2);
+      const extra = shown?.querySelector(".dg-go");
+      expect(extra, `${kind} の合計が上限を超えた段に赤い伸びが無い`).not.toBeNull();
+      expect(num(extra, "x"), `${kind} の赤い伸びが上限の位置から始まらない`).toBeCloseTo(track.limit, 1);
+      expect(num(extra, "width") / span, `${kind} の赤い伸びが超えた分の長さでない`).toBeCloseTo(0.2, 2);
+      expect(paintsRed(drawn.svg, shown?.querySelector(".dg-gv")), `${kind} の合計が上限を超えた段の値の字が赤くない`).toBe(true);
+      expect(valueText(shown), `${kind} の合計が上限を超えた段の値の字`).toBe("120 / 100 USDC");
+      expect(shown?.querySelector("[data-gauge-over]"), `${kind} の合計が上限を超えた段に上限を超えた札が無い`).not.toBeNull();
+    }
+  });
+
+  it("gauge-bad-hold-refused", () => {
+    const count = "gauge sent as 送った件数 [on: vi, unit: 件]";
+    for (const kind of KINDS) {
+      const cases = [
+        { name: "上限の無い目盛りの予約", gauges: [count], set: "set sent: 3 [hold: 1]", word: "limit" },
+        { name: "負の数の予約", gauges: [BUDGET()], set: "set budget: 20 [hold: -5]", word: "hold" },
+        { name: "数でない予約", gauges: [BUDGET()], set: "set budget: 20 [hold: abc]", word: "hold" },
+      ];
+      for (const { name, gauges, set, word } of cases) {
+        const text = notation(kind, gauges, [set]);
+        const line = text.split("\n").findIndex((l) => l.trim() === set) + 1;
+        const messages: string[] = [];
+        for (const lang of ["ja", "en"] as const) {
+          const error = errorOf(text, lang);
+          expect(error?.line, `${kind} (${lang}) の${name}の誤りがその行を名指さない`).toBe(line);
+          expect(error?.message, `${kind} (${lang}) の${name}の誤りの文が ${word} を挙げない`).toContain(word);
+          messages.push(error?.message ?? "");
+        }
+        expect(messages[0], `${kind} の${name}の日本語と英語の誤りの文が同じ`).not.toBe(messages[1]);
+      }
+    }
+  });
+
+  it("gauge-hold-round-trips", () => {
+    for (const kind of KINDS) {
+      const text = notation(kind, [BUDGET()], ["set budget: 40 [hold: 30]", "set budget: 70"]);
+      const read = diagramOf(text) as { steps: { events: GaugeSet[] }[] } | undefined;
+      if (read === undefined) return;
+      expect(
+        read.steps.map((s) => s.events.filter((e) => e.type === "gauge")),
+        `${kind} の段ごとの目盛りの出来事`,
+      ).toEqual([[{ type: "gauge", gauge: "budget", value: 40, hold: 30 }], [{ type: "gauge", gauge: "budget", value: 70 }]]);
+      expect(dragon.validateDiagram(read), `${kind} の予約を持つ原本を形の検査が受け付けない`).toEqual({ ok: true });
+      const printed = dragon.printNotation(read as unknown as Parameters<typeof dragon.printNotation>[0]);
+      expect(
+        printed.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("set ")),
+        `${kind} の書き戻した set の行`,
+      ).toEqual(["set budget: 40 [hold: 30]", "set budget: 70"]);
+      expect(diagramOf(printed), `${kind} の書き戻した記法を読んだ原本`).toEqual(read);
+    }
+  });
+
+  it("gauge-hold-text-readable-at-728", () => {
+    const month = "gauge month as 1か月の予算 [on: vi, limit: 1000, unit: USDC]";
+    const top = "gauge total as 全体の予算 [limit: 1000, unit: USDC]";
+    for (const kind of KINDS) {
+      for (const lang of ["ja", "en"] as const) {
+        const sets = ["set budget: 40 [hold: 30]\n  set month: 300 [hold: 200]\n  set total: 300 [hold: 100]", "set budget: 80 [hold: 40]"];
+        const drawn = draw(notation(kind, [BUDGET(), month, top], sets), lang, 728);
+        if (!drawn) return;
+        const viewBox = (drawn.svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+        const scale = Math.min(1, 728 / (viewBox[2] ?? Number.POSITIVE_INFINITY));
+        const split = [...drawn.svg.querySelectorAll("[data-gauge-split] text")];
+        expect(split.length, `${kind} (${lang}) の内訳の字が無い`).toBeGreaterThan(0);
+        for (const text of drawn.svg.querySelectorAll("[data-gauge] text")) {
+          const px = fontPx(drawn.svg, text) * scale;
+          expect(px, `${kind} (${lang}) の目盛りの字「${text.textContent}」が 728px の枠で ${px.toFixed(1)}px`).toBeGreaterThanOrEqual(READABLE_PX);
+        }
+      }
+    }
+  });
+
+  it("gauge-hold-docs", () => {
+    for (const file of HOLD_DOCS) {
+      const text = readFileSync(join(process.cwd(), file), "utf8");
+      expect(text, `${file} が予約の量の書き方 [hold: <量>] を書かない`).toContain("[hold:");
+    }
+    const grammar = readFileSync(join(process.cwd(), "docs/design/base/GRAMMAR.md"), "utf8").split("\n");
+    expect(
+      grammar.filter((l) => l.startsWith("| 量の目盛り")).some((l) => l.includes("hold")),
+      "文法の表の目盛りの行が予約を書かない",
+    ).toBe(true);
+    const musubi = JSON.parse(readFileSync(join(process.cwd(), "plugins/dragon/skills/dragon/musubi.json"), "utf8")) as {
+      provides: Record<string, { version: string }>;
+    };
+    expect(musubi.provides.cheatsheet?.version, "スキルの cheatsheet の版").toBe("1.1.0");
   });
 });
 
