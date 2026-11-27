@@ -14,6 +14,11 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Changed
 
 - A judge table's verdict now holds only the word (`block` or the word you set) and no longer lists the numbers and names of the failed rules under it, in the page and in the exported picture. The ✕ cells show which rules stopped the case. The i mark of note cards on boxes is now the same slanted i shape as the judge table mark, centered in its circle (#3890)
+
+## [0.88.0] - 2026-11-27
+
+### Changed
+
 - An explainer page (`layout: guide`) with topic tabs now splits each tab into pages: the tab opens on the list of questions and answers, and a question in the menu or a row of the list shows only that question. The left menu no longer shows question numbers, and lists the figure titles under the open question; clicking one scrolls to the figure. Each page ends with links to the previous and next pages, in the order overview, then each topic's list and its questions (#3998)
 - In a pipe diagram, the previous value and the provisional or final word of a value card rewritten with `write` now sit inside the card, under the big value, instead of on the tank number row about 74px below the card. A dashed frame that holds only value cards is now as tall as its cards instead of as tall as a frame with tanks (#3990)
 
