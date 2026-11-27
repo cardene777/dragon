@@ -2211,7 +2211,7 @@ Each step checks one rule column with ✓ and ✕, and the last step shows the v
 The table is an HTML table, so its text never shrinks.
 A table wider than its frame scrolls sideways and keeps the case column on the left.
 
-- `rule <id> as <name> [value: <value>, note: <description>]` is a column rule. Write the rules before the first `case`. The heading shows the rule number, name, and value, and the note in small text under the value
+- `rule <id> as <name> [value: <value>, note: <description>]` is a column rule. Write the rules before the first `case`. The heading shows the rule number, name, and value. The note is not drawn in the heading but listed below the table with the rule number and name
 - `case <name> [note: <note>]` is a row case, listed from the top in the order written. The note appears under the case name
 - `fail <rule>: <failed value>` under a case names a rule that the case fails. Only those cells get ✕ and the failed value, and the other cells get ✓
 - dragon does not compare values. It shows only the failures you write

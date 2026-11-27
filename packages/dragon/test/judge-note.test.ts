@@ -5,7 +5,7 @@
  * 1 行目に `[note: pop]` を書いた表 (札で見せる表) では、`note` を持つ規則の見出しのセルと例の名前のセルが押せる所になり、
  * 名前のすぐ右に箱の札 (#3877) と同じ i の丸を持つ。押すとそのセルのすぐ下に札が開き、
  * 規則の札は番号と規則の名前と `note` の全文を、例の札は例の名前と `note` の全文を持ち、行に `example` を書いた時だけ灰色の例の帯を持つ。
- * 札で見せる表は例の `note` を名前の下に描かず、札で見せない表は規則の `note` を見出しの値の下に描く。
+ * 札で見せる表は例の `note` を名前の下に描かない。札で見せない表は規則の `note` を見出しに描かず、表の下に番号と名前と一緒に並べる (#4008)。
  * 札は札の外か閉じるのアイコンを押すと閉じ、段を送ると閉じ、表を横に送ると閉じる。例の行の名前のセルより右は押しても開かない (#3892 が使う)。
  * 印刷の形では全ての札を開き、表の下に並べる。
  *
@@ -434,19 +434,39 @@ describe("判定の表の説明の札 (#3890)", () => {
     }
   });
 
-  it("judge-rule-note-under-value", () => {
+  it("judge-rule-notes-below-table", () => {
     const figure = figureOf(table({ head: "", chainExample: false, caseExample: false }));
     if (!figure) return;
+    // 札で見せない表は、note を持つ規則だけを表の下に書いた順に並べ、1 項は番号の丸と規則の名前と note の全文を持つ (#4008)
+    const list = figure.querySelector('[data-dragon="judge-rule-notes"]');
+    expect(list, "表の下の規則の note の並び").not.toBeNull();
+    const items = [...(list?.querySelectorAll('[data-dragon="judge-rule-note-item"]') ?? [])];
+    expect(
+      items.map((item) => [item.getAttribute("data-rule"), partOf(item, "judge-rule-note-no"), partOf(item, "judge-rule-note-name"), partOf(item, "judge-rule-note")]),
+      "表の下に並べた規則 (名札、番号、名前、note)",
+    ).toEqual([
+      ["chain", "1", "チェーン", CHAIN_NOTE],
+      ["to", "2", "宛先", "宛先が許した0x2222…と同じか"],
+    ]);
+    // 並びは表の後に置き、表を横に送る枠の外に在る
+    const scroll = figure.querySelector('[data-dragon="judge-scroll"]');
+    expect(scroll && list && Boolean(scroll.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING), "規則の note の並びが表の後に無い").toBe(true);
+    expect(list?.closest('[data-dragon="judge-scroll"]') ?? null, "規則の note の並びが表を横に送る枠の中に在る").toBeNull();
+  });
+
+  it("judge-rule-note-not-in-head", () => {
+    const figure = figureOf(table({ head: "", chainExample: false, caseExample: false }));
+    if (!figure) return;
+    // 札で見せない表の見出しは、規則の note の字を持たない (#4008)。狭い列に長い字を折って詰めない
+    for (const id of ["chain", "to", "once"]) {
+      const head = ruleHead(figure, id);
+      expect(head?.querySelector('[data-dragon="judge-rule-note"]') ?? null, `規則 ${id} の見出しの note の字`).toBeNull();
+      expect(head?.textContent ?? "", `規則 ${id} の見出しの字`).not.toContain("宛先が許した");
+      expect(head?.textContent ?? "", `規則 ${id} の見出しの字`).not.toContain(CHAIN_NOTE);
+    }
     const chain = ruleHead(figure, "chain");
-    const value = chain?.querySelector('[data-dragon="judge-rule-value"]');
-    const note = chain?.querySelector('[data-dragon="judge-rule-note"]');
-    // 札で見せない表は、規則の note を見出しの値の下に小さな字で描く
-    expect(note?.textContent, "札で見せない表の規則の note").toBe(CHAIN_NOTE);
-    expect(value && note && Boolean(value.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING), "規則の note が見出しの値の後に無い").toBe(true);
     expect(chain?.hasAttribute("data-note"), "札で見せない表の規則の見出しが押せる所になった").toBe(false);
     expect(chain?.querySelector('[data-dragon="note-mark"]') ?? null, "札で見せない表の規則の見出しが i の丸を持つ").toBeNull();
-    // note を書かない規則は、値の下に字を描かない
-    expect(ruleHead(figure, "once")?.querySelector('[data-dragon="judge-rule-note"]') ?? null, "note を書かない規則の値の下の字").toBeNull();
   });
 
   it("judge-pop-documented", () => {
@@ -470,5 +490,21 @@ describe("判定の表の説明の札 (#3890)", () => {
     expect(guideEn, "手引き (英語) の判定の表の節").toContain("[note: pop]");
     expect(guideJa, "手引き (日本語) が判定の下に外れた規則が並ぶと書く").not.toContain("その下に外れた規則の番号と名前が並ぶ");
     expect(guideEn, "手引き (英語) が判定の下に外れた規則が並ぶと書く").not.toContain("numbers and names of the failed rules");
+  });
+
+  it("judge-rule-notes-documented", () => {
+    // 手引きの判定の表の節の規則の行は、札で見せない表の規則の note を表の下に並べると書き、値の下に出すとは書かない (#4008)
+    const ruleLine = (file: string, start: string): string => {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const line = text.split("\n").find((one) => one.startsWith(start)) ?? "";
+      expect(line, `${file} に規則の行が無い`).not.toBe("");
+      return line;
+    };
+    const ja = ruleLine("packages/dragon/examples/quick-start.md", "- `rule <名札> as <名前>");
+    const en = ruleLine("packages/dragon/examples/quick-start.en.md", "- `rule <id> as <name>");
+    expect(ja, "手引き (日本語) の規則の行").toContain("表の下");
+    expect(ja, "手引き (日本語) の規則の行が値の下に出すと書く").not.toContain("値の下");
+    expect(en, "手引き (英語) の規則の行").toContain("below the table");
+    expect(en, "手引き (英語) の規則の行が値の下に出すと書く").not.toContain("under the value");
   });
 });

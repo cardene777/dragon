@@ -64,8 +64,11 @@ export const JUDGE_CSS = [
   `.dg-judge .dg-jp{display:inline-block;border-radius:${px(J.pill)};padding:${px(J.pillY)} ${px(J.pillX)};font-size:${px(J.verdict)};font-weight:700;transition:opacity .3s}`,
   `.dg-judge .dg-jp[data-verdict="pass"]{background:${MIX("c-green", 14)};color:var(--c-green)}`,
   `.dg-judge .dg-jp[data-verdict="block"]{background:${MIX("c-rose", 14)};color:var(--c-rose)}`,
-  // 規則の note は、札で見せない表では値の下に小さな字で描く (#3890)。長い説明でも見出しの列を広げすぎないよう折り返す
-  `.dg-judge .dg-jrn{display:block;font-weight:500;font-size:${px(J.small)};color:var(--mute);white-space:normal}`,
+  // 札で見せない表の規則の note は、見出しの狭い列に折らず、表の下に番号の丸と規則の名前と一緒に並べ、表の幅で折る (#4008)
+  `.dg-judge .dg-jrl{list-style:none;margin:${px(J.notes.top)} 0 0;padding:0 ${px(J.padX)};display:grid;row-gap:${px(J.notes.gap)}}`,
+  ".dg-judge .dg-jri{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:baseline}",
+  `.dg-judge .dg-jrm{font-weight:700;font-size:${px(J.text)};margin-right:${px(J.notes.nameGap)};white-space:nowrap}`,
+  `.dg-judge .dg-jrn{font-weight:500;font-size:${px(J.small)};color:var(--mute)}`,
   // 札で見せる表の押せるセル。名前と i の丸は行の高さの真ん中で揃え、間を空ける (#3890)
   ".dg-judge th[data-note]{cursor:pointer}",
   `.dg-judge th[data-note]:hover{background:${MIX("c-blue", 7, "var(--surf)")}}`,
@@ -123,9 +126,7 @@ export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme)
     ...rules.map((rule, i) => {
       const card = cardOf(judgeNoteId.rule(rule.id));
       const value = rule.value === undefined ? "" : `<span class="dg-jv" data-dragon="judge-rule-value">${esc(rule.value)}</span>`;
-      // 札で見せない表は、規則の note を値の下に描く
-      const note = rule.note === undefined || pop ? "" : `<span class="dg-jrn" data-dragon="judge-rule-note">${esc(rule.note)}</span>`;
-      return `<th class="dg-jr" scope="col" data-rule="${esc(rule.id)}" data-col="${i}"${noteAttr(card)}>${ruleLabel(i + 1, rule.name, card !== undefined)}${value}${note}</th>`;
+      return `<th class="dg-jr" scope="col" data-rule="${esc(rule.id)}" data-col="${i}"${noteAttr(card)}>${ruleLabel(i + 1, rule.name, card !== undefined)}${value}</th>`;
     }),
     `<th class="dg-jd" scope="col" data-dragon="judge-verdict-head" data-col="${verdictCol}">${esc(words.verdict)}</th>`,
   ];
@@ -137,10 +138,21 @@ export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme)
     const verdict = `<td class="dg-jd" data-dragon="judge-verdict" data-col="${verdictCol}"><span class="dg-jp" data-verdict="${row.verdict}"><span data-dragon="judge-word" data-verdict="${row.verdict}">${esc(word)}</span></span></td>`;
     return `<tr data-case="${i}"><th class="dg-jk" scope="row" data-dragon="judge-case"${noteAttr(card)}>${name}</th>${row.cells.map(cellOf).join("")}${verdict}</tr>`;
   });
+  // 札で見せない表は、規則の note を表の下に並べる (#4008)。表を横に送る枠の外に置き、送っても動かない
+  const noted = pop
+    ? []
+    : rules.flatMap((rule, i) =>
+        rule.note === undefined
+          ? []
+          : [
+              `<li class="dg-jri" data-dragon="judge-rule-note-item" data-rule="${esc(rule.id)}"><span class="dg-jn" data-dragon="judge-rule-note-no">${i + 1}</span><span class="dg-jrm" data-dragon="judge-rule-note-name">${esc(rule.name)}</span><span class="dg-jrn" data-dragon="judge-rule-note">${esc(rule.note)}</span></li>`,
+            ],
+      );
+  const notes = noted.length === 0 ? "" : `<ol class="dg-jrl" data-dragon="judge-rule-notes">${noted.join("")}</ol>`;
   return (
     `<div class="dg-judge" data-dragon="judge" data-corner="${palette.corner}" style="${FONT_VARS.replace(/"/g, "&quot;")};${paletteVars(palette, theme)}">` +
     `<style>${JUDGE_CSS}</style>` +
-    `<div class="dg-jw" data-dragon="judge-scroll"><table class="dg-jt"><thead><tr>${heads.join("")}</tr></thead><tbody>${body.join("")}</tbody></table></div></div>`
+    `<div class="dg-jw" data-dragon="judge-scroll"><table class="dg-jt"><thead><tr>${heads.join("")}</tr></thead><tbody>${body.join("")}</tbody></table></div>${notes}</div>`
   );
 }
 

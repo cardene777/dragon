@@ -4,6 +4,7 @@
  * 絵は表の枠、地、字、✓と✕、判定の札を SVG の要素で描き、`foreignObject` を使わない。
  * 例の名前と添え書きはその例の✓と✕の行の上の帯に置き、左の例の列を持たない。幅は 728px 以下で、字は読める大きさ (10.5px) 以上。
  * 帯の形でも 728px を超える表は、規則の列を分けて帯の形の表を縦に積む (`docs/adr/0015-judge-pictures-put-cases-on-bands.md`)。
+ * 札で見せない表の規則の `note` は見出しに描かず、表の下 (段に分けた時は最後の段の後) に番号と名前と一緒に並べる (#4008)。
  *
  * 書き出しは file を読み込む段 (`at-load.ts`) で済ませ、件は書き出した SVG を読んで確かめる。
  * 確かめる元の印と値と判定の語は、同じ原本を頁の形 (HTML の表) で描いた物から読む。
@@ -15,6 +16,7 @@ import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { parseNotation, renderDiagram } from "../src/core";
 import "../src/kind-use/judge";
+import { textWidth } from "../src/layout/measure";
 import { READABLE_PX } from "../src/look/values";
 import { textLang } from "../src/words";
 import { atLoad } from "./at-load";
@@ -68,6 +70,37 @@ const POP = [
   "case 0x2222…へ35 USDC",
   "  fail once: 35",
 ].join("\n");
+/** 札で見せない表の規則の note (#4008)。送金の見本のチェーンと宛先と1回と1日の規則が持ち、期限の規則は持たない */
+const RULE_NOTES: Record<string, string> = {
+  chain: "Txを出すチェーンのIDが31337で、送る物がそのチェーンのUSDCの契約か。読み解けないTxはここで照らせない",
+  to: "宛先が許した0x2222…と同じか",
+  once: "1回に送る額が30 USDC以下か",
+  day: "その日に送った額の合計が100 USDC以下か",
+};
+/** 英語の送金の見本の規則の note。チェーンの note は表の幅で 2 行に折れる長さ */
+const RULE_NOTES_EN: Record<string, string> = {
+  chain: "The Tx runs on chain 31337 and sends the USDC contract of that chain so an unreadable Tx that does not say which contract it calls cannot be checked here and stops at this rule",
+  to: "The recipient is the allowed 0x2222…",
+  once: "One transfer sends 30 USDC or less",
+  day: "The day's transfers add up to 100 USDC or less",
+};
+/** 規則 10 個の表の規則の note。1つ目と4つ目と10個目の規則だけが持つ */
+const WIDE_NOTES: Record<string, string> = {
+  r1: "The first check looks at the sender and the chain of the Tx",
+  r4: "Only counts transfers of the same day",
+  r10: "The last check compares the total with the yearly limit",
+};
+/** 規則の行 `rule <名札> as <名前> [value: <値>]` に note を足す */
+function withRuleNotes(source: string, notes: Record<string, string>): string {
+  return source
+    .split("\n")
+    .map((line) => {
+      const m = /^rule (\S+) as (.*) \[value: (.*)\]$/u.exec(line);
+      const note = m ? notes[m[1] as string] : undefined;
+      return m && note !== undefined ? `rule ${m[1]} as ${m[2]} [value: ${m[3]}, note: ${note}]` : line;
+    })
+    .join("\n");
+}
 /** 色味と明るさを替えて書き出す見本と色味 */
 const TINTED = { file: "transfer-check.en.dragon", palette: "sea", theme: "dark" } as const;
 
@@ -107,6 +140,10 @@ const WRITTEN = await atLoad("判定の表の見本を SVG に書き出す", asy
   const pairs = await Promise.all([
     ...EXAMPLES.map(async (file) => [file, await written(file, exampleText(file))] as const),
     (async () => ["wide", await written("wide", WIDE)] as const)(),
+    // 札で見せない表で、規則が note を持つ表 (#4008)。送金の見本の日本語と英語と、規則 10 個の表に note を足す
+    (async () => ["noted", await written("noted", withRuleNotes(exampleText("transfer-check.dragon"), RULE_NOTES))] as const)(),
+    (async () => ["noted-en", await written("noted-en", withRuleNotes(exampleText("transfer-check.en.dragon"), RULE_NOTES_EN))] as const)(),
+    (async () => ["noted-wide", await written("noted-wide", withRuleNotes(WIDE, WIDE_NOTES))] as const)(),
     // 札で見せる表は #3890 で読めるようになる。読めない間も見本の件を確かめられるよう、書き出せない時は空の SVG にする
     (async () => ["pop", await written("pop", POP).catch((): Written => ({ svg: "", html: "" }))] as const)(),
     (async () =>
@@ -403,5 +440,135 @@ describe("判定の表の SVG の絵 (#3891)", () => {
     expect(surf("tinted"), "暗い色味と明るい色味の地の色").not.toBe(surf("light"));
     expect(frameFill("tinted"), `${TINTED.palette} の暗い色味の SVG の表の地`).toBe(surf("tinted"));
     expect(frameFill("light"), `${TINTED.palette} の明るい色味の SVG の表の地`).toBe(surf("light"));
+  });
+});
+
+/** 表の下に並べた規則の note の 1 項。名札と番号と名前と、折った行をつないだ note と、行ごとの字の要素 */
+interface NoteItem {
+  rule: string;
+  no: string;
+  name: string;
+  note: string;
+  lines: Element[];
+}
+function noteItemsOf(root: ParentNode): NoteItem[] {
+  return [
+    ...root.querySelectorAll('[data-dragon="judge-rule-notes"] [data-dragon="judge-rule-note-item"]'),
+  ].map((item) => {
+    const lines = [...item.querySelectorAll('[data-dragon="judge-rule-note"]')];
+    return {
+      rule: item.getAttribute("data-rule") ?? "",
+      no: textOf(item.querySelector('[data-dragon="judge-rule-note-no"]')),
+      name: textOf(item.querySelector('[data-dragon="judge-rule-note-name"]')),
+      note: lines.map((line) => textOf(line)).join(" "),
+      lines,
+    };
+  });
+}
+/** 空白を落とした字。折った行をつないだ note と、書いた note を比べる */
+const squash = (s: string): string => s.replace(/\s+/gu, "");
+/** 表の枠の上端と高さ。段ごとに 1 つ */
+const framesOf = (doc: Document): number[][] =>
+  [...doc.querySelectorAll('rect[data-dragon="judge-frame"]')].map((one) => [num(one, "y"), num(one, "height")]);
+/** 表の枠の下端の一番下 */
+const tableBottom = (doc: Document): number =>
+  Math.max(...framesOf(doc).map(([y = 0, h = 0]) => y + h));
+
+describe("判定の表の規則の note を表の下に並べる (#4008)", () => {
+  it("judge-picture-rule-notes-below-table", () => {
+    const { doc } = svgOf("noted");
+    // 見出しは規則の note の字を描かない
+    expect(
+      doc.querySelectorAll('[data-dragon="judge-head"] [data-dragon="judge-rule-note"]').length,
+      "見出しに描いた規則の note",
+    ).toBe(0);
+    // note を持つ規則だけを、書いた順に番号と名前と note の全文で並べる
+    const items = noteItemsOf(doc);
+    expect(
+      items.map((item) => [item.rule, item.no, item.name]),
+      "表の下に並べた規則 (名札、番号、名前)",
+    ).toEqual([
+      ["chain", "1", "チェーン"],
+      ["to", "2", "宛先"],
+      ["once", "3", "1回"],
+      ["day", "4", "1日"],
+    ]);
+    for (const item of items)
+      expect(squash(item.note), `${item.rule} の note`).toBe(squash(RULE_NOTES[item.rule] ?? ""));
+    // 並びは表の枠の下に在り、表の枠は note を持たない見本の表と同じ高さのまま
+    const bottom = tableBottom(doc);
+    for (const line of doc.querySelectorAll('[data-dragon="judge-rule-notes"] text'))
+      expect(num(line, "y"), "表の下の並びの字の基準線").toBeGreaterThan(bottom);
+    expect(framesOf(doc), "note を持つ表の枠").toEqual(framesOf(svgOf("transfer-check.dragon").doc));
+  });
+
+  it("judge-picture-rule-notes-after-last-block", () => {
+    const { doc } = svgOf("noted-wide");
+    // 段の枠は note を持たない規則 10 個の表と同じで、note を持たない段の見出しも高くならない
+    expect(framesOf(doc).length, "規則 10 個の表の段の数").toBeGreaterThanOrEqual(2);
+    expect(framesOf(doc), "note を持つ規則 10 個の表の段の枠").toEqual(framesOf(svgOf("wide").doc));
+    const items = noteItemsOf(doc);
+    expect(
+      items.map((item) => [item.rule, item.no]),
+      "表の下に並べた規則 (名札、番号)",
+    ).toEqual([
+      ["r1", "1"],
+      ["r4", "4"],
+      ["r10", "10"],
+    ]);
+    // 並びは段の中でなく、最後の段の後にまとめて置く
+    const group = doc.querySelector('[data-dragon="judge-rule-notes"]');
+    expect(group?.closest('[data-dragon="judge-block"]') ?? null, "規則の note の並びが段の中に在る").toBeNull();
+    const bottom = tableBottom(doc);
+    for (const line of group?.querySelectorAll("text") ?? [])
+      expect(num(line, "y"), "最後の段の後の並びの字の基準線").toBeGreaterThan(bottom);
+  });
+
+  it("judge-picture-rule-notes-readable", () => {
+    for (const name of ["noted", "noted-en", "noted-wide"]) {
+      const { doc, root } = svgOf(name);
+      const width = num(root, "width");
+      expect(width, `${name} の絵の幅`).toBeLessThanOrEqual(FRAME);
+      const items = noteItemsOf(doc);
+      expect(items.length, `${name} の表の下の規則の note`).toBeGreaterThan(0);
+      for (const item of items) {
+        // 折った行は同じ左端から始め、どの行も絵の幅を越えない
+        expect(new Set(item.lines.map((line) => num(line, "x"))).size, `${name} の ${item.rule} の行の左端`).toBe(1);
+        for (const line of item.lines) {
+          const size = fontSizeOf(line) ?? 0;
+          expect(size, `${name} の ${item.rule} の note の字の大きさ`).toBeGreaterThanOrEqual(READABLE_PX);
+          const style = { size, weight: Number(line.getAttribute("font-weight") ?? 500), family: "sans" as const };
+          expect(num(line, "x") + textWidth(textOf(line), style), `${name} の ${item.rule} の行の右端`).toBeLessThanOrEqual(width);
+        }
+        for (const part of ["judge-rule-note-no", "judge-rule-note-name"]) {
+          const el = item.lines[0]?.closest('[data-dragon="judge-rule-note-item"]')?.querySelector(`[data-dragon="${part}"]`);
+          expect(fontSizeOf(el ?? doc.documentElement) ?? 0, `${name} の ${item.rule} の ${part} の字の大きさ`).toBeGreaterThanOrEqual(READABLE_PX);
+        }
+      }
+    }
+    // 表の幅に収まらない長い note は、表の幅で折って 2 行以上にする
+    const chain = noteItemsOf(svgOf("noted-en").doc).find((item) => item.rule === "chain");
+    expect(chain?.lines.length ?? 0, "英語のチェーンの長い note の行数").toBeGreaterThanOrEqual(2);
+    expect(squash(chain?.note ?? ""), "英語のチェーンの note を折った行をつないだ字").toBe(squash(RULE_NOTES_EN.chain ?? ""));
+  });
+
+  it("judge-pop-rule-notes-not-below", () => {
+    // 札で見せる表は、頁でも静止画でも規則の note を表の下に並べず、i の丸の札で見せる (#3890)
+    const { doc, text } = svgOf("pop");
+    expect(doc.querySelector('[data-dragon="judge-rule-notes"]'), "札で見せる表の絵の表の下の並び").toBeNull();
+    expect(text, "札で見せる表の絵が規則の note の字を描いた").not.toContain("チェーンのIDとUSDCの契約を確かめる");
+    expect(tableOf("pop").querySelector('[data-dragon="judge-rule-notes"]'), "札で見せる表の頁の表の下の並び").toBeNull();
+  });
+
+  it("judge-case-notes-stay-on-band", () => {
+    // 例の note は今のまま、絵では例の帯の名前の横に、頁では例の名前のセルに出し、表の下の並びに入れない
+    const { doc } = svgOf("noted");
+    const page = tableOf("noted");
+    const bands = [...doc.querySelectorAll('[data-dragon="judge-band"] [data-dragon="judge-note"]')].map((one) => textOf(one));
+    const cells = [...page.querySelectorAll('tbody [data-dragon="judge-case"] [data-dragon="judge-note"]')].map((one) => textOf(one));
+    expect(cells.length, "頁の例の名前のセルの note").toBe(6);
+    expect(bands, "絵の帯の例の note").toEqual(cells);
+    expect(doc.querySelectorAll('[data-dragon="judge-rule-notes"] [data-dragon="judge-note"]').length, "絵の表の下の並びの例の note").toBe(0);
+    expect(page.querySelectorAll('[data-dragon="judge-rule-notes"] [data-dragon="judge-note"]').length, "頁の表の下の並びの例の note").toBe(0);
   });
 });
