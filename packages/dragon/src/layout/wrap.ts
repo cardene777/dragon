@@ -92,14 +92,20 @@ function settle(tokens: string[], style: TextStyle, width: number, starts: numbe
   return even(tokens, style, width, n);
 }
 
-/**
- * 字を幅 `width` に収まる行に折る。和文は字の間で、欧文は空白の後で折る。
- * 幅は 1 行に `WRAP.least` 字入る幅 (字の大きさの `WRAP.least` 倍) を下限にし、それより狭い幅を渡されても下限の幅で折る (#4009)。
- * 描き方は折る所をこの幅まで広げて置く。最後の行が短い時は句読点の後で折り直すか行の長さを均す (`settle`)
- */
-export function wrap(text: string, style: TextStyle, width: number): string[] {
-  const room = Math.max(width, WRAP.least * style.size);
+/** 改行を持たない字 1 つを幅 `room` に収まる行に折る */
+function wrapLine(text: string, style: TextStyle, room: number): string[] {
   if (textWidth(text, style) <= room) return [text];
   const tokens = tokensOf(text);
   return rowsOf(tokens, settle(tokens, style, room, fill(tokens, style, room)));
+}
+
+/**
+ * 字を幅 `width` に収まる行に折る。和文は字の間で、欧文は空白の後で折る。
+ * 幅は 1 行に `WRAP.least` 字入る幅 (字の大きさの `WRAP.least` 倍) を下限にし、それより狭い幅を渡されても下限の幅で折る (#4009)。
+ * 描き方は折る所をこの幅まで広げて置く。最後の行が短い時は句読点の後で折り直すか行の長さを均す (`settle`)。
+ * 書き手が改行で分けた字は改行の所で行を替え、分けた行ごとに折る。書き手が作った 1 行だけの短い行は折り直さない (#4016)
+ */
+export function wrap(text: string, style: TextStyle, width: number): string[] {
+  const room = Math.max(width, WRAP.least * style.size);
+  return text.split("\n").flatMap((line) => wrapLine(line, style, room));
 }

@@ -357,16 +357,19 @@ function wrapped(text: string, x: number, baseline: number, style: TextStyle, wi
   const lines = rows.map((t, k) => ({ text: t, x, baseline: baseline + k * pitch }));
   const w = Math.max(0, ...rows.map((t) => textWidth(t, style)));
   const top = baseline - style.size * 0.8;
-  return { text, lines, x, y: top, w, h: (rows.length - 1) * pitch + style.size, ...(rows.length > 1 ? { room: width } : {}) };
+  // 書き手が改行で分けただけの行は折った行に数えない (#4016)
+  const folded = rows.length > text.split("\n").length;
+  return { text, lines, x, y: top, w, h: (rows.length - 1) * pitch + style.size, ...(folded ? { room: width } : {}) };
 }
 
 const bottomOf = (r: Rect): number => r.y + r.h;
 
 /**
  * 字 `text` を折る所に要る幅 (#4009)。1 行に収まる字は字の幅、収まらない字は 1 行に `WRAP.least` 字入る幅。
- * 描き方は字を折る所をこの幅まで広げ、16 字より狭い所に字を折らない
+ * 描き方は字を折る所をこの幅まで広げ、16 字より狭い所に字を折らない。書き手が改行で分けた字は、分けた行の一番広い物で測る (#4016)
  */
-const wrapRoom = (text: string, style: TextStyle): number => Math.min(textWidth(text, style), WRAP.least * style.size);
+const wrapRoom = (text: string, style: TextStyle): number =>
+  Math.max(0, ...text.split("\n").map((line) => Math.min(textWidth(line, style), WRAP.least * style.size)));
 
 /** 段の題と文を図の中の幅で折るのに要る、図の中の幅 (#4009) */
 const headNeed = (diagram: DiagramModel): number =>
