@@ -13,8 +13,8 @@
  * 規則の見出しは `data-rule` を持つ `th` で番号 (`judge-no`) と名前 (`judge-rule-name`) と値 (`judge-rule-value`) を持つ。
  * 行は `data-case` (書いた順の番号) を持ち、例のセル (`judge-case`) は名前 (`judge-case-name`) と添え書き (`judge-note`) を持つ。
  * 規則のセルは `data-rule` と `data-col` (左から 0 で数えた列) を持ち、印 (`judge-mark`) の `data-mark` は `pass` (✓) か `fail` (✕) か `skip` (—)、
- * ✕のセルは外れた値 (`judge-value`) を持つ。判定のセル (`judge-verdict`) は判定の語 (`judge-word`、`data-verdict` は `pass` か `block`) と、
- * 止める例だけ外れた規則の並び (`judge-why`) を持つ。再生の部品は段を送るたびに表の根へ `data-play` を、照らした列のセルへ `data-on` を書く。
+ * ✕のセルは外れた値 (`judge-value`) を持つ。判定のセル (`judge-verdict`) は判定の語 (`judge-word`、`data-verdict` は `pass` か `block`) だけを持つ (#3890)。
+ * 再生の部品は段を送るたびに表の根へ `data-play` を、照らした列のセルへ `data-on` を書く。
  *
  * 検査は種類を登録しない入口 (`src/core.ts`) と、判定の表の種類の登録の file だけを読む (#3763)。
  */

@@ -52,7 +52,7 @@
       ]
     },
     "note": {
-      "description": "箱の説明の見せ方 (#3877)。pop は箱の sub を名前の下に描かず、i の印の付いた箱を押すと箱のすぐ下に出る札で見せ、箱の example を札の下の例の帯にする。箱の札を描く図の種類 (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、手順の図) だけが持てる。書かない図は名前の下の字で見せ、箱は example を持てない",
+      "description": "箱の説明の見せ方 (#3877)。pop は箱の sub を名前の下に描かず、i の印の付いた箱を押すと箱のすぐ下に出る札で見せ、箱の example を札の下の例の帯にする。箱の札を描く図の種類 (時系列図、構成図、状態遷移図、枝分かれの図、時間軸の図、木の図、手順の図) と、規則の見出しと例の名前を押すと札を開く判定の表 (#3890) だけが持てる。書かない図は名前の下の字で見せ、箱は example を持てない",
       "enum": [
         "pop"
       ]
@@ -930,7 +930,8 @@
               "git",
               "time",
               "tree",
-              "flow"
+              "flow",
+              "judge"
             ]
           }
         }
@@ -956,6 +957,28 @@
           "blocks": {
             "properties": {
               "box": {
+                "items": {
+                  "properties": {
+                    "example": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "judge": {
+            "properties": {
+              "rules": {
+                "items": {
+                  "properties": {
+                    "example": {
+                      "$ref": "#/definitions/absent"
+                    }
+                  }
+                }
+              },
+              "cases": {
                 "items": {
                   "properties": {
                     "example": {
@@ -3252,6 +3275,14 @@
         "value": {
           "description": "見出しの名前の下に出す値",
           "$ref": "#/definitions/text"
+        },
+        "note": {
+          "description": "規則の説明 (#3890)。札で見せる表 (note: pop) では見出しを押すと出る札の本文にし、札で見せない表では値の下に小さな字で描く",
+          "$ref": "#/definitions/text"
+        },
+        "example": {
+          "description": "札の下の灰色の例の帯 (#3890)。札で見せる表の note を持つ規則だけが持てる",
+          "$ref": "#/definitions/text"
         }
       }
     },
@@ -3267,7 +3298,11 @@
           "$ref": "#/definitions/text"
         },
         "note": {
-          "description": "例の名前の下に出す添え書き",
+          "description": "例の名前の下に出す添え書き。札で見せる表 (note: pop、#3890) では名前の下に描かず、名前を押すと出る札の本文にする",
+          "$ref": "#/definitions/text"
+        },
+        "example": {
+          "description": "札の下の灰色の例の帯 (#3890)。札で見せる表の note を持つ例だけが持てる",
           "$ref": "#/definitions/text"
         },
         "fails": {

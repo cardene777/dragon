@@ -4,7 +4,6 @@
 |---|---|---|
 | `judge`で規則5つと例6つを書いた時、行に例、列に規則、最後の列に判定を置いたHTMLの表を描く | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-draws-html-table` passes | #3879 |
 | 例の下に`fail`を書いた規則のセルだけが✕とその外れた値を持ち、書かない規則のセルは✓になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-fail-marks-only-written-rules` passes | #3879 |
-| 外れる規則を持つ例の判定は「止める」で、その下に外れた規則の番号と名前を出し、外れる規則を持たない例の判定は「通す」になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-verdict-names-failed-rules` passes | #3879 |
 | 再生すると、段の送り1回で規則の列を左から1列ずつ照らして✓と✕を出し、最後の送りで判定を出す | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-plays-column-by-column` passes | #3879 |
 | `fail`の行に`[stop]`を書いた時、その後の列のセルが「—」になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-stop-dashes-later-columns` passes | #3879 |
 | 例に`[note: <字>]`を書いた時、例の名前の下にその字を出す | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-case-note-under-name` passes | #3879 |
@@ -25,7 +24,7 @@
 | SVGで描く図の種類のPNGは、今と同じく図の`width`と`height`の2倍の大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3923 |
 | 判定の表で図に無い段を`--step`に選ぶと、撮らずに断る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-refuses-missing-step` passes | #3923 |
 | 判定の表を`dragon export --format svg`で書き出すと、表の枠と地と字と✓と✕と判定の札をSVGの要素で描いたSVGを書き、`foreignObject`を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-draws-table-with-svg-elements` passes | #3891 |
-| 書き出したSVGは全てのセルの✓と✕と「—」と全ての例の判定を描き、✕の下に外れた値を、止める判定の語の下に外れた規則の番号と名前を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-fills-every-cell-and-verdict` passes | #3891 |
+| 書き出したSVGは全てのセルの✓と✕と「—」と全ての例の判定の語を描き、✕の下に外れた値を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-fills-every-cell-and-verdict` passes | #3891 |
 | 書き出したSVGは、例の名前と添え書きをその例の✓と✕の行の上の帯に1行で描き、左の例の列を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-puts-cases-on-bands` passes | #3891 |
 | 判定の表の見本 (送金、会員登録、返金、配布の日本語と英語) のSVGは幅が728px以下で、全ての字が10.5px以上 | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-readable-at-728` passes | #3891 |
 | 帯の形でも幅728pxを超える表 (規則を10個書いた表) のSVGは、728pxに収まる所で規則の列を分けて帯の形の表を縦に積み、どの段にも例の帯を、最後の段にだけ判定の列を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-stacks-wide-tables` passes | #3891 |

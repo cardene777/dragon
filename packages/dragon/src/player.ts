@@ -997,9 +997,14 @@ export function mountDiagram(
       // 止めて見せる図の元の幅を、図の幅の上限として渡す (#3934)。HTML の表は幅を持たない
       if (!htmlKind) next.style.setProperty("--dg-w", `${next.getAttribute("width")}px`);
       for (const box of next.querySelectorAll("[data-note]")) {
+        box.setAttribute("tabindex", "0");
+        // 判定の表の押せる見出しのセル (#3890) は、表の見出しとして読ませたまま、押すと札が開くことだけを伝える
+        if (box.tagName === "TH") {
+          box.setAttribute("aria-haspopup", "dialog");
+          continue;
+        }
         const name = rendered.layout.noteCards?.find((note) => note.box === box.getAttribute("data-note"))?.name ?? "";
         box.setAttribute("role", "button");
-        box.setAttribute("tabindex", "0");
         box.setAttribute("aria-label", words.openNote(name));
       }
       // HTML の表は読み上げの道具が行と列で読めるので、隠さない (#3879)

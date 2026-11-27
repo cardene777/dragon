@@ -4,12 +4,13 @@ import { CHECKOUT_INPUTS } from './inputs.gen';
 
 /**
  * 判定の表 (#3879) の行と、行に書ける属性。判定の表の種類の読み方が読む行で、ブロックの置き場を持たないので手で並べる。
- * `rule` の `as` は規則の名前、`fail` の `stop` はその後の列を照らさない印
+ * `rule` の `as` は規則の名前、`fail` の `stop` はその後の列を照らさない印。`judge` の `note` は規則と例の `note` を押すと出る札で見せる印で、
+ * `example` は札で見せる表の `note` を持つ規則と例の行にだけ書ける札の下の例の帯 (#3890)
  */
 const JUDGE_INPUTS = [
-  { name: 'judge', fields: { pass: {}, block: {} } },
-  { name: 'rule', fields: { as: {}, value: {} } },
-  { name: 'case', fields: { note: {} } },
+  { name: 'judge', fields: { pass: {}, block: {}, note: {} } },
+  { name: 'rule', fields: { as: {}, value: {}, note: {}, example: {} } },
+  { name: 'case', fields: { note: {}, example: {} } },
   { name: 'fail', fields: { stop: {} } },
 ];
 

@@ -6,8 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A judge table now takes `[note: pop]` on its first line, or `note: pop` in the settings row of a Markdown page, to show the notes of rules and cases on cards. A rule heading or case name with `note` gets a round i mark right after the name, and clicking that cell opens a card just below it. A rule card holds the rule number, the rule name, and the whole note, and a case card holds the case name and the whole note. In a pop table, a rule or case line with `note` also takes `example`, shown as a gray band at the bottom of the card, and the case note is no longer drawn under the name. The card closes when you click outside it or its close icon, move to another step, or scroll the table sideways, and printing lists every card below the table. The exported picture draws the same i marks (#3890)
+- A judge rule now takes `note`. In a table without `[note: pop]`, the note is drawn in small text under the rule value (#3890)
+
 ### Changed
 
+- A judge table's verdict now holds only the word (`block` or the word you set) and no longer lists the numbers and names of the failed rules under it, in the page and in the exported picture. The ✕ cells show which rules stopped the case. The i mark of note cards on boxes is now the same slanted i shape as the judge table mark, centered in its circle (#3890)
 - An explainer page (`layout: guide`) with topic tabs now splits each tab into pages: the tab opens on the list of questions and answers, and a question in the menu or a row of the list shows only that question. The left menu no longer shows question numbers, and lists the figure titles under the open question; clicking one scrolls to the figure. Each page ends with links to the previous and next pages, in the order overview, then each topic's list and its questions (#3998)
 - In a pipe diagram, the previous value and the provisional or final word of a value card rewritten with `write` now sit inside the card, under the big value, instead of on the tank number row about 74px below the card. A dashed frame that holds only value cards is now as tall as its cards instead of as tall as a frame with tanks (#3990)
 

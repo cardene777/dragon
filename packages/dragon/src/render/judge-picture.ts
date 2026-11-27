@@ -20,6 +20,8 @@ import {
   type TextStyle,
   type Theme,
 } from "../look/values";
+import { noteGlyph } from "../blocks/pop/draw";
+import { judgeNoteId } from "../kinds/judge/layout";
 import { ICON_PATHS } from "./judge";
 import { esc } from "./parts";
 import { r1 } from "./round";
@@ -28,6 +30,9 @@ const J = LOOK.judge;
 const P = J.picture;
 const L = J.line;
 const CUT = LOOK.corner.cut;
+const N = LOOK.note;
+/** 札で見せる表 (#3890) の、名前の右の i の丸と名前の間を足した幅 */
+const MARK_W = N.markGap + 2 * N.badge;
 
 type Judge = JudgeLayout["judge"];
 type Cell = JudgeRow["cells"][number];
@@ -42,8 +47,6 @@ const STYLE = {
   mark: text(J.small, 700, "mono"),
   dash: text(J.dash, 500),
   word: text(J.verdict, 700),
-  why: text(J.small, 500),
-  whyNo: text(J.whyNo, 700),
 } as const;
 
 /** 字の大きさ `size` の行の高さ */
@@ -166,30 +169,13 @@ function frame(
 const badgeOf = (no: number, least: number, style: TextStyle): number =>
   Math.max(least, textWidth(String(no), style) + 2 * J.badgeX);
 
-/** 止める例の外れた規則の 1 行の幅。番号の丸と名前を区切りで並べる */
-function whyWidth(row: JudgeRow, judge: Judge): number {
-  const one = row.why.map(
-    (col) =>
-      badgeOf(col + 1, J.whyBadge, STYLE.whyNo) +
-      J.whyGap +
-      textWidth(judge.rules[col]?.name ?? "", STYLE.why),
-  );
-  return (
-    one.reduce((sum, w) => sum + w, 0) +
-    Math.max(0, one.length - 1) * textWidth(judge.words.sep, STYLE.why)
-  );
-}
-
 /** 判定の語 */
 const wordOf = (row: JudgeRow, judge: Judge): string =>
   row.verdict === "pass" ? judge.words.pass : judge.words.block;
 
-/** 判定の札の大きさ */
+/** 判定の札の大きさ。札は語だけを持つ (#3890) */
 function pillOf(row: JudgeRow, judge: Judge): { w: number; h: number } {
-  return {
-    w: 2 * J.pillX + Math.max(textWidth(wordOf(row, judge), STYLE.word), whyWidth(row, judge)),
-    h: 2 * J.pillY + lineOf(J.verdict) + (row.why.length > 0 ? lineOf(J.small) : 0),
-  };
+  return { w: 2 * J.pillX + textWidth(wordOf(row, judge), STYLE.word), h: 2 * J.pillY + lineOf(J.verdict) };
 }
 
 /** 印の高さ。✕は外れた値を印の下に持つ */
@@ -206,6 +192,8 @@ interface Ink {
   mute: string;
   line: string;
   blue: string;
+  /** 色の地の上の字。i の丸の中の i */
+  onC: string;
   green: string;
   rose: string;
   cut: boolean;
@@ -229,7 +217,12 @@ function markEl(cell: Cell, cx: number, mid: number, ink: Ink): string {
   return `<g class="jm" data-dragon="judge-mark" data-mark="${cell.mark}" data-y="${r1(top + J.icon / 2)}">${icon}${value}</g>`;
 }
 
-/** 判定の札。語の下に、止める例の外れた規則の番号の丸と名前を区切りで並べる */
+/** 札で見せる表 (#3890) の i の丸。真ん中を `(cx, cy)` に置き、頁の表と箱の札の印と同じ丸と字の形を描く */
+function markOf(cx: number, cy: number, ink: Ink): string {
+  return `<g data-dragon="note-mark"><circle class="dg-nbc" cx="${r1(cx)}" cy="${r1(cy)}" r="${N.badge}" fill="${esc(ink.blue)}"/><g fill="${esc(ink.onC)}">${noteGlyph(cx, cy, "dg-nbi")}</g></g>`;
+}
+
+/** 判定の札。語だけを持ち、外れた規則は✕のセルで読む (#3890) */
 function pillEl(row: JudgeRow, judge: Judge, cx: number, mid: number, ink: Ink): string {
   const size = pillOf(row, judge);
   const color = row.verdict === "pass" ? ink.green : ink.rose;
@@ -243,31 +236,10 @@ function pillEl(row: JudgeRow, judge: Judge, cx: number, mid: number, ink: Ink):
       verdict: row.verdict,
     }),
   ];
-  const whyMid = top + J.pillY + lineOf(J.verdict) + lineOf(J.small) / 2;
-  const badgeFill = mix(ink.blue, 0.14, fill);
-  let x = cx - whyWidth(row, judge) / 2;
-  row.why.forEach((col, k) => {
-    if (k > 0) {
-      items.push(textEl(judge.words.sep, x, whyMid, STYLE.why, color));
-      x += textWidth(judge.words.sep, STYLE.why);
-    }
-    const badge = badgeOf(col + 1, J.whyBadge, STYLE.whyNo);
-    const name = judge.rules[col]?.name ?? "";
-    items.push(
-      `<g data-dragon="judge-why" data-rule="${esc(judge.rules[col]?.id ?? "")}">` +
-        `<rect x="${r1(x)}" y="${r1(whyMid - J.whyBadge / 2)}" width="${r1(badge)}" height="${J.whyBadge}" rx="${ink.cut ? 0 : J.whyBadge / 2}" fill="${esc(badgeFill)}"/>` +
-        textEl(String(col + 1), x + badge / 2, whyMid, STYLE.whyNo, ink.blue, {
-          anchor: "middle",
-        }) +
-        textEl(name, x + badge + J.whyGap, whyMid, STYLE.why, color) +
-        "</g>",
-    );
-    x += badge + J.whyGap + textWidth(name, STYLE.why);
-  });
   return `<g class="jp">${items.join("")}</g>`;
 }
 
-/** 規則の列の見出し。番号の丸と名前を 1 行に並べ、値をその下に置く */
+/** 規則の列の見出し。番号の丸と名前を 1 行に並べ、値をその下に置く。札を持つ規則 (`marked`) は名前の右に i の丸を置く */
 function headEl(
   judge: Judge,
   col: number,
@@ -277,6 +249,7 @@ function headEl(
   height: number,
   lit: string,
   ink: Ink,
+  marked: boolean,
 ): string {
   const rule = judge.rules[col];
   if (!rule) return "";
@@ -284,7 +257,8 @@ function headEl(
   const badge = badgeOf(col + 1, J.badge, STYLE.no);
   const lines = lineOf(J.text) + (rule.value === undefined ? 0 : lineOf(J.small));
   const first = top + (height - lines) / 2 + lineOf(J.text) / 2;
-  const start = cx - (badge + J.badgeGap + textWidth(rule.name, STYLE.head)) / 2;
+  const nameW = textWidth(rule.name, STYLE.head);
+  const start = cx - (badge + J.badgeGap + nameW + (marked ? MARK_W : 0)) / 2;
   const items = [
     lit,
     `<rect class="jb" x="${r1(start)}" y="${r1(first - J.badge / 2)}" width="${r1(badge)}" height="${J.badge}" rx="${ink.cut ? 0 : J.badge / 2}" fill="${esc(mix(ink.blue, 0.14, ink.sunk))}"/>`,
@@ -297,6 +271,7 @@ function headEl(
       cls: "jt",
     }),
   ];
+  if (marked) items.push(markOf(start + badge + J.badgeGap + nameW + N.markGap + N.badge, first, ink));
   if (rule.value !== undefined)
     items.push(
       textEl(
@@ -345,10 +320,13 @@ function split(widths: number[], limit: number): number[][] {
 }
 
 /** 列の幅。規則の列は見出しと全ての行の印と外れた値が入る幅、判定の列は見出しと全ての札が入る幅に左の区切りの線を足す */
-function columnWidths(judge: Judge): number[] {
+function columnWidths(judge: Judge, marked: ReadonlySet<string>): number[] {
   const rules = judge.rules.map((rule, col) => {
     const head =
-      badgeOf(col + 1, J.badge, STYLE.no) + J.badgeGap + textWidth(rule.name, STYLE.head);
+      badgeOf(col + 1, J.badge, STYLE.no) +
+      J.badgeGap +
+      textWidth(rule.name, STYLE.head) +
+      (marked.has(judgeNoteId.rule(rule.id)) ? MARK_W : 0);
     const value = rule.value === undefined ? 0 : textWidth(rule.value, STYLE.value);
     const cells = judge.rows.map(({ cells: all }) => {
       const cell = all[col];
@@ -381,6 +359,7 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
     mute: tone.mute ?? "",
     line: tone.line ?? "",
     blue: tone["c-blue"] ?? "",
+    onC: tone["on-c"] ?? "",
     green: tone["c-green"] ?? "",
     rose: tone["c-rose"] ?? "",
     cut: palette.corner === "cut",
@@ -388,13 +367,16 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
   const verdictIndex = rules.length;
 
   // 段に分け、どの段も同じ幅 (絵の幅) に広げる。広げた分は列の幅の割合で配る
-  const widths = columnWidths(judge);
+  // 札で見せる表 (#3890) の札を持つ規則と例。名前の右に i の丸を置く
+  const marked = new Set((layout.noteCards ?? []).map((note) => note.box));
+  const widths = columnWidths(judge, marked);
   const groups = split(widths, P.width - 2 * L);
   const sums = groups.map((group) => group.reduce((sum, i) => sum + (widths[i] as number), 0));
   const bands = rows.map(
-    (row) =>
+    (row, i) =>
       2 * J.padX +
       textWidth(row.name, STYLE.caseName) +
+      (marked.has(judgeNoteId.case(i)) ? MARK_W : 0) +
       (row.note === undefined ? 0 : P.noteGap + textWidth(row.note, STYLE.note)),
   );
   const W = Math.ceil(
@@ -458,7 +440,7 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
       parts.push(
         col.index === verdictIndex
           ? `<g class="jh" data-dragon="judge-verdict-head" data-col="${verdictIndex}">${lit}${textEl(words.verdict, (col.left + col.right) / 2, headTop + headH / 2, STYLE.head, ink.ink, { anchor: "middle", cls: "jt" })}</g>`
-          : headEl(judge, col.index, col.left, col.right, headTop, headH, lit, ink),
+          : headEl(judge, col.index, col.left, col.right, headTop, headH, lit, ink, marked.has(judgeNoteId.rule(rules[col.index]?.id ?? ""))),
       );
     });
     const verdict = cols.find((col) => col.index === verdictIndex);
@@ -473,6 +455,9 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
       const band = [
         textEl(row.name, nameX, nameMid, STYLE.caseName, ink.ink, { dragon: "judge-case-name" }),
       ];
+      const nameW = textWidth(row.name, STYLE.caseName);
+      if (marked.has(judgeNoteId.case(i)))
+        band.push(markOf(nameX + nameW + N.markGap + N.badge, nameMid, ink));
       if (row.note !== undefined)
         band.push(
           textEl(

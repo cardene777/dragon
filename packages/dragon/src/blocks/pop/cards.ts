@@ -4,6 +4,7 @@
  * 再生の部品に置いた図は、図の枠の中の層に箱ごとの札を持ち、印の付いた箱を押すと箱のすぐ下に札を開く。
  * 札の位置は押した時に箱と図の枠の四角を測って決めるので、寄って追う図でも押した箱の下に出る。
  * 札の外か閉じるのアイコンを押すと閉じ、段を送ると閉じる。段が替わると箱の位置と中身が替わり、開いたままの札が別の箱を指すため。再生の操作の列を押しただけでは閉じない。
+ * 判定の表 (#3890) は、規則の見出しと例の名前のセルを箱と同じく押せる所にし、表を横に送ると閉じる。送ると札が指すセルの位置が動くため。
  * 印刷の形では全ての札を開き、図の幅と高さに対する箱の真ん中と下端の割合 (`--nx` と `--ny`) の所に置く。
  * 札の見た目の規則は再生の部品の規則 (`player.ts` の `playerCss`) が持つ。
  * 札で見せる図だけが使うので、軽い入口は最初に読む量に入れず、札で見せる図を置いた時に後から読む (`cards-store.ts`)
@@ -99,6 +100,11 @@ export function mountNoteCards(doc: Document, frame: HTMLElement, controls: Elem
     close();
   };
   doc.addEventListener("click", onOutside);
+  // 判定の表の横に送る枠を送ると閉じる。送る枠の scroll は上へ伝わらないので、図の枠で先に聞く
+  const onScroll = (event: Event): void => {
+    if ((event.target as Element | null)?.matches?.('[data-dragon="judge-scroll"]')) close();
+  };
+  frame.addEventListener("scroll", onScroll, true);
   return {
     layer,
     open,
@@ -108,6 +114,7 @@ export function mountNoteCards(doc: Document, frame: HTMLElement, controls: Elem
     },
     destroy: () => {
       doc.removeEventListener("click", onOutside);
+      frame.removeEventListener("scroll", onScroll, true);
       layer.remove();
     },
   };

@@ -143,14 +143,13 @@ function tableOf(name: string): Document {
   return new DOMParser().parseFromString(WRITTEN.get()[name]?.html ?? "", "text/html");
 }
 
-/** 頁の表の行ごとの中身。セルの印と外れた値、判定の語、止めた理由の番号と名前 */
+/** 頁の表の行ごとの中身。セルの印と外れた値と判定の語 */
 interface RowFacts {
   name: string;
   note?: string;
   marks: string[];
   values: (string | undefined)[];
   word: string;
-  why: string[];
 }
 function rowsOf(table: Document): RowFacts[] {
   return [...table.querySelectorAll("tbody tr")].map((row) => {
@@ -166,7 +165,6 @@ function rowsOf(table: Document): RowFacts[] {
         (cell) => cell.querySelector('[data-dragon="judge-value"]')?.textContent ?? undefined,
       ),
       word: row.querySelector('[data-dragon="judge-word"]')?.textContent ?? "",
-      why: [...row.querySelectorAll(".dg-jf")].map((one) => (one.textContent ?? "").trim()),
     };
   });
 }
@@ -270,12 +268,6 @@ describe("判定の表の SVG の絵 (#3891)", () => {
           textOf(verdict?.querySelector('[data-dragon="judge-word"]')),
           `${file} の ${i + 1} 行目の判定の語`,
         ).toBe(row.word);
-        const why = [...(verdict?.querySelectorAll('[data-dragon="judge-why"]') ?? [])].map((one) =>
-          textOf(one),
-        );
-        expect(why, `${file} の ${i + 1} 行目の止めた理由`).toEqual(
-          row.why.map((one) => one.replace(/\s+/gu, " ")),
-        );
       });
     }
   });

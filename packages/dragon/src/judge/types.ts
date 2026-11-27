@@ -3,11 +3,17 @@
  * dragon は値を比べず、例ごとに書いた外れる規則 (`fails`) だけを✕にし、書かない規則を✓にする (docs/adr/0011)
  */
 
-/** 列の規則。`id` は `fail` の行が名指す名札、`name` は見出しの名前、`value` は見出しの名前の下に出す値 */
+/**
+ * 列の規則。`id` は `fail` の行が名指す名札、`name` は見出しの名前、`value` は見出しの名前の下に出す値。
+ * `note` は規則の説明で、札で見せる表 (#3890) では見出しを押すと出る札の本文に、札で見せない表では値の下の小さな字にする。
+ * `example` は札の下の灰色の例の帯で、札で見せる表の `note` を持つ規則だけが持てる
+ */
 export interface JudgeRule {
   id: string;
   name: string;
   value?: string;
+  note?: string;
+  example?: string;
 }
 
 /** 例が外れる規則。`value` は✕の下に出す外れた値。`stop` は照らせない印で、その後の列のセルを「—」にする */
@@ -17,10 +23,14 @@ export interface JudgeFail {
   stop?: true;
 }
 
-/** 行の例。`note` は例の名前の下に出す添え書き。外れる規則を持たない例は `fails` を持たない */
+/**
+ * 行の例。`note` は例の名前の下に出す添え書きで、札で見せる表 (#3890) では名前の下に描かず、名前を押すと出る札の本文にする。
+ * `example` は札の下の灰色の例の帯で、札で見せる表の `note` を持つ例だけが持てる。外れる規則を持たない例は `fails` を持たない
+ */
 export interface JudgeCase {
   name: string;
   note?: string;
+  example?: string;
   fails?: JudgeFail[];
 }
 
