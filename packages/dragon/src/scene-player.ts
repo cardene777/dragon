@@ -274,6 +274,8 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   let clock: ReturnType<typeof setTimeout> | undefined;
   /** 外から名指した場面を追う時に、流して止める段 (#3892)。追っていない時は `undefined` */
   let until: number | undefined;
+  /** 並べる見せ方で外から名指して追う場面の番号 (#3892)。帯はこの場面の段の題と本文を出す。追っていない時は `undefined` */
+  let focus: number | undefined;
 
   /** 場面の枠の図の動きの変数。`at` は時刻の表の秒、`play` は流すか */
   const place = (panel: Panel, at: number, play: boolean): void => {
@@ -319,8 +321,9 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
 
   /** 今の段を、帯と場面の枠と札に出す */
   const showStep = (): void => {
-    // 帯の題と本文は、今の段を進める場面のうち最初の場面の段
-    const lead = moving().find((p) => step < lengthOf(p)) ?? moving()[0];
+    // 帯の題と本文は、今の段を進める場面のうち最初の場面の段。並べる見せ方で外から名指して追う場面は、その場面の段 (#3892)
+    const focused = focus === undefined ? undefined : panels[focus];
+    const lead = (focused && step < lengthOf(focused) ? focused : undefined) ?? moving().find((p) => step < lengthOf(p)) ?? moving()[0];
     const current = lead?.scene.diagram.steps[step];
     no.textContent = stepNo(step, count);
     title.textContent = current?.title ?? "";
@@ -424,6 +427,7 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
 
   /** 並べる見せ方で、追う場面 `k` のほかの場面を薄くする。`k` が無い時は全ての場面を元の濃さに戻す (#3892) */
   const dimOthers = (k?: number): void => {
+    focus = show === "stack" ? k : undefined;
     for (const [i, panel] of panels.entries()) {
       const dim = show === "stack" && k !== undefined && i !== k;
       panel.el.toggleAttribute("data-dim", dim);
