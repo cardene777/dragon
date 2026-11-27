@@ -2211,12 +2211,13 @@ Each step checks one rule column with ✓ and ✕, and the last step shows the v
 The table is an HTML table, so its text never shrinks.
 A table wider than its frame scrolls sideways and keeps the case column on the left.
 
-- `rule <id> as <name> [value: <value>]` is a column rule. Write the rules before the first `case`. The heading shows the rule number, name, and value
+- `rule <id> as <name> [value: <value>, note: <description>]` is a column rule. Write the rules before the first `case`. The heading shows the rule number, name, and value, and the note in small text under the value
 - `case <name> [note: <note>]` is a row case, listed from the top in the order written. The note appears under the case name
 - `fail <rule>: <failed value>` under a case names a rule that the case fails. Only those cells get ✕ and the failed value, and the other cells get ✓
 - dragon does not compare values. It shows only the failures you write
-- A case with a failed rule gets the verdict `block`, with the numbers and names of the failed rules under it. A case with none gets `pass`
+- A case with a failed rule gets the verdict `block`, and a case with none gets `pass`. The ✕ cells show which rules stopped it
 - `[stop]` on a `fail` line leaves the later columns of that case unchecked, shown as "—"
+- `[note: pop]` on the first line moves the notes of rules and cases into cards. A round i mark sits right after the name of each rule heading and case that has `note`, and clicking that cell opens a card with the whole note just below it. A rule or case line with `note` also takes `[example: <example>]`, shown as a gray band at the bottom of the card. The card closes when you click outside it or its close icon, move to another step, or scroll the table sideways, and printing lists every card below the table
 - `[pass: <word>, block: <word>]` on the first line replaces the verdict words. Without it, English pages show `pass` and `block`, and Japanese pages show their own words
 - Playing checks one rule column per step, and the last step shows the verdicts. Printing fills every cell and verdict
 - Exported pictures (PNG, GIF, mp4, SVG) put each case name and note on a band above its ✓ and ✕ row and fit in 728px. A wider table splits its rule columns into stacked tables, with the verdict column in the last one

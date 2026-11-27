@@ -260,10 +260,9 @@ export const TYPE = {
   emptyText: text(11, 700),
   meterLine: text(10.5, 700, "mono"),
   /**
-   * 押すと出る札 (#3877)。箱の右上の印の i の字 (斜体で描く)、札の上の箱の名前、札の本文、札の下の例の帯の字。
+   * 押すと出る札 (#3877)。札の上の箱の名前、札の本文、札の下の例の帯の字。印の i は字でなく線で描く (`noteGlyph`、#3890)。
    * 本文は段の説明文と同じ大きさにし、箱の名前は箱の名前の下の字と同じ大きさで札の頭に小さく置く
    */
-  noteMark: text(11, 700),
   noteName: text(11, 650),
   noteBody: text(14, 500),
   noteExample: text(12.5, 500),
@@ -309,6 +308,8 @@ export const LOOK = {
    */
   note: {
     badge: 7.5,
+    /** 判定の表 (#3890) の、名前と名前のすぐ右の i の丸の間 */
+    markGap: 5,
     inset: 13,
     card: 300,
     gap: 8,
@@ -344,10 +345,10 @@ export const LOOK = {
   },
   /**
    * 判定の表 (#3879) の HTML の表の寸法 (px)。字は縮めずにこの大きさで描くので、どの字も読める大きさ (`READABLE_PX`) を下回らない。
-   * `text` は表の字、`caseName` は例の名前の字、`small` は規則の値と添え書きと外れた値と外れた規則の字、`verdict` は判定の語の字、
-   * `no` は規則の番号の字、`whyNo` は外れた規則の番号の字、`dash` は照らせない「—」の字。
+   * `text` は表の字、`caseName` は例の名前の字、`small` は規則の値と説明と添え書きと外れた値の字、`verdict` は判定の語の字、
+   * `no` は規則の番号の字、`dash` は照らせない「—」の字。判定の札は語だけを持つ (#3890)。
    * `padY` と `padX` はセルの内側の余白、`radius` は表の枠の角の丸み、`line` は枠と区切りの線の太さ、`icon` は✓と✕の升の縦横、`mark` は印のセルの幅の下限。
-   * `badge` と `badgeX` と `badgeGap` は規則の番号の丸の高さと左右の余白と名前との間、`whyBadge` と `whyGap` は外れた規則の番号の丸の高さと名前との間。
+   * `badge` と `badgeX` と `badgeGap` は規則の番号の丸の高さと左右の余白と名前との間。
    * `pillY` と `pillX` は判定の札の内側の余白、`pill` は札の両端を丸める角の丸み、`stroke` は✓と✕の線の太さ。
    * `picture` は書き出す絵の形 (#3891) の寸法。`width` は絵の幅 (記事の本文ほどの枠) で、収まらない表は規則の列を分けて `blockGap` の間を空けて縦に積む。
    * `noteGap` は帯の例の名前と添え書きの間、`markTop` は帯の下の印の行の上の余白、`lead` は字の大きさに掛けて行の高さにする割合、
@@ -358,7 +359,6 @@ export const LOOK = {
     caseName: 13.5,
     small: 12,
     no: 12,
-    whyNo: 11,
     verdict: 13,
     dash: 16,
     padY: 8,
@@ -368,8 +368,6 @@ export const LOOK = {
     badge: 20,
     badgeX: 5,
     badgeGap: 5,
-    whyBadge: 18,
-    whyGap: 2,
     pillY: 3,
     pillX: 12,
     pill: 999,

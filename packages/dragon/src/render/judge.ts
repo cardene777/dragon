@@ -3,15 +3,20 @@
  * 枠に収まらない表は横に送る枠 (`.dg-jw`) の中を送り、例の列 (`.dg-jk`) を左に留める。携帯の幅でも同じ形にする。
  *
  * 構成は本人が選んだ見本に揃える。見出しは例、番号と名前と値を持つ規則、判定の順で、例のセルは名前の下に添え書きを、
- * ✕のセルは印の下に外れた値を、止める判定は語の下に外れた規則の番号と名前を持つ。照らせないセルは「—」にする。
+ * ✕のセルは印の下に外れた値を持つ。判定の札は語だけを持ち、どこで止まったかは✕のセルで読む (#3890)。照らせないセルは「—」にする。
+ * 規則の `note` は値の下に小さな字で描く。1 行目に `[note: pop]` を書いた表 (#3890) は、`note` を持つ規則の見出しと例の名前のセルを押せる所
+ * (`data-note`) にし、名前のすぐ右に箱の札と同じ i の丸を置き、規則と例の `note` を描かずに押すと出る札 (`blocks/pop/cards.ts`) で見せる。
  * 描いただけの表は全てのセルと判定を埋めた形で、再生の部品が段を送る時だけ、表の根に `data-play` を、照らした列のセルに `data-on` を書く (`showJudge`)。
  * 印刷の形では照らしていないセルも見せ、横に送る枠を開いて全ての列を描く。
  * 角を落とす色味 (`corner: "cut"`) では、図の箱と同じく表の枠の右上と左下を落とし、番号の丸と判定の札の角を丸めない
  */
 import type { JudgeLayout, JudgeRow } from "../kinds/judge/layout";
+import { noteGlyph } from "../blocks/pop/draw";
+import { judgeNoteId } from "../kinds/judge/layout";
 import { FONT_VARS, LOOK, type Palette, PLAIN_TEXT, paletteVars, type Theme } from "../look/values";
 
 const J = LOOK.judge;
+const N = LOOK.note;
 const px = (v: number): string => `${v}px`;
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -59,8 +64,16 @@ export const JUDGE_CSS = [
   `.dg-judge .dg-jp{display:inline-block;border-radius:${px(J.pill)};padding:${px(J.pillY)} ${px(J.pillX)};font-size:${px(J.verdict)};font-weight:700;transition:opacity .3s}`,
   `.dg-judge .dg-jp[data-verdict="pass"]{background:${MIX("c-green", 14)};color:var(--c-green)}`,
   `.dg-judge .dg-jp[data-verdict="block"]{background:${MIX("c-rose", 14)};color:var(--c-rose)}`,
-  `.dg-judge .dg-jy{display:block;font-weight:500;font-size:${px(J.small)}}`,
-  `.dg-judge .dg-jy .dg-jn{min-width:${px(J.whyBadge)};height:${px(J.whyBadge)};font-size:${px(J.whyNo)};margin-right:${px(J.whyGap)}}`,
+  // 規則の note は、札で見せない表では値の下に小さな字で描く (#3890)。長い説明でも見出しの列を広げすぎないよう折り返す
+  `.dg-judge .dg-jrn{display:block;font-weight:500;font-size:${px(J.small)};color:var(--mute);white-space:normal}`,
+  // 札で見せる表の押せるセル。名前と i の丸は行の高さの真ん中で揃え、間を空ける (#3890)
+  ".dg-judge th[data-note]{cursor:pointer}",
+  `.dg-judge th[data-note]:hover{background:${MIX("c-blue", 7, "var(--surf)")}}`,
+  ".dg-judge thead th[data-note]:hover{background:" + MIX("c-blue", 9, "var(--sunk)") + "}",
+  `.dg-judge th[data-note]:focus-visible{outline:${px(2)} solid var(--c-blue);outline-offset:-${px(2)}}`,
+  `.dg-judge .dg-jnm{display:inline-flex;align-items:center;gap:${px(N.markGap)}}`,
+  ".dg-judge .dg-jmk{display:block;flex:none}",
+  ".dg-judge .dg-nbc{fill:var(--c-blue)}.dg-judge .dg-nbi{fill:var(--on-c)}",
   // 角を落とす色味では、表の枠の右上と左下を落とし、小さな部品の角を丸めない
   `.dg-judge[data-corner="cut"] .dg-jw{border-radius:0;clip-path:${CUT_FRAME}}`,
   '.dg-judge[data-corner="cut"] .dg-jn,.dg-judge[data-corner="cut"] .dg-jp{border-radius:0}',
@@ -81,30 +94,48 @@ function cellOf(cell: JudgeRow["cells"][number]): string {
   return `<td class="dg-jc" data-rule="${esc(cell.rule)}" data-col="${cell.col}">${mark}</td>`;
 }
 
-/** 規則の番号と名前。見出しと、止める判定の下の外れた規則に出す */
-const ruleLabel = (no: number, name: string): string => `<span class="dg-jn" data-dragon="judge-no">${no}</span><span data-dragon="judge-rule-name">${esc(name)}</span>`;
+/** 札で見せる表 (#3890) の i の丸。箱の札の印と同じ丸と字の形を、名前の字の行に置く大きさで描く */
+const MARK =
+  `<svg class="dg-jmk" data-dragon="note-mark" width="${N.badge * 2}" height="${N.badge * 2}" viewBox="0 0 ${N.badge * 2} ${N.badge * 2}" aria-hidden="true" focusable="false">` +
+  `<circle class="dg-nbc" cx="${N.badge}" cy="${N.badge}" r="${N.badge}"/>${noteGlyph(N.badge, N.badge, "dg-nbi")}</svg>`;
+
+/** 名前 `name` の部品 `part`。`cls` は名前の字の見た目の名前。札を持つ名前 (`noted`) は、名前のすぐ右に i の丸を並べる組で包む */
+const named = (part: string, name: string, noted: boolean, cls?: string): string => {
+  const label = `<span${cls === undefined ? "" : ` class="${cls}"`} data-dragon="${part}">${esc(name)}</span>`;
+  return noted ? `<span class="dg-jnm">${label}${MARK}</span>` : label;
+};
+
+/** 規則の番号と名前。見出しに出す */
+const ruleLabel = (no: number, name: string, noted: boolean): string => `<span class="dg-jn" data-dragon="judge-no">${no}</span>${named("judge-rule-name", name, noted)}`;
+
+/** 札で見せる表の押せるセルの印。札を持たないセルは何も書かない */
+const noteAttr = (id: string | undefined): string => (id === undefined ? "" : ` data-note="${esc(id)}"`);
 
 /** 判定の表を HTML の字にする。見た目の規則と色の変数を表の根に持ち、頁に置いただけで描ける */
 export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme): string {
-  const { rules, rows, words } = layout.judge;
+  const { pop, rules, rows, words } = layout.judge;
   const verdictCol = rules.length;
+  const cards = new Set((layout.noteCards ?? []).map((note) => note.box));
+  /** 札を持つ名前のセルの札の名札。札で見せない表と、note を持たない規則と例は持たない */
+  const cardOf = (id: string): string | undefined => (cards.has(id) ? id : undefined);
   const heads = [
     `<th class="dg-jk" scope="col" data-dragon="judge-case-head">${esc(words.case)}</th>`,
-    ...rules.map(
-      (rule, i) =>
-        `<th class="dg-jr" scope="col" data-rule="${esc(rule.id)}" data-col="${i}">${ruleLabel(i + 1, rule.name)}${rule.value === undefined ? "" : `<span class="dg-jv" data-dragon="judge-rule-value">${esc(rule.value)}</span>`}</th>`,
-    ),
+    ...rules.map((rule, i) => {
+      const card = cardOf(judgeNoteId.rule(rule.id));
+      const value = rule.value === undefined ? "" : `<span class="dg-jv" data-dragon="judge-rule-value">${esc(rule.value)}</span>`;
+      // 札で見せない表は、規則の note を値の下に描く
+      const note = rule.note === undefined || pop ? "" : `<span class="dg-jrn" data-dragon="judge-rule-note">${esc(rule.note)}</span>`;
+      return `<th class="dg-jr" scope="col" data-rule="${esc(rule.id)}" data-col="${i}"${noteAttr(card)}>${ruleLabel(i + 1, rule.name, card !== undefined)}${value}${note}</th>`;
+    }),
     `<th class="dg-jd" scope="col" data-dragon="judge-verdict-head" data-col="${verdictCol}">${esc(words.verdict)}</th>`,
   ];
   const body = rows.map((row, i) => {
-    const name = `<span class="dg-jcn" data-dragon="judge-case-name">${esc(row.name)}</span>${row.note === undefined ? "" : `<span class="dg-jcs" data-dragon="judge-note">${esc(row.note)}</span>`}`;
-    const why =
-      row.why.length === 0
-        ? ""
-        : `<span class="dg-jy" data-dragon="judge-why">${row.why.map((col) => `<span class="dg-jf" data-rule="${esc(rules[col]?.id ?? "")}">${ruleLabel(col + 1, rules[col]?.name ?? "")}</span>`).join(esc(words.sep))}</span>`;
+    const card = cardOf(judgeNoteId.case(i));
+    const name = `${named("judge-case-name", row.name, card !== undefined, "dg-jcn")}${row.note === undefined ? "" : `<span class="dg-jcs" data-dragon="judge-note">${esc(row.note)}</span>`}`;
     const word = row.verdict === "pass" ? words.pass : words.block;
-    const verdict = `<td class="dg-jd" data-dragon="judge-verdict" data-col="${verdictCol}"><span class="dg-jp" data-verdict="${row.verdict}"><span data-dragon="judge-word" data-verdict="${row.verdict}">${esc(word)}</span>${why}</span></td>`;
-    return `<tr data-case="${i}"><th class="dg-jk" scope="row" data-dragon="judge-case">${name}</th>${row.cells.map(cellOf).join("")}${verdict}</tr>`;
+    // 判定の札は語だけを持つ。外れた規則は✕のセルで読む (#3890)
+    const verdict = `<td class="dg-jd" data-dragon="judge-verdict" data-col="${verdictCol}"><span class="dg-jp" data-verdict="${row.verdict}"><span data-dragon="judge-word" data-verdict="${row.verdict}">${esc(word)}</span></span></td>`;
+    return `<tr data-case="${i}"><th class="dg-jk" scope="row" data-dragon="judge-case"${noteAttr(card)}>${name}</th>${row.cells.map(cellOf).join("")}${verdict}</tr>`;
   });
   return (
     `<div class="dg-judge" data-dragon="judge" data-corner="${palette.corner}" style="${FONT_VARS.replace(/"/g, "&quot;")};${paletteVars(palette, theme)}">` +

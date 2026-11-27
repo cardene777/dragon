@@ -19,6 +19,7 @@ import * as dragon from "../src/core";
 import "../src/kind-use/sequence";
 import "../src/kind-use/architecture";
 import "../src/kind-use/flow";
+import "../src/kind-use/judge";
 import { drawPageBlocks } from "../src/page-blocks";
 import { exportPage } from "../src/page/export";
 
@@ -372,6 +373,81 @@ describe("箱の説明の札 (#3877)", () => {
     expect(shown?.style.position, "印刷の形の札が箱の上の位置に置かれる").toBe("static");
     expect(shown?.style.getPropertyValue("left") ?? "", "印刷の形の札の横の位置が箱の位置 (--nx) に依る").not.toContain("--nx");
     expect(shown?.style.getPropertyValue("top") ?? "", "印刷の形の札の縦の位置が箱の位置 (--ny) に依る").not.toContain("--ny");
+  });
+
+  it("note-mark-glyph-centered", () => {
+    /** 線の道 `d` の点の並び。M、L、H、V、Z と、その小文字 (前の点からの差) だけを読む */
+    const pointsOf = (d: string): [number, number][] => {
+      const points: [number, number][] = [];
+      let x = 0;
+      let y = 0;
+      let start: [number, number] = [0, 0];
+      for (const [, op = "", args = ""] of d.matchAll(/([MLHVZmlhvz])([^MLHVZmlhvz]*)/gu)) {
+        const n = (args.match(/-?\d*\.?\d+(?:e-?\d+)?/giu) ?? []).map(Number);
+        const rel = op === op.toLowerCase();
+        const kind = op.toUpperCase();
+        if (kind === "Z") {
+          [x, y] = start;
+          continue;
+        }
+        for (let k = 0; k < n.length; ) {
+          if (kind === "H") x = (rel ? x : 0) + (n[k++] ?? 0);
+          else if (kind === "V") y = (rel ? y : 0) + (n[k++] ?? 0);
+          else {
+            x = (rel ? x : 0) + (n[k++] ?? 0);
+            y = (rel ? y : 0) + (n[k++] ?? 0);
+          }
+          if (kind === "M" && k <= 2) start = [x, y];
+          points.push([x, y]);
+        }
+      }
+      return points;
+    };
+    /** i の丸 `mark` の、丸の真ん中と字の形の上下左右の真ん中のずれ。字を `text` で描いた丸は測れないので `undefined` */
+    const offsetOf = (mark: Element): [number, number] | undefined => {
+      const ring = mark.querySelector(".dg-nbc");
+      if (!ring || mark.querySelector("text")) return undefined;
+      const cx = Number(ring.getAttribute("cx"));
+      const cy = Number(ring.getAttribute("cy"));
+      const xs: number[] = [];
+      const ys: number[] = [];
+      for (const part of mark.querySelectorAll("path, circle, rect, polygon")) {
+        if (part === ring) continue;
+        if (part.tagName.toLowerCase() === "circle") {
+          const r = Number(part.getAttribute("r"));
+          xs.push(Number(part.getAttribute("cx")) - r, Number(part.getAttribute("cx")) + r);
+          ys.push(Number(part.getAttribute("cy")) - r, Number(part.getAttribute("cy")) + r);
+        } else if (part.tagName.toLowerCase() === "path") {
+          for (const [px, py] of pointsOf(part.getAttribute("d") ?? "")) {
+            xs.push(px);
+            ys.push(py);
+          }
+        }
+      }
+      if (xs.length === 0) return undefined;
+      return [(Math.min(...xs) + Math.max(...xs)) / 2 - cx, (Math.min(...ys) + Math.max(...ys)) / 2 - cy];
+    };
+    // 箱の札の i の丸
+    const boxes = diagramOf(notation("sequence"));
+    if (boxes === undefined) return;
+    const svg = svgOf(dragon.renderDiagram(boxes, { lang: "ja" }).svg);
+    const badges = [...svg.querySelectorAll(".dg-nb")];
+    // 判定の表の i の丸
+    const judge = diagramOf("judge 送金 [note: pop]\n\nrule to as 宛先 [note: 宛先が許した所か]\n\ncase 1件目 [note: その日1件目]\n");
+    if (judge === undefined) return;
+    const holder = document.createElement("div");
+    holder.innerHTML = dragon.renderDiagram(judge, { lang: "ja" }).svg;
+    const marks = [...holder.querySelectorAll('[data-dragon="note-mark"]')];
+    expect(badges.length, "箱の札の i の丸の数").toBe(2);
+    expect(marks.length, "判定の表の i の丸の数").toBe(2);
+    for (const [what, mark] of [...badges.map((b) => ["箱の札", b] as const), ...marks.map((m) => ["判定の表", m] as const)]) {
+      const offset = offsetOf(mark);
+      expect(offset, `${what} の i の字を字 (text) で描いていて、字の形の真ん中を測れない`).toBeDefined();
+      if (!offset) continue;
+      const [dx, dy] = offset;
+      expect(Math.abs(dx), `${what} の i の字の形の横の真ん中が丸の真ん中から ${dx.toFixed(2)} ずれる`).toBeLessThanOrEqual(0.3);
+      expect(Math.abs(dy), `${what} の i の字の形の縦の真ん中が丸の真ん中から ${dy.toFixed(2)} ずれる`).toBeLessThanOrEqual(0.3);
+    }
   });
 
   it("note-mode-unknown-refused", () => {

@@ -101,8 +101,8 @@ export interface KindParts<L extends Layout = Layout> {
   notation?: {
     matches(text: string): boolean;
     print?(this: void, diagram: import("../schema").Diagram): string;
-    /** 記法を読む。`lang` は誤りの文の言葉 */
-    read(text: string, lang?: NotationLang): import("../parser").Parsed;
+    /** 記法を読む。`lang` は誤りの文の言葉、`note` は 1 行目に `note` を書かない図の説明の見せ方の既定 (Markdown の頁の `note: pop`、#3890) */
+    read(text: string, lang?: NotationLang, note?: import("../blocks/pop/block").NoteMode): import("../parser").Parsed;
   };
   /**
    * 図を SVG でなく HTML で描く種類 (判定の表、#3879)。`markup` は並べた物を HTML の字にし、描く本体はこの種類の SVG を描かない。

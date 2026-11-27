@@ -4,7 +4,6 @@
 |---|---|---|
 | `judge`で規則5つと例6つを書いた時、行に例、列に規則、最後の列に判定を置いたHTMLの表を描く | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-draws-html-table` passes | #3879 |
 | 例の下に`fail`を書いた規則のセルだけが✕とその外れた値を持ち、書かない規則のセルは✓になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-fail-marks-only-written-rules` passes | #3879 |
-| 外れる規則を持つ例の判定は「止める」で、その下に外れた規則の番号と名前を出し、外れる規則を持たない例の判定は「通す」になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-verdict-names-failed-rules` passes | #3879 |
 | 再生すると、段の送り1回で規則の列を左から1列ずつ照らして✓と✕を出し、最後の送りで判定を出す | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-plays-column-by-column` passes | #3879 |
 | `fail`の行に`[stop]`を書いた時、その後の列のセルが「—」になる | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-stop-dashes-later-columns` passes | #3879 |
 | 例に`[note: <字>]`を書いた時、例の名前の下にその字を出す | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-case-note-under-name` passes | #3879 |
@@ -25,7 +24,7 @@
 | SVGで描く図の種類のPNGは、今と同じく図の`width`と`height`の2倍の大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3923 |
 | 判定の表で図に無い段を`--step`に選ぶと、撮らずに断る | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `judge-export-refuses-missing-step` passes | #3923 |
 | 判定の表を`dragon export --format svg`で書き出すと、表の枠と地と字と✓と✕と判定の札をSVGの要素で描いたSVGを書き、`foreignObject`を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-draws-table-with-svg-elements` passes | #3891 |
-| 書き出したSVGは全てのセルの✓と✕と「—」と全ての例の判定を描き、✕の下に外れた値を、止める判定の語の下に外れた規則の番号と名前を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-fills-every-cell-and-verdict` passes | #3891 |
+| 書き出したSVGは全てのセルの✓と✕と「—」と全ての例の判定の語を描き、✕の下に外れた値を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-fills-every-cell-and-verdict` passes | #3891 |
 | 書き出したSVGは、例の名前と添え書きをその例の✓と✕の行の上の帯に1行で描き、左の例の列を持たない | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-puts-cases-on-bands` passes | #3891 |
 | 判定の表の見本 (送金、会員登録、返金、配布の日本語と英語) のSVGは幅が728px以下で、全ての字が10.5px以上 | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-readable-at-728` passes | #3891 |
 | 帯の形でも幅728pxを超える表 (規則を10個書いた表) のSVGは、728pxに収まる所で規則の列を分けて帯の形の表を縦に積み、どの段にも例の帯を、最後の段にだけ判定の列を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-svg-stacks-wide-tables` passes | #3891 |
@@ -49,3 +48,23 @@
 | 頁に置く判定の表と再生する表は今どおりHTMLの表で、字を縮めない | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-text-readable-at-728` passes | #3891 |
 | SVGで描く図の種類の書き出す入口のPNGとSVGと動画は、今と同じ大きさと字で書く | `pnpm exec vitest run packages/dragon/test/capture.test.ts` check `capture-still-any-svg` and `capture-film-matches-export` passes | #3891 |
 | SVGで描く図の種類の命令の書き出しのPNGは、今と同じ大きさで書く | `pnpm exec vitest run packages/dragon/test/judge-export.test.ts` check `png-export-keeps-svg-size` passes | #3891 |
+| 1行目に`[note: pop]`を書いた判定の表で、`note`を持つ規則の見出しのセルを押すと、見出しのすぐ下に札が開き、札は番号と規則の名前と`note`の全文を持ち、規則の行に`example`を書いた時だけ灰色の例の帯を持つ | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-rule-card-opens` passes | #3890 |
+| 札で見せる表で、`note`を持つ例の名前のセルを押すと、名前のすぐ下に札が開き、札は例の名前と`note`の全文を持ち、例の行に`example`を書いた時だけ例の帯を持つ | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-case-card-opens` passes | #3890 |
+| 札で見せる表は、例の`note`を名前の下に描かない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-case-note-moves-to-card` passes | #3890 |
+| 札で見せる表の`note`を持つ規則の見出しと例の名前は、名前のすぐ右に5px空けてiの丸を持ち、丸の真ん中が名前の行の高さの真ん中に在る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-mark-beside-name` passes | #3890 |
+| `note`を持たない規則の見出しと例の名前はiの丸を持たず、押しても札を開かない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-no-note-no-card` passes | #3890 |
+| 例の行の名前のセルより右のセル (✓と✕と判定) を押しても、札を開かない | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-row-cells-do-not-open` passes | #3890 |
+| 開いた札は、札の外か閉じるのアイコンを押すと閉じ、段を送ると閉じ、表を横に送ると閉じる | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-card-closes` passes | #3890 |
+| 印刷の形では、横に送る枠に隠れた列の分も含めて全ての札が開き、表に重ならず表の下に規則と例の名前と並ぶ | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-print-lists-all-cards` passes | #3890 |
+| Markdownの頁の上の設定の行に`note: pop`を書くと、頁の判定の表も札で見せる | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-page-default` passes | #3890 |
+| 札で見せる表を書き戻すと、1行目の`[note: pop]`と、規則の行と例の行の`note`と`example`が同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-notation-round-trip` passes | #3890 |
+| 札で見せない表の規則の行か、`note`を持たない規則の行か例の行に`example`を書くと、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-example-without-pop-refused` passes | #3890 |
+| 札で見せない表の規則に`note`を書くと、見出しの値の下に小さな字で描く | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-rule-note-under-value` passes | #3890 |
+| 止める判定の札は「止める」の語 (替えた時はその語) だけを持ち、外れた規則の番号と名前を持たない | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-verdict-word-only` passes | #3890 |
+| 書き出す静止画でも、止める判定の札は語だけを持ち、札で見せる表の例の`note`を名前の下に描かず、`note`を持つ名前の右にiの丸を描く | `pnpm exec vitest run packages/dragon/test/judge-picture.test.ts` check `judge-picture-verdict-word-and-marks` passes | #3890 |
+| 箱の札のiの丸と判定の表のiの丸は、斜めのiの字の形の上下左右の真ん中が丸の真ん中から0.3px以内に在る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mark-glyph-centered` passes | #3890 |
+| 使い方の頁の札の段落と、手引きの判定の表の節に、判定の表を`[note: pop]`で札で見せる書き方が日本語と英語で載る | `pnpm exec vitest run packages/dragon/test/judge-note.test.ts` check `judge-pop-documented` passes | #3890 |
+| 札で見せない表の例の`note`は、今と同じく名前の下に描く | `pnpm exec vitest run packages/dragon/test/judge-diagram.test.ts` check `judge-case-note-under-name` passes | #3890 |
+| 札で見せる図の箱を押すと、今と同じく箱のすぐ下に札が開く | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-opens-card-under-box` passes | #3890 |
+| 箱の札は、今と同じく札の外を押すと閉じる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-closes-outside` passes | #3890 |
+| 箱の札は、今と同じく印刷の形で図の下に箱の名前と並ぶ | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-print-lists-cards-below-figure` passes | #3890 |
