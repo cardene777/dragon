@@ -106,3 +106,9 @@
 | skillは全ての図の種類を挙げる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-covers-every-kind` passes | #3909 |
 | skillの全てのdragonの囲みは読める | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-fences-parse` passes | #3909 |
 | skillの参照のリンクは全て開ける | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts` check `skill-links-resolve` passes | #3909 |
+| `page.md`の`## <topic>`の行は、話題が1つなら全ての節を1つの頁に並べ、話題が2つ以上なら全体像の頁と話題ごとの頁に分け、左の目次で頁を開くと書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-page-describes-topic-pages` passes | #4003 |
+| `page.md`の`### <question>`の行は、目次の問いを押すと、話題が1つの頁ではその節へ移り、話題ごとに分けた頁ではその問いだけを出すと書く | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-page-describes-menu-per-question` passes | #4003 |
+| `page.md`は、話題が2つ以上の頁が1つの頁に続けて並ぶとも、頁がタブを持つとも書かない (「Topics follow one another on one page」と「tab」の語が無い) | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-page-names-no-tabs` passes | #4003 |
+| musubiの`page`の版は`1.0.0`より上がる | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-musubi-page-version-raised` passes | #4003 |
+| `musubi.json`は`references/`の下の全てのfileを中身として出し、名指したfileが全て在る | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-musubi-provides-every-reference` passes | #4003 |
+| skillの参照に残した資料の例は、`dragon check`と`dragon check --layout`を誤り無しで通る | `pnpm exec vitest run packages/dragon/test/notation-skill.test.ts --reporter=verbose` check `skill-example-pages-check-clean` passes | #4003 |
