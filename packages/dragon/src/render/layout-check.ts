@@ -12,6 +12,7 @@ import { tokenize } from "../tokenize";
 import type { UserBlocks } from "../user-blocks";
 import { DEFAULT_LANG, type NotationLang } from "../words";
 import { diamondPoints, type Point } from "../layout/scene";
+import { WRAP } from "../look/values";
 import { userBlockReader } from "../user-blocks";
 import { type BreakFinder, breakKey, findBreaks, type FrameSide, type LayoutBreak, type LayoutPart } from "./breaks";
 import { drawDiagram } from "./draw";
@@ -152,6 +153,8 @@ interface BreakText {
   overlaps: (a: string, b: string) => string;
   overText: (line: string, text: string) => string;
   emptyBand: (a: string, b: string) => string;
+  roomOf: (chars: number) => string;
+  wrappedNarrow: (text: string, room: string) => string;
 }
 
 const BREAK_TEXT: Record<NotationLang, BreakText> = {
@@ -190,6 +193,8 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     overlaps: (a, b) => `${spaced(a)}と${spaced(b)}が重なる`,
     overText: (line, text) => `${spaced(line)}が${spaced(text)}の上を通る`,
     emptyBand: (a, b) => `${spaced(a)}と${spaced(b)}の間に、何も描かない帯が高さ${EMPTY_BAND}px以上空く`,
+    roomOf: (chars) => `${chars}字の幅`,
+    wrappedNarrow: (text, room) => `${spaced(text)}を${room}で折り、1行に${WRAP.least}字入らない`,
   },
   en: {
     slotOf: (box) => `the carry slot of "${box}"`,
@@ -226,6 +231,8 @@ const BREAK_TEXT: Record<NotationLang, BreakText> = {
     overlaps: (a, b) => capital(`${a} and ${b} overlap`),
     overText: (line, text) => capital(`${line} runs over ${text}`),
     emptyBand: (a, b) => capital(`an empty band of ${EMPTY_BAND}px or more is left between ${a} and ${b}`),
+    roomOf: (chars) => `a width of ${chars} characters`,
+    wrappedNarrow: (text, room) => capital(`${text} is wrapped at ${room}, too narrow for ${WRAP.least} characters a line`),
   },
 };
 
@@ -279,6 +286,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
         return w.tankOf(part.name);
       case "flow":
         return w.flowOf(part.name);
+      case "room":
+        return w.roomOf(part.chars);
     }
   };
   const [a, b2] = b.parts;
@@ -323,6 +332,8 @@ export function describeBreak(b: LayoutBreak, lang: NotationLang = DEFAULT_LANG)
                                       ? w.emptyBand(name(a), name(b2))
                                       : b.kind === "texts-overlap"
                                         ? t.textsOverlap(name(a), name(b2))
-                                        : w.runClose(name(a), name(b2));
+                                        : b.kind === "text-wrapped-narrow"
+                                          ? w.wrappedNarrow(name(a), name(b2))
+                                          : w.runClose(name(a), name(b2));
   return b.width === undefined ? said : `${said} ${t.atWidth(b.width)}`;
 }

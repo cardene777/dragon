@@ -16,6 +16,33 @@ import * as dragon from "./all-kinds";
 import { describe, expect, it, vi } from "vitest";
 import { atLoad } from "./at-load";
 import { casesNamed, runCli, runCliInProcess } from "./export-support";
+import { hasWide } from "../src/layout/measure";
+import type { TextStyle } from "../src/look/values";
+import { ALWAYS } from "../src/render/ink";
+
+/** 描き方が字を折る処理 (`wrap`) に渡した字と字の大きさと幅、折った行 (#4009) */
+interface WrapCall {
+  text: string;
+  size: number;
+  width: number;
+  lines: string[];
+}
+
+/** 字を折る処理の記録。記録する間 (`on`) だけ足す */
+const wrapLog = vi.hoisted(() => ({ on: false, calls: [] as WrapCall[] }));
+
+// 字を折る処理を包み、描き方が渡した幅と折った行を記録する (#4009)。折り方そのものは元の処理のまま
+vi.mock("../src/layout/wrap", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../src/layout/wrap")>();
+  return {
+    ...real,
+    wrap: (text: string, style: TextStyle, width: number): string[] => {
+      const lines = real.wrap(text, style, width);
+      if (wrapLog.on) wrapLog.calls.push({ text, size: style.size, width, lines });
+      return lines;
+    },
+  };
+});
 
 // 書き出しの撮る所だけを差し替え、撮った止め絵の時刻を PNG の中身にする。段の選び方を Chromium を起こさずに確かめる。
 // Chromium を起こす書き出しは 1 回で 8 秒かかり、3 回撮って比べると 1 件の上限 (10 秒) を超える
@@ -990,5 +1017,245 @@ describe("dragon export --step (#3484)", () => {
       expect(ran.code, `${what}を選んでも断らない ${ran.stderr}`).toBe(2);
       if (said !== undefined) expect(ran.stderr, "断りの文が段と図の段の数を名指さない").toContain(said);
     });
+  });
+});
+
+/*
+ * 字を折る幅の決まり (#4009、`docs/adr/0017-wrapped-text-keeps-16-chars.md`)。
+ * 並べ方で幅を測って折る SVG の字は、1 行に 16 字 (字の大きさの 16 倍) 入らない幅で折らず、折った最後の行に 4 字以上を残す。
+ * 字数は全角に直した数で、半角は 2 字で全角 1 字に数える。描き方が字を折る所を広げたかは、描き方が字を折る処理に渡した幅で確かめる。
+ * 字を折る処理そのものの件は `wrap.test.ts` が持つ
+ */
+const WRAP_LEAST = 16;
+const WRAP_LAST = 4;
+const { checkLayoutText } = await import("../src/render/layout-check");
+
+/** 全角に直した字数。和文の字は 1 字、ほかの字 (欧文と空白) は半字に数える */
+const wrapChars = (line: string): number => [...line].reduce((n, ch) => n + (hasWide(ch) ? 1 : 0.5), 0);
+/** 16 字より狭い幅で 2 行以上に折った記録か */
+const wrapNarrow = (call: WrapCall): boolean => call.lines.length > 1 && call.width < WRAP_LEAST * call.size - 1e-9;
+
+/** `work` の間に字を折る処理へ渡された記録 */
+function wrapsDuring<T>(work: () => T): { value: T; calls: WrapCall[] } {
+  wrapLog.calls.length = 0;
+  wrapLog.on = true;
+  try {
+    return { value: work(), calls: wrapLog.calls.splice(0) };
+  } finally {
+    wrapLog.on = false;
+  }
+}
+
+/** 記法を読んだ原本。読めなければ断りを挙げて投げる */
+function wrapDiagramOf(text: string, lang: "ja" | "en"): unknown {
+  const parsed = parseNotation(text, { lang });
+  if (!parsed.ok) throw new Error(`記法を読めない: ${JSON.stringify(parsed.errors)}`);
+  return parsed.diagram;
+}
+
+/** 列の図で字を折る所ごとに、長い字を書いた記法。`long` は折れる長い字 (一言は描き方が作る文に含まれる字)、`width` は描く枠の幅 */
+const WRAP_PLACES: { place: string; long: string; text: string; width?: number }[] = [
+  {
+    place: "段の題",
+    long: "列に並んだチップを1枚ずつ送って中身を確かめる",
+    text: [
+      "lineup 長い段の題",
+      "",
+      "box 待ち",
+      "",
+      "item 甲",
+      "",
+      "step 列に並んだチップを1枚ずつ送って中身を確かめる",
+      "  say 段の題が長い時も、図を広げて題を折る。",
+      "  line 待ち: 甲",
+    ].join("\n"),
+  },
+  {
+    place: "列の名前 (携帯の幅)",
+    long: "受付の窓口で書類を受け取って中身を確かめる係",
+    width: 390,
+    text: [
+      "lineup 長い列の名前",
+      "",
+      "box desk as 受付の窓口で書類を受け取って中身を確かめる係",
+      "box check as 審査",
+      "",
+      "item 甲, 乙",
+      "",
+      "step 並べる",
+      "  say 列の名前が長い時も、列を広げて名前を折る。",
+      "  line desk: 甲",
+      "  line check: 乙",
+    ].join("\n"),
+  },
+  {
+    place: "駅の名前 (携帯の幅)",
+    long: "受付の窓口で書類を受け取って中身を確かめる係",
+    width: 390,
+    text: [
+      "lineup 長い駅の名前 [shape: stations]",
+      "",
+      "box desk as 受付の窓口で書類を受け取って中身を確かめる係",
+      "box check as 審査",
+      "",
+      "item 甲, 乙",
+      "",
+      "step 並べる",
+      "  say 駅の名前が長い時も、駅の間を広げて名前を折る。",
+      "  line desk: 甲",
+      "  line check: 乙",
+    ].join("\n"),
+  },
+  {
+    place: "凡例",
+    long: "窓口に届いた書類のうち、まだ誰も中身を確かめていない物",
+    text: [
+      "lineup 長い凡例",
+      "",
+      "box 窓口",
+      "",
+      "item 申請 [note: 窓口に届いた書類のうち、まだ誰も中身を確かめていない物]",
+      "",
+      "step 並べる",
+      "  say 凡例の説明が長い時も、図を広げて説明を折る。",
+      "  line 窓口: 申請",
+    ].join("\n"),
+  },
+  {
+    place: "帯の一言",
+    long: "甲、乙、丙、丁、戊、己、庚、辛",
+    text: [
+      "lineup 長い一言",
+      "",
+      "box pool as 置き場 [order: none]",
+      "box lane as 列",
+      "",
+      "item 書類",
+      "item 甲, 乙, 丙, 丁, 戊, 己, 庚, 辛",
+      "",
+      "step 置く",
+      "  say 書類を置き場に置く。",
+      "  line pool: 書類",
+      "",
+      "step 並べる",
+      "  say 置き場に無かった書類を列に足すと、列の下に一言が出る。",
+      "  line lane: 書類, 甲, 乙, 丙, 丁, 戊, 己, 庚, 辛",
+    ].join("\n"),
+  },
+  {
+    place: "層の説明 (携帯の幅)",
+    long: "画面で交換を頼み、送った取引がL1で戻せなくなるまで待ってから結果を見せる",
+    width: 390,
+    text: [
+      "lineup 長い層の説明 [shape: layers]",
+      "",
+      "box app as アプリ [note: 画面で交換を頼み、送った取引がL1で戻せなくなるまで待ってから結果を見せる]",
+      "box l1 as L1 [note: 戻せなくなるまで待つ]",
+      "",
+      "item 取引",
+      "",
+      "step 頼む",
+      "  say 層の説明が長い時も、帯を広げて説明を折る。",
+      "  line app: 取引",
+    ].join("\n"),
+  },
+];
+const WRAP_PLACES_DRAWN = await atLoad("列の図で字を折る所に長い字を書いた記法を描いて崩れを数える", () =>
+  WRAP_PLACES.map((one) => {
+    const diagram = wrapDiagramOf(one.text, "ja");
+    const { calls } = wrapsDuring(() => renderDiagram(diagram, { lang: "ja", ...(one.width === undefined ? {} : { width: one.width }) }));
+    return { ...one, wraps: calls, breaks: checkLayoutText(one.text, { lang: "ja" }) };
+  }),
+);
+
+describe("列の図は字を折る所を広げて 16 字以上の幅で折る (#4009)", () => {
+  describe.for(WRAP_PLACES.map((one) => [one.place] as const))("%s", ([place]) => {
+    it("lineup-wrapped-texts-widen-their-area", () => {
+      const one = WRAP_PLACES_DRAWN.get().find((p) => p.place === place);
+      expect(one, `${place} を描けない`).toBeDefined();
+      if (one === undefined) return;
+      const mine = one.wraps.filter((call) => call.text.includes(one.long) && call.lines.length > 1);
+      expect(mine.length, `${place} の長い字を 2 行以上に折らない`).toBeGreaterThan(0);
+      const narrow = one.wraps.filter(wrapNarrow).map((call) => `「${call.text}」を ${(call.width / call.size).toFixed(1)} 字の幅で折った`);
+      expect(narrow, `${place} で 16 字より狭く折った字`).toEqual([]);
+      expect(
+        one.breaks.map((b) => describeBreak(b, "ja")),
+        `${place} の崩れ`,
+      ).toEqual([]);
+    });
+  });
+});
+
+/** 崩れを数える材料。字だけを持ち、線と箱を持たない */
+const wrapBreakInput = (inks: unknown[]): Parameters<typeof findBreaks>[0] => ({ inks, traces: [], framed: [], stills: [0, 1], frame: { w: 800, h: 600 }, boxes: [], edges: [], outlines: new Map() }) as never;
+/** 描き方が 2 行に折った字の 1 行目の記録。`wrap` は描き方が折る処理に渡した幅と字の大きさと全文 */
+const wrappedFirstLine = (whole: string, width: number): unknown => ({ text: whole.slice(0, 10), rect: { x: 20, y: 40, w: 160, h: 12.5 }, shown: ALWAYS, wrap: { width, size: 12.5, text: whole } });
+
+describe("dragon check --layout は 16 字より狭く折った字を知らせる (#4009)", () => {
+  const whole = "step で段を区切り、say で段の本文を書く。";
+
+  it("layout-check-finds-narrow-wrap", () => {
+    const breaks = findBreaks(wrapBreakInput([wrappedFirstLine(whole, 166)])).filter((b) => (b.kind as string) === "text-wrapped-narrow");
+    expect(breaks, "16 字より狭く折った字を崩れにしない").toHaveLength(1);
+    const [found] = breaks;
+    if (found === undefined) return;
+    expect(found.step, "崩れが見え始める段").toBe(1);
+    expect(found.parts[0], "崩れの 1 つ目の部品は折った字の全文").toEqual({ kind: "text", text: whole });
+    for (const lang of ["ja", "en"] as const) {
+      const sentence = describeBreak(found, lang);
+      expect(sentence, `${lang} の文が字を名指す`).toContain(whole);
+      expect(sentence, `${lang} の文が 16 字の決まりを言う`).toContain("16");
+    }
+  });
+
+  it("layout-check-skips-wraps-at-16-chars", () => {
+    const one = { text: "段は1つずつ送って見る。", rect: { x: 20, y: 40, w: 145, h: 12.5 }, shown: ALWAYS };
+    const breaks = findBreaks(wrapBreakInput([wrappedFirstLine(whole, 16 * 12.5), one]));
+    expect(
+      breaks.map((b) => b.kind),
+      "16 字の幅で折った字と 1 行の字の崩れ",
+    ).toEqual([]);
+  });
+});
+
+/** 見本と検査の記法と部品の図の file の名前と原本と言葉。指紋を取る script (`scripts/snapshot-examples.mjs`) と同じ範囲 */
+function wrapSources(): { file: string; diagram: unknown; lang: "ja" | "en" }[] {
+  const pkg = join(ROOT, "packages/dragon");
+  const listed = (dir: string, keep: (file: string) => boolean): string[] => (existsSync(dir) ? readdirSync(dir).filter(keep) : []);
+  const blocks = join(pkg, "src/blocks");
+  const files = [
+    ...listed(join(pkg, "examples"), (f) => f.endsWith(".json") || f.endsWith(".dragon")).map((f) => ({ file: `examples/${f}`, path: join(pkg, "examples", f) })),
+    ...listed(join(pkg, "test/fixtures"), (f) => f.endsWith(".dragon")).map((f) => ({ file: `test/fixtures/${f}`, path: join(pkg, "test/fixtures", f) })),
+    ...readdirSync(blocks).flatMap((name) => listed(join(blocks, name, "gallery"), (f) => f.endsWith(".dragon")).map((f) => ({ file: `parts/${f}`, path: join(blocks, name, "gallery", f) }))),
+  ];
+  return files.map(({ file, path }) => {
+    const text = readFileSync(path, "utf8");
+    const lang = file.endsWith(".en.dragon") ? "en" : "ja";
+    return { file, lang, diagram: file.endsWith(".json") ? (JSON.parse(text) as unknown) : wrapDiagramOf(text, lang) };
+  });
+}
+
+/** 全ての見本を既定の幅と携帯の幅 (390) で描き、字を折る処理に渡された記録を見本と描いた枠の幅と共に集める */
+const WRAP_SWEEP = await atLoad("見本と検査の記法と部品の図を全て描いて字を折った記録を集める", () =>
+  wrapSources().flatMap(({ file, diagram, lang }) =>
+    [undefined, 390].flatMap((frame) => wrapsDuring(() => renderDiagram(diagram, { lang, ...(frame === undefined ? {} : { width: frame }) })).calls.map((call) => ({ file, frame, ...call }))),
+  ),
+);
+/** 記録の見本と描いた枠の幅と字 */
+const wrapWhere = (call: WrapCall & { file: string; frame: number | undefined }): string => `${call.file} (${call.frame === undefined ? "既定の幅" : `幅 ${call.frame}`}) の「${call.text}」`;
+
+describe("見本と部品の図は 16 字以上の幅で折り、最後の行に 4 字以上を残す (#4009)", () => {
+  it("examples-wrap-at-16-chars-or-more", () => {
+    const all = WRAP_SWEEP.get();
+    expect(all.filter((call) => call.lines.length > 1).length, "2 行以上に折った字が見本に無い").toBeGreaterThan(0);
+    const offenders = all.filter(wrapNarrow).map((call) => `${wrapWhere(call)} を ${(call.width / call.size).toFixed(1)} 字の幅で折った`);
+    expect(offenders, "16 字より狭い幅で折った字").toEqual([]);
+  });
+
+  it("examples-last-wrapped-line-has-4-chars", () => {
+    const offenders = WRAP_SWEEP.get()
+      .filter((call) => call.lines.length > 1 && wrapChars(call.lines.at(-1) ?? "") < WRAP_LAST)
+      .map((call) => `${wrapWhere(call)} の最後の行「${call.lines.at(-1)}」`);
+    expect(offenders, "最後の行が 4 字に満たない字").toEqual([]);
   });
 });

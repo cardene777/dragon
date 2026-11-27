@@ -33,7 +33,7 @@
 import { heldIn, type Seat } from "../blocks/carry/timing";
 import type { PipeLayout } from "../kinds/pipe/layout";
 import { along, crossesRect, distanceToRect, distanceToSegment, type Layout, lineGap, pathLength, type Point, type Rect, type SceneBox, type SceneEdge } from "../layout/scene";
-import { APART, LOOK, PIPE_FIRST } from "../look/values";
+import { APART, LOOK, PIPE_FIRST, WRAP } from "../look/values";
 import { type Framed, type Ink, type InkPart, type Shown, type Stroke, type Trace, visible } from "./ink";
 import { pipeBreaks } from "./pipe-breaks";
 
@@ -65,7 +65,9 @@ export type LayoutPart =
   | { kind: "stamp"; text: string }
   | { kind: "span"; text: string }
   | { kind: "tank"; name: string }
-  | { kind: "flow"; name: string };
+  | { kind: "flow"; name: string }
+  /** 字を折った幅。`chars` は 1 行に入る字の数 (幅を字の大きさで割った数、#4009) */
+  | { kind: "room"; chars: number };
 
 export type LayoutBreakKind =
   | "badge-off-shape"
@@ -91,7 +93,8 @@ export type LayoutBreakKind =
   | "parts-overlap"
   | "line-over-text"
   | "empty-band"
-  | "texts-overlap";
+  | "texts-overlap"
+  | "text-wrapped-narrow";
 
 /** 枠線を描いた囲みと列と帯 (#3525)。`name` は囲みと列の名前か帯の題で、名前を持たない囲み (時間軸の図の時間軸) は空 */
 export interface Border {
@@ -606,6 +609,13 @@ export function findBreaks(input: BreakInput): LayoutBreak[] {
     if (!ring) continue;
     const fits = [rect.x, rect.x + rect.w].every((x) => [rect.y, rect.y + rect.h].every((y) => Math.hypot(x - ring.cx, y - ring.cy) <= ring.r + ROUNDING));
     if (!fits) add("title-outside-ring", firstSeen(ink), [{ kind: "text", text: ink.text }, { kind: "ring" }]);
+  }
+
+  // 1 行に 16 字入らない幅で折った字 (#4009)。描き方が字を折る所を広げ忘れると、字を折る処理が下限の幅で折った字が所からはみ出す
+  for (const ink of inks) {
+    const { wrap } = ink;
+    if (wrap === undefined || wrap.width >= WRAP.least * wrap.size - ROUNDING) continue;
+    add("text-wrapped-narrow", firstSeen(ink), [{ kind: "text", text: wrap.text }, { kind: "room", chars: Math.round((wrap.width / wrap.size) * 10) / 10 }]);
   }
 
   // 図の枠からはみ出す部品 (#3515)。枠の外へ触れている間より多く出た字と札と丸と絵柄と運ぶ物と線を、出た量の最も多い端で知らせる。

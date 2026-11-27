@@ -10,7 +10,8 @@
  * 角を落とす色味 (`corner: "cut"`) では、頁の表と同じく枠の右上と左下を落とし、番号の丸と判定の札の角を丸めない
  */
 import type { JudgeLayout, JudgeRow } from "../kinds/judge/layout";
-import { textWidth, wrap } from "../layout/measure";
+import { textWidth } from "../layout/measure";
+import { wrap } from "../layout/wrap";
 import {
   FONT_VARS,
   LOOK,
@@ -19,6 +20,7 @@ import {
   text,
   type TextStyle,
   type Theme,
+  WRAP,
 } from "../look/values";
 import { noteGlyph } from "../blocks/pop/draw";
 import { judgeNoteId } from "../kinds/judge/layout";
@@ -239,6 +241,9 @@ function pillEl(row: JudgeRow, judge: Judge, cx: number, mid: number, ink: Ink):
   return `<g class="jp">${items.join("")}</g>`;
 }
 
+/** 表の下に並べる規則の note の、項の左端から note の左端までの幅。番号の丸と規則の名前の後ろに note を置く */
+const noteIndent = (name: string, no: number): number => badgeOf(no, J.badge, STYLE.no) + J.badgeGap + textWidth(name, STYLE.head) + J.notes.nameGap;
+
 /**
  * 札で見せない表 (#4008) の、表の下 (段に分けた時は最後の段の後) に並べる規則の note。`top` は表の下端。
  * 1 項は番号の丸と規則の名前と note で、note は絵の幅で折り、2 行目からは note の左端に揃える。並べる規則が無い時は何も描かない
@@ -252,7 +257,7 @@ function ruleNotesEl(judge: Judge, W: number, top: number, ink: Ink): { svg: str
     const mid = y + lineOf(J.text) / 2;
     const base = mid + STYLE.head.size * P.mid;
     const badge = badgeOf(i + 1, J.badge, STYLE.no);
-    const indent = badge + J.badgeGap + textWidth(rule.name, STYLE.head) + J.notes.nameGap;
+    const indent = noteIndent(rule.name, i + 1);
     const lines = wrap(rule.note, STYLE.note, W - 2 * L - 2 * J.padX - indent);
     const parts = [
       `<rect x="${r1(x)}" y="${r1(mid - J.badge / 2)}" width="${r1(badge)}" height="${J.badge}" rx="${ink.cut ? 0 : J.badge / 2}" fill="${esc(mix(ink.blue, 0.14, ink.sunk))}"/>`,
@@ -409,8 +414,16 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
       (marked.has(judgeNoteId.case(i)) ? MARK_W : 0) +
       (row.note === undefined ? 0 : P.noteGap + textWidth(row.note, STYLE.note)),
   );
+  // 表の下の規則の note は名前の右から絵の幅で折るので、16 字より狭く折らない幅まで絵を広げる (#4009)
+  const noteNeeds = judge.pop
+    ? []
+    : rules.flatMap((rule, i) =>
+        rule.note === undefined
+          ? []
+          : [2 * L + 2 * J.padX + noteIndent(rule.name, i + 1) + Math.min(textWidth(rule.note, STYLE.note), WRAP.least * STYLE.note.size)],
+      );
   const W = Math.ceil(
-    Math.max(P.width, ...sums.map((sum) => sum + 2 * L), ...bands.map((band) => band + 2 * L)),
+    Math.max(P.width, ...sums.map((sum) => sum + 2 * L), ...bands.map((band) => band + 2 * L), ...noteNeeds),
   );
 
   // 行の高さ。全ての段で揃えるので、全ての列の印と札から決める
