@@ -595,7 +595,7 @@ const stillsShown = (page: Page): Promise<unknown> =>
 
 /**
  * 印刷の形の頁で、話題ごとの面と節、箱の札と同じ図の絵、段の止め絵を読む (#3956)。
- * 話題の名前は左の目次 (印刷の形では隠す) の話題の行から読み、行が指す話題の面を読む (#3961)
+ * 話題の名前は頁の上のヘッダー (印刷の形では隠す) の話題のタブ (最初の全体像のタブを除く) から読み、タブが指す話題の面を読む (#3961、#4024)
  */
 const printedPage = async (page: Page) => {
   await stillsShown(page);
@@ -615,7 +615,7 @@ const printedPage = async (page: Page) => {
       const r = el.getBoundingClientRect();
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
     };
-    const topics = [...document.querySelectorAll("nav.pg-menu .pg-menu-topic")].map((tab) => {
+    const topics = [...document.querySelectorAll("header.pg-head nav.pg-head-tabs a")].slice(1).map((tab) => {
       let id = (tab.getAttribute("href") ?? "").slice(1);
       try {
         id = decodeURIComponent(id);
@@ -713,10 +713,10 @@ const pageState = (page: Page) =>
         .filter(vis)
         .map((a) => ({ rel: a.classList.contains("pg-pager-prev") ? "prev" : "next", href: dec(a.getAttribute("href") ?? ""), text: sq(a.textContent) })),
       route: [...document.querySelectorAll("ol.pg-route a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
-      // 頁の行は左の目次の全体像と話題の行。上のタブは持たない (#4010)
-      tabs: [...document.querySelectorAll("nav.pg-menu a.pg-menu-over, nav.pg-menu a.pg-menu-topic")]
+      // 頁の行は頁の上のヘッダーの全体像と話題のタブ (#4024)
+      tabs: [...document.querySelectorAll("header.pg-head nav.pg-head-tabs a")]
         .filter(vis)
-        .map((a) => ({ text: sq(a.textContent), href: dec(a.getAttribute("href") ?? ""), current: a.getAttribute("aria-current") === "true" || a.hasAttribute("data-open") })),
+        .map((a) => ({ text: sq(a.textContent), href: dec(a.getAttribute("href") ?? ""), current: a.getAttribute("aria-current") === "true" })),
       menu: [...document.querySelectorAll("nav.pg-menu a.pg-menu-q")].filter(vis).map((a) => sq(a.querySelector(".pg-menu-name")?.textContent)),
       map: [...document.querySelectorAll(".pg-map-list a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
     };
@@ -875,10 +875,10 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
   ),
 );
 
-/** 左の目次の問いが全て見えているか。話題のタブに分けた頁は、開いている話題の問いだけを数える (#3991) */
+/** 左の目次の問いが全て見えているか。話題のタブに分けた頁は、開いている話題の問いだけを数える (#3991)。ほかの話題の問いの並びは隠す (#4024) */
 const menuShown = (page: Page): Promise<boolean> =>
   page.evaluate(() => {
-    const links = [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")].filter((a) => !a.closest("[data-off]"));
+    const links = [...document.querySelectorAll<HTMLElement>("nav.pg-menu a.pg-menu-q")].filter((a) => !a.closest("[data-off], [hidden]"));
     return links.length > 0 && links.every((a) => a.checkVisibility());
   });
 
@@ -935,24 +935,23 @@ const textWithout = (el: Element, drop: string): string => {
 };
 
 /**
- * 左の目次 (`nav.pg-menu`) の話題と問い。話題は`.pg-menu-topic`の字 (中に問いを入れた形でも問いの字を外す)、
- * 問いは`a.pg-menu-q`の番号 (`.pg-num`) と名前 (`.pg-menu-name`) と行き先で、書いた順に前の話題に入れる
+ * 左の目次 (`nav.pg-menu`) の話題と問い。話題ごとの並び (`.pg-menu-group`) を書いた順に読み、問いは`a.pg-menu-q`の番号 (`.pg-num`) と名前 (`.pg-menu-name`) と行き先を読む。
+ * 話題の名前は並びの`.pg-menu-topic`の字 (中に問いを入れた形でも問いの字を外す) か、頁に分けた頁は並びが指す話題 (`data-topic`) の頁の上のヘッダーのタブの字 (#4024)
  */
 function menuOf(doc: Document): { topic: string; questions: { number: string; name: string; href: string }[] }[] {
-  const groups: { topic: string; questions: { number: string; name: string; href: string }[] }[] = [];
-  for (const el of doc.querySelector("nav.pg-menu")?.querySelectorAll(".pg-menu-topic, a.pg-menu-q") ?? []) {
-    if (el.matches(".pg-menu-topic")) {
-      groups.push({ topic: textWithout(el, "a.pg-menu-q"), questions: [] });
-      continue;
-    }
-    if (groups.length === 0) groups.push({ topic: "", questions: [] });
-    groups[groups.length - 1]!.questions.push({
-      number: squash(el.querySelector(".pg-num")?.textContent),
-      name: squash(el.querySelector(".pg-menu-name")?.textContent),
-      href: decodeURIComponent(el.getAttribute("href") ?? ""),
-    });
-  }
-  return groups;
+  const tabName = (id: string): string =>
+    squash([...doc.querySelectorAll("header.pg-head nav.pg-head-tabs a")].find((a) => decodeURIComponent(a.getAttribute("href") ?? "") === `#${id}`)?.textContent);
+  return [...(doc.querySelector("nav.pg-menu")?.querySelectorAll(".pg-menu-group") ?? [])].map((group) => {
+    const row = group.querySelector(".pg-menu-topic");
+    return {
+      topic: row ? textWithout(row, "a.pg-menu-q") : tabName(group.getAttribute("data-topic") ?? ""),
+      questions: [...group.querySelectorAll("a.pg-menu-q")].map((el) => ({
+        number: squash(el.querySelector(".pg-num")?.textContent),
+        name: squash(el.querySelector(".pg-menu-name")?.textContent),
+        href: decodeURIComponent(el.getAttribute("href") ?? ""),
+      })),
+    };
+  });
 }
 
 /** 本文の節の場所の名前。書いた順 */
@@ -1275,15 +1274,15 @@ describe("説明の頁 (#3876)", () => {
     const doc = await exportedGuide();
     if (!doc) return;
     expect(doc.body.classList.contains("pg-layout-guide"), "layout: guide の頁の組み立て").toBe(true);
-    expect(topicsOf(doc), "## の話題と、話題の中の ### の節。節の番号は話題ごとに1から数え直す").toEqual([
+    expect(topicsOf(doc), "## の話題と、話題の中の ### の節。節の題は番号を持たない (#4024)").toEqual([
       {
         topic: "止める仕組み",
         sections: [
-          { number: "1-1", title: "何を止めるのか", hidden: false },
-          { number: "1-2", title: "どの順で確かめるのか", hidden: false },
+          { number: "", title: "何を止めるのか", hidden: false },
+          { number: "", title: "どの順で確かめるのか", hidden: false },
         ],
       },
-      { topic: "記録", sections: [{ number: "2-1", title: "どこに残すのか", hidden: false }] },
+      { topic: "記録", sections: [{ number: "", title: "どこに残すのか", hidden: false }] },
       { topic: "用語", sections: [] },
     ]);
     // 見本の英語と日本語の頁も、話題と節を持つ頁に書き出せる
@@ -1307,7 +1306,7 @@ describe("説明の頁 (#3876)", () => {
     if (!doc) return;
     expect(
       menuOf(doc).map(({ topic, questions }) => ({ topic, items: questions.map(({ number, name }) => ({ number, name })) })),
-      "左の目次の話題と、番号を持たない問い (#3998)",
+      "左の目次の話題と、番号を持たない問い (#3998)。問いを持たない用語の話題は目次に並びを持たない (#4024)",
     ).toEqual([
       {
         topic: "止める仕組み",
@@ -1317,7 +1316,6 @@ describe("説明の頁 (#3876)", () => {
         ],
       },
       { topic: "記録", items: [{ number: "", name: "どこに残すのか" }] },
-      { topic: "用語", items: [] },
     ]);
   });
 
@@ -1383,8 +1381,9 @@ describe("説明の頁 (#3876)", () => {
     const topic = topics.find((t) => squash(t.querySelector(":scope > h2.pg-topic-title")?.textContent) === "用語");
     expect(topic, "用語のfileを読み込んだ「用語」の話題が無い").toBeDefined();
     expect(topics[topics.length - 1], "「用語」の話題が頁の終わりに無い").toBe(topic);
-    // 左の目次も、用語の話題を問いを持たない話題として最後に並べる
-    expect(menuOf(doc).slice(-1), "左の目次の最後の話題").toEqual([{ topic: "用語", questions: [] }]);
+    // 頁の上のヘッダーも、用語の話題のタブを最後に並べる (#4024)
+    const lastTab = [...doc.querySelectorAll("header.pg-head nav.pg-head-tabs a")].at(-1);
+    expect({ text: squash(lastTab?.textContent), href: decodeURIComponent(lastTab?.getAttribute("href") ?? "") }, "頁の上のヘッダーの最後のタブ").toEqual({ text: "用語", href: `#${topic?.id ?? ""}` });
     expect(
       [...(topic?.querySelectorAll(".pg-gl") ?? [])].map((entry) => ({
         name: squash(entry.querySelector(".pg-gl-n")?.textContent),
@@ -1603,12 +1602,12 @@ describe("左の目次と全体像 (#3961)", () => {
       [...(overview?.querySelectorAll(".pg-figure, ol.pg-route") ?? [])].map((el) => (el.matches(".pg-figure") ? "図" : "道筋")),
       "全体像の中の図と、その後の話題の道筋 (ol.pg-route)",
     ).toEqual(["図", "道筋"]);
-    // 左の目次の最初の行は全体像へ移る
+    // 頁の上のヘッダーの最初のタブは全体像へ移る (#4024)
     expect(overview?.id ?? "", "全体像に場所の名前が無い").not.toBe("");
-    const first = doc.querySelector("nav.pg-menu a");
+    const first = doc.querySelector("header.pg-head nav.pg-head-tabs a");
     expect(
       { href: decodeURIComponent(first?.getAttribute("href") ?? ""), text: squash(first?.textContent) },
-      "左の目次の最初の行が全体像へ移らない",
+      "頁の上のヘッダーの最初のタブが全体像へ移らない",
     ).toEqual({ href: `#${overview?.id ?? ""}`, text: "全体像" });
     const route = [...(overview?.querySelectorAll("ol.pg-route a") ?? [])].map((a) => decodeURIComponent(a.getAttribute("href") ?? ""));
     expect(route, "道筋が書いた順に話題を指さない").toEqual(["#止める仕組み", "#記録", "#送り直す仕組み"]);
@@ -1626,13 +1625,14 @@ describe("左の目次と全体像 (#3961)", () => {
       [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
         title: topic.firstElementChild?.matches("h2.pg-topic-title") ? squash(topic.firstElementChild.textContent) : "",
         hidden: topic.closest("[hidden]") !== null,
-        numbers: [...topic.querySelectorAll(".pg-sec-title .pg-num")].map((num) => squash(num.textContent)),
+        sections: topic.querySelectorAll(".pg-sec").length,
+        numbers: topic.querySelectorAll(".pg-num").length,
       })),
-      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む節。節の番号は話題ごとに1から数え直す",
+      "話題ごとに頭の題 (h2.pg-topic-title) と、隠さずに続けて積む節の数。節の題は番号 (.pg-num) を持たない (#4024)",
     ).toEqual([
-      { title: "止める仕組み", hidden: false, numbers: ["1-1", "1-2"] },
-      { title: "記録", hidden: false, numbers: ["2-1", "2-2"] },
-      { title: "送り直す仕組み", hidden: false, numbers: ["3-1"] },
+      { title: "止める仕組み", hidden: false, sections: 2, numbers: 0 },
+      { title: "記録", hidden: false, sections: 2, numbers: 0 },
+      { title: "送り直す仕組み", hidden: false, sections: 1, numbers: 0 },
     ]);
   });
 
@@ -1679,11 +1679,10 @@ describe("左の目次と全体像 (#3961)", () => {
 });
 
 /**
- * 全体像の図の後の段落と、話題ごとに数え直す問いの番号 (#3969)。
+ * 全体像の図の後の段落 (#3969)。
  *
  * 頭の中身のうち図の前の文は頁の頭に残し、図の後の段落は全体像 (`section.pg-overview`) の中で図の直後、話題の道筋の前に書いた順に出す。
- * その段落の用語のリンクも、頭の文と同じく押すと札がすぐ下に開く下線になる。
- * 問いの番号は話題ごとに1から数え直し、目次と節の題に「話題の番号-問いの番号」で出す。用語の話題は問いも番号も持たない。
+ * その段落の用語のリンクも、頭の文と同じく押すと札がすぐ下に開く下線になる。問いの番号は出さない (#4024)。
  */
 describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
   it("guide-overview-keeps-text-after-figure", async () => {
@@ -1747,39 +1746,6 @@ describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
     expect(card.left, "札が全体像の左へはみ出す").toBeGreaterThanOrEqual(anchor.boxLeft - 0.5);
     expect(card.right, "札が全体像の右へはみ出す").toBeLessThanOrEqual(anchor.boxRight + 0.5);
   });
-
-  it("guide-numbers-restart-per-topic", async () => {
-    const doc = await exportedGuide(writeOverviewGuide());
-    if (!doc) return;
-    const want = [
-      { topic: "止める仕組み", numbers: ["1-1", "1-2"] },
-      { topic: "記録", numbers: ["2-1"] },
-      { topic: "送り直す仕組み", numbers: ["3-1", "3-2"] },
-      { topic: "用語", numbers: [] },
-    ];
-    expect(
-      menuOf(doc).map(({ topic, questions }) => ({ topic, numbers: questions.map((q) => q.number) })),
-      "左の目次の問いの番号。目次の問いは番号を持たない (#3998)",
-    ).toEqual(want.map(({ topic, numbers }) => ({ topic, numbers: numbers.map(() => "") })));
-    expect(
-      [...doc.querySelectorAll("section.pg-topic")].map((topic) => ({
-        topic: squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent),
-        numbers: [...topic.querySelectorAll(".pg-sec-title .pg-num")].map((num) => squash(num.textContent)),
-      })),
-      "本文の節の題の番号。話題ごとに1から数え直し、話題の番号-問いの番号で出す",
-    ).toEqual(want);
-    // 用語の話題は、目次の行にも本文の話題にも番号を出さない。頁の下の前と次のlink (#3983) が出す、ほかの問いの番号は数えない
-    const glossary = [...doc.querySelectorAll("section.pg-topic")].find((topic) => squash(topic.querySelector(":scope > h2.pg-topic-title")?.textContent) === "用語");
-    const row = [...doc.querySelectorAll("nav.pg-menu .pg-menu-topic")].find((el) => textWithout(el, "a.pg-menu-q") === "用語");
-    expect(
-      {
-        topic: glossary !== undefined,
-        row: row !== undefined,
-        numbers: [...(glossary?.querySelectorAll(".pg-num") ?? [])].filter((num) => !num.closest(".pg-pager")).length + (row?.querySelectorAll(".pg-num").length ?? 0),
-      },
-      "用語の話題と目次の行の番号 (.pg-num) の数",
-    ).toEqual({ topic: true, row: true, numbers: 0 });
-  });
 });
 
 /**
@@ -1796,23 +1762,24 @@ describe("話題のタブ (#3991)", () => {
     const glossaryId = [...doc.querySelectorAll("section.pg-topic")].find((topic) => topic.querySelector(".pg-glossary"))?.id ?? "";
     expect(glossaryId, "用語の話題に場所の名前が無い").not.toBe("");
     expect(
-      [...doc.querySelectorAll("nav.pg-menu a.pg-menu-over, nav.pg-menu a.pg-menu-topic")].map((a) => `${squash(a.textContent)} ${decodeURIComponent(a.getAttribute("href") ?? "")}`),
-      "左の目次の頁の行の名前と行き先。全体像の後に話題を書いた順に並べる。上のタブは持たない (#4010)",
+      [...doc.querySelectorAll("header.pg-head nav.pg-head-tabs a")].map((a) => `${squash(a.textContent)} ${decodeURIComponent(a.getAttribute("href") ?? "")}`),
+      "頁の上のヘッダーのタブの名前と行き先。全体像の後に話題を書いた順に並べる (#4024)",
     ).toEqual(["全体像 #", "止める仕組み #止める仕組み", "記録 #記録", `用語 #${glossaryId}`]);
     const seen = PRESSED.get();
     if (!seen) return;
     const start = seen.start.get();
     expect(start.sections, "頁を開いた時に見えている問いの節").toEqual([]);
-    expect(start.head.title && start.head.lead, "頁を開いた時に頁の題と頭の中身が見えない").toBe(true);
-    expect(start.tabs.filter((tab) => tab.current).map((tab) => tab.text), "頁を開いた時に印の付いた左の目次の頁の行").toEqual(["全体像"]);
+    // 頁の題はヘッダーに出し、本文の頭に重ねない (#4024)
+    expect({ title: start.head.title, lead: start.head.lead }, "頁を開いた時に本文の頭に見えている頁の題 (h1) と頭の中身").toEqual({ title: false, lead: true });
+    expect(start.tabs.filter((tab) => tab.current).map((tab) => tab.text), "頁を開いた時に印の付いたヘッダーのタブ").toEqual(["全体像"]);
     expect(start.route, "頁を開いた時に見えている話題の道筋の行き先").toEqual(["#止める仕組み", "#記録"]);
     const tabbed = TABBED.get();
     if (!tabbed) return;
     const top = tabbed.start.get();
     expect(top.sections, "全体像を持つ頁を開いた時に見えている問いの節").toEqual([]);
     expect(top.head.overview, "全体像を持つ頁を開いた時に全体像が見えない").toBe(true);
-    expect(top.tabs.filter((tab) => tab.current).map((tab) => tab.text), "全体像を持つ頁を開いた時に印の付いた左の目次の頁の行").toEqual(["全体像"]);
-    expect(top.tabs.length, "全体像を持つ頁の左の目次の頁の行の数").toBe(5);
+    expect(top.tabs.filter((tab) => tab.current).map((tab) => tab.text), "全体像を持つ頁を開いた時に印の付いたヘッダーのタブ").toEqual(["全体像"]);
+    expect(top.tabs.length, "全体像を持つ頁のヘッダーのタブの数").toBe(5);
   });
 
   it("guide-tabs-topic-map-lists-answers", async () => {
@@ -1830,21 +1797,21 @@ describe("話題のタブ (#3991)", () => {
           href: decodeURIComponent(a.getAttribute("href") ?? ""),
         })),
       })),
-      "話題の頭の一覧の行。問いの番号と目次の名前と答えの1文と、問いの節への行き先",
+      "話題の頭の一覧の行。番号を持たない (#4024) 目次の名前と答えの1文と、問いの節への行き先",
     ).toEqual([
       {
         topic: "止める仕組み",
         rows: [
-          { number: "1-1", name: "止める場所", answer: "確かめる所で止まり、署名する所へは届かない。", href: ids[0] },
-          { number: "1-2", name: "宛先と額と期限は、1回の送金でどの順に照らし合わせるのか", answer: "宛先、額、期限の順に照らす。", href: ids[1] },
+          { number: "", name: "止める場所", answer: "確かめる所で止まり、署名する所へは届かない。", href: ids[0] },
+          { number: "", name: "宛先と額と期限は、1回の送金でどの順に照らし合わせるのか", answer: "宛先、額、期限の順に照らす。", href: ids[1] },
         ],
       },
-      { topic: "記録", rows: [{ number: "2-1", name: "止めた送金とその理由は、後から誰がどこで読めるのか", answer: "記録の一覧に残り、利用者が読める。", href: ids[2] }] },
+      { topic: "記録", rows: [{ number: "", name: "止めた送金とその理由は、後から誰がどこで読めるのか", answer: "記録の一覧に残り、利用者が読める。", href: ids[2] }] },
       {
         topic: "送り直す仕組み",
         rows: [
-          { number: "3-1", name: "止めた送金は、規則を直した後でもう一度送れるのか", answer: "送れる。直した規則で初めから確かめ直す。", href: ids[3] },
-          { number: "3-2", name: "送り直した送金は、前に止めた記録とどう繋がるのか", answer: "記録に前の送金の番号を残す。", href: ids[4] },
+          { number: "", name: "止めた送金は、規則を直した後でもう一度送れるのか", answer: "送れる。直した規則で初めから確かめ直す。", href: ids[3] },
+          { number: "", name: "送り直した送金は、前に止めた記録とどう繋がるのか", answer: "記録に前の送金の番号を残す。", href: ids[4] },
         ],
       },
       { topic: "用語", rows: [] },
@@ -1902,7 +1869,7 @@ describe("話題のタブ (#3991)", () => {
     const glossary = seen.glossary.get();
     expect(glossary.links, "「記録」の札の中の「規則」のlinkの数").toBe(1);
     expect(glossary.state.topics, "札の中のlinkを押した後に見えている話題").toEqual(["用語"]);
-    expect(glossary.state.tabs.filter((tab) => tab.current).map((tab) => tab.text), "札の中のlinkを押した後に印の付いた左の目次の頁の行").toEqual(["用語"]);
+    expect(glossary.state.tabs.filter((tab) => tab.current).map((tab) => tab.text), "札の中のlinkを押した後に印の付いたヘッダーのタブ").toEqual(["用語"]);
     expect(glossary.state.sections, "札の中のlinkを押した後に見えている問いの節").toEqual([]);
     expect(glossary.state.hash, "札の中のlinkを押した後のURLの#の後ろ").toBe(glossary.href);
     const entry = glossary.entry;
@@ -1965,11 +1932,10 @@ describe("問いごとの頁 (#3998)", () => {
     }
     const seen = PAGED.get();
     if (!seen) return;
-    // 左の目次は全ての話題の問いを並べる (#4010)
+    // 左の目次は開いている話題の問いだけを並べる (#4024)
     expect(seen.topic.get().questions, "話題の頁を開いた時に左の目次に見えている問いの字と番号の数").toEqual([
       { text: "止める物", numbers: 0 },
       { text: "確かめる順", numbers: 0 },
-      { text: "残す場所", numbers: 0 },
     ]);
   });
 

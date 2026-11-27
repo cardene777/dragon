@@ -220,7 +220,8 @@ function playerCss(): string {
     `.dg-bar{container:dg-bar/inline-size}`,
     `.dg-lay{display:flex;flex-direction:column;gap:${px(P.gap)}}`,
     `.dg-say{display:flex;align-items:baseline;gap:${px(P.captionGap)};min-width:0}`,
-    `.dg-no{${font(TYPE.stepNo)};font-size:${px(TYPE.stepNo.size)};color:var(--mute);flex:none}`,
+    // 段の数は、置いた頁が`--dragon-step-no:none`を書くと出さない (説明の頁、#4024)。値は影の根の中へ受け継がれる
+    `.dg-no{display:var(--dragon-step-no,block);${font(TYPE.stepNo)};font-size:${px(TYPE.stepNo.size)};color:var(--mute);flex:none}`,
     `.dg-txt{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;flex:1}`,
     `.dg-txt>*{grid-area:1/1}`,
     `.dg-room{visibility:hidden}`,
@@ -249,8 +250,8 @@ function playerCss(): string {
     // 重ね窓の図の枠が低くなる (#3059)。題と説明文を包む箱を外して写しも同じ升に重ねるので、題の升は最も高い題、
     // 説明文の升は最も長い説明文の高さになる (#3049)。題を小さくし、題と説明文から操作の段までを詰めて、図の枠の高さを残す
     `@container dg-bar (width < ${px(P.wide)}){.dg-lay{gap:${px(P.progressGap)}}.dg-ctl{order:-1}.dg-tt{font-size:${px(TYPE.stepTitleStacked.size)}}` +
-      `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:${px(P.captionGap)};align-items:baseline}` +
-      `.dg-txt,.dg-txt>*{display:contents}.dg-no{grid-area:1/1}.dg-tt{grid-area:1/2}.dg-tb{grid-area:2/1/3/3}}`,
+      `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline}` +
+      `.dg-txt,.dg-txt>*{display:contents}.dg-no{grid-area:1/1;margin-inline-end:${px(P.captionGap)}}.dg-tt{grid-area:1/2}.dg-tb{grid-area:2/1/3/3}}`,
     // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文の字を小さくし、帯を低く保つ (#3061)
     `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}` +
       `.dg-tt{font-size:${px(TYPE.stepTitleNarrow.size)}}.dg-tb{font-size:${px(TYPE.stepBodyNarrow.size)};line-height:${P.bodyLineNarrow}}}`,
