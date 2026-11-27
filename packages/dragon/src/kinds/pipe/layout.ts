@@ -4119,7 +4119,7 @@ export function layoutPipe(diagram: DiagramModel, options: PipeLayoutOptions = {
     sizes = { amount: Math.max(T.amount.size, want), chip: Math.max(T.chip.size, want) };
     out = compose(diagram, words, sizes, true, PLAN_OF.get(out) ?? 0);
     // 狭い枠は仕上げの段 (`finishPipe`) を通らないので、札だけの入れ物と図の下の空きはここで詰める (#3990)
-    if (fitPlateHousings(out)) trimBottom(out);
+    if (fitPlateHousings(out)) trimBottom(out, false);
   }
   return handOut(narrow ? remember(key, out) : out);
 }
@@ -4203,8 +4203,13 @@ function fitPlateHousings(out: PipeLayout): boolean {
   return fitted;
 }
 
-/** 図の下の空きを詰める。描く物の一番下に余白を足した高さが今の高さより低い時だけ、図の高さを縮める */
-function trimBottom(out: PipeLayout): void {
+/**
+ * 図の下の空きを詰める。描く物の一番下に余白を足した高さが今の高さより低い時だけ、図の高さを縮める。
+ * `whole` の時は段ごとの寄る所を図の全体の四角にする。並べた形の図は寄る所を図の全体に持つので、縮めた高さに合わせ直す。
+ * そうでない時は、寄る所の横の位置と幅を段に関わる所のまま残し、高さだけを図の下の縁まで縮める。
+ * 札の入れ物を詰めた後に全体へ置き換えると、横に広い図の再生の枠が段の関係者の所へ送らなかった (#4005)
+ */
+function trimBottom(out: PipeLayout, whole: boolean): void {
   const M = PIPE_LOOK.margin;
   let low = 0;
   const walk = (v: unknown): void => {
@@ -4222,7 +4227,10 @@ function trimBottom(out: PipeLayout): void {
   const height = Math.ceil(low + M);
   if (height < out.height) {
     out.height = height;
-    for (const f of out.focus ? [out.focus].flat() : []) Object.assign(f, { x: M, y: M, w: out.width - M * 2, h: out.height - M * 2 });
+    for (const f of out.focus ? [out.focus].flat() : []) {
+      if (whole) Object.assign(f, { x: M, y: M, w: out.width - M * 2, h: out.height - M * 2 });
+      else f.h = Math.max(0, Math.min(f.h, out.height - M - f.y));
+    }
   }
 }
 
@@ -4273,7 +4281,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
       for (const c of mine("columns") as PipeColumn[]) c.h += dy;
     }
     // 寄せて空いた図の下を詰める
-    trimBottom(out);
+    trimBottom(out, true);
   }
   const gauged = (out.writes ?? []).filter((w) => w.gauge);
   if (gauged.length > 0) {
@@ -4537,7 +4545,7 @@ function finishPipe(out: PipeLayout): PipeLayout {
     out.callTags.push({ call: c.index, from: c.from, to: c.to, text, ...pick });
   }
   placeRevertTags(out, { overlap, crosses, restOf, solid, lines, tieLines });
-  if (fitted) trimBottom(out);
+  if (fitted) trimBottom(out, false);
   return out;
 }
 
