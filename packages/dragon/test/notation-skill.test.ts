@@ -626,6 +626,62 @@ describe("題材に合う図の種類と部品を選び、複数の図を組ん�
   });
 });
 
+/** 説明の頁の参照の表で、`head` の欄で始まる行。無い時は空 (#4003) */
+const pageRow = (head: string): string =>
+  read(PAGE)
+    .split("\n")
+    .find((line) => line.startsWith(`| ${head} |`)) ?? "";
+
+/** `MAJOR.MINOR.PATCH` の版を比べられる数にする */
+const versionRank = (version: string): number => {
+  const [major = 0, minor = 0, patch = 0] = version.split(".").map(Number);
+  return major * 1_000_000 + minor * 1_000 + patch;
+};
+
+/*
+ * 0.89.0 (#4010) で説明の頁は上のタブを無くし、話題が 2 つ以上の頁は全体像の頁と話題ごとの頁に分けて、左の目次で開く形になった。
+ * 参照の page.md は話題が 1 つの頁に続くと書き、撮った絵が最初のタブを写すと書いたままで、musubi で従うほかのスキルに食い違う説明を渡していた
+ */
+describe("説明の頁の手引きが話題ごとの頁と左の目次を書く (#4003)", () => {
+  it("skill-page-describes-topic-pages", () => {
+    const row = pageRow("`## <topic>`");
+    expect(row, "page.md に ## <topic> の行が無い").not.toBe("");
+    const missing = absent(row, {
+      "話題が 1 つの頁は全ての節を 1 つの頁に並べる": /page with one topic[^|]*one page/u,
+      "話題が 2 つ以上の頁は全体像の頁と話題ごとの頁に分ける": /two or more topics[^|]*an overview page and one page per topic/u,
+      "左の目次で頁を開く": /menu on the left/u,
+    });
+    expect(missing, "## <topic> の行が書かない頁の分け方").toEqual([]);
+  });
+
+  it("skill-page-describes-menu-per-question", () => {
+    const row = pageRow("`### <question>`");
+    expect(row, "page.md に ### <question> の行が無い").not.toBe("");
+    const missing = absent(row, {
+      "話題が 1 つの頁では目次がその節へ移る": /one topic[^|]*click scrolls to the section/u,
+      "話題ごとに分けた頁では目次がその問いだけを出す": /split into topic pages[^|]*shows only that question/u,
+    });
+    expect(missing, "### <question> の行が書かない目次の動き").toEqual([]);
+  });
+
+  it("skill-page-names-no-tabs", () => {
+    const page = read(PAGE);
+    expect(page, "説明の頁の参照 (references/page.md) が無い").not.toBe("");
+    const stale = page
+      .split("\n")
+      .map((line, k) => ({ line, at: k + 1 }))
+      .filter(({ line }) => /Topics follow one another on one page|\btabs?\b/iu.test(line))
+      .map(({ line, at }) => `page.md:${at} ${line}`);
+    expect(stale, "話題が 1 つの頁に続くか、頁がタブを持つと読める行").toEqual([]);
+  });
+
+  it("skill-musubi-page-version-raised", () => {
+    const version = provided().page?.version ?? "";
+    expect(version, "musubi の page の版").toMatch(/^\d+\.\d+\.\d+$/u);
+    expect(versionRank(version), `musubi の page の版 (${version}) が 1.0.0 から上がっていない`).toBeGreaterThan(versionRank("1.0.0"));
+  });
+});
+
 /** HTMLの形の図を記法へ戻す関数 (#3908) */
 type HtmlToNotation = (html: string, options?: { lang?: "ja" | "en" }) => { ok: true; notation: string } | { ok: false; errors: unknown[] };
 
