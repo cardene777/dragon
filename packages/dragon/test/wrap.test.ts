@@ -5,6 +5,7 @@
  * 狭い列に長い字を折ると、1 行が 2、3 語の短い行が縦に積み上がって字がごちゃつくため (#4008)。
  * 折った最後の行が 4 字に満たない時は、前の行の最後の句読点の後で折り直し、句読点が無ければ行数を変えずに行の長さを均す。
  * 字数は全角に直した数で、半角は 2 字で全角 1 字に数える。
+ * 書き手が改行で分けた字は改行の所で行を替え、この決まりを分けた行ごとに当てる (#4016)。
  *
  * 描き方が字を折る所を広げたかは、描き方が字を折る処理 (`wrap`) に渡した幅で確かめる。処理を包んで、渡した幅と折った行を記録する。
  * 図を描く仕事は file を読み込む段 (`at-load.ts`) で済ませ、件は記録を読んで確かめる。
@@ -190,6 +191,60 @@ describe("最後の行が 4 字に満たない時は折り直す (#4009)", () =>
   });
 });
 
+/** 書き手が 2 行に分けた長い段落の後ろの段落。前から詰めると 2 行に折れ、最後の行が 4 字以上残る */
+const LONG = "ほかの列に居たチップは、その席から滑って来る。元の列を書かなければ、元の席にも残る。";
+
+describe("書き手が改行で分けた所で行を替え、分けた行ごとに折る (#4016)", () => {
+  it("wrap-breaks-at-newlines", () => {
+    const cases: [string, number, string[]][] = [
+      [
+        "段は1つずつ送って見る。\nview で、枠が段を追うか全体を止めて見せるかを選ぶ。",
+        SAY_LEAST,
+        ["段は1つずつ送って見る。", "view で、枠が段を追うか全体を止", "めて見せるかを選ぶ。"],
+      ],
+      [
+        "step separates steps, and say writes the body of a step.\ncode writes the command typed in that step.",
+        SAY_LEAST,
+        [
+          "step separates steps, and say",
+          "writes the body of a step.",
+          "code writes the command typed",
+          "in that step.",
+        ],
+      ],
+      // 全体が 1 行に収まる字も、改行の所で行を替える
+      ["短い字\n次の字", 400, ["短い字", "次の字"]],
+    ];
+    for (const [text, width, want] of cases) {
+      const lines = wrap(text, SAY, width);
+      expect(lines, `${JSON.stringify(text)} を折った行`).toEqual(want);
+      expect(
+        lines.filter((line) => line.includes("\n")),
+        `${JSON.stringify(text)} の改行を残した行`,
+      ).toEqual([]);
+    }
+  });
+
+  it("wrap-keeps-short-lines-the-writer-made", () => {
+    // 16 字の幅の下限は分けた行ごとに当てる。狭い幅を渡しても、長い段落は 16 字の幅で折った行と同じになる
+    expect(wrap(`見る。\n${LONG}`, SAY, 1), "16 字より狭い幅で折った行").toEqual([
+      "見る。",
+      ...wrap(LONG, SAY, SAY_LEAST),
+    ]);
+    // 最後の行の折り直しは分けた行ごとに当てる。前の段落の最後の行が 4 字に満たない時は、その段落の中の句点の後で折り直す
+    expect(
+      wrap("列から外したチップは消える。1列に並べられるのは12枚まで。\n次の段へ送る。", SAY, 347.5),
+      "前の段落の中で折り直した行",
+    ).toEqual(["列から外したチップは消える。", "1列に並べられるのは12枚まで。", "次の段へ送る。"]);
+    // 書き手が改行で作った 1 行だけの短い行は、前の段落と折り直さずにそのまま返す
+    expect(wrap(`${LONG}\nはい。`, SAY, 347.5), "後ろに短い行を書いた字を折った行").toEqual([
+      "ほかの列に居たチップは、その席から滑って来る。元の列を",
+      "書かなければ、元の席にも残る。",
+      "はい。",
+    ]);
+  });
+});
+
 /** 列が 1 つの列の図の部品 (段の本文を折る) */
 const ONE_LANE = [
   {
@@ -231,6 +286,55 @@ describe("列が 1 つの列の図は段の題と本文を 16 字以上の幅で
           [...fit(h.title, TYPE.lineupHead), ...fit(h.say, SAY)],
           `${name} の枠をはみ出す行`,
         ).toEqual([]);
+    }
+  });
+});
+
+/** 段の部品の図で、書き手が `say` を 2 行に分けた段の文と、図の上に描く行 */
+const SAY_LINES: Record<string, string[][]> = {
+  "parts/step.lineup.dragon": [
+    ["step で段を区切り、say で段の本", "文を書く。", "その段で打つ命令は code で書く。"],
+    ["段は1つずつ送って見る。", "view で、枠が段を追うか全体を止", "めて見せるかを選ぶ。"],
+  ],
+  "parts/step.lineup.en.dragon": [
+    [
+      "step separates steps, and say",
+      "writes the body of a step.",
+      "code writes the command typed",
+      "in that step.",
+    ],
+    [
+      "Steps are viewed one at a time.",
+      "view picks whether the frame",
+      "follows the step or holds the",
+      "whole diagram.",
+    ],
+  ],
+};
+
+describe("列の図は書き手が say を分けた所で段の文の行を替える (#4016)", () => {
+  it("lineup-step-text-breaks-at-say-lines", () => {
+    for (const { name, layout } of ONE_LANE_DRAWN.get()) {
+      const says = layout.headlines.flatMap((h) => (h.say?.text.includes("\n") ? [h.say] : []));
+      expect(
+        says.map((say) => say.lines.map((line) => line.text)),
+        `${name} の改行を持つ段の文の行`,
+      ).toEqual(SAY_LINES[name]);
+      for (const say of says) {
+        // 改行で替えた行の間は、幅で折った行の間と同じ
+        const gaps = say.lines
+          .slice(1)
+          .map((line, k) => Number((line.baseline - (say.lines[k]?.baseline ?? 0)).toFixed(3)));
+        expect(new Set(gaps).size, `${name} の「${say.text}」の行の間 ${gaps.join(", ")}`).toBe(1);
+        // 図の枠の中 (左右の余白の内側) に収まる
+        const right = layout.width - (layout.headlines[0]?.title.x ?? 0);
+        expect(
+          say.lines
+            .filter((line) => line.x + textWidth(line.text, SAY) > right + 0.5)
+            .map((line) => line.text),
+          `${name} の枠をはみ出す行`,
+        ).toEqual([]);
+      }
     }
   });
 });
