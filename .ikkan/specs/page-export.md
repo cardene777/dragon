@@ -93,3 +93,6 @@
 | 閉じた話題の中の問いの頁をURLで開くと、その話題の並びとその問いの見出しの並びが開いた形になる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-opens-current` passes | #4010 |
 | 頁の終わりの前と次のlinkは、全体像、話題ごとの地図と問いを書いた順に並べる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-question-pages-pager-follows-order` passes | #4010 |
 | 話題が1つの頁は頁に分けず、節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4010 |
+| Nodeの入口 (`@cardenelabs/dragon/node`) の`exportPage`で、判定の表を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に判定の表が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-judge-table` passes | #4026 |
+| Nodeの入口の`exportPage`で、手順の図の分かれ道 (`choice`) を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に手順の図が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-flow-choice` passes | #4026 |
+| 判定の表と手順の図の分かれ道を載せた同じmdを、Nodeの入口の`exportPage`と`dragon export`の命令で書き出すと、同じHTMLになる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-matches-command` passes | #4026 |
