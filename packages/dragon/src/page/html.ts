@@ -284,6 +284,10 @@ const font = (t: TextStyle): string => `font-size:${t.size}px;font-weight:${t.we
 const STYLE_GUIDE = `
 body{font-size:16px}
 .pg-guide{max-width:1180px;--dragon-step-no:none}
+.pg-guide .pg-top h1{font-size:30px;line-height:1.35;margin:0 0 16px;padding:16px 20px;border-radius:6px;background:var(--pg-ink);color:var(--pg-surf);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg-guide h4.pg-h:not(.pg-doc *){font-size:18px;line-height:1.45;margin:36px 0 12px;padding:8px 14px;border-radius:4px;background:var(--pg-sunk);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg-guide h5.pg-h:not(.pg-doc *){font-size:17px;margin:28px 0 8px;padding:0 0 4px;border-bottom:1px dashed var(--pg-line)}
+.pg-guide h6.pg-h:not(.pg-doc *){font-size:16px}
 .pg-top .pg-lead{position:relative}
 .pg-overview{margin:6px 0 26px}
 .pg-overview .pg-figure{margin:0 0 12px}
@@ -328,11 +332,11 @@ body{font-size:16px}
 .pg-menu a:focus-visible,.pg-menu-toggle:focus-visible,.pg-route a:focus-visible,.pg-term:focus-visible,.pg-q-btn:focus-visible,.pg-tc-x:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-main{min-width:0;padding:14px 0 0}
 .pg-topic{margin:0 0 36px;scroll-margin-top:12px}
-.pg-topic-title{font-size:21px;line-height:1.4;margin:0 0 16px;padding:0 0 8px;color:var(--pg-ink);border-bottom:1px solid var(--pg-hair)}
+.pg-topic-title{font-size:25px;line-height:1.35;margin:0 0 20px;padding:0 0 10px;color:var(--pg-ink);border-bottom:2px solid var(--pg-ink)}
 .pg-topic-lead{position:relative;margin:0 0 14px}
 .pg-sec{position:relative;margin:0 0 34px;scroll-margin-top:12px}
 .pg-figure{scroll-margin-top:12px}
-.pg-sec-title{display:flex;gap:10px;align-items:center;font-size:19px;line-height:1.5;margin:0 0 6px}
+.pg-sec-title{display:flex;gap:10px;align-items:center;font-size:22px;line-height:1.4;margin:0 0 12px;padding:2px 0 2px 14px;border-left:4px solid var(--cc,var(--pg-ink))}
 .pg-answer{margin:0 0 14px}
 .pg-term{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;font-weight:600;text-decoration:underline;text-decoration-color:var(--pg-t-blue);text-decoration-thickness:2px;text-underline-offset:4px}
 .pg-term[aria-expanded="true"]{color:var(--pg-t-blue)}
@@ -404,7 +408,7 @@ body:has(.pg-split){background:var(--pg-surf)}
 .pg-split{padding:0 16px 40px}
 .pg-split>.pg-menu{position:static;padding:16px 0 4px;background:none;border:0}
 }
-@media (max-width:760px){.pg-topic-title{font-size:19px}.pg-sec-title{font-size:17px}}
+@media (max-width:760px){.pg-guide .pg-top h1{font-size:25px}.pg-topic-title{font-size:22px}.pg-sec-title{font-size:20px}}
 @media print{
 .pg-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:10px 0}
 .pg-tc{display:block;position:static;width:auto!important;max-width:none;box-shadow:none;break-inside:avoid}

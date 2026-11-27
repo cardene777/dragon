@@ -98,7 +98,6 @@
 | 左の目次は開いている章のページと開いているページの見出しだけを並べ、他の章のページと開閉の矢印 (`pg-menu-fold`) を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-lists-open-chapter-only` passes | #4024 |
 | 開いているページの行は太字と灰色の地で示し、地と線に青を使わない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-marks-open-page-gray` passes | #4024 |
 | ページの題、章の地図の行、前と次のlinkに1-1のような番号を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-shows-no-numbers` passes | #4024 |
-| 章の題は本文と同じ色の字と灰色の線で出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-topic-title-ink` passes | #4024 |
 | 幅1440pxで、目次のページの行と本文の段落は16px、目次の見出しの行は15pxで描かれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-and-text-sizes` passes | #4024 |
 | 全体像の頁は左の目次を出さず、本文の列を頁の中央に置き、ヘッダーと同じ題を本文の頭に重ねて出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-overview-centers-without-menu` passes | #4024 |
 | 章のタブが題の横に入らない幅では、タブを題の下の段に移し、最初のタブの字の左端を題の字の左端に揃える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tabs-wrap-below-title` passes | #4024 |
