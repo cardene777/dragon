@@ -58,3 +58,6 @@
 | 宣言していない目盛りへの`set`と、負の数か数でない値の`set`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-bad-set-refused` passes | #3880 |
 | 目盛りの名札が同じ図の別の名札と同じ時と、`gauge`を段の中に書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-name-clash-or-in-step-refused` passes | #3880 |
 | 目盛りを書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3880 |
+| 場面の図 (手順の図と列の図) で、場面の中の段の`set`はその場面の目盛りだけを動かし、並べる見せ方でも選ぶ見せ方でも、場面ごとの最後の段の目盛りがその場面の値を出す | `pnpm exec vitest run packages/dragon/test/gauge.test.ts --reporter=verbose` check `scene-gauge-moves-only-its-scene` passes | #3894 |
+| 並べる見せ方で、全ての場面の図に宣言した目盛りが1つずつ出て、箱を指した目盛りはその場面の図の箱の下に出る | `pnpm exec vitest run packages/dragon/test/gauge.test.ts --reporter=verbose` check `scene-gauge-under-each-scene-box` passes | #3894 |
+| 共通の段で書いた値は全ての場面の目盛りに出て、`set`を書かない場面の段は共通の段の値を保つ | `pnpm exec vitest run packages/dragon/test/gauge.test.ts --reporter=verbose` check `scene-gauge-keeps-common-value` passes | #3894 |
