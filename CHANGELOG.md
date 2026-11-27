@@ -10,6 +10,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 - In a judge table without `[note: pop]`, the rule notes are no longer squeezed into the narrow rule headings but listed below the table with the rule number and name, in the page and in the exported picture. A table split into blocks in the picture lists them after the last block (#4008)
 - Text that the layout wraps in an SVG figure (lineup diagrams and exported judge table pictures) is never wrapped narrower than 16 full-width characters a line. The layout widens the area instead. When the last wrapped line holds fewer than 4 characters, the text is wrapped again after the last punctuation of the line before, or the lines are evened out. `dragon check --layout` reports text wrapped narrower than 16 characters (#4009)
+- A lineup diagram draws the step text above the figure with a line break where the author split `say` into lines, as the player's step body does. The 16-character floor and the rewrap of a short last line apply to each split line (#4016)
 
 ## [0.89.0] - 2026-11-27
 

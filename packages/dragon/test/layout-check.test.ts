@@ -1032,8 +1032,25 @@ const { checkLayoutText } = await import("../src/render/layout-check");
 
 /** 全角に直した字数。和文の字は 1 字、ほかの字 (欧文と空白) は半字に数える */
 const wrapChars = (line: string): number => [...line].reduce((n, ch) => n + (hasWide(ch) ? 1 : 0.5), 0);
+/** 折った行を、書き手が改行で分けた行ごとの組に分ける (#4016)。空白を除いた字を前から数え、分けた行の字が尽きるまでの行を 1 組にする */
+function wrapParagraphs(call: WrapCall): string[][] {
+  const count = (text: string): number => [...text.replace(/\s+/gu, "")].length;
+  let k = 0;
+  return call.text.split("\n").map((para) => {
+    const rows = [call.lines[k++] ?? ""];
+    let got = count(rows[0] ?? "");
+    while (got < count(para) && k < call.lines.length) {
+      const row = call.lines[k++] ?? "";
+      rows.push(row);
+      got += count(row);
+    }
+    return rows;
+  });
+}
+/** 分けた行ごとに見て、2 行以上に折った組。書き手が改行で作った 1 行だけの行は折った行に数えない (#4016) */
+const wrappedRows = (call: WrapCall): string[][] => wrapParagraphs(call).filter((rows) => rows.length > 1);
 /** 16 字より狭い幅で 2 行以上に折った記録か */
-const wrapNarrow = (call: WrapCall): boolean => call.lines.length > 1 && call.width < WRAP_LEAST * call.size - 1e-9;
+const wrapNarrow = (call: WrapCall): boolean => wrappedRows(call).length > 0 && call.width < WRAP_LEAST * call.size - 1e-9;
 
 /** `work` の間に字を折る処理へ渡された記録 */
 function wrapsDuring<T>(work: () => T): { value: T; calls: WrapCall[] } {
@@ -1244,7 +1261,7 @@ const WRAP_SWEEP = await atLoad("見本と検査の記法と部品の図を全�
 /** 記録の見本と描いた枠の幅と字 */
 const wrapWhere = (call: WrapCall & { file: string; frame: number | undefined }): string => `${call.file} (${call.frame === undefined ? "既定の幅" : `幅 ${call.frame}`}) の「${call.text}」`;
 
-describe("見本と部品の図は 16 字以上の幅で折り、最後の行に 4 字以上を残す (#4009)", () => {
+describe("見本と部品の図は 16 字以上の幅で折り、書き手が分けた行ごとに最後の行に 4 字以上を残す (#4009、#4016)", () => {
   it("examples-wrap-at-16-chars-or-more", () => {
     const all = WRAP_SWEEP.get();
     expect(all.filter((call) => call.lines.length > 1).length, "2 行以上に折った字が見本に無い").toBeGreaterThan(0);
@@ -1253,9 +1270,11 @@ describe("見本と部品の図は 16 字以上の幅で折り、最後の行に
   });
 
   it("examples-last-wrapped-line-has-4-chars", () => {
-    const offenders = WRAP_SWEEP.get()
-      .filter((call) => call.lines.length > 1 && wrapChars(call.lines.at(-1) ?? "") < WRAP_LAST)
-      .map((call) => `${wrapWhere(call)} の最後の行「${call.lines.at(-1)}」`);
+    const offenders = WRAP_SWEEP.get().flatMap((call) =>
+      wrappedRows(call)
+        .filter((rows) => wrapChars(rows.at(-1) ?? "") < WRAP_LAST)
+        .map((rows) => `${wrapWhere(call)} の最後の行「${rows.at(-1)}」`),
+    );
     expect(offenders, "最後の行が 4 字に満たない字").toEqual([]);
   });
 });
