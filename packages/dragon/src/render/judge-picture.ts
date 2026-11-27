@@ -22,6 +22,21 @@ import {
 } from "../look/values";
 import { noteGlyph } from "../blocks/pop/draw";
 import { judgeNoteId } from "../kinds/judge/layout";
+import { wrap } from "../kinds/lineup/layout";
+/** 行数を変えずに一番狭い幅で折り、最後の行に字が 1 つだけ残る形を避ける */
+function balanced(s: string, style: TextStyle, width: number): string[] {
+  const lines = wrap(s, style, width);
+  if (lines.length < 2) return lines;
+  let lo = 0;
+  let hi = width;
+  for (let k = 0; k < 24; k++) {
+    const mid = (lo + hi) / 2;
+    if (wrap(s, style, mid).length <= lines.length) hi = mid;
+    else lo = mid;
+  }
+  return wrap(s, style, hi);
+}
+const PROTO = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.DRAGON_PROTO_RULE_NOTE ?? "";
 import { ICON_PATHS } from "./judge";
 import { esc } from "./parts";
 import { r1 } from "./round";
@@ -250,13 +265,18 @@ function headEl(
   lit: string,
   ink: Ink,
   marked: boolean,
+  noteLines: string[] = [],
+  aligned = false,
 ): string {
   const rule = judge.rules[col];
   if (!rule) return "";
   const cx = (left + right) / 2;
   const badge = badgeOf(col + 1, J.badge, STYLE.no);
-  const lines = lineOf(J.text) + (rule.value === undefined ? 0 : lineOf(J.small));
-  const first = top + (height - lines) / 2 + lineOf(J.text) / 2;
+  const lines =
+    lineOf(J.text) +
+    (rule.value === undefined ? 0 : lineOf(J.small)) +
+    (noteLines.length > 0 ? 4 + noteLines.length * lineOf(J.small) : 0);
+  const first = aligned ? top + J.padY + lineOf(J.text) / 2 : top + (height - lines) / 2 + lineOf(J.text) / 2;
   const nameW = textWidth(rule.name, STYLE.head);
   const start = cx - (badge + J.badgeGap + nameW + (marked ? MARK_W : 0)) / 2;
   const items = [
@@ -283,6 +303,15 @@ function headEl(
         { anchor: "middle", dragon: "judge-rule-value", cls: "jt" },
       ),
     );
+  const noteTop = first + lineOf(J.text) / 2 + (rule.value === undefined ? 0 : lineOf(J.small)) + 4;
+  noteLines.forEach((line, k) =>
+    items.push(
+      textEl(line, cx, noteTop + (k + 0.5) * lineOf(J.small), STYLE.note, ink.mute, {
+        anchor: "middle",
+        dragon: "judge-rule-note",
+      }),
+    ),
+  );
   return `<g class="jh" data-dragon="judge-head" data-rule="${esc(rule.id)}" data-col="${col}">${items.join("")}</g>`;
 }
 
@@ -383,25 +412,51 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
     Math.max(P.width, ...sums.map((sum) => sum + 2 * L), ...bands.map((band) => band + 2 * L)),
   );
 
-  // 行の高さ。全ての段で揃えるので、全ての列の印と札から決める
-  const headH =
+  const stretched: number[] = [];
+  groups.forEach((group, b) => {
+    const sum = sums[b] as number;
+    const extra = W - 2 * L - sum;
+    group.forEach((i) => {
+      stretched[i] = (widths[i] as number) * (sum > 0 ? 1 + extra / sum : 1);
+    });
+  });
+  const noteLines = rules.map((rule, i) =>
+    PROTO === "under" && rule.note !== undefined && !judge.pop
+      ? balanced(rule.note, STYLE.note, (stretched[i] ?? 0) - 2 * J.padX)
+      : [],
+  );
+  const mosts = groups.map((group) => Math.max(0, ...group.map((i) => noteLines[i]?.length ?? 0)));
+  // 行の高さ。全ての段で揃えるので、全ての列の印と札から決める。見出しは段ごとに、その段の note の行数で決める
+  const headBase =
     2 * J.padY +
     lineOf(J.text) +
     (rules.some((rule) => rule.value !== undefined) ? lineOf(J.small) : 0);
+  const headHs = mosts.map((most) => headBase + (most > 0 ? 4 + most * lineOf(J.small) : 0));
+  // 表の下に並べる note (foot)。番号の丸と名前と note を 1 項にし、表の幅で折る
+  const footRules = PROTO === "foot" && !judge.pop ? rules.flatMap((rule, i) => (rule.note === undefined ? [] : [{ rule, i }])) : [];
+  const footItems = footRules.map(({ rule, i }) => {
+    const badge = badgeOf(i + 1, J.badge, STYLE.no);
+    const nameW = textWidth(rule.name, STYLE.head);
+    const indent = badge + J.badgeGap + nameW + P.noteGap;
+    const first = wrap(rule.note as string, STYLE.note, W - 2 * L - 2 * J.padX - indent);
+    return { rule, i, badge, nameW, indent, lines: first };
+  });
   const bandH = J.padY + lineOf(J.caseName);
   const contents = rows.map((row) =>
     Math.max(lineOf(J.text), ...row.cells.map(markHeight), pillOf(row, judge).h),
   );
   const marksH = contents.map((content) => P.markTop + content + J.padY);
-  const H =
+  const bodyH =
     3 * L +
-    headH +
     rows.reduce((sum, _, i) => sum + bandH + (marksH[i] as number), 0) +
     Math.max(0, rows.length - 1) * L;
 
   const blocks: string[] = [];
   let top = 0;
   groups.forEach((group, b) => {
+    const headH = headHs[b] as number;
+    const aligned = (mosts[b] as number) > 0;
+    const H = bodyH + headH;
     const sum = sums[b] as number;
     const extra = W - 2 * L - sum;
     let x = L;
@@ -439,8 +494,8 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
       );
       parts.push(
         col.index === verdictIndex
-          ? `<g class="jh" data-dragon="judge-verdict-head" data-col="${verdictIndex}">${lit}${textEl(words.verdict, (col.left + col.right) / 2, headTop + headH / 2, STYLE.head, ink.ink, { anchor: "middle", cls: "jt" })}</g>`
-          : headEl(judge, col.index, col.left, col.right, headTop, headH, lit, ink, marked.has(judgeNoteId.rule(rules[col.index]?.id ?? ""))),
+          ? `<g class="jh" data-dragon="judge-verdict-head" data-col="${verdictIndex}">${lit}${textEl(words.verdict, (col.left + col.right) / 2, aligned ? headTop + J.padY + lineOf(J.text) / 2 : headTop + headH / 2, STYLE.head, ink.ink, { anchor: "middle", cls: "jt" })}</g>`
+          : headEl(judge, col.index, col.left, col.right, headTop, headH, lit, ink, marked.has(judgeNoteId.rule(rules[col.index]?.id ?? "")), noteLines[col.index], aligned),
       );
     });
     const verdict = cols.find((col) => col.index === verdictIndex);
@@ -509,6 +564,25 @@ export function judgePicture(layout: JudgeLayout, palette: Palette, theme: Theme
     blocks.push(`<g data-dragon="judge-block" data-block="${b}">${parts.join("")}</g>`);
     top += H + (b === groups.length - 1 ? 0 : P.blockGap);
   });
+  if (footItems.length > 0) {
+    let y = top + P.blockGap;
+    const foot: string[] = [];
+    for (const item of footItems) {
+      const x = L + J.padX;
+      const mid = y + lineOf(J.text) / 2;
+      foot.push(
+        `<rect x="${r1(x)}" y="${r1(mid - J.badge / 2)}" width="${r1(item.badge)}" height="${J.badge}" rx="${ink.cut ? 0 : J.badge / 2}" fill="${esc(mix(ink.blue, 0.14, ink.sunk))}"/>`,
+        textEl(String(item.i + 1), x + item.badge / 2, mid, STYLE.no, ink.blue, { anchor: "middle" }),
+        textEl(item.rule.name, x + item.badge + J.badgeGap, mid, STYLE.head, ink.ink),
+      );
+      item.lines.forEach((line, k) =>
+        foot.push(textEl(line, x + item.indent, mid + k * lineOf(J.small), STYLE.note, ink.mute, { dragon: "judge-rule-note", base: mid + STYLE.head.size * P.mid + k * lineOf(J.small) })),
+      );
+      y += lineOf(J.text) + Math.max(0, item.lines.length - 1) * lineOf(J.small) + 4;
+    }
+    blocks.push(`<g data-dragon="judge-rule-notes">${foot.join("")}</g>`);
+    top = y;
+  }
 
   // 段を送る間は、照らす前の列の印と判定を見せず、今照らしている列を頁の表と同じ色の地で示す
   const now = mix(ink.blue, 0.16, ink.sunk);
