@@ -1073,6 +1073,37 @@ step 2件目で止める
   set budget: 120
 ```
 
+予約した量と確定した量を分ける題材では、`set <目盛り>: <確定> [hold: <予約>]`と書くと、確定した量を濃い色、続けて予約した量を同じ色の淡い塗りで同じ棒に塗る。
+予約を持つ段は、棒の下に色の四角を添えて「確定 40」「予約 30」の内訳を出す。値の字は確定と予約の合計で、合計で上限と比べる。
+`hold`を書かない`set`は予約を0に戻すので、予約を確定に移す段は`set budget: 70`のように合計だけを書き、取り消す段は確定の量だけを書く。
+予約は`limit`を書いた目盛りにだけ書け、`limit`の無い目盛りへの`hold`と、0より小さい量か数でない`hold`は、その行を名指して断る。
+
+```dragon
+flow 予約してから送る
+
+box agent as AIエージェント
+box vi as VeriIntent
+box signer as 署名
+
+gauge budget as 1日の予算 [on: vi, limit: 100, unit: USDC]
+
+step 1件目を予約する
+  say 送る前に、40 USDCを予約で押さえる。
+  agent -> vi: 40 USDC
+  set budget: 0 [hold: 40]
+
+step 1件目が確定し、2件目を予約する
+  say 1件目の40 USDCが確定し、2件目の30 USDCを予約で押さえる。
+  vi -> signer: 署名を頼む
+  agent -> vi: 30 USDC
+  set budget: 40 [hold: 30]
+
+step 2件目を取り消す
+  say 2件目を取り消し、予約した30 USDCを返す。
+  agent -> vi: 取り消す
+  set budget: 40
+```
+
 ## 誤りの文
 
 読めない行は、行と列を示した誤りで止まる。
