@@ -497,9 +497,12 @@ export function drawSvg(
     top: [] as string[],
   };
   for (const region of layout.regions) L.band.push(band(region, ink, ctx.corner));
-  // 並べる見せ方の場面の図 (#3878) は、分かれる位置の縦の点線を箱と線より下の層に引く
-  const fork = layout.scene?.fork;
-  if (fork) L.band.push(`<line class="dg-scene-fork" data-dragon="scene-fork" x1="${r1(fork.x)}" y1="${r1(fork.y1)}" x2="${r1(fork.x)}" y2="${r1(fork.y2)}" stroke-dasharray="${LOOK.scene.dash}"/>`);
+  // 並べる見せ方の場面の図 (#3878) は、分かれる箱か帯の上の縁に場面の色の札を掛ける (#4019)。札は箱の縁に重ねるので箱より上の層に描く
+  const fork = layout.scene?.badge;
+  if (fork && layout.scene)
+    L.top.push(
+      `<g class="dg-scene-fork" data-dragon="scene-fork" style="--c:var(--c-${layout.scene.color})"><rect x="${r1(fork.x)}" y="${r1(fork.y)}" width="${r1(fork.w)}" height="${r1(fork.h)}" rx="${r1(fork.h / 2)}"/><text x="${r1(fork.x + fork.w / 2)}" y="${r1(fork.y + fork.h / 2 + TYPE.sceneFork.size * 0.35)}" text-anchor="middle">${esc(fork.text)}</text></g>`,
+    );
   const ghostColor = layout.boxes.find((b) => b.ghost)?.color ?? "slate";
   if (layout.side) L.band.push(side(layout.side, ghostColor, ink, ctx.corner));
   // 脇道へ入る道は脇道の状態の色、それ以外の道は送る側の色で描く
@@ -663,8 +666,8 @@ export function drawSvg(
     ? followView(layout, timeline, diagram, m, id, content, under, follow, heads, drawTable, ctx.corner, look)
     : { body: `${bg}${content}`, w: layout.width, h: layout.height, css: "" };
   const still = figure ? figureCss(id, figure, look ? look.vars(figure.dark, "dark") : "", palette[theme].bg ?? "") : "";
-  // 印の見た目の規則は札で見せる図にだけ書き、ほかの図の SVG を変えない (#3877)。分かれる位置の点線の規則も、点線を引く場面の図にだけ書く (#3878)
-  const forkCss = fork ? `.dg-scene-fork{fill:none;stroke:var(--mute);stroke-width:${S.edge}}` : "";
+  // 印の見た目の規則は札で見せる図にだけ書き、ほかの図の SVG を変えない (#3877)。分かれ目の札の規則も、札を掛ける場面の図にだけ書く (#3878、#4019)
+  const forkCss = fork ? `.dg-scene-fork rect{fill:var(--bg);stroke:var(--c);stroke-width:${LOOK.scene.fork.line}}.dg-scene-fork text{${font(TYPE.sceneFork)};fill:var(--c)}` : "";
   const css = `.dg-${id}{${FONT_VARS};--T:${timeline.total}s;${vars}${look ? `;${look.vars(palette, theme)}` : ""}}${still}${PART_CSS}${notes.size > 0 ? NOTE_CSS : ""}${forkCss}${view.css}${look?.css ?? ""}${drawn?.css ?? ""}${sharpJoins(ctx.corner, id)}${m.frames.join("")}`;
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" class="dg dg-${id}" viewBox="0 0 ${Math.ceil(view.w)} ${Math.ceil(view.h)}" width="${Math.ceil(view.w)}" height="${Math.ceil(view.h)}" role="img" aria-label="${esc(diagram.title)}" data-dragon="figure" data-view="${follow ? "follow" : "fixed"}"${drawn?.attrs ?? ""}>` +

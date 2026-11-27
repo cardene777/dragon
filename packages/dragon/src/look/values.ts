@@ -274,6 +274,8 @@ export const TYPE = {
   gaugeValue: text(12, 700, "mono"),
   gaugeTag: text(11.5, 700, "mono"),
   gaugeOver: text(11.5, 700),
+  /** 並べる見せ方の場面の図で、場面が分かれる箱か帯の上の縁に掛ける札の字 (#4019) */
+  sceneFork: text(12, 700),
 } as const;
 
 /** 置き場所と部品の大きさ。単位は図の座標 (字が原寸の時の px)。 */
@@ -327,15 +329,15 @@ export const LOOK = {
   },
   /**
    * 1 つの図の場面 (#3878)。`colors` は場面を書いた順の場面の色、`common` は並べる見せ方の共通の段の線の灰。
-   * 分かれる位置の縦の点線は、分かれる所の箱の左の端から `fork` だけ左に `dash` の点線で引く。
+   * 分かれる所の札 (`fork`、#4019) は、分かれる箱か帯の上の縁に高さ `h` で掛け、字の左右に `padX` の余白を取り、箱の左の端から `inset` だけ右に置く。
+   * 箱へ上から入る線の矢じりに掛かる時は、矢じりから `arrow` だけ離して矢じりの左へ、左に入らない時は右へずらす。縁の太さは `line`。
    * 縦に並べた図は、場面の名前の行の高さ `head`、止まる理由の行の高さ `reason`、場面の間 `gap` で場面を上から積む。
    * 再生の部品は場面の枠を `panelGap` だけ離して積み、名前と段の題の間を `captionGap`、図と止まる理由の間を `stopGap` にする
    */
   scene: {
     colors: ["blue", "rose", "violet"],
     common: "slate",
-    fork: 5,
-    dash: "5 4",
+    fork: { h: 22, padX: 10, inset: 10, arrow: 12, line: 1.5 },
     head: 28,
     reason: 30,
     gap: 16,

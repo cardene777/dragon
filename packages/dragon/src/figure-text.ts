@@ -77,6 +77,8 @@ export interface FigureText {
   lineupNoOrder: string;
   /** 量の目盛り (#3880) の上限を超えた段に出す札の既定の字。目盛りの `over` で替えられる */
   gaugeOver: string;
+  /** 並べる見せ方の場面の図で、場面が分かれる箱か帯に掛ける札の字 (#4019) */
+  sceneFork: string;
   lineupPicked: string;
   lineupSealed: string;
   lineupAhead: string;
@@ -167,6 +169,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupInOrder: "上から実行",
     lineupNoOrder: "順番なし",
     gaugeOver: "上限を超えた",
+    sceneFork: "ここから分かれる",
     lineupPicked: "選ばれる",
     lineupSealed: "封",
     lineupAhead: "この先",
@@ -230,6 +233,7 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     lineupInOrder: "Top first",
     lineupNoOrder: "No order",
     gaugeOver: "over the limit",
+    sceneFork: "splits here",
     lineupPicked: "Picked",
     lineupSealed: "Sealed",
     lineupAhead: "Next",

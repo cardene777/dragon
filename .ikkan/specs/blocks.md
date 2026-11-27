@@ -33,7 +33,7 @@
 | `scene`を2つ書いた図を並べる見せ方で描いた時、2つの場面が縦に並び、同じ箱が全ての場面で同じ横の位置に描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stack-same-box-positions` passes | #3878 |
 | 共通の段の線は全ての場面に描かれ、`scene`と`end`の間の段の線は、その場面にだけ描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-own-steps-only-in-their-scene` passes | #3878 |
 | 並べる見せ方で段を送った時、全ての場面が同じ段へ同時に進み、`stop <理由>`を書いた段に着いた場面は、そこで止まって理由の文を出し、後の段を進めない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-holds-and-shows-reason` passes | #3878 |
-| 並べる見せ方で、共通の段の線は灰色、`scene`の中の段の線は場面の色で描き、分かれる位置に縦の点線を引く | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fork-line-and-colors` passes | #3878 |
+| 並べる見せ方で、共通の段の線は灰色、`scene`の中の段の線は場面の色で描く。分かれる位置の縦の点線は #4019 で分かれ目の札に替えた | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fork-badge-and-colors` passes | #3878 |
 | 図の1行目に`[scenes: pick]`を書いた時、場面の名前の釦が出て、釦を押すとその場面の1段目に戻り、段を送ると選んだ場面の段だけを進める | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-pick-buttons-follow-one-scene` passes | #3878 |
 | flowとlineupの2種類で、同じ書き方の`scene`と`stop`で場面を持てる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-same-in-flow-and-lineup` passes | #3878 |
 | 印刷の形では、並べる見せ方でも選ぶ見せ方でも、全ての場面を最後の段まで進めて縦に並べる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-print-stacks-all-at-last-step` passes | #3878 |
