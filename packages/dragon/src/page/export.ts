@@ -7,6 +7,7 @@
  * 載せるfileは、mdの在るフォルダとその下だけを読む。symbolic link は指す先で確かめる。
  *
  * 書き出す前に全ての図の記法を読み、箱の飛び先の頁の中の場所 (`#order`) が頁に在るかを確かめる。
+ * 記法は全ての種類を読めるよう、全ての種類の登録 (`kinds/all.ts`) をここで読む。読む側の入口が別の経路で登録しているかに頼らない (#4026)。
  * 誤りが1つでもあれば頁を書かず、fileと行と文の並びを返す。
  * 誤りの文と頁に足す字は `lang` の言葉で書き、渡さない時はmdの本文に仮名か漢字があれば日本語、無ければ英語にする。
  *
@@ -17,6 +18,8 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
+// 後から読む種類 (判定の表と、手順の図の分かれ道) も読めるよう、全ての種類をここで登録する (#4026)
+import "../kinds/all";
 import { parseNotation } from "../parser";
 import { DEFAULT_LANG, hasKanaKanji } from "../words";
 import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedHead, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
