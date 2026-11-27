@@ -31,7 +31,7 @@
 | `.json`の図の書き出しは今どおりmp4、GIF、HTML、PNGを書く | `pnpm exec vitest run`の検査`four-formats-written-once-from-json`が通る | #3755 |
 | scriptの1行の入口が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`script-entry-within-budget`が通る | #3755 |
 | 見本帳が最初に読む量は、今と同じく上限の中に収まる | `pnpm exec vitest run`の検査`page-bundle-within-budget`が通る | #3755 |
-| 頭の行に`layout: guide`を書いたmdを書き出した時、`##`が話題になり、`###`がその話題の中に番号つきの節として縦に積まれ、話題は1つの頁に続けて積まれる (#3961で話題のタブを外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-sections-stack-in-topics` passes | #3876 |
+| 頭の行に`layout: guide`を書いたmdを書き出した時、`##`が話題になり、`###`がその話題の中に節として縦に積まれ、話題は1つの頁に続けて積まれる (#3961で話題のタブを外した。#4024で節の題の番号を外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-sections-stack-in-topics` passes | #3876 |
 | 節の題の直後の引用は題の下の答えとして出て、題の直後でない引用は今の引用のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3876 |
 | `<details>`と`<summary>`は確かめる問いとして出て、答えは押すまで隠れ、もう一度押すと隠れる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-quiz-hides-answer-until-pressed` passes | #3876 |
 | 用語のfileへのリンク (`[用語](glossary.md#用語)`) は下線になり、押すとすぐ下に用語の名前と説明と例の帯を持つ札が開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-term-link-opens-card` passes | #3876 |
@@ -56,11 +56,11 @@
 | 説明の頁を印刷すると、用語の札と確かめる問いの答えが開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts`の検査`guide-print-opens-cards-and-answers`が通る | #3956 |
 | 場面の図を印刷すると、場面ごとに全ての段の止め絵が段の順に並び、各絵の下に段の番号と`say`の文が出る | `pnpm exec vitest run packages/dragon/test/scenes.test.ts`の検査`scenes-print-stacks-every-step`が通る | #3956 |
 | 場面の図を印刷すると、今と同じく全ての場面が場面の見出しと共に書いた順に出て、場面を選ぶ釦は紙に出ない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts`の検査`scenes-print-shows-every-scene`が通る | #3956 |
-| `layout: guide`の頁は、左に全ての話題の見出しとその問いを並べた目次を出し、「このタブで答える問い」の箱を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-side-menu-lists-every-question` passes | #3961 |
+| `layout: guide`の頁は、左の目次に話題ごとにその問いを並べ (話題が2つ以上の頁は開いている話題の並びだけを見せる、#4024)、「このタブで答える問い」の箱を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-side-menu-lists-every-question` passes | #3961 |
 | 問いの見出しの末尾に`[menu: 短い名前]`を書くと、目次はその短い名前を出し、本文の見出しは問いの文のまま出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-uses-short-name` passes | #3961 |
 | `[menu: ]`のように名前が空の時、書き出しは行の番号を付けて断る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-empty-name-refused` passes | #3961 |
 | 頁の説明の文 (最初の`##`より前) に置いた図は、頁の頭の全体像として出て、その下に話題が書いた順に矢印でつながって並ぶ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-overview-from-lead-figure` passes | #3961 |
-| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、問いの番号は話題ごとに1から数え直す (#3969で通し番号をやめた) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-one-after-another` passes | #3961 |
+| 話題はタブで分かれず、話題の見出しを挟んで上から順に続き、節の題は番号を持たない (#4024で番号を外した) | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-topics-flow-one-after-another` passes | #3961 |
 | 頁を下へ読み進めると、目次で今読んでいる問いに色が付き、目次の問いを押すとその節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-marks-current-question` passes | #3961 |
 | 幅390pxでは、目次が本文の横に並ばず、本文が横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-menu-folds-on-phone` passes | #3961 |
 | 節の題の直後の引用は題の下の答えとして出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-answer-from-quote-after-title` passes | #3961 |
@@ -74,7 +74,7 @@
 | 印刷の形では、話題が2つ以上でも全ての話題を書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3983 #3991 |
 | 印刷の形では、2つ目からの話題を新しい紙から始める | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-starts-each-topic-on-new-paper` passes | #3983 |
 | 幅1200pxと728pxと390pxで、頁の字が読める大きさで横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-readable-and-fits` passes | #3983 #3991 #3998 |
-| 話題のタブの頭に、その話題の問いの番号と短い名前と答え1文を順に並べた一覧が在り、行を押すとその問いの節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-lists-answers` passes | #3991 |
+| 話題のタブの頭に、その話題の問いの短い名前と答え1文を順に並べた一覧 (#4024で番号を外した) が在り、行を押すとその問いの節へ移る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-lists-answers` passes | #3991 |
 | 全体像の図で`link: #<話題のid>`を持つ箱を押すと、その話題のタブに切り替わる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-overview-box-opens-topic` passes | #3991 |
 | 話題のタブの頭に、全体像の図のうちその話題への`link:`を持つ箱だけに色を残した止め絵が在り、`link:`を持つ箱が無い話題には止め絵が無い | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-topic-map-focus-figure` passes | #3991 |
 | 用語の札の中のlinkを押すと、用語の話題のタブに切り替わり、その用語の説明が画面に入る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-tabs-term-link-opens-glossary-tab` passes | #3991 |
@@ -86,13 +86,30 @@
 | 目次の図の題を押すと、その図が画面の上に来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-figure-row-scrolls` passes | #3998 |
 | 話題の地図と問いの頁の終わりに、全体像、話題の地図、問いを書いた順に並べた前と次の頁へのlinkが在る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-question-pages-pager-follows-order` passes | #3998 |
 | 印刷の形では、全ての話題と問いを書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts` check `guide-print-shows-every-topic` passes | #3998 |
-| 話題を2つ以上持つ説明の頁は上のタブ (`nav.pg-tabs`) を持たず、開いた時に左の目次に全体像と全ての話題とその問いが見える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-no-top-tabs` passes | #4010 |
-| 左の目次の話題の矢印 (`pg-menu-fold`) を押すと、その話題の問いの並びが閉じ、もう一度押すと開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-topic-folds` passes | #4010 |
 | 開いた問いの下に、その頁の`####`の見出しを書いた順に並べ、見出しを押すとその見出しが画面の上へ来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-lists-page-headings` passes | #4010 |
 | `####`の見出しを持たない問いの頁は、開いた問いの下に図の題を並べ、見出しを持つ頁は図の題を並べない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-falls-back-to-figures` passes | #4010 |
-| 閉じた話題の中の問いの頁をURLで開くと、その話題の並びとその問いの見出しの並びが開いた形になる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-opens-current` passes | #4010 |
 | 頁の終わりの前と次のlinkは、全体像、話題ごとの地図と問いを書いた順に並べる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-question-pages-pager-follows-order` passes | #4010 |
 | 話題が1つの頁は頁に分けず、節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4010 |
 | Nodeの入口 (`@cardenelabs/dragon/node`) の`exportPage`で、判定の表を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に判定の表が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-judge-table` passes | #4026 |
 | Nodeの入口の`exportPage`で、手順の図の分かれ道 (`choice`) を載せたmdを書き出すと、断らずにmdの隣へHTMLを1つ書き、その頁に手順の図が載る | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-writes-flow-choice` passes | #4026 |
 | 判定の表と手順の図の分かれ道を載せた同じmdを、Nodeの入口の`exportPage`と`dragon export`の命令で書き出すと、同じHTMLになる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `node-export-page-matches-command` passes | #4026 |
+| 話題を2つ以上持つ説明の頁は、頁の上のヘッダーに題と全体像と章のタブを並べ、開いているページの章のタブに印 (`aria-current`) が付く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tabs-mark-open-chapter` passes | #4024 |
+| ヘッダーの章のタブを押すと、その章の地図の頁が開き、URLの`#`の後ろがその章のidになる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tab-opens-chapter` passes | #4024 |
+| 左の目次は開いている章のページと開いているページの見出しだけを並べ、他の章のページと開閉の矢印 (`pg-menu-fold`) を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-lists-open-chapter-only` passes | #4024 |
+| 開いているページの行は太字と灰色の地で示し、地と線に青を使わない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-marks-open-page-gray` passes | #4024 |
+| ページの題、章の地図の行、前と次のlinkに1-1のような番号を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-shows-no-numbers` passes | #4024 |
+| 章の題は本文と同じ色の字と灰色の線で出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-topic-title-ink` passes | #4024 |
+| 幅1440pxで、目次のページの行と本文の段落は16px、目次の見出しの行は15pxで描かれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-and-text-sizes` passes | #4024 |
+| 全体像の頁は左の目次を出さず、本文の列を頁の中央に置き、ヘッダーと同じ題を本文の頭に重ねて出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-overview-centers-without-menu` passes | #4024 |
+| 章のタブが題の横に入らない幅では、タブを題の下の段に移し、最初のタブの字の左端を題の字の左端に揃える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tabs-wrap-below-title` passes | #4024 |
+| 幅390pxでは、左の目次を本文の上の目次の釦にまとめ、釦で開いた目次からページを選ぶと目次が閉じてそのページが開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-phone-menu-closes-on-pick` passes | #4024 |
+| 幅390pxでは、章のタブの段を横に送れ、開いている章のタブが段の中に見える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-phone-tabs-show-open-chapter` passes | #4024 |
+| 説明の頁の図の再生の帯は、01/03のような段の数を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-figure-hides-step-count` passes | #4024 |
+| 印刷の形では、ヘッダーの章のタブを紙に出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-print-hides-head-tabs` passes | #4024 |
+| 開いたページの下に、そのページの`####`の見出しを書いた順に並べ、見出しを押すとその見出しが画面の上へ来る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-docs-menu-lists-page-headings` passes | #4024 |
+| 目次のページを押すと、そのページの節だけが見え、URLの`#`の後ろがそのページのidになる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-question-pages-menu-opens-one-question` passes | #4024 |
+| 幅390pxでは、目次が本文の横に並ばず、本文が横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-folds-on-phone` passes | #4024 |
+| 幅1200pxと728pxと390pxで、頁の字が読める大きさで横にはみ出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-readable-and-fits` passes | #4024 |
+| 話題が1つの説明の頁は、今と同じく頁に分けず節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4024 |
+| 印刷の形では、今と同じく全ての話題と問いを書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-print-shows-every-topic` passes | #4024 |
+| `entry`、`sidebar`、`tabs`の組み立ての見本のmdは、今と同じく書き出せる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `page-examples-export` passes | #4024 |
