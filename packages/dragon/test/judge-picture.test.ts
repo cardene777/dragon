@@ -54,6 +54,20 @@ const WIDE = [
   "  fail r2: 250",
   "  fail r7: 900",
 ].join("\n");
+/**
+ * 札で見せる表 (#3890)。チェーンと宛先の規則と、1 つ目と 2 つ目の例が note を持ち、1回の規則と 3 つ目の例は持たない
+ */
+const POP = [
+  "judge どの送金を止めるのか [note: pop]",
+  "rule chain as チェーン [value: 31337のUSDC, note: チェーンのIDとUSDCの契約を確かめる]",
+  "rule to as 宛先 [value: 0x2222…, note: 宛先が許した0x2222…と同じか]",
+  "rule once as 1回 [value: 30まで]",
+  "case 0x2222…へ20 USDC [note: 11/24 その日1件目]",
+  "case 0x9999…へ20 USDC [note: 11/24 宛先が違う]",
+  "  fail to: 0x9999",
+  "case 0x2222…へ35 USDC",
+  "  fail once: 35",
+].join("\n");
 /** 色味と明るさを替えて書き出す見本と色味 */
 const TINTED = { file: "transfer-check.en.dragon", palette: "sea", theme: "dark" } as const;
 
@@ -93,6 +107,8 @@ const WRITTEN = await atLoad("判定の表の見本を SVG に書き出す", asy
   const pairs = await Promise.all([
     ...EXAMPLES.map(async (file) => [file, await written(file, exampleText(file))] as const),
     (async () => ["wide", await written("wide", WIDE)] as const)(),
+    // 札で見せる表は #3890 で読めるようになる。読めない間も見本の件を確かめられるよう、書き出せない時は空の SVG にする
+    (async () => ["pop", await written("pop", POP).catch((): Written => ({ svg: "", html: "" }))] as const)(),
     (async () =>
       [
         "tinted",
@@ -205,6 +221,29 @@ describe("判定の表の SVG の絵 (#3891)", () => {
         `${file} の地か字を持たない判定の札`,
       ).toBe(0);
     }
+  });
+
+  it("judge-picture-verdict-word-and-marks", () => {
+    // 判定の札は語だけを持ち、外れた規則の番号と名前を持たない (#3890)
+    for (const file of [...EXAMPLES, "pop"]) {
+      const { doc } = svgOf(file);
+      expect(doc.querySelectorAll('[data-dragon="judge-why"]').length, `${file} の判定の札の外れた規則`).toBe(0);
+      for (const verdict of doc.querySelectorAll('[data-dragon="judge-verdict"]'))
+        expect(textOf(verdict), `${file} の判定の札の字`).toBe(textOf(verdict.querySelector('[data-dragon="judge-word"]')));
+    }
+    // 札で見せる表は、例の note を名前の下に描かず、note を持つ規則と例の名前の右に i の丸を描く
+    const { doc, text } = svgOf("pop");
+    expect(doc.querySelectorAll('[data-dragon="judge-note"]').length, "札で見せる表の絵が例の名前の下に添え書きを描いた").toBe(0);
+    expect(text, "札で見せる表の絵が例の note の字を描いた").not.toContain("11/24 その日1件目");
+    const marked = (selector: string): boolean => doc.querySelector(selector)?.querySelector('[data-dragon="note-mark"]') != null;
+    expect(
+      ["chain", "to", "once"].map((id) => marked(`[data-dragon="judge-head"][data-rule="${id}"]`)),
+      "i の丸を持つ規則の見出し (チェーン、宛先、1回)",
+    ).toEqual([true, true, false]);
+    expect(
+      [0, 1, 2].map((i) => marked(`[data-dragon="judge-band"][data-case="${i}"]`)),
+      "i の丸を持つ例の帯 (1 つ目、2 つ目、3 つ目)",
+    ).toEqual([true, true, false]);
   });
 
   it("judge-svg-fills-every-cell-and-verdict", () => {

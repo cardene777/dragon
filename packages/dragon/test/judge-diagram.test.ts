@@ -212,30 +212,24 @@ describe("判定の表 (#3879)", () => {
     }
   });
 
-  it("judge-verdict-names-failed-rules", () => {
-    const figure = figureOf(BASIC);
-    if (!figure) return;
-    for (const [i, row] of rowsOf(figure).entries()) {
-      const verdict = row.querySelector('[data-dragon="judge-verdict"]');
-      const word = verdict?.querySelector('[data-dragon="judge-word"]');
-      const why = verdict?.querySelector('[data-dragon="judge-why"]') ?? null;
-      const fails = FAILS[i] ?? [];
-      if (fails.length === 0) {
-        // 外れる規則を持たない例は通し、外れた規則を並べない
-        expect(word?.getAttribute("data-verdict"), `${i + 1} 行目の判定`).toBe("pass");
-        expect(word?.textContent?.trim(), `${i + 1} 行目の判定の語`).toBe("通す");
-        expect(why, `${i + 1} 行目の通す判定の下の外れた規則`).toBeNull();
-        continue;
+  it("judge-verdict-word-only", () => {
+    // 判定の札は語だけを持ち、止める例も外れた規則の番号と名前を持たない (#3890)。どこで止まったかは✕のセルで読む
+    const overridden = BASIC.replace("judge どの送金を止めるのか", "judge どの送金を止めるのか [pass: 合格, block: 不合格]");
+    for (const [text, pass, block] of [
+      [BASIC, "通す", "止める"],
+      [overridden, "合格", "不合格"],
+    ] as const) {
+      const figure = figureOf(text);
+      if (!figure) continue;
+      for (const [i, row] of rowsOf(figure).entries()) {
+        const verdict = row.querySelector('[data-dragon="judge-verdict"]');
+        const word = verdict?.querySelector('[data-dragon="judge-word"]');
+        const blocked = (FAILS[i] ?? []).length > 0;
+        expect(word?.getAttribute("data-verdict"), `${i + 1} 行目の判定`).toBe(blocked ? "block" : "pass");
+        expect(verdict?.textContent?.trim(), `${i + 1} 行目の判定のセルの字 (${pass}と${block})`).toBe(blocked ? block : pass);
+        expect(verdict?.querySelector('[data-dragon="judge-why"]') ?? null, `${i + 1} 行目の判定の下の外れた規則`).toBeNull();
+        expect(verdict?.querySelector('[data-dragon="judge-no"]') ?? null, `${i + 1} 行目の判定の札の中の番号の丸`).toBeNull();
       }
-      // 外れる規則を持つ例は止め、判定の下に外れた規則の番号と名前を左の列から並べる
-      expect(word?.getAttribute("data-verdict"), `${i + 1} 行目の判定`).toBe("block");
-      expect(word?.textContent?.trim(), `${i + 1} 行目の判定の語`).toBe("止める");
-      const named = [...(why?.querySelectorAll("[data-rule]") ?? [])].map((item) => [item.getAttribute("data-rule"), textIn(item, "judge-no"), textIn(item, "judge-rule-name")]);
-      const wanted = fails.map(([id]) => {
-        const at = RULES.findIndex(([rule]) => rule === id);
-        return [id, String(at + 1), RULES[at]?.[1] ?? ""];
-      });
-      expect(named, `${i + 1} 行目の止める判定の下の外れた規則`).toEqual(wanted);
     }
   });
 
