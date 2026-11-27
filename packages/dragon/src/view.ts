@@ -7,6 +7,7 @@
  * 枠の高さを渡すと、全体を枠の幅と高さの両方へ収めた時の字で選ぶ (#3047)。高さの決まった置き場で、縦に長い図を縮めすぎないため。
  * 書き手が原本の `view` で決めた時は、字の大きさに関わらずそれに従う。
  * 寄って追う形にしない種類 (`FIXED_KINDS`) の図は、書き手が寄ると決めても止める (#3852)。
+ * 場面を持つ図も、場面ごとの図を枠ごと並べて見せるので止める (#4018)。
  * 再生の部品と書き出しと全体図の検査は、どれもこの決まりを読む。
  */
 import { READABLE_PX, TYPE } from "./look/values";
@@ -20,12 +21,15 @@ import type { ViewMode } from "./schema";
  */
 const FIXED_KINDS: readonly string[] = ["pipe", "judge"];
 
-/** 枠の幅に依らず全体を止めて見せる図か。書き手が原本で止めると決めた図と、寄って追う形にしない種類の図 */
-export function staysFixed(rendered: Pick<Rendered, "layout" | "view">): boolean {
-  return rendered.view === "fixed" || FIXED_KINDS.includes(rendered.layout.kind);
+/**
+ * 枠の幅に依らず全体を止めて見せる図か。書き手が原本で止めると決めた図と、寄って追う形にしない種類の図と、場面を持つ図。
+ * 場面を持つ図は、再生の部品が場面ごとの図を枠ごと並べて寄って追わないので、書き出しも場面ごとの図を並べた止めた形で書く (#4018)
+ */
+export function staysFixed(rendered: Pick<Rendered, "layout" | "view" | "scenes">): boolean {
+  return rendered.view === "fixed" || FIXED_KINDS.includes(rendered.layout.kind) || (rendered.scenes?.length ?? 0) > 0;
 }
 
-export function chooseView(rendered: Pick<Rendered, "layout" | "view">, frameWidth: number, frameHeight?: number): { mode: ViewMode; textPx: number } {
+export function chooseView(rendered: Pick<Rendered, "layout" | "view" | "scenes">, frameWidth: number, frameHeight?: number): { mode: ViewMode; textPx: number } {
   // 止めて見せる図は元の幅より大きく描かないので、倍率は 1 で止める (#3934)
   const byWidth = Math.min(1, Math.max(0, frameWidth) / rendered.layout.width);
   const scale = frameHeight === undefined ? byWidth : Math.min(byWidth, Math.max(0, frameHeight) / rendered.layout.height);

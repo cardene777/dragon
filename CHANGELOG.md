@@ -12,6 +12,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - Text that the layout wraps in an SVG figure (lineup diagrams and exported judge table pictures) is never wrapped narrower than 16 full-width characters a line. The layout widens the area instead. When the last wrapped line holds fewer than 4 characters, the text is wrapped again after the last punctuation of the line before, or the lines are evened out. `dragon check --layout` reports text wrapped narrower than 16 characters (#4009)
 - A lineup diagram draws the step text above the figure with a line break where the author split `say` into lines, as the player's step body does. The 16-character floor and the rewrap of a short last line apply to each split line (#4016)
 
+### Fixed
+
+- `dragon export` no longer stops with an error on a lineup diagram with scenes. A diagram with scenes holds the frame still, as the player shows each scene in its own frame, and is exported as the stacked scenes (#4018)
+
 ## [0.89.0] - 2026-11-27
 
 ### Added
