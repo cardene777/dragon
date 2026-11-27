@@ -2476,6 +2476,235 @@ describe("ヘッダーの章のタブ (#4024)", () => {
   });
 });
 
+/** 見出しの段を全て持つ説明の頁 (#4029)。1つ目の問いの頁に`####`から`######`の見出しと、`####`と`#####`の見出しを持つ取り込んだ文書を置く */
+const HEADINGS_GUIDE = `---
+layout: guide
+---
+
+# 送金の止め方
+
+送金を止める仕組みを、見出しの段ごとに読む。
+
+## 止める仕組み
+
+${TOPIC_LEAD}
+
+### 何を止めるのか [menu: 止める物]
+
+> 規則に合わない送金を止める。
+
+#### 止める場所
+
+送金がどこで止まるかを追う。
+
+##### 確かめる所の中
+
+確かめる所は規則と送金を照らす。
+
+###### 照らす規則の例
+
+宛先と額と期限を照らす。
+
+![手引き](manual.md)
+
+## 記録
+
+### どこに残すのか [menu: 残す場所]
+
+> 確かめた結果を記録に残す。
+`;
+
+/** 見出しの段の頁が取り込む文書。枠の中の見出しは枠の字に合わせた今の形のまま出る (#4029) */
+const HEADINGS_MANUAL = `#### 手引きの見出し
+
+手引きの本文を読む。
+
+##### 手引きの小見出し
+
+手引きの小見出しの本文を読む。
+`;
+
+/** 見出しの段の頁のmdと取り込む文書を一時のdirに書き、mdのpathを返す (#4029) */
+function writeHeadingsGuide(): string {
+  const root = tempDir("guide-headings");
+  writeFiles(root, { "notes.md": HEADINGS_GUIDE, "manual.md": HEADINGS_MANUAL });
+  return join(root, "notes.md");
+}
+
+/**
+ * 説明の頁の見出しの段ごとの字の大きさと形 (#4029)。h1は頁の題、h2は章の題、h3はページの題、h4からh6はページの中の見出し、
+ * docは取り込んだ文書の枠の中の見出し。章の色は、ページの題を持つ章の`--cc`を字の色に当てた要素で読む
+ */
+const headingState = (page: Page) =>
+  page.evaluate(() => {
+    const look = (el: Element | null | undefined) => {
+      if (!el) return null;
+      const s = getComputedStyle(el);
+      return {
+        size: Number.parseFloat(s.fontSize),
+        color: s.color,
+        background: s.backgroundColor,
+        bottom: { width: s.borderBottomWidth, style: s.borderBottomStyle, color: s.borderBottomColor },
+        left: { width: s.borderLeftWidth, style: s.borderLeftStyle, color: s.borderLeftColor },
+        adjust: s.getPropertyValue("print-color-adjust") || s.getPropertyValue("-webkit-print-color-adjust"),
+      };
+    };
+    const inPage = (selector: string): Element | undefined => [...document.querySelectorAll(selector)].find((el) => !el.closest(".pg-doc"));
+    const h3 = document.querySelector(".pg-sec-title");
+    const probe = document.createElement("i");
+    probe.style.color = "var(--cc)";
+    h3?.closest(".pg-topic")?.append(probe);
+    const chapter = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      h1: look(document.querySelector(".pg-top h1")),
+      h2: look(document.querySelector("h2.pg-topic-title")),
+      h3: look(h3),
+      h4: look(inPage(".pg-sec h4.pg-h")),
+      h5: look(inPage(".pg-sec h5.pg-h")),
+      h6: look(inPage(".pg-sec h6.pg-h")),
+      doc4: look(document.querySelector(".pg-doc h4.pg-h")),
+      doc5: look(document.querySelector(".pg-doc h5.pg-h")),
+      body: look(inPage(".pg-sec > p")),
+      ink: getComputedStyle(document.body).color,
+      page: getComputedStyle(document.body).backgroundColor,
+      chapter,
+    };
+  });
+
+/** 色の字の赤と緑と青の値の平均 (0から255)。明るい字ほど大きい */
+const lightness = (color: string): number => {
+  const values = (color.match(/[\d.]+/gu) ?? []).map(Number).slice(0, 3);
+  const scale = color.startsWith("color(") ? 255 : 1;
+  return values.length === 3 ? (values.reduce((sum, v) => sum + v, 0) * scale) / 3 : 0;
+};
+
+/** 見出しの段の頁の1つ目の問いの頁を幅1440pxと幅390pxと印刷の形で開き、見出しの段ごとの字の大きさと形を読む (#4029) */
+const HEADINGS = await atLoad("見出しの段を全て持つ説明の頁の1つ目の問いの頁を、幅1440pxと幅390pxと印刷の形で開き、見出しの字の大きさと形を読む", () =>
+  openGuide(
+    async (page) => {
+      const step = inOrder();
+      const wide = await step("幅1440pxで1つ目の問いの頁を開き、見出しの段ごとの字の大きさと形を読む", async () => {
+        await openPlace(page, "何を止めるのか");
+        await readUntil(() => headState(page), (shown) => shown.sections.join() === "何を止めるのか", WAIT);
+        return headingState(page);
+      });
+      const phone = await step("幅390pxにし、見出しの段ごとの字の大きさを読む", async () => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        return headingState(page);
+      });
+      const printed = await step("幅1200pxで印刷の形にし、見出しの段ごとの形と紙に地の色を出す指定を読む", async () => {
+        await page.setViewportSize({ width: 1200, height: 700 });
+        await page.emulateMedia({ media: "print" });
+        const shown = await headingState(page);
+        await page.emulateMedia({ media: "screen" });
+        return shown;
+      });
+      return { wide, phone, printed };
+    },
+    { width: 1440, height: 900 },
+    writeHeadingsGuide,
+  ),
+);
+
+/**
+ * 見出しの段ごとの形 (#4029)。
+ *
+ * 説明の頁の見出しは、h1からh5まで段ごとに違う形で出て、どの段も本文の16pxより大きい。
+ * h1は本文の字と同じ色の帯に明るい字、h2は本文の字と同じ色の下線、h3は章の色の縦線、h4は淡い地、h5は点線の下線で出る。
+ * 取り込んだ文書の枠の中の見出しは、枠の字に合わせた今の形のまま出る。
+ */
+describe("見出しの段ごとの形 (#4029)", () => {
+  it("guide-heading-h1-band", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h1, ink } = seen.printed.get();
+    expect(h1?.size, "印刷の形の頁の題 (h1) の字の大きさ (px)").toBe(30);
+    expect(h1?.background, "印刷の形の頁の題 (h1) の地の色。本文の字と同じ色").toBe(ink);
+    expect(lightness(h1?.color ?? ""), `印刷の形の頁の題 (h1) の字の色 (${h1?.color}) の明るさ`).toBeGreaterThan(200);
+  });
+
+  it("guide-heading-h2-underline", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h2, ink } = seen.wide.get();
+    expect(h2?.size, "幅1440pxの章の題 (h2) の字の大きさ (px)").toBe(25);
+    expect(h2?.bottom, "幅1440pxの章の題 (h2) の下の線の太さと形と色").toEqual({ width: "2px", style: "solid", color: ink });
+  });
+
+  it("guide-heading-h3-chapter-bar", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h3, chapter } = seen.wide.get();
+    expect(h3?.size, "幅1440pxのページの題 (h3) の字の大きさ (px)").toBe(22);
+    expect(h3?.left, "幅1440pxのページの題 (h3) の左の縦線の太さと形と色。色は章の色").toEqual({ width: "4px", style: "solid", color: chapter });
+  });
+
+  it("guide-heading-h4-band", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h4, page } = seen.wide.get();
+    expect(h4?.size, "幅1440pxの`####`の見出し (h4) の字の大きさ (px)").toBe(18);
+    expect(h4?.background, "幅1440pxの`####`の見出し (h4) の地の色が透明").not.toBe("rgba(0, 0, 0, 0)");
+    expect(h4?.background, "幅1440pxの`####`の見出し (h4) の地の色が頁の地と同じ").not.toBe(page);
+  });
+
+  it("guide-heading-h5-dashed", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h5 } = seen.wide.get();
+    expect(h5?.size, "幅1440pxの`#####`の見出し (h5) の字の大きさ (px)").toBe(17);
+    expect(h5?.bottom.style, "幅1440pxの`#####`の見出し (h5) の下の線の形").toBe("dashed");
+    expect(h5?.bottom.width, "幅1440pxの`#####`の見出し (h5) の下の線の太さ").not.toBe("0px");
+  });
+
+  it("guide-heading-h6-body-size", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h6, body } = seen.wide.get();
+    expect({ h6: h6?.size, body: body?.size }, "幅1440pxの`######`の見出し (h6) と本文の段落の字の大きさ (px)").toEqual({ h6: 16, body: 16 });
+  });
+
+  it("guide-heading-sizes-fall", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    for (const [name, shown] of [
+      ["幅1440px", seen.wide.get()],
+      ["幅390px", seen.phone.get()],
+    ] as const) {
+      const sizes = [shown.h1, shown.h2, shown.h3, shown.h4, shown.h5].map((h) => h?.size ?? 0);
+      expect(
+        sizes.every((size, i) => i === 0 || size < (sizes[i - 1] ?? 0)),
+        `${name}のh1からh5の字の大きさ (${sizes.join("/")}px) が段ごとに小さくなる`,
+      ).toBe(true);
+      expect(shown.h5?.size ?? 0, `${name}のh5の字の大きさ (px) が本文の${shown.body?.size}pxより大きい`).toBeGreaterThan(shown.body?.size ?? 0);
+    }
+  });
+
+  it("guide-heading-print-keeps-bands", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { h1, h4 } = seen.printed.get();
+    expect({ h1: h1?.adjust, h4: h4?.adjust }, "印刷の形の頁の題 (h1) と`####`の見出し (h4) の、地の色を紙に出す指定").toEqual({ h1: "exact", h4: "exact" });
+  });
+
+  it("guide-doc-headings-unchanged", () => {
+    const seen = HEADINGS.get();
+    if (!seen) return;
+    const { doc4, doc5 } = seen.wide.get();
+    for (const [name, h] of [
+      ["`####`", doc4],
+      ["`#####`", doc5],
+    ] as const) {
+      expect(h, `取り込んだ文書の枠の中の${name}の見出し`).not.toBeNull();
+      expect(
+        { size: h?.size, background: h?.background, bottom: h?.bottom.width, left: h?.left.width },
+        `幅1440pxで取り込んだ文書の枠の中の${name}の見出しの字の大きさ (px) と地の色と下と左の線の太さ`,
+      ).toEqual({ size: 15, background: "rgba(0, 0, 0, 0)", bottom: "0px", left: "0px" });
+    }
+  });
+});
+
 /** 判定の表の例の行から追う場面の図 (#3892)。2つの場面を持つ手順の図で、通る送金は4段、宛先が違う送金は3段目で止まる */
 const JUDGE_SCENES = (show: "pick" | "stack"): string => `flow 送金 [scenes: ${show}]
 

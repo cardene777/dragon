@@ -98,8 +98,7 @@
 | 左の目次は開いている章のページと開いているページの見出しだけを並べ、他の章のページと開閉の矢印 (`pg-menu-fold`) を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-lists-open-chapter-only` passes | #4024 |
 | 開いているページの行は太字と灰色の地で示し、地と線に青を使わない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-marks-open-page-gray` passes | #4024 |
 | ページの題、章の地図の行、前と次のlinkに1-1のような番号を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-shows-no-numbers` passes | #4024 |
-| 章の題は本文と同じ色の字と灰色の線で出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-topic-title-ink` passes | #4024 |
-| 幅1440pxで、目次のページの行と本文の段落は16px、目次の見出しの行は15pxで描かれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-and-text-sizes` passes | #4024 |
+| 幅1440pxで、目次のページの行と本文の段落は16px、目次の見出しの行は15pxで描かれる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-menu-and-text-sizes` passes | #4024 #4029 |
 | 全体像の頁は左の目次を出さず、本文の列を頁の中央に置き、ヘッダーと同じ題を本文の頭に重ねて出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-overview-centers-without-menu` passes | #4024 |
 | 章のタブが題の横に入らない幅では、タブを題の下の段に移し、最初のタブの字の左端を題の字の左端に揃える | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-head-tabs-wrap-below-title` passes | #4024 |
 | 幅390pxでは、左の目次を本文の上の目次の釦にまとめ、釦で開いた目次からページを選ぶと目次が閉じてそのページが開く | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-phone-menu-closes-on-pick` passes | #4024 |
@@ -113,3 +112,13 @@
 | 話題が1つの説明の頁は、今と同じく頁に分けず節を縦に積む | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-single-topic-stacks` passes | #4024 |
 | 印刷の形では、今と同じく全ての話題と問いを書いた順に出す | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-print-shows-every-topic` passes | #4024 |
 | `entry`、`sidebar`、`tabs`の組み立ての見本のmdは、今と同じく書き出せる | `pnpm exec vitest run packages/dragon/test/page-export.test.ts --reporter=verbose` check `page-examples-export` passes | #4024 |
+| 頁の題 (h1) は30pxで、本文の字と同じ色の帯に明るい字で出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h1-band` passes | #4029 |
+| 章の題 (h2) は25pxで、本文の字と同じ色の2pxの下線で出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h2-underline` passes | #4029 |
+| ページの題 (h3) は22pxで、左に章の色の4pxの縦線を持つ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h3-chapter-bar` passes | #4029 |
+| `####`の見出し (h4) は18pxで、頁の地と違う淡い地の帯で出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h4-band` passes | #4029 |
+| `#####`の見出し (h5) は17pxで、点線の下線で出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h5-dashed` passes | #4029 |
+| `######`の見出し (h6) は本文と同じ16pxで出る | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-h6-body-size` passes | #4029 |
+| 幅1440pxと幅390pxで、h1からh5の字は段ごとに小さくなり、h5は本文の16pxより大きい | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-sizes-fall` passes | #4029 |
+| 印刷の形でも、h1の帯とh4の地を紙に出す指定 (`print-color-adjust: exact`) を持つ | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-heading-print-keeps-bands` passes | #4029 |
+| 取り込んだ文書の枠 (`pg-doc`) の中の`####`と`#####`の見出しは15pxのままで、地の色と下線を持たない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-doc-headings-unchanged` passes | #4029 |
+| 章の題は本文と同じ色の字で出し、下の線は青くない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-topic-title-ink` passes | #4029 |
