@@ -386,19 +386,20 @@ dragon embed notes.html
 
 `layout: guide` turns each `##` into a topic and each `###` into a numbered question section.
 A page with one topic stacks every section on one page.
-A page with two or more topics shows the overview and one tab per topic at the top.
-The overview tab shows the title, the text before the first `##`, the overview, and the topics in order.
-A topic tab opens on a list of the question numbers, short names, and one-sentence answers.
-Inside a topic tab each question is its own page: clicking a row of the list or a question in the menu shows only that question's section.
-Write `link: #<topic id>` on a box of the overview figure to open that topic's tab from the box.
-That tab then starts with a still of the overview where only the linked boxes keep their colors.
+A page with two or more topics splits into an overview page and one page per topic, with no tabs at the top: the menu on the left opens each page.
+The overview page shows the title, the text before the first `##`, the overview, and the topics in order.
+A topic page opens on a list of the question numbers, short names, and one-sentence answers.
+Inside a topic each question is its own page: clicking a row of the list or a question in the menu shows only that question's section.
+Write `link: #<topic id>` on a box of the overview figure to open that topic's page from the box.
+That page then starts with a still of the overview where only the linked boxes keep their colors.
 The pages run from the overview through each topic's list and then its questions, and each page ends with links to the previous and next pages.
 Changing pages does not reload the file.
 Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
 A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
 The menu marks the question being read, and clicking a question scrolls to its section. The menu shows no question numbers.
-When the page has topic tabs, the menu lists only the questions of the open topic, and lists the titles of the figures under the open question.
-Clicking a figure title scrolls to that figure, and the menu marks the figure being read.
+When the page is split into pages, the menu lists the overview and every topic, the questions under each topic, and the `####` headings of the open page under its question.
+The arrow before a topic or a question opens and closes the list under it, and opening a page opens the lists of its topic and its question.
+Clicking a heading scrolls to it, and the menu marks the heading being read. A question page without `####` headings lists its figure titles instead.
 On a phone, the menu folds above the text behind a button.
 A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.

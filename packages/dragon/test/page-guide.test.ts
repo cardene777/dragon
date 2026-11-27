@@ -712,9 +712,10 @@ const pageState = (page: Page) =>
         .filter(vis)
         .map((a) => ({ rel: a.classList.contains("pg-pager-prev") ? "prev" : "next", href: dec(a.getAttribute("href") ?? ""), text: sq(a.textContent) })),
       route: [...document.querySelectorAll("ol.pg-route a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
-      tabs: [...document.querySelectorAll("nav.pg-tabs a")]
+      // 頁の行は左の目次の全体像と話題の行。上のタブは持たない (#4010)
+      tabs: [...document.querySelectorAll("nav.pg-menu a.pg-menu-over, nav.pg-menu a.pg-menu-topic")]
         .filter(vis)
-        .map((a) => ({ text: sq(a.textContent), href: dec(a.getAttribute("href") ?? ""), current: a.getAttribute("aria-current") === "page" })),
+        .map((a) => ({ text: sq(a.textContent), href: dec(a.getAttribute("href") ?? ""), current: a.getAttribute("aria-current") === "true" || a.hasAttribute("data-open") })),
       menu: [...document.querySelectorAll("nav.pg-menu a.pg-menu-q")].filter(vis).map((a) => sq(a.querySelector(".pg-menu-name")?.textContent)),
       map: [...document.querySelectorAll(".pg-map-list a")].filter(vis).map((a) => dec(a.getAttribute("href") ?? "")),
     };
@@ -729,8 +730,8 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         await figuresDrawn(page);
         return pageState(page);
       });
-      const tabbed = await step("1つ目の話題のタブを押し、その話題の頭の地図が見えるのを待つ", async () => {
-        const tab = page.locator("nav.pg-tabs a", { hasText: "止める仕組み" });
+      const tabbed = await step("左の目次で1つ目の話題の行を押し、その話題の頭の地図が見えるのを待つ", async () => {
+        const tab = page.locator("nav.pg-menu a.pg-menu-topic", { hasText: "止める仕組み" });
         if ((await tab.count()) === 0) return pageState(page);
         await tab.first().click({ timeout: WAIT });
         return readUntil(() => pageState(page), (shown) => shown.hash === "#止める仕組み" && shown.map.length > 0, WAIT);
@@ -742,8 +743,8 @@ const PRESSED = await atLoad("説明の頁を開き、話題のタブと左の�
         const state = await readUntil(() => pageState(page), (shown) => shown.hash === "#どの順で確かめるのか" && shown.sections.join() === "1-2 どの順で確かめるのか", WAIT);
         return { ...state, top: await sectionTop(page, "どの順で確かめるのか") };
       });
-      const mapped = await step("1つ目の話題のタブを押して頭へ戻り、話題の頭の一覧の2つ目の行を押して、その節が画面の上に来るのを待つ", async () => {
-        const tab = page.locator("nav.pg-tabs a", { hasText: "止める仕組み" });
+      const mapped = await step("左の目次で1つ目の話題の行を押して頭へ戻り、話題の頭の一覧の2つ目の行を押して、その節が画面の上に来るのを待つ", async () => {
+        const tab = page.locator("nav.pg-menu a.pg-menu-topic", { hasText: "止める仕組み" });
         if ((await tab.count()) === 0) return { count: 0, top: undefined, hash: "" };
         await tab.first().click({ timeout: WAIT });
         await readUntil(() => pageState(page), (shown) => shown.hash === "#止める仕組み" && shown.map.length > 0, WAIT);
@@ -1126,9 +1127,9 @@ const PAGED = await atLoad("問いごとの頁に分けた説明の頁を開き�
   openGuide(
     async (page) => {
       const step = inOrder();
-      const topic = await step("1つ目の話題のタブを押し、話題の頭の地図が見えるのを待つ", async () => {
+      const topic = await step("左の目次で1つ目の話題の行を押し、話題の頭の地図が見えるのを待つ", async () => {
         await figuresDrawn(page);
-        await page.locator("nav.pg-tabs a", { hasText: "止める仕組み" }).first().click({ timeout: WAIT });
+        await page.locator("nav.pg-menu a.pg-menu-topic", { hasText: "止める仕組み" }).first().click({ timeout: WAIT });
         return readUntil(() => pagesState(page), (shown) => shown.hash === "#止める仕組み" && shown.map, WAIT);
       });
       const question = await step("目次で1つ目の問いを押し、その問いの頁が開くのを待つ", async () => {
@@ -1144,8 +1145,8 @@ const PAGED = await atLoad("問いごとの頁に分けた説明の頁を開き�
         const top = await readUntil(() => topOf(page, href), (at) => at !== undefined && at >= 0 && at < 200, WAIT);
         return { href, before, top, hash: await page.evaluate(() => decodeURIComponent(location.hash)) };
       });
-      const mapped = await step("1つ目の話題のタブで頭の地図へ戻り、地図の2つ目の行を押して、その問いの頁が開くのを待つ", async () => {
-        await page.locator("nav.pg-tabs a", { hasText: "止める仕組み" }).first().click({ timeout: WAIT });
+      const mapped = await step("左の目次の1つ目の話題の行で頭の地図へ戻り、地図の2つ目の行を押して、その問いの頁が開くのを待つ", async () => {
+        await page.locator("nav.pg-menu a.pg-menu-topic", { hasText: "止める仕組み" }).first().click({ timeout: WAIT });
         await readUntil(() => pagesState(page), (shown) => shown.hash === "#止める仕組み" && shown.map, WAIT);
         const rows = page.locator(".pg-map a:visible");
         if ((await rows.count()) >= 2) await rows.nth(1).click({ timeout: WAIT });
@@ -1275,8 +1276,8 @@ const TABBED = await atLoad("全体像の図の箱に話題へのlinkを書い�
       const focus = await step("1つ目の話題のタブの頭の止め絵が描かれるのを待ち、箱の名前と薄くした箱を読む", () =>
         readUntil(() => focusBoxes(page, ["エージェント", "確かめる所", "署名する所"]), (boxes) => boxes.length >= 3, WAIT),
       );
-      const plain = await step("2つ目の話題のタブを押し、話題の頭に止め絵が在るかを読む", async () => {
-        await page.locator("nav.pg-tabs a", { hasText: "記録" }).click({ timeout: WAIT });
+      const plain = await step("左の目次で2つ目の話題の行を押し、話題の頭に止め絵が在るかを読む", async () => {
+        await page.locator("nav.pg-menu a.pg-menu-topic", { hasText: "記録" }).click({ timeout: WAIT });
         const state = await readUntil(() => pageState(page), (shown) => shown.topics[0] === "記録", WAIT);
         const stills = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".pg-map .dragon-still, .pg-map pre.dragon")].filter((el) => el.checkVisibility()).length);
         return { state, stills };
@@ -1814,23 +1815,23 @@ describe("話題のタブ (#3991)", () => {
     const glossaryId = [...doc.querySelectorAll("section.pg-topic")].find((topic) => topic.querySelector(".pg-glossary"))?.id ?? "";
     expect(glossaryId, "用語の話題に場所の名前が無い").not.toBe("");
     expect(
-      [...doc.querySelectorAll("nav.pg-tabs a")].map((a) => `${squash(a.textContent)} ${decodeURIComponent(a.getAttribute("href") ?? "")}`),
-      "頁の上のタブの名前と行き先。全体像の後に話題を書いた順に並べ、用語でない話題に番号を付ける",
-    ).toEqual(["全体像 #", "1止める仕組み #止める仕組み", "2記録 #記録", `用語 #${glossaryId}`]);
+      [...doc.querySelectorAll("nav.pg-menu a.pg-menu-over, nav.pg-menu a.pg-menu-topic")].map((a) => `${squash(a.textContent)} ${decodeURIComponent(a.getAttribute("href") ?? "")}`),
+      "左の目次の頁の行の名前と行き先。全体像の後に話題を書いた順に並べる。上のタブは持たない (#4010)",
+    ).toEqual(["全体像 #", "止める仕組み #止める仕組み", "記録 #記録", `用語 #${glossaryId}`]);
     const seen = PRESSED.get();
     if (!seen) return;
     const start = seen.start.get();
     expect(start.sections, "頁を開いた時に見えている問いの節").toEqual([]);
     expect(start.head.title && start.head.lead, "頁を開いた時に頁の題と頭の中身が見えない").toBe(true);
-    expect(start.tabs.filter((tab) => tab.current).map((tab) => tab.text), "頁を開いた時に印の付いたタブ").toEqual(["全体像"]);
+    expect(start.tabs.filter((tab) => tab.current).map((tab) => tab.text), "頁を開いた時に印の付いた左の目次の頁の行").toEqual(["全体像"]);
     expect(start.route, "頁を開いた時に見えている話題の道筋の行き先").toEqual(["#止める仕組み", "#記録"]);
     const tabbed = TABBED.get();
     if (!tabbed) return;
     const top = tabbed.start.get();
     expect(top.sections, "全体像を持つ頁を開いた時に見えている問いの節").toEqual([]);
     expect(top.head.overview, "全体像を持つ頁を開いた時に全体像が見えない").toBe(true);
-    expect(top.tabs.filter((tab) => tab.current).map((tab) => tab.text), "全体像を持つ頁を開いた時に印の付いたタブ").toEqual(["全体像"]);
-    expect(top.tabs.length, "全体像を持つ頁のタブの数").toBe(5);
+    expect(top.tabs.filter((tab) => tab.current).map((tab) => tab.text), "全体像を持つ頁を開いた時に印の付いた左の目次の頁の行").toEqual(["全体像"]);
+    expect(top.tabs.length, "全体像を持つ頁の左の目次の頁の行の数").toBe(5);
   });
 
   it("guide-tabs-topic-map-lists-answers", async () => {
@@ -1920,7 +1921,7 @@ describe("話題のタブ (#3991)", () => {
     const glossary = seen.glossary.get();
     expect(glossary.links, "「記録」の札の中の「規則」のlinkの数").toBe(1);
     expect(glossary.state.topics, "札の中のlinkを押した後に見えている話題").toEqual(["用語"]);
-    expect(glossary.state.tabs.filter((tab) => tab.current).map((tab) => tab.text), "札の中のlinkを押した後に印の付いたタブ").toEqual(["用語"]);
+    expect(glossary.state.tabs.filter((tab) => tab.current).map((tab) => tab.text), "札の中のlinkを押した後に印の付いた左の目次の頁の行").toEqual(["用語"]);
     expect(glossary.state.sections, "札の中のlinkを押した後に見えている問いの節").toEqual([]);
     expect(glossary.state.hash, "札の中のlinkを押した後のURLの#の後ろ").toBe(glossary.href);
     const entry = glossary.entry;
@@ -1983,9 +1984,11 @@ describe("問いごとの頁 (#3998)", () => {
     }
     const seen = PAGED.get();
     if (!seen) return;
-    expect(seen.topic.get().questions, "話題のタブの目次に見えている問いの字と番号の数").toEqual([
+    // 左の目次は全ての話題の問いを並べる (#4010)
+    expect(seen.topic.get().questions, "話題の頁を開いた時に左の目次に見えている問いの字と番号の数").toEqual([
       { text: "止める物", numbers: 0 },
       { text: "確かめる順", numbers: 0 },
+      { text: "残す場所", numbers: 0 },
     ]);
   });
 
