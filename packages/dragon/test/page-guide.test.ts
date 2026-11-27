@@ -2337,8 +2337,21 @@ async function followScene(page: Page, title: string, name: string): Promise<{ s
   return { steps, last, held: await judgeSceneState(page, title) };
 }
 
+/**
+ * 判定の表と場面の図の頁 (`writeJudgeGuide`) を`dragon export`で書き出し、頁を`viewport`の大きさで開いて`run`を回す。
+ * Nodeの入口の`exportPage`は後から読む種類 (判定の表と、手順の図が読む分かれ道) を登録しないので、全ての種類を読むコマンドで書き出す
+ */
+async function openJudgeGuide<T>(run: (page: Page) => Promise<T>, viewport: { width: number; height: number }): Promise<T | undefined> {
+  const md = writeJudgeGuide();
+  const ran = await runCli(["export", md]);
+  expect(ran.code, `判定の表と場面の図の頁を書き出せない: ${ran.stderr}`).toBe(0);
+  const path = join(dirname(md), "notes.html");
+  if (ran.code !== 0 || !existsSync(path)) return undefined;
+  return within(withSite({ "notes.html": readFileSync(path, "utf8") }, "notes.html", run, viewport), PAGE_LIMIT_MS, "判定の表と場面の図の頁の仕事");
+}
+
 const JUDGED = await atLoad("判定の表と場面の図を置いた説明の頁を開き、例の行を押して場面の図が止まる段まで進むのを読む", () =>
-  openGuide(
+  openJudgeGuide(
     async (page) => {
       const step = inOrder();
       await figuresDrawn(page);
@@ -2363,7 +2376,6 @@ const JUDGED = await atLoad("判定の表と場面の図を置いた説明の頁
       return { picked, again, stacked };
     },
     { width: 1200, height: 900 },
-    writeJudgeGuide,
   ),
 );
 
@@ -2374,11 +2386,10 @@ const lineOf = (md: string, line: string): number => md.split("\n").findIndex((r
 const MISSING_GUIDE = JUDGE_GUIDE.replace("case 宛先が違う送金 [scene: 宛先が違う送金]", "case 宛先が違う送金 [scene: 無い場面]");
 const TWICE_GUIDE = JUDGE_GUIDE.replace(`${fenced(JUDGE_SCENES("pick"))}\n`, `${fenced(JUDGE_SCENES("pick"))}\n\nもう1つの図でも追う。\n\n${fenced(JUDGE_SCENES("pick"))}\n`);
 
-const REFUSED = await atLoad("例の行が無い場面を指した頁と、2つ以上の場面に当たる頁を、書き出しとdragon checkに通す", async () => {
-  const exportPage = await exportPageTool();
+const REFUSED = await atLoad("例の行が無い場面を指した頁と、2つ以上の場面に当たる頁を、dragon exportとdragon checkに通す", async () => {
   const run = async (md: string) => {
     const path = writeJudgeGuide(md);
-    const exported = exportPage ? await exportPage(path) : undefined;
+    const exported = await runCli(["export", path]);
     const written = existsSync(join(dirname(path), "notes.html"));
     return { path, exported, written, checked: await runCli(["check", path]) };
   };
@@ -2390,7 +2401,7 @@ const REFUSED = await atLoad("例の行が無い場面を指した頁と、2つ�
  *
  * 説明の頁の同じ問いの節に判定の表と場面の図を置き、例の行に`[scene: <場面の名前>]`を書くと、例の行 (名前のセルより右) を押した時に、
  * 場面の図がその場面を選んで1段目に戻し、止まる段まで1段ずつ進めて止め、止まる理由を出す。押した行には印 (`aria-current`) が残り、場面の図が画面の外なら図まで移る。
- * 並べる見せ方の場面の図では、ほかの場面を薄くし、全ての場面を選んだ場面の止まる段まで進める。場面が無いか2つ以上当たる例の行は、書き出しと`dragon check`が断る
+ * 並べる見せ方の場面の図では、ほかの場面を薄くし、全ての場面を選んだ場面の止まる段まで進める。場面が無いか2つ以上当たる例の行は、`dragon export`と`dragon check`が断る
  */
 describe("判定の表の例の行から場面の図を追う (#3892)", () => {
   it("guide-judge-row-plays-scene", () => {
@@ -2452,22 +2463,28 @@ describe("判定の表の例の行から場面の図を追う (#3892)", () => {
         word: "通る送金",
       },
     ];
+    /** 命令が`<file>:<行>`で始めて出した行の、行の番号と行の全文 */
+    const refusals = (out: string, path: string): { line: number; text: string }[] =>
+      out
+        .split("\n")
+        .filter((row) => row.startsWith(`${path}:`))
+        .map((row) => ({ line: Number(row.slice(path.length + 1).split(/[:\s]/u)[0]), text: row }));
     for (const { name, ran, lines, word } of cases) {
-      expect(ran.exported?.ok, `${name}頁を書き出した`).toBe(false);
-      const errors = ran.exported && !ran.exported.ok ? ran.exported.errors : [];
+      expect(ran.exported.code, `${name}頁をdragon exportが断らない ${ran.exported.stdout}`).toBe(1);
+      const exported = refusals(ran.exported.stderr, ran.path);
       expect(
-        errors.map((e) => ({ file: basename(e.file), line: e.line })),
-        `${name}頁の書き出しが断った行`,
-      ).toEqual(lines.map((line) => ({ file: "notes.md", line })));
-      expect(errors[0]?.message ?? "", `${name}頁の書き出しの断りの文が場面の名前を名指さない`).toContain(word);
+        exported.map((e) => e.line),
+        `${name}頁でdragon exportが断った行`,
+      ).toEqual(lines);
+      expect(exported[0]?.text ?? "", `${name}頁のdragon exportの断りの文が場面の名前を名指さない`).toContain(word);
       expect(ran.written, `${name}のに頁を書いた`).toBe(false);
       expect(ran.checked.code, `${name}頁をdragon checkが断らない ${ran.checked.stdout}`).toBe(1);
-      const said = ran.checked.stdout.split("\n").filter((row) => row.startsWith(`${ran.path}:`));
+      const said = refusals(ran.checked.stdout, ran.path);
       expect(
-        said.map((row) => Number(row.slice(ran.path.length + 1).split(":")[0])),
+        said.map((e) => e.line),
         `${name}頁でdragon checkが断った行`,
       ).toEqual(lines);
-      expect(said[0] ?? "", `${name}頁のdragon checkの断りの文が場面の名前を名指さない`).toContain(word);
+      expect(said[0]?.text ?? "", `${name}頁のdragon checkの断りの文が場面の名前を名指さない`).toContain(word);
     }
   });
 });

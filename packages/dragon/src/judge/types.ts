@@ -25,12 +25,14 @@ export interface JudgeFail {
 
 /**
  * 行の例。`note` は例の名前の下に出す添え書きで、札で見せる表 (#3890) では名前の下に描かず、名前を押すと出る札の本文にする。
- * `example` は札の下の灰色の例の帯で、札で見せる表の `note` を持つ例だけが持てる。外れる規則を持たない例は `fails` を持たない
+ * `example` は札の下の灰色の例の帯で、札で見せる表の `note` を持つ例だけが持てる。外れる規則を持たない例は `fails` を持たない。
+ * `scene` は説明の頁の同じ問いの節の場面の図の場面の名前で、例の行を押すとその場面を止まる段まで追う (#3892)
  */
 export interface JudgeCase {
   name: string;
   note?: string;
   example?: string;
+  scene?: string;
   fails?: JudgeFail[];
 }
 

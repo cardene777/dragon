@@ -1245,6 +1245,24 @@ export function mountDiagram(
   // 手で横に送った時も、全体の線を見ている所に付ける
   const onPan = (): void => follow();
   // 段の番号を押すとその段へ移る。試す図のブロックの中のチップを押すと、書き換える欄を出す
+  /**
+   * 判定の表の例の行 `row` が名指す場面を追う (#3892)。押した行に印を付けてほかの行の印を外し、場面の名前を図の外へ知らせる。
+   * 知らせ (`dragon-scene`) は影の根を越えて頁まで上り、説明の頁が同じ問いの節の場面の図へ渡す
+   */
+  const followScene = (row: Element): void => {
+    for (const other of row.closest('[data-dragon="judge"]')?.querySelectorAll("[data-follow]") ?? []) other.removeAttribute("aria-current");
+    row.setAttribute("aria-current", "true");
+    const Custom = win?.CustomEvent ?? CustomEvent;
+    row.dispatchEvent(new Custom("dragon-scene", { bubbles: true, composed: true, detail: { scene: row.getAttribute("data-follow") ?? "" } }));
+  };
+  /** 場面を追う例の行を Enter か空白で押す (#3892) */
+  const onFollowKey = (event: KeyboardEvent): void => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const row = (event.target as Element | null)?.closest?.("[data-follow]");
+    if (!row || row !== event.target) return;
+    event.preventDefault();
+    followScene(row);
+  };
   const onFigure = (event: Event): void => {
     const chip = controls ? (event.target as Element | null)?.closest?.("[data-chip]") : null;
     if (chip) {
@@ -1264,6 +1282,12 @@ export function mountDiagram(
         notes.open(noted.getAttribute("data-note") ?? "", noted, step);
         return;
       }
+    }
+    // 判定の表の場面を追う例の行 (#3892)。名前のセルより右を押した時だけ追い、名前のセルは札を開く
+    const followed = (event.target as Element | null)?.closest?.("[data-follow]");
+    if (followed && !(event.target as Element).closest?.('[data-dragon="judge-case"]')) {
+      followScene(followed);
+      return;
     }
     const fold = (event.target as Element | null)?.closest?.("[data-pipe-fold]");
     if (fold) {
@@ -1299,6 +1323,7 @@ export function mountDiagram(
     notes.open(noted.getAttribute("data-note") ?? "", noted, step);
   };
   frame.addEventListener("keydown", onNoteKey);
+  frame.addEventListener("keydown", onFollowKey);
   // 配管の図の拡大と縮小と引いて送る動き (#3418) は、配管の図の塊の受け手が受ける。最初に読む量に入れないため (#3720)。
   // キャンバス式の窓 (Tracelyth #197) の中の図の位置は再生の部品が持ち、受け手には窓か否かと、位置を読む口と動かす口を渡す
   const zoomCalls = {
@@ -1399,6 +1424,7 @@ export function mountDiagram(
       progress.removeEventListener("click", onProgress);
       frame.removeEventListener("click", onFigure);
       frame.removeEventListener("scroll", onPan);
+      frame.removeEventListener("keydown", onFollowKey);
       frame.removeEventListener("keydown", onNoteKey);
       gone = true;
       stopStills?.();

@@ -136,7 +136,9 @@ export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme)
     const word = row.verdict === "pass" ? words.pass : words.block;
     // 判定の札は語だけを持つ。外れた規則は✕のセルで読む (#3890)
     const verdict = `<td class="dg-jd" data-dragon="judge-verdict" data-col="${verdictCol}"><span class="dg-jp" data-verdict="${row.verdict}"><span data-dragon="judge-word" data-verdict="${row.verdict}">${esc(word)}</span></span></td>`;
-    return `<tr data-case="${i}"><th class="dg-jk" scope="row" data-dragon="judge-case"${noteAttr(card)}>${name}</th>${row.cells.map(cellOf).join("")}${verdict}</tr>`;
+    // 場面を追う例の行 (#3892) は、押すと場面の図へ追う場面の名前を知らせる。行を Tab で選べるようにする
+    const follow = row.scene === undefined ? "" : ` data-follow="${esc(row.scene)}" tabindex="0"`;
+    return `<tr data-case="${i}"${follow}><th class="dg-jk" scope="row" data-dragon="judge-case"${noteAttr(card)}>${name}</th>${row.cells.map(cellOf).join("")}${verdict}</tr>`;
   });
   // 札で見せない表は、規則の note を表の下に並べる (#4008)。表を横に送る枠の外に置き、送っても動かない
   const noted = pop
@@ -151,10 +153,21 @@ export function judgeMarkup(layout: JudgeLayout, palette: Palette, theme: Theme)
   const notes = noted.length === 0 ? "" : `<ol class="dg-jrl" data-dragon="judge-rule-notes">${noted.join("")}</ol>`;
   return (
     `<div class="dg-judge" data-dragon="judge" data-corner="${palette.corner}" style="${FONT_VARS.replace(/"/g, "&quot;")};${paletteVars(palette, theme)}">` +
-    `<style>${JUDGE_CSS}</style>` +
+    `<style>${JUDGE_CSS}${rows.some((row) => row.scene !== undefined) ? FOLLOW_CSS : ""}</style>` +
     `<div class="dg-jw" data-dragon="judge-scroll"><table class="dg-jt"><thead><tr>${heads.join("")}</tr></thead><tbody>${body.join("")}</tbody></table></div>${notes}</div>`
   );
 }
+
+/**
+ * 場面を追う例の行 (#3892) の見た目。名前のセルより右を押せる物に見せ、押した行は地を沈めて例のセルの左の縁に印を引く。
+ * 場面を追う行を持つ表にだけ書き、ほかの表の HTML を変えない
+ */
+const FOLLOW_CSS = [
+  ".dg-judge tr[data-follow]>td{cursor:pointer}",
+  `.dg-judge tr[data-follow]:focus-visible{outline:${px(J.current)} solid var(--c-blue);outline-offset:-${px(J.current)}}`,
+  '.dg-judge tr[aria-current="true"]>*{background:var(--sunk)}',
+  `.dg-judge tr[aria-current="true"]>.dg-jk{box-shadow:inset ${px(J.current)} 0 0 var(--c-blue)}`,
+].join("");
 
 /** 段の印を書く処理は、書き出す入口も表の描き方を読まずに使えるよう別の file に置く (#3937) */
 export { showJudge } from "./judge-show";

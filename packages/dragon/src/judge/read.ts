@@ -142,11 +142,13 @@ export function readJudge(text: string, lang: NotationLang = DEFAULT_LANG, defau
       } else if (word === "case") {
         const named = readName(source, word.length, m);
         if (named.value === "") throw fail(source, 0, j.caseNeedsName);
-        const read = named.rest < source.text.length ? readAttrs(source, named.rest, ["note", "example"], m) : new Map();
+        const read = named.rest < source.text.length ? readAttrs(source, named.rest, ["note", "example", "scene"], m) : new Map();
         const note = read.get("note")?.value;
         const example = read.get("example");
         if (example && !(pop && note !== undefined)) throw fail(source, example.at, m.exampleWithoutPop);
-        cases.push({ name: named.value, ...(note !== undefined ? { note } : {}), ...(example ? { example: example.value } : {}) });
+        // 説明の頁の同じ問いの節の場面の図の場面を名指す (#3892)。場面が在るかは頁が確かめる
+        const scene = read.get("scene")?.value;
+        cases.push({ name: named.value, ...(note !== undefined ? { note } : {}), ...(example ? { example: example.value } : {}), ...(scene !== undefined && scene !== "" ? { scene } : {}) });
       } else {
         const current = cases.at(-1);
         if (current === undefined) throw fail(source, 0, j.failBeforeCase);
@@ -194,7 +196,7 @@ export function printJudge(diagram: Pick<Diagram, "title" | "judge" | "note">): 
   for (const rule of spec.rules) lines.push(`rule ${rule.id}${shown(rule.id, rule.name)}${attrs([["value", rule.value], ["note", rule.note], ["example", rule.example]])}`);
   lines.push("");
   for (const item of spec.cases) {
-    lines.push(`case ${name(item.name)}${attrs([["note", item.note], ["example", item.example]])}`);
+    lines.push(`case ${name(item.name)}${attrs([["note", item.note], ["example", item.example], ["scene", item.scene]])}`);
     for (const f of item.fails ?? []) lines.push(`  fail ${f.rule}${f.value === undefined ? "" : `: ${name(f.value)}`}${f.stop ? ` [${STOP}]` : ""}`);
   }
   return lines.join("\n");

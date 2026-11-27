@@ -74,7 +74,7 @@
       "file": "references/kinds/git.md"
     },
     "judge": {
-      "version": "1.0.0",
+      "version": "1.1.0",
       "file": "references/kinds/judge.md"
     },
     "lineup": {

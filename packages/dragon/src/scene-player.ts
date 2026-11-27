@@ -9,6 +9,8 @@
  * 最後の段の止め絵の時刻 (`--dg-last`) を持つ。印刷の形では、どちらの見せ方でも隠した場面も見せ、場面ごとに全ての段の止め絵を段の順に並べる (#3956)。
  * 止め絵を作る前に印刷した時は、全ての場面を最後の段の止め絵で止めて縦に並べる。
  * 札で見せる図 (#3877) は場面の枠ごとに札の層を持ち、押した場面の箱のすぐ下に札を開いて、ほかの場面の札を閉じる。
+ * 根に届いた知らせ `dragon-follow` (`detail.scene` が場面の名前) は、その場面を 1 段目から止まる段まで 1 段ずつ流して止める (#3892)。
+ * 選ぶ見せ方はその場面を選び、並べる見せ方はほかの場面を薄くして全ての場面を同じ段まで進める。判定の表の例の行を押した時に説明の頁が送る
  * 帯の釦と進み具合と段の番号と題と本文は、再生の部品 (`player.ts`) と同じ class と名前で置き、見た目も再生の部品の規則が描く。
  * この file は場面を書ける種類の描く部品の組だけが読み、最初に読む量に入れない
  */
@@ -270,6 +272,8 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   let step = Math.min(count - 1, Math.max(0, pausedAt ?? 0));
   let playing = !reduce && pausedAt === undefined && options.pausedAtStart !== true;
   let clock: ReturnType<typeof setTimeout> | undefined;
+  /** 外から名指した場面を追う時に、流して止める段 (#3892)。追っていない時は `undefined` */
+  let until: number | undefined;
 
   /** 場面の枠の図の動きの変数。`at` は時刻の表の秒、`play` は流すか */
   const place = (panel: Panel, at: number, play: boolean): void => {
@@ -351,6 +355,7 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   /** 段 `target` へ移り、全ての場面を止め絵で止める */
   const go = (target: number): void => {
     stopClock();
+    until = undefined;
     playing = false;
     step = Math.min(count - 1, Math.max(0, target));
     follow();
@@ -383,6 +388,13 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
       }, seconds * 1000);
     }
     clock = setTimeout(() => {
+      // 外から名指した場面を追う時は、止める段の動きを描き終えたらそこで止める (#3892)
+      if (until !== undefined && step >= until) {
+        until = undefined;
+        playing = false;
+        showStep();
+        return;
+      }
       if (step + 1 < count) step += 1;
       else if (options.playOnce) {
         playing = false;
@@ -410,9 +422,20 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
     go(step);
   };
 
+  /** 並べる見せ方で、追う場面 `k` のほかの場面を薄くする。`k` が無い時は全ての場面を元の濃さに戻す (#3892) */
+  const dimOthers = (k?: number): void => {
+    for (const [i, panel] of panels.entries()) {
+      const dim = show === "stack" && k !== undefined && i !== k;
+      panel.el.toggleAttribute("data-dim", dim);
+      // 薄さは追う時にだけ枠に書き、場面を追わない図の見た目の規則を変えない
+      if (dim) panel.el.style.opacity = String(SC.dim);
+      else panel.el.style.removeProperty("opacity");
+    }
+  };
   /** 選ぶ見せ方で場面 `k` を選び、その場面の 1 段目に戻る */
   const pick = (k: number): void => {
     if (!panels[k]) return;
+    dimOthers();
     picked = k;
     count = countOf();
     fillProgress();
@@ -468,11 +491,32 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
     panel.frame.addEventListener("keydown", key);
   }
 
+  /**
+   * 名前 `name` の場面を 1 段目から止まる段まで 1 段ずつ流して止める (#3892)。選ぶ見せ方はその場面を選び、
+   * 並べる見せ方はほかの場面を薄くして全ての場面を同じ段まで進める
+   */
+  const followScene = (name: string): void => {
+    const k = panels.findIndex((panel) => panel.scene.name === name);
+    const panel = panels[k];
+    if (!panel) return;
+    if (show === "pick") pick(k);
+    else dimOthers(k);
+    go(0);
+    until = lengthOf(panel) - 1;
+    playing = true;
+    showStep();
+    run();
+  };
+  const onFollow = (event: Event): void => {
+    const name = (event as CustomEvent<{ scene?: unknown }>).detail?.scene;
+    if (typeof name === "string") followScene(name);
+  };
   const onPrev = (): void => go(step - 1);
   const onNext = (): void => go(step + 1);
   const onToggle = (): void => (playing ? pause() : play());
   const onRestart = (): void => {
     const again = playing;
+    dimOthers();
     go(0);
     if (again) play();
   };
@@ -490,6 +534,7 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
   restartButton.addEventListener("click", onRestart);
   progress.addEventListener("click", onProgress);
   picks?.addEventListener("click", onPick);
+  root.addEventListener("dragon-follow", onFollow);
 
   fillProgress();
   fillList();
@@ -544,6 +589,7 @@ export function mountScenes(host: HTMLElement, rendered: Rendered, diagram: unkn
       restartButton.removeEventListener("click", onRestart);
       progress.removeEventListener("click", onProgress);
       picks?.removeEventListener("click", onPick);
+      root.removeEventListener("dragon-follow", onFollow);
       root.remove();
     },
   };

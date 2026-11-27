@@ -16,6 +16,7 @@ import { type FormError, formMessage, isFigureTag } from "./html-form/figure";
 import { attrOf, elementsOf, type HtmlElement, parseHtml, textOf } from "./html-form/html";
 import { dedent } from "./embed/dedent";
 import { extractDiagrams } from "./markdown";
+import { isGuidePage, type SectionFigure, sceneLinkErrors, sectionsOf } from "./page/scene-links";
 import { parseNotation } from "./parser";
 import type { LayoutBreak } from "./render/breaks";
 import { describeBreak, diagramBreaks, stepLines } from "./render/layout-check";
@@ -84,7 +85,26 @@ export function checkText(file: string, text: string, form: CheckedForm, lang: N
   if (form === "html") return checkHtml(file, text, lang, options);
   const pieces = form === "markdown" ? extractDiagrams(text) : [{ source: text, line: 1 }];
   const page: NotationLang = hasKanaKanji(text) ? "ja" : "en";
-  return notationProblems(file, pieces, lang, options, form === "markdown" ? () => page : textLang);
+  const problems = notationProblems(file, pieces, lang, options, form === "markdown" ? () => page : textLang);
+  return form === "markdown" && isGuidePage(text) ? [...problems, ...guideSceneProblems(file, text, pieces, lang, page)] : problems;
+}
+
+/**
+ * 説明の頁の md の判定の表の例の行が名指す場面を、同じ問いの節の場面の図から探し、無いか 2 つ以上の場面の図に在る行を誤りで返す (#3892)。
+ * 頁の書き出しと同じ断りを出す。読めない図は記法の誤りで知らせるので、ここでは数えない
+ */
+function guideSceneProblems(file: string, text: string, pieces: readonly { source: string; line: number }[], lang: NotationLang, page: NotationLang): Problem[] {
+  const note = /^---\r?\n(?:.*\r?\n)*?note:\s*pop\s*\r?\n/u.test(text) ? { note: "pop" as const } : {};
+  const sectionOf = sectionsOf(text);
+  const bySection = new Map<number, SectionFigure[]>();
+  for (const { source, line } of pieces) {
+    const section = sectionOf(line);
+    if (section === undefined) continue;
+    const parsed = parseNotation(source, { lang: page, ...note });
+    if (!parsed.ok) continue;
+    bySection.set(section, [...(bySection.get(section) ?? []), { file, first: line, notation: source, diagram: parsed.diagram }]);
+  }
+  return [...bySection.values()].flatMap((figures) => sceneLinkErrors(figures, lang).map((error) => ({ ...error, severity: "error" as const })));
 }
 
 /** 図を受けて、図を描く言語を返す形。file から決めない時は知らせの文の言語を返す */

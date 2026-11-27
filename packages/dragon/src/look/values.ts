@@ -338,6 +338,8 @@ export const LOOK = {
     colors: ["blue", "rose", "violet"],
     common: "slate",
     fork: { h: 22, padX: 10, inset: 10, arrow: 12, line: 1.5 },
+    /** 判定の表の例の行から追う場面のほかの場面の濃さ (#3892) */
+    dim: 0.35,
     head: 28,
     reason: 30,
     gap: 16,
@@ -379,6 +381,8 @@ export const LOOK = {
     stroke: 2.6,
     picture: { width: 728, blockGap: 12, noteGap: 8, markTop: 4, lead: 1.5, mid: 0.35 },
     notes: { top: 12, gap: 4, nameGap: 8 },
+    /** 場面を追う例の行 (#3892) を押した時に、例のセルの左の縁に引く印の太さ */
+    current: 3,
   },
   region: {
     pad: 18,
