@@ -1006,7 +1006,8 @@ Write the boxes and the steps shared by all scenes once, then write each scene's
 `stop <reason>` in a step stops that scene there and shows the reason.
 Choose how the scenes show with `[scenes: stack]` or `[scenes: pick]` on the first line; without it, the diagram uses `stack`.
 `stack` lines the scenes up top to bottom with each box at the same horizontal place in every scene, and moving on plays all scenes together.
-Shared steps draw their lines in gray, a scene's own steps in the scene's color, and a tag reading "splits here" in the scene's color sits on the top edge of the box or lane where the scene splits off.
+Shared steps draw their lines in gray, and a scene's own steps draw them in the scene's color.
+A tag reading "splits here" in the scene's color sits on the top edge of the box or lane where the scene splits off.
 `pick` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene.
 With `[note: pop]` on the first line too, a card opens just below the box clicked in that scene.
 When the page is printed, both stack every scene and print the still of each of its steps in order, with the step number and `say` text.
@@ -1079,10 +1080,12 @@ step Stop at the second
   set budget: 120
 ```
 
-When the subject holds an amount before it is confirmed, `set <gauge>: <confirmed> [hold: <held>]` paints the confirmed amount in the full color and the held amount after it in a pale shade of the same color.
+Some subjects hold an amount before it is confirmed.
+For them, `set <gauge>: <confirmed> [hold: <held>]` paints the confirmed amount in the full color and the held amount after it in a pale shade of the same color.
 A step with a held amount shows the breakdown under the bar, `confirmed 40` and `held 30`, each with a square in its color.
 The value shows the sum of the two, and the sum is compared with the limit.
-A `set` without `hold` clears the held amount, so a step that confirms the hold writes only the sum, like `set budget: 70`, and a step that cancels it writes only the confirmed amount.
+A `set` without `hold` clears the held amount.
+A step that confirms the hold writes only the sum, like `set budget: 70`, and a step that cancels it writes only the confirmed amount.
 Only a gauge with `limit` takes `hold`.
 A `hold` on a gauge without `limit`, or a `hold` below 0 or not a number, is refused with the line named.
 
@@ -2252,7 +2255,7 @@ A table wider than its frame scrolls sideways and keeps the case column on the l
 - `[stop]` on a `fail` line leaves the later columns of that case unchecked, shown as "—"
 - `[note: pop]` on the first line moves the notes of rules and cases into cards. A round i mark sits right after the name of each rule heading and case that has `note`. Clicking that cell opens a card with the whole note just below it. A rule or case line with `note` also takes `[example: <example>]`, shown as a gray band at the bottom of the card. The card closes when you click outside it or its close icon, move to another step, or scroll the table sideways, and printing lists every card below the table
 - `[pass: <word>, block: <word>]` on the first line replaces the verdict words. Without it, English pages show `pass` and `block`, and Japanese pages show their own words
-- On a guide page (`layout: guide`), `[scene: <scene name>]` on a case line links the row to a scene figure in the same question (`###`) section. Clicking the row right of the name makes that figure play the scene from its first step, one step at a time, to the step where it stops, and show the reason. The clicked row keeps a mark, and the page scrolls to the scene figure when it is off screen. A stacked scene figure dims the other scenes and moves every scene to the same step. `dragon check` and the export refuse the line when no scene figure of the same question section has that scene, or when two or more do
+- On a guide page (`layout: guide`), `[scene: <scene name>]` on a case line links the row to a scene figure in the same question (`###`) section. Clicking the row right of the name makes that figure play the scene from its first step, one step at a time. The figure stops at the step where the scene stops and shows the reason. The clicked row keeps a mark, and the page scrolls to the scene figure when it is off screen. A stacked scene figure dims the other scenes and moves every scene to the same step. `dragon check` and the export refuse the line when no scene figure of the same question section has that scene, or when two or more do
 - Playing checks one rule column per step, and the last step shows the verdicts. Printing fills every cell and verdict
 - Exported pictures (PNG, GIF, mp4, SVG) put each case name and note on a band above its ✓ and ✕ row and fit in 728px. A wider table splits its rule columns into stacked tables, with the verdict column in the last one
 - The reader refuses a `fail` for an undeclared rule, a rule failed twice in one case, a `fail` before the first `case`, and a table without rules or cases. Each error names its line

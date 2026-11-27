@@ -45,7 +45,8 @@ const HOLD_CSS = [
   `.dg-gh{fill:${HELD};transform-box:fill-box;transform-origin:0 50%}`,
   ".dg-gsc{fill:var(--c)}",
   `.dg-gsh{fill:${HELD}}`,
-  `.dg-gst{${font(TYPE.gaugeSplit)};fill:var(--ink2)}`,
+  `.dg-gst{${font(TYPE.gaugeSplit)};fill:var(--ct)}`,
+  `.dg-gstj{${font(sansOf(TYPE.gaugeSplit))}}`,
 ].join("");
 
 /** 値の続く間。`value` は総量、`hold` は予約した量、`steps` はその値を段の終わりに見せる段、`from` と `to` は出ている時刻 */
@@ -98,8 +99,10 @@ function splitRow(scene: SceneGauge, run: Run, y: number, ctx: Ctx): string {
   texts.forEach((text, k) => {
     out.push(`<rect class="${k === 0 ? "dg-gsc" : "dg-gsh"}" x="${r1(x)}" y="${r1(y + (G.splitH - G.swatch) / 2)}" width="${G.swatch}" height="${G.swatch}" rx="${G.swatchRadius}"/>`);
     const left = x + G.swatch + G.swatchGap;
-    out.push(write(ctx.ink, "dg-gst", left, y + G.splitH / 2 + TYPE.gaugeSplit.size * 0.35, text, TYPE.gaugeSplit, [[run.from, run.to]]));
-    x = left + textWidth(text, TYPE.gaugeSplit) + G.splitItemGap;
+    const style = styleFor(text, TYPE.gaugeSplit);
+    const cls = `dg-gst${style === TYPE.gaugeSplit ? "" : " dg-gstj"}`;
+    out.push(write(ctx.ink, cls, left, y + G.splitH / 2 + TYPE.gaugeSplit.size * 0.35, text, style, [[run.from, run.to]]));
+    x = left + textWidth(text, style) + G.splitItemGap;
   });
   return `<g data-gauge-split="">${out.join("")}</g>`;
 }

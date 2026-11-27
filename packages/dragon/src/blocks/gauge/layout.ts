@@ -101,7 +101,7 @@ export function gaugeHolds(diagram: DiagramModel): Map<string, number[]> {
 export const splitTexts = (split: Split, total: number, hold: number): [string, string] => [`${split[0]} ${numberText(total - hold)}`, `${split[1]} ${numberText(hold)}`];
 
 /** 内訳の行の幅。色の四角と字を 2 組並べる */
-const splitW = (texts: readonly string[]): number => texts.reduce((w, t, k) => w + (k > 0 ? G.splitItemGap : 0) + G.swatch + G.swatchGap + textWidth(t, TYPE.gaugeSplit), 0);
+const splitW = (texts: readonly string[]): number => texts.reduce((w, t, k) => w + (k > 0 ? G.splitItemGap : 0) + G.swatch + G.swatchGap + widthOf(t, TYPE.gaugeSplit), 0);
 
 /** 予約した量を持つ段が在るか。上限を書かない目盛りは棒を描かないので予約を見せない */
 const holdsAny = (gauge: Gauge, holds: readonly number[]): boolean => gauge.limit !== undefined && holds.some((h) => h > 0);

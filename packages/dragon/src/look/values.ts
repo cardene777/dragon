@@ -274,7 +274,7 @@ export const TYPE = {
   gaugeValue: text(12, 700, "mono"),
   gaugeTag: text(11.5, 700, "mono"),
   gaugeOver: text(11.5, 700),
-  gaugeSplit: text(11.5, 600),
+  gaugeSplit: text(11.5, 700, "mono"),
   /** 並べる見せ方の場面の図で、場面が分かれる箱か帯の上の縁に掛ける札の字 (#4019) */
   sceneFork: text(12, 700),
 } as const;
