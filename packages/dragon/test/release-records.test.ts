@@ -223,6 +223,21 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-90-0-lists-every-merged-issue-once", () => {
+    // 0.89.0 の後に取り込んだ 11 の課題を 0.90.0 で出す。guide の章をヘッダーのタブにする変更 (#4024) は項を足さずに取り込まれたので、版を出す課題で足す (#4032)
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 90, `package の版 ${version()} が 0.90.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.90\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.90.0"), "0.90.0");
+      expect(released, `${file} に日付付きの ## [0.90.0] の節が無い`).not.toBe("");
+      for (const issue of ["(#3892)", "(#3895)", "(#4003)", "(#4008)", "(#4009)", "(#4016)", "(#4018)", "(#4019)", "(#4024)", "(#4026)", "(#4029)"]) {
+        expect(released.split(issue).length - 1, `${file} の 0.90.0 の節が ${issue} の項を 1 回持たない`).toBe(1);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-89-0-lists-docs-menu-and-judge-notes", () => {
     // 説明の頁の左の目次を3段にする変更 (#4010) と判定の表の note を札で見せる変更 (#3890) を 0.89.0 で出す (#4012)
     const [major = 0, minor = 0] = version().split(".").map(Number);
