@@ -1549,7 +1549,7 @@
           }
         },
         {
-          "description": "目盛り gauge の値を value にする。値はその段の総量で、書かない段は前の段の値を保つ",
+          "description": "目盛り gauge の値を value にする。hold を持たない時は値がその段の総量で、持つ時は value が確定した量、hold が予約した量で、総量は 2 つの合計。書かない段は前の段の値を保つ",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -1565,7 +1565,12 @@
               "$ref": "#/definitions/id"
             },
             "value": {
-              "description": "その段の総量。0 以上の数",
+              "description": "その段の総量。hold を持つ時は確定した量。0 以上の数",
+              "type": "number",
+              "minimum": 0
+            },
+            "hold": {
+              "description": "その段の予約した量。確定した量に続けて淡い色で塗る。0 以上の数",
               "type": "number",
               "minimum": 0
             }

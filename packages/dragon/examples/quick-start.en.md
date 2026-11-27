@@ -1079,6 +1079,39 @@ step Stop at the second
   set budget: 120
 ```
 
+When the subject holds an amount before it is confirmed, `set <gauge>: <confirmed> [hold: <held>]` paints the confirmed amount in the full color and the held amount after it in a pale shade of the same color.
+A step with a held amount shows the breakdown under the bar, `confirmed 40` and `held 30`, each with a square in its color.
+The value shows the sum of the two, and the sum is compared with the limit.
+A `set` without `hold` clears the held amount, so a step that confirms the hold writes only the sum, like `set budget: 70`, and a step that cancels it writes only the confirmed amount.
+Only a gauge with `limit` takes `hold`.
+A `hold` on a gauge without `limit`, or a `hold` below 0 or not a number, is refused with the line named.
+
+```dragon
+flow Hold, then send
+
+box agent as AI agent
+box vi as VeriIntent
+box signer as Signer
+
+gauge budget as Daily budget [on: vi, limit: 100, unit: USDC]
+
+step Hold the first transfer
+  say Before sending, 40 USDC is held.
+  agent -> vi: 40 USDC
+  set budget: 0 [hold: 40]
+
+step Confirm the first, hold the second
+  say The first 40 USDC is confirmed, and the second 30 USDC is held.
+  vi -> signer: Ask to sign
+  agent -> vi: 30 USDC
+  set budget: 40 [hold: 30]
+
+step Cancel the second
+  say The second transfer is canceled, and the held 30 USDC is released.
+  agent -> vi: Cancel
+  set budget: 40
+```
+
 ## Errors
 
 A line that cannot be read stops with an error that shows its line and column.

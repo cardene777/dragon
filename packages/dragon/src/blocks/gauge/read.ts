@@ -5,6 +5,7 @@
  * この読み方は手順の図と列の図の図を読む時だけ後から読み、ほかの種類の図に書いた行は読む処理 (`parser.ts`) が読み方を読まずに断る。
  * `on` の箱と、名札が中身の帯の欄と重ならないかは、全ての宣言を読んでから (最初の段を始める時か記法の終わりに) 確かめ、誤りは目盛りの行に出す。
  * 段の中の `set <目盛り>: <総量>` の行は、目盛りを 1 つでも宣言した図でだけ、行の形 (`take`) で中身の帯より先に読む。
+ * 行の後ろの `[hold: <予約>]` は予約した量で、値を確定した量として読む。予約は上限を書いた目盛りにだけ書ける (#3895)。
  * 目盛りの名札でなく中身の帯の欄でもない名前の `set` の行は、目盛りが無いと断る。目盛りを宣言しない図の `set` の行は今どおり中身の帯が読む。
  */
 import { attrs, name, num, quote, shown } from "../../print-kit";
@@ -32,10 +33,17 @@ export interface GaugeMessages {
   gaugeValue: (id: string) => string;
   /** 目盛りの `set` の行の形が違う */
   gaugeSetShape: string;
+  /** 目盛り `id` の予約の量が 0 以上の数でない (#3895) */
+  gaugeHold: (id: string) => string;
+  /** 上限を書かない目盛りに予約を書いた (#3895) */
+  gaugeHoldWithoutLimit: string;
 }
 
 /** 0 以上の数の字。値と上限の字の形 */
 const NUMBER = /^[0-9]+(\.[0-9]+)?$/u;
+
+/** `set` の行の後ろの予約の量の属性 (`[hold: <予約>]`)。1 つ目の組は予約の字 */
+const HOLD = /^\[\s*hold\s*:\s*([^\],]*?)\s*\]$/u;
 
 /** 書き戻す時に `set` の後ろに置く名札 */
 const keyText = (text: string): string => (text.includes(":") || text.includes("[") || text.startsWith('"') ? quote(text) : text);
@@ -96,10 +104,21 @@ function takeSet(source: SourceLine, state: ParseState): boolean {
   }
   if (text[at] !== ":") throw fail(source, at, m.gaugeSetShape);
   const valueAt = skipSpaces(text, at + 1);
-  const value = text.slice(valueAt).trim();
-  if (value.includes("[")) throw fail(source, valueAt + value.indexOf("["), m.gaugeSetShape);
+  const rest = text.slice(valueAt).trim();
+  const bracket = rest.indexOf("[");
+  const value = bracket < 0 ? rest : rest.slice(0, bracket).trim();
   if (!NUMBER.test(value)) throw fail(source, valueAt, m.gaugeValue(id));
-  state.inStep(source).events.push({ type: "gauge", gauge: id, value: Number(value) });
+  if (bracket < 0) {
+    state.inStep(source).events.push({ type: "gauge", gauge: id, value: Number(value) });
+    return true;
+  }
+  // 値の後ろの属性は予約の量 (`[hold: <予約>]`) だけを書ける
+  const holdAt = valueAt + bracket;
+  const hold = HOLD.exec(rest.slice(bracket));
+  if (!hold) throw fail(source, holdAt, m.gaugeSetShape);
+  if (declared.find((d) => d.gauge.id === id)?.gauge.limit === undefined) throw fail(source, holdAt, m.gaugeHoldWithoutLimit);
+  if (!NUMBER.test(hold[1] ?? "")) throw fail(source, holdAt, m.gaugeHold(id));
+  state.inStep(source).events.push({ type: "gauge", gauge: id, value: Number(value), hold: Number(hold[1]) });
   return true;
 }
 
@@ -117,7 +136,7 @@ export const reading: BlockReading<GaugeMessages> = {
     }
   },
   print: {
-    events: { gauge: (e) => `set ${keyText(e.gauge)}: ${e.value}` },
+    events: { gauge: (e) => `set ${keyText(e.gauge)}: ${e.value}${e.hold === undefined ? "" : ` [hold: ${e.hold}]`}` },
     figure: (diagram) =>
       (diagram.gauge ?? []).map(
         (g) => `gauge ${name(g.id)}${shown(g.id, g.name)}${attrs([["on", g.on], ["limit", num(g.limit)], ["unit", g.unit], ["over", g.over]])}`,
@@ -133,7 +152,9 @@ export const reading: BlockReading<GaugeMessages> = {
       gaugeLayers: "gauge は層の見た目 (layers) と階段の見た目 (stairs) の列の図に書けない",
       noSuchGauge: (id) => `${id} という目盛りは無い。set の前に gauge ${id} as <名前> で宣言する`,
       gaugeValue: (id) => `${id} の値は 0 以上の数で書く`,
-      gaugeSetShape: "目盛りの set は set <目盛り>: <総量> の形で書く",
+      gaugeSetShape: "目盛りの set は set <目盛り>: <総量> か set <目盛り>: <確定> [hold: <予約>] の形で書く",
+      gaugeHold: (id) => `${id} の hold は 0 以上の数で書く`,
+      gaugeHoldWithoutLimit: "gauge の hold は limit を書いた目盛りにだけ書ける",
     },
     en: {
       gaugeInStep: "Write gauge before the first step",
@@ -144,7 +165,9 @@ export const reading: BlockReading<GaugeMessages> = {
       gaugeLayers: "A lineup with shape layers or stairs cannot have a gauge",
       noSuchGauge: (id) => `There is no gauge named ${id}. Declare it with gauge ${id} as <name> before set`,
       gaugeValue: (id) => `Write the value of ${id} as a number of 0 or more`,
-      gaugeSetShape: "Write set for a gauge as set <gauge>: <total>",
+      gaugeSetShape: "Write set for a gauge as set <gauge>: <total> or set <gauge>: <confirmed> [hold: <held>]",
+      gaugeHold: (id) => `Write the hold of ${id} as a number of 0 or more`,
+      gaugeHoldWithoutLimit: "Write hold only on a gauge that has a limit",
     },
   },
 };

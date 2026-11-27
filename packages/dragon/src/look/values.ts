@@ -274,6 +274,7 @@ export const TYPE = {
   gaugeValue: text(12, 700, "mono"),
   gaugeTag: text(11.5, 700, "mono"),
   gaugeOver: text(11.5, 700),
+  gaugeSplit: text(11.5, 600),
   /** 並べる見せ方の場面の図で、場面が分かれる箱か帯の上の縁に掛ける札の字 (#4019) */
   sceneFork: text(12, 700),
 } as const;
@@ -685,6 +686,14 @@ export const LOOK = {
     limitOver: 3,
     radius: 4,
     stroke: 1.2,
+    // 予約した量の淡い塗りの、目盛りの色の割合と、棒の下の内訳の行 (#3895)。行は棒の行から `splitGap` 空け、色の四角 (`swatch`) と字を並べる
+    heldMix: 30,
+    splitGap: 4,
+    splitH: 16,
+    swatch: 10,
+    swatchRadius: 2,
+    swatchGap: 5,
+    splitItemGap: 14,
   },
   /** `time` から始まる値は時間軸の図 (#3165) の、目盛りの印の枠、拡大の枠、時刻の線、範囲の括弧と囲み、節目へ下ろす点線、節目の丸、針、物差しの線の印 */
   stroke: {
