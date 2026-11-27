@@ -1006,7 +1006,7 @@ Write the boxes and the steps shared by all scenes once, then write each scene's
 `stop <reason>` in a step stops that scene there and shows the reason.
 Choose how the scenes show with `[scenes: stack]` or `[scenes: pick]` on the first line; without it, the diagram uses `stack`.
 `stack` lines the scenes up top to bottom with each box at the same horizontal place in every scene, and moving on plays all scenes together.
-Shared steps draw their lines in gray, a scene's own steps in the scene's color, and a vertical dashed line marks where they split.
+Shared steps draw their lines in gray, a scene's own steps in the scene's color, and a tag reading "splits here" in the scene's color sits on the top edge of the box or lane where the scene splits off.
 `pick` shows a button per scene name; pressing one goes back to that scene's first step and moves only that scene.
 With `[note: pop]` on the first line too, a card opens just below the box clicked in that scene.
 When the page is printed, both stack every scene and print the still of each of its steps in order, with the step number and `say` text.

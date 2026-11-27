@@ -205,8 +205,8 @@ export interface SceneMark {
   color: ColorKey;
   /** 全ての場面に共通の段の数 */
   common: number;
-  /** 分かれる位置の縦の点線。横の位置と、上と下の端 */
-  fork?: { x: number; y1: number; y2: number };
+  /** 場面が分かれる箱か帯の上の縁に掛ける札 (#4019)。札の四角と字と、札が付く箱 */
+  badge?: { x: number; y: number; w: number; h: number; text: string; box: string };
 }
 
 /** 札で見せる図の、札を持つ箱 1 つの印と札の中身 (#3877) */

@@ -15,6 +15,7 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 ### Fixed
 
 - `dragon export` no longer stops with an error on a lineup diagram with scenes. A diagram with scenes holds the frame still, as the player shows each scene in its own frame, and is exported as the stacked scenes (#4018)
+- In a stacked diagram with scenes, the vertical dashed line that ran the full height of each scene and crossed step text, line labels, and the arrows between lanes is replaced by a tag reading "splits here" in the scene's color on the top edge of the box or lane where the scene splits off. A lineup scene no longer draws an empty "Next" heading on a step with no later steps in that scene (#4019)
 
 ## [0.89.0] - 2026-11-27
 

@@ -33,7 +33,7 @@
 | `scene`を2つ書いた図を並べる見せ方で描いた時、2つの場面が縦に並び、同じ箱が全ての場面で同じ横の位置に描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stack-same-box-positions` passes | #3878 |
 | 共通の段の線は全ての場面に描かれ、`scene`と`end`の間の段の線は、その場面にだけ描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-own-steps-only-in-their-scene` passes | #3878 |
 | 並べる見せ方で段を送った時、全ての場面が同じ段へ同時に進み、`stop <理由>`を書いた段に着いた場面は、そこで止まって理由の文を出し、後の段を進めない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-holds-and-shows-reason` passes | #3878 |
-| 並べる見せ方で、共通の段の線は灰色、`scene`の中の段の線は場面の色で描き、分かれる位置に縦の点線を引く | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fork-line-and-colors` passes | #3878 |
+| 並べる見せ方で、共通の段の線は灰色、`scene`の中の段の線は場面の色で描く。分かれる位置の縦の点線は #4019 で分かれ目の札に替えた | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-fork-badge-and-colors` passes | #3878 |
 | 図の1行目に`[scenes: pick]`を書いた時、場面の名前の釦が出て、釦を押すとその場面の1段目に戻り、段を送ると選んだ場面の段だけを進める | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-pick-buttons-follow-one-scene` passes | #3878 |
 | flowとlineupの2種類で、同じ書き方の`scene`と`stop`で場面を持てる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-same-in-flow-and-lineup` passes | #3878 |
 | 印刷の形では、並べる見せ方でも選ぶ見せ方でも、全ての場面を最後の段まで進めて縦に並べる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-print-stacks-all-at-last-step` passes | #3878 |
@@ -65,3 +65,7 @@
 | 列の図に場面と目盛りを書いた原本を、並べる見せ方と選ぶ見せ方の両方でSVGとHTMLへ書き出せる | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scene-lineup-gauge-exports-both-shows` passes | #4018 |
 | 場面を持つ図 (手順の図と列の図) は、見せ方を選ぶ決まりが枠の幅に依らず止めた形を選び、書き出しも止めた形で書く | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scene-figures-stay-fixed` passes | #4018 |
 | 見本と部品の図を描いた絵は今と同じになる | `pnpm exec vitest run packages/dragon/test/export-svg.test.ts packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `examples-svg-unchanged` passes | #4018 |
+| 並べる見せ方の場面の図 (手順の図と列の図、日本語と英語) は、場面ごとに分かれる箱か帯の上の縁に、場面の色で「ここから分かれる」(英語は「splits here」) の札を1つ付け、縦の点線を引かない。選ぶ見せ方の図と場面が1つの図には札を付けない。共通の段の線は灰色、場面の段の線は場面の色のまま | `pnpm exec vitest run packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scenes-fork-badge-and-colors` passes | #4019 |
+| 分かれ目の札は、ほかの箱と帯、線の札、分かれる箱へ入る線の矢じり、目盛り、段の題と文に重ならず、図の枠に収まる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scenes-fork-badge-clear-of-parts` passes | #4019 |
+| 列の図の場面の図で、「この先」の帯はその場面の後の段だけを並べ、後の段が無い段は帯の見出しも描かない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scenes-ahead-lists-own-steps` passes | #4019 |
+| 使い方の頁と手引き (日本語と英語) と文法の表は、分かれる所の札を書き、分かれる所に縦の点線を引くとは書かない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts packages/dragon/test/examples-svg.test.ts --reporter=verbose` check `scenes-docs-name-fork-badge` passes | #4019 |

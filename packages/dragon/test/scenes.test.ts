@@ -6,13 +6,15 @@
  * 止まる段の中に `stop <理由>` を書くと、場面はその段で止まって理由の文を出す。場面は 3 つまで書ける。
  * 1 行目の `[scenes: stack]` は場面を縦に並べて同じ段の送りで同時に動かし、`[scenes: pick]` は場面の名前の釦で選んだ 1 つの場面を追う。
  * 書かない図は並べる見せ方で描く。並べる見せ方は同じ箱を全ての場面で同じ横の位置に描き、共通の段の線を灰色、場面の段の線を場面の色で描いて、
- * 分かれる位置に縦の点線を引く。印刷の形では、どちらの見せ方でも全ての場面を最後の段まで進めて縦に並べる。
+ * 分かれる箱か帯の上の縁に場面の色の「ここから分かれる」の札を付ける (#4019)。印刷の形では、どちらの見せ方でも全ての場面を最後の段まで進めて縦に並べる。
  *
  * 検査は手順の図と列の図に同じ書き方で 2 つの場面を書き、場面ごとに描いた図 (`renderDiagram` の `scenes`) と、頁に置いた再生の部品を確かめる。
  * 画面の大きさを測れない jsdom では、押した箱と場面の枠の四角を検査が決め、札をその四角から置く位置を確かめる。
  * 場面を持つ図は寄って追わず、見せ方を選ぶ決まりは枠の幅に依らず止めた形を選ぶ (#4018)。
  * 検査は種類を登録しない入口と、使う 2 つの種類の登録の file だけを読む (#3763)。
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import "./built-globals";
 import * as dragon from "../src/core";
@@ -194,6 +196,159 @@ const HALF_VIEWS = await atLoad("場面を持つ図の見せ方を半分の幅�
   }),
 );
 
+/** 分かれ目の札 (#4019)。場面ごとの図の並べ方の `scene.badge` が、札の四角と字と、札が付く箱を持つ */
+interface ForkBadge {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  text: string;
+  box: string;
+}
+const badgeOf = (r: { layout: unknown }): ForkBadge | undefined => (r.layout as { scene?: { badge?: ForkBadge } }).scene?.badge;
+
+interface Area {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+/** 札が重なってはいけない物を読む、場面ごとの図の並べ方 */
+interface Laid {
+  width: number;
+  height: number;
+  boxes: (Area & { id: string })[];
+  lanes?: (Area & { id: string })[];
+  labels: Area[];
+  badges: { x: number; y: number }[];
+  edges: { to: string; points: [number, number][] }[];
+  gauges?: Area[];
+  headlines?: { title: Area; say?: Area }[];
+  arrows?: { points: [number, number][] }[];
+  aheads?: { step: number; tags: { step: number }[] }[];
+}
+
+const overlaps = (a: Area, b: Area): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** 点 `[x, y]` の周りの `r` の四角 */
+const around = ([x, y]: [number, number], r: number): Area => ({ x: x - r, y: y - r, w: r * 2, h: r * 2 });
+
+/** 札が重なってはいけない物と、その名前。札が付く箱 `own` は札を縁に掛けるので外し、その箱へ入る線の矢じりを足す */
+function partsOf(layout: Laid, own: string): { name: string; rect: Area }[] {
+  return [
+    ...[...layout.boxes, ...(layout.lanes ?? [])].filter((b) => b.id !== own).map((b) => ({ name: `箱 ${b.id}`, rect: b })),
+    ...layout.labels.map((l, k) => ({ name: `線の札 ${k}`, rect: l })),
+    ...layout.badges.map((b, k) => ({ name: `段の番号 ${k}`, rect: around([b.x, b.y], 12) })),
+    ...layout.edges.filter((e) => e.to === own && e.points.length > 0).map((e, k) => ({ name: `入る線の矢じり ${k}`, rect: around(e.points.at(-1) as [number, number], 8) })),
+    ...(layout.gauges ?? []).map((g, k) => ({ name: `目盛り ${k}`, rect: g })),
+    ...(layout.headlines ?? []).flatMap((h, k) => [{ name: `段の題 ${k}`, rect: h.title }, ...(h.say ? [{ name: `段の文 ${k}`, rect: h.say }] : [])]),
+    ...(layout.arrows ?? []).flatMap((a, k) => a.points.map((p) => ({ name: `帯の間の矢印 ${k}`, rect: around(p, 6) }))),
+  ];
+}
+
+/** 場面が 1 つだけの手順の図。2 つ目の場面を外す */
+const oneScene = (): string => flowScenes().replace(new RegExp(`scene ${WRONG}[\\s\\S]*?end\\n`, "u"), "");
+
+/** 目盛りを持つ手順の図の 2 つの場面。どちらの場面も 1 段目で一番上の箱から送るので、一番上の箱が分かれる箱になる */
+const flowGauge = (): string => `flow 送金の2つの場面
+
+box agent as AIエージェント
+box vi as VeriIntent
+box signer as 署名
+
+gauge budget as 1日の予算 [on: vi, limit: 100, unit: USDC, over: 上限を超えたので止める]
+
+step 1件目を送る
+  say どの場面も1件目は通る。
+  agent -> vi: 40 USDC
+  vi -> signer: 署名を頼む
+  set budget: 40
+
+scene 通る送金
+  step 2件目を送る
+    say 2件目も上限の内なので通る。
+    agent -> vi: 40 USDC
+    vi -> signer: 署名を頼む
+    set budget: 80
+end
+
+scene 上限を超える送金
+  step 2件目で止める
+    say 2件目で上限を超えるので止める。
+    agent -> vi: 70 USDC
+    set budget: 110
+    stop 1日の予算を超えた
+end
+`;
+
+/** 目盛りを持つ列の図の 2 つの場面。どちらの場面も 1 段目で作業中の帯を名指す */
+const lineupGauge = (): string => `lineup 作業の2つの場面
+
+box todo as やること
+box doing as 作業中
+
+gauge load as 作業の量 [on: doing, limit: 3, unit: 件, over: 抱えすぎ]
+
+item 検索, 通知, 決済, 請求
+
+step 並べる
+  say どの場面も4件を並べる。
+  line todo: 検索, 通知, 決済, 請求
+
+step 1件取る
+  say どの場面も1件取る。
+  line doing: 検索
+  line todo: 通知, 決済, 請求
+  set load: 1
+
+scene 少しずつ取る
+  step 2件目を取る
+    say 2件目を取る。
+    line doing: 検索, 通知
+    line todo: 決済, 請求
+    set load: 2
+end
+
+scene まとめて取る
+  step 残りを全て取る
+    say 残りを全て取り、上限を超える。
+    line doing: 検索, 通知, 決済, 請求
+    set load: 4
+    stop 抱えすぎた
+end
+`;
+
+/** 分かれ目の札を確かめる図。並べる見せ方の手順の図と列の図を日本語と英語で、選ぶ見せ方と場面が 1 つの手順の図と、目盛りを持つ 2 つの図を描く */
+const FORK_DRAWN = await atLoad("分かれ目の札を確かめる場面の図を描く", () => {
+  const draw = (text: string, lang: "ja" | "en"): Scened => {
+    const parsed = dragon.parseNotation(text, { lang: "ja" });
+    if (!parsed.ok) throw new Error(`記法を読めない: ${JSON.stringify(parsed.errors)}`);
+    return dragon.renderDiagram(parsed.diagram, { lang });
+  };
+  return {
+    stacked: [
+      { kind: "flow", lang: "ja" as const, rendered: draw(flowScenes(), "ja") },
+      { kind: "flow", lang: "en" as const, rendered: draw(flowScenes(), "en") },
+      { kind: "lineup", lang: "ja" as const, rendered: draw(lineupScenes(), "ja") },
+      { kind: "lineup", lang: "en" as const, rendered: draw(lineupScenes(), "en") },
+    ],
+    gauged: [
+      { kind: "flow", lang: "ja" as const, rendered: draw(flowGauge(), "ja") },
+      { kind: "lineup", lang: "ja" as const, rendered: draw(lineupGauge(), "ja") },
+    ],
+    picked: draw(flowScenes(" [scenes: pick]"), "ja"),
+    single: draw(oneScene(), "ja"),
+  };
+});
+
+/** 分かれ目の見せ方を書く文書と、書く札の字 */
+const FORK_DOCS: { file: string; words: string[] }[] = [
+  { file: "packages/dragon/src/blocks/scene/gallery/docs.ts", words: ["ここから分かれる", "splits here"] },
+  { file: "packages/dragon/src/blocks/scene/gallery/rule.ts", words: ["ここから分かれる"] },
+  { file: "docs/design/base/GRAMMAR.md", words: ["ここから分かれる"] },
+  { file: "packages/dragon/examples/quick-start.md", words: ["ここから分かれる"] },
+  { file: "packages/dragon/examples/quick-start.en.md", words: ["splits here"] },
+];
+
 describe("1 つの図の場面 (#3878)", () => {
   it("scenes-stack-same-box-positions", () => {
     const read = scenesOf(flowScenes());
@@ -268,33 +423,84 @@ describe("1 つの図の場面 (#3878)", () => {
     expect(stepOf(wrong), "最後の段で次へ押した後の宛先が違う送金の場面の段").toBe(2);
   });
 
-  it("scenes-fork-line-and-colors", () => {
-    const read = scenesOf(flowScenes());
-    if (!read) return;
-    const colors = read.scenes.map((s) => s.color);
-    // 場面の色は場面ごとに違い、灰色ではない
-    expect(new Set(colors).size, "場面の色が場面ごとに違わない").toBe(2);
-    expect(colors, "場面の色に灰色がある").not.toContain("slate");
-    for (const scene of read.scenes) {
-      // 共通の段の線は灰色、場面の段の線は場面の色
-      const edges = edgesOf(scene);
-      expect(edges.filter((e) => e.step < COMMON).map((e) => e.color), `${scene.name} の共通の段の線の色`).toEqual(["slate", "slate"]);
-      expect(edges.filter((e) => e.step >= COMMON).map((e) => e.color), `${scene.name} の場面の段の線の色`).toEqual(edges.filter((e) => e.step >= COMMON).map(() => scene.color));
-      // 分かれる位置に縦の点線を 1 本引く。分かれるのは宛先を確かめる箱で、点線はその箱の左に在る
-      const forks = [...svgOf(scene.svg).querySelectorAll('[data-dragon="scene-fork"]')];
-      expect(forks.length, `${scene.name} の場面の分かれる位置の点線の数`).toBe(1);
-      const fork = forks[0];
-      const look = boxesOf(scene).find((b) => b.id === "look");
-      if (!fork || !look) continue;
-      const [x1, x2, y1, y2] = ["x1", "x2", "y1", "y2"].map((k) => Number(fork.getAttribute(k)));
-      expect(x1, `${scene.name} の点線が縦でない`).toBeCloseTo(x2 ?? Number.NaN, 6);
-      expect((y2 ?? 0) - (y1 ?? 0), `${scene.name} の点線の長さ`).toBeGreaterThan(0);
-      expect(fork.getAttribute("stroke-dasharray") ?? "", `${scene.name} の分かれる位置の線が点線でない`).not.toBe("");
-      expect((x1 ?? Number.NaN) <= look.x && (x1 ?? Number.NaN) > look.x - 40, `${scene.name} の点線 (${x1}) が宛先を確かめる箱 (${look.x}) のすぐ左に無い`).toBe(true);
+  it("scenes-fork-badge-and-colors", () => {
+    const { stacked, picked, single } = FORK_DRAWN.get();
+    for (const { kind, lang, rendered } of stacked) {
+      const scenes = rendered.scenes ?? [];
+      expect(scenes.length, `${kind} (${lang}) の場面の数`).toBe(2);
+      const colors = scenes.map((s) => s.color);
+      // 場面の色は場面ごとに違い、灰色ではない
+      expect(new Set(colors).size, `${kind} (${lang}) の場面の色が場面ごとに違わない`).toBe(2);
+      expect(colors, `${kind} (${lang}) の場面の色に灰色がある`).not.toContain("slate");
+      for (const scene of scenes) {
+        const where = `${kind} (${lang}) の ${scene.name}`;
+        if (kind === "flow") {
+          // 共通の段の線は灰色、場面の段の線は場面の色
+          const edges = edgesOf(scene);
+          expect(edges.filter((e) => e.step < COMMON).map((e) => e.color), `${where} の共通の段の線の色`).toEqual(["slate", "slate"]);
+          expect(edges.filter((e) => e.step >= COMMON).map((e) => e.color), `${where} の場面の段の線の色`).toEqual(edges.filter((e) => e.step >= COMMON).map(() => scene.color));
+        }
+        // 縦の点線を引かず、場面の色の札を 1 つ付ける
+        const svg = svgOf(scene.svg);
+        expect(svg.querySelectorAll("line.dg-scene-fork").length, `${where} の分かれる位置の縦の点線の数`).toBe(0);
+        const marks = [...svg.querySelectorAll('[data-dragon="scene-fork"]')];
+        expect(marks.length, `${where} の分かれ目の札の数`).toBe(1);
+        expect(marks[0]?.textContent, `${where} の分かれ目の札の字`).toBe(lang === "ja" ? "ここから分かれる" : "splits here");
+        expect(marks[0]?.getAttribute("style") ?? "", `${where} の分かれ目の札の色`).toContain(`var(--c-${scene.color})`);
+        // 札は分かれる箱 (手順の図は宛先を確かめる箱、列の図は待ちの帯) の上の縁に掛かる
+        const fork = kind === "flow" ? "look" : "wait";
+        const badge = badgeOf(scene);
+        const box = lanesOf(scene).find((b) => b.id === fork);
+        expect(badge?.box, `${where} の札が付く箱`).toBe(fork);
+        if (!badge || !box) continue;
+        expect(badge.y < box.y && badge.y + badge.h > box.y, `${where} の札 (${badge.y}-${badge.y + badge.h}) が箱の上の縁 (${box.y}) に掛からない`).toBe(true);
+        expect(badge.x < box.x + box.w && badge.x + badge.w > box.x, `${where} の札が箱の横の幅に重ならない`).toBe(true);
+      }
     }
-    // 選ぶ見せ方は 1 つの場面ずつ見せるので、分かれる位置の点線を引かない
-    const picked = scenesOf(flowScenes(" [scenes: pick]"));
-    for (const scene of picked?.scenes ?? []) expect(svgOf(scene.svg).querySelectorAll('[data-dragon="scene-fork"]').length, `選ぶ見せ方の ${scene.name} の点線の数`).toBe(0);
+    // 選ぶ見せ方は 1 つの場面ずつ見せ、場面が 1 つの図は分かれないので、札を付けない
+    for (const scene of picked.scenes ?? []) expect(svgOf(scene.svg).querySelectorAll('[data-dragon="scene-fork"]').length, `選ぶ見せ方の ${scene.name} の札の数`).toBe(0);
+    for (const scene of single.scenes ?? []) expect(svgOf(scene.svg).querySelectorAll('[data-dragon="scene-fork"]').length, `場面が 1 つの図の ${scene.name} の札の数`).toBe(0);
+  });
+
+  it("scenes-fork-badge-clear-of-parts", () => {
+    const { stacked, gauged } = FORK_DRAWN.get();
+    for (const { kind, lang, rendered } of [...stacked, ...gauged]) {
+      for (const scene of rendered.scenes ?? []) {
+        const where = `${kind} (${lang}) の ${scene.name}`;
+        const badge = badgeOf(scene);
+        expect(badge, `${where} に分かれ目の札が無い`).toBeDefined();
+        if (!badge) continue;
+        const layout = scene.layout as Laid;
+        // 図の枠に収まる
+        expect(badge.x >= 0 && badge.y >= 0 && badge.x + badge.w <= layout.width && badge.y + badge.h <= layout.height, `${where} の札が図の枠からはみ出す`).toBe(true);
+        const hits = partsOf(layout, badge.box)
+          .filter((p) => overlaps(badge, p.rect))
+          .map((p) => p.name);
+        expect(hits, `${where} の札に重なる物`).toEqual([]);
+      }
+    }
+  });
+
+  it("scenes-ahead-lists-own-steps", () => {
+    const { stacked } = FORK_DRAWN.get();
+    for (const { lang, rendered } of stacked.filter((d) => d.kind === "lineup")) {
+      (rendered.scenes ?? []).forEach((scene, k) => {
+        const count = COUNTS[k] ?? 0;
+        const aheads = (scene.layout as Laid).aheads ?? [];
+        // 後の段が有る段 (最後の段の前まで) だけが帯を持ち、帯はその場面の後の段だけを並べる
+        expect(aheads.map((a) => a.step), `(${lang}) の ${scene.name} の「この先」の帯を持つ段`).toEqual(Array.from({ length: count - 1 }, (_, s) => s));
+        for (const ahead of aheads)
+          expect(ahead.tags.map((t) => t.step), `(${lang}) の ${scene.name} の段 ${ahead.step + 1} の「この先」の札の段`).toEqual(Array.from({ length: count - ahead.step - 1 }, (_, j) => ahead.step + 1 + j));
+      });
+    }
+  });
+
+  it("scenes-docs-name-fork-badge", () => {
+    for (const { file, words } of FORK_DOCS) {
+      const text = readFileSync(join(process.cwd(), file), "utf8");
+      for (const word of words) expect(text, `${file} が分かれ目の札の字「${word}」を書かない`).toContain(word);
+      expect(text, `${file} が分かれる所に縦の点線を引くと書く`).not.toMatch(/分かれる所に縦の点線|分かれる所の点線|vertical dashed line marks where/u);
+    }
   });
 
   it("scenes-pick-buttons-follow-one-scene", () => {

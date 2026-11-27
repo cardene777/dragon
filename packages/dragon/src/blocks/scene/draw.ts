@@ -8,14 +8,17 @@
  * 段で居場所が移る物を持つ種類 (列の図、`carry`) は、場面ごとにその場面の段の後ろへほかの場面の段を足した図を並べ、足した段の物を外す。
  * 並べ方は場面の段を順に辿るので、ほかの場面の段の居場所がその場面に混ざらず、帯の幅と高さは全ての場面の段から決まる。
  *
- * 並べる見せ方では、共通の段の線を灰色、場面の段の線を場面の色で描き、場面が 2 つ以上の時は分かれる所の箱の左に縦の点線を引く。
+ * 並べる見せ方では、共通の段の線を灰色、場面の段の線を場面の色で描き、場面が 2 つ以上の時は分かれる箱か帯の上の縁に場面の色の札を掛ける (#4019)。
+ * 縦の点線は図の上から下まで引くので段の文と線の札と帯の間の矢印に重なり、札に替えた。
  * 場面で通らない手順の図の箱は、今回は通らない道の先の箱と同じ点線の縁と薄い字にする。
  * 縦に並べた図 (`svg`) は場面ごとの図を、場面の名前と止まる理由の字と一緒に上から並べ、書き出しと止めて置く図が使う。
  * 再生の部品は場面ごとの図を場面の枠に並べて置く (`scene-player.ts`)。
  * この file は場面を書ける種類の描く部品の組だけが読み、最初に読む量に入れない
  */
 import { placeNotes, takeNotes } from "../pop/draw";
+import { FIGURE_TEXT } from "../../figure-text";
 import { partsOf } from "../../kinds/registry";
+import { textWidth } from "../../layout/measure";
 import type { Layout, SceneBox, SceneMark } from "../../layout/scene";
 import { type ColorKey, FONT_VARS, LOOK, paletteVars, TYPE } from "../../look/values";
 import type { DiagramModel, DiagramScene, Step } from "../../schema";
@@ -72,19 +75,51 @@ function forkBox(scene: DiagramScene): string | undefined {
 }
 
 /**
- * 並べる見せ方の場面の図の印 (#3878)。共通の段の線を灰色、場面の段の線を場面の色にし、場面が 2 つ以上の時 (`forks`) は
- * 分かれる所の箱の左の端から `SC.fork` だけ左に、図の上から下まで縦の点線を引く。手順の図の場面で通らない箱は点線の縁と薄い字にする
+ * 場面が分かれる箱か帯 `box` の上の縁に掛ける札 (#4019)。箱の左の端から `SC.fork.inset` だけ右に置き、
+ * 箱へ上から入る線の矢じりに掛かる時は、矢じりから `SC.fork.arrow` だけ離して矢じりの左へ、左に入らない時は右へずらす。
+ * 札は図の余白の半分より外に出さず、箱の横の幅に掛かる所にだけ置く
  */
-function marked(layout: Layout, scene: DiagramScene, common: number, color: ColorKey, forks: boolean): Layout {
+function forkBadge(layout: Layout, box: SceneBox, lang: NotationLang): NonNullable<SceneMark["badge"]> {
+  const F = SC.fork;
+  const text = FIGURE_TEXT[lang].sceneFork;
+  const w = textWidth(text, TYPE.sceneFork) + F.padX * 2;
+  const tips = layout.edges.flatMap((e) => {
+    const tip = e.points.at(-1);
+    return e.to === box.id && tip && Math.abs(tip[1] - box.y) < F.h ? [tip[0]] : [];
+  });
+  const fits = (x: number): boolean =>
+    x >= LOOK.margin / 2 &&
+    x + w <= layout.width - LOOK.margin / 2 &&
+    x < box.x + box.w &&
+    x + w > box.x &&
+    tips.every((tip) => x + w <= tip - F.arrow || x >= tip + F.arrow);
+  const x = [box.x + F.inset, ...tips.flatMap((tip) => [tip - F.arrow - w, tip + F.arrow])].find(fits) ?? box.x + F.inset;
+  return { x: r1(x), y: r1(box.y - F.h / 2), w: r1(w), h: F.h, text, box: box.id };
+}
+
+/**
+ * 並べる見せ方の場面の図の印 (#3878)。共通の段の線を灰色、場面の段の線を場面の色にし、場面が 2 つ以上の時 (`forks`) は
+ * 分かれる箱か帯の上の縁に場面の色の札を掛ける (#4019)。手順の図の場面で通らない箱は点線の縁と薄い字にする
+ */
+function marked(layout: Layout, scene: DiagramScene, common: number, color: ColorKey, forks: boolean, lang: NotationLang): Layout {
   const edges = layout.edges.map((e) => ({ ...e, color: e.step < common ? SC.common : color }));
   const reached = new Set(edges.flatMap((e) => [e.from, e.to]));
   const boxes = layout.kind === "flow" ? layout.boxes.map((b): SceneBox => (reached.has(b.id) ? b : { ...b, off: true })) : layout.boxes;
   const id = forks ? forkBox(scene) : undefined;
   const lanes = (layout as { lanes?: SceneBox[] }).lanes ?? [];
   const box = id === undefined ? undefined : [...layout.boxes, ...lanes].find((b) => b.id === id);
-  const fork = box ? { x: Math.max(LOOK.margin / 2, box.x - SC.fork), y1: LOOK.margin / 2, y2: layout.height - LOOK.margin / 2 } : undefined;
-  const mark: SceneMark = { color, common, ...(fork ? { fork } : {}) };
+  const badge = box ? forkBadge(layout, box, lang) : undefined;
+  const mark: SceneMark = { color, common, ...(badge ? { badge } : {}) };
   return { ...layout, edges, boxes, scene: mark };
+}
+
+/**
+ * 列の図の「この先」の帯のうち、後の段の札を持たない物を外す (#4019)。
+ * 場面ごとの並べ方はほかの場面の段を外すので、場面の最後の段の帯は札を失い、見出しの「この先」だけが残っていた
+ */
+function withoutEmptyAheads(layout: Layout): Layout {
+  const aheads = (layout as { aheads?: { tags: unknown[] }[] }).aheads;
+  return aheads ? ({ ...layout, aheads: aheads.filter((a) => a.tags.length > 0) } as Layout) : layout;
 }
 
 /**
@@ -156,8 +191,8 @@ export function renderScenes(given: DiagramModel, options: DrawOptions, lang: No
   const drawn = list.map((scene, k): RenderedScene => {
     const model: DiagramModel = { ...plain, steps: [...plain.steps, ...scene.steps] };
     const color: ColorKey = SC.colors[k % SC.colors.length] ?? "blue";
-    const laid = layouts[k] as Layout;
-    const shown = stack ? marked(laid, scene, common, color, list.length > 1) : laid;
+    const laid = withoutEmptyAheads(layouts[k] as Layout);
+    const shown = stack ? marked(laid, scene, common, color, list.length > 1, lang) : laid;
     const placed = placeNotes(notes, shown.boxes);
     const layout = placed.length > 0 ? { ...shown, noteCards: placed } : shown;
     return { ...drawLaid(model, layout, options, lang), name: scene.name, ...(scene.stop !== undefined ? { stop: scene.stop } : {}), color, common };
