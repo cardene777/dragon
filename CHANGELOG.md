@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- The previous and next buttons of the player bar now show a skip mark, a filled triangle with a bar at its tip, instead of a thin stroked V. They match the filled play, pause, and restart icons and do not look like the play triangle. `docs/design/base/GRAMMAR.md` now puts these buttons under the rule for direction marks (#4074)
+- The lineup board no longer draws the small thin gray `>` between lanes, in a row or stacked at a narrow width; the order reads from the lanes left to right (top to bottom when stacked) and the cards that move. The gap between lanes stays 16px, and the `LineupArrow` type and the `arrows` field of the lineup layout are removed (#4060)
+- In the follow view, the mark on a tag that names a box cut off at the window edge is now a filled triangle in the tag color pointing to the side the box goes on, instead of a thin stroked V. `docs/design/base/GRAMMAR.md` now says not to use a small thin `>` that is not on a line as a direction mark (#4060)
+
+## [0.91.0] - 2026-11-28
+
 ### Added
 
 - A try diagram takes `[shape: scenes]` on the first line, as in `try <title> [shape: scenes]`, for a figure whose exchanges change order with the scene the reader picks. One path of the `route` names 2 to 4 parties, `ask` has the five fields tag, scene, sender, receiver and content with a `choose` line for the scene, and each exchange and each scene's answer is an `item`. The reader picks a scene and sends it, and only that scene's exchanges are drawn in order, numbered and colored by sender with the same boxes, lifelines and arrows as a sequence diagram, and then the scene's one-sentence answer and its reason appear. A narrow frame stacks the party names and one "sender → receiver" card per exchange instead. Picking another scene clears the exchanges, the player shows no step bar, and images and print draw the scene of the author's last step. `dragon check` names the line of each source the look cannot draw, and the gallery has a reply-ways sample (#3873)
@@ -17,9 +25,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
-- The previous and next buttons of the player bar now show a skip mark, a filled triangle with a bar at its tip, instead of a thin stroked V. They match the filled play, pause, and restart icons and do not look like the play triangle. `docs/design/base/GRAMMAR.md` now puts these buttons under the rule for direction marks (#4074)
-- The lineup board no longer draws the small thin gray `>` between lanes, in a row or stacked at a narrow width; the order reads from the lanes left to right (top to bottom when stacked) and the cards that move. The gap between lanes stays 16px, and the `LineupArrow` type and the `arrows` field of the lineup layout are removed (#4060)
-- In the follow view, the mark on a tag that names a box cut off at the window edge is now a filled triangle in the tag color pointing to the side the box goes on, instead of a thin stroked V. `docs/design/base/GRAMMAR.md` now says not to use a small thin `>` that is not on a line as a direction mark (#4060)
 - In the default `paper` palette, the first color handed to regions and boxes (`blue`) is now a deep teal instead of blue. The light theme draws lines and fills in `#26706e` and text in `#1a504f`, and the dark theme draws lines and fills in `#86d0cc` and text in `#a3dcd9`. The note mark ring, the player's play button and step bar, and the first chapter color of a guide page change with it. The five region colors still stay above the same separation floors for the three color vision types. The `clear`, `night`, `arcade`, and `sea` palettes keep their colors (#4057)
 
 ### Fixed
