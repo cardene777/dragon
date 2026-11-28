@@ -69,42 +69,11 @@ export interface FigureText {
   taskRange: (unit: string, from: string, to: string) => string;
   headJoin: string;
   empty: string;
-  /**
-   * 列の図の卓の形 (#3351)。札と置き場の名前の下の字、選んだ札の印、封の字、「この先」の帯の字、空の置き場の字。
-   * 札の下の一言は、色付きのチップの席の番号、置き場に無かったチップを足したこと、置き場に在った色付きのチップが無いことを言う
-   */
-  lineupInOrder: string;
-  lineupNoOrder: string;
   /** 並べる見せ方の場面の図で、場面が分かれる箱か帯に掛ける札の字 (#4019) */
   sceneFork: string;
-  lineupPicked: string;
-  lineupSealed: string;
-  lineupAhead: string;
-  lineupEmpty: string;
-  lineupAt: (name: string, n: number) => string;
-  lineupAdded: (names: string[]) => string;
-  lineupMissing: (name: string) => string;
-  /** 列の図のボードと流れの線 (#3624) の、前の列へ戻る段の札と、現れた札と外れた札の印 */
-  lineupBack: string;
-  lineupNew: string;
-  lineupGone: string;
   /** 配管の図の拡大と縮小の釦の読み上げの名前 (#3418) */
   zoomIn: string;
   zoomOut: string;
-  /**
-   * 配管の図の下の段の矢印と呼び出しの結果 (#3418、#3450)。結果の一覧の名前、矢印の札 (送る、呼ぶ、返す、計算する、記録を出す)、
-   * 同じ段で戻った呼び出しの返した値の札、確かめた式を満たした時と満たさない時の札、中身の無い所の印、
-   * 一覧の先頭に置くいちばん外の呼び出しの札、戻る前の呼び出しの返した値の欄、取り消しの札
-   */
-  calls: string;
-  flowTags: Record<"move" | "call" | "return" | "calc" | "emit", string>;
-  returnOf: (label: string) => string;
-  checkPass: string;
-  checkFail: string;
-  callNone: string;
-  deal: string;
-  waiting: string;
-  reverted: string;
   /** 配管の図の下の、段の要点の札の名札 (#3464)。読み上げの段の一覧でも要点の前に置く */
   gist: string;
 }
@@ -164,30 +133,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     taskRange: (unit, from, to) => joinWords(from === to ? from : `${from}〜${to}`, unit),
     headJoin: " ・ ",
     empty: "空き",
-    lineupInOrder: "上から実行",
-    lineupNoOrder: "順番なし",
     sceneFork: "ここから分かれる",
-    lineupPicked: "選ばれる",
-    lineupSealed: "封",
-    lineupAhead: "この先",
-    lineupEmpty: "まだ空",
-    lineupAt: (name, n) => `${name}は${n}番目`,
-    lineupAdded: (names) => `${names.join("、")}を足した`,
-    lineupMissing: (name) => `${name}が無い`,
-    lineupBack: "差し戻し",
-    lineupNew: "足した",
-    lineupGone: "外れた",
     zoomIn: "拡大する",
     zoomOut: "縮小する",
-    calls: "呼び出しの結果",
-    flowTags: { move: "送る", call: "呼ぶ", return: "返す", calc: "計算する", emit: "記録を出す" },
-    returnOf: (label) => `${label}を返す`,
-    checkPass: "✓ 満たす",
-    checkFail: "✗ 満たさない",
-    callNone: "—",
-    deal: "取引",
-    waiting: "返り待ち",
-    reverted: "✗ 取り消し",
     gist: "要点",
   },
   en: {
@@ -227,30 +175,9 @@ export const FIGURE_TEXT: Record<NotationLang, FigureText> = {
     taskRange: (unit, from, to) => joinWords(capital(unit), from === to ? from : `${from}–${to}`),
     headJoin: " · ",
     empty: "Empty",
-    lineupInOrder: "Top first",
-    lineupNoOrder: "No order",
     sceneFork: "splits here",
-    lineupPicked: "Picked",
-    lineupSealed: "Sealed",
-    lineupAhead: "Next",
-    lineupEmpty: "Empty",
-    lineupAt: (name, n) => `${name} is #${n}`,
-    lineupAdded: (names) => `Added ${names.join(", ")}`,
-    lineupMissing: (name) => `${name} is missing`,
-    lineupBack: "Sent back",
-    lineupNew: "Added",
-    lineupGone: "Gone",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
-    calls: "Call results",
-    flowTags: { move: "sends", call: "calls", return: "returns", calc: "calculates", emit: "emits" },
-    returnOf: (label) => `returns ${label}`,
-    checkPass: "✓ holds",
-    checkFail: "✗ fails",
-    callNone: "—",
-    deal: "Transaction",
-    waiting: "Pending",
-    reverted: "✗ Reverted",
     gist: "Key point",
   },
 };

@@ -30,7 +30,6 @@
  * 針は段ごとに、その段で最後に札を下ろした層までに経った時間 (その層の時間を含む) を指し、経った時間を書いた札を添える。札を下ろす前の段は 0 を指す。
  * 既定の幅では目盛りを階段の右に縦に置いて上から下へ時間を進め、携帯の幅では階段を幅いっぱいに描き、目盛りを階段の下に横に置いて左から右へ時間を進める。
  */
-import { type FigureText, FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, READABLE_PX, type TextStyle, TYPE, WRAP } from "../../look/values";
 import { LINEUP_LOOK } from "../../look/lineup";
 import type { DiagramModel, DiagramEvent } from "../../schema";
@@ -40,6 +39,7 @@ import { wrap } from "../../layout/wrap";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
+import { LINEUP_WORDS, type LineupWords } from "./words";
 
 const L = LINEUP_LOOK;
 const Y = L.layers;
@@ -400,7 +400,7 @@ interface RemarkSpec extends LineupAt {
  * 置き場に無かったチップは色ごとに 1 つの一言にまとめ、置き場に在った色付きのチップは席の番号か、無いことを言う。
  * 一言は札の中の最初の席の順に並べ、無いことを言う一言は最後に置く。段の始まりに前の置き場にチップが無い段は一言を出さない
  */
-function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, order: string[], words: FigureText): RemarkSpec[] {
+function remarksOf(diagram: DiagramModel, lines: Line[], pools: Set<string>, order: string[], words: LineupWords): RemarkSpec[] {
   const items = new Map((diagram.lineup?.items ?? []).map((item) => [item.id, item]));
   const nameOf = (id: string): string => items.get(id)?.label ?? id;
   const held = new Map<string, string[]>();
@@ -461,7 +461,7 @@ interface Seats {
 
 export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
   const lang = options.lang ?? DEFAULT_LANG;
-  const words = FIGURE_TEXT[lang];
+  const words = LINEUP_WORDS[lang];
   const { width } = options;
   const shape = diagram.lineup?.shape;
   if (shape === "layers" || shape === "stairs") {
@@ -507,7 +507,7 @@ function valuesOf(diagram: DiagramModel): Map<string, (string | undefined)[]> {
  * ボードは帯を淡い色の縦の帯にして、見出しに名前と札の数を、2 行目に上限の目盛りと順番なしと値の札を置き、札を上から積む。
  * 流れの線は帯を 1 本の線の上の駅にして、駅の上に名前と札の数を、その下に順番なしと値の札を置き、札を駅の下に積む。上限を書いた駅は受け口を描く
  */
-function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "stations", stacked: boolean, lang: NotationLang): LineupLayout {
+function arrange(diagram: DiagramModel, words: LineupWords, shape: "board" | "stations", stacked: boolean, lang: NotationLang): LineupLayout {
   const B = L.board;
   const ST = L.stations;
   const N = B.narrow;
@@ -1172,7 +1172,7 @@ const layerWidth = (text: string, style: TextStyle): number => textWidth(text, s
  * 横に並べた帯は左から、色の棒と名前と説明、層の番号、印、札の列を置き、帯の中の幅が下限より広い時は、余りを番号の前と札の前に半分ずつ空ける。
  * `stairs` は帯を下の層ほど同じ幅だけ右へずらし、全ての箱に長さを書いた図には経った時間の目盛りと針を置く
  */
-function arrangeLayers(diagram: DiagramModel, words: FigureText, narrow: boolean, lang: NotationLang, stairs: boolean): LineupLayout {
+function arrangeLayers(diagram: DiagramModel, words: LineupWords, narrow: boolean, lang: NotationLang, stairs: boolean): LineupLayout {
   const T = Y.type;
   const margin = narrow ? L.stack.margin : L.margin;
   const items = diagram.lineup?.items ?? [];
