@@ -664,21 +664,84 @@ describe("説明の頁の手引きが話題ごとの頁と左の目次を書く 
     expect(missing, "### <question> の行が書かない目次の動き").toEqual([]);
   });
 
-  it("skill-page-names-no-tabs", () => {
+  it("skill-musubi-page-version-raised", () => {
+    const version = provided().page?.version ?? "";
+    expect(version, "musubi の page の版").toMatch(/^\d+\.\d+\.\d+$/u);
+    expect(versionRank(version), `musubi の page の版 (${version}) が 1.0.0 から上がっていない`).toBeGreaterThan(versionRank("1.0.0"));
+  });
+});
+
+/** 変更の一覧の `file` (repo の根から) の項。項は `- ` で始まる行 (#4036) */
+const changelogItems = (file: string): string[] =>
+  read(join(ROOT, file))
+    .split("\n")
+    .filter((line) => line.startsWith("- "));
+
+/*
+ * #4024 で話題が 2 つ以上の説明の頁は、頁の上のヘッダーに題と全体像と話題のタブを置き、左の目次に開いている話題の問いだけを並べる形になった。
+ * #4029 で見出しは h1 から h5 まで段ごとに違う形になった。参照の page.md は節に番号が付き、左の目次が全ての問いを並べると書いたままだった。
+ * #4003 の page.md に tab の語を書かせない検査は、ヘッダーのタブが戻ったので、古い形の文を書かない検査 (skill-page-names-no-old-guide-form) に置き換えた
+ */
+describe("説明の頁の手引きがヘッダーのタブと開いている話題の目次と見出しの形を書く (#4036)", () => {
+  it("skill-page-names-no-old-guide-form", () => {
     const page = read(PAGE);
     expect(page, "説明の頁の参照 (references/page.md) が無い").not.toBe("");
     const stale = page
       .split("\n")
       .map((line, k) => ({ line, at: k + 1 }))
-      .filter(({ line }) => /Topics follow one another on one page|\btabs?\b/iu.test(line))
+      .filter(({ line }) => /Topics follow one another on one page|\bnumbered\b|`\d+-\d+`|lists every (?:topic|question)|first tab/iu.test(line))
       .map(({ line, at }) => `page.md:${at} ${line}`);
-    expect(stale, "話題が 1 つの頁に続くか、頁がタブを持つと読める行").toEqual([]);
+    expect(stale, "話題が 1 つの頁に続く、節に番号が付く、目次が全ての問いを並べる、撮った絵が最初のタブを写すと読める行").toEqual([]);
   });
 
-  it("skill-musubi-page-version-raised", () => {
+  it("skill-page-describes-header-tabs", () => {
+    const missing = absent(read(PAGE), {
+      "ヘッダーが題と全体像と話題ごとのタブを持つ": /header[^\n]*the title and tabs for the overview and each topic/u,
+      "タブが題の横に入らない時は題の下の段へ移る": /tabs do not fit[^\n]*row under the title/u,
+      "携帯の幅ではタブの段を横に送る": /On a phone[^\n]*row of tabs scrolls sideways/u,
+    });
+    expect(missing, "page.md が書かないヘッダーの形").toEqual([]);
+  });
+
+  it("skill-page-describes-open-topic-menu", () => {
+    const missing = absent(read(PAGE), {
+      "左の目次は開いている話題の問いだけを並べる": /menu on the left lists only the questions of the open topic/u,
+      "開いている頁の #### の見出しを並べる": /`####` headings of the open page/u,
+      "開いている頁を灰色の地と太字で示す": /open page[^\n]*gray background and bold/u,
+      "番号と開閉の矢印を出さない": /no numbers and no arrows/u,
+    });
+    expect(missing, "page.md が書かない左の目次の形").toEqual([]);
+  });
+
+  it("skill-page-describes-overview-and-phone", () => {
+    const missing = absent(read(PAGE), {
+      "全体像の頁は左の目次を出さない": /overview page has no menu on the left/u,
+      "全体像の頁は本文を中央に置く": /overview page[^\n]*centers the text/u,
+      "幅 860px 以下で目次の釦にまとまり、頁を選ぶと閉じる": /860px wide or less[^\n]*menu button[^\n]*picking a page closes it/u,
+    });
+    expect(missing, "page.md が書かない全体像と携帯の幅の形").toEqual([]);
+  });
+
+  it("skill-page-describes-heading-shapes", () => {
+    const missing = absent(read(PAGE), {
+      "h1 は暗い帯に明るい字": /\(`#`\)[^\n]*dark band with light text/u,
+      "h2 は字の色の下線": /\(`##`\)[^\n]*underline in the text color/u,
+      "h3 は左に話題の色の縦線": /\(`###`\)[^\n]*bar in the topic's color on its left/u,
+      "h4 は淡い地の帯": /`####` heading[^\n]*pale band/u,
+      "h5 は点線の下線": /`#####` heading[^\n]*dashed underline/u,
+    });
+    expect(missing, "page.md が書かない見出しの段ごとの形").toEqual([]);
+  });
+
+  it("skill-musubi-page-version-above-1-0-1", () => {
     const version = provided().page?.version ?? "";
     expect(version, "musubi の page の版").toMatch(/^\d+\.\d+\.\d+$/u);
-    expect(versionRank(version), `musubi の page の版 (${version}) が 1.0.0 から上がっていない`).toBeGreaterThan(versionRank("1.0.0"));
+    expect(versionRank(version), `musubi の page の版 (${version}) が 1.0.1 から上がっていない`).toBeGreaterThan(versionRank("1.0.1"));
+  });
+
+  it("skill-page-guide-form-in-changelog", () => {
+    const counts = Object.fromEntries(["CHANGELOG.md", "CHANGELOG.ja.md"].map((file) => [file, changelogItems(file).filter((line) => line.trimEnd().endsWith("(#4036)")).length]));
+    expect(counts, "(#4036) で終わる変更の一覧の項の数").toEqual({ "CHANGELOG.md": 1, "CHANGELOG.ja.md": 1 });
   });
 });
 
