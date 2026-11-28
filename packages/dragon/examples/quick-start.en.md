@@ -1116,7 +1116,8 @@ step Cancel the second
   set budget: 40
 ```
 
-In a flow or a lineup diagram with `[note: pop]` on the first line, clicking a gauge with a value opens a breakdown card just below it, and the gauge gets a round i mark right after its name.
+In a flow or a lineup diagram with `[note: pop]` on the first line, each gauge with a value gets a round i mark right after its name.
+Clicking the gauge opens a breakdown card just below it.
 The card shows the gauge name and limit, then one row for each step that sets a value.
 
 Each row has the step number and name, a small bar of the gauge at the end of that step, the change, and the value.

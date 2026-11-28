@@ -1766,6 +1766,32 @@ describe("全体像の図の後の段落と章ごとの番号 (#3969)", () => {
   });
 });
 
+/** 色味を名指した止めて置く塊と名指さない塊を書いた頁を`dragon embed`で埋め、止め絵ごとの青の役を読む (#4057)。子の process を起こすので読み込む段で済ませる (#4067) */
+const EMBEDDED = await atLoad("色味を名指した止めて置く塊と名指さない塊を書いた頁をdragon embedで埋め、止め絵ごとの青の役を読む", async () => {
+  const dir = tempDir("still-palette");
+  const block = (attrs: string): string =>
+    `<pre class="dragon" data-still${attrs}>sequence 注文\n\nbox shop as 店\nbox bank as 銀行\n\nstep 頼む\n  say 店が銀行に頼む。\n  shop -&gt; bank: 代金\n</pre>`;
+  writeFiles(dir, {
+    "page.html": [
+      "<!doctype html>",
+      '<html lang="ja"><head><meta charset="utf-8">',
+      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.91/dist/cdn/dragon.js"></script>',
+      "</head><body>",
+      block(' data-palette="paper"'),
+      block(""),
+      "</body></html>",
+    ].join("\n"),
+  });
+  const out = join(dir, "page.offline.html");
+  const ran = await runCli(["embed", join(dir, "page.html"), "--out", out]);
+  // 止め絵ごとに、明るい表示の図の色の変数が持つ青の役を読む
+  const blues = (ran.code === 0 && existsSync(out) ? readFileSync(out, "utf8") : "")
+    .split('class="dragon-figure dragon-still"')
+    .slice(1)
+    .map((still) => /--c-blue:(#[0-9a-f]{6})/u.exec(still)?.[1]);
+  return { code: ran.code, stderr: ran.stderr, blues };
+});
+
 /**
  * 話題が2つ以上ある説明の頁を、全体像と話題ごとのタブに分ける (#3991)。
  *
@@ -1890,30 +1916,10 @@ describe("話題のタブ (#3991)", () => {
 
   // 色味を名指した止めて置く塊を`dragon embed`で埋めると、頁の script と同じ色味で描く (#4057)
   // 埋める処理は全ての種類を読むので、どの種類を変えても選ばれるこの file に置き、時系列図だけを読む`page-step.test.ts`には置かない
-  it("embed-still-block-reads-palette", async () => {
-    const dir = tempDir("still-palette");
-    const block = (attrs: string): string =>
-      `<pre class="dragon" data-still${attrs}>sequence 注文\n\nbox shop as 店\nbox bank as 銀行\n\nstep 頼む\n  say 店が銀行に頼む。\n  shop -&gt; bank: 代金\n</pre>`;
-    writeFiles(dir, {
-      "page.html": [
-        "<!doctype html>",
-        '<html lang="ja"><head><meta charset="utf-8">',
-        '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.91/dist/cdn/dragon.js"></script>',
-        "</head><body>",
-        block(' data-palette="paper"'),
-        block(""),
-        "</body></html>",
-      ].join("\n"),
-    });
-    const out = join(dir, "page.offline.html");
-    const ran = await runCli(["embed", join(dir, "page.html"), "--out", out]);
-    expect(ran.code, `dragon embed の終わり方 (${ran.stderr})`).toBe(0);
-    // 止め絵ごとに、明るい表示の図の色の変数が持つ青の役を読む
-    const blues = readFileSync(out, "utf8")
-      .split('class="dragon-figure dragon-still"')
-      .slice(1)
-      .map((still) => /--c-blue:(#[0-9a-f]{6})/u.exec(still)?.[1]);
-    expect(blues, "紙と墨を名指した塊と、色味を名指さない塊を埋めた止め絵の青の役").toEqual(["#26706e", "#467deb"]);
+  it("embed-still-block-reads-palette", () => {
+    const embedded = EMBEDDED.get();
+    expect(embedded.code, `dragon embed の終わり方 (${embedded.stderr})`).toBe(0);
+    expect(embedded.blues, "紙と墨を名指した塊と、色味を名指さない塊を埋めた止め絵の青の役").toEqual(["#26706e", "#467deb"]);
   });
 
   it("guide-tabs-term-link-opens-glossary-tab", () => {
