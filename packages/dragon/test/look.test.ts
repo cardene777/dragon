@@ -49,10 +49,7 @@ describe("色味", () => {
         const colors = SLOTS.map((slot) => palette[theme][slot] ?? "");
         for (const [sight, floor] of Object.entries(floors) as [Sight, number][]) {
           const { distance, pair } = closestPair(colors, sight);
-          expect(
-            distance,
-            `${palette.id} ${theme} ${sight} ${pair.join(" と ")}`,
-          ).toBeGreaterThanOrEqual(floor);
+          expect(distance, `${palette.id} ${theme} ${sight} ${pair.join(" と ")}`).toBeGreaterThanOrEqual(floor);
         }
       }
     }
@@ -61,19 +58,13 @@ describe("色味", () => {
   // 紙と墨の青の役は、見本で選んだ深い青緑を、緑の区画と見分けられる暗さへ寄せた値にする (#4057)
   it("paper-light-blue-role-is-teal", () => {
     const paper = draw("resolvePalette")("paper");
-    expect(
-      [paper.light["c-blue"], paper.light["t-blue"]],
-      "紙と墨の明るい表示の青の役の線と字",
-    ).toEqual(["#26706e", "#1a504f"]);
+    expect([paper.light["c-blue"], paper.light["t-blue"]], "紙と墨の明るい表示の青の役の線と字").toEqual(["#26706e", "#1a504f"]);
   });
 
   // 暗い表示は、明るい表示の青緑と同じ役を、黒地から浮く淡い青緑で描く (#4057)
   it("paper-dark-blue-role-is-pale-teal", () => {
     const paper = draw("resolvePalette")("paper");
-    expect(
-      [paper.dark["c-blue"], paper.dark["t-blue"]],
-      "紙と墨の暗い表示の青の役の線と字",
-    ).toEqual(["#86d0cc", "#a3dcd9"]);
+    expect([paper.dark["c-blue"], paper.dark["t-blue"]], "紙と墨の暗い表示の青の役の線と字").toEqual(["#86d0cc", "#a3dcd9"]);
   });
 
   it("paper-figure-draws-teal-first", () => {
@@ -83,9 +74,7 @@ describe("色味", () => {
     const { svg, palette } = draw("renderDiagram")(parsed.diagram);
     expect(palette, "色味を書かない図の色味").toBe("paper");
     // 色を書かない1番目の区画は、配る順の1番目の青の役を読む
-    expect(svg, "1番目の区画の色").toMatch(
-      /data-node="受付" style="--c:var\(--c-blue\);--ct:var\(--t-blue\)"/u,
-    );
+    expect(svg, "1番目の区画の色").toMatch(/data-node="受付" style="--c:var\(--c-blue\);--ct:var\(--t-blue\)"/u);
     // 説明の印の丸も青の役を読む
     expect(svg, "説明の印の丸").toContain('class="dg-nbc"');
     expect(svg, "説明の印の丸の塗り").toContain(".dg-nbc{fill:var(--c-blue)}");
@@ -107,10 +96,7 @@ const NOT_COLORS = new Set(["sans", "mono", "T"]);
 /** `colors` を渡して小さな時系列図を描いた時の断りの文。描けた時は空 */
 function colorsRefusal(colors: Record<string, unknown>, lang?: Lang): string {
   try {
-    draw("renderDiagram")(smallSequence(), {
-      colors: colors as Record<string, string>,
-      ...(lang ? { lang } : {}),
-    });
+    draw("renderDiagram")(smallSequence(), { colors: colors as Record<string, string>, ...(lang ? { lang } : {}) });
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
@@ -122,14 +108,9 @@ describe("色の値 (#3198)", () => {
     const renderDiagram = draw("renderDiagram");
     for (const theme of ["light", "dark"] as const) {
       const base = draw("resolvePalette")("paper")[theme];
-      const rendered = renderDiagram(smallSequence(), {
-        palette: "paper",
-        theme,
-        colors: ARCADE_COLORS,
-      });
+      const rendered = renderDiagram(smallSequence(), { palette: "paper", theme, colors: ARCADE_COLORS });
       const vars = figureVars(rendered.svg);
-      for (const [name, value] of Object.entries(ARCADE_COLORS))
-        expect(vars[name], `${theme} の ${name}`).toBe(value);
+      for (const [name, value] of Object.entries(ARCADE_COLORS)) expect(vars[name], `${theme} の ${name}`).toBe(value);
       // 渡さない色 (影、硬貨、混ぜる割合など) は紙と墨の値のまま残る
       const kept = Object.entries(base).filter(([name]) => !Object.hasOwn(ARCADE_COLORS, name));
       expect(kept.length, "渡さない色が無い").toBeGreaterThan(0);
@@ -137,32 +118,16 @@ describe("色の値 (#3198)", () => {
       expect(rendered.palette).toBe("paper");
       // 色を渡さない図と同じ頁に並べても、渡した色はこの図にだけ効く (変数を書く class の名前が分かれる)
       expect(figureClass(rendered.svg)).toBeDefined();
-      expect(figureClass(rendered.svg)).not.toBe(
-        figureClass(renderDiagram(smallSequence(), { palette: "paper", theme }).svg),
-      );
+      expect(figureClass(rendered.svg)).not.toBe(figureClass(renderDiagram(smallSequence(), { palette: "paper", theme }).svg));
     }
   });
 
   it("render-colors-reject-unknown-or-unsafe", () => {
     // 既定は英語なので、日本語の断りの文は ja を渡して確かめる (#3338)
-    expect(colorsRefusal({ glow: "#39ff14" }, "ja"), "色味に無い名前").toMatch(
-      /^図を描けない: .*glow/u,
-    );
+    expect(colorsRefusal({ glow: "#39ff14" }, "ja"), "色味に無い名前").toMatch(/^図を描けない: .*glow/u);
     // 宣言を抜ける `;` と `}`、属性を抜ける `"`、要素を抜ける `<`、後ろの宣言を呑む閉じない括弧、外の file を読む `url(`、空と字でない値
-    for (const value of [
-      "#000;--ink:red",
-      '#000" onload="x',
-      "</style><script>",
-      "red}",
-      "rgb(0 0 0",
-      "url(a.svg#b)",
-      "",
-      12,
-    ]) {
-      expect(
-        colorsRefusal({ "c-green": value }, "ja"),
-        `${JSON.stringify(value)} を描いた`,
-      ).toMatch(/^図を描けない: .*c-green/u);
+    for (const value of ["#000;--ink:red", '#000" onload="x', "</style><script>", "red}", "rgb(0 0 0", "url(a.svg#b)", "", 12]) {
+      expect(colorsRefusal({ "c-green": value }, "ja"), `${JSON.stringify(value)} を描いた`).toMatch(/^図を描けない: .*c-green/u);
     }
     // 断りの文は渡した言葉で出し、誤った名前を全て挙げる
     const english = colorsRefusal({ glow: "#39ff14", bg: "red;" }, "en");
@@ -179,20 +144,12 @@ describe("色の値 (#3198)", () => {
       for (const theme of ["light", "dark"] as const) {
         const rendered = renderDiagram(smallSequence(), { palette: palette.id, theme });
         const vars = figureVars(rendered.svg);
-        for (const [name, value] of Object.entries(palette[theme]))
-          expect(vars[name], `${palette.id} ${theme} の ${name}`).toBe(value);
-        expect(
-          Object.keys(vars)
-            .filter((name) => !NOT_COLORS.has(name))
-            .sort(),
-          `${palette.id} ${theme} の色の名前`,
-        ).toEqual(Object.keys(palette[theme]).sort());
+        for (const [name, value] of Object.entries(palette[theme])) expect(vars[name], `${palette.id} ${theme} の ${name}`).toBe(value);
+        expect(Object.keys(vars).filter((name) => !NOT_COLORS.has(name)).sort(), `${palette.id} ${theme} の色の名前`).toEqual(Object.keys(palette[theme]).sort());
         expect(rendered.palette).toBe(palette.id);
       }
     }
-    expect(figureVars(renderDiagram(smallSequence()).svg).bg, "名前を書かない時の地").toBe(
-      palettes.paper?.light.bg,
-    );
+    expect(figureVars(renderDiagram(smallSequence()).svg).bg, "名前を書かない時の地").toBe(palettes.paper?.light.bg);
   });
 });
 
@@ -202,9 +159,7 @@ function drawingFiles(): string[] {
   const files: string[] = [];
   for (const dir of ["render", "layout"]) {
     const path = join(src, dir);
-    expect(statSync(path, { throwIfNoEntry: false })?.isDirectory(), `src/${dir} が無い`).toBe(
-      true,
-    );
+    expect(statSync(path, { throwIfNoEntry: false })?.isDirectory(), `src/${dir} が無い`).toBe(true);
     for (const name of readdirSync(path)) if (name.endsWith(".ts")) files.push(join(path, name));
   }
   for (const [dir, name] of [
@@ -215,8 +170,7 @@ function drawingFiles(): string[] {
     if (!statSync(path, { throwIfNoEntry: false })?.isDirectory()) continue;
     for (const entry of readdirSync(path, { withFileTypes: true })) {
       const file = join(path, entry.name, name);
-      if (entry.isDirectory() && statSync(file, { throwIfNoEntry: false })?.isFile())
-        files.push(file);
+      if (entry.isDirectory() && statSync(file, { throwIfNoEntry: false })?.isFile()) files.push(file);
     }
   }
   for (const name of ["timeline.ts", "view.ts", "player.ts"]) {
@@ -227,8 +181,7 @@ function drawingFiles(): string[] {
   return files;
 }
 
-const withoutComments = (code: string): string =>
-  code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+const withoutComments = (code: string): string => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 
 describe("値の表", () => {
   it("renderers-read-values-from-one-table", () => {
@@ -242,9 +195,7 @@ describe("値の表", () => {
       expect(code.match(/\b\d+(?:\.\d+)?px\b/g), `${where} に字の大きさ`).toBeNull();
     }
     // 描く file のうち少なくとも置き場所と描画は、値の表から読む
-    const readers = files.filter((file) =>
-      /from "(?:\.\.\/)+look\/values"/.test(readFileSync(file, "utf8")),
-    );
+    const readers = files.filter((file) => /from "(?:\.\.\/)+look\/values"/.test(readFileSync(file, "utf8")));
     expect(readers.length, "値の表を読む描く file が無い").toBeGreaterThanOrEqual(2);
   });
 });
@@ -255,14 +206,9 @@ describe("字", () => {
     expect(fonts).toEqual({ sans: "Noto Sans JP Variable", mono: "JetBrains Mono Variable" });
 
     // 字は package の依存として同梱し、package から解決できる
-    const manifest = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8")) as {
-      dependencies?: Record<string, string>;
-    };
+    const manifest = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8")) as { dependencies?: Record<string, string> };
     const require = createRequire(join(PACKAGE, "package.json"));
-    for (const name of [
-      "@fontsource-variable/noto-sans-jp",
-      "@fontsource-variable/jetbrains-mono",
-    ]) {
+    for (const name of ["@fontsource-variable/noto-sans-jp", "@fontsource-variable/jetbrains-mono"]) {
       expect(manifest.dependencies?.[name], `${name} が依存に無い`).toBeDefined();
       expect(() => require.resolve(`${name}/package.json`), `${name} を解決できない`).not.toThrow();
     }
@@ -278,14 +224,10 @@ describe("字", () => {
     expect(/--sans:([^;}]+)/.exec(svg)?.[1], "描いた SVG の --sans の並び").toBe(SANS_STACK);
     expect(/--mono:([^;}]+)/.exec(svg)?.[1], "描いた SVG の --mono の並び").toBe(MONO_STACK);
     expect(svg).not.toMatch(/font-family\s*=/);
-    for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g))
-      expect(m[1]?.trim()).toMatch(/^var\(--(sans|mono)\)$/);
-    for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g))
-      expect(m[1]?.trim()).toMatch(/var\(--(sans|mono)\)$/);
+    for (const m of svg.matchAll(/font-family\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/^var\(--(sans|mono)\)$/);
+    for (const m of svg.matchAll(/(?:^|[;{\s])font\s*:\s*([^;}]+)/g)) expect(m[1]?.trim()).toMatch(/var\(--(sans|mono)\)$/);
     const outside = svg.replace(`--sans:${SANS_STACK}`, "").replace(`--mono:${MONO_STACK}`, "");
-    expect(outside, "字の変数の外に字の名前").not.toMatch(
-      /Noto Sans|JetBrains|system-ui|sans-serif|monospace|Hiragino|Arial|Menlo|Consolas|Courier|Meiryo|Yu Gothic/,
-    );
+    expect(outside, "字の変数の外に字の名前").not.toMatch(/Noto Sans|JetBrains|system-ui|sans-serif|monospace|Hiragino|Arial|Menlo|Consolas|Courier|Meiryo|Yu Gothic/);
   });
 
   it("font-stack-order-matches-decision", () => {
@@ -294,20 +236,11 @@ describe("字", () => {
     const src = join(PACKAGE, "src");
     const sources = readdirSync(src, { recursive: true, encoding: "utf8" })
       .filter((name) => /\.(?:ts|mjs)$/u.test(name))
-      .map((name) => ({
-        name: `src/${name.replaceAll("\\", "/")}`,
-        code: readFileSync(join(src, name), "utf8"),
-      }));
-    expect(
-      sources.filter(({ code }) => /--(?:sans|mono):/u.test(code)).map(({ name }) => name),
-      "字の変数を定める file",
-    ).toEqual(["src/look/values.ts"]);
+      .map((name) => ({ name: `src/${name.replaceAll("\\", "/")}`, code: readFileSync(join(src, name), "utf8") }));
+    expect(sources.filter(({ code }) => /--(?:sans|mono):/u.test(code)).map(({ name }) => name), "字の変数を定める file").toEqual(["src/look/values.ts"]);
     const values = sources.find(({ name }) => name === "src/look/values.ts")?.code ?? "";
     expect(values.match(/--sans:/gu)?.length, "look/values.ts が --sans を定める数").toBe(1);
-    expect(
-      sources.filter(({ code }) => code.includes("FONT_STACK_VARS")).map(({ name }) => name),
-      "別の並びを読む file",
-    ).toEqual([]);
+    expect(sources.filter(({ code }) => code.includes("FONT_STACK_VARS")).map(({ name }) => name), "別の並びを読む file").toEqual([]);
     // 並びは同梱した字、代わりの字、総称の字の順。欧文の Arial を日本語のゴシックより先に置く
     const svg = draw("renderDiagram")(smallSequence()).svg;
     expect(/--sans:([^;}]+)/.exec(svg)?.[1]).toBe(SANS_STACK);
@@ -318,13 +251,9 @@ describe("字", () => {
     // 字の大きさはどれも 10.5 以上にする (`look/values.ts` の `TYPE`)。小さい字は図を原寸で見ても読めない
     for (const name of ["oauth.json", "ccip.json", "intro.json"]) {
       const { svg } = draw("renderDiagram")(exampleJson(name));
-      const sizes = [
-        ...svg.matchAll(/(?:^|[;{\s])font\s*:\s*\d+\s+([\d.]+)px/g),
-        ...svg.matchAll(/font-size\s*[:=]\s*"?([\d.]+)/g),
-      ].map((m) => Number(m[1]));
+      const sizes = [...svg.matchAll(/(?:^|[;{\s])font\s*:\s*\d+\s+([\d.]+)px/g), ...svg.matchAll(/font-size\s*[:=]\s*"?([\d.]+)/g)].map((m) => Number(m[1]));
       expect(sizes.length, `${name} の字の大きさ`).toBeGreaterThan(0);
-      for (const size of sizes)
-        expect(size, `${name} に ${size}px の字`).toBeGreaterThanOrEqual(10.5);
+      for (const size of sizes) expect(size, `${name} に ${size}px の字`).toBeGreaterThanOrEqual(10.5);
     }
   });
 });

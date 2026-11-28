@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "./built-globals";
 import "../src/kind-use/sequence";
+import { stillBlocksDrawn } from "../src/export/embed";
 import { drawPageBlocks, type FramedBlock } from "../src/page-blocks";
 
 const ROOT = join(process.cwd(), "packages/dragon");
@@ -113,5 +114,45 @@ describe("頁に置いた図を決めた段で止めて置く (#3831)", () => {
     expect(en, "英語の README が data-step を 1 から数えると書かない").toMatch(/data-step[^\n]*count(?:s|ing)? from 1/u);
     expect(ja, "日本語の README に data-step の書き方が無い").toContain('<pre class="dragon" data-step="');
     expect(ja, "日本語の README が data-step を 1 から数えると書かない").toMatch(/data-step[^\n]*1から数え/u);
+  });
+});
+
+/** 置いた止め絵の図の色の変数が持つ青の役の値 */
+const stillBlue = (): string | undefined => /--c-blue:(#[0-9a-f]{6})/u.exec(document.querySelector(".dragon-still svg")?.outerHTML ?? "")?.[1];
+
+/** 澄んだ色と紙と墨の明るい表示の青の役の値 */
+const CLEAR_BLUE = "#467deb";
+const PAPER_BLUE = "#26706e";
+
+describe("止めて置く塊の色味 (#4057)", () => {
+  it("page-still-block-reads-palette", async () => {
+    await drawPage(' data-still data-palette="paper"');
+    expect(stillBlue(), 'data-palette="paper" の止め絵の青の役').toBe(PAPER_BLUE);
+  });
+
+  it("page-still-block-defaults-to-clear", async () => {
+    await drawPage(" data-still");
+    expect(stillBlue(), "色味を名指さない止め絵の青の役").toBe(CLEAR_BLUE);
+  });
+
+  it("page-still-block-ignores-unknown-palette", async () => {
+    await drawPage(' data-still data-palette="nope"');
+    expect(stillBlue(), "色味に無い名前を名指した止め絵の青の役").toBe(CLEAR_BLUE);
+  });
+
+  it("embed-still-block-reads-palette", () => {
+    const html = (attrs: string): string => `<!doctype html><html lang="ja"><body><pre class="dragon" data-still${attrs}>${escapeHtml(SOURCE)}</pre></body></html>`;
+    const blue = (drawn: string): string | undefined => /--c-blue:(#[0-9a-f]{6})/u.exec(drawn)?.[1];
+    expect(blue(stillBlocksDrawn(html(' data-palette="paper"'))), 'data-palette="paper" の塊を埋めた止め絵の青の役').toBe(PAPER_BLUE);
+    expect(blue(stillBlocksDrawn(html(""))), "色味を名指さない塊を埋めた止め絵の青の役").toBe(CLEAR_BLUE);
+  });
+
+  it("still-palette-documented", () => {
+    const docs = {
+      "README.md": readFileSync(join(ROOT, "README.md"), "utf8"),
+      "README.ja.md": readFileSync(join(ROOT, "README.ja.md"), "utf8"),
+      "references/embed.md": readFileSync(join(ROOT, "../../plugins/dragon/skills/dragon/references/embed.md"), "utf8"),
+    };
+    for (const [name, text] of Object.entries(docs)) expect(text, `${name} に止め絵の data-palette の書き方が無い`).toContain('<pre class="dragon" data-still data-palette="');
   });
 });
