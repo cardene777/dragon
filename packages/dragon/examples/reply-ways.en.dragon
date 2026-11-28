@@ -1,0 +1,44 @@
+// Compares three ways a screen gets the result of work it asked for, and how the order of exchanges between the screen, the server, the queue and the worker changes.
+// The reader picks a reply way and sends it. The exchanges of that way are drawn in order, then the answer tells what the screen can do.
+try Comparing how a screen gets the result of its request [shape: scenes]
+
+route Request: Screen - Server - Queue - Worker [from: Screen, to: Worker]
+queue Exchanges
+ask Tag, Reply, Sender, Receiver, Content [into: Exchanges, via: Request]
+choose Reply: Reply at once, Notify later, Screen polls
+
+item wait1 [Reply: Reply at once, Sender: Screen, Receiver: Server, Content: Ask for the work]
+item wait2 [Reply: Reply at once, Sender: Server, Receiver: Worker, Content: Pass on the work]
+item wait3 [Reply: Reply at once, Sender: Worker, Receiver: Worker, Content: Finish the work]
+item wait4 [Reply: Reply at once, Sender: Worker, Receiver: Server, Content: Result]
+item wait5 [Reply: Reply at once, Sender: Server, Receiver: Screen, Content: Return the result]
+item waitAnswer [Reply: Reply at once, Content: The screen cannot move on until the work is done. The server waits for the worker's result before it replies.]
+
+item notify1 [Reply: Notify later, Sender: Screen, Receiver: Server, Content: Ask for the work]
+item notify2 [Reply: Notify later, Sender: Server, Receiver: Queue, Content: Queue the request]
+item notify3 [Reply: Notify later, Sender: Server, Receiver: Screen, Content: Return a receipt and a ticket number]
+item notify4 [Reply: Notify later, Sender: Queue, Receiver: Worker, Content: Hand over the request]
+item notify5 [Reply: Notify later, Sender: Worker, Receiver: Screen, Content: Say it is done]
+item notifyAnswer [Reply: Notify later, Content: The screen gets the receipt and moves on at once. The worker tells the screen when the work is done.]
+
+item poll1 [Reply: Screen polls, Sender: Screen, Receiver: Server, Content: Ask for the work]
+item poll2 [Reply: Screen polls, Sender: Server, Receiver: Queue, Content: Queue the request]
+item poll3 [Reply: Screen polls, Sender: Server, Receiver: Screen, Content: Return a receipt]
+item poll4 [Reply: Screen polls, Sender: Screen, Receiver: Server, Content: Ask if it is done]
+item poll5 [Reply: Screen polls, Sender: Server, Receiver: Screen, Content: Say not yet]
+item poll6 [Reply: Screen polls, Sender: Queue, Receiver: Worker, Content: Hand over the request]
+item poll7 [Reply: Screen polls, Sender: Screen, Receiver: Server, Content: Ask again]
+item poll8 [Reply: Screen polls, Sender: Server, Receiver: Screen, Content: Return the result]
+item pollAnswer [Reply: Screen polls, Content: The screen asks the server again and again until the result is ready. The worker never says when it is done and the result comes back only when the screen asks.]
+
+step Reply at once makes the screen wait
+  say The server returns to the screen only after it gets the worker's result.
+  ask wait5, Reply at once, Server, Screen, Return the result
+
+step Notify later lets the screen move on
+  say The server first returns only a receipt, and tells the screen when the worker is done.
+  ask notify5, Notify later, Worker, Screen, Say it is done
+
+step The screen polls again and again
+  say The screen asks the server again until the result is ready.
+  ask poll7, Screen polls, Screen, Server, Ask again

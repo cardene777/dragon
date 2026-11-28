@@ -20,6 +20,9 @@ export const parts: KindParts<TryLayout> = {
 /** 試す図の再生の部品の操作 (#3337)。再生の部品は試す図を描けた後に、登録簿から引いて置く */
 export { mountTryControls, type TryControls } from "../try-player";
 
+/** 場面を選ぶ見た目の選べる図 (#3873) の再生の部品。再生の部品は場面の図を描けた後に、登録簿から引いて置く */
+export { mountTryScenes } from "../try-scenes-player";
+
 // 登録簿の型にこの種類の行を足す。登録簿はこの file を読まない (#3763)
 declare module "./registry" {
   interface LaterKinds {
