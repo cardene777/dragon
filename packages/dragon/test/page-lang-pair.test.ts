@@ -247,6 +247,7 @@ const read = (page: Page) =>
       rows: Object.fromEntries([...document.querySelectorAll(".pg-map-list a, nav.pg-menu a.pg-menu-q")].filter(vis).map((a) => [dec(a.getAttribute("href") ?? "").slice(1), a.hasAttribute("data-done")])),
       main: sq((document.querySelector(".pg-main") as HTMLElement | null)?.innerText),
       figures: [...document.querySelectorAll(".pg-figure")].filter(vis).map(deepText),
+      raw: [...document.querySelectorAll(".pg-figure pre.dragon")].filter(vis).length,
       placeholder: (document.querySelector<HTMLInputElement>(".pg-sx input")?.placeholder ?? "").trim(),
       found: [...document.querySelectorAll(".pg-sx-r")].filter(vis).map((r) => sq(r.querySelector(".pg-sx-n")?.textContent)),
     };
@@ -280,7 +281,7 @@ async function switchTo(page: Page, lang: "ja" | "en"): Promise<Seen> {
   await page.locator(`:is(header, nav.pg-menu) :is(a, button)[lang="${lang}"]`, { hasText: new RegExp(`^${name}$`, "u") }).first().click({ timeout: ACTION_LIMIT_MS });
   return readUntil(
     () => read(page),
-    (s) => s.lang === lang && s.main !== "",
+    (s) => s.lang === lang && s.main !== "" && s.raw === 0,
     WAIT,
   );
 }
@@ -337,7 +338,13 @@ const FLOW = await atLoad("日本語のブラウザで2つの言葉の頁を開�
   return onSite({ "guide.html": html }, async (page) => {
     const step = inOrder();
     await openAs(page, "ja-JP", `guide.html#${encodeURIComponent("何を止めるのか")}`);
-    const before = await step("日本語の問いの節を開いて読む", () => settled(page, "ja"));
+    const before = await step("日本語の問いの節を開き、図を描き終えてから読む", () =>
+      readUntil(
+        () => read(page),
+        (s) => s.lang === "ja" && s.main !== "" && s.raw === 0 && s.figures.length > 0,
+        WAIT,
+      ),
+    );
     const listed = await step("切り替えの釦を押し、一覧を読む", async () => {
       await page.evaluate(() => {
         (window as unknown as { pairKept: number }).pairKept = 1;
@@ -634,6 +641,9 @@ describe("日本語と英語のmdを1組で書き出した説明の頁 (#3899)",
     expect(english.main, "英語へ替えた後に日本語の本文が残る").not.toContain("宛先が許した一覧に在るかを照らす。");
     expect(english.figures.join(" "), "英語へ替えた後の図").toContain("How it stops");
     expect(english.figures.join(" "), "英語へ替えた後に日本語の図が残る").not.toContain("止める流れ");
+    expect({ before: before.raw, english: english.raw }, "記法の字のまま残った図の数").toEqual({ before: 0, english: 0 });
+    expect(before.figures.join(" "), "日本語の図の帯の字").toContain("コード");
+    expect(english.figures.join(" "), "英語へ替えた後の図の帯に日本語の字が残る").not.toContain("コード");
   });
 
   it("lang-pair-switch-keeps-heading", () => {
