@@ -117,12 +117,12 @@ export interface Scenes {
 /** 場面の判定の処理 (`src/kinds/try/scenes.ts`) */
 export interface ScenesModule {
   /** 読んだ原本 (図の JSON) から場面の図を組む */
-  readScenes(diagram: unknown): Scenes;
+  readScenes: (diagram: unknown) => Scenes;
   /** 選んだ場面のやり取りを書いた順に並べ、その場面の答えを添える */
-  pickScene(
+  pickScene: (
     scenes: Scenes,
     scene: string,
-  ): { rows: SceneRow[]; answer: { head: string; why: string } };
+  ) => { rows: SceneRow[]; answer: { head: string; why: string } };
 }
 
 const SCENES_MODULE = "../src/kinds/try/scenes";
