@@ -987,6 +987,7 @@ A box in such a diagram also takes `example: <example>`, shown as a gray band at
 Another value of `note`, and `example` on a box without `note` or in a diagram without `[note: pop]`, are refused with the line named.
 When the page is printed, every card is drawn open and listed below the diagram with its box name, not over the diagram.
 On a Markdown page, a `note: pop` line at the top makes cards the default for every diagram on the page.
+A lineup diagram also takes `[note: pop]`, but its lane values and the legend of its chips stay as they are, and only the gauges get breakdown cards.
 
 ```dragon
 sequence Take an order [note: pop]
@@ -1115,8 +1116,7 @@ step Cancel the second
   set budget: 40
 ```
 
-With `[note: pop]` on the first line of a flow diagram, each gauge with a value gets a round i mark right after its name.
-Clicking the gauge opens a breakdown card just below it.
+In a flow or a lineup diagram with `[note: pop]` on the first line, clicking a gauge with a value opens a breakdown card just below it, and the gauge gets a round i mark right after its name.
 The card shows the gauge name and limit, then one row for each step that sets a value.
 
 Each row has the step number and name, a small bar of the gauge at the end of that step, the change, and the value.

@@ -215,12 +215,17 @@ const valuesOf = (svg: ParentNode, lane: string): string[] => {
   );
 };
 
-/** 凡例の行の、字と色の四角の左上 */
-const legendOf = (svg: ParentNode): string[] =>
-  [...svg.querySelectorAll("[data-lineup-legend-row]")].map((row) => {
+/**
+ * 凡例の行の、字と色の四角の左の端と図の下の端からの高さ。凡例は図の下の端に置くので、
+ * 目盛りの印の幅だけ帯が広がり上の「この先」の帯の折り返しが変わっても、図の下の端からの高さは変わらない
+ */
+const legendOf = (rendered: { svg: string; layout: unknown }): string[] => {
+  const { height } = rendered.layout as { height: number };
+  return [...svgOf(rendered.svg).querySelectorAll("[data-lineup-legend-row]")].map((row) => {
     const swatch = row.querySelector("rect");
-    return `${row.textContent ?? ""}@${numberOf(swatch, "x")},${numberOf(swatch, "y")}`;
+    return `${row.textContent ?? ""}@${numberOf(swatch, "x")},${height - numberOf(swatch, "y")}`;
   });
+};
 
 afterEach(() => {
   for (const player of mounted.splice(0)) player.destroy();
@@ -240,6 +245,8 @@ describe("列の図の目盛りの内訳の札 (#4040)", () => {
     for (const [name, head, width, arranged] of cases) {
       const diagram = diagramOf(notation(head));
       if (diagram === undefined) return;
+      // 書き出した頁は原本の形を検査してから描くので、1 行目の note: pop を持つ列の図の原本も形の検査を通る
+      expect(dragon.validateDiagram(diagram), `${name} の原本を形の検査が受け付けない`).toEqual({ ok: true });
       const rendered = dragon.renderDiagram(diagram, {
         lang: "ja",
         ...(width === undefined ? {} : { width }),
@@ -442,8 +449,10 @@ describe("列の図の目盛りの内訳の札 (#4040)", () => {
     const plain = diagramOf(notation(""));
     const pop = diagramOf(notation());
     if (plain === undefined || pop === undefined) return;
-    const before = svgOf(dragon.renderDiagram(plain, { lang: "ja" }).svg);
-    const after = svgOf(dragon.renderDiagram(pop, { lang: "ja" }).svg);
+    const plainRendered = dragon.renderDiagram(plain, { lang: "ja" });
+    const popRendered = dragon.renderDiagram(pop, { lang: "ja" });
+    const before = svgOf(plainRendered.svg);
+    const after = svgOf(popRendered.svg);
     // 列の名前の下の値の札と段ごとの値の札は、書かない図と同じ字を、帯の枠の左上から同じ所に描く
     for (const lane of ["queue", "sent"]) {
       const want = valuesOf(before, lane);
@@ -452,10 +461,10 @@ describe("列の図の目盛りの内訳の札 (#4040)", () => {
     }
     expect(valuesOf(after, "queue").join(" "), "待ちの列の名前の下の値の札").toContain("朝9時から");
     expect(valuesOf(after, "sent").join(" "), "送った列の段ごとの値の札").toContain("2件で70");
-    // チップの凡例も同じ字を同じ所に描く
-    const legend = legendOf(before);
+    // チップの凡例も同じ字を、図の下の端の同じ所に描く
+    const legend = legendOf(plainRendered);
     expect(legend.length, "書かない図の凡例の行").toBe(2);
-    expect(legendOf(after), "[note: pop] を書いた図の凡例").toEqual(legend);
+    expect(legendOf(popRendered), "[note: pop] を書いた図の凡例").toEqual(legend);
     // 印は目盛りだけが持ち、列とチップは印も札も持たない
     const marked = [...after.querySelectorAll("[data-note]")];
     expect(marked.length, "印を持つ組の数").toBe(1);

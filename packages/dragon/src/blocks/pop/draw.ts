@@ -15,10 +15,11 @@ const N = LOOK.note;
 
 /**
  * 札で見せる図 (`note: "pop"`) の箱の説明を札に移す。札で見せない図はそのまま返し、札を持たない。
- * 移した箱は名前の下の字 (`sub`) と例 (`example`) を持たないので、並べ方は名前の下の字を描かない幅で箱を置く
+ * 移した箱は名前の下の字 (`sub`) と例 (`example`) を持たないので、並べ方は名前の下の字を描かない幅で箱を置く。
+ * 列の図の箱の説明は段を送るたびに読ませる値の札なので移さず、列の図は目盛りの内訳の札 (#4040) だけを持つ
  */
 export function takeNotes(diagram: DiagramModel): { diagram: DiagramModel; notes: Omit<SceneNote, "x" | "y">[] } {
-  if (diagram.note !== "pop") return { diagram, notes: [] };
+  if (diagram.note !== "pop" || diagram.kind === "lineup") return { diagram, notes: [] };
   const notes = diagram.boxes.flatMap((b) => (b.sub === undefined ? [] : [{ box: b.id, name: b.name, text: b.sub, ...(b.example !== undefined ? { example: b.example } : {}) }]));
   if (notes.length === 0) return { diagram, notes };
   return { diagram: { ...diagram, boxes: diagram.boxes.map(({ sub: _sub, example: _example, ...box }) => box) }, notes };
