@@ -190,12 +190,23 @@ describe.for(THEMES)("arcade の線 (%s)", (theme) => {
 /** 角を落とさない色味と明暗の組 */
 const OTHER_CASES = OTHERS.flatMap((palette) => THEMES.map((theme) => ({ palette, theme })));
 
-/** 線の形を変える前の記録 */
+/**
+ * 線の形を変える前の記録。
+ * 競りの見本 (`auction.json`) の値は、#4060 で列の図のボードの帯の間の印 (`dg-lb-chev`) を描かなくした描き方で取り直した (#4076)。
+ * 取り直す前と後で比べた線は、減った帯の間の印の4本の外は、道筋も継ぎ目も端も同じだった
+ */
 const before = JSON.parse(
   readFileSync(join(ROOT, "packages/dragon/test/fixtures/bends-before-arcade.json"), "utf8"),
 ) as Record<string, string>;
 
 describe("線の形を変える前の記録 (#3358)", () => {
+  it("bends-record-notes-lane-mark-retake", () => {
+    // 記録の値を取り直した時は、読む所の注釈に、取り直した見本と理由と課題の番号を書く (#4076)
+    const text = readFileSync(join(ROOT, "packages/dragon/test/arcade-bends.test.ts"), "utf8");
+    const note = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*const before =/u.exec(text)?.[1] ?? "";
+    for (const word of ["auction.json", "帯の間の印", "#4060", "#4076"]) expect(note, `記録を読む所の注釈が「${word}」を書かない`).toContain(word);
+  });
+
   it("bends-record-lists-every-example", () => {
     expect(Object.keys(before).sort(), "線の形を変える前の記録と見本の file").toEqual(FILES);
   });
