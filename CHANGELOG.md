@@ -6,6 +6,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+## [0.91.0] - 2026-11-28
+
 ### Added
 
 - `dragon export guide.md guide.en.md` takes a Japanese and an English guide page (`layout: guide`) and writes one page that reads in both. A globe button right of the search box opens a list of `日本語` and `English`, and picking one switches the text and figures in place, keeping the open topic, question, `####` heading, figure, or term card. The page first opens in the language of the section its link points to, then in the language picked last, and otherwise in the browser's language, and check marks are shared by both languages. The export stops and names the file and line when the two files differ in the number of topics, question sections, `####` headings, check questions, or terms. The page script now draws figures that a page adds after loading when the page sends `dragon-blocks`, in the page language at that moment (#3899)
