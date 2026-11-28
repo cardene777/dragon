@@ -111,6 +111,8 @@ export {
 export { FORMAT_VERSION, type Read, readDiagram } from "./version";
 export type { ReadBlocks, UserBase, UserBlock, UserBlockError, UserBlocks, UserPaint } from "./user-blocks";
 export type {
+  GaugeNote,
+  GaugeNoteRow,
   Layout,
   Point,
   Rect,

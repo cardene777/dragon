@@ -16,12 +16,12 @@
  * 呼ばれた側、中身、返した値の 3 列で出す。返した値が無いか `true` だけの呼び出しは、その段の矢印に値の動きとして出ているため出さない。
  * 今の段で戻った行に `data-state="now"` を付ける。
  * 出来事は描く部品の並べ方と同じ手順 (`PipeRun`) に当て、当てられない出来事は図と同じく矢印にも結果にも出さない。
- * 字は渡した言葉の配管の図の再生の部品の語 (`kinds/pipe/words.ts`、#4046) で出し、段の要点の札の名札は読み上げの段の一覧と同じ最初に読む言葉の表 (`FIGURE_TEXT`) から出す。この file は配管の図の描く部品と同じ塊 (`kinds/pipe.ts`) に入り、
+ * 字は渡した言葉の配管の図の再生の部品の語 (`pipe-words.ts`、#4046、#4050) で出し、段の要点の札の名札は読み上げの段の一覧と同じ最初に読む言葉の表 (`FIGURE_TEXT`) から出す。この file は配管の図の描く部品と同じ塊 (`kinds/pipe.ts`) に入り、
  * 再生の部品は配管の図を描けた後に登録簿から引いて置く。見た目は置く時に頁へ 1 度だけ入れる。
  */
 import { FIGURE_TEXT, joinWords } from "./figure-text";
 import { OP_TEXT, type PipeLayout } from "./kinds/pipe/layout";
-import { PIPE_PLAYER_WORDS } from "./kinds/pipe/words";
+import { PIPE_PLAYER_WORDS } from "./pipe-words";
 import { PIPE_TYPE } from "./look/pipe";
 import { FILL_NAME_PX, LOOK, PIPE_FIRST, READABLE_PX, TYPE, ZOOM } from "./look/values";
 import { checkPasses, isFault, PipeRun, quantityText } from "./pipe-run";
