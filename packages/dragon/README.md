@@ -227,6 +227,8 @@ A chart draws its values and shows the diagram title where the step title would 
 A flow diagram draws every line its steps passed through as a solid line.
 Its font list puts the device's sans-serif fonts after the bundled fonts, so a page that does not load the bundled fonts never shows a serif font.
 It uses the `clear` palette by default, which suits a white page.
+To draw it in another palette, name the palette with `data-palette`, for example `<pre class="dragon" data-still data-palette="paper">`.
+A name that is not a palette draws in `clear`, the same as no name, and a guide page (`layout: guide`) names `paper` for the map at the head of each topic, so it matches the other figures on the page.
 It turns dark when the page's `<html>` has `data-theme="dark"`.
 It also turns dark when the device prefers a dark color scheme and the page does not set `data-theme="light"`.
 To give the figure your page's own color, set `--dragon-figure-background` on the figure or an ancestor, for example `.card { --dragon-figure-background: var(--surface); }`.

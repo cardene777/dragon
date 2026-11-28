@@ -13,7 +13,7 @@ import { iconsElement } from "../blocks/icon/page-icons";
 import { dedent } from "../embed/dedent";
 import type { StoredPipeLayout } from "../kinds/pipe/layout";
 import { parseNotation } from "../parser";
-import { FOCUS_ATTR, STILL_ATTR, stillFigureHtml } from "../still-figure";
+import { FOCUS_ATTR, PALETTE_ATTR, STILL_ATTR, stillFigureHtml, stillPalette } from "../still-figure";
 import type { NotationLang } from "../words";
 // 並べ方を組む処理 (`./layouts`) は全ての種類の部品を登録する (`render/svg.ts`)。止めて置く塊もこの登録で描く (#3801)
 import { pipeLayouts } from "./layouts";
@@ -66,7 +66,9 @@ export function stillBlocksDrawn(html: string): string {
     }
     // 属性 `data-focus` は、飛び先がその値の箱だけに色を残す (#3991)。値は HTML に逃がした字なので戻す
     const focus = new RegExp(`\\s${FOCUS_ATTR}\\s*=\\s*"([^"]*)"`, "u").exec(open)?.[1];
-    return stillFigureHtml(parsed.diagram, { lang, ...(focus ? { focus: unescapeAttr(focus) } : {}) });
+    // 属性 `data-palette` は、頁の script と同じく止めて置く図を描く色味を名指す (#4057)
+    const palette = stillPalette(new RegExp(`\\s${PALETTE_ATTR}\\s*=\\s*"([^"]*)"`, "u").exec(open)?.[1]);
+    return stillFigureHtml(parsed.diagram, { lang, ...(focus ? { focus: unescapeAttr(focus) } : {}), ...(palette ? { palette } : {}) });
   });
 }
 

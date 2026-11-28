@@ -780,7 +780,8 @@ function mapHtml(topic: RenderedTopic, lang: PageLang, overview: string): string
   const source = figureSource(overview);
   // 全体像の図が箱の説明を札で見せる (`note: pop`) 時は、止め絵も箱の説明を箱の下に書かずに全体像と同じ大きさの箱で描く
   const pop = /<pre class="dragon"[^>]*\sdata-note="pop"/u.test(overview) ? ' data-note="pop"' : "";
-  const still = source && linksTo(source, topic.id) ? `<div class="pg-map-figure"><pre class="dragon" data-still${pop} data-focus="${escapeHtml(`#${topic.id}`)}">${source}</pre></div>` : "";
+  // 止め絵は頁の他の図と同じ紙と墨で描き、白い地の既定の澄んだ色味にしない (#4057)
+  const still = source && linksTo(source, topic.id) ? `<div class="pg-map-figure"><pre class="dragon" data-still data-palette="paper"${pop} data-focus="${escapeHtml(`#${topic.id}`)}">${source}</pre></div>` : "";
   const rows = topic.sections
     .map(
       (section) =>
