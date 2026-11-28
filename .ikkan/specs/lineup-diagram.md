@@ -75,14 +75,13 @@
 | 箱に`[limit: 3]`を書いた帯は、見出しに「札の数/3」と3つの目盛りを出し、今の段の札の数だけ目盛りを塗る | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-limit-shows-count-and-ticks`が通る | #3624 |
 | `limit`を書いていない帯は目盛りを出さない | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-no-limit-draws-no-ticks`が通る | #3624 |
 | 箱の`note`と段の中の`note`の字は帯の見出しの名前の下の行に値の札として出し、値が変わった段だけ値の札の縁を帯の色で太く描く | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-note-shows-under-the-name`が通る | #3624 |
-| 隣り合う帯の間に、帯の見出しの高さで右を向く印を出す | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-ticks-point-to-the-next-lane`が通る | #3624 |
 | 色を付けた札は縁と地をその色で塗り、色の無い札は居る帯の色の細い縁で描き、段で帯を移った札はその段だけ縁を太くする | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-cards-take-colors`が通る | #3624 |
 | 前の段に居なかった色付きの札は現れた段だけ「足した」(英語では`Added`) の札を付け、どの帯からも外れた札は外れた段だけ元の席に点線の跡と「外れた」(英語では`Gone`) の札を残す | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-marks-added-and-gone`が通る | #3624 |
 | 札が後ろの帯へ移っても元の帯の`line`を書き換えていない時、元の帯に札の名前と印だけの控えの行を残す (病院の図の受付) | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-keeps-a-trace-row`が通る | #3624 |
 | 段の中で札が箱を書いた順で前の帯へ移った時 (確認待ちから作業中へ)、その段だけ、元の帯の上の縁から帯の上を通って戻る帯の上の縁へ下りる戻りの線と、線の上の「差し戻し」(英語では`Sent back`) の札を描き、次の段では消す | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-send-back-draws-a-return-line`が通る | #3624 |
 | 差し戻しの段で、戻った札は戻りの線と同じ道を走って戻る帯の席に着き、その段だけ戻る印を持ち、元の帯の席に点線の抜けた跡が残る | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-sent-back-card-runs-the-line`が通る | #3624 |
 | 札が後ろの帯へ進む段と、同じ帯の中で並びだけが変わる段では、戻りの線と「差し戻し」の札と戻る印を描かない | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-forward-moves-draw-no-return-line`が通る | #3624 |
-| 箱を横に並べると枠に収めた字が10.5px未満になる枠の幅 (390と324) を渡した時、ボードは帯を図の幅にして箱を書いた順に上から積み、帯の中に札を2つずつ並べ、隣り合う帯の間に下を向く印を出し、全体を出す見せ方 (`fixed`) で枠に収めた字が10.5px以上ある。日本語と英語の入札の図とかんばんの図で同じ | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-narrow-stacks-lanes`が通る | #3624 |
+| 箱を横に並べると枠に収めた字が10.5px未満になる枠の幅 (390と324) を渡した時、ボードは帯を図の幅にして箱を書いた順に上から積み、帯の中に札を2つずつ並べ、全体を出す見せ方 (`fixed`) で枠に収めた字が10.5px以上ある。日本語と英語の入札の図とかんばんの図で同じ | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-narrow-stacks-lanes`が通る | #3624 |
 | 同じ狭い幅で差し戻しの段を描いた時、戻りの線は帯の左を上へ戻り、札とも字とも重ならない | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-board-narrow-send-back-runs-left`が通る | #3624 |
 | 列の図の`box`の行に`[limit: <1から12の整数>]`を書いた時、記法とJSON Schemaがその数を上限として通し、記法、JSON、記法の順に往復すると同じ記法に戻る | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-limit-reads-and-roundtrips`が通る | #3624 |
 | `limit`に1から12の整数でない値を書いた時と、列の図でない図の`box`に書いた時と、層の見た目の箱に書いた時は、記法は行と列を、JSON SchemaはJSON Pointerを示した誤りで拒み、英語の誤りの文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/lineup-board.test.ts`の検査`lineup-limit-rejects-bad-places`が通る | #3624 |
