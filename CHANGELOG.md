@@ -11,6 +11,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - On a guide page (`layout: guide`), each check question has a ring on its left, and opening its answer fills it with a green check that stays when the answer is hidden. A question section with check questions has the same ring at the right end of its row in the topic's question list and in the menu, and it gets the check once every check question of the section is opened. The browser keeps the marks for each page, so they stay when the page is opened again, and a `Clear marks` button under the question list removes them. A browser that cannot keep them still shows the marks until the page is closed, and the printed form shows no marks. The dragon skill's `page` reference describes it and the skill raises the version of its `page` content to 1.2.0 (#3898)
 - A guide page (`layout: guide`) with two or more topics has a search box at the right end of its header. Typing a word lists, under the box, the questions whose title, menu name, or one-sentence answer holds the word, grouped by topic, and then the terms whose name or meaning holds it, with every place of the word marked. The search ignores case and full-width letters. Clicking a question opens its page, clicking a term opens the `Terms` topic at its card and outlines the card in blue, the arrow keys and Enter pick a row, and Escape or a click outside closes the list. When nothing matches, the list says so. On a phone a magnifier button right of the title opens the box, and a page with one topic and no terms puts the box at the top of the menu. The dragon skill's `page` reference describes it and the skill raises the version of its `page` content to 1.1.0 (#3897)
 
+### Changed
+
+- In the default `paper` palette, the first color handed to regions and boxes (`blue`) is now a deep teal instead of blue. The light theme draws lines and fills in `#26706e` and text in `#1a504f`, and the dark theme draws lines and fills in `#86d0cc` and text in `#a3dcd9`. The note mark ring, the player's play button and step bar, and the first chapter color of a guide page change with it. The five region colors still stay above the same separation floors for the three color vision types. The `clear`, `night`, `arcade`, and `sea` palettes keep their colors (#4057)
+
 ### Fixed
 
 - Printing a guide page (`layout: guide`) no longer puts a step count like `01/05` under each step still. The print stills read the same `--dragon-step-no` the player's step bar reads, so other pages keep the count (#4054)
@@ -1105,17 +1109,17 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
   The source returned by `parseNotation` has the version 2 shape.
   To rewrite a source file to version 2, use `migrateFile` from `@cardenelabs/dragon/node`.
 
-  | Version 1 field | Version 2 field |
-  |---|---|
-  | `regions` | `blocks.group` |
-  | `boxes` | `blocks.box` |
-  | `strip` | `blocks.strip` |
-  | `sequence.lifelines` | None (built from the order of the boxes) |
-  | `state.paths` | `blocks.path` |
-  | `git.branches` | `blocks.branch` |
+  | Version 1 field                                                      | Version 2 field                                                              |
+  | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+  | `regions`                                                            | `blocks.group`                                                               |
+  | `boxes`                                                              | `blocks.box`                                                                 |
+  | `strip`                                                              | `blocks.strip`                                                               |
+  | `sequence.lifelines`                                                 | None (built from the order of the boxes)                                     |
+  | `state.paths`                                                        | `blocks.path`                                                                |
+  | `git.branches`                                                       | `blocks.branch`                                                              |
   | `time.scale`, `time.period`, `time.rows`, `time.points`, `time.zoom` | `blocks.scale`, `blocks.period`, `blocks.row`, `blocks.point`, `blocks.zoom` |
-  | `lineup.items` | `blocks.item` |
-  | `lineup.roles` | `blocks.role` |
+  | `lineup.items`                                                       | `blocks.item`                                                                |
+  | `lineup.roles`                                                       | `blocks.role`                                                                |
 
 ## [0.47.0] - 2026-11-03
 
@@ -1509,10 +1513,12 @@ This version changes only the catalog; the code in `packages/dragon/` is the sam
   On a line that is passed only once, the step number stays after the step is done, outlined, as before.
   In a state diagram, when steps on the same line give it the same label, the label is also stacked in one spot, and the faded label of the earlier step disappears when the later step starts. The same label no longer stacks up vertically, and the diagram does not grow downward.
   Step numbers that are not visible can no longer be pressed, so numbers of steps still to come, stacked in the same spot, do not get in the way of pressing the visible number.
+
 - **English overlap messages now call box icons and carriers by English names** (#3184)
 
   A box icon is called `the icon of "<箱の名前>"`, and carriers are called `the coin` and `the envelope`. The Japanese messages do not change.
   Each overlapping text in `overlaps` (`spots`) carries the kind of part (`part`) when it is a part of the diagram.
+
 - **Architecture diagrams now draw a line back to the same box as a loop under the box** (#3186)
 
   Until now only an arrowhead showed on the right edge of the box, and the step number sat on the icon at the top left of the box, so the icon could not be read.
@@ -1520,11 +1526,13 @@ This version changes only the catalog; the code in `packages/dragon/` is the sam
   Below the row of a box with a loop, enough space is left for the loop and its label, so they touch neither the box directly below nor the edge of the region.
   Other lines into and out of that box do not pass under the loop; they leave from the side of the box into the gap between columns and go around. A line that goes around between columns passes outside the widest box in the same column (until now it was measured from the right edge of the box it leaves, so when a wider box was above or below, the line passed through that box).
   Arrows to self in sequence diagrams do not change.
+
 - **Step numbers no longer overlap on short lines that go back and forth between region bands or between rows** (#3189)
 
   Numbers on lines shorter than 44px were placed in the middle of the line, so on an out-and-back pair only 10px apart, the two numbers sat at the same height and overlapped.
   Short lines now also put the number at the start of the line (the radius of the number plus 1px from the edge of the box it leaves). On a single short line, such as steps 5 and 7 of the ccip example, the number also moves to the start.
   When lines gather on the same side of one box and a number cannot avoid an earlier number on its line, the number shifts beside the line, toward the side that does not touch other lines or arrowheads.
+
 - **Step numbers of steps without a line no longer overlap the icon at the top left of the box** (#3187)
 
   The numbers of steps that only write and steps that write nothing were placed 4px inside the top-left corner of the box, so they caught the corner of the icon at the top left. They overlapped in state diagrams and in architecture diagram boxes that have a frame for tags.
@@ -1542,6 +1550,7 @@ This version changes only the catalog; the code in `packages/dragon/` is the sam
   Where a line crosses text without a badge (faded line labels kept from earlier steps, labels of paths not taken, the text of marks, and the names and notes of regions and side paths), it also returns that text and the names at both ends of the line.
   Text inside a badge is not counted when a line crosses it, because the badge's background hides the line.
   Box icons (`<箱の名前> の絵柄`) and carriers while they wait to start running and while they rest after arriving (the text of a tag, `封筒`, `硬貨`) are counted too (#3176).
+
 - **Added a carrier slot to boxes that send or receive carriers** (#3176)
 
   In architecture and state diagrams, a box that sends or receives carriers moves its icon to the left and shows a dotted slot frame on the right from the first step.
@@ -1572,6 +1581,7 @@ This version changes only the catalog; the code in `packages/dragon/` is the sam
   When two steps pass the same line, the number of the later step sits next to the earlier number along the line.
   For two lines that run in parallel, out and back, each label goes on the outer side of its own line.
   In architecture and sequence diagrams, line labels no longer cut into step numbers visible at the same time.
+
 - **Fixed line labels on lines that go around under boxes in architecture diagrams overflowing the bottom edge of the diagram** (#3176)
 
   The height of the diagram and the position of the strip now take in the bottom edge of the line labels.
@@ -1700,28 +1710,28 @@ The source JSON has the same shape as in 0.35.x and reads as it is.
   3. Names and text with spaces go at the end of the line or before `[`. Wrap only values that contain `,` or `]` and names that contain `[` in `"`
   4. The only nesting is `group … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
-  | Old form | New form |
-  |---|---|
-  | `sequence <title>`, `architecture <title>` | `sequence <title>`, `architecture <title>` (unchanged) |
-  | `view fixed`, `view follow` | `sequence <title> [view: fixed]`, `sequence <title> [view: follow]` |
-  | `region <id> = <name> "<note>"` | `group <id> as <name> [note: <note>]` through `end` |
-  | `[region <id>]` on a box line | `box` lines between `group <id>` and `end` |
-  | `<id> = <name> "<caption>"` | `box <id> as <name> [note: <caption>]` |
-  | `[color <color>]`, `[icon <icon>]` | `box <id> [color: <color>, icon: <icon>]` |
-  | `strip <title> = <field>, <field>` | `strip <title>: <field>, <field>` |
-  | `# <heading>` | `step <heading>` |
-  | `> <body>` | `say <body>` |
-  | A line wrapped in backticks | `code <command>` |
-  | `<id> -> <id> : <label>` | `<id> -> <id>: <label>` |
-  | `[tag <value>]`, `[coin]`, `[none]` | `<id> -> <id> [tag: <value>]`, `<id> -> <id> [carry: coin]`, `<id> -> <id> [carry: none]` |
-  | `[label above]` | `<id> -> <id> [side: above]` |
-  | `[label below]` | `<id> -> <id> [side: below]` |
-  | `[label left]` | `<id> -> <id> [side: left]` |
-  | `[label right]` | `<id> -> <id> [side: right]` |
-  | `<id> : <action>` | `act <id>: <action>` |
-  | `<id> "<text>"` | `note <id>: <text>` |
-  | `strip <field> = <value>` | `set <field>: <value>` |
-  | `strip <field> [<tag>]` | `set <field> [tag: <tag>]` |
+  | Old form                                   | New form                                                                                  |
+  | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+  | `sequence <title>`, `architecture <title>` | `sequence <title>`, `architecture <title>` (unchanged)                                    |
+  | `view fixed`, `view follow`                | `sequence <title> [view: fixed]`, `sequence <title> [view: follow]`                       |
+  | `region <id> = <name> "<note>"`            | `group <id> as <name> [note: <note>]` through `end`                                       |
+  | `[region <id>]` on a box line              | `box` lines between `group <id>` and `end`                                                |
+  | `<id> = <name> "<caption>"`                | `box <id> as <name> [note: <caption>]`                                                    |
+  | `[color <color>]`, `[icon <icon>]`         | `box <id> [color: <color>, icon: <icon>]`                                                 |
+  | `strip <title> = <field>, <field>`         | `strip <title>: <field>, <field>`                                                         |
+  | `# <heading>`                              | `step <heading>`                                                                          |
+  | `> <body>`                                 | `say <body>`                                                                              |
+  | A line wrapped in backticks                | `code <command>`                                                                          |
+  | `<id> -> <id> : <label>`                   | `<id> -> <id>: <label>`                                                                   |
+  | `[tag <value>]`, `[coin]`, `[none]`        | `<id> -> <id> [tag: <value>]`, `<id> -> <id> [carry: coin]`, `<id> -> <id> [carry: none]` |
+  | `[label above]`                            | `<id> -> <id> [side: above]`                                                              |
+  | `[label below]`                            | `<id> -> <id> [side: below]`                                                              |
+  | `[label left]`                             | `<id> -> <id> [side: left]`                                                               |
+  | `[label right]`                            | `<id> -> <id> [side: right]`                                                              |
+  | `<id> : <action>`                          | `act <id>: <action>`                                                                      |
+  | `<id> "<text>"`                            | `note <id>: <text>`                                                                       |
+  | `strip <field> = <value>`                  | `set <field>: <value>`                                                                    |
+  | `strip <field> [<tag>]`                    | `set <field> [tag: <tag>]`                                                                |
 
   The table for the old form written in Japanese words is in `CHANGELOG.ja.md`.
 
@@ -1763,32 +1773,32 @@ The source JSON has the same shape as in 0.35.x and reads as it is.
 
 - **Fixed where the window and overview of follow-view diagrams are placed** (#3042, #3046, #3053, #3055)
 
-  | Issue | What was fixed |
-  |---|---|
-  | #3042 | At narrow widths the corner overview covered boxes and lines, so the overview is placed outside the window |
-  | #3046 | In a step whose step number circle falls outside the window, the window moves to a frame around the moving things nearest the circle, as many as fit in the window |
+  | Issue | What was fixed                                                                                                                                                                  |
+  | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | #3042 | At narrow widths the corner overview covered boxes and lines, so the overview is placed outside the window                                                                      |
+  | #3046 | In a step whose step number circle falls outside the window, the window moves to a frame around the moving things nearest the circle, as many as fit in the window              |
   | #3053 | The window did not grow when the frame had room, so the sides of the diagram were cut off; the window now grows up to the full-size width of the diagram and the visible height |
-  | #3055 | At phone widths the tall overview is not shown, and the window gets the full width of the frame |
+  | #3055 | At phone widths the tall overview is not shown, and the window gets the full width of the frame                                                                                 |
 
 - **Fixed the height and layout of the step bar and the size of its buttons** (#3049, #3057, #3069, #3076)
 
-  | Issue | What was fixed |
-  |---|---|
+  | Issue | What was fixed                                                                                                                                    |
+  | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
   | #3049 | The step body bar keeps the height of the step with the longest body, so moving through steps does not change the size or position of the diagram |
-  | #3057 | At phone widths the body spans the full width of the row below the buttons, so the bar does not become thin and tall |
-  | #3069 | At phone widths the step buttons are large enough to press with a finger, and the title and body sit in the row below the buttons |
-  | #3076 | On wide touch screens too, the step buttons are large enough to press with a finger |
+  | #3057 | At phone widths the body spans the full width of the row below the buttons, so the bar does not become thin and tall                              |
+  | #3069 | At phone widths the step buttons are large enough to press with a finger, and the title and body sit in the row below the buttons                 |
+  | #3076 | On wide touch screens too, the step buttons are large enough to press with a finger                                                               |
 
 - **Fixed diagrams and step bodies being cut off or pushed down in the overlays of the catalog and in the editor** (#3044, #3047, #3051, #3059, #3061, #3063)
 
-  | Issue | What was fixed |
-  |---|---|
-  | #3044 | Under the diagram frame in the catalog, the window and overview of a follow-view diagram are not cut off |
+  | Issue | What was fixed                                                                                                  |
+  | ----- | --------------------------------------------------------------------------------------------------------------- |
+  | #3044 | Under the diagram frame in the catalog, the window and overview of a follow-view diagram are not cut off        |
   | #3047 | In the enlarge overlay of the catalog, the bottom of the diagram and the overview are visible without scrolling |
-  | #3051 | The last line of a step body does not touch the bottom edge of the overlay or the editor |
-  | #3059 | At phone widths, the overlay heading does not push the diagram frame down |
-  | #3061 | At phone widths, the step label does not repeat what the bar shows or push the notation field down |
-  | #3063 | At phone widths, the zoom buttons and zoom level in the toolbar fit on the screen |
+  | #3051 | The last line of a step body does not touch the bottom edge of the overlay or the editor                        |
+  | #3059 | At phone widths, the overlay heading does not push the diagram frame down                                       |
+  | #3061 | At phone widths, the step label does not repeat what the bar shows or push the notation field down              |
+  | #3063 | At phone widths, the zoom buttons and zoom level in the toolbar fit on the screen                               |
 
 - **Fixed the buttons and labels of the catalog being small and hard to press at phone widths and on touch screens** (#3065, #3067, #3071, #3075, #3077, #3078, #3079, #3085)
 
@@ -1830,14 +1840,14 @@ How to write it is in `packages/dragon/examples/quick-start.md` (`quick-start.en
 
   The following changes made to the previous build after 0.34.0 went away with it, so they are not in this version.
 
-  | Issue | Change made to the previous build |
-  |---|---|
-  | #2952 | Upgraded the renderer `@cardenelabs/cdl` and drew the 13 basic shapes by one rule |
-  | #2960 | Removed from the notation the 2 styles that only changed colors (`kinari` and `celadon`) |
-  | #2962 | Set the look of the site from a table of values per style, and removed the switch between light and dark |
+  | Issue | Change made to the previous build                                                                                    |
+  | ----- | -------------------------------------------------------------------------------------------------------------------- |
+  | #2952 | Upgraded the renderer `@cardenelabs/cdl` and drew the 13 basic shapes by one rule                                    |
+  | #2960 | Removed from the notation the 2 styles that only changed colors (`kinari` and `celadon`)                             |
+  | #2962 | Set the look of the site from a table of values per style, and removed the switch between light and dark             |
   | #2954 | In the catalog, fixed the lines and back faces inside basic shapes being drawn in a different color from the outline |
-  | #2977 | In the catalog, fixed the broken look of lines and running dots in relation diagrams that set no style |
-  | #2978 | In the editor, fixed the readable-size check failing because one piece of text went missing from the order example |
+  | #2977 | In the catalog, fixed the broken look of lines and running dots in relation diagrams that set no style               |
+  | #2978 | In the editor, fixed the readable-size check failing because one piece of text went missing from the order example   |
 
 - **Removed old skills and documents that no longer worked after the rebuild from the repo** (#2993)
 
