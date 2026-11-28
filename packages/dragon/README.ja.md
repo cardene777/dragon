@@ -165,7 +165,7 @@ HTML の頁に script の 1 行と、記法を書いた `<pre class="dragon">` �
 入れる作業も束ねる作業も要らない。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence ログインを頼む
@@ -480,7 +480,7 @@ note: pop
 HTMLは`<dg-box/>`を閉じないので、全ての要素を終わりのタグで閉じる。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="注文を受ける">
   <dg-box id="shop">店</dg-box>
@@ -623,7 +623,7 @@ mountDiagram(host, parsed.diagram, {
 JSONとして読めない塊と、知らないボタンの名前を書いた塊は、`data-header`の塊をその誤りの文に置き換える。
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order

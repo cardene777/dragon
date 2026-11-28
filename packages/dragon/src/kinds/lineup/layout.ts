@@ -39,7 +39,7 @@ import { wrap } from "../../layout/wrap";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
 import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
-import { LINEUP_WORDS, type LineupWords } from "./words";
+import { LINEUP_WORDS, type LineupWords } from "../../lineup-words";
 
 const L = LINEUP_LOOK;
 const Y = L.layers;
