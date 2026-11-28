@@ -77,6 +77,8 @@ interface CliText {
   usage: string;
   /** `dragon export <md の file>` の使い方 (#3755) */
   pageUsage: string;
+  /** mdを1つか、言葉の違う2つより多く渡した時の余った引数 (#3899) */
+  extraPages: (extra: string[]) => string;
   /** `dragon embed` の使い方 */
   embedUsage: string;
   /** `dragon embed` の誤りの文 */
@@ -131,8 +133,9 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --blocks <file>    足したブロックの定義の file を読み、その定義で図を描いて書き出す",
     ].join("\n"),
     pageUsage: [
-      "使い方: dragon export <md の file (.md)> [設定]",
+      "使い方: dragon export <md の file (.md)> [もう一方の言葉の md の file (.md)] [設定]",
       "  見出しを頁とタブに分けた HTML の頁を 1 つ書く (#は題、##は段、###は項目、####と#####はタブ)",
+      "  日本語と英語の説明の頁 (layout: guide) の md を 2 つ渡すと、言葉を替えて読める頁を 1 つ書く。頁の名前は先に渡した md から付ける",
       "  --out <dir>        書き出す先 (既定は md の在る dir)",
       "  --lang <言葉>      頁に足す字と誤りの文の言葉 (ja か en)。既定は md の本文に仮名か漢字があれば ja、無ければ en",
     ].join("\n"),
@@ -197,6 +200,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     unknownOption: (name) => `知らない設定: ${name}`,
     missingValue: (name) => `設定に値が無い: ${name}`,
     extraFiles: (extra) => `図の file は 1 つだけ渡す。余分な引数: ${extra.join(" ")}`,
+    extraPages: (extra) => `md の file は 1 つか、言葉の違う 2 つを渡す。余分な引数: ${extra.join(" ")}`,
     noFile: (path) => `図の file が無い: ${path}`,
     unreadable: (path, detail) => `図の file を読めない: ${path} (${detail})`,
     badJson: (path, detail) => `JSON として読めない: ${path} (${detail})`,
@@ -222,8 +226,9 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
       "  --blocks <file>    Read the block definitions in this file and draw the diagram with them",
     ].join("\n"),
     pageUsage: [
-      "Usage: dragon export <md file (.md)> [options]",
+      "Usage: dragon export <md file (.md)> [md file in the other language (.md)] [options]",
       "  Writes one HTML page with the headings split into pages and tabs (# title, ## group, ### item, #### and ##### tabs)",
+      "  Given a Japanese and an English guide page (layout: guide), writes one page that switches between them, named after the first md",
       "  --out <dir>        Where to write (default: the dir of the md)",
       "  --lang <lang>      Language of the words the page adds and of the errors (ja or en). Defaults to ja when the md has kana or kanji, and en otherwise",
     ].join("\n"),
@@ -288,6 +293,7 @@ const CLI_TEXT: Record<NotationLang, CliText> = {
     unknownOption: (name) => `Unknown option: ${name}`,
     missingValue: (name) => `Option needs a value: ${name}`,
     extraFiles: (extra) => `Pass only one diagram file. Extra arguments: ${extra.join(" ")}`,
+    extraPages: (extra) => `Pass one md file, or two in different languages. Extra arguments: ${extra.join(" ")}`,
     noFile: (path) => `No such diagram file: ${path}`,
     unreadable: (path, detail) => `Cannot read the diagram file: ${path} (${detail})`,
     badJson: (path, detail) => `Cannot read as JSON: ${path} (${detail})`,
@@ -607,16 +613,17 @@ function icon(args: string[], text: CliText): number {
 }
 
 /**
- * `dragon export <md の file>`。見出しをタブに分けた頁の HTML を書き、その path を出す (#3755)。
+ * `dragon export <md の file> [もう一方の言葉の md の file]`。見出しをタブに分けた頁の HTML を書き、その path を出す (#3755)。
+ * 日本語と英語の説明の頁の md を 2 つ渡すと、言葉を替えて読める頁を 1 つ書く (#3899)。
  * 図の書き出しの設定 (`--fps` など) は頁に効かないので、黙って捨てずに名指して断る。書き出せない訳は `<file>:<行> <文>` で 1 件 1 行に出す
  */
-async function markdownPage(file: string, values: Values, text: CliText, lang: NotationLang | undefined): Promise<number> {
+async function markdownPage(files: readonly string[], values: Values, text: CliText, lang: NotationLang | undefined): Promise<number> {
   const refused = Object.keys(values).filter((key) => key !== "out" && key !== "lang");
   if (refused.length > 0) {
     console.error(`${text.pageOptions(refused.map((key) => `--${key}`))}\n${text.pageUsage}`);
     return 2;
   }
-  const result = await exportPage(file, { ...(values.out === undefined ? {} : { outDir: values.out }), ...(lang ? { lang } : {}) });
+  const result = await exportPage(files, { ...(values.out === undefined ? {} : { outDir: values.out }), ...(lang ? { lang } : {}) });
   if (!result.ok) {
     for (const error of result.errors) console.error(`${error.file}:${error.line} ${error.message}`);
     return 1;
@@ -658,14 +665,23 @@ async function main(argv: string[]): Promise<number> {
     console.error(early.usage);
     return 2;
   }
+  // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
+  const lang = isLang(chosen) ? chosen : undefined;
+  if (extname(file) === ".md") {
+    // mdは、もう一方の言葉のmdを1つだけ足せる (#3899)。ほかの引数は図のfileと同じく名指して断る
+    const pair = extname(extra[0] ?? "") === ".md" ? extra.slice(0, 1) : [];
+    const rest = extra.slice(pair.length);
+    if (rest.length > 0) {
+      console.error(`${early.extraPages(rest)}\n${early.pageUsage}`);
+      return 2;
+    }
+    return markdownPage([file, ...pair], values, early, lang);
+  }
   // 2 つ目以降を黙って捨てると、`--out` を書き忘れた時に思った所と違う所へ書き出す (#3007)
   if (extra.length > 0) {
     console.error(`${early.extraFiles(extra)}\n${early.usage}`);
     return 2;
   }
-  // 渡した言葉だけを書き出しに渡す。渡さなければ、書き出しが図の題と `say` から図の中の字の言葉を決め、命令の文は英語で出す (#3516)
-  const lang = isLang(chosen) ? chosen : undefined;
-  if (extname(file) === ".md") return markdownPage(file, values, early, lang);
   const width = number(values.width);
   const fps = number(values.fps);
   const gifFps = number(values["gif-fps"]);

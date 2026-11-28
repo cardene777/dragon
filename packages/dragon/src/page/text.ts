@@ -44,6 +44,8 @@ export interface PageWords {
   searchNone: string;
   /** 話題の頭の問いの一覧の下に置く、確かめた問いの印を全て消す釦の字 (#3898) */
   clearChecks: string;
+  /** 2つの言葉を持つ頁の、言葉を替える釦と一覧の読み上げの名前 (#3899) */
+  language: string;
 }
 
 export interface PageMessages {
@@ -73,6 +75,14 @@ export interface PageMessages {
   emptyMenuName: string;
   /** 用語の file に同じ用語を 2 度書いた。`first` は最初に書いた file と行 */
   termTwice: (name: string, first: string) => string;
+  /** 1組で渡したmdが説明の頁 (`layout: guide`) でない (#3899) */
+  pairNotGuide: string;
+  /** 1組で渡した2つのmdが同じ言葉。`other` はもう一方のmd (#3899) */
+  pairSameLang: (other: string, lang: string) => string;
+  /** 1組で渡した2つのmdで数が違う。`what` は数えた物、`other` はもう一方のfileと行 (#3899) */
+  pairCount: (what: PairPart, here: number, other: string, there: number) => string;
+  /** mdを3つ以上渡した (#3899) */
+  tooManyPages: (extra: string) => string;
   /** 用語の file に無い用語への link を書いた */
   missingTerm: (name: string, glossary: string) => string;
   /** 載せる file が無い */
@@ -88,6 +98,18 @@ export interface PageMessages {
   /** mdを読めない */
   unreadable: (detail: string) => string;
 }
+
+/** 1組で渡した2つのmdで数を突き合わせる物 (#3899) */
+export type PairPart = "topics" | "sections" | "heads" | "terms" | "quizzes" | "glossaries";
+
+/** 数を突き合わせる物の名前 */
+const PAIR_PARTS: Readonly<Record<PageLang, Readonly<Record<PairPart, string>>>> = {
+  ja: { topics: "話題", sections: "問いの節", heads: "#### の見出し", terms: "用語", quizzes: "確かめる問い", glossaries: "用語の file" },
+  en: { topics: "topics", sections: "question sections", heads: "#### headings", terms: "terms", quizzes: "check questions", glossaries: "glossary files" },
+};
+
+/** 言葉の名前。どちらの言葉の頁でも、その言葉で書いた名前を出す (#3899) */
+export const LANG_NAMES: Readonly<Record<PageLang, string>> = { ja: "日本語", en: "English" };
 
 export const WORDS: Readonly<Record<PageLang, PageWords>> = {
   ja: {
@@ -109,6 +131,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     search: "問いと用語を探す",
     searchNone: "「{}」を含む問いと用語はありません",
     clearChecks: "印を消す",
+    language: "言葉",
   },
   en: {
     overview: "Overview",
@@ -129,6 +152,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     search: "Search questions and terms",
     searchNone: 'No questions or terms contain "{}"',
     clearChecks: "Clear marks",
+    language: "Language",
   },
 };
 
@@ -147,6 +171,10 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
     sectionBeforeTopic: "### の節は ## の話題の下に書く",
     emptyMenuName: "[menu: ] に目次に出す短い名前が無い。名前を書くか、[menu: ] を消して問いの全文を目次に出す",
     termTwice: (name, first) => `用語 ${name} を2度書いた (最初は ${first})。1つの用語の説明は1か所にだけ書く`,
+    pairNotGuide: "言葉を替えて読む頁は説明の頁 (layout: guide) だけを組める。頭の --- の間に layout: guide を書く",
+    pairSameLang: (other, lang) => `${other} と同じ言葉 (${lang}) で書いてある。日本語と英語の md を1つずつ渡す`,
+    pairCount: (what, here, other, there) => `${PAIR_PARTS.ja[what]}の数が ${other} と違う (ここは ${here}、${other} は ${there})。2つの md の${PAIR_PARTS.ja[what]}を同じ数にする`,
+    tooManyPages: (extra) => `md は1つか、言葉の違う2つを渡す。余分な file: ${extra}`,
     missingTerm: (name, glossary) => `用語の file ${glossary} に用語 ${name} が無い。### の見出しで用語を書く`,
     noFile: (target) => `載せる file が無い: ${target}`,
     outside: (target) => `載せる file ${target} は md の在るフォルダの外にある。md の在るフォルダとその下の file だけを載せる`,
@@ -169,6 +197,10 @@ export const MESSAGES: Readonly<Record<PageLang, PageMessages>> = {
     sectionBeforeTopic: "Write a ### section under a ## topic",
     emptyMenuName: "[menu: ] has no short name for the menu. Write the name, or remove [menu: ] to show the whole question in the menu",
     termTwice: (name, first) => `The term ${name} is written twice (first at ${first}). Write each term once`,
+    pairNotGuide: "Only guide pages (layout: guide) can be paired. Write layout: guide between the --- lines at the top",
+    pairSameLang: (other, lang) => `Written in the same language (${lang}) as ${other}. Pass one Japanese and one English md`,
+    pairCount: (what, here, other, there) => `The number of ${PAIR_PARTS.en[what]} differs from ${other} (${here} here, ${there} in ${other}). Give both md files the same number of ${PAIR_PARTS.en[what]}`,
+    tooManyPages: (extra) => `Pass one md, or two in different languages. Extra file: ${extra}`,
     missingTerm: (name, glossary) => `No term ${name} in the glossary ${glossary}. Write the term as a ### heading`,
     noFile: (target) => `No such file to include: ${target}`,
     outside: (target) => `The file ${target} is outside the folder of the md. Include only files in that folder and below`,
