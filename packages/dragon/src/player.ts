@@ -306,7 +306,8 @@ function playerCss(): string {
       ".dg-still:first-child{break-before:avoid}" +
       ".dg-still>svg{display:block;flex:0 1 auto;min-height:0;max-width:min(100%,var(--dg-w,100%));height:auto;margin-inline:auto;transform:none!important}" +
       `.dg-still-c{flex:none;display:flex;align-items:baseline;gap:${px(P.captionGap)};margin-top:${px(P.gap)}}` +
-      `.dg-still-no{${font(TYPE.stepNo)};color:var(--mute);flex:none}` +
+      // 止め絵の段の数も、再生の帯の段の数と同じく置いた頁の`--dragon-step-no:none`で出さない (説明の頁を印刷した形、#4054)
+      `.dg-still-no{display:var(--dragon-step-no,block);${font(TYPE.stepNo)};color:var(--mute);flex:none}` +
       `.dg-still-t{${font(TYPE.stepTitleNarrow)};line-height:${P.titleLine};margin:0}` +
       `.dg-still-b{${font(TYPE.stepBody)};line-height:${P.bodyLine};color:var(--ink2);margin:0;white-space:pre-line}` +
       `.dg-player[data-notes] .dg-notes{position:static;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,${px(N.card)}),1fr));gap:${px(N.gap)};margin-top:${px(N.gap)}}` +

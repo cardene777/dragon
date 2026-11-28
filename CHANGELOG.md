@@ -11,6 +11,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 - On a guide page (`layout: guide`), each check question has a ring on its left, and opening its answer fills it with a green check that stays when the answer is hidden. A question section with check questions has the same ring at the right end of its row in the topic's question list and in the menu, and it gets the check once every check question of the section is opened. The browser keeps the marks for each page, so they stay when the page is opened again, and a `Clear marks` button under the question list removes them. A browser that cannot keep them still shows the marks until the page is closed, and the printed form shows no marks. The dragon skill's `page` reference describes it and the skill raises the version of its `page` content to 1.2.0 (#3898)
 - A guide page (`layout: guide`) with two or more topics has a search box at the right end of its header. Typing a word lists, under the box, the questions whose title, menu name, or one-sentence answer holds the word, grouped by topic, and then the terms whose name or meaning holds it, with every place of the word marked. The search ignores case and full-width letters. Clicking a question opens its page, clicking a term opens the `Terms` topic at its card and outlines the card in blue, the arrow keys and Enter pick a row, and Escape or a click outside closes the list. When nothing matches, the list says so. On a phone a magnifier button right of the title opens the box, and a page with one topic and no terms puts the box at the top of the menu. The dragon skill's `page` reference describes it and the skill raises the version of its `page` content to 1.1.0 (#3897)
 
+### Fixed
+
+- Printing a guide page (`layout: guide`) no longer puts a step count like `01/05` under each step still. The print stills read the same `--dragon-step-no` the player's step bar reads, so other pages keep the count (#4054)
+
 ## [0.90.0] - 2026-11-28
 
 ### Added
