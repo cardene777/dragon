@@ -222,6 +222,37 @@ export interface SceneNote {
   /** 箱の右上の内側に描く印の丸の真ん中 */
   x: number;
   y: number;
+  /** 目盛りの札 (#3896) の内訳。目盛りの札だけが持ち、`box` は目盛りの札の名札、`name` は目盛りの名前、`text` は空 */
+  gauge?: GaugeNote;
+}
+
+/**
+ * 目盛りを押すと出る内訳の札 (#3896) の中身。字は並べ方が描く言葉で作っておき、札を作る処理は並べるだけにする。
+ * `limit` は見出しの「上限 100 USDC」の字で、上限を書かない目盛りは持たない。`color` は目盛りの色。
+ * `bar` は行の棒の置き場の幅に対する、上限までの棒の地の幅 (%) で、上限を書かない目盛りは持たない
+ */
+export interface GaugeNote {
+  color: ColorKey;
+  limit?: string;
+  bar?: number;
+  rows: GaugeNoteRow[];
+}
+
+/**
+ * 内訳の札の 1 行。目盛りに `set` を書いた段 1 つ分。`step` は段の番号 (0 から)、`title` は段の名前、`delta` は増えた量の字、`value` はその時の値の字。
+ * `split` は予約を持つ段の確定と予約の字、`over` は上限を超えた段。`fill` と `held` と `beyond` は上限までの棒の地に対する、確定の塗りと、総量までの淡い塗りと、
+ * 上限を超えた分の長さ (%) で、上限を書かない目盛りの行は持たない
+ */
+export interface GaugeNoteRow {
+  step: number;
+  title: string;
+  delta: string;
+  value: string;
+  split?: readonly [string, string];
+  over: boolean;
+  fill?: number;
+  held?: number;
+  beyond?: number;
 }
 
 export type EdgeEvent = Extract<DiagramEvent, { type: "edge" }>;

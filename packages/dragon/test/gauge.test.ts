@@ -831,7 +831,9 @@ describe("目盛りの予約と確定 (#3895)", () => {
     ) as {
       provides: Record<string, { version: string }>;
     };
-    expect(musubi.provides.cheatsheet?.version, "スキルの cheatsheet の版").toBe("1.1.0");
+    // 版は予約の書き方を足した 1.1.0 以上。後の課題が早見表に足して版を上げても落ちない (#3896)
+    const [major = 0, minor = 0] = (musubi.provides.cheatsheet?.version ?? "0.0").split(".").map(Number);
+    expect(major > 1 || (major === 1 && minor >= 1), `スキルの cheatsheet の版 (${musubi.provides.cheatsheet?.version}) が 1.1.0 より前`).toBe(true);
   });
 });
 

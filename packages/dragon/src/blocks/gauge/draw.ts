@@ -7,6 +7,7 @@
  * 値が変わった段は、その段の間だけ棒の右に増えた量か減った量の札 (`data-gauge-delta`) を出す。
  * 予約した量を持つ段は、確定した量の濃い棒の下に、総量までの同じ色の淡い塗り (`dg-gh`) を敷き、棒の下の行に色の四角と「確定 40」「予約 30」の内訳 (`data-gauge-split`) を出す (#3895)。
  * 値ごとの組は、総量か予約した量のどちらかが変わった時刻で次の組へ移る。予約を持つ組は予約した量を `data-gauge-hold` に持つ。
+ * 内訳の札を持つ目盛り (#3896) は、中身を押せる組 (`data-note`) で包み、名前のすぐ右に丸い i の印を描く。札は再生の部品の札の層が開く。
  * 見た目の規則は目盛りを持つ図の SVG にだけ書き、ほかの図の SVG を変えない。
  * この file は手順の図と列の図の後から読む塊だけが読み、最初に読む script に入れない。
  */
@@ -16,8 +17,9 @@ import { type Ctx, cssFont as font, esc, r1, sansOf, write } from "../../render/
 import type { DiagramModel } from "../../schema";
 import type { Span } from "../../timeline";
 import { cs } from "../color/draw";
+import { noteMark } from "../pop/draw";
 import type { Gauge } from "./block";
-import { chipW, deltasOf, deltaText, gaugeHolds, gaugeParts, gaugeValues, overW, type SceneGauge, splitTexts, styleFor, valueText } from "./layout";
+import { chipW, deltasOf, deltaText, gaugeHolds, gaugeParts, gaugeValues, markAt, overW, type SceneGauge, splitTexts, styleFor, valueText } from "./layout";
 
 const G = LOOK.gauge;
 
@@ -173,7 +175,11 @@ function drawGauge(scene: SceneGauge, gauge: Gauge, values: readonly number[], h
       `<g class="dg-gd dg-popc dg-a" data-gauge-delta="" data-step="${s}" style="${ctx.m.pop(at, span.end)}"><rect x="${r1(parts.chipX)}" y="${r1(parts.chipY)}" width="${r1(w)}" height="${G.chipH}" rx="${G.chipH / 2}"/><text class="dg-gdt" x="${r1(parts.chipX + w / 2)}" y="${r1(parts.chipY + G.chipH / 2 + TYPE.gaugeTag.size * 0.35)}" text-anchor="middle">${esc(text)}</text></g>`,
     );
   });
-  return `<g data-gauge="${esc(gauge.id)}" style="${cs(scene.color)}">${out.join("")}</g>`;
+  // 内訳の札を持つ目盛りは、目盛りの全体を押せる組で包み、名前のすぐ右に札の印を描く (#3896)。
+  // 字と棒の間の隙間を押しても開くよう、目盛りの四角いっぱいに透明の面を敷く
+  const hit = `<rect x="${r1(scene.x)}" y="${r1(scene.y)}" width="${r1(scene.w)}" height="${r1(scene.h)}" fill="transparent"/>`;
+  const body = scene.card === undefined ? out.join("") : noteMark({ box: scene.card, name: gauge.name, text: "", ...markAt(scene, gauge) }, `${hit}${out.join("")}`);
+  return `<g data-gauge="${esc(gauge.id)}" style="${cs(scene.color)}">${body}</g>`;
 }
 
 /** 置いた目盛りの見た目の規則。目盛りが無い図は空の字を返し、SVG を変えない。予約を持つ目盛りが在る図だけに予約の規則を足す */

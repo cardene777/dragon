@@ -29,7 +29,7 @@
 | 印刷の形で、全ての札が箱の下に開いて描かれる | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-print-opens-all-cards` passes | #3877 |
 | 図の1行目の`note`に`pop`と`under`の外の値を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-mode-unknown-refused` passes | #3877 |
 | 札で見せない図の箱に`[example: …]`を書いた時、その行を名指して描くのを断る | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `example-without-pop-refused` passes | #3877 |
-| `[note: pop]`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3877 |
+| `[note: pop]`を書かない図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3877 #3896 |
 | `scene`を2つ書いた図を並べる見せ方で描いた時、2つの場面が縦に並び、同じ箱が全ての場面で同じ横の位置に描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stack-same-box-positions` passes | #3878 |
 | 共通の段の線は全ての場面に描かれ、`scene`と`end`の間の段の線は、その場面にだけ描かれる | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-own-steps-only-in-their-scene` passes | #3878 |
 | 並べる見せ方で段を送った時、全ての場面が同じ段へ同時に進み、`stop <理由>`を書いた段に着いた場面は、そこで止まって理由の文を出し、後の段を進めない | `pnpm exec vitest run packages/dragon/test/scenes.test.ts` check `scenes-stop-holds-and-shows-reason` passes | #3878 |
@@ -85,3 +85,13 @@
 | 上限を超えた札の既定の字は、日本語の図で「上限を超えた」、英語の図で`over the limit`のまま描く | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-over-label-default-and-override` passes | #4043 |
 | 内訳の行の語は、日本語の図で「確定」と「予約」、英語の図で`confirmed`と`held`のまま描く | `pnpm exec vitest run packages/dragon/test/gauge.test.ts` check `gauge-hold-breakdown-row` passes | #4043 |
 | 全ての見本の図を、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #4043 |
+| 1行目に`[note: pop]`を書いた手順の図は、値を1度でも書いた目盛りの名前のすぐ右に丸いiの印を描き、目盛りを印の幅だけ広げて、印と値の字を重ねない | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-mark-after-name` passes | #3896 |
+| 印の付いた目盛りを押すと、目盛りのすぐ下に、目盛りの名前と上限と単位を見出しにした札が開き、札の外か閉じるのアイコンを押すか段を送ると閉じる | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-opens-under-gauge` passes | #3896 |
+| 札は、目盛りに`set`を書いた段のうち今見ている段までを段の順に並べ、各行は段の番号と名前、増えた量 (増えた段は「+40」、減った段は「−20」、変わらない段は「±0」)、その時の値 (「70 USDC」) を持つ。まだ来ていない段の行は出さない | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-rows-up-to-step` passes | #3896 |
+| 上限を書いた目盛りの札の各行は、その段の終わりの目盛りを図と同じ塗り (確定の濃い色、予約の淡い色、上限を超えた分の赤) の小さな棒で描き、棒の長さを上限に対する値の割合に揃える。上限を書かない目盛りの札の行は棒を描かない | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-row-bars` passes | #3896 |
+| 予約を持つ段の行は、棒の下に色の四角と「確定 40」「予約 30」(英語の図は`confirmed 40`と`held 30`) を添え、上限を超えた段の行は値の字を図の値と同じ赤で描く | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-hold-and-over` passes | #3896 |
+| 印刷の形では、全ての目盛りの札を開き、画面で今の段まで絞った札も含めて全ての段の行を並べる | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-print-shows-all-rows` passes | #3896 |
+| `[note: pop]`を書かない図の目盛りと、値を1度も書かない目盛りは、印も札も持たない | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-only-with-pop-and-values` passes | #3896 |
+| 使い方の頁の目盛りの段落、手引き (日本語と英語) の目盛りの節、dragonのスキルの`cheatsheet`が、`[note: pop]`の図で目盛りを押すと内訳の札が開くことを書き、スキルの`cheatsheet`の版を1.2.0に上げる | `pnpm exec vitest run packages/dragon/test/gauge-card.test.ts --reporter=verbose` check `gauge-card-docs` passes | #3896 |
+| 箱の説明の札は、今と同じく押した箱のすぐ下に開く | `pnpm exec vitest run packages/dragon/test/note-pop.test.ts` check `note-pop-opens-card-under-box` passes | #3896 |
+| 最初に読むscriptのgzip後の合計が、上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts` check `script-entry-within-budget` passes | #3896 |

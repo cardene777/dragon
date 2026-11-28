@@ -1197,8 +1197,8 @@ function renderRead(source: Diagram, options: DrawOptions, lang: NotationLang): 
     : parts
       ? parts.layout(diagram, lang, options)
       : eagerLayout(diagram.kind === "sequence" ? "sequence" : "architecture", lang)(diagram, lang);
-  // 札を持つ箱の印は、並べた箱の右上に置く (#3877)
-  const placed = placeNotes(notes, laid.boxes);
+  // 札を持つ箱の印は、並べた箱の右上に置く (#3877)。並べ方が持つ目盛りの札 (#3896) の後ろに足す
+  const placed = [...(laid.noteCards ?? []), ...placeNotes(notes, laid.boxes)];
   const layout = placed.length > 0 ? { ...laid, noteCards: placed } : laid;
   const rendered = drawLaid(diagram, layout, options, lang);
   return diagram === model || diagram.steps.length === model.steps.length ? rendered : { ...rendered, source: model };
