@@ -17,7 +17,7 @@ Write the page in Markdown with `layout: guide` between `---` lines at the top.
 | `[menu: <short name>]` at the end of a `###` | The short name the menu shows for a long question |
 | `> <answer>` right after a `###` | The one-sentence answer, shown under the question |
 | A ```` ```dragon ```` fence | A figure. Write one sentence before it that says what to look at |
-| `<details>` with a `<summary>` | A check question whose answer opens on a click |
+| `<details>` with a `<summary>` | A check question whose answer opens on a click. Opening the answer puts a green check in the ring on its left, the section's rows in the question list and the menu get the check once every check question of the section is opened, the browser keeps the marks for the page, and a `Clear marks` button under the question list removes them |
 | `note: pop` at the top | Every box note becomes a card that opens on a click ([cheatsheet](cheatsheet.md)) |
 | An image line `![Terms]` that points at a terms file such as `glossary.md`, before the first `##` | A Terms topic at the end of the page from that file, where each `###` is a term with its meaning and a `>` example |
 

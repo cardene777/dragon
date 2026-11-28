@@ -42,6 +42,8 @@ export interface PageWords {
   search: string;
   /** 説明の頁の検索の欄で当たる物が無い時に一覧の所に出す字。`{}`を打った語に置き換える (#3897) */
   searchNone: string;
+  /** 話題の頭の問いの一覧の下に置く、確かめた問いの印を全て消す釦の字 (#3898) */
+  clearChecks: string;
 }
 
 export interface PageMessages {
@@ -106,6 +108,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     close: "閉じる",
     search: "問いと用語を探す",
     searchNone: "「{}」を含む問いと用語はありません",
+    clearChecks: "印を消す",
   },
   en: {
     overview: "Overview",
@@ -125,6 +128,7 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     close: "Close",
     search: "Search questions and terms",
     searchNone: 'No questions or terms contain "{}"',
+    clearChecks: "Clear marks",
   },
 };
 
