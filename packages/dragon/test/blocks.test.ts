@@ -63,6 +63,8 @@ const READING_FIELDS = ["read", "print", "messages"];
 const BLOCK_FILES = ["block.ts", "read.ts", "shape.ts", "draw.ts", "gallery/text.ts", "gallery/desc.ts", "gallery/shelf.ts", "gallery/docs.ts", "gallery/rule.ts", "gallery/uses.ts"];
 /** 図の種類の置き場が持つ file。これ以外を置かない */
 const KIND_FILES = ["kind.ts", "layout.ts"];
+/** 図の種類の置き場が並べ方のほかに持つ判定の file。選べる図は場面の見た目 (#3873) の場面の判定 (`scenes.ts`) を持つ */
+const KIND_EXTRA: Readonly<Record<string, readonly string[]>> = { try: ["scenes.ts"] };
 
 interface Block {
   name: string;
@@ -166,7 +168,7 @@ export function unknownAttach(blocks: Record<string, Block>, kinds: Record<strin
 export function kindFolderProblems(root: string): string[] {
   return dirs(root).flatMap((name) => {
     const own = files(join(root, name));
-    const extra = own.filter((file) => !KIND_FILES.includes(file)).map((file) => `${name}/${file}: 決まった file 以外`);
+    const extra = own.filter((file) => !KIND_FILES.includes(file) && !(KIND_EXTRA[name] ?? []).includes(file)).map((file) => `${name}/${file}: 決まった file 以外`);
     const missing = KIND_FILES.filter((file) => !own.includes(file)).map((file) => `${name}/${file}: 無い`);
     const layout = existsSync(join(root, name, "layout.ts")) ? readFileSync(join(root, name, "layout.ts"), "utf8") : "";
     const draws = /from "[./]*render\/|from "[./]*blocks\/[^"]+\/draw"|<svg|<path|<rect/u.test(layout) ? [`${name}/layout.ts: 描き方を読むか持つ`] : [];
