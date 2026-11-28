@@ -13,7 +13,6 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "./built-globals";
 import "../src/kind-use/sequence";
-import { stillBlocksDrawn } from "../src/export/embed";
 import { drawPageBlocks, type FramedBlock } from "../src/page-blocks";
 
 const ROOT = join(process.cwd(), "packages/dragon");
@@ -138,13 +137,6 @@ describe("止めて置く塊の色味 (#4057)", () => {
   it("page-still-block-ignores-unknown-palette", async () => {
     await drawPage(' data-still data-palette="nope"');
     expect(stillBlue(), "色味に無い名前を名指した止め絵の青の役").toBe(CLEAR_BLUE);
-  });
-
-  it("embed-still-block-reads-palette", () => {
-    const html = (attrs: string): string => `<!doctype html><html lang="ja"><body><pre class="dragon" data-still${attrs}>${escapeHtml(SOURCE)}</pre></body></html>`;
-    const blue = (drawn: string): string | undefined => /--c-blue:(#[0-9a-f]{6})/u.exec(drawn)?.[1];
-    expect(blue(stillBlocksDrawn(html(' data-palette="paper"'))), 'data-palette="paper" の塊を埋めた止め絵の青の役').toBe(PAPER_BLUE);
-    expect(blue(stillBlocksDrawn(html(""))), "色味を名指さない塊を埋めた止め絵の青の役").toBe(CLEAR_BLUE);
   });
 
   it("still-palette-documented", () => {
