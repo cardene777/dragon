@@ -22,7 +22,7 @@ import { partRadius } from "./corner";
 import type { Shown } from "./ink";
 import type { Frame } from "./motion";
 import { cs } from "../blocks/color/draw";
-import { arrowPath, boardCard, type CardType, ghostCard, headPath, lineupFrame, lines, rect, traceRow } from "../blocks/item/draw";
+import { arrowPath, boardCard, type CardType, ghostCard, lineupFrame, lines, rect, traceRow } from "../blocks/item/draw";
 import { legend as legendOf } from "../blocks/legend/draw";
 import { limitSlots, limitTicks } from "../blocks/limit/draw";
 import { backLine, remark } from "../blocks/line/draw";
@@ -118,7 +118,6 @@ function boardCss(T: BoardType): string {
     `.dg-lb-ghost{fill:color-mix(in srgb,var(--c) ${B.ghost.fill}%,transparent);stroke:var(--c);stroke-width:${B.ghost.edge}}`,
     `.dg-lb-gt{${font({ ...T.card, weight: T.trace.weight })};fill:var(--mute)}`,
     `.dg-lb-back{fill:none;stroke:var(--c);stroke-width:${B.return.width};stroke-linecap:round;stroke-linejoin:round}`,
-    `.dg-lb-chev{fill:none;stroke:var(--mute);stroke-width:${B.chevron.width};stroke-linecap:round;stroke-linejoin:round}`,
     ".dg-ls-line{fill:var(--line)}",
     `.dg-ls-run{fill:none;stroke:var(--c);stroke-width:${ST.run};stroke-linecap:round}`,
     `.dg-ls-stop{fill:var(--surf);stroke:var(--c);stroke-width:${ST.ring}}`,
@@ -689,7 +688,6 @@ export function drawLineup(
   const headed = headingOf();
 
   // ボードの帯の間の向きの印
-  const arrows = layout.arrows.map((a) => `<path class="dg-lb-chev" data-lineup-arrow="" d="${headPath(a.points[0] as Point, a.points.at(-1) as Point, B.chevron.len, B.chevron.half)}"/>`).join("");
 
   // 帯の下の一言。帯と段ごとに 1 つの部品にまとめ、line を書いた段にだけ見せる
   const remarkGroups = new Map<string, typeof layout.remarks>();
@@ -809,7 +807,7 @@ export function drawLineup(
 
   return {
     heading: headed,
-    lanes: `${roles}${arrows}${lanes}${remarks}${aheads}${legend}`,
+    lanes: `${roles}${lanes}${remarks}${aheads}${legend}`,
     chips: `${pattern}${under}${backs}${chips}`,
     css: `${LINEUP_CSS}${boardCss(T)}`,
   };

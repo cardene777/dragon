@@ -241,13 +241,6 @@ export interface LineupLegendRow {
   text: LineupText;
 }
 
-/** 置き場と札の間の矢印 */
-export interface LineupArrow {
-  from: string;
-  to: string;
-  points: Point[];
-}
-
 /** 層の見た目 (#3625) の帯の飾り。帯そのものの四角は `lanes` の箱が持つ。`bar` は左の色の棒、`no` は層の番号の丸 */
 export interface LineupBand {
   lane: string;
@@ -322,7 +315,6 @@ export interface LineupLayout extends Layout {
   remarks: LineupRemark[];
   aheads: LineupAhead[];
   legend: LineupLegendRow[];
-  arrows: LineupArrow[];
   /** 封の字 */
   sealWord: string;
   /** 帯の札の数と上限の目盛りと値の札。層の見た目は持たない */
@@ -1013,25 +1005,6 @@ function arrange(diagram: DiagramModel, words: LineupWords, shape: "board" | "st
     );
   }
 
-  // ボードの帯の間の向きの印。横に並べた帯は見出しの高さに右を向け、積んだ帯は帯の間に下を向ける
-  const arrows: LineupArrow[] = [];
-  if (!stations) {
-    const half = B.chevron.len / 2;
-    lanes.forEach((lane, k) => {
-      const next = lanes[k + 1];
-      if (!next) return;
-      if (stacked) {
-        const x = lane.x + B.nameX;
-        const y = next.y - N.gap / 2;
-        arrows.push({ from: lane.id, to: next.id, points: [[x, y - half], [x, y + half]] });
-      } else {
-        const x = lane.x + lane.w + B.gap / 2;
-        const y = nameMid.get(lane.id) ?? lane.y;
-        arrows.push({ from: lane.id, to: next.id, points: [[x - half, y], [x + half, y]] });
-      }
-    });
-  }
-
   // 「この先」の帯。後の段の題を左から並べ、図の幅で折り返す
   const above = Math.max(...lanes.map(bottomOf), ...remarks.map((r) => bottomOf(r.text)), ...stamps.map(bottomOf), ...(line ? [bottomOf(line)] : []), ...gauges.map(bottomOf));
   const A = L.ahead;
@@ -1117,7 +1090,6 @@ function arrange(diagram: DiagramModel, words: LineupWords, shape: "board" | "st
     remarks,
     aheads,
     legend,
-    arrows,
     sealWord: words.lineupSealed,
     counts,
     ticks,
@@ -1375,7 +1347,6 @@ function arrangeLayers(diagram: DiagramModel, words: LineupWords, narrow: boolea
     remarks: [],
     aheads: [],
     legend: [],
-    arrows: [],
     sealWord: words.lineupSealed,
     bands,
     bandNotes,

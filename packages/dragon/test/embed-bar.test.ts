@@ -1708,12 +1708,30 @@ function toggleColor(page: Page, scope: "framed" | "plain"): Promise<string> {
   }, scope);
 }
 
+/**
+ * 釦の絵柄の飾り (`::before`、`::after`) 1つの描いた形。`clip` は切り抜きの形、`fill` は塗りの色、`ink` は字の色、
+ * `borders` は縁の太さ (上、右、下、左)、`transform` は回しや寄せ、`x` と `w` と `h` は絵柄の枠の中の左の端と幅と高さ
+ */
+interface IconPart {
+  part: "before" | "after";
+  clip: string;
+  fill: string;
+  ink: string;
+  borders: number[];
+  transform: string;
+  x: number;
+  w: number;
+  h: number;
+}
+
 /** 再生の釦1つの、置いた所と絵柄の枠と、撮った画像の絵柄の真ん中の釦の真ん中からのずれ。絵柄の画素が無い時のずれは`null` */
 interface ButtonSeen {
   where: string;
   name: string;
   box: Box | null;
   icon: { w: number; h: number } | null;
+  /** 絵柄の飾りの形。絵柄の要素が無い時は`null` */
+  parts: IconPart[] | null;
   offset: { dx: number; dy: number } | null;
 }
 
@@ -1741,11 +1759,20 @@ for (const width of ICON_WIDTHS) {
               const box = button?.getBoundingClientRect();
               const icon = button?.querySelector<HTMLElement>(".dg-btn-ic")?.getBoundingClientRect();
               const style = button ? getComputedStyle(button) : undefined;
+              const glyph = button?.querySelector<HTMLElement>(".dg-btn-ic");
+              const parts = glyph
+                ? (["before", "after"] as const).map((part) => {
+                    const s = getComputedStyle(glyph, `::${part}`);
+                    const borders = [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth].map((v) => parseFloat(v) || 0);
+                    return { part, clip: s.clipPath, fill: s.backgroundColor, ink: s.color, borders, transform: s.transform, x: parseFloat(s.left) || 0, w: parseFloat(s.width) || 0, h: parseFloat(s.height) || 0 };
+                  })
+                : null;
               return {
                 where,
                 name,
                 box: box ? { x: box.x + window.scrollX, y: box.y + window.scrollY, w: box.width, h: box.height } : null,
                 icon: icon ? { w: icon.width, h: icon.height } : null,
+                parts,
                 ink: style?.color ?? "",
                 ground: style?.backgroundColor ?? "",
               };
@@ -1832,6 +1859,19 @@ const GROWING = await atLoad("段1から半分の速さで流した時系列図�
   }),
 );
 
+/** 切り抜きの三角 (`polygon(...)`) の尖った先が向く側。縦の真ん中 (50%) の点が右の端なら右、左の端なら左。三角でなければ undefined */
+function tipOf(clip: string): "left" | "right" | undefined {
+  const points = /^polygon\((.*)\)$/u.exec(clip.trim())?.[1]?.split(",").map((p) => p.trim().split(/\s+/u)) ?? [];
+  if (points.length !== 3) return undefined;
+  const mid = points.find(([, y]) => y === "50%");
+  if (mid?.[0] === "100%") return "right";
+  if (mid?.[0] === "0%" || mid?.[0] === "0px" || mid?.[0] === "0") return "left";
+  return undefined;
+}
+
+/** 前へと次への釦 */
+const stepButtons = (buttons: ButtonSeen[]): ButtonSeen[] => buttons.filter((b) => b.name === "prev" || b.name === "next");
+
 describe("再生の帯の釦と進み具合 (#3752)", () => {
   describe.for(ICON_WIDTHS.map((width) => ({ width })))("幅 $width", ({ width }) => {
     it("player-icons-centered-in-buttons", () => {
@@ -1847,6 +1887,42 @@ describe("再生の帯の釦と進み具合 (#3752)", () => {
         expect(Math.abs(dx), `${label}の絵柄が釦の真ん中から横に ${dx}px ずれた`).toBeLessThanOrEqual(1);
         expect(Math.abs(dy), `${label}の絵柄が釦の真ん中から縦に ${dy}px ずれた`).toBeLessThanOrEqual(1);
       }
+    });
+    it("player-step-icons-skip-mark", () => {
+      // 前へと次への釦の絵柄は段送りの印 (#4074 で本人が選んだ)。前の飾りは字の色で塗った三角、後ろの飾りは三角の先に立てた縦の棒で、次へは右を、前へは左を向く
+      const loaded = PLAYER_ICONS.get(width);
+      expect(loaded, `幅 ${width}px の釦を読み込む段で撮っていない`).toBeDefined();
+      const buttons = stepButtons(frameResult(loaded!.get()));
+      expect(buttons.length, `幅 ${width}px の前へと次への釦の数`).toBe(4);
+      const wrong: string[] = [];
+      for (const button of buttons) {
+        const label = `幅 ${width}px の${button.where}の${button.name}の釦`;
+        const [tri, bar] = button.parts ?? [];
+        if (!tri || !bar) {
+          wrong.push(`${label}に絵柄の飾りが無い`);
+          continue;
+        }
+        const want = button.name === "next" ? "right" : "left";
+        if (tipOf(tri.clip) !== want) wrong.push(`${label}の三角が${want === "right" ? "右" : "左"}を向かない (切り抜き ${tri.clip})`);
+        if (tri.fill !== tri.ink) wrong.push(`${label}の三角を字の色で塗らない (${tri.fill})`);
+        if (bar.clip !== "none" || bar.fill !== bar.ink || bar.h < 8 || bar.h < bar.w * 2) wrong.push(`${label}の縦の棒 (${JSON.stringify(bar)})`);
+        const [tc, bc] = [tri.x + tri.w / 2, bar.x + bar.w / 2];
+        if (want === "right" ? bc <= tc : bc >= tc) wrong.push(`${label}の縦の棒が三角の先の側に無い (三角の真ん中 ${tc}、棒の真ん中 ${bc})`);
+      }
+      expect(wrong, "段送りの印で描かない前へと次への釦の絵柄").toEqual([]);
+    });
+
+    it("player-step-icons-not-open-v", () => {
+      // 前へと次へを、正方形の 2 辺の縁を 45 度回した線だけの V 字で描かない (#4060 の向きの印の決まり)
+      const loaded = PLAYER_ICONS.get(width);
+      expect(loaded, `幅 ${width}px の釦を読み込む段で撮っていない`).toBeDefined();
+      const buttons = stepButtons(frameResult(loaded!.get()));
+      expect(buttons.length, `幅 ${width}px の前へと次への釦の数`).toBe(4);
+      const open: string[] = [];
+      for (const button of buttons)
+        for (const part of button.parts ?? [])
+          if (part.borders.some((b) => b > 0) || part.transform !== "none") open.push(`${button.where}の${button.name}の${part.part} (縁 ${part.borders.join(" ")}、回し ${part.transform})`);
+      expect(open, `幅 ${width}px の、縁の線を回して描いた前へと次への釦の絵柄`).toEqual([]);
     });
   });
 
