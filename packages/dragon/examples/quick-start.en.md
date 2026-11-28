@@ -1115,6 +1115,14 @@ step Cancel the second
   set budget: 40
 ```
 
+With `[note: pop]` on the first line of a flow diagram, each gauge with a value gets a round i mark right after its name.
+Clicking the gauge opens a breakdown card just below it.
+The card shows the gauge name and limit, then one row for each step that sets a value.
+
+Each row has the step number and name, a small bar of the gauge at the end of that step, the change, and the value.
+The card lists the steps up to the one on screen, and the printed form lists them all.
+A row with a held amount adds the confirmed and held breakdown, and a value over the limit is red.
+
 ## Errors
 
 A line that cannot be read stops with an error that shows its line and column.

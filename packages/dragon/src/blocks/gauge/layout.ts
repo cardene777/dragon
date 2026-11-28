@@ -8,10 +8,11 @@
  * 棒の地は上限を超える値の伸びる所まで含み、上限の位置は最も大きい値が地の右の端に来る長さで決める。
  * 超える値の無い目盛りは、上限の位置が地の右の端になる。
  * 段ごとの値は段の終わりの総量 (確定と予約の合計) で、値を書く前の段は 0、書かない段は前の段の値を保つ。
+ * 1 行目に `[note: pop]` を書いた図の、値を 1 度でも書いた目盛りは、名前のすぐ右に押すと内訳の札が開く印を描き、印の幅だけ名前の後ろを空ける (#3896)。
  * この file は手順の図と列の図の後から読む塊と描き方だけが読み、最初に読む script に入れない。
  */
 import { hasWide, textWidth } from "../../layout/measure";
-import type { Layout, Rect, SceneBox } from "../../layout/scene";
+import type { GaugeNoteRow, Layout, Rect, SceneBox, SceneNote } from "../../layout/scene";
 import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
 import type { DiagramModel } from "../../schema";
 import type { NotationLang } from "../../words";
@@ -24,7 +25,8 @@ const G = LOOK.gauge;
  * 量の目盛り 1 つの置き場所。`on` は目盛りを置いた箱で、図の上の帯の目盛りは持たない。
  * 中の名前と棒と札の位置は、この四角と宣言と段ごとの値から描く時に決まった形で組む (`gaugeParts`)。
  * `over` は上限を超えた段に出す札の字で、宣言の `over` か描く言葉の既定の字。
- * `split` は内訳の行の確定と予約の語で、予約を持つ段が在る目盛りだけが持つ (#3895)
+ * `split` は内訳の行の確定と予約の語で、予約を持つ段が在る目盛りだけが持つ (#3895)。
+ * `card` は押すと開く内訳の札 (#3896) の名札で、札で見せる図の値を書いた目盛りだけが持つ
  */
 export interface SceneGauge extends Rect {
   id: string;
@@ -32,6 +34,7 @@ export interface SceneGauge extends Rect {
   color: ColorKey;
   over: string;
   split?: Split;
+  card?: string;
 }
 
 /** 内訳の行の、確定した量と予約した量の語 (#3895) */
@@ -42,6 +45,12 @@ export type Split = readonly [confirmed: string, held: string];
  * 共通の置き場所の形 (`Layout`) には足さない。配管の図の置き場所が同じ名前の欄に別の物を持つため
  */
 export type GaugeLayout = Layout & { gauges?: SceneGauge[] };
+
+/** 名前のすぐ右の札の印 (#3896) が名前の後ろに空ける幅。名前と印の丸の間と、丸の幅 */
+const MARK = LOOK.note.markGap + LOOK.note.badge * 2;
+
+/** 目盛り `id` の札の名札。箱の名札と重ならないよう、名札に書けない `:` を挟む (#3896) */
+const noteKey = (id: string): string => `gauge:${id}`;
 
 /** 箱を持たない目盛り (図の上の帯の目盛り) の色 */
 const TOP_COLOR: ColorKey = "blue";
@@ -121,9 +130,9 @@ const chipMost = (values: readonly number[]): number => Math.max(0, ...deltasOf(
 /** 上限を超えた札の幅 */
 export const overW = (text: string): number => widthOf(text, TYPE.gaugeOver) + G.overPadX * 2;
 
-/** 目盛りが要る幅と高さ。`over` は上限を超えた札の字、`holds` は段ごとの予約した量、`split` は内訳の行の語 */
-export function gaugeSize(gauge: Gauge, values: readonly number[], over: string, holds: readonly number[] = [], split?: Split): { w: number; h: number } {
-  const name = widthOf(gauge.name, TYPE.gaugeName);
+/** 目盛りが要る幅と高さ。`over` は上限を超えた札の字、`holds` は段ごとの予約した量、`split` は内訳の行の語、`card` は札の印を描く目盛り */
+export function gaugeSize(gauge: Gauge, values: readonly number[], over: string, holds: readonly number[] = [], split?: Split, card = false): { w: number; h: number } {
+  const name = widthOf(gauge.name, TYPE.gaugeName) + (card ? MARK : 0);
   const value = Math.max(...[0, ...values].map((v) => widthOf(valueText(gauge, v), TYPE.gaugeValue)));
   const chip = chipMost(values);
   const chipRoom = chip > 0 ? G.chipGap + chip : 0;
@@ -163,7 +172,7 @@ export function gaugeParts(scene: SceneGauge, gauge: Gauge, values: readonly num
   const chip = chipMost(values);
   const chipRoom = chip > 0 ? G.chipGap + chip : 0;
   if (gauge.limit === undefined) {
-    const valueX = scene.x + widthOf(gauge.name, TYPE.gaugeName) + G.nameGap;
+    const valueX = scene.x + widthOf(gauge.name, TYPE.gaugeName) + (scene.card ? MARK : 0) + G.nameGap;
     const value = Math.max(...[0, ...values].map((v) => widthOf(valueText(gauge, v), TYPE.gaugeValue)));
     return { nameX: scene.x, baseline, valueX, valueAnchor: "start", chipX: valueX + value + G.chipGap, chipY: scene.y + G.textH / 2 - G.chipH / 2 };
   }
@@ -189,7 +198,7 @@ export function gaugeParts(scene: SceneGauge, gauge: Gauge, values: readonly num
   };
 }
 
-/** 置く前の目盛り。宣言と段ごとの値と、要る幅と高さと、上限を超えた札の字と、予約を持つ段が在る目盛りの内訳の行の語 */
+/** 置く前の目盛り。宣言と段ごとの値と、要る幅と高さと、上限を超えた札の字と、予約を持つ段が在る目盛りの内訳の行の語と、札の印を描くか */
 export interface GaugePlan {
   gauge: Gauge;
   values: number[];
@@ -197,13 +206,19 @@ export interface GaugePlan {
   h: number;
   over: string;
   split?: Split;
+  card: boolean;
 }
+
+/** 目盛り `id` に値を書いた段の番号 */
+const writtenSteps = (diagram: DiagramModel, id: string): number[] =>
+  diagram.steps.flatMap((step, s) => (step.events.some((e) => e.type === "gauge" && e.gauge === id) ? [s] : []));
 
 /**
  * 図の目盛りを置く前の形にする。`boxes` は目盛りを置ける箱の名札で、`on` が無い箱を指す目盛り (原本の JSON にだけ書ける) は図の上の帯に置く。
- * 上限を超えた札の既定の字と内訳の行の確定と予約の語は、描く言葉 `lang` の目盛りの語 (`words.ts`) から読む
+ * 上限を超えた札の既定の字と内訳の行の確定と予約の語は、描く言葉 `lang` の目盛りの語 (`words.ts`) から読む。
+ * `cards` は内訳の札 (#3896) を作る図か。札を作る図の種類 (手順の図) だけが渡し、札を作らない図に印だけが残らないようにする
  */
-export function planGauges(diagram: DiagramModel, boxes: readonly string[], lang: NotationLang): { under: Map<string, GaugePlan[]>; top: GaugePlan[] } {
+export function planGauges(diagram: DiagramModel, boxes: readonly string[], lang: NotationLang, cards = false): { under: Map<string, GaugePlan[]>; top: GaugePlan[] } {
   const { over, split } = GAUGE_WORDS[lang];
   const values = gaugeValues(diagram);
   const holds = gaugeHolds(diagram);
@@ -215,7 +230,9 @@ export function planGauges(diagram: DiagramModel, boxes: readonly string[], lang
     const text = gauge.over ?? over;
     // 予約を持つ段が無い目盛りは内訳の語を持たず、今と同じ形で置く
     const words = holdsAny(gauge, held) ? split : undefined;
-    const plan: GaugePlan = { gauge, values: own, ...gaugeSize(gauge, own, text, held, words), over: text, ...(words ? { split: words } : {}) };
+    // 札を作る図の、値を 1 度でも書いた目盛りだけが内訳の札と印を持つ (#3896)
+    const card = cards && writtenSteps(diagram, gauge.id).length > 0;
+    const plan: GaugePlan = { gauge, values: own, ...gaugeSize(gauge, own, text, held, words, card), over: text, ...(words ? { split: words } : {}), card };
     if (gauge.on !== undefined && boxes.includes(gauge.on)) under.set(gauge.on, [...(under.get(gauge.on) ?? []), plan]);
     else top.push(plan);
   }
@@ -241,6 +258,7 @@ export function stackGauges(plans: readonly GaugePlan[], x: number, y: number, c
       color,
       over: plan.over,
       ...(plan.split ? { split: plan.split } : {}),
+      ...(plan.card ? { card: noteKey(plan.gauge.id) } : {}),
       x,
       y: top,
       w: w ?? plan.w,
@@ -264,3 +282,54 @@ export function withGauges(layout: GaugeLayout, gauges: SceneGauge[]): void {
 
 /** 図の置き場所が持つ目盛り。目盛りを置けない図の種類は持たない */
 export const gaugesOf = (layout: Layout): SceneGauge[] | undefined => (layout as GaugeLayout).gauges;
+
+/** 目盛り `scene` の札の印の丸の真ん中。名前の右の端から `markGap` 空け、名前の字の高さの真ん中に置く (#3896) */
+export const markAt = (scene: SceneGauge, gauge: Gauge): { x: number; y: number } => ({
+  x: scene.x + widthOf(gauge.name, TYPE.gaugeName) + LOOK.note.markGap + LOOK.note.badge,
+  y: scene.y + G.textH - 4 - TYPE.gaugeName.size * 0.35,
+});
+
+/** 札の行の増えた量の字。変わらない段は「±0」 */
+const rowDelta = (delta: number): string => (delta === 0 ? "±0" : deltaText(delta));
+
+/** 札の行の値の字。上限は見出しに書くので「値 単位」 */
+const amountText = (gauge: Gauge, value: number): string => `${numberText(value)}${gauge.unit === undefined ? "" : ` ${gauge.unit}`}`;
+
+/** `whole` に対する `part` の割合 (%)。小数 1 桁に丸める */
+const percent = (part: number, whole: number): number => Math.round((part / whole) * 1000) / 10;
+
+/**
+ * 置いた目盛りのうち札の印を描く目盛りの、押すと開く内訳の札 (#3896)。行は目盛りに値を書いた段で、段の順に並べる。
+ * 字は描く言葉 `lang` で作る。行の棒は段の終わりの目盛りと同じく、確定の塗りと総量までの淡い塗りと上限を超えた分を、上限に対する割合で持つ
+ */
+export function gaugeNotes(diagram: DiagramModel, gauges: readonly SceneGauge[], lang: NotationLang): SceneNote[] {
+  const words = GAUGE_WORDS[lang];
+  const values = gaugeValues(diagram);
+  const holds = gaugeHolds(diagram);
+  const declared = new Map((diagram.gauge ?? []).map((g) => [g.id, g]));
+  return gauges.flatMap((scene) => {
+    const gauge = declared.get(scene.id);
+    if (scene.card === undefined || !gauge) return [];
+    const own = values.get(gauge.id) ?? [];
+    const held = holds.get(gauge.id) ?? [];
+    const deltas = deltasOf(own);
+    const limit = gauge.limit;
+    const rows = writtenSteps(diagram, gauge.id).map((s): GaugeNoteRow => {
+      const value = own[s] ?? 0;
+      const hold = held[s] ?? 0;
+      const over = limit !== undefined && value > limit;
+      const bar =
+        limit === undefined
+          ? {}
+          : {
+              fill: percent(Math.min(value - hold, limit), limit),
+              ...(hold > 0 ? { held: percent(Math.min(value, limit), limit), split: splitTexts(words.split, value, hold) } : {}),
+              ...(over ? { beyond: percent(value - limit, limit) } : {}),
+            };
+      return { step: s, title: diagram.steps[s]?.title ?? "", delta: rowDelta(deltas[s] ?? 0), value: amountText(gauge, value), over, ...bar };
+    });
+    // 行の棒の置き場は最も大きい値まで描くので、上限までの地は置き場の幅のうち上限の割合だけを占める
+    const limits = limit === undefined ? {} : { limit: `${words.limit} ${amountText(gauge, limit)}`, bar: percent(limit, Math.max(limit, ...own)) };
+    return [{ box: scene.card, name: gauge.name, text: "", ...markAt(scene, gauge), gauge: { color: scene.color, ...limits, rows } }];
+  });
+}
