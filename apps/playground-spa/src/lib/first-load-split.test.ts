@@ -237,3 +237,28 @@ describe("英語の字が届くまで描かない (#3646)", () => {
     expect(JSON.stringify(text.TEXT.en), "英語の字の表に日本語の字が混ざる").not.toMatch(JAPANESE);
   });
 });
+
+/**
+ * 列の図だけが使う語と、配管の図の再生の部品だけが使う語 (#4046)。最初に読む言葉の表 (`figure-text.ts`) から、
+ * 後から読む各図の置き場 (`kinds/lineup/words.ts` と `kinds/pipe/words.ts`) へ移した。日本語と英語から 1 つ以上ずつ選ぶ
+ */
+const KIND_ONLY_WORDS = ["順番なし", "選ばれる", "No order", "呼び出しの結果", "返り待ち", "Call results"];
+/** どこからも使われずに消した列の図の語 (#4046) */
+const UNUSED_WORDS = ["上から実行", "まだ空", "Top first"];
+
+describe("最初に読む script から列の図と配管の図だけが使う語を外す (#4046)", () => {
+  it("first-load-carries-no-lineup-or-pipe-words", () => {
+    const first = firstLoadFiles(builtDir()).filter((name) => name.endsWith(".js"));
+    const firstCode = first.map(readAsset).join("\n");
+    expect(firstCode.length, "build した頁が最初に読む script が無い (走査の空振り)").toBeGreaterThan(0);
+    const held = [...KIND_ONLY_WORDS, ...UNUSED_WORDS].filter((word) => quotedForms(word).some((form) => firstCode.includes(form)));
+    expect(held, "最初に読む script が持つ、列の図と配管の図だけが使う語").toEqual([]);
+    // 移した語は後から読む塊が持つ。どの塊も持たない時は、語を選び違えたか描く所から消えた
+    const later = readdirSync(assets())
+      .filter((name) => name.endsWith(".js") && !first.includes(name))
+      .map(readAsset)
+      .join("\n");
+    const lost = KIND_ONLY_WORDS.filter((word) => !quotedForms(word).some((form) => later.includes(form)));
+    expect(lost, "後から読む塊のどれも持たない、移した語").toEqual([]);
+  });
+});

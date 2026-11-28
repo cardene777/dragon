@@ -416,6 +416,33 @@ describe("手順の図の記法 (#3561)", () => {
   });
 });
 
+/**
+ * AIエージェントから VeriIntent への同じ線を、段ごとに `names` の名前で通す手順の図 (#4038)。
+ * 2 段目は VeriIntent から署名へも線を引くので、本筋は AIエージェント、VeriIntent、署名の順になる
+ */
+function sameLine(lang: "ja" | "en", names: readonly string[]): { layout: FlowLayout; diagram: Json } {
+  const sign = lang === "ja" ? "署名を頼む" : "Ask to sign";
+  const lines = [
+    lang === "ja" ? "flow 同じ線を通す" : "flow One line in many steps",
+    `box agent as ${lang === "ja" ? "AIエージェント" : "AI agent"}`,
+    "box vi as VeriIntent",
+    `box signer as ${lang === "ja" ? "署名" : "Signer"}`,
+    ...names.flatMap((name, i) => [
+      `step ${lang === "ja" ? `${i + 1}件目` : `Transfer ${i + 1}`}`,
+      `  say ${lang === "ja" ? `${i + 1}件目を送る。` : `Send transfer ${i + 1}.`}`,
+      ...(i === 1 ? [`  vi -> signer: ${sign}`] : []),
+      `  agent -> vi: ${name}`,
+    ]),
+  ];
+  const parsed = api("parseNotation")(lines.join("\n"), { lang });
+  expect(parsed.ok, `同じ線を通す図の記法が読めない (${lang}): ${JSON.stringify(parsed.ok || parsed.errors)}`).toBe(true);
+  const diagram = parsed.ok ? parsed.diagram : {};
+  return { layout: render(diagram, lang).layout, diagram };
+}
+
+/** 小数の端数を 0.1px に丸めた長さ */
+const px = (n: number): number => Math.round(n * 10) / 10;
+
 describe("手順の図の並べ方 (#3561)", () => {
   it("flow-places-main-path-top-to-bottom", () => {
     const source = exampleJson("login-check.json") as unknown as Source;
@@ -558,6 +585,47 @@ describe("手順の図の並べ方 (#3561)", () => {
     const reached = (source.blocks.choice ?? []).filter((c) => edgesOf(source).some((e) => e.to === c.id));
     expect([...svg.matchAll(/<polygon class="dg-fl-reach" data-shape="diamond"/gu)].length, "琥珀の薄い色で塗る着いた判断の数").toBe(reached.length);
     expect(svg, "着いた判断を琥珀の薄い色で塗る規則").toContain(".dg-fl-reach{fill:color-mix(in srgb,var(--c) var(--tint),var(--surf));stroke:none}");
+  });
+
+  it("flow-stacks-names-of-one-line", () => {
+    // 本筋で隣り合う 2 つを結ぶ線に段ごとに違う名前を 3 つ付けると、済んだ名前も薄く残るので、名前を線の右に段の順に縦に積み、
+    // 積んだ名前が上と下の箱から 10px 離れて入るまで箱の間を広げる (#4038)。間が 64px のままだと、3 つ目の名前は線から離れた所に置かれた
+    for (const [lang, names] of [
+      ["ja", ["40 USDC", "30 USDC", "取り消す"]],
+      ["en", ["40 USDC", "30 USDC", "Cancel"]],
+    ] as const) {
+      const { layout, diagram } = sameLine(lang, names);
+      const agent = boxOf(layout, "agent");
+      const vi = boxOf(layout, "vi");
+      const tags = names.flatMap((name) => layout.labels.filter((l) => l.text === name).slice(0, 1));
+      expect(tags.map((t) => t.text), `並べた図の名前 (${lang})`).toEqual([...names]);
+      // 線の右に、線から同じ離れで並ぶ
+      expect(tags.map((t) => px(t.x - agent.cx)), `名前の左端の、線から右への離れ (${lang})`).toEqual(names.map(() => 14));
+      // 段の順に上から並び、名前の間は 6px 空ける
+      expect(tags.slice(1).map((t, i) => px(t.y - ((tags[i]?.y ?? 0) + (tags[i]?.h ?? 0)))), `上の名前の下端から次の名前までの間 (${lang})`).toEqual([6, 6]);
+      // 上と下の箱から 10px 以上離れる
+      const first = tags[0];
+      const last = tags[tags.length - 1];
+      expect(px((first?.y ?? 0) - (agent.y + agent.h)), `AIエージェントの下端から 1 つ目の名前までの間 (${lang})`).toBeGreaterThanOrEqual(10);
+      expect(px(vi.y - ((last?.y ?? 0) + (last?.h ?? 0))), `3 つ目の名前から VeriIntent の上端までの間 (${lang})`).toBeGreaterThanOrEqual(10);
+      // 崩れの検査は、どの名前も線から離れた名前に数えない
+      const off = layoutCheck.diagramBreaks(diagram as never, lang).filter((b) => b.kind === "label-off-line");
+      expect(off.map((b) => layoutCheck.describeBreak(b, lang)), `線から離れた名前の崩れ (${lang})`).toEqual([]);
+    }
+  });
+
+  it("flow-two-names-stay-either-side", () => {
+    // 名前が 2 つまでの線は、1 つ目を線の右、2 つ目を線の左に置き、本筋で隣り合う 2 つの箱の間は 64px のまま (#4038)
+    for (const lang of ["ja", "en"] as const) {
+      const names = ["40 USDC", "80 USDC"];
+      const { layout } = sameLine(lang, names);
+      const agent = boxOf(layout, "agent");
+      const vi = boxOf(layout, "vi");
+      const [right, left] = names.map((name) => layout.labels.find((l) => l.text === name));
+      expect(px((right?.x ?? 0) - agent.cx), `1 つ目の名前の左端の、線から右への離れ (${lang})`).toBe(14);
+      expect(px(agent.cx - ((left?.x ?? 0) + (left?.w ?? 0))), `2 つ目の名前の右端の、線から左への離れ (${lang})`).toBe(14);
+      expect(px(vi.y - (agent.y + agent.h)), `AIエージェントと VeriIntent の間 (${lang})`).toBe(64);
+    }
   });
 });
 

@@ -384,25 +384,28 @@ dragon embed notes.html
 
 ### Guide page
 
-`layout: guide` turns each `##` into a topic and each `###` into a numbered question section.
+`layout: guide` turns each `##` into a topic and each `###` into a question section, and shows no numbers.
 A page with one topic stacks every section on one page.
-A page with two or more topics splits into an overview page and one page per topic, with no tabs at the top.
-The menu on the left opens each page.
-The overview page shows the title, the text before the first `##`, the overview, and the topics in order.
-A topic page opens on a list of the question numbers, short names, and one-sentence answers.
+Its menu on the left lists the topic and its questions, marks the question being read, and scrolls to a section on a click.
+A page with two or more topics splits into an overview page and one page per topic.
+A header stays at the top with the title and tabs for the overview and each topic.
+The tab of the open topic is bold and underlined.
+When the tabs do not fit beside the title, they move to a row under the title.
+On a phone the row of tabs scrolls sideways.
+The overview page shows the text before the first `##`, the overview, and the topics in order.
+The overview page has no menu on the left and centers the text.
+A topic page opens on a list of its questions and their one-sentence answers.
 Inside a topic each question is its own page: clicking a row of the list or a question in the menu shows only that question's section.
 Write `link: #<topic id>` on a box of the overview figure to open that topic's page from the box.
 That page then starts with a still of the overview where only the linked boxes keep their colors.
 The pages run from the overview through each topic's list and then its questions, and each page ends with links to the previous and next pages.
 Changing pages does not reload the file.
-Each section is numbered `<topic>-<question>`, such as `2-1` for the first question of the second topic.
-A menu on the left lists every topic and its questions, made from the `##` and `###` titles, and stays on screen while the page scrolls.
-The menu marks the question being read, and clicking a question scrolls to its section. The menu shows no question numbers.
-When the page is split into pages, the menu lists the overview, every topic, and the questions under each topic.
-The `####` headings of the open page appear under its question.
-The arrow before a topic or a question opens and closes the list under it, and opening a page opens the lists of its topic and its question.
-Clicking a heading scrolls to it, and the menu marks the heading being read. A question page without `####` headings lists its figure titles instead.
-On a phone, the menu folds above the text behind a button.
+The menu on the left lists only the questions of the open topic, with the `####` headings of the open page under its row.
+A page without `####` headings lists its figure titles instead.
+Clicking a heading scrolls to it, and the menu marks the heading being read.
+The menu marks the open page with a gray background and bold text.
+It shows no numbers and no arrows to fold its lists.
+At 860px wide or less, the menu folds into a menu button above the text, and picking a page closes it.
 A `###` title can end with `[menu: <short name>]`.
 The menu then shows the short name, and the section keeps the whole question as its title.
 `[menu: ]` with no name stops the export with the line named.
@@ -415,6 +418,13 @@ A `<details>` block with a `<summary>` line becomes a check question.
 Its answer stays hidden until the button is clicked, and a second click hides it again.
 Other raw HTML is still shown as text.
 
+Each heading level has its own shape.
+The page title (`#`) is a dark band with light text.
+On a page with two or more topics the header shows the title instead, so the band shows only on paper.
+A topic title (`##`) has an underline in the text color.
+A question title (`###`) has a bar in the topic's color on its left.
+A `####` heading has a pale band, and a `#####` heading has a dashed underline.
+
 Write the terms in a Markdown file of their own, such as `glossary.md`.
 Each `###` heading is a term, the paragraph after it is the meaning, and a quote after that is an example.
 A `![Terms](glossary.md)` line before the first `##` loads the file and adds a topic named `Terms` at the end of the page, with one card per term.
@@ -422,7 +432,7 @@ In the text, a link such as `[order](glossary.md#order)` is underlined.
 Clicking it opens a card just below it with the term, its meaning, and a gray example band.
 The card closes on a click outside it, on its close icon, or on the term again.
 A term written twice, or a link to a term the file does not have, stops the export with the file and line named.
-When the page is printed, the menu is left out and the sections of every topic follow in written order.
+When the page is printed, the header and the menu are left out, and the sections of every topic follow in written order.
 Each topic after the first starts on a new sheet, with its name at the top.
 Every term card and check answer is drawn open, and box cards are listed below their diagram with their box names instead of over it.
 The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).

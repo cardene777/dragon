@@ -7,7 +7,9 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { FIGURE_TEXT } from "../src/figure-text";
+import { LINEUP_WORDS } from "../src/kinds/lineup/words";
 import { PIPE_TEXT } from "../src/kinds/pipe/layout";
+import { PIPE_PLAYER_WORDS } from "../src/kinds/pipe/words";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { draw, type Lang, type Player } from "./render-support";
 import "../src/kind-use/pipe";
@@ -91,10 +93,11 @@ describe("試す図以外の図の日本語の字の空白 (#3517)", () => {
     const texts = [
       ja.sideFrom(3),
       ja.steps("OAuth 2.0"),
-      ja.lineupAt("tx1", 2),
-      ja.lineupAdded(["a1", "b2"]),
-      ja.lineupMissing("a1"),
-      ja.returnOf("ok"),
+      // 列の図と配管の図の再生の部品の語は、最初に読む言葉の表から各図の置き場へ移した (#4046)
+      LINEUP_WORDS.ja.lineupAt("tx1", 2),
+      LINEUP_WORDS.ja.lineupAdded(["a1", "b2"]),
+      LINEUP_WORDS.ja.lineupMissing("a1"),
+      PIPE_PLAYER_WORDS.ja.returnOf("ok"),
       ja.range("1", "4"),
       PIPE_TEXT.ja.fold(2, 3),
       PIPE_TEXT.ja.foldTitle("Router"),

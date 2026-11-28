@@ -14,7 +14,9 @@ import { hasWide, textWidth } from "../../layout/measure";
 import type { Layout, Rect, SceneBox } from "../../layout/scene";
 import { type ColorKey, LOOK, type TextStyle, TYPE } from "../../look/values";
 import type { DiagramModel } from "../../schema";
+import type { NotationLang } from "../../words";
 import type { Gauge } from "./block";
+import { GAUGE_WORDS } from "./words";
 
 const G = LOOK.gauge;
 
@@ -199,9 +201,10 @@ export interface GaugePlan {
 
 /**
  * 図の目盛りを置く前の形にする。`boxes` は目盛りを置ける箱の名札で、`on` が無い箱を指す目盛り (原本の JSON にだけ書ける) は図の上の帯に置く。
- * `over` は描く言葉の、上限を超えた札の既定の字、`split` は内訳の行の確定と予約の語
+ * 上限を超えた札の既定の字と内訳の行の確定と予約の語は、描く言葉 `lang` の目盛りの語 (`words.ts`) から読む
  */
-export function planGauges(diagram: DiagramModel, boxes: readonly string[], over: string, split?: Split): { under: Map<string, GaugePlan[]>; top: GaugePlan[] } {
+export function planGauges(diagram: DiagramModel, boxes: readonly string[], lang: NotationLang): { under: Map<string, GaugePlan[]>; top: GaugePlan[] } {
+  const { over, split } = GAUGE_WORDS[lang];
   const values = gaugeValues(diagram);
   const holds = gaugeHolds(diagram);
   const under = new Map<string, GaugePlan[]>();
@@ -211,7 +214,7 @@ export function planGauges(diagram: DiagramModel, boxes: readonly string[], over
     const held = holds.get(gauge.id) ?? [];
     const text = gauge.over ?? over;
     // 予約を持つ段が無い目盛りは内訳の語を持たず、今と同じ形で置く
-    const words = split !== undefined && holdsAny(gauge, held) ? split : undefined;
+    const words = holdsAny(gauge, held) ? split : undefined;
     const plan: GaugePlan = { gauge, values: own, ...gaugeSize(gauge, own, text, held, words), over: text, ...(words ? { split: words } : {}) };
     if (gauge.on !== undefined && boxes.includes(gauge.on)) under.set(gauge.on, [...(under.get(gauge.on) ?? []), plan]);
     else top.push(plan);
