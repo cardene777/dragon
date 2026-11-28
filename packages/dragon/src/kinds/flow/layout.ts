@@ -159,6 +159,25 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const index = (id: string): number => main.indexOf(id);
   const skipKeys = [...new Set(lines.filter((l) => index(l.from) >= 0 && index(l.to) >= 0 && index(l.to) !== index(l.from) + 1 && l.from !== l.to).map((l) => `${l.from}>${l.to}`))];
   const leftRoom = skipKeys.length > 0 ? F.skip + (skipKeys.length - 1) * F.lane : 0;
+  // 本筋で隣り合う 2 つを結ぶ線に段ごとに違う名前を 3 つ以上付けると、済んだ名前も薄く残るので、名前を線の右に段の順に縦に積む (#4038)。
+  // 今の間では線の右と左に 1 つずつしか置けず、3 つ目の名前は線から離れる。積んだ名前が上と下の箱から `gap` 離れて入るまで間を広げる。
+  // 名前が 2 つまでの線は、右と左に 1 つずつ置く今の形のままにする
+  const stacks = new Map<string, string[]>();
+  for (const { edge } of steps) {
+    if (edge.label === undefined || index(edge.from) < 0 || index(edge.to) !== index(edge.from) + 1) continue;
+    const key = `${edge.from}>${edge.to}`;
+    const names = stacks.get(key) ?? [];
+    if (!names.includes(edge.label)) names.push(edge.label);
+    stacks.set(key, names);
+  }
+  for (const [key, names] of stacks) if (names.length < 3) stacks.delete(key);
+  /** 名前を縦に積んだ高さ。名前の間は `LOOK.label.soft` 空ける */
+  const stackH = (names: readonly string[]): number => names.length * LOOK.label.h + (names.length - 1) * LOOK.label.soft;
+  /** 本筋で `id` と次の箱の間に足す長さ */
+  const roomAfter = (id: string): number => {
+    const names = stacks.get(`${id}>${main[index(id) + 1]}`);
+    return names ? Math.max(0, stackH(names) + gap * 2 - F.gap) : 0;
+  };
   const mainW = Math.max(B.minW, ...main.map((id) => fit(id).w));
   const cx = margin + leftRoom + mainW / 2;
   const startTo = lines.find((l) => l.from === "start")?.to;
@@ -167,7 +186,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const boxes: SceneBox[] = [];
   for (const id of main) {
     boxes.push(boxOf(id, cx - fit(id).w / 2, y));
-    y += fit(id).h + under(id) + F.gap;
+    y += fit(id).h + under(id) + F.gap + roomAfter(id);
   }
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const mainRight = Math.max(cx, ...boxes.map((b) => b.x + b.w), ...boxes.map((b) => (plans.under.has(b.id) ? b.cx + G.clear + widest(plans.under.get(b.id)) : 0)));
@@ -324,6 +343,15 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   const marks: Rect[] = ends.flatMap((e) => (e.text === "" ? [] : [textBox(e.text, ...markText(e), TYPE.regionNote)]));
   const badgeRects = [...lineBadges(sceneEdges, diagram.steps.length, badgeAt).values()].map((b) => badgeRect(b.point));
   const others = (own: Point[]): Point[][] => [...sceneEdges.map((o) => o.points), ...paths.map((o) => o.points)].filter((line) => line !== own);
+  /** 積む線の名前 `text` の札の左上。線の右の、目盛りの下から次の箱の上までの間の真ん中を中心に、段の順に積む (#4038) */
+  const stackBase = (e: SceneEdge, text: string): { x: number; y: number } | undefined => {
+    const names = stacks.get(`${e.from}>${e.to}`);
+    const from = byId.get(e.from);
+    const to = byId.get(e.to);
+    if (!names || !from || !to) return undefined;
+    const mid = (from.y + from.h + under(e.from) + to.y) / 2;
+    return { x: from.cx + LOOK.label.side, y: mid - stackH(names) / 2 + names.indexOf(text) * (LOOK.label.h + LOOK.label.soft) };
+  };
   for (const e of sceneEdges) {
     const source = diagram.steps[e.step]?.events[e.event];
     if (source?.type !== "edge" || source.label === undefined) continue;
@@ -339,9 +367,11 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
     const w = labelWidth(source.label) + LOOK.label.padX * 2;
     const below = loop ? { side: "below" as const, base: loopLabelBase(e.points, w) } : {};
     const side = source.labelSide ?? (e.to === "finish" ? undefined : outward.get(e));
+    // 積む線の名前は積んだ所から置く。側を指示した名前は指示の側に置く
+    const stack = side === undefined ? stackBase(e, source.label) : undefined;
     labels.push(
       placeLabel(
-        { step: e.step, event: e.event, text: source.label, points: e.points, color: nameColor(e), ...(side ? { side } : loop ? {} : { flip: true }), ...below },
+        { step: e.step, event: e.event, text: source.label, points: e.points, color: nameColor(e), ...(side ? { side } : loop ? {} : { flip: true }), ...below, ...(stack ? { base: stack } : {}) },
         { hard: [...boxes, ...gauges], soft: [...marks, ...labels], touch: badgeRects, lines: others(e.points) },
       ),
     );
