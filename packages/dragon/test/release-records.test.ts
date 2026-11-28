@@ -242,6 +242,7 @@ describe("版の記録 (#3151)", () => {
 
   it("changelog-0-91-0-lists-every-merged-issue", () => {
     // 0.90.0 の後に取り込んだ課題の項を 0.91.0 で出す (#4062)。紙と墨の青緑 (#4057) は、止め絵の data-palette の項 (Added) と青緑の項 (Changed) の2つを持つ
+    // 列の図の目盛りの札 (#4040) は初めに決めた後に既定の枝へ入り、出す枝へ取り込んだ時に 0.91.0 の節へ入った
     const [major = 0, minor = 0] = version().split(".").map(Number);
     expect(major > 0 || minor >= 91, `package の版 ${version()} が 0.91.0 より前`).toBe(true);
     for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
@@ -252,6 +253,7 @@ describe("版の記録 (#3151)", () => {
         ["(#3897)", 1],
         ["(#3898)", 1],
         ["(#3899)", 1],
+        ["(#4040)", 1],
         ["(#4054)", 1],
         ["(#4057)", 2],
       ] as const) {
