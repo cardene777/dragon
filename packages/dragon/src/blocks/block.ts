@@ -118,9 +118,10 @@ export interface FigureDraft {
   /**
    * 試す図の部品とチップと網の節の関門。部品のブロックと入力の帯のブロックが宣言の行で組み、関門は網のブロックが `check` の行で足す (#3337、#3348、#3476)。
    * 部品を名指す属性と欄を名指す鍵は全ての宣言を読んでから確かめるので `pending` に積み、最初の段を始める時か記法の終わりに 1 度だけ確かめる。
-   * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る
+   * 確かめた後に、段の中の出来事を当てる状態 (`run`) を作る。
+   * `lines` は場面を選ぶ見た目 (`[shape: scenes]`、#3873) の図で、網と入力の帯と選ぶ値とチップを書いた行。全ての宣言を読んでから確かめる誤りを、その行に出す
    */
-  try: { parts: TryPart[]; items: TryItem[]; sides: string[][]; checks: TryCheck[]; pending: (() => void)[]; run?: TryRun };
+  try: { parts: TryPart[]; items: TryItem[]; sides: string[][]; checks: TryCheck[]; pending: (() => void)[]; run?: TryRun; lines?: Map<string, SourceLine> };
   /**
    * 配管の図の始めの値と、段の中の出来事を当てる手順と、開いている呼び出しを書いた行 (#3389)。槽のブロックが `hold` の行で始めの値を足し、
    * 呼び出しの管のブロックが最初の段を始める時に手順 (`run`) を作る。開いている呼び出しを書いた行は手順の呼び出しと同じ順に積み、閉じない呼び出しの誤りで名指す。

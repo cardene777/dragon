@@ -963,6 +963,11 @@ A `link` attribute on a box line makes that box a link in the drawn diagram.
 A `source <name> [url: <URL>]` line inside a step cites a source for that step, and a step can have any number of them.
 They appear as links in the step list that screen readers read.
 A link or source URL can be a path starting with `/`, a URL starting with `http://` or `https://`, or a place on the page starting with `#`.
+A try diagram with `[shape: scenes]` on its first line (`try <title> [shape: scenes]`) lets the reader pick a scene and send it.
+It then draws only that scene's exchanges in order and shows its answer.
+Its `route` is one path whose 2 to 4 nodes are the parties.
+Its `ask` has the five fields tag, scene, sender, receiver and content, and each exchange and each scene's answer is an `item`.
+The [notation guide](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/quick-start.en.md#scenes-look-of-a-try-diagram) shows a full example.
 
 ```dragon
 architecture Send orders to the warehouse

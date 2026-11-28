@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A try diagram takes `[shape: scenes]` on the first line, as in `try <title> [shape: scenes]`, for a figure whose exchanges change order with the scene the reader picks. One path of the `route` names 2 to 4 parties, `ask` has the five fields tag, scene, sender, receiver and content with a `choose` line for the scene, and each exchange and each scene's answer is an `item`. The reader picks a scene and sends it, and only that scene's exchanges are drawn in order, numbered and colored by sender with the same boxes, lifelines and arrows as a sequence diagram, and then the scene's one-sentence answer and its reason appear. A narrow frame stacks the party names and one "sender → receiver" card per exchange instead. Picking another scene clears the exchanges, the player shows no step bar, and images and print draw the scene of the author's last step. `dragon check` names the line of each source the look cannot draw, and the gallery has a reply-ways sample (#3873)
+
 ### Changed
 
 - The previous and next buttons of the player bar now show a skip mark, a filled triangle with a bar at its tip, instead of a thin stroked V. They match the filled play, pause, and restart icons and do not look like the play triangle. `docs/design/base/GRAMMAR.md` now puts these buttons under the rule for direction marks (#4074)

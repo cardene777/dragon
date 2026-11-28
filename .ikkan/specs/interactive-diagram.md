@@ -179,3 +179,23 @@
 | 常に、枠324pxで描いた見本`tx-block`は網の節を枠に収め、字の重なりを持たない | `pnpm exec vitest run packages/dragon/test/try-narrow.test.ts`の検査`try-narrow-route-fits`が通る | #3524 |
 | 常に、細い組みの網の名札どうしは重ならず、節の丸に掛からず、ぶつからない名札は節の真下に描く | `pnpm exec vitest run packages/dragon/test/interactive-gate-record.test.ts`の検査`try-route-labels-clear-narrow`が通る | #3524 |
 | 常に、見本帳が最初に読む script は崩れの種類の名前を持たず、上限の大きさに収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`first-load-carries-no-layout-check`と`page-bundle-within-budget`が通る | #3524 |
+| `try`の行に`[shape: scenes]`を書いた原本を読むと、図の見た目に`scenes`を持ち、記法に書き戻すと同じ行に戻る | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-shape-round-trip`が通る | #3873 |
+| `try`の行に`scenes`のほかの見た目 (`stations`など) を書くと、書ける値を挙げた誤りで止まる | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-refuses-other-shapes`が通る | #3873 |
+| bitsumiの見本の原本 (頼んだ処理の結果を画面が受け取る3つの方法) の`try`の行に`[shape: scenes]`を足した物を読むと、物を道の順に4つ、場面を3つ持ち、場面ごとのやり取りを書いた順に持つ | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-reads-bitsumi-sample`が通る | #3873 |
+| 場面を選ぶと、その場面のやり取りだけを書いた順に返し、ほかの場面のやり取りを返さない | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-plays-chosen-only`が通る | #3873 |
+| 送り手と受け手が同じやり取りを、その物の注記として返す | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-same-lane-is-note`が通る | #3873 |
+| 場面ごとに、答えの`item`の中身の1文目を答えの一文、2文目からを理由として返す | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-answer-per-scene`が通る | #3873 |
+| bitsumiの手順書の描けない原本の表の形を1つずつ書いた原本ごとに、`dragon check`がその形を名指す誤りを行の番号付きで出し、0でない番号で終わる | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-check-refuses-bad-sources`が通る | #3873 |
+| 描けない原本の誤りの文は日本語と英語の両方が在り、英語の文は仮名と漢字を含まない | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-errors-in-both-languages`が通る | #3873 |
+| `[shape: scenes]`を書かない`try`は、同じ原本でも今の選べる図の見た目 (網と待ち列) で描く | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-without-shape-keeps-route-look`が通る | #3873 |
+| 書き出しの静止画は、最後の段の`ask`が選んだ場面のやり取りと答えを描く | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-export-draws-author-scene`が通る | #3873 |
+| 幅760pxで書き出した頁を開き、場面を選んで送ると、物の箱と、その場面のやり取りだけが番号の丸の付いた送り手の色の矢印で書いた順に出て、最後に答えの一文と理由が出る。再生の帯は出さない | `pnpm exec vitest run packages/dragon/test/try-scenes-browser.test.ts`の検査`try-scenes-browser-send-760`が通る | #3873 |
+| 幅390pxで書き出した頁を開き、場面を選んで送ると、物の名前の札の下に、その場面のやり取りだけが送り手 → 受け手の札で書いた順に縦に積まれ、最後に答えの一文と理由が出る | `pnpm exec vitest run packages/dragon/test/try-scenes-browser.test.ts`の検査`try-scenes-browser-send-390`が通る | #3873 |
+| 送った後に場面を選び直すと、前の場面のやり取りと答えが消え、送る前の形に戻る | `pnpm exec vitest run packages/dragon/test/try-scenes-browser.test.ts`の検査`try-scenes-browser-repick-resets`が通る | #3873 |
+| 幅760pxと390pxで、どの場面を送っても、字が箱と図の外へはみ出さず、図が横にはみ出さない | `pnpm exec vitest run packages/dragon/test/try-scenes-browser.test.ts`の検査`try-scenes-browser-fits`が通る | #3873 |
+| 見本「頼んだ処理の結果を画面が受け取る3つの方法」の日本語と英語の`.dragon`が`packages/dragon/examples/`に在り、`dragon check`を通り、見本帳の見本の一覧と編集画面の棚に載る | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-example-in-gallery-and-shelf`が通る | #3873 |
+| 使い方の頁、2つのREADME、日本語と英語の手引き、`docs/design/base/GRAMMAR.md`に`[shape: scenes]`の書き方が載り、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedに足した見た目が載る | `pnpm exec vitest run packages/dragon/test/try-scenes.test.ts`の検査`try-scenes-docs-and-changelog`が通る | #3873 |
+| 新しい描き方のfileも、色と字の大きさを値の表から読む | `pnpm exec vitest run packages/dragon/test/look.test.ts`の検査`renderers-read-values-from-one-table`が通る | #3873 |
+| 今の見本の描いた結果の指紋が変わらない | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts`の検査`examples-svg-unchanged`が通る | #3873 |
+| 最初に読むscriptのgzip後の合計が90,000 byte以下に収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts`の検査`script-entry-within-budget`が通る | #3873 |
+| 見本帳の頁の最初のscriptが186KB以下に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts`の検査`page-bundle-within-budget`が通る | #3873 |
