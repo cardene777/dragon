@@ -217,7 +217,7 @@ function printModel(diagram: DiagramModel, omit: Omissions): string {
     // 点で数える見た目の 1 点の件数と、点数で点を打つ見た目の表の欄と、時計の文字盤の見た目の回る向きは図の種類の行の属性なので、見た目のブロックでなくここで書く
     `${omit.title ? diagram.kind : `${diagram.kind} ${name(diagram.title)}`}${attrs([
       // 見た目の欄は図の種類ごとの欄のどれか 1 つだけが持つ
-      ["shape", (diagram.chart ?? diagram.lineup ?? diagram.venn ?? diagram.matrix ?? diagram.cycle ?? diagram.sankey ?? diagram.sequence)?.shape],
+      ["shape", (diagram.chart ?? diagram.lineup ?? diagram.venn ?? diagram.matrix ?? diagram.cycle ?? diagram.sankey ?? diagram.sequence ?? diagram.try)?.shape],
       ["unit", num(diagram.chart?.unit ?? diagram.venn?.unit)],
       ["table", diagram.matrix?.table],
       ["turn", diagram.cycle?.turn],

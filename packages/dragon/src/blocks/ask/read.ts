@@ -6,7 +6,7 @@ import { attrs, quote } from "../../print-kit";
 import { type Attr, fail, ID, list, readAttrs, skipSpaces } from "../../read-kit";
 import type { DiagramModel, TryItem, TryPart } from "../../schema";
 import type { SourceLine } from "../../tokenize";
-import { faultOf, fieldAt, needed, refer, valueAt, valuesOf } from "../../try-read";
+import { faultOf, fieldAt, keepLine, needed, refer, scenesShape, valueAt, valuesOf } from "../../try-read";
 import { askFields } from "../../try-state";
 import type { BlockReading, ParseState } from "../block";
 import { namesAt } from "../item/read";
@@ -41,7 +41,22 @@ export interface AskMessages {
   intoNoChoices: (field: string) => string;
   /** `into` に書いた欄 `field` の選択肢 `value` と同じ名札の待ち行列が無い (#3441) */
   choiceNoQueue: (value: string, field: string) => string;
+  /** 場面の図 (#3873) の入力の帯の欄の数 `count` が 5 でない */
+  scenesAskFields: (count: number) => string;
+  /** 場面の図 (#3873) の入力の帯が `via` を持たない */
+  scenesVia: string;
+  /** 場面の図 (#3873) の入力の帯の `into` の `into` が待ち行列でない */
+  scenesInto: (into: string) => string;
+  /** 場面の図 (#3873) の段の `ask` の名札 `id` の `item` が無い */
+  scenesStepItem: (id: string) => string;
+  /** 場面の図 (#3873) の段の `ask` の値が `item` の `id` の値と違う */
+  scenesStepDisagrees: (id: string) => string;
+  /** 場面の図 (#3873) の段の `item` の行 */
+  scenesStepItemLine: string;
 }
+
+/** 場面の図 (#3873) の入力の帯の欄の数。名札、場面、送り手、受け手、中身 */
+const SCENES_FIELDS = 5;
 
 /** 試す図の値。`,` で区切る並びと属性の中で読み直せるよう、`,` か `]` を含む値と、`"` で始まる値と、前後に空白を持つ値を囲む */
 const tryValue = (text: string): string =>
@@ -70,9 +85,20 @@ function readAsk(source: SourceLine, state: ParseState): void {
     if (fields.findIndex((f) => f.value === value) < k) throw fail(source, at, m.fieldTwice(value));
   });
   state.declare(source, "ask", 0);
+  const scenes = scenesShape(state);
+  if (scenes && fields.length !== SCENES_FIELDS) throw fail(source, fields[0]?.at ?? 0, m.scenesAskFields(fields.length));
   if (open < 0) throw fail(source, text.length, m.needsAttr("ask", "into"));
   const read = readAttrs(source, open, state.attrs.ask ?? [], m);
   const into = needed(source, read, "ask", "into", open, state);
+  // 場面の図 (#3873) の入力の帯は、やり取りする物の網を `via` に、送ったチップを積む待ち行列を `into` に書く
+  if (scenes) {
+    if (!read.get("via")) throw fail(source, open, m.scenesVia);
+    keepLine(state, "ask", source);
+    state.figure.try.pending.push(() => {
+      const part = state.figure.try.parts.find((p) => p.id === into.value);
+      if (part?.type !== "queue") throw fail(source, valueAt(source, into), m.scenesInto(into.value));
+    });
+  }
   state.figure.try.pending.push(() => {
     const at = valueAt(source, into);
     const part = state.figure.try.parts.find((p) => p.id === into.value);
@@ -108,6 +134,7 @@ function readChoose(source: SourceLine, state: ParseState): void {
   const choices = ask.choices ?? {};
   if (Object.hasOwn(choices, field)) throw fail(source, at, m.chooseTwice(field));
   const start = skipSpaces(text, found[0].length);
+  if (scenesShape(state)) keepLine(state, `choose:${field}`, source);
   if (start >= text.length) throw fail(source, start, m.fewChoices);
   const values = valuesOf(source, found[0].length, state);
   if (values.length < 2) throw fail(source, start, m.fewChoices);
@@ -154,6 +181,16 @@ function readSend(source: SourceLine, state: ParseState): void {
     choiceAt(source, ask.fields[k] ?? "", value, Math.max(at, 0), state);
     return { at: Math.max(at, 0) };
   });
+  // 場面の図 (#3873) の段の ask は、やり取りの item の値を欄の順に写す。チップを待ち行列へ送らない
+  if (scenesShape(state)) {
+    const [id = ""] = values;
+    const item = state.figure.try.items.find((one) => one.id === id);
+    const where = ats[0]?.at ?? 0;
+    if (!item) throw fail(source, where, m.scenesStepItem(id));
+    if (ask.fields.some((field, k) => k > 0 && item.values[field] !== values[k])) throw fail(source, where, m.scenesStepDisagrees(id));
+    step.events.push({ type: "ask", values });
+    return;
+  }
   const fault = state.figure.try.run?.ask(values).fault;
   if (fault) throw faultOf(source, fault, state, ats);
   step.events.push({ type: "ask", values });
@@ -181,10 +218,12 @@ function chipLine(source: SourceLine, inside: boolean, state: ParseState): { id:
 export function readTryChip(source: SourceLine, state: ParseState): void {
   const { m } = state;
   const step = state.current();
+  if (step && scenesShape(state)) throw fail(source, 0, m.scenesStepItemLine);
   const { id, idAt, attrs: read } = chipLine(source, step !== undefined, state);
   const values: Record<string, string> = {};
   if (!step) {
     state.declare(source, id, idAt);
+    if (scenesShape(state)) keepLine(state, `item:${id}`, source);
     for (const [key, attr] of read) {
       values[key] = attr.value;
       // 選択肢の行はチップの行より後ろにも書けるので、全ての宣言を読んでから確かめる
@@ -264,6 +303,12 @@ export const reading: BlockReading<AskMessages> = {
       notChoice: (field, value, choices) => `${value} は ${field} の choose の値に無い。書けるのは ${list(choices)}`,
       intoNoChoices: (field) => `into に書いた ${field} の欄は choose の値を持たない。choose ${field}: <待ち行列>, <待ち行列> の行を書く`,
       choiceNoQueue: (value, field) => `${value} という待ち行列が無いので、into に書いた ${field} の choose の値にできない`,
+      scenesAskFields: (count) => `[shape: scenes] の try の ask は <名札>, <場面>, <送り手>, <受け手>, <中身> の 5 つの欄をこの順に書く (今は ${count} つ)`,
+      scenesVia: "[shape: scenes] の try の ask には [via: <網>] でやり取りする物の route を書く",
+      scenesInto: (into) => `${into} は queue の行で書いた待ち行列でない。[shape: scenes] の try の ask の into には待ち行列を書く`,
+      scenesStepItem: (id) => `${id} という item が無い。段の ask はやり取りの item の値をそのまま書く`,
+      scenesStepDisagrees: (id) => `段の ask の値が ${id} の item の値と違う。${id} の item と同じ値を書く`,
+      scenesStepItemLine: "[shape: scenes] の try の段には item の行を書けない。段は ask の行でやり取りの item の値を書く",
     },
     en: {
       askShape: "Write ask as ask <field>, <field> [into: <queue or field>, via: <route>] before the first step, or as ask <value>, <value> inside a step",
@@ -282,6 +327,13 @@ export const reading: BlockReading<AskMessages> = {
       notChoice: (field, value, choices) => `${value} is not a choice for ${field}. Write ${list(choices)}`,
       intoNoChoices: (field) => `The field ${field} named by into has no choices. Write choose ${field}: <queue>, <queue>`,
       choiceNoQueue: (value, field) => `No queue named ${value}, so it cannot be a choice for ${field}, the field named by into`,
+      scenesAskFields: (count) =>
+        `In a try diagram with [shape: scenes], write 5 ask fields in the order <tag>, <scene>, <sender>, <receiver>, <content> (now ${count})`,
+      scenesVia: "In a try diagram with [shape: scenes], the ask line needs [via: <route>], the route of the parties",
+      scenesInto: (into) => `${into} is not a queue. In a try diagram with [shape: scenes], into on the ask line names a queue`,
+      scenesStepItem: (id) => `No item named ${id}. The ask in a step repeats the values of an exchange item`,
+      scenesStepDisagrees: (id) => `The ask values differ from the item ${id}. Write the same values as the item ${id}`,
+      scenesStepItemLine: "A step of a try diagram with [shape: scenes] takes no item line. Write an ask line with the values of an exchange item",
     },
   },
 };

@@ -16,15 +16,19 @@
  *
  * 段ごとの状態 (`states`) と出来事ごとの状態 (`moments`) は、記法を読む所と同じ手順 (`try-state.ts`) で作る。
  * 出来事ごとの状態には、その時のチップとブロックの左上の位置と、網を運ばれたチップが通る点を添え、描く部品がこれを辿って動かす。
+ * 種類の行に `[shape: scenes]` を書いた図 (#3873) は、部品を積まずに場面の図 (`scenes`) を並べる (`layoutScenes`)。
  */
+import { SCENES_LOOK, SCENES_TYPE } from "../../look/scenes";
 import { TRY_LOOK } from "../../look/try";
-import { LOOK, READABLE_PX, TYPE } from "../../look/values";
+import { COLOR_ORDER, type ColorKey, LOOK, READABLE_PX, TYPE } from "../../look/values";
 import type { DiagramModel, TryPart } from "../../schema";
 import { askFields, fromsOf, intoOf, type TryRecord, type TryState, TryRun } from "../../try-state";
 import { TRY_TEXT } from "../../try-text";
 import { DEFAULT_LANG, type NotationLang } from "../../words";
 import { textWidth } from "../../layout/measure";
-import type { Layout, Point, Rect } from "../../layout/scene";
+import { type Layout, labelStyle, labelText, type Point, type Rect } from "../../layout/scene";
+import { wrap } from "../../layout/wrap";
+import { pickScene, readScenes, type SceneAnswer, type SceneRow, type Scenes } from "./scenes";
 
 const T = TRY_LOOK;
 const C = T.chip;
@@ -165,6 +169,65 @@ export interface TryLayout extends Layout {
   valueField?: number;
   /** チップごとの、図に出す名前。書き手が書いた名前も読み手が打った名前も切らずに出す (#3458) */
   names: Record<string, string>;
+  /** 場面を選ぶ見た目の図 (`[shape: scenes]`、#3873) の場面の図。持つ図は部品を積まない */
+  scenes?: ScenesPlaced;
+}
+
+/** 字の 1 行。`x` は行の左端か真ん中 (描き方が揃え方を決める)、`y` は基準線 */
+export interface SceneText {
+  text: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * 場面の図の物 (#3873)。広い幅は時系列図の箱 (`box`) と生存線の x (`cx`) と名前、狭い幅は名前の札 (`box`) と色の点 (`dot`) と名前を持つ。
+ * 色は道の順に分類の色を配り、物が送るやり取りの矢印と番号の丸を同じ色で描く
+ */
+export interface SceneLanePlaced {
+  name: string;
+  color: ColorKey;
+  box: Rect;
+  cx: number;
+  label: SceneText;
+  dot?: Point;
+}
+
+/**
+ * 場面の図のやり取り 1 つ (#3873)。`n` は 1 から数える番号で、`badge` は番号の丸の真ん中。`box` は広い幅の矢印の名前の札か注記の札、狭い幅のやり取りの札。
+ * `lines` は札の字の行 (広い幅は真ん中に、狭い幅は左に揃える)、`route` は狭い幅の「送り手 → 受け手」の行 (注記は物の名前)。
+ * `arrow` は広い幅の矢印で、送り手の生存線 `x0` から受け手の生存線の手前 `x1` まで高さ `y` に引く。`bottom` はやり取りの下端
+ */
+export interface SceneRowPlaced {
+  id: string;
+  from: string;
+  to: string;
+  color: ColorKey;
+  note: boolean;
+  n: number;
+  badge: Point;
+  box: Rect;
+  lines: SceneText[];
+  route?: SceneText;
+  arrow?: { x0: number; x1: number; y: number };
+  bottom: number;
+}
+
+/**
+ * 場面の図 (#3873)。`arrangement` は広い幅の時系列図の形 (`wide`) か狭い幅の札を積む形 (`tall`)。`scene` は描いた場面、`field` は場面の欄の名前。
+ * `life` は広い幅の生存線の上端と下端。`rows` は描いたやり取りで、送る前の図 (再生の部品が送る前に置く図) は持たない。
+ * `answer` は書き出しの止め絵の答えの一文と理由の行で、再生の部品は答えを図の外に出すので持たない。
+ * `bare` はやり取りを 1 つも出していない時の図の高さで、狭い幅は物の札の下で図を終え、札を出すたびに札の下端 (`bottom`) まで図を伸ばす
+ */
+export interface ScenesPlaced {
+  arrangement: "wide" | "tall";
+  field: string;
+  scene: string;
+  lanes: SceneLanePlaced[];
+  life?: { y1: number; y2: number };
+  rows: SceneRowPlaced[];
+  answer?: { head: SceneText[]; why: SceneText[]; text: SceneAnswer };
+  bare: number;
 }
 
 /** 全体図に描く試す図の部品の四角。`band` は待ち行列の枠のような地、そうでなければ節やブロックのような札 */
@@ -292,6 +355,8 @@ export function layoutTry(
   lang: NotationLang = DEFAULT_LANG,
   options: TryOptions = {},
 ): TryLayout {
+  // 場面を選ぶ見た目の図 (#3873) は、書き手の最後の段が選ぶ場面のやり取りと答えを全て描いた止め絵を並べる
+  if (diagram.try?.shape === "scenes") return layoutScenes(diagram, { ...options, rows: true, answer: true });
   const words = TRY_TEXT[lang];
   const spec = diagram.try ?? { parts: [], items: [] };
   const fields = askFields(spec.parts);
@@ -921,4 +986,215 @@ export function tryOverview(layout: TryLayout): TryOverviewShape[] {
       }),
     ),
   ];
+}
+
+/**
+ * 場面の図 (#3873) を並べる時の設定。`width` は描く枠の幅で、`SCENES_LOOK.narrowBelow` より狭い枠では狭い幅の置き方で枠の幅に描く。
+ * `scene` は描く場面 (書かなければ書き手の最後の段の `ask` が選ぶ場面)、`rows` はその場面のやり取りを描くか、`answer` は答えを図の下に描くか
+ */
+export interface SceneOptions extends TryOptions {
+  scene?: string;
+  rows?: boolean;
+  answer?: boolean;
+}
+
+/** 物ごとの色。道の順に分類の色を配る */
+const laneColors = (lanes: readonly string[]): Map<string, ColorKey> =>
+  new Map(lanes.map((lane, i) => [lane, COLOR_ORDER[i % COLOR_ORDER.length] as ColorKey]));
+
+/** `v` を `lo` から `hi` の間に収める。`hi` が `lo` より小さい時は `lo` */
+const clampTo = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(v, hi));
+
+/** 答えの一文と理由を、図の左右の余白の内に折って `top` から積む。行の高さは字の大きさの `SCENES_LOOK` の割合でなく字の行の高さ */
+function placeAnswer(answer: SceneAnswer, left: number, width: number, top: number): { head: SceneText[]; why: SceneText[]; bottom: number } {
+  const H = SCENES_TYPE.answerHead;
+  const Y = SCENES_TYPE.answerWhy;
+  const headLine = H.size * 1.45;
+  const whyLine = Y.size * 1.55;
+  let y = top;
+  const head = (answer.head === "" ? [] : wrap(answer.head, H, width)).map((text) => {
+    y += headLine;
+    return { text, x: left, y: y - headLine * 0.28 };
+  });
+  if (answer.why !== "") y += SCENES_LOOK.wide.whyGap;
+  const why = (answer.why === "" ? [] : wrap(answer.why, Y, width)).map((text) => {
+    y += whyLine;
+    return { text, x: left, y: y - whyLine * 0.3 };
+  });
+  return { head, why, bottom: y };
+}
+
+/**
+ * 広い幅の場面の図 (#3873)。物を等しい列に左から並べ、列の真ん中に時系列図の箱を置いて点線の生存線を下ろす。
+ * やり取りは書いた順に上から積み、番号の丸を送り手の生存線の脇に置く。名前の札は時系列図と同じく、右へ向かう矢印は矢印の上、
+ * 左へ向かう矢印は矢印の下の真ん中に置く。注記は物の生存線の上に、番号の丸を左に入れた札を置く。
+ * 名前は矢印の両端の内に入る幅で折り、図の左右の余白から出さない。枠の幅 `frame` を渡すと、列を枠の幅まで広げる
+ */
+function wideScenes(read: Scenes, rows: readonly SceneRow[], colors: Map<string, ColorKey>, frame = 0): { lanes: SceneLanePlaced[]; rows: SceneRowPlaced[]; life: { y1: number; y2: number }; width: number } {
+  const W = SCENES_LOOK.wide;
+  const M = SCENES_LOOK.margin;
+  const B = LOOK.box;
+  const r = LOOK.badge.r;
+  const n = Math.max(1, read.lanes.length);
+  const boxW = read.lanes.map((lane) => Math.max(B.minW, textWidth(lane, TYPE.boxName) + B.padX * 2));
+  const width = Math.max(W.least, frame, M * 2 + n * Math.max(W.col, ...boxW.map((w) => w + W.boxGap)));
+  const colW = (width - M * 2) / n;
+  const cxOf = (lane: string): number => M + colW * (Math.max(0, read.lanes.indexOf(lane)) + 0.5);
+  const colorOf = (lane: string): ColorKey => colors.get(lane) ?? "slate";
+  const lanes = read.lanes.map((lane, i): SceneLanePlaced => {
+    const cx = cxOf(lane);
+    const w = boxW[i] ?? B.minW;
+    return { name: lane, color: colorOf(lane), box: { x: cx - w / 2, y: M, w, h: B.h }, cx, label: { text: lane, x: cx, y: M + B.h / 2 + B.nameMid } };
+  });
+  const y1 = M + B.h;
+  let y = y1 + W.first;
+  /** 札の行の字を、札の上端 `top` から行の高さずつ下げて置く */
+  const linesAt = (texts: string[], x: number, top: number): SceneText[] =>
+    texts.map((text, i) => ({ text, x, y: top + W.padY + W.line * (i + 0.5) + LOOK.baseline.label }));
+  const placed = rows.map((row, k): SceneRowPlaced => {
+    const text = labelText(row.label);
+    const style = labelStyle(row.label);
+    const widest = (lines: string[]): number => Math.max(0, ...lines.map((line) => textWidth(line, style)));
+    const base = { id: row.id, from: row.from, to: row.to, color: colorOf(row.from), note: row.note, n: k + 1 };
+    if (row.note) {
+      const lines = wrap(text, style, colW - (W.padX + r) * 2 - W.noteGap);
+      const w = W.padX * 2 + r * 2 + W.noteGap + widest(lines);
+      const h = Math.max(LOOK.action.h, lines.length * W.line + W.padY * 2);
+      const x = clampTo(cxOf(row.from) - w / 2, M, width - M - w);
+      const box = { x, y, w, h };
+      const tx = x + W.padX + r * 2 + W.noteGap + widest(lines) / 2;
+      y += h + W.rowGap;
+      return { ...base, badge: [x + W.padX + r, box.y + h / 2], box, lines: linesAt(lines, tx, box.y + (h - lines.length * W.line - W.padY * 2) / 2), bottom: box.y + h };
+    }
+    const x0 = cxOf(row.from);
+    const x1 = cxOf(row.to);
+    const dir = x1 >= x0 ? 1 : -1;
+    const lines = wrap(text, style, Math.abs(x1 - x0) - (W.span + W.padX) * 2);
+    const w = widest(lines) + W.padX * 2;
+    const h = lines.length * W.line + W.padY * 2;
+    // 右へ向かう矢印は札の下に、左へ向かう矢印は札の上に引く。どちらも番号の丸と札の間を `lineGap` 空ける
+    const lineY = dir > 0 ? y + h + W.lineGap : y + r;
+    const top = dir > 0 ? y : lineY + W.lineGap;
+    const box = { x: clampTo((x0 + x1) / 2 - w / 2, M, width - M - w), y: top, w, h };
+    y = Math.max(lineY + r, top + h) + W.rowGap;
+    return {
+      ...base,
+      badge: [x0 + dir * (r + LOOK.badge.inset), lineY],
+      box,
+      lines: linesAt(lines, box.x + w / 2, box.y),
+      arrow: { x0, x1: x1 - dir * LOOK.edge.inset, y: lineY },
+      bottom: Math.max(lineY + r, top + h),
+    };
+  });
+  const last = placed[placed.length - 1];
+  return { lanes, rows: placed, life: { y1, y2: last ? last.bottom + W.tail : y1 + W.bare }, width };
+}
+
+/**
+ * 狭い幅の場面の図 (#3873)。物の名前を色の点の付いた札にして上に折り返して並べ、その下にやり取りを 1 つずつの札にして縦に積む。
+ * 札は左に番号の丸を置き、中身と、送り手と受け手 (注記は物の名前) の行を書く。中身は札の幅で折る
+ */
+function tallScenes(read: Scenes, rows: readonly SceneRow[], colors: Map<string, ColorKey>, width: number): { lanes: SceneLanePlaced[]; rows: SceneRowPlaced[]; bare: number } {
+  const T = SCENES_LOOK.tall;
+  const P = T.pill;
+  const K = T.card;
+  const M = SCENES_LOOK.margin;
+  const r = LOOK.badge.r;
+  const colorOf = (lane: string): ColorKey => colors.get(lane) ?? "slate";
+  let x: number = M;
+  let y: number = M;
+  const lanes = read.lanes.map((lane): SceneLanePlaced => {
+    const w = P.padX * 2 + P.dot * 2 + P.dotGap + textWidth(lane, SCENES_TYPE.pill);
+    if (x > M && x + w > width - M) {
+      x = M;
+      y += P.h + P.gap;
+    }
+    const box = { x, y, w, h: P.h };
+    x += w + P.gap;
+    const mid = box.y + P.h / 2;
+    return { name: lane, color: colorOf(lane), box, cx: box.x + w / 2, dot: [box.x + P.padX + P.dot, mid], label: { text: lane, x: box.x + P.padX + P.dot * 2 + P.dotGap, y: mid + SCENES_TYPE.pill.size * 0.36 } };
+  });
+  const strip = y + P.h;
+  y = strip + T.strip;
+  const left = M + K.padX + r * 2 + K.badgeGap;
+  const inner = width - M - K.padX - left;
+  const placed = rows.map((row, k): SceneRowPlaced => {
+    const lines = wrap(labelText(row.label), SCENES_TYPE.card, inner);
+    const h = K.padY * 2 + lines.length * K.name + K.route;
+    const box = { x: M, y, w: width - M * 2, h };
+    const top = y + K.padY;
+    y += h + K.gap;
+    return {
+      id: row.id,
+      from: row.from,
+      to: row.to,
+      color: colorOf(row.from),
+      note: row.note,
+      n: k + 1,
+      badge: [M + K.padX + r, top + K.name / 2],
+      box,
+      lines: lines.map((text, i) => ({ text, x: left, y: top + K.name * (i + 0.72) })),
+      route: { text: row.note ? row.from : `${row.from} → ${row.to}`, x: left, y: top + lines.length * K.name + K.route * 0.72 },
+      bottom: box.y + h,
+    };
+  });
+  return { lanes, rows: placed, bare: strip + M };
+}
+
+/**
+ * 場面を選ぶ見た目の図 (`[shape: scenes]`、#3873) を並べる。選んだ場面のやり取りだけを書いた順に並べ、ほかの場面のやり取りは並べない。
+ * 図の幅を渡さないか `SCENES_LOOK.narrowBelow` 以上なら広い幅の時系列図の形、それより狭ければ枠の幅で札を積む形にする。
+ * 広い幅はやり取りを描かない図でも選んだ場面のやり取りが入る高さにし、送ってやり取りが出ても図の高さを変えない
+ */
+export function layoutScenes(diagram: DiagramModel, options: SceneOptions = {}): TryLayout {
+  const read = readScenes(diagram);
+  const scene = options.scene !== undefined && read.scenes.includes(options.scene) ? options.scene : read.chosen;
+  const picked = pickScene(read, scene);
+  const colors = laneColors(read.lanes);
+  const M = SCENES_LOOK.margin;
+  const tall = options.width !== undefined && options.width < SCENES_LOOK.narrowBelow;
+  const width = tall ? Math.max(options.width ?? 0, LOOK.box.minW * 3) : 0;
+  const drawn = tall ? tallScenes(read, picked.rows, colors, width) : wideScenes(read, picked.rows, colors, options.width);
+  const figureW = "width" in drawn ? drawn.width : width;
+  const rows = options.rows === true ? drawn.rows : [];
+  const life = "life" in drawn ? drawn.life : undefined;
+  const lastRow = drawn.rows[drawn.rows.length - 1];
+  /** やり取りの下端。広い幅は生存線の下端、狭い幅は最後の札の下端 */
+  const end = life ? life.y2 : rows.length > 0 && lastRow ? lastRow.bottom : ("bare" in drawn ? drawn.bare - M : 0);
+  const gap = tall ? SCENES_LOOK.tall.answerGap : SCENES_LOOK.wide.answerGap;
+  const answer = options.answer === true && picked.answer.head !== "" ? placeAnswer(picked.answer, M, figureW - M * 2, end + gap) : undefined;
+  const bare = life ? life.y2 + M : "bare" in drawn ? drawn.bare : end + M;
+  return {
+    kind: "try",
+    arrangement: tall ? "stack" : "row",
+    width: figureW,
+    height: answer ? answer.bottom + M : end + M,
+    regions: [],
+    boxes: [],
+    lifelines: [],
+    edges: [],
+    labels: [],
+    actions: [],
+    badges: [],
+    paths: [],
+    ends: [],
+    parts: [],
+    states: [],
+    moments: [],
+    routes: [],
+    queues: [],
+    chains: [],
+    chip: { w: 0, h: 0 },
+    names: {},
+    scenes: {
+      arrangement: tall ? "tall" : "wide",
+      field: read.field,
+      scene,
+      lanes: drawn.lanes,
+      ...(life ? { life } : {}),
+      rows,
+      ...(answer ? { answer: { head: answer.head, why: answer.why, text: picked.answer } } : {}),
+      bare,
+    },
+  };
 }
