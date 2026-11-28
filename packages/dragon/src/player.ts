@@ -248,9 +248,11 @@ function playerCss(): string {
     // 積む帯は操作の段 (釦と進み具合) を図のすぐ下に置き、段を送る釦を携帯の最初の画面に収める (#3061)。
     // その下の番号の右に題、その下に説明文を帯の全幅で置く。説明文を番号の右の欄に入れると行が増えて帯が高くなり、
     // 重ね窓の図の枠が低くなる (#3059)。題と説明文を包む箱を外して写しも同じ升に重ねるので、題の升は最も高い題、
-    // 説明文の升は最も長い説明文の高さになる (#3049)。題を小さくし、題と説明文から操作の段までを詰めて、図の枠の高さを残す
+    // 説明文の升は最も長い説明文の高さになる (#3049)。題を小さくし、題と説明文から操作の段までを詰めて、図の枠の高さを残す。
+    // 番号と題の間は番号の`margin-inline-end`だけで空け、元の`.dg-say`の`gap`が残す列の間を0にする。列の間が残ると間が倍になって
+    // 題の欄が細り、段の数を隠した頁では空の番号の列の後に間が残って題が説明文より右から始まる (#4035)
     `@container dg-bar (width < ${px(P.wide)}){.dg-lay{gap:${px(P.progressGap)}}.dg-ctl{order:-1}.dg-tt{font-size:${px(TYPE.stepTitleStacked.size)}}` +
-      `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:baseline}` +
+      `.dg-say{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:0;align-items:baseline}` +
       `.dg-txt,.dg-txt>*{display:contents}.dg-no{grid-area:1/1;margin-inline-end:${px(P.captionGap)}}.dg-tt{grid-area:1/2}.dg-tb{grid-area:2/1/3/3}}`,
     // 狭い帯 (携帯の幅) では、段を送る釦を指で押せる大きさにする (#3057、#3069)。題と説明文の字を小さくし、帯を低く保つ (#3061)
     `@container dg-bar (width < ${px(P.narrow)}){.dg-btn{min-width:${px(P.touch)};height:${px(P.touch)}}` +
