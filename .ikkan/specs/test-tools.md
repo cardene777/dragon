@@ -203,8 +203,6 @@
 | 一覧の行を、関門が読む通った行と落ちた行の形 (`.ikkan/checks.md`) に当てることを拒む | `pnpm exec vitest run packages/dragon/test/near-limit-report.test.ts`の検査`near-limit-lines-are-not-result-lines`が通る | #3740 |
 | 届く検査の命令 (`pnpm test:related`) は、vitestへ報告の部品と既定の報告の両方を渡す | `pnpm exec vitest run packages/dragon/test/test-related.test.ts`の検査`related-run-passes-near-limit-reporter`が通る | #3740 |
 | 一式と配る前のテストの命令は、`packages/`の2回と`apps/`の1回の3つのvitestの実行の全てで報告の部品を渡す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`suite-commands-pass-near-limit-reporter`が通る | #3740、#3946 |
-| 一式と配る前のテストの命令は、`packages/`の検査を`--shard=1/2`と`--shard=2/2`の2回のvitestに分け、その後に`apps/`の検査を回す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`checks-run-packages-in-two-shards`が通る | #3946 |
-| 準備の段が読む回す検査のfileの一覧は、`--shard=1/2`の回と`--shard=2/2`の回で重ならず、2つを合わせると分けない回の一覧と同じになる | `pnpm exec vitest run packages/dragon/test/run-specs.test.ts`の検査`run-specs-split-by-shard`が通る | #3946 |
 | 回す検査のfileの一覧を読む準備の段の4つは、一覧を`runSpecs`から読み、`getRelevantTestSpecifications`を直に呼ばない | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts`の検査`setups-read-run-specs`が通る | #3946 |
 | 1件の検査の上限は10秒のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`test-limit-is-ten-seconds`が通る | #3740 |
 | 1回の実行の上限は5分のまま | `pnpm exec vitest run packages/dragon/test/test-limits.test.ts`の検査`run-limit-is-five-minutes`が通る | #3740 |
@@ -262,3 +260,7 @@
 | 順の図の並べ方 (`src/kinds/sequence/layout.ts`) を変えた時に選ぶ検査のfileは176以下 | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts --reporter=verbose` check `related-sequence-layout-picks-at-most-176` passes | #4066 |
 | `packages/*/test`と`apps/*/src`の下で件を持つ全てのfileの全ての件は、件の中で子のprocessを起こさず、頁を開かない | `pnpm exec vitest run packages/dragon/test/case-work.test.ts packages/dragon/test/page-guide.test.ts --reporter=verbose` check `case-work-no-child-or-page-in-any-case` passes | #4067 |
 | 色味を名指した止めて置く塊を`dragon embed`で埋めると、紙と墨を名指した塊は`#26706e`、名指さない塊は`#467deb`の青の役で描く | `pnpm exec vitest run packages/dragon/test/case-work.test.ts packages/dragon/test/page-guide.test.ts --reporter=verbose` check `embed-still-block-reads-palette` passes | #4067 |
+| 一式と配る前のテストの命令は、`packages/`の検査を`--shard=1/3`、`--shard=2/3`、`--shard=3/3`の3回のvitestに分け、その後に`apps/`の検査を回す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts packages/dragon/test/run-specs.test.ts --reporter=verbose` check `checks-run-packages-in-three-shards` passes | #4079 |
+| 一式と配る前のテストの4つのvitestの実行の全てが、上限に近い件を出す報告の部品を渡す | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts packages/dragon/test/run-specs.test.ts --reporter=verbose` check `suite-commands-pass-near-limit-reporter` passes | #4079 |
+| 準備の段が読む回す検査のfileの一覧は、`--shard=1/3`、`--shard=2/3`、`--shard=3/3`の回で重ならず、3つを合わせると分けない回の一覧と同じになる | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts packages/dragon/test/run-specs.test.ts --reporter=verbose` check `run-specs-split-by-shard` passes | #4079 |
+| 回す検査のfileの一覧を読む準備の段は、一覧を`test-support/run-specs.ts`から読む | `pnpm exec vitest run packages/dragon/test/test-policy.test.ts packages/dragon/test/run-specs.test.ts --reporter=verbose` check `setups-read-run-specs` passes | #4079 |

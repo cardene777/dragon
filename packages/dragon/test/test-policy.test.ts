@@ -234,19 +234,25 @@ describe("検査の回し方と外した検査の記録 (#3381)", () => {
   });
 
   it("suite-commands-pass-near-limit-reporter", () => {
-    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package の 2 回と見本帳の 1 回の 3 つの実行の全てで渡す (#3740、#3946)
+    // 一式と配る前のテストは、1 件の上限に近い件を名前と秒数で出す報告の部品を、package の 3 回と見本帳の 1 回の 4 つの実行の全てで渡す (#3740、#3946、#4079)
     expect(existsSync(join(ROOT, "scripts/near-limit-reporter.mjs")), "報告の部品 scripts/near-limit-reporter.mjs が無い").toBe(true);
     const missing = ["一式", "配る前のテスト"].flatMap((field) => {
       const runs = commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step));
-      if (runs.length !== 3) return [`${field} の vitest の実行が 3 つでない (${runs.length} 個)`];
+      if (runs.length !== 4) return [`${field} の vitest の実行が 4 つでない (${runs.length} 個)`];
       return runs.filter((run) => !run.split(/\s+/u).includes("--reporter=./scripts/near-limit-reporter.mjs")).map((run) => `${field}: ${run}`);
     });
     expect(missing, "報告の部品を渡さない vitest の実行").toEqual([]);
   });
 
-  it("checks-run-packages-in-two-shards", () => {
-    // package の検査は 1 回で回すと、混んだ時に 1 回の実行の上限 (5 分) を超えて残りを回さずに止まる (#3946)。`--shard` で 2 回に分け、見本帳の検査をその後に回す
-    const want = ["pnpm exec vitest run packages/ --shard=1/2", "pnpm exec vitest run packages/ --shard=2/2", "pnpm exec vitest run apps/"];
+  it("checks-run-packages-in-three-shards", () => {
+    // package の検査は 1 回で回すと、混んだ時に 1 回の実行の上限 (5 分) を超えて残りを回さずに止まる (#3946)。`--shard` で分け、見本帳の検査をその後に回す
+    // 2 回に分けても、ほかの会話が同じ機械で検査を回す時は 2 回目が上限を超えて 0.91.0 を出す時に 4 度止まったので、3 回に分ける (#4079)
+    const want = [
+      "pnpm exec vitest run packages/ --shard=1/3",
+      "pnpm exec vitest run packages/ --shard=2/3",
+      "pnpm exec vitest run packages/ --shard=3/3",
+      "pnpm exec vitest run apps/",
+    ];
     const runs = Object.fromEntries(["一式", "配る前のテスト"].map((field) => [
       field,
       commandSteps(checksCell(field)).filter((step) => /\bvitest run\b/u.test(step)).map((step) => step.split(/\s+/u).filter((word) => !word.startsWith("--reporter=")).join(" ")),

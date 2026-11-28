@@ -18,7 +18,7 @@
 一式は版を出す前に配る前の関門が1回だけ回す (#3381)。
 一式は 1 件 10 秒、1 回の実行 5 分の上限の中で終わるので、重さを `軽い` と書く。
 `pnpm test:related`と一式は、1件の上限の4割以上かかった件を実行の終わりに名前と秒数で一覧にする報告の部品 (`scripts/near-limit-reporter.mjs`) をvitestへ渡す (#3740)。関門が時間切れで落ちる前に、軽くする件を知るため。一覧は知らせるだけで終わり方を変えず、設定 (`vitest.config.ts`) に書かないのは、書くと`pnpm test:related`が全ての検査を選ぶため。
-検査は package の検査 (`packages/`) と見本帳の検査 (`apps/`) を分けて回し、package の検査はさらに `--shard=1/2` と `--shard=2/2` の 2 回に分ける。1 回で回すと、機械が混んだ時に 5 分の上限を超えて残りを回さずに止まるため (#3463、#3946)。準備の段は、分けたそれぞれの回で、その回に回す file だけを準備する (`test-support/run-specs.ts`)。
+検査は package の検査 (`packages/`) と見本帳の検査 (`apps/`) を分けて回し、package の検査はさらに `--shard=1/3`、`--shard=2/3`、`--shard=3/3` の 3 回に分ける。1 回で回すと、機械が混んだ時に 5 分の上限を超えて残りを回さずに止まるため (#3463、#3946)。2 回に分けても、ほかの会話が同じ機械で検査を回す時は 2 回目が上限を超え、0.91.0 を出す時に 4 度止まった (#4079)。準備の段は、分けたそれぞれの回で、その回に回す file だけを準備する (`test-support/run-specs.ts`)。
 一式の最後に、依存の脆弱性を本物の `osv-scanner` で 1 回だけ見る (`bash scripts/check-dependency-vulnerabilities.sh`、#3498)。外の脆弱性の一覧に問い合わせ、応答が遅いと 1 回 15 秒を超えるので、1 件 10 秒の上限がある検査の外で走らせる。検査の中では代わりの道具で命令の判定だけを見る。外の一覧が止まっている時は終了 2 で止まる。
 
 版を出す前は、ikkan の配る前の関門 (`deployable.sh --since v<前の版>`) が下の表の配る前の 7 つの欄を回し、落ちた欄を全て名指す (#3589)。
@@ -32,12 +32,12 @@ npm へ出して見本帳を配った後は、配った後の関門 (`deployed.s
 
 | 欄 | 中身 |
 |---|---|
-| 一式 | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --shard=1/2 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=2/2 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && bash scripts/check-dependency-vulnerabilities.sh'` |
+| 一式 | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --shard=1/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=2/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=3/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && bash scripts/check-dependency-vulnerabilities.sh'` |
 | 通った行の形 | `^\s*✓\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 落ちた行の形 | `^\s*×\s+\S+\s+>\s+(?:.*\s+>\s+)?(.+?)\s+\d+ms$` |
 | 一式の重さ | 軽い |
 | 届く検査 | 無し (本人が2026-11-21に外すと決めた。課題ごとの関門は記録したテスト命令だけを回す) |
-| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --shard=1/2 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=2/2 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs'` |
+| 配る前のテスト | `bash -c 'pnpm build && pnpm typecheck && pnpm lint && pnpm exec vitest run packages/ --shard=1/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=2/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run packages/ --shard=3/3 --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs && pnpm exec vitest run apps/ --reporter=verbose --reporter=./scripts/near-limit-reporter.mjs'` |
 | 配る前の動作 | `bash -c 'pnpm build:packages && pnpm --filter @cardenelabs/dragon check:pack'` |
 | 配る前のセキュリティ | `node scripts/release-checks.mjs security` |
 | 配る先との整合 | `node scripts/release-checks.mjs target` |
