@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { closestPair, type Sight } from "./color-vision";
-import { exampleJson, smallSequence } from "./diagram-support";
+import { api, exampleJson, smallSequence } from "./diagram-support";
 import { MONO_STACK, SANS_STACK } from "./font-stacks";
 import { ARCADE_COLORS, draw, figureClass, figureVars, type Lang } from "./render-support";
 // src の全ての file を読んで確かめるので、どの file を変えてもこの検査が選ばれるよう、全ての種類を読む助けの file に型だけでつなぐ (#3763)
@@ -54,7 +54,39 @@ describe("色味", () => {
       }
     }
   });
+
+  // 紙と墨の青の役は、見本で選んだ深い青緑を、緑の区画と見分けられる暗さへ寄せた値にする (#4057)
+  it("paper-light-blue-role-is-teal", () => {
+    const paper = draw("resolvePalette")("paper");
+    expect([paper.light["c-blue"], paper.light["t-blue"]], "紙と墨の明るい表示の青の役の線と字").toEqual(["#26706e", "#1a504f"]);
+  });
+
+  // 暗い表示は、明るい表示の青緑と同じ役を、黒地から浮く淡い青緑で描く (#4057)
+  it("paper-dark-blue-role-is-pale-teal", () => {
+    const paper = draw("resolvePalette")("paper");
+    expect([paper.dark["c-blue"], paper.dark["t-blue"]], "紙と墨の暗い表示の青の役の線と字").toEqual(["#86d0cc", "#a3dcd9"]);
+  });
+
+  it("paper-figure-draws-teal-first", () => {
+    const parsed = api("parseNotation")(TEAL_NOTATION, { lang: "ja" });
+    expect(parsed.ok, "記法を読めない").toBe(true);
+    if (!parsed.ok) return;
+    const { svg, palette } = draw("renderDiagram")(parsed.diagram);
+    expect(palette, "色味を書かない図の色味").toBe("paper");
+    // 色を書かない1番目の区画は、配る順の1番目の青の役を読む
+    expect(svg, "1番目の区画の色").toMatch(/data-node="受付" style="--c:var\(--c-blue\);--ct:var\(--t-blue\)"/u);
+    // 説明の印の丸も青の役を読む
+    expect(svg, "説明の印の丸").toContain('class="dg-nbc"');
+    expect(svg, "説明の印の丸の塗り").toContain(".dg-nbc{fill:var(--c-blue)}");
+    // 図の色の変数は、青の役に暗めの青緑を持つ
+    expect(svg, "図の色の変数").toContain("--c-blue:#26706e");
+  });
 });
+
+/** 色を書かない区画1つに、説明を持つ箱を置いた図 (#4057) */
+const TEAL_NOTATION =
+  "architecture 受け付けの流れ [note: pop]\n\ngroup 受付 as 受け付け\n  box 店 [note: 代金を確かめる]\n  box 銀行\nend\n\n" +
+  "step 頼む\n  say 店が銀行に代金を頼む。\n  店 -> 銀行: 代金\n";
 
 /** 仮名と漢字。英語の断りの文に入らない */
 const KANA_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u;
