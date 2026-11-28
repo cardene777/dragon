@@ -61,24 +61,28 @@ const EXAMPLE_CHECKED = await atLoad("見本の日本語と英語の原本を dr
   ]),
 );
 
-/** 見本の原本を、`[shape: scenes]` を書いた形と書かない形で SVG に書き出す */
-const EXPORTED = await atLoad(
-  "見本の原本を scenes の見た目と今の見た目で SVG に書き出す",
-  async () => {
-    const exportDiagram = await exporter();
-    const outDir = mkdtempSync(join(tmpdir(), "dragon-try-scenes-svg-"));
-    const svgOf = async (text: string, name: string): Promise<string> => {
-      const exported = await exportDiagram(parsedTry(text), {
-        outDir,
-        name,
-        formats: ["svg"],
-        lang: "ja",
-      });
-      expect(exported.files.svg, `${name} を SVG に書き出していない`).toBeDefined();
-      return readFileSync(exported.files.svg ?? "", "utf8");
-    };
-    return { scenes: await svgOf(SAMPLE, "scenes"), plain: await svgOf(SAMPLE_PLAIN, "plain") };
-  },
+/** 原本を SVG に書き出した中身 */
+async function svgOf(text: string, name: string): Promise<string> {
+  const exportDiagram = await exporter();
+  const outDir = mkdtempSync(join(tmpdir(), "dragon-try-scenes-svg-"));
+  const exported = await exportDiagram(parsedTry(text), {
+    outDir,
+    name,
+    formats: ["svg"],
+    lang: "ja",
+  });
+  expect(exported.files.svg, `${name} を SVG に書き出していない`).toBeDefined();
+  return readFileSync(exported.files.svg ?? "", "utf8");
+}
+
+// 2 つの見た目を別の仕事で書き出す。1 つの仕事にすると、場面の見た目が描けない時に今の見た目を確かめる件まで落ちる
+/** 見本の原本を `[shape: scenes]` を書いた形で SVG に書き出す */
+const SCENES_SVG = await atLoad("見本の原本を場面の見た目で SVG に書き出す", () =>
+  svgOf(SAMPLE, "scenes"),
+);
+/** 見本の原本を `[shape: scenes]` を書かない形で SVG に書き出す */
+const PLAIN_SVG = await atLoad("見本の原本を今の見た目で SVG に書き出す", () =>
+  svgOf(SAMPLE_PLAIN, "plain"),
 );
 
 const firstLine = (text: string): string => text.split("\n")[0] ?? "";
@@ -271,7 +275,7 @@ describe("描けない原本 (#3873)", () => {
 
 describe("描いた形 (#3873)", () => {
   it("try-without-shape-keeps-route-look", () => {
-    const { plain } = EXPORTED.get();
+    const plain = PLAIN_SVG.get();
     expect(plain, "[shape: scenes] を書かない try が網 (dg-try-net) を描かない").toContain(
       "dg-try-net",
     );
@@ -284,7 +288,7 @@ describe("描いた形 (#3873)", () => {
   });
 
   it("try-scenes-export-draws-author-scene", () => {
-    const { scenes } = EXPORTED.get();
+    const scenes = SCENES_SVG.get();
     // 最後の段は 聞く7 (画面が聞きに行く) を選ぶ
     for (const label of ["受け付けた印を返す", "終わったかを聞く", "まだと返す", "もう一度聞く"])
       expect(
