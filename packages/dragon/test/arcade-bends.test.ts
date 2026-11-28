@@ -196,6 +196,13 @@ const before = JSON.parse(
 ) as Record<string, string>;
 
 describe("線の形を変える前の記録 (#3358)", () => {
+  it("bends-record-notes-lane-mark-retake", () => {
+    // 記録の値を取り直した時は、読む所の注釈に、取り直した見本と理由と課題の番号を書く (#4076)
+    const text = readFileSync(join(ROOT, "packages/dragon/test/arcade-bends.test.ts"), "utf8");
+    const note = /\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*const before =/u.exec(text)?.[1] ?? "";
+    for (const word of ["auction.json", "帯の間の印", "#4060", "#4076"]) expect(note, `記録を読む所の注釈が「${word}」を書かない`).toContain(word);
+  });
+
   it("bends-record-lists-every-example", () => {
     expect(Object.keys(before).sort(), "線の形を変える前の記録と見本の file").toEqual(FILES);
   });
