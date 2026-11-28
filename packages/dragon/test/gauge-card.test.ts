@@ -529,6 +529,9 @@ describe("目盛りの内訳の札 (#3896)", () => {
     ) as {
       provides: Record<string, { version: string }>;
     };
-    expect(musubi.provides.cheatsheet?.version, "スキルの cheatsheet の版").toBe("1.2.0");
+    // 後の課題が早見表の版を上げても落ちないよう、この課題で上げた1.2.0以上と見る (#4040)
+    const version = musubi.provides.cheatsheet?.version ?? "0.0.0";
+    const [major = 0, minor = 0] = version.split(".").map(Number);
+    expect(major > 1 || (major === 1 && minor >= 2), `スキルの cheatsheet の版 (${version}) が1.2.0より前`).toBe(true);
   });
 });

@@ -216,7 +216,7 @@ const writtenSteps = (diagram: DiagramModel, id: string): number[] =>
 /**
  * 図の目盛りを置く前の形にする。`boxes` は目盛りを置ける箱の名札で、`on` が無い箱を指す目盛り (原本の JSON にだけ書ける) は図の上の帯に置く。
  * 上限を超えた札の既定の字と内訳の行の確定と予約の語は、描く言葉 `lang` の目盛りの語 (`words.ts`) から読む。
- * `cards` は内訳の札 (#3896) を作る図か。札を作る図の種類 (手順の図) だけが渡し、札を作らない図に印だけが残らないようにする
+ * `cards` は内訳の札 (#3896) を作る図か。札を作る図の種類 (手順の図と列の図 (#4040)) だけが渡し、札を作らない図に印だけが残らないようにする
  */
 export function planGauges(diagram: DiagramModel, boxes: readonly string[], lang: NotationLang, cards = false): { under: Map<string, GaugePlan[]>; top: GaugePlan[] } {
   const { over, split } = GAUGE_WORDS[lang];

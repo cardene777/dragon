@@ -405,7 +405,7 @@ Parts go inside a diagram of a kind above.
 
 | Part | What it adds | Kinds that take it |
 |---|---|---|
-| Note card `[note: pop]` | Long box notes move to a card that opens on a click, so the boxes stay small | `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `flow` |
+| Note card `[note: pop]` | Long box notes move to a card that opens on a click, so the boxes stay small | `sequence`, `architecture`, `state`, `git`, `time`, `tree`, `flow`, and `lineup` where only gauges get cards |
 | Scene `scene ... end` | Up to three cases that share the first steps and then split, shown together or one at a time | `flow`, `lineup` |
 | Judge table | Cases checked rule by rule, each getting a verdict | The `judge` kind above |
 | Gauge `gauge` and `set` | An amount against a limit, as a bar that moves step by step | `flow`, `lineup` |
@@ -462,7 +462,7 @@ end
 
 `gauge` before the first `step`, under its `on` box. `set <gauge>: <total>` in a step moves the bar.
 `set <gauge>: <confirmed> [hold: <held>]` paints the held amount in a pale shade after the confirmed one and lists both under the bar. A `set` without `hold` clears it.
-With `[note: pop]` on the first line of a flow diagram, clicking a gauge opens a card that lists each step's change and value, up to the step on screen.
+With `[note: pop]` on the first line of a flow or a lineup diagram, clicking a gauge opens a card that lists each step's change and value, up to the step on screen.
 A total over `limit` grows in red and shows the `over` text.
 
 ```dragon
