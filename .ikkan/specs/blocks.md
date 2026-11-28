@@ -78,3 +78,5 @@
 | 幅728pxの枠で、内訳の行の字が10.5px以上で描かれる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts --reporter=verbose` check `gauge-hold-text-readable-at-728` passes | #3895 |
 | 使い方の頁の目盛りの段落、文法の表の目盛りの行、手引き (日本語と英語) の目盛りの節、dragonのスキルの`cheatsheet`が`[hold: <量>]`を書き、スキルの`cheatsheet`の版を1.1.0に上げる | `pnpm exec vitest run packages/dragon/test/gauge.test.ts --reporter=verbose` check `gauge-hold-docs` passes | #3895 |
 | 目盛りを書かない図と、予約を書かない目盛りの図は、今と同じ形で描く | `pnpm exec vitest run packages/dragon/test/examples-svg.test.ts` check `examples-svg-unchanged` passes | #3895 |
+| `import`と`require`の型のfileで、どの入口からも出ていない型が無く、目盛りの内訳の語の型`Split`は`SceneGauge`と同じ入口から名前で出る | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts --reporter=verbose` check `entry-types-all-exported` passes | #4034 |
+| 描く入口の型のfileは今どおり`mountDiagram`と`PlayerOptions`を出し、型で組んだ設定を`mountDiagram`に渡すcodeが型検査を通る | `pnpm exec vitest run packages/dragon/test/package-entries.test.ts --reporter=verbose` check `player-options-type-exported` and `player-options-type-checks` passes | #4034 |
