@@ -177,8 +177,6 @@ Every line follows these four rules.
 4. The only nesting is `group … end` and the scene's `scene … end`. A step runs until the next `step`, and indentation is for reading. Only the lines that continue a `say` must be indented deeper than `say`
 
 The [notation guide](packages/dragon/examples/quick-start.en.md) has every line form, and a section for each kind of diagram.
-A try diagram with `[shape: scenes]` on its first line lets the reader pick a scene.
-It then draws only that scene's exchanges in order and shows its answer ([how to write it](packages/dragon/examples/quick-start.en.md#scenes-look-of-a-try-diagram)).
 A full example of each kind is in [`packages/dragon/examples`](packages/dragon/examples).
 
 ## Documentation

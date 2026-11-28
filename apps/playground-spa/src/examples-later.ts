@@ -104,8 +104,6 @@ import stockReserveJa from "../../../packages/dragon/examples/stock-reserve.drag
 import stockReserveEn from "../../../packages/dragon/examples/stock-reserve.en.dragon?raw";
 import multisigJa from "../../../packages/dragon/examples/multisig.dragon?raw";
 import multisigEn from "../../../packages/dragon/examples/multisig.en.dragon?raw";
-import replyWaysJa from "../../../packages/dragon/examples/reply-ways.dragon?raw";
-import replyWaysEn from "../../../packages/dragon/examples/reply-ways.en.dragon?raw";
 import gasFeeJa from "../../../packages/dragon/examples/gas-fee.dragon?raw";
 import gasFeeEn from "../../../packages/dragon/examples/gas-fee.en.dragon?raw";
 import stakingRewardsJa from "../../../packages/dragon/examples/staking-rewards.dragon?raw";
@@ -255,7 +253,6 @@ export const LATER_EXAMPLES: Record<LaterExampleKey, Record<Lang, string>> = {
   "checkout-lanes": { ja: checkoutLanesJa, en: checkoutLanesEn },
   "stock-reserve": { ja: stockReserveJa, en: stockReserveEn },
   multisig: { ja: multisigJa, en: multisigEn },
-  "reply-ways": { ja: replyWaysJa, en: replyWaysEn },
   "gas-fee": { ja: gasFeeJa, en: gasFeeEn },
   "staking-rewards": { ja: stakingRewardsJa, en: stakingRewardsEn },
   "shop-funnel": { ja: shopFunnelJa, en: shopFunnelEn },

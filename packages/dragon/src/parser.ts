@@ -239,7 +239,7 @@ const NOTE_KINDS: readonly string[] = [...blockKinds("pop"), "lineup"];
  * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)、
  * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877) と列の図 (#4040)、場面の見せ方 (`scenes`) は場面を書ける図 (#3878)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence", "try"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: NOTE_KINDS, scenes: SCENE_KINDS };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: NOTE_KINDS, scenes: SCENE_KINDS };
 
 /** 書いている場面 (#3878)。`scene` の行と名前と、読み終えた段と止まる理由 */
 interface SceneDraft {
@@ -272,9 +272,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   // 図の種類の行の属性は、書ける図の種類 (`HEAD_KINDS`) のほかの図には書けない。
   // 値は図の種類のブロックが確かめる。量の図の見た目は見た目のブロック、列の図の見た目はチップのブロック、集合の重なりの図の見た目は集まりの円のブロック、
   // 2つの軸で置く図の見た目は軸のブロック、回り続ける図の見た目と回る向きは輪のブロック、量の行き先の図の見た目は量の帯のブロック、
-  // 時系列図の見た目 (#3720) は生存線のブロックが確かめる。選べる図の見た目 (#3873) は網のブロックが確かめ、場面の見た目は選べる図にだけ書ける
-  const scenesShape = headAttrs.get("shape");
-  if (scenesShape?.value === "scenes" && kind !== "try") throw fail(head, scenesShape.at, m.headOnlyAttr("shape: scenes", ["try"]));
+  // 時系列図の見た目 (#3720) は生存線のブロックが確かめる
   for (const [key, kinds] of Object.entries(HEAD_KINDS)) {
     const attr = headAttrs.get(key);
     if (attr && !kinds.includes(kind)) throw fail(head, attr.at, m.headOnlyAttr(key, kinds));
@@ -654,8 +652,6 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
             items: figure.try.items,
             ...(figure.try.sides.length > 0 ? { sides: figure.try.sides } : {}),
             ...(figure.try.checks.length > 0 ? { checks: figure.try.checks } : {}),
-            // 場面を選ぶ見た目 (#3873)。ほかの値は網のブロックが断った
-            ...(scenesShape?.value === "scenes" ? { shape: "scenes" as const } : {}),
           },
         }
       : {}),

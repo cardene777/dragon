@@ -20,7 +20,6 @@ import type { Span, Timeline } from "../timeline";
 import type { Shown } from "./ink";
 import type { Frame } from "./motion";
 import { type Ctx, cssFont as font, cssMix as mix, esc, r1, sansOf, write } from "./parts";
-import { drawScenes } from "./try-scenes";
 
 const S = LOOK.stroke;
 const X = LOOK.mix;
@@ -140,8 +139,6 @@ export function drawTry(
   timeline: Timeline,
   ctx: Ctx,
 ): { base: string; lit: string; node: string; top: string; css: string } {
-  // 場面を選ぶ見た目の図 (#3873) は、場面の図の描き方が物とやり取りを描く。網と待ち行列の見た目の規則は書かない
-  if (layout.scenes) return drawScenes(layout.scenes, ctx);
   const { m } = ctx;
   const moments = layout.moments;
   const spanOf = (s: number): Span => timeline.steps[s] as Span;

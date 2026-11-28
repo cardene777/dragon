@@ -120,10 +120,6 @@
       "description": "時系列図の見た目。時系列図だけが書け、pipe はパイプ図の部品で並べて描く。書いた図だけが始めの値 (blocks.hold) を持てる",
       "$ref": "#/definitions/sequenceLook"
     },
-    "try": {
-      "description": "選べる図の見た目。選べる図だけが書け、scenes は場面を選ぶとやり取りの順が替わる図で描く",
-      "$ref": "#/definitions/tryLook"
-    },
     "blocks": {
       "description": "図の宣言。ブロックの名前ごとの欄に、そのブロックの宣言を置く",
       "type": "object",
@@ -904,25 +900,6 @@
       "else": {
         "properties": {
           "sequence": {
-            "$ref": "#/definitions/absent"
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "required": [
-          "kind"
-        ],
-        "properties": {
-          "kind": {
-            "const": "try"
-          }
-        }
-      },
-      "else": {
-        "properties": {
-          "try": {
             "$ref": "#/definitions/absent"
           }
         }

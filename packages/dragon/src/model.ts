@@ -102,8 +102,6 @@ export function fromModel(model: DiagramModel, version: number): Diagram {
     ...(model.venn?.shape !== undefined ? { venn: { shape: model.venn.shape, ...(model.venn.unit !== undefined ? { unit: model.venn.unit } : {}) } } : {}),
     // 時系列図の見た目 (#3720) も根の欄 (`sequence`) に移す。生存線の並びは箱の並びから組み直せるので書かない
     ...(model.sequence?.shape !== undefined ? { sequence: { shape: model.sequence.shape } } : {}),
-    // 選べる図の見た目 (#3873) も根の欄 (`try`) に移す
-    ...(model.try?.shape !== undefined ? { try: { shape: model.try.shape } } : {}),
     blocks: blocks as DiagramBlocks,
     steps: model.steps,
     // 場面 (#3878) は、段と同じく根の欄のまま移す
@@ -142,7 +140,6 @@ export function toModel(diagram: Diagram): DiagramModel {
         items: (b.item ?? []) as TryItem[],
         ...(b.side !== undefined ? { sides: b.side } : {}),
         ...(b.check !== undefined ? { checks: b.check } : {}),
-        ...(diagram.try !== undefined ? { shape: diagram.try.shape } : {}),
       },
     };
   if (diagram.kind === "flow")

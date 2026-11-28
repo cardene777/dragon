@@ -441,8 +441,6 @@ export interface Diagram {
   sankey?: SankeyLook;
   /** 時系列図の見た目 (#3720)。時系列図だけが書き、書かない図は今の見た目で描く */
   sequence?: { shape: SequenceShape };
-  /** 選べる図の見た目 (#3873)。選べる図だけが書き、書かない図は今の見た目で描く */
-  try?: { shape: TryShape };
   /** 判定の表 (#3879) の規則と例と判定の語。判定の表だけが書き、ブロックの宣言の欄 (`blocks`) を使わない */
   judge?: import("./judge/types").JudgeSpec;
   blocks: DiagramBlocks;
@@ -487,7 +485,7 @@ export interface DiagramModel {
   /** 列の図のチップと役と、見た目 (#3625)。見た目は版2の原本の根の `lineup` の欄から移す */
   lineup?: { items: LineupItem[]; roles?: LineupRole[]; shape?: LineupShape };
   /** 試す図 (#3337) の部品とチップと関門 (#3476)。版1の原本に無かった種類なので、版2の原本の `part` と `item` と `check` をそのまま持つ */
-  try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][]; checks?: TryCheck[]; shape?: TryShape };
+  try?: { parts: TryPart[]; items: TryItem[]; sides?: string[][]; checks?: TryCheck[] };
   /**
    * 配管の図 (#3389) の始めの値と、`[fold]` の呼び出しを畳んだ箱。版1の原本に無かった種類なので、版2の原本の `hold` をそのまま持つ。
    * `folds` は描く処理が畳んだ図 (`kinds/pipe/layout.ts` の `foldPipe`) だけが持ち、原本は持たない
@@ -551,13 +549,6 @@ export type PipeLayoutName = (typeof PIPE_LAYOUTS)[number];
  */
 export const SEQUENCE_SHAPES = ["pipe"] as const;
 export type SequenceShape = (typeof SEQUENCE_SHAPES)[number];
-
-/**
- * 選べる図の見た目の名前 (#3873)。`scenes` は場面を選ぶとやり取りの順が替わる見た目で、種類の行の `[shape: scenes]` で選ぶ。
- * 書かない選べる図は今の見た目 (網と待ち行列) で描く
- */
-export const TRY_SHAPES = ["scenes"] as const;
-export type TryShape = (typeof TRY_SHAPES)[number];
 
 /** 配管の図だけが書ける出来事 */
 export const PIPE_EVENTS = ["call", "return", "revert", "move", "write", "check", "emit", "calc"] as const satisfies readonly DiagramEvent["type"][];

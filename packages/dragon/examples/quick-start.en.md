@@ -1556,38 +1556,6 @@ step The builder makes a block
   press Build
 ```
 
-#### Scenes look of a try diagram
-
-Write `try <title> [shape: scenes]` on the first line to draw only the exchanges of the scene the reader picks and sends.
-They are drawn in the written order, and then the answer of that scene appears.
-A wide frame draws the parties as sequence boxes with arrows, and a narrow frame stacks a row of party labels and one card per exchange.
-
-- Write one path in `route`. Its nodes, 2 to 4 of them, are the parties, placed left to right in path order
-- Write the five `ask` fields in this order, a tag, the scene, the sender, the receiver and the content, and give the scene field a `choose` line
-- Write one `item` for each exchange. An `item` whose sender and receiver are the same is a note on that party
-- An `item` without a sender or a receiver is the answer of its scene. Its content up to the first `. ` is the answer, and the rest is the reason
-- The `ask` in a step repeats the values of an exchange `item`. Images and print draw the scene of the last step
-
-```dragon
-try Compare reply ways [shape: scenes]
-
-route path: screen - server - worker [from: screen, to: worker]
-queue talk
-ask tag, reply, sender, receiver, content [into: talk, via: path]
-choose reply: wait, notify
-
-item wait1 [reply: wait, sender: screen, receiver: server, content: Send the request]
-item wait2 [reply: wait, sender: server, receiver: screen, content: Return the result]
-item waitAnswer [reply: wait, content: The screen waits. The server returns only after it finishes.]
-item notify1 [reply: notify, sender: screen, receiver: server, content: Send the request]
-item notify2 [reply: notify, sender: worker, receiver: screen, content: Say it is done]
-item notifyAnswer [reply: notify, content: The screen moves on. The result comes later.]
-
-step Notify lets the screen move on
-  say The worker says when it is done.
-  ask notify2, notify, worker, screen, Say it is done
-```
-
 ### Pipe diagram
 
 Start with `pipe <title>` to draw a pipe diagram, which follows one transaction step by step: the calls between contracts, the balances, and the stored values.

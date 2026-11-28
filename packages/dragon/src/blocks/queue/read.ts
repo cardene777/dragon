@@ -6,7 +6,7 @@ import { attrs } from "../../print-kit";
 import { type Attr, fail, ID, list, readDeclared } from "../../read-kit";
 import type { TryPart } from "../../schema";
 import type { SourceLine } from "../../tokenize";
-import { faultOf, fieldAt, scenesShape, valueAt } from "../../try-read";
+import { faultOf, fieldAt, valueAt } from "../../try-read";
 import { askFields } from "../../try-state";
 import type { BlockReading, ParseState } from "../block";
 import { namesAt } from "../item/read";
@@ -90,8 +90,6 @@ function readQueue(source: SourceLine, state: ParseState): void {
 /** 試す図の段の中の `line <待ち行列か機械の列>: <チップ>, <チップ>` の行 */
 export function readTryLine(source: SourceLine, state: ParseState): void {
   const { m } = state;
-  // 場面の図 (#3873) の段は、やり取りの item の値を写す ask の行だけで書く
-  if (scenesShape(state)) throw fail(source, 0, m.scenesStepOnlyAsk("line"));
   const step = state.inStep(source);
   const found = PART_LINE.exec(source.text);
   const part = found?.[1];

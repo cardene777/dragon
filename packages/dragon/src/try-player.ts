@@ -84,7 +84,7 @@ function tryCss(): string {
 }
 
 /** 見た目を入れる。再生の部品の見た目 (`dragon-player-css`) の後ろに置く。口`styles`を渡された時は口で図を置いた所の根へ入れる (#3695) */
-export function ensureTryCss(doc: Document, styles?: Styles): void {
+function ensureTryCss(doc: Document, styles?: Styles): void {
   if (styles) return styles.adopt("dragon-try-css", tryCss());
   if (doc.getElementById("dragon-try-css")) return;
   const style = doc.createElement("style");
@@ -131,8 +131,6 @@ export function tryTexts(model: DiagramModel, lang: NotationLang): string[] {
     ),
     w.tryEdited("", ""),
     w.tryEditedBody("", "", ""),
-    // 場面を選ぶ見た目の図 (#3873) は、選んだ場面ごとにやり取りの中身と送り手と受け手と答えを描き直す
-    ...(model.try?.shape === "scenes" ? ["→", ...(model.try.items ?? []).flatMap((item) => Object.values(item.values))] : []),
   ];
 }
 

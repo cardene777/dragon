@@ -467,8 +467,6 @@ export function mountDiagram(
   // 場面を書いた図 (#3878) は、場面を書ける種類の部品の組が場面の枠を並べて置く。帯と釦の見た目はこの部品の規則が描く
   const scenes = rendered.scenes ? partsOf(rendered.diagram.kind, lang)?.scenes : undefined;
   if (scenes) return scenes.mount(host, rendered, diagram, options);
-  // 場面を選ぶ見た目の選べる図 (#3873) は、選べる図の部品の組が場面の欄と図と答えを置き、再生の帯を置かない
-  if (rendered.diagram.try?.shape === "scenes") return kindParts("try", lang).mountTryScenes(host, rendered, diagram, options, palette, lang);
   const root = doc.createElement("div");
   root.className = "dg-player";
   root.dataset.dragon = "player";
