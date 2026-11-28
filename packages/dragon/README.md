@@ -392,6 +392,15 @@ A header stays at the top with the title and tabs for the overview and each topi
 The tab of the open topic is bold and underlined.
 When the tabs do not fit beside the title, they move to a row under the title.
 On a phone the row of tabs scrolls sideways.
+The header ends with a search box.
+Typing a word lists the matching questions under the box, grouped by topic, and then the matching terms.
+A question matches when its title, menu name, or one-sentence answer holds the word, and a term matches when its name or meaning holds it.
+The search ignores case and full-width letters, and marks every place the word appears.
+Clicking a question opens its page, and clicking a term opens the `Terms` topic at its card and outlines the card in blue.
+The arrow keys move through the list, Enter opens the chosen row, and Escape or a click outside closes the list.
+When nothing matches, the list says so.
+On a phone a magnifier button right of the title opens the box under the title.
+A page with one topic and no terms has no header, so the search box sits at the top of the menu.
 The overview page shows the text before the first `##`, the overview, and the topics in order.
 The overview page has no menu on the left and centers the text.
 A topic page opens on a list of its questions and their one-sentence answers.

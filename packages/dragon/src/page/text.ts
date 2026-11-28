@@ -38,6 +38,10 @@ export interface PageWords {
   answer: string;
   /** 確かめる問いの答えを隠す釦の字と、用語の札を閉じるアイコンの読み上げの名前 */
   close: string;
+  /** 説明の頁の検索の欄の淡い字と、欄と携帯の幅で欄を開く釦の読み上げの名前 (#3897) */
+  search: string;
+  /** 説明の頁の検索の欄で当たる物が無い時に一覧の所に出す字。`{}`を打った語に置き換える (#3897) */
+  searchNone: string;
 }
 
 export interface PageMessages {
@@ -100,6 +104,8 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     quiz: "確かめる",
     answer: "答え",
     close: "閉じる",
+    search: "問いと用語を探す",
+    searchNone: "「{}」を含む問いと用語はありません",
   },
   en: {
     overview: "Overview",
@@ -117,6 +123,8 @@ export const WORDS: Readonly<Record<PageLang, PageWords>> = {
     quiz: "Check",
     answer: "Answer",
     close: "Close",
+    search: "Search questions and terms",
+    searchNone: 'No questions or terms contain "{}"',
   },
 };
 

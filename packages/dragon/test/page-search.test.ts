@@ -364,7 +364,7 @@ const WIDE = await atLoad(
               .click({ timeout: ACTION_LIMIT_MS });
             return readUntil(
               () => searchState(page),
-              (s) => s.card !== null && closed(s),
+              (s) => s.card !== null && closed(s) && s.tab === "用語",
               WAIT,
             );
           },
@@ -726,6 +726,16 @@ describe("説明の頁の検索の欄 (#3897)", () => {
     expect(
       (opened.box?.rect?.top ?? 0) >= (opened.title?.bottom ?? Number.POSITIVE_INFINITY),
       "開いた欄は題の下に在る",
+    ).toBe(true);
+    const reopener = opened.opener?.rect;
+    expect(
+      !!opened.opener?.shown &&
+        !!reopener &&
+        !!opened.title &&
+        reopener.left >= opened.title.right &&
+        reopener.top < opened.title.bottom &&
+        reopener.bottom > opened.title.top,
+      `欄を開いた後も虫眼鏡の釦は題の右に在る (釦 ${JSON.stringify(reopener)}、題 ${JSON.stringify(opened.title)})`,
     ).toBe(true);
     const typed = seen.typed.get();
     const list = typed.list?.rect;
