@@ -33,6 +33,7 @@ step Place the order
 When the page should show the last step in one picture, such as a chart in a report or a flow in an explainer, add `data-still` to the block instead of `data-header`.
 The block becomes an SVG of the last step with no player: no buttons, step numbers, step captions, or progress bar.
 A chart shows its values and the diagram title, a flow draws every passed line solid, the fonts fall back to sans-serif, the palette defaults to `clear`, and the colors turn dark with the page's `data-theme="dark"` or the device's dark scheme.
+To draw the still in another palette, name it with `data-palette`, as in `<pre class="dragon" data-still data-palette="paper">`. A name that is not a palette draws in `clear`, and a guide page names `paper` for the map at the head of each topic.
 
 ```html
 <pre class="dragon" data-still>

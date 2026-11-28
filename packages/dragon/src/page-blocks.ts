@@ -36,7 +36,7 @@ import { printNotation } from "./printer";
 import { registerUserBlockReader, type UserBlocks, userBlockReader } from "./user-blocks";
 import { mountDiagram, type PlayerOptions } from "./player";
 import type { Diagram } from "./schema";
-import { FOCUS_ATTR, STILL_ATTR, stillFigureHtml } from "./still-figure";
+import { FOCUS_ATTR, PALETTE_ATTR, STILL_ATTR, stillFigureHtml, stillPalette } from "./still-figure";
 import type { BuiltinButton, EmbedLook } from "./frame/types";
 import { KINDS, type NotationLang } from "./words";
 
@@ -212,7 +212,9 @@ async function drawBlock(
       const holder = doc.createElement("div");
       // 属性 `data-focus` は、飛び先がその値の箱だけに色を残す (#3991)
       const focus = block.getAttribute(FOCUS_ATTR) ?? undefined;
-      holder.innerHTML = stillFigureHtml(parsed.diagram, { lang, ...(blocks ? { blocks } : {}), ...(width > 0 ? { width } : {}), ...(focus ? { focus } : {}) });
+      // 属性 `data-palette` は、止めて置く図を描く色味を名指す (#4057)
+      const palette = stillPalette(block.getAttribute(PALETTE_ATTR));
+      holder.innerHTML = stillFigureHtml(parsed.diagram, { lang, ...(blocks ? { blocks } : {}), ...(width > 0 ? { width } : {}), ...(focus ? { focus } : {}), ...(palette ? { palette } : {}) });
       block.replaceWith(holder.firstElementChild ?? holder);
     } catch (error) {
       block.replaceWith(errorBox(doc, [detail(error)]));

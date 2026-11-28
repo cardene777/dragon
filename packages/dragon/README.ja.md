@@ -225,7 +225,10 @@ step 今週
 量の図は値まで描き、段の名前の所に図の題を出す。
 手順の図は、段が通った線を全て実線で描く。
 字は同梱の字の後に端末の sans-serif を持つので、同梱の字を読まない頁でも明朝に落ちない。
-色味は既定で頁の白い地に馴染む `clear` を使い、頁の `<html>` が `data-theme="dark"` を持つ時と、`data-theme="light"` でない頁で端末が暗い表示の時に、暗い色に変わる。
+色味は既定で頁の白い地に馴染む `clear` を使う。
+別の色味で描く時は、`<pre class="dragon" data-still data-palette="paper">` のように `data-palette` に色味の名前を書く。
+色味に無い名前は書かない時と同じく `clear` で描き、説明の頁 (`layout: guide`) の話題の頭の地図は、頁の他の図と揃う `paper` を名指す。
+止めて置く図は、頁の `<html>` が `data-theme="dark"` を持つ時と、`data-theme="light"` でない頁で端末が暗い表示の時に、暗い色に変わる。
 図の地を頁の色に合わせる時は、図かその親に `--dragon-figure-background` を渡す (例 `.card { --dragon-figure-background: var(--surface); }`)。
 図の地と、線の縁取りと札の地がその色になり、明るい頁でも暗い頁でも頁の枠と同じ色に見える。
 ドーナツは輪の内側に 1 行で収まらない真ん中の名前を 2 行に折り、手順の帯 (`cycle` の `[shape: band]`) は手順の名前を山形の中に書く。
