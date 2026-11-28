@@ -6,6 +6,14 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Changed
+
+- The previous and next buttons of the player bar now show a skip mark, a filled triangle with a bar at its tip, instead of a thin stroked V. They match the filled play, pause, and restart icons and do not look like the play triangle. `docs/design/base/GRAMMAR.md` now puts these buttons under the rule for direction marks (#4074)
+- The lineup board no longer draws the small thin gray `>` between lanes, in a row or stacked at a narrow width; the order reads from the lanes left to right (top to bottom when stacked) and the cards that move. The gap between lanes stays 16px, and the `LineupArrow` type and the `arrows` field of the lineup layout are removed (#4060)
+- In the follow view, the mark on a tag that names a box cut off at the window edge is now a filled triangle in the tag color pointing to the side the box goes on, instead of a thin stroked V. `docs/design/base/GRAMMAR.md` now says not to use a small thin `>` that is not on a line as a direction mark (#4060)
+
+## [0.91.0] - 2026-11-28
+
 ### Added
 
 - A lineup diagram takes `[note: pop]` on the first line, as a flow diagram does, and clicking a gauge with a value opens the breakdown card just below it, with a round i mark right after the gauge name. The card lists each step that sets a value, up to the step on screen, and the printed form lists every step. Lane values and the legend of the chips stay as they are, so only the gauges get cards. A `note: pop` line at the top of a Markdown page now reaches lineup diagrams too (#4040)
@@ -16,9 +24,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
-- The previous and next buttons of the player bar now show a skip mark, a filled triangle with a bar at its tip, instead of a thin stroked V. They match the filled play, pause, and restart icons and do not look like the play triangle. `docs/design/base/GRAMMAR.md` now puts these buttons under the rule for direction marks (#4074)
-- The lineup board no longer draws the small thin gray `>` between lanes, in a row or stacked at a narrow width; the order reads from the lanes left to right (top to bottom when stacked) and the cards that move. The gap between lanes stays 16px, and the `LineupArrow` type and the `arrows` field of the lineup layout are removed (#4060)
-- In the follow view, the mark on a tag that names a box cut off at the window edge is now a filled triangle in the tag color pointing to the side the box goes on, instead of a thin stroked V. `docs/design/base/GRAMMAR.md` now says not to use a small thin `>` that is not on a line as a direction mark (#4060)
 - In the default `paper` palette, the first color handed to regions and boxes (`blue`) is now a deep teal instead of blue. The light theme draws lines and fills in `#26706e` and text in `#1a504f`, and the dark theme draws lines and fills in `#86d0cc` and text in `#a3dcd9`. The note mark ring, the player's play button and step bar, and the first chapter color of a guide page change with it. The five region colors still stay above the same separation floors for the three color vision types. The `clear`, `night`, `arcade`, and `sea` palettes keep their colors (#4057)
 
 ### Fixed

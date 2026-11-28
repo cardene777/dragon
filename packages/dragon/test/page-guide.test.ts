@@ -1775,7 +1775,7 @@ const EMBEDDED = await atLoad("色味を名指した止めて置く塊と名指�
     "page.html": [
       "<!doctype html>",
       '<html lang="ja"><head><meta charset="utf-8">',
-      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>',
+      '<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.91/dist/cdn/dragon.js"></script>',
       "</head><body>",
       block(' data-palette="paper"'),
       block(""),

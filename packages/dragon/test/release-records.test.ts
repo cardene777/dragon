@@ -240,6 +240,29 @@ describe("版の記録 (#3151)", () => {
     }
   });
 
+  it("changelog-0-91-0-lists-every-merged-issue", () => {
+    // 0.90.0 の後に取り込んだ課題の項を 0.91.0 で出す (#4062)。紙と墨の青緑 (#4057) は、止め絵の data-palette の項 (Added) と青緑の項 (Changed) の2つを持つ
+    // 列の図の目盛りの札 (#4040) は初めに決めた後に既定の枝へ入り、出す枝へ取り込んだ時に 0.91.0 の節へ入った
+    const [major = 0, minor = 0] = version().split(".").map(Number);
+    expect(major > 0 || minor >= 91, `package の版 ${version()} が 0.91.0 より前`).toBe(true);
+    for (const file of ["CHANGELOG.md", "CHANGELOG.ja.md"]) {
+      const text = readFileSync(join(ROOT, file), "utf8");
+      const released = section(text.replace(/^## \[0\.91\.0\] - \d{4}-\d{2}-\d{2}$/mu, "## 0.91.0"), "0.91.0");
+      expect(released, `${file} に日付付きの ## [0.91.0] の節が無い`).not.toBe("");
+      for (const [issue, times] of [
+        ["(#3897)", 1],
+        ["(#3898)", 1],
+        ["(#3899)", 1],
+        ["(#4040)", 1],
+        ["(#4054)", 1],
+        ["(#4057)", 2],
+      ] as const) {
+        expect(released.split(issue).length - 1, `${file} の 0.91.0 の節が ${issue} の項を ${times} 回持たない`).toBe(times);
+        expect(section(text, "[Unreleased]"), `${file} の Unreleased に出した項 ${issue} が残る`).not.toContain(issue);
+      }
+    }
+  });
+
   it("changelog-0-89-0-lists-docs-menu-and-judge-notes", () => {
     // 説明の頁の左の目次を3段にする変更 (#4010) と判定の表の note を札で見せる変更 (#3890) を 0.89.0 で出す (#4012)
     const [major = 0, minor = 0] = version().split(".").map(Number);
