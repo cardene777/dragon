@@ -6,8 +6,6 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
-## [0.91.0] - 2026-11-28
-
 ### Added
 
 - A lineup diagram takes `[note: pop]` on the first line, as a flow diagram does, and clicking a gauge with a value opens the breakdown card just below it, with a round i mark right after the gauge name. The card lists each step that sets a value, up to the step on screen, and the printed form lists every step. Lane values and the legend of the chips stay as they are, so only the gauges get cards. A `note: pop` line at the top of a Markdown page now reaches lineup diagrams too (#4040)

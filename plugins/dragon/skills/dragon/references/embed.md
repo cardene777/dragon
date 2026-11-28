@@ -17,7 +17,7 @@ All four draw the same diagram from the same notation. Check the notation with `
 Add `data-header` to the `<pre class="dragon">` block. Blocks without it stay plain diagrams. Pin the version to `<major>.<minor>` of the installed package.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.91/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order
@@ -79,7 +79,7 @@ Words and numbers are attributes, a box name or a line label is the element text
 Close every element with its end tag. HTML does not close `<dg-box/>`.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.91/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="Take an order">
   <dg-box id="shop">Shop</dg-box>
