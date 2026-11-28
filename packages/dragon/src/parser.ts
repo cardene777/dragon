@@ -5,7 +5,7 @@
  * 図の種類と題と区画と箱と帯を宣言し、`step` ごとに、その段で起きることを起きる順に並べる。
  *
  *   sequence <題> [view: fixed か follow]                書かなければ字の大きさで選ぶ。図の種類は sequence と architecture と state
- *   sequence <題> [note: pop か under]                   pop は箱の note を押すと出る札で見せる (#3877)。箱の札を描く図の種類 (`blockKinds("pop")`) だけが書ける
+ *   sequence <題> [note: pop か under]                   pop は箱の note を押すと出る札で見せる (#3877)。箱の札を描く図の種類 (`blockKinds("pop")`) と、目盛りだけが札を持つ列の図 (#4040) が書ける
  *   group <名札> as <名前> [note: <添え書き>, color: <色>, icon: <印>]
  *     box <名札> as <名前> [note: <下の小さな字>, color: <色>, icon: <印>, link: <飛び先>]
  *   end                                                  同じ名札の group はもう一度開ける
@@ -228,15 +228,18 @@ const SCENE_HEADS = ["scene", "stop"];
 const BOXLESS: readonly KindName[] = ["git", "time", "tree", "try", "chart", "flow", "mind", "er", "venn"];
 
 /** 記法を読んで、描く処理の形 (版1と同じ欄と並び) に組む。原本 (版2) へは `parseNotation` が `fromModel` で移す (#3346) */
-/** 箱の説明を押すと出る札で見せられる図の種類 (#3877)。札のブロックの付け方から導く */
-const POP_KINDS: readonly string[] = blockKinds("pop");
+/**
+ * 1 行目に `note` を書ける図の種類。箱の説明を押すと出る札で見せられる図 (#3877) は札のブロックの付け方から導き、
+ * 列の図は箱とチップの説明を札に移さず、目盛りの内訳の札 (#4040) だけを持つ
+ */
+const NOTE_KINDS: readonly string[] = [...blockKinds("pop"), "lineup"];
 
 /**
  * 図の種類の行の属性ごとの、書ける図の種類。見た目 (`shape`) は量の図 (#3560) と列の図 (#3625) と集合の重なりの図 (#3635) と2つの軸で置く図 (#3637) と回り続ける図 (#3638) と量の行き先の図 (#3641)、
  * 1 点の件数 (`unit`) は点で数える見た目の量の図と集合の重なりの図 (#3635)、表 (`table`) は2つの軸で置く図 (#3637)、回る向き (`turn`) は回り続ける図 (#3638)、
- * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877)、場面の見せ方 (`scenes`) は場面を書ける図 (#3878)
+ * 箱の説明の見せ方 (`note`) は札のブロックを使える図 (#3877) と列の図 (#4040)、場面の見せ方 (`scenes`) は場面を書ける図 (#3878)
  */
-const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: POP_KINDS, scenes: SCENE_KINDS };
+const HEAD_KINDS: Readonly<Record<string, readonly string[]>> = { shape: ["chart", "lineup", "venn", "matrix", "cycle", "sankey", "sequence"], unit: ["chart", "venn"], table: ["matrix"], turn: ["cycle"], note: NOTE_KINDS, scenes: SCENE_KINDS };
 
 /** 書いている場面 (#3878)。`scene` の行と名前と、読み終えた段と止まる理由 */
 interface SceneDraft {
@@ -281,7 +284,7 @@ function parseLines(lines: SourceLine[], m: Messages, lang: NotationLang, notice
   if (scenesAttr && !isOneOf(SCENE_SHOWS, scenesAttr.value)) throw fail(head, scenesAttr.at, m.badScenes);
   const sceneShow = scenesAttr?.value as SceneShow | undefined;
   // 箱の説明を札で見せるか (#3877)。1 行目の値が頁の既定に勝ち、札で見せられない種類の図には頁の既定が効かない
-  const pop = POP_KINDS.includes(kind) && (noteModeOf(head, headAttrs.get("note"), m) ?? defaultNote) === "pop";
+  const pop = NOTE_KINDS.includes(kind) && (noteModeOf(head, headAttrs.get("note"), m) ?? defaultNote) === "pop";
 
   // 図の種類の決まりを持つブロック (定義の `always`) の読み方は、行が無くても要る
   const always = kindNeeds(kind).find((name) => !readingLoaded(name));

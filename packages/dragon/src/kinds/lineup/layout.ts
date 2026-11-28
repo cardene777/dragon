@@ -38,7 +38,7 @@ import { hasWide, textWidth } from "../../layout/measure";
 import { wrap } from "../../layout/wrap";
 import { besideSameSpot, boxColors, type Layout, layoutStrip, type Point, type Rect, type SceneBadge, type SceneBox, stripNeed } from "../../layout/scene";
 import { elapsedText, niceStep, TIME_UNITS, type TimeUnit, timeOf, UNIT_WORDS } from "../../blocks/ring/limits";
-import { GAUGE_TEXT_MIN, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
+import { GAUGE_TEXT_MIN, gaugeNotes, planGauges, roomUnder, type SceneGauge, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
 import { LINEUP_WORDS, type LineupWords } from "../../lineup-words";
 
 const L = LINEUP_LOOK;
@@ -537,9 +537,10 @@ function arrange(diagram: DiagramModel, words: LineupWords, shape: "board" | "st
   const mostOf = (lane: string): number => Math.max(1, walk.most.get(lane) ?? 0, stations ? (limitOf(lane) ?? 0) : 0);
 
   // 量の目盛り (#3880)。帯の下に宣言した順に積み、図の上の帯の目盛りは帯の並びの上に置く。
-  // 札を押した帯は札が帯の下の端からはみ出すので、目盛りを札の下から始める
+  // 札を押した帯は札が帯の下の端からはみ出すので、目盛りを札の下から始める。
+  // 1 行目に `[note: pop]` を書いた図は、値を書いた目盛りの名前の右に内訳の札 (#4040) の印を描き、印の幅だけ目盛りを広げる
   const GA = LOOK.gauge;
-  const plans = planGauges(diagram, order, lang);
+  const plans = planGauges(diagram, order, lang, diagram.note === "pop");
   const stamped = new Set(diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "stamp" && "box" in e ? [e.box] : []))));
   const gaugeGap = (lane: string): number => (stamped.has(lane) ? L.stamp.h - L.stamp.drop + GA.below : GA.below);
   const gaugeRoom = (lane: string): number => roomUnder(plans.under.get(lane), gaugeGap(lane));
@@ -1126,6 +1127,9 @@ function arrange(diagram: DiagramModel, words: LineupWords, shape: "board" | "st
     ...(line ? { stations: { line, stops, runs } } : {}),
   };
   withGauges(layout, gauges);
+  // 札で見せる図の、値を書いた目盛りの内訳の札 (#4040)。列とチップの説明は札に移さず、目盛りだけが札を持つ
+  const gaugeCards = gaugeNotes(diagram, gauges, lang);
+  if (gaugeCards.length > 0) layout.noteCards = gaugeCards;
   const strip = layoutStrip(diagram, margin, bottom + LOOK.gap, inner);
   layout.height = (strip ? strip.y + strip.h : bottom) + margin;
   if (strip) layout.strip = strip;
