@@ -22,3 +22,12 @@
 | 帯つきの図の再生の部品の見た目は、帯の内側に届く | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`frame-player-styled-inside-frame`が通る | #3799 |
 | 再生の帯の釦の絵柄は、釦の真ん中に在る | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`player-icons-centered-in-buttons`が通る | #3799 |
 | 帯の頭のボタンは、頁の`button`の指定の影と最小の幅と大文字を受けない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts`の検査`figure-header-ignores-page-css`が通る | #3799 |
+| 幅760pxと480pxの帯つきの図と帯の無い図で、再生の帯の「次へ」のボタンの絵は、右を向いた塗った三角と、その右に立てた縦の棒 (段送りの印) で描き、「前へ」は左を向いた塗った三角と、その左の縦の棒で描く | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts` check `player-step-icons-skip-mark` passes | #4074 |
+| 同じ図で、「前へ」と「次へ」のボタンの絵を、縁の線を45度回した線だけのV字で描かない | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts` check `player-step-icons-not-open-v` passes | #4074 |
+| 釦の絵柄の枠は縦横18pxのままで、釦を撮った画像の絵柄の真ん中は、釦の真ん中から縦にも横にも1px以内に在る | `pnpm exec vitest run packages/dragon/test/embed-bar.test.ts` check `player-icons-centered-in-buttons` passes | #4074 |
+| やり直しと前と次と再生の釦は、今と同じく絵柄の要素を1つずつ持ち、釦の字に`‹`や`›`の字を持たない | `pnpm exec vitest run packages/dragon/test/player.test.ts` check `player-buttons-carry-icons` passes | #4074 |
+| 見た目の決まり (`docs/design/base/GRAMMAR.md`) の置き方の節の向きの印の行が、再生の帯の前へと次へのボタンも決まりに入り、塗った三角と縦の棒の段送りの印で描くことを書き、`CHANGELOG.md`と`CHANGELOG.ja.md`のUnreleasedがボタンの絵の変更を書く | `pnpm exec vitest run packages/dragon/test/look.test.ts` check `player-step-icons-docs` passes | #4074 |
+| 向きの印の行は、今と同じく線に付かない細い`>`を向きの印に使わないこと、塗った三角、並びで順が読める所に印を置かないことを書く | `pnpm exec vitest run packages/dragon/test/look.test.ts` check `direction-marks-docs` passes | #4074 |
+| 英語の変更の一覧は、日本語の文を持たない | `pnpm exec vitest run packages/dragon/test/release-records.test.ts` check `changelog-english-has-no-japanese-prose` passes | #4074 |
+| 最初に読むscriptのgzip後の合計が、上限の90,000 byteに収まる | `pnpm exec vitest run packages/dragon/test/script-entry.test.ts` check `script-entry-within-budget` passes | #4074 |
+| 見本帳とエディタの頁が最初に読む量は、上限の中に収まる | `pnpm exec vitest run apps/playground-spa/src/lib/playground.test.ts` check `page-bundle-within-budget` passes | #4074 |

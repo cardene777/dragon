@@ -320,7 +320,8 @@ function playerCss(): string {
 /**
  * 段を送る釦と拡大の釦の絵柄 (#3752)。`svg`の要素を使わず、`.dg-btn-ic`の枠の前後の飾り (`::before`、`::after`) に縁と塗りと回転で描く。
  * 図を置いた頁が`svg`の全てに大きさを当てても、絵柄は膨らまない (#3499)。形は 18px の枠に描いた座標を、枠の大きさに比べて伸ばす。
- * 山形は正方形の 2 辺の縁を 45 度回した形で、角の側に寄って見えるので、角と反対の側へずらして見た目の真ん中を枠の真ん中に置く。
+ * 前へと次へは段送りの印 (#4074) で、字の色で塗った三角の先に縦の棒を立て、三角と棒を合わせた形の真ん中を枠の真ん中に置く。
+ * 細い線だけの V 字は向きの印に使わない (#4060、`docs/design/base/GRAMMAR.md` の置き方)。三角だけにすると再生の釦の三角と同じ形になるので棒を添える。
  * やり直しは上の縁を抜いた輪を左に 45 度回して 9 時から 12 時を空け、12 時の切れ目に左向きの三角を付ける
  */
 function iconCss(): string {
@@ -328,14 +329,20 @@ function iconCss(): string {
   const u = (v: number): string => px((v * P.icon) / 18);
   const line = px(P.iconLine);
   const at = (name: string, part = "before"): string => `.dg-btn-ic[data-icon="${name}"]::${part}`;
-  const chevron = (name: string, edges: string, shift: number): string =>
-    `${at(name)}{left:50%;top:50%;width:${u(7)};height:${u(7)};border:solid;border-width:${edges};transform:translate(-50%,-50%) translateX(${u(shift)}) rotate(45deg)}`;
+  const skip = (name: string, back: boolean): string => {
+    const [near, far] = back ? ["right", "left"] : ["left", "right"];
+    const tip = back ? "polygon(100% 0,0 50%,100% 100%)" : "polygon(0 0,100% 50%,0 100%)";
+    return (
+      `${at(name)}{${near}:${u(4)};top:${u(3.5)};width:${u(8)};height:${u(11)};background:currentColor;clip-path:${tip}}` +
+      `${at(name, "after")}{${far}:${u(4)};top:${u(3.5)};width:${u(2.5)};height:${u(11)};border-radius:${u(0.8)};background:currentColor}`
+    );
+  };
   const bar = `background:currentColor;width:${u(10)};height:${line}`;
   return [
     `.dg-btn-ic{position:relative;flex:none;width:${px(P.icon)};height:${px(P.icon)}}`,
     `.dg-btn-ic::before,.dg-btn-ic::after{content:"";position:absolute;box-sizing:border-box}`,
-    chevron("prev", `0 0 ${line} ${line}`, 2),
-    chevron("next", `${line} ${line} 0 0`, -2),
+    skip("prev", true),
+    skip("next", false),
     `${at("restart")}{left:${u(3)};top:${u(4)};width:${u(12)};height:${u(12)};border:${line} solid;border-top-color:transparent;border-radius:50%;transform:rotate(-45deg)}`,
     `${at("restart", "after")}{left:${u(5)};top:${px((0.5 * P.icon) / 18 + P.iconLine / 2)};border-style:solid;border-width:${u(3.5)} ${u(4.5)} ${u(3.5)} 0;border-color:transparent currentColor transparent transparent}`,
     `${at("pause")},${at("pause", "after")}{top:${u(3)};width:${u(3.5)};height:${u(12)};border-radius:${u(1)};background:currentColor}`,
