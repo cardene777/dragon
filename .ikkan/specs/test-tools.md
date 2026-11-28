@@ -260,3 +260,5 @@
 | ベン図の描く所 (`src/render/venn.ts`) を変えた時に選ぶ検査のfileは127以下 | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts --reporter=verbose` check `related-venn-draw-picks-at-most-127` passes | #4061 |
 | 順の図の並べ方 (`src/kinds/sequence/layout.ts`) を変えた時に選ぶ検査のfileは175以下 | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts --reporter=verbose` check `related-sequence-layout-picks-at-most-175` passes | #4061 |
 | 配管の図の描く所を変えた時は、ほかの種類だけを確かめる検査のfileを選ばない | `pnpm exec vitest run packages/dragon/test/related-by-kind.test.ts --reporter=verbose` check `related-pipe-draw-skips-other-kind-tests` passes | #4061 |
+| `packages/*/test`と`apps/*/src`の下で件を持つ全てのfileの全ての件は、件の中で子のprocessを起こさず、頁を開かない | `pnpm exec vitest run packages/dragon/test/case-work.test.ts packages/dragon/test/page-guide.test.ts --reporter=verbose` check `case-work-no-child-or-page-in-any-case` passes | #4067 |
+| 色味を名指した止めて置く塊を`dragon embed`で埋めると、紙と墨を名指した塊は`#26706e`、名指さない塊は`#467deb`の青の役で描く | `pnpm exec vitest run packages/dragon/test/case-work.test.ts packages/dragon/test/page-guide.test.ts --reporter=verbose` check `embed-still-block-reads-palette` passes | #4067 |
