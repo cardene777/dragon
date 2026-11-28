@@ -7,9 +7,9 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { FIGURE_TEXT } from "../src/figure-text";
-import { LINEUP_WORDS } from "../src/kinds/lineup/words";
+import { LINEUP_WORDS } from "../src/lineup-words";
 import { PIPE_TEXT } from "../src/kinds/pipe/layout";
-import { PIPE_PLAYER_WORDS } from "../src/kinds/pipe/words";
+import { PIPE_PLAYER_WORDS } from "../src/pipe-words";
 import { api, exampleJson, type Json } from "./diagram-support";
 import { draw, type Lang, type Player } from "./render-support";
 import "../src/kind-use/pipe";
