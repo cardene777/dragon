@@ -660,7 +660,11 @@ const printedPage = async (page: Page) => {
             .join(" "),
         ),
       );
-    return { topics, written, notes, stills };
+    // 止め絵の下の段の数 (`.dg-still-no`) のうち紙に見えている物の字。guideの頁は出さない (#4054)
+    const stillNumbers = deep(".dg-still-no")
+      .filter(shown)
+      .map((no) => squash(no.textContent));
+    return { topics, written, notes, stills, stillNumbers };
   });
 };
 
@@ -1464,12 +1468,19 @@ describe("説明の頁 (#3876)", () => {
     const seen = PRESSED.get();
     if (!seen) return;
     const printed = seen.printed.get();
-    // 段のある図は全ての段の止め絵を段の順に並べ、各絵の下に段の番号と say の文を出す
+    // 段のある図は全ての段の止め絵を段の順に並べ、各絵の下に say の文を出す。段の番号はguideの頁では出さない (#4054)
     expect(printed.stills.length, "印刷の形の段の止め絵の数").toBe(SAYS.length);
     for (const [i, say] of SAYS.entries()) {
-      expect(printed.stills[i] ?? "", `段 ${i + 1} の止め絵の下に段の番号が無い`).toContain(String(i + 1));
       expect(printed.stills[i] ?? "", `段 ${i + 1} の止め絵の下に say の文が無い`).toContain(say);
     }
+  });
+
+  it("guide-print-stills-hide-step-count", () => {
+    const seen = PRESSED.get();
+    if (!seen) return;
+    const printed = seen.printed.get();
+    expect(printed.stills.length, "印刷の形の段の止め絵の数").toBe(SAYS.length);
+    expect(printed.stillNumbers, "印刷の形で止め絵の下に見えている段の数 (01/05のような字)").toEqual([]);
   });
 
   it("guide-readable-and-fits", () => {
