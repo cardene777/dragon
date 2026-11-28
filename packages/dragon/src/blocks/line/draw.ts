@@ -26,7 +26,7 @@ export function backLine(b: LineupBack, vis: string, shown: Shown[], style: Text
   const R = B.return;
   const end = b.points.at(-1);
   const before = b.points.at(-2);
-  const line = `<path class="dg-lb-back" d="${bendPath(b.points, R.bend)}"/>${end && before ? `<path class="dg-lb-back" d="${headPath(before, end, R.head, R.head * B.chevron.half / B.chevron.len)}"/>` : ""}`;
+  const line = `<path class="dg-lb-back" d="${bendPath(b.points, R.bend)}"/>${end && before ? `<path class="dg-lb-back" d="${headPath(before, end, R.head, R.head * R.open)}"/>` : ""}`;
   const { label } = b;
   let tag: string;
   if (b.icon) {

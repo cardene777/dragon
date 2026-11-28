@@ -11,11 +11,11 @@
  * `room` は窓に寄せる物を囲んだ所の周りに空ける幅で、空けられない時は空けずに窓に収める。
  * `slack` は線の端の箱が窓から切れても数えない長さ。
  * `tag` は札で、`h` は箱が窓の外に在る時の高さ、`low` は箱の一部が窓に映る時の高さの下限 (それより高い箱は箱の高さに揃える)、`high` は角の丸みの径の上限。
- * `inset` は窓の枠から札までの間、`pad` は札の左右の縁から中身までの間、`arrow` は矢の印に取る幅、`chevron` は矢の印の腕の長さ、
+ * `inset` は窓の枠から札までの間、`pad` は札の左右の縁から中身までの間、`arrow` は矢の印に取る幅、`head` は矢の印の三角で、向く側の長さ `len`、底の半分の幅 `half`、縁の太さ `edge`、
  * `baseline` は名前の字の基準線を札の真ん中から字の大きさの何割下げるか、`nudge` は札を段の札と箱からずらす時の刻み
  */
 export const FOLLOW_ENDS_LOOK = {
   room: 16,
   slack: 1,
-  tag: { h: 36, low: 28, high: 48, inset: 6, pad: 12, arrow: 14, chevron: 4, baseline: 0.35, nudge: 2 },
+  tag: { h: 36, low: 28, high: 48, inset: 6, pad: 12, arrow: 14, head: { len: 8, half: 5, edge: 1 }, baseline: 0.35, nudge: 2 },
 } as const;

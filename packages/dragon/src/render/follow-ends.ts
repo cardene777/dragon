@@ -69,15 +69,18 @@ const meets = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && a.x + a.w > b.x 
 
 const clip = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
-/** 札の矢の印。`side` は箱が切れた側 */
-function chevron(x: number, y: number, side: string): string {
-  const d = T.chevron;
+/**
+ * 札の矢の印。札の色で塗った三角で、尖った先を箱が切れた側 `side` へ向ける。(`x`、`y`) は三角を囲む四角の真ん中。
+ * 細い線だけの小さな > は向きの印に使わない (#4060、`docs/design/base/GRAMMAR.md` の置き方)
+ */
+function tagHead(x: number, y: number, side: string): string {
+  const { len, half, edge } = T.head;
   const flat = side === "left" || side === "right";
   const s = side === "left" || side === "up" ? -1 : 1;
   const pts: Point[] = flat
-    ? [[x - (s * d) / 2, y - d], [x + (s * d) / 2, y], [x - (s * d) / 2, y + d]]
-    : [[x - d, y - (s * d) / 2], [x, y + (s * d) / 2], [x + d, y - (s * d) / 2]];
-  return `<path class="dg-tag-arrow" d="M${pts.map((p) => p.join(" ")).join("L")}" style="fill:none;stroke:var(--c);stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>`;
+    ? [[x + (s * len) / 2, y], [x - (s * len) / 2, y - half], [x - (s * len) / 2, y + half]]
+    : [[x, y + (s * len) / 2], [x - half, y - (s * len) / 2], [x + half, y - (s * len) / 2]];
+  return `<path class="dg-tag-arrow" d="M${pts.map((p) => p.join(" ")).join("L")}Z" style="fill:var(--c);stroke:var(--c);stroke-width:${edge};stroke-linejoin:round"/>`;
 }
 
 /**
@@ -201,7 +204,9 @@ export function followEnds<L extends Layout>(
       const y = q.y + strip;
       const cy = y + h / 2;
       const gx = q.x + (tw - inner) / 2;
-      const arrow = side === "right" ? chevron(gx + inner - T.chevron, cy, side) : chevron(gx + T.chevron, cy, side);
+      // 三角は札の矢の印に取る幅の、名前から遠い側の端に寄せる
+      const off = side === "left" || side === "right" ? T.head.len / 2 : T.head.half;
+      const arrow = side === "right" ? tagHead(gx + inner - off, cy, side) : tagHead(gx + off, cy, side);
       const nameX = side === "right" ? gx + nameW / 2 : gx + T.arrow + nameW / 2;
       const r = partRadius(corner, Math.min(h, tw, T.high) / 2);
       // 札の丸い端と窓の枠の間に残る箱の所を、箱の縁の太さの分まで窓の地で覆う。

@@ -38,8 +38,8 @@
  * 札 (`card`) は高さ `h`、上下の間 `gap`、角の丸み `radius`、左の色の棒の幅 `bar` と札の左からの位置 `barX`、番号の丸の半径 `numR` と真ん中の札の左からの位置 `numX`、
  * 名前の左端は番号を持つ時 `textX`、持たない時 `plainX`。縁の太さは色の無い札 `edge`、色付きの札 `strong`、移った段の札 `moved`、色の無い札の縁の濃さ `faint`。
  * 足したと外れたの札は高さ `tag.h` で字の左右の余白 `tag.padX`、札の右の端から `tag.inset`。戻る印の丸の半径 `back.r` で、札の右の端から `back.inset`。
- * 札の列の下の余白 `bottom`。隣り合う帯の間の向きの印は長さ `chevron.len` と開き `chevron.half`。
- * 差し戻しの線 (`return`) は、帯の上端から `rise` 上を横に戻り、差し戻しの在る図だけ帯の上に `room` 空ける。曲がり目の丸み `bend`、線の太さ `width`、色 `color`、
+ * 札の列の下の余白 `bottom`。
+ * 差し戻しの線 (`return`) は、帯の上端から `rise` 上を横に戻り、差し戻しの在る図だけ帯の上に `room` 空ける。曲がり目の丸み `bend`、線の太さ `width`、矢じりの長さ `head` と長さに対する開きの比 `open`、色 `color`、
  * 札は高さ `label.h` で、左右の余白 `label.padX`、戻る向きの印の幅 `label.glyph` と字の間 `label.gap`。
  * 控えの行は印の丸の半径 `trace.r` で、名前は印の右 `trace.gap`。跡の点線は `ghostDash`。
  * 狭い枠 (`narrow`) は図の幅の下限 `width`、外周の余白 `margin`、差し戻しの在る図の帯の左の通り道 `rail` (戻りの線は図の左から `railX`)、
@@ -130,8 +130,7 @@ export const LINEUP_LOOK = {
     tag: { h: 22, padX: 9, inset: 9, gap: 8 },
     back: { r: 11, inset: 20 },
     bottom: 14,
-    chevron: { len: 6.5, half: 5, width: 1.6 },
-    return: { rise: 28, room: 30, bend: 12, width: 2.4, head: 7, color: "rose" },
+    return: { rise: 28, room: 30, bend: 12, width: 2.4, head: 7, open: 5 / 6.5, color: "rose" },
     label: { h: 22, padX: 12, glyph: 9, gap: 8, stroke: 1.7 },
     trace: { x: 14, r: 7.5, gap: 8, stroke: 1.5 },
     ghostDash: [5, 4],

@@ -231,26 +231,33 @@ describe("ボードの上限と値 (#3624)", () => {
     }
   });
 
-  it("lineup-board-ticks-point-to-the-next-lane", () => {
-    const layout = boardOf(render(boardLineup()), "ボード");
-    const arrows = layout.arrows ?? [];
-    expect(arrows.map((a) => [a.from, a.to]), "帯の間の印 (layout.arrows)").toEqual([
-      [TODO, DOING],
-      [DOING, REVIEW],
-      [REVIEW, DONE],
-    ]);
-    for (const arrow of arrows) {
-      const from = laneOf(layout, arrow.from);
-      const to = laneOf(layout, arrow.to);
-      const xs = arrow.points.map((p) => p[0]);
-      const ys = arrow.points.map((p) => p[1]);
-      expect((arrow.points.at(-1)?.[0] ?? 0) > (arrow.points[0]?.[0] ?? 0), `${arrow.from} の後の印が右を向かない`).toBe(true);
-      expect(Math.min(...xs), `${arrow.from} の後の印が帯の間に無い`).toBeGreaterThanOrEqual(from.x + from.w - 0.5);
-      expect(Math.max(...xs), `${arrow.from} の後の印が帯の間に無い`).toBeLessThanOrEqual(to.x + 0.5);
-      for (const y of ys) {
-        expect(y, `${arrow.from} の後の印が見出しの高さに無い`).toBeGreaterThanOrEqual(from.y);
-        expect(y, `${arrow.from} の後の印が見出しの高さに無い`).toBeLessThanOrEqual(from.track.y);
+  it("lineup-board-no-lane-mark", () => {
+    // 帯の間に向きの印を置かない。順は左から右 (積んだ形は上から下) の並びと、札が帯を移る動きで読む (#4060 で本人が選んだ)
+    const kanban = fileText("kanban.dragon");
+    expect(kanban, "kanban.dragon が無い").toBeDefined();
+    const sources: [string, Json][] = [["最小のボード", boardLineup()], ...(kanban ? [["kanban.dragon", parsed(kanban, "ja", "kanban.dragon")] as [string, Json]] : [])];
+    for (const [name, source] of sources)
+      for (const [width, arrangement] of [[1100, "row"], [390, "stack"], [324, "stack"]] as const) {
+        const where = `${name} (幅 ${width})`;
+        const rendered = render(source, "ja", width);
+        const layout = boardOf(rendered, where);
+        expect(layout.arrangement, `${where} の並べ方`).toBe(arrangement);
+        expect("arrows" in layout, `${where} の並べ方が帯の間の印 (layout.arrows) を持つ`).toBe(false);
+        expect(rendered.svg.match(/data-lineup-arrow|dg-lb-chev/gu), `${where} の図の帯の間の印`).toBeNull();
       }
+  });
+
+  it("lineup-board-lane-gap-stays", () => {
+    // 帯の間の印を消しても、帯の間は詰めずに 16px のまま残す (#4060 で本人が選んだ案)
+    for (const [width, arrangement] of [[1100, "row"], [390, "stack"]] as const) {
+      const layout = boardOf(render(boardLineup(), "ja", width), `幅 ${width} のボード`);
+      expect(layout.arrangement, `幅 ${width} の並べ方`).toBe(arrangement);
+      layout.lanes.forEach((lane, k) => {
+        const next = layout.lanes[k + 1];
+        if (!next) return;
+        const gap = arrangement === "row" ? next.x - (lane.x + lane.w) : next.y - (lane.y + lane.h);
+        expect(gap, `幅 ${width} の ${lane.id} と ${next.id} の間`).toBeCloseTo(16, 6);
+      });
     }
   });
 });
@@ -460,10 +467,6 @@ describe("狭い枠のボード (#3624)", () => {
             for (const seat of seats) expect(inside(seat, lane), `${where} (幅 ${width}) の ${lane.id} の ${seat.id} が帯の外に在る`).toBe(true);
           }
         }
-        // 隣り合う帯の間に下を向く印を出す
-        const arrows = layout.arrows ?? [];
-        expect(arrows.length, `${where} (幅 ${width}) の帯の間の印の数`).toBe(layout.lanes.length - 1);
-        for (const arrow of arrows) expect((arrow.points.at(-1)?.[1] ?? 0) > (arrow.points[0]?.[1] ?? 0), `${where} (幅 ${width}) の ${arrow.from} の後の印が下を向かない`).toBe(true);
         // 全体を出す見せ方で、枠に収めた字が 10.5px 以上ある
         const view = draw("chooseView")(rendered as unknown as Rendered, width);
         expect(view.mode, `${where} (幅 ${width}) の見せ方`).toBe("fixed");

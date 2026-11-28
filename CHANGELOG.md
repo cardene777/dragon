@@ -16,6 +16,8 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ### Changed
 
+- The lineup board no longer draws the small thin gray `>` between lanes, in a row or stacked at a narrow width; the order reads from the lanes left to right (top to bottom when stacked) and the cards that move. The gap between lanes stays 16px, and the `LineupArrow` type and the `arrows` field of the lineup layout are removed (#4060)
+- In the follow view, the mark on a tag that names a box cut off at the window edge is now a filled triangle in the tag color pointing to the side the box goes on, instead of a thin stroked V. `docs/design/base/GRAMMAR.md` now says not to use a small thin `>` that is not on a line as a direction mark (#4060)
 - In the default `paper` palette, the first color handed to regions and boxes (`blue`) is now a deep teal instead of blue. The light theme draws lines and fills in `#26706e` and text in `#1a504f`, and the dark theme draws lines and fills in `#86d0cc` and text in `#a3dcd9`. The note mark ring, the player's play button and step bar, and the first chapter color of a guide page change with it. The five region colors still stay above the same separation floors for the three color vision types. The `clear`, `night`, `arcade`, and `sea` palettes keep their colors (#4057)
 
 ### Fixed
