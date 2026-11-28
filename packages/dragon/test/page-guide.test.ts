@@ -2199,20 +2199,29 @@ const headState = (page: Page) =>
     };
   });
 
-/** 見えている図の数と、図の再生の帯の段の数 (`01/02`、`[data-dragon="step-no"]`) のうち画面に見えている物の字 (#4024)。帯つきの図は帯の内側の影の根に描く */
+/**
+ * 見えている図の数と、図の再生の帯の段の数 (`01/02`、`[data-dragon="step-no"]`) のうち画面に見えている物の字 (#4024)。帯つきの図は帯の内側の影の根に描く。
+ * `captions` は題と説明文を縦に積む狭い帯 (`.dg-say` が `grid`) ごとの、題と説明文の左端 (px、#4035)
+ */
 const stepCounts = (page: Page) =>
   page.evaluate(() => {
     const counts: string[] = [];
+    const captions: { title: number; body: number }[] = [];
     let players = 0;
     const walk = (root: Document | ShadowRoot): void => {
       for (const el of root.querySelectorAll<HTMLElement>("*")) {
         if (el.shadowRoot) walk(el.shadowRoot);
         if (el.dataset.dragon === "player" && el.checkVisibility() && el.querySelector("svg") !== null) players += 1;
         if (el.dataset.dragon === "step-no" && el.checkVisibility() && (el.textContent ?? "").trim() !== "") counts.push((el.textContent ?? "").trim());
+        if (el.classList.contains("dg-say") && el.checkVisibility() && getComputedStyle(el).display === "grid") {
+          const title = el.querySelector('[data-dragon="step-title"]')?.getBoundingClientRect();
+          const body = el.querySelector('[data-dragon="step-body"]')?.getBoundingClientRect();
+          if (title && body) captions.push({ title: Math.round(title.left), body: Math.round(body.left) });
+        }
       }
     };
     walk(document);
-    return { players, counts };
+    return { players, counts, captions };
   });
 
 /** 色の字が青に寄っているか。`rgb()` と `rgba()` は0から255、`color(srgb ...)` は0から1の値を読み、青の値が赤の値より20 (255で数えた値) を超えて大きい時に青とみなす */
@@ -2465,6 +2474,16 @@ describe("ヘッダーの章のタブ (#4024)", () => {
     const { players, counts } = seen.narrow.get().figure;
     expect(players, "幅900pxで1つ目の問いの頁に描かれた図の数").toBeGreaterThan(0);
     expect(counts, "幅900pxで1つ目の問いの図の再生の帯に見えている段の数").toEqual([]);
+  });
+
+  // 段の数を隠した狭い帯で、空の番号の列の後に列の間が残ると、題が説明文より右から始まる (#4035)
+  it("guide-figure-title-starts-at-body-edge", () => {
+    const seen = LONG_TABS.get();
+    if (!seen) return;
+    const { captions } = seen.narrow.get().figure;
+    expect(captions.length, "幅900pxで1つ目の問いの頁に描かれた、題と説明文を縦に積む狭い帯の数").toBeGreaterThan(0);
+    const off = captions.filter(({ title, body }) => Math.abs(title - body) > 1);
+    expect(off, "段の数を隠した狭い帯で、題の左端が説明文の左端と揃わない帯").toEqual([]);
   });
 
   it("guide-print-hides-head-tabs", () => {

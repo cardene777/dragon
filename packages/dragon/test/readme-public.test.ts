@@ -321,3 +321,129 @@ describe("公開できる形の README (#3881)", () => {
     expect(longSentences(read(GUIDES.en)), `${GUIDES.en} に30語を超える文が在る`).toEqual([]);
   });
 });
+
+/** npm の頁の README 2 つの、説明の頁の節の見出し (#4044) */
+const GUIDE_PAGE_HEADING: Record<Lang, string> = { en: "### Guide page", ja: "### 説明の頁" };
+
+/** npm の頁の README の説明の頁の節。code の囲みを除き、節の見出しの後から次の `## ` の見出しの前まで (#4044) */
+const guidePageSection = (readme: Readme): string =>
+  withoutFences(read(readme.path))
+    .split(new RegExp(`^${GUIDE_PAGE_HEADING[readme.lang]}$`, "mu"))[1]
+    ?.split(/^## /mu)[0] ?? "";
+
+/** 節が持たない書き方の名前。`parts` は書き方の名前と、その書き方を読む形 (#4044) */
+const absentParts = (text: string, parts: Record<string, RegExp>): string[] =>
+  Object.entries(parts)
+    .filter(([, pattern]) => !pattern.test(text))
+    .map(([part]) => part);
+
+/** 言葉ごとに、節が書く書き方を読む形を持つ README の節の検査 (#4044) */
+const expectGuidePageDescribes = (what: string, parts: Record<Lang, Record<string, RegExp>>): void => {
+  for (const readme of READMES.filter((r) => r.npm)) {
+    const section = guidePageSection(readme);
+    expect(section, `${readme.path} に説明の頁の節が無い`).not.toBe("");
+    expect(absentParts(section, parts[readme.lang]), `${readme.path} の説明の頁の節が書かない${what}`).toEqual([]);
+  }
+};
+
+/** 変更の一覧の `file` (repo の根から) の項。項は `- ` で始まる行 (#4044) */
+const changelogItems = (file: string): string[] =>
+  read(file)
+    .split("\n")
+    .filter((line) => line.startsWith("- "));
+
+/*
+ * #4024 で話題が 2 つ以上の説明の頁は、頁の上のヘッダーに題と全体像と話題のタブを置き、左の目次に開いている話題の問いだけを並べる形になった。
+ * #4029 で見出しは h1 から h5 まで段ごとに違う形になった。スキルの参照 page.md は #4036 で直したが、
+ * npm の頁の README 2 つは、節に `2-1` の番号が付き、上のタブが無く、左の目次が全ての話題と問いを並べると書いたままだった
+ */
+describe("README の説明の頁の節がヘッダーのタブと開いている話題の目次と見出しの形を書く (#4044)", () => {
+  it("readme-guide-names-no-old-form", () => {
+    const old: Record<Lang, RegExp> = {
+      en: /\bnumbered\b|`?\b\d+-\d+\b`?|lists every (?:topic|question)|no tabs at the top|arrow before a topic|opens and closes the list/iu,
+      ja: /番号つき|`?\b\d+-\d+\b`?|全ての話題と問い|全ての話題を並べ|上のタブを持たず|矢印を押すと/u,
+    };
+    for (const readme of READMES.filter((r) => r.npm)) {
+      const section = guidePageSection(readme);
+      expect(section, `${readme.path} に説明の頁の節が無い`).not.toBe("");
+      const stale = section
+        .split("\n")
+        .filter((line) => old[readme.lang].test(line))
+        .map((line) => `${readme.path}: ${line}`);
+      expect(stale, "節に番号が付く、頁が上のタブを持たない、目次が全ての話題と問いを並べる、矢印で並びを開け閉めすると読める行").toEqual([]);
+    }
+  });
+
+  it("readme-guide-describes-header-tabs", () => {
+    expectGuidePageDescribes("ヘッダーの形", {
+      en: {
+        "ヘッダーが題と全体像と話題ごとのタブを持つ": /header[^\n]*the title and tabs for the overview and each topic/u,
+        "開いている話題のタブを太字と下線で示す": /tab of the open topic is bold and underlined/u,
+        "タブが題の横に入らない時は題の下の段へ移る": /tabs do not fit[^\n]*row under the title/u,
+        "携帯の幅ではタブの段を横に送る": /On a phone[^\n]*row of tabs scrolls sideways/u,
+      },
+      ja: {
+        "ヘッダーが題と全体像と話題ごとのタブを持つ": /ヘッダー[^\n]*題と全体像と話題ごとのタブ/u,
+        "開いている話題のタブを太字と下線で示す": /開いている話題のタブ[^\n]*太字と下線/u,
+        "タブが題の横に入らない時は題の下の段へ移る": /タブが題の横に入らない[^\n]*題の下の段/u,
+        "携帯の幅ではタブの段を横に送る": /携帯の幅[^\n]*タブの段を横に送る/u,
+      },
+    });
+  });
+
+  it("readme-guide-describes-open-topic-menu", () => {
+    expectGuidePageDescribes("左の目次の形", {
+      en: {
+        "左の目次は開いている話題の問いだけを並べる": /menu on the left lists only the questions of the open topic/u,
+        "開いている頁の #### の見出しを並べる": /`####` headings of the open page/u,
+        "開いている頁を灰色の地と太字で示す": /open page[^\n]*gray background and bold/u,
+        "番号と開閉の矢印を出さない": /no numbers and no arrows/u,
+      },
+      ja: {
+        "左の目次は開いている話題の問いだけを並べる": /左の目次は[^\n]*開いている話題の問いだけを並べ/u,
+        "開いている頁の #### の見出しを並べる": /開いている頁[^\n]*`####`の見出し/u,
+        "開いている頁を灰色の地と太字で示す": /開いている頁を灰色の地と太字で示/u,
+        "番号と開閉の矢印を出さない": /番号と[^\n]*矢印を出さない/u,
+      },
+    });
+  });
+
+  it("readme-guide-describes-overview-and-phone", () => {
+    expectGuidePageDescribes("全体像と携帯の幅の形", {
+      en: {
+        "全体像の頁は左の目次を出さない": /overview page has no menu on the left/u,
+        "全体像の頁は本文を中央に置く": /overview page[^\n]*centers the text/u,
+        "幅 860px 以下で目次の釦にまとまり、頁を選ぶと閉じる": /860px wide or less[^\n]*menu button[^\n]*picking a page closes it/u,
+      },
+      ja: {
+        "全体像の頁は左の目次を出さない": /全体像の頁は[^\n]*左の目次を出さず/u,
+        "全体像の頁は本文を中央に置く": /全体像の頁は[^\n]*本文を中央に置く/u,
+        "幅 860px 以下で目次の釦にまとまり、頁を選ぶと閉じる": /幅860px以下[^\n]*目次の釦[^\n]*頁を選ぶと閉じる/u,
+      },
+    });
+  });
+
+  it("readme-guide-describes-heading-shapes", () => {
+    expectGuidePageDescribes("見出しの段ごとの形", {
+      en: {
+        "h1 は暗い帯に明るい字": /\(`#`\)[^\n]*dark band with light text/u,
+        "h2 は字の色の下線": /\(`##`\)[^\n]*underline in the text color/u,
+        "h3 は左に話題の色の縦線": /\(`###`\)[^\n]*bar in the topic's color on its left/u,
+        "h4 は淡い地の帯": /`####` heading[^\n]*pale band/u,
+        "h5 は点線の下線": /`#####` heading[^\n]*dashed underline/u,
+      },
+      ja: {
+        "h1 は暗い帯に明るい字": /\(`#`\)[^\n]*暗い帯に明るい字/u,
+        "h2 は字の色の下線": /\(`##`\)[^\n]*字の色の下線/u,
+        "h3 は左に話題の色の縦線": /\(`###`\)[^\n]*左に話題の色の縦線/u,
+        "h4 は淡い地の帯": /`####`の見出し[^\n]*淡い地の帯/u,
+        "h5 は点線の下線": /`#####`の見出し[^\n]*点線の下線/u,
+      },
+    });
+  });
+
+  it("readme-guide-fix-in-changelog", () => {
+    const counts = Object.fromEntries(["CHANGELOG.md", "CHANGELOG.ja.md"].map((file) => [file, changelogItems(file).filter((line) => line.trimEnd().endsWith("(#4044)")).length]));
+    expect(counts, "(#4044) で終わる変更の一覧の項の数").toEqual({ "CHANGELOG.md": 1, "CHANGELOG.ja.md": 1 });
+  });
+});

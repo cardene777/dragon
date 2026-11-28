@@ -460,22 +460,22 @@ interface Seats {
 }
 
 export function layoutLineup(diagram: DiagramModel, options: LineupOptions = {}): LineupLayout {
-  const words = FIGURE_TEXT[options.lang ?? DEFAULT_LANG];
+  const lang = options.lang ?? DEFAULT_LANG;
+  const words = FIGURE_TEXT[lang];
   const { width } = options;
   const shape = diagram.lineup?.shape;
   if (shape === "layers" || shape === "stairs") {
-    const lang = options.lang ?? DEFAULT_LANG;
     const stairs = shape === "stairs";
     const wide = arrangeLayers(diagram, words, false, lang, stairs);
     if (width === undefined || (width / wide.width) * Y.type.name.size >= READABLE_PX) return wide;
     return arrangeLayers(diagram, words, true, lang, stairs);
   }
   const look = shape === "stations" ? "stations" : "board";
-  const row = arrange(diagram, words, look, false);
+  const row = arrange(diagram, words, look, false, lang);
   // 量の目盛り (#3880) を持つ図は、目盛りの字が箱の名前より小さいので、目盛りの字も読める幅でだけ横に並べる
   const smallest = (diagram.gauge ?? []).length > 0 ? Math.min(TYPE.boxName.size, GAUGE_TEXT_MIN) : TYPE.boxName.size;
   if (width === undefined || (width / row.width) * smallest >= READABLE_PX) return row;
-  return arrange(diagram, words, look, true);
+  return arrange(diagram, words, look, true, lang);
 }
 
 /** 段の中の出来事 `at` の時に選んでいる箱。それより前の最後の `pick` */
@@ -507,7 +507,7 @@ function valuesOf(diagram: DiagramModel): Map<string, (string | undefined)[]> {
  * ボードは帯を淡い色の縦の帯にして、見出しに名前と札の数を、2 行目に上限の目盛りと順番なしと値の札を置き、札を上から積む。
  * 流れの線は帯を 1 本の線の上の駅にして、駅の上に名前と札の数を、その下に順番なしと値の札を置き、札を駅の下に積む。上限を書いた駅は受け口を描く
  */
-function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "stations", stacked: boolean): LineupLayout {
+function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "stations", stacked: boolean, lang: NotationLang): LineupLayout {
   const B = L.board;
   const ST = L.stations;
   const N = B.narrow;
@@ -539,7 +539,7 @@ function arrange(diagram: DiagramModel, words: FigureText, shape: "board" | "sta
   // 量の目盛り (#3880)。帯の下に宣言した順に積み、図の上の帯の目盛りは帯の並びの上に置く。
   // 札を押した帯は札が帯の下の端からはみ出すので、目盛りを札の下から始める
   const GA = LOOK.gauge;
-  const plans = planGauges(diagram, order, words.gaugeOver, [words.gaugeConfirmed, words.gaugeHeld]);
+  const plans = planGauges(diagram, order, lang);
   const stamped = new Set(diagram.steps.flatMap((step) => step.events.flatMap((e) => (e.type === "stamp" && "box" in e ? [e.box] : []))));
   const gaugeGap = (lane: string): number => (stamped.has(lane) ? L.stamp.h - L.stamp.drop + GA.below : GA.below);
   const gaugeRoom = (lane: string): number => roomUnder(plans.under.get(lane), gaugeGap(lane));

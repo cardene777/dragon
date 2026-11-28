@@ -453,3 +453,7 @@
 | 段で動く物が今の大きさで窓に収まる段は窓を引かず、今と同じ所に止まる。窓を引いた段の次の収まる段は、元の大きさに戻る | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-fitting-steps-unchanged`が通る | #3871 |
 | 時系列図の窓は、段で動く物が収まらない段でも引かない | `pnpm exec vitest run packages/dragon/test/follow-zoom.test.ts`の検査`follow-zoom-sequence-never-zooms`が通る | #3871 |
 | 線の端の箱が窓に収まる段は、窓を寄せ直さず今の所に止まる | `pnpm exec vitest run packages/dragon/test/follow-ends.test.ts`の検査`follow-ends-fitting-steps-kept`が通る | #3871 |
+| oauthの書き出したHTMLを幅360、390、430、600pxで開いた狭い帯で、段の番号が題と同じ段の左端に出て、題の欄が帯の中身の幅の8割以上を使う | `pnpm exec vitest run packages/dragon/test/export.test.ts --reporter=verbose` check `html-export-narrow-caption-stacks-body` passes | #4035 |
+| oauthの書き出したHTMLを幅800pxと1280pxで開いた広い帯は、今と同じく釦を題の行の右に置き、進み具合を説明文の下の全幅に置く | `pnpm exec vitest run packages/dragon/test/export.test.ts --reporter=verbose` check `html-export-wide-caption-one-row` passes | #4035 |
+| guideの頁を幅900pxで開いた時、段の数を隠した狭い帯の題は、本文と同じ左端から始まる | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-figure-title-starts-at-body-edge` passes | #4035 |
+| 説明の頁の図の再生の帯は、01/03のような段の数を出さない | `pnpm exec vitest run packages/dragon/test/page-guide.test.ts --reporter=verbose` check `guide-figure-hides-step-count` passes | #4035 |
