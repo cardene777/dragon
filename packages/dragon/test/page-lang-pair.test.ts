@@ -245,7 +245,7 @@ const read = (page: Page) =>
       headBottom: head && vis(head) ? Math.round(head.getBoundingClientRect().bottom) : 0,
       questions: [...document.querySelectorAll(".pg-q")].filter(vis).map((q) => q.hasAttribute("data-done")),
       rows: Object.fromEntries([...document.querySelectorAll(".pg-map-list a, nav.pg-menu a.pg-menu-q")].filter(vis).map((a) => [dec(a.getAttribute("href") ?? "").slice(1), a.hasAttribute("data-done")])),
-      main: sq((document.querySelector(".pg-main") as HTMLElement | null)?.innerText),
+      main: sq(document.querySelector<HTMLElement>(".pg-main")?.innerText),
       figures: [...document.querySelectorAll(".pg-figure")].filter(vis).map(deepText),
       raw: [...document.querySelectorAll(".pg-figure pre.dragon")].filter(vis).length,
       placeholder: (document.querySelector<HTMLInputElement>(".pg-sx input")?.placeholder ?? "").trim(),
@@ -387,7 +387,13 @@ const FLOW = await atLoad("日本語のブラウザで2つの言葉の頁を開�
         (s) => s.menu === "額を照らす",
         WAIT,
       );
-      return switchTo(page, "en");
+      await switchTo(page, "en");
+      // 替えた後に図を描くと高さが変わるので、目次の印が落ち着くまで待つ
+      return readUntil(
+        () => read(page),
+        (s) => s.menu === "Check the amount",
+        WAIT,
+      );
     });
     const figureAt = await step("見出しの無い節の2つ目の図へ移ってから日本語へ替える", async () => {
       await openPlace(page, "in-what-order-is-it-checked-fig-2");
@@ -396,7 +402,12 @@ const FLOW = await atLoad("日本語のブラウザで2つの言葉の頁を開�
         (s) => s.menu === "After a stop",
         WAIT,
       );
-      return switchTo(page, "ja");
+      await switchTo(page, "ja");
+      return readUntil(
+        () => read(page),
+        (s) => s.menu === "止めた後",
+        WAIT,
+      );
     });
     const term = await step("用語の話題の2つ目の用語を開いてから英語へ替える", async () => {
       await openPlace(page, "宛先");

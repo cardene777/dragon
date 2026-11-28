@@ -308,21 +308,26 @@ const pageBlocks = (doc: Document): Element[] => [
  * 頁の記法の塊を全て図に置き換える。`prepare` は記法を読む前に待ち、その記法が使う部品を読む。
  * `framed` を渡すと、属性 `data-header` を持つ塊は `prepare` と同時にそれを待ち、返った処理で帯の内側に図を描く。
  * `drawnBlock` を渡すと、全ての塊の図を描いた後にそれへ渡す。
- * 頁を読み終える前に呼ばれた時は、読み終えてから置き換える
+ * 頁を読み終える前に呼ばれた時は、読み終えてから置き換える。
+ * 頁が`dragon-blocks`を送ると、その時の頁の言葉で、まだ描きに掛かっていない塊を描き足す。言葉を替えて中身を差し込む頁 (#3899) が送る
  */
 export function drawPageBlocks(doc: Document, prepare: (source: string | object) => Promise<void>, framed?: () => Promise<FramedBlock>, drawnBlock?: DrawnBlock): void {
-  const lang: NotationLang = doc.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
+  const claimed = new WeakSet<Element>();
   const draw = (): void => {
+    const lang: NotationLang = doc.documentElement.lang.toLowerCase().startsWith("ja") ? "ja" : "en";
     const defined = pageDefinitions(doc, lang);
     // 誤りは塊ごとに誤りの文として出すので、まとめて待つ側では握らない
     defined.catch(() => undefined);
     const page: PageShared = { lang, defined, layouts: storedLayouts(doc), header: headerSettings(doc, lang) };
     for (const block of pageBlocks(doc)) {
+      if (claimed.has(block)) continue;
+      claimed.add(block);
       // HTMLの形の図は既定で行の中の要素なので、幅を見張れるよう塊にする (#3908)
       if (block.matches(FORM_FIGURES)) (block as HTMLElement).style.display = "block";
       whenShown(block, () => void drawBlock(block, prepare, page, framed, drawnBlock));
     }
   };
+  doc.addEventListener("dragon-blocks", draw);
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", draw, { once: true });
   else draw();
 }

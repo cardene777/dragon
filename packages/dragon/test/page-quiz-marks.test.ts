@@ -531,6 +531,8 @@ describe("説明の頁の確かめた問いの印 (#3898)", () => {
       "スキルの`page`の手引きが印を消す釦を書く",
     ).toMatch(/Clear marks/u);
     const musubi = JSON.parse(read("plugins/dragon/skills/dragon/musubi.json"));
-    expect(musubi.provides.page?.version, "スキルの`page`の版").toBe("1.2.0");
+    // 後の課題が手引きの版を上げても落ちないよう、この課題で上げた1.2.0以上と見る (#3899)
+    const [major = 0, minor = 0] = String(musubi.provides.page?.version ?? "0.0.0").split(".").map(Number);
+    expect(major > 1 || (major === 1 && minor >= 2), `スキルの\`page\`の版 (${musubi.provides.page?.version}) が1.2.0より前`).toBe(true);
   });
 });
