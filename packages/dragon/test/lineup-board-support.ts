@@ -61,7 +61,6 @@ export interface BoardLayout {
   values?: (Rect & { lane: string; step: number; changed: boolean; text: Writing })[];
   ghosts?: (Rect & { id: string; lane: string; step: number; kind: string })[];
   backs?: { id: string; from: string; to: string; step: number; event: number; points: Point[]; label: Rect & { text: Writing } }[];
-  arrows?: { from: string; to: string; points: Point[] }[];
   legend?: { color?: string; swatch: Rect; text: Writing }[];
   remarks?: { step: number; lane: string; text: Writing }[];
   headlines?: { step: number; title: Writing; say?: Writing }[];

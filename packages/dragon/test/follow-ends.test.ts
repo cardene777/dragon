@@ -150,6 +150,26 @@ function tagsOf(p: Placed): Tag[] {
 /** 段 `step` の止め絵で見える札 */
 const shownTags = (p: Placed, step: number): Tag[] => tagsOf(p).filter((t) => p.opacity(t.el, p.stillAt(step)) > 0.5);
 
+/** 札の印の点。`d` の `M` と `L` の後の数の組 */
+const pointsOf = (d: string): Point[] => [...d.matchAll(/[ML]\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/gu)].map((m) => [Number(m[1]), Number(m[2])]);
+
+type Side = "left" | "right" | "up" | "down";
+
+/** 3 点の印の尖った先が向く側。底の 2 点が同じ x なら左右、同じ y なら上下を向く。3 点の形でなければ undefined */
+function tipSide(pts: Point[]): Side | undefined {
+  if (pts.length !== 3) return undefined;
+  for (let i = 0; i < 3; i++) {
+    const tip = pts[i] as Point;
+    const [a, b] = pts.filter((_, k) => k !== i) as [Point, Point];
+    if (Math.abs(a[0] - b[0]) < 0.01 && Math.abs(tip[0] - a[0]) > 0.01) return tip[0] > a[0] ? "right" : "left";
+    if (Math.abs(a[1] - b[1]) < 0.01 && Math.abs(tip[1] - a[1]) > 0.01) return tip[1] > a[1] ? "down" : "up";
+  }
+  return undefined;
+}
+
+/** 札を確かめる見本。考えの地図と量の行き先の図と状態遷移図で、札が窓の左右と上下に出る */
+const TAG_EXAMPLES = ["wallet-ux", "salary", "subscription"];
+
 /** 図の上の四角を窓の上の四角へ移す */
 const inWindow = (r: Rect, win: Rect): Rect => ({ x: r.x - win.x, y: r.y - win.y, w: r.w, h: r.h });
 
@@ -262,6 +282,59 @@ describe("寄って追う窓の線の端の箱 (#3836)", () => {
     releasePlaced();
     const q = place("support-ticket", notation(example("support-ticket")), WIDTH);
     for (let s = 0; s < 5; s++) expect(shownTags(q, s).map((t) => t.name), `support-ticket の段 ${s + 1} に札が見える`).toEqual([]);
+  });
+
+  it("follow-ends-tag-arrow-filled", () => {
+    // 札の印は札の色で塗った閉じた三角にし、尖った先を切れた箱の続く側へ向ける (#4060 で本人が選んだ)
+    const wrong: string[] = [];
+    const open: string[] = [];
+    const unfilled: string[] = [];
+    let seen = 0;
+    for (const name of TAG_EXAMPLES) {
+      const p = place(name, notation(example(name)), WIDTH);
+      for (const tag of tagsOf(p)) {
+        const where = `${name} の段 ${tag.step + 1} の ${tag.name}`;
+        const arrows = [...tag.el.querySelectorAll(".dg-tag-arrow")];
+        expect(arrows.length, `${where} の札の印の数`).toBe(1);
+        const d = arrows[0]?.getAttribute("d") ?? "";
+        const style = arrows[0]?.getAttribute("style") ?? "";
+        const side = tipSide(pointsOf(d));
+        const end = endsAt(p, tag.step).find((e) => e.name === tag.name);
+        if (end) {
+          const win = p.windowAt(tag.step);
+          const r = end.rect;
+          const over: Record<Side, number> = { left: win.x - r.x, right: r.x + r.w - (win.x + win.w), up: win.y - r.y, down: r.y + r.h - (win.y + win.h) };
+          if (side === undefined || over[side] <= 0) wrong.push(`${where} の印が向く側 ${side ?? "無し"} (${d})`);
+          seen++;
+        }
+        if (!/[Zz]\s*$/u.test(d)) open.push(`${where} (${d})`);
+        if (!/fill:\s*var\(--c\)/u.test(style)) unfilled.push(`${where} (${style})`);
+      }
+      releasePlaced();
+    }
+    expect(seen, "向きを確かめた札の数").toBeGreaterThan(0);
+    expect(wrong, "尖った先が切れた箱の続く側を向かない札の印").toEqual([]);
+    expect(open, "閉じた三角でない札の印").toEqual([]);
+    expect(unfilled, "札の色で塗らない札の印").toEqual([]);
+  });
+
+  it("follow-ends-tag-arrow-not-open", () => {
+    // 札の中に、塗らない線だけの印を描かない。細い線だけの小さな > は向きの印に使わない (#4060)
+    let tags = 0;
+    const open: string[] = [];
+    for (const name of TAG_EXAMPLES) {
+      const p = place(name, notation(example(name)), WIDTH);
+      for (const tag of tagsOf(p)) {
+        tags++;
+        for (const el of tag.el.querySelectorAll("path")) {
+          const d = el.getAttribute("d") ?? "";
+          if (/fill:\s*none/u.test(el.getAttribute("style") ?? "") || !/[Zz]\s*$/u.test(d)) open.push(`${name} の段 ${tag.step + 1} の ${tag.name} (${d})`);
+        }
+      }
+      releasePlaced();
+    }
+    expect(tags, "札の数").toBeGreaterThan(0);
+    expect(open, "札の中の、塗らない線だけの印").toEqual([]);
   });
 
   it("follow-ends-sankey-tag-on-top", () => {
