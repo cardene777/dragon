@@ -25,6 +25,7 @@ A page with two or more topics looks like this.
 
 - A header stays at the top with the title and tabs for the overview and each topic. The tab of the open topic is bold and underlined.
 - When the tabs do not fit beside the title, they move to a row under the title. On a phone the row of tabs scrolls sideways.
+- The header ends with a search box. Typing a word lists the questions whose title, menu name, or one-sentence answer holds it, grouped by topic, and the terms whose name or meaning holds it. Clicking a question opens its page, and clicking a term opens its card in the `Terms` topic. On a phone a magnifier button right of the title opens the box. A page with one topic and no terms puts the box at the top of the menu.
 - A topic's tab opens a page that lists its questions with their one-sentence answers.
 - The menu on the left lists only the questions of the open topic, with the `####` headings of the open page under its row. A page with no `####` headings lists its figure titles instead.
 - The menu marks the open page with a gray background and bold text. It shows no numbers and no arrows to fold its lists.

@@ -389,6 +389,29 @@ body:has(.pg-split){background:var(--pg-surf)}
 .pg-split>.pg-menu{top:var(--pg-head-h,61px);max-height:calc(100vh - var(--pg-head-h,61px));min-height:calc(100vh - var(--pg-head-h,61px));padding:20px 16px 40px 24px;background:var(--pg-sunk);border-right:1px solid var(--pg-hair)}
 .pg-split[data-bare]{padding:0 40px 48px;grid-template-columns:minmax(0,880px);grid-template-areas:"top" "over" "main";justify-content:center}
 }
+.pg-sx{position:relative;display:flex;align-items:center;align-self:center;flex:0 0 260px;max-width:100%;margin-left:auto;min-width:0}
+.pg-sx-box{position:relative;display:flex;align-items:center;width:100%}
+.pg-sx-box svg,.pg-sx-open svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.pg-sx-box svg{position:absolute;left:11px;color:var(--pg-mute);pointer-events:none}
+.pg-sx-in{width:100%;height:40px;box-sizing:border-box;margin:0;padding:0 12px 0 36px;border:1px solid var(--pg-line);border-radius:8px;background:var(--pg-bg);font:inherit;font-size:15px;color:var(--pg-ink);outline:none}
+.pg-sx-in::placeholder{color:var(--pg-mute)}
+.pg-sx-in:focus{border-color:var(--pg-t-blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--pg-t-blue) 18%,transparent)}
+.pg-sx-list{position:absolute;z-index:40;top:calc(100% + 6px);right:0;width:440px;max-width:calc(100vw - 32px);max-height:min(70vh,520px);overflow:auto;box-sizing:border-box;padding:6px;background:var(--pg-surf);border:1px solid var(--pg-line);border-radius:10px;box-shadow:0 12px 32px color-mix(in srgb,var(--pg-ink) 16%,transparent);text-align:left;font-size:15px;line-height:1.5}
+.pg-sx-h{padding:8px 10px 4px;font-size:13px;font-weight:700;line-height:1.4;color:var(--pg-mute)}
+.pg-sx-g[data-kind="q"] .pg-sx-h span{color:var(--c)}
+.pg-sx-r{display:block;margin:2px 0;padding:8px 12px;border-left:3px solid transparent;border-radius:6px;color:var(--pg-ink);text-decoration:none}
+.pg-sx-g[data-kind="q"] .pg-sx-r{border-left-color:var(--cc)}
+.pg-sx-r:hover,.pg-sx-r[aria-selected="true"]{background:color-mix(in srgb,var(--pg-ink) 6%,transparent)}
+.pg-sx-n{display:block;font-weight:600}
+.pg-sx-s{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.55;color:var(--pg-ink2)}
+.pg-sx mark{padding:0 1px;border-radius:2px;background:color-mix(in srgb,var(--pg-t-amber) 30%,transparent);color:inherit}
+.pg-sx-none{margin:0;padding:14px 12px;font-size:14px;color:var(--pg-ink2)}
+.pg-sx-open{display:none;place-items:center;width:40px;height:40px;padding:0;align-self:center;margin-left:auto;border:1px solid var(--pg-line);border-radius:8px;background:var(--pg-bg);color:var(--pg-ink2);cursor:pointer}
+.pg-sx-open:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
+@media (min-width:861px){.pg-head[data-wrap] .pg-sx{order:1}.pg-head[data-wrap] .pg-head-tabs{order:2}}
+.pg-menu .pg-sx{flex:none;width:100%;margin:0 0 16px}
+.pg-menu .pg-sx-list{position:fixed;right:auto}
+.pg-gl:target{border-color:var(--pg-t-blue);box-shadow:0 0 0 1px var(--pg-t-blue)}
 @media (max-width:860px){
 .pg-has-menu{display:flex;flex-direction:column;align-items:stretch}
 .pg-has-menu>.pg-tabs{order:0;position:static;padding-top:6px}
@@ -408,13 +431,20 @@ body:has(.pg-split){background:var(--pg-surf)}
 .pg-split{padding:0 16px 40px}
 .pg-split>.pg-menu{position:static;padding:16px 0 4px;background:none;border:0}
 }
+@media (max-width:860px){
+.pg-sx-open{display:grid;order:1}
+.pg-head .pg-sx{order:2;flex:0 0 100%;margin:0;padding:0 0 10px}
+.pg-head:not([data-search]) .pg-sx{display:none}
+.pg-head .pg-head-tabs{order:3;flex-basis:calc(100% + 28px)}
+.pg-head .pg-sx-list{left:0;right:0;width:auto;max-width:none;top:calc(100% - 4px)}
+}
 @media (max-width:760px){.pg-guide .pg-top h1{font-size:25px}.pg-topic-title{font-size:22px}.pg-sec-title{font-size:20px}}
 @media print{
 .pg-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin:10px 0}
 .pg-tc{display:block;position:static;width:auto!important;max-width:none;box-shadow:none;break-inside:avoid}
 .pg-tc-x,.pg-q-btn,.pg-pager,.pg-tabs{display:none}
 .pg-q-a[hidden]{display:block!important}
-.pg-menu,.pg-menu-toggle,.pg-head{display:none!important}
+.pg-menu,.pg-menu-toggle,.pg-head,.pg-sx,.pg-sx-open{display:none!important}
 .pg-has-menu{display:block}
 .pg-topic+.pg-topic{break-before:page}
 .pg-topic-title,.pg-sec-title,.pg-answer,.pg-sec p:has(+.pg-figure){break-after:avoid}
@@ -434,7 +464,10 @@ body:has(.pg-split){background:var(--pg-surf)}
  * 場所の名前が話題を指す時はタブの頭へ戻り、話題の中の要素 (問いの節や用語の説明) を指す時はその要素へ移る。頁の終わりまで送った時は、見えている最後の行に印を付ける。
  * 話題のタブの中は問いごとの頁に分ける (#3998)。場所の名前が話題を指す時は話題の頭の地図の頁 (`pg-topic-head`) だけを見せ、問いの節か節の中の図を指す時はその節だけを見せ、話題の題を隠す。
  * 目次は開いた問いの行に`data-open`を付け、開いた問いの下の頁の見出しか図の題を出す (#4010)。読んでいる所の印は見出しか図の題に付け、問いの行には付けない。
- * 開いた時はブラウザがURLの場所の要素まで送るので、読み込みが終わった時にもう一度場所へ移る
+ * 開いた時はブラウザがURLの場所の要素まで送るので、読み込みが終わった時にもう一度場所へ移る。
+ * 検索の欄 (`pg-sx`、#3897) に語を打つと、問いの題と目次の短い名前と1文の答え、用語の名前と説明を、大文字と小文字、全角と半角を区別せずに探し、
+ * 当たった問いと用語を話題ごとにまとめた一覧を欄の下に組んで、打った語の全ての所に印 (`mark`) を付ける。行を押すかEnterでその問いか用語の札へ移り、
+ * ↓と↑で選ぶ行を移し、Escか欄の外を押すと一覧を閉じる。携帯の幅ではヘッダーの虫眼鏡の釦で欄を開け閉めし、欄の高さの分だけヘッダーの高さを書き直す
  */
 const RUNTIME_GUIDE = `(()=>{
 const decode=(h)=>{try{return decodeURIComponent(h)}catch(e){return h}};
@@ -460,7 +493,12 @@ const idOf=(a)=>decode(a.getAttribute("href").slice(1));
 const groups=menu&&wrap?[...menu.querySelectorAll(".pg-menu-group[data-topic]")]:[];
 const pages=menu&&wrap?[...menu.querySelectorAll(".pg-menu-q")]:[];
 const topicOf=(el)=>!el||!main||!main.contains(el)?null:el.closest(".pg-topic");
-const layoutHead=()=>{if(!head||!row||!title)return;head.removeAttribute("data-wrap");if(row.offsetTop>title.offsetTop+4)head.setAttribute("data-wrap","");document.documentElement.style.setProperty("--pg-head-h",head.offsetHeight+"px")};
+const sx=document.querySelector(".pg-sx");
+const sxIn=sx?sx.querySelector("input"):null;
+const sxList=sx?sx.querySelector(".pg-sx-list"):null;
+const sxOpen=document.querySelector(".pg-sx-open");
+const sxMenu=!!(sx&&sx.closest(".pg-menu"));
+const layoutHead=()=>{if(!head||!row||!title)return;head.removeAttribute("data-wrap");const below=!sxMenu&&!!sx&&sx.offsetParent!==null&&sx.offsetTop>=title.offsetTop+title.offsetHeight-4;if(row.offsetTop>title.offsetTop+4||below)head.setAttribute("data-wrap","");document.documentElement.style.setProperty("--pg-head-h",head.offsetHeight+"px")};
 const showTab=()=>{const now=tabs.find((a)=>a.getAttribute("aria-current")==="true");if(!now||row.scrollWidth<=row.clientWidth)return;const r=row.getBoundingClientRect();const c=now.getBoundingClientRect();row.scrollLeft+=c.left-r.left-(r.width-c.width)/2};
 const show=(topic,sec)=>{for(const h of heads)off(h,!!topic);off(main,!topic);for(const t of main.querySelectorAll(":scope>.pg-topic"))off(t,t!==topic);
 if(topic){const name=topic.querySelector(":scope>.pg-topic-title");if(name)off(name,!!sec);const map=topic.querySelector(":scope>.pg-topic-head");if(map)off(map,!!sec);for(const s of topic.querySelectorAll(":scope>.pg-sec"))off(s,s!==sec)}
@@ -470,12 +508,42 @@ const at=topic?topic.id:tabs[0]?idOf(tabs[0]):"";for(const a of tabs){if(idOf(a)
 const spy=()=>{const line=(phone.matches&&toggle&&!wrap?toggle.offsetHeight+16:0)+(head?head.offsetHeight:0)+(wrap?120:80);const shown=links.map((a,i)=>[a,targets[i]]).filter(([,t])=>t&&!(wrap&&t.closest("[data-off]")));let now=shown.length>0?shown[0][0]:null;for(const [a,t] of shown)if(t.getBoundingClientRect().top<=line)now=a;
 if(wrap&&shown.length>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-2)now=shown[shown.length-1][0];if(now===marked)return;if(marked)marked.removeAttribute("aria-current");marked=now;if(!now)return;now.setAttribute("aria-current","true");if(phone.matches)return;const m=menu.getBoundingClientRect();const r=now.getBoundingClientRect();if(r.top<m.top||r.bottom>m.bottom)menu.scrollTop+=r.top-m.top-m.height/3};
 let queued=false;
-addEventListener("scroll",()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;spy()})},{passive:true});
-addEventListener("resize",()=>{layoutHead();showTab();spy()});
+addEventListener("scroll",()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;spy();sxPlace()})},{passive:true});
+addEventListener("resize",()=>{layoutHead();showTab();spy();sxPlace()});
 const go=()=>{const h=decode(location.hash.slice(1));const target=h?document.getElementById(h):null;
 if(wrap&&main){const topic=topicOf(target);const sec=topic&&target!==topic?target.closest(".pg-sec"):null;show(topic,sec);if(target&&topic&&target!==topic&&target!==sec)target.scrollIntoView();else scrollTo(0,0);spy();return}
 if(target)target.scrollIntoView();spy()};
+const norm=(text)=>{let out="";const at=[];const end=[];let i=0;for(const ch of text){const n=ch.normalize("NFKC").toLowerCase();for(let k=0;k<n.length;k++){out+=n[k];at.push(i);end.push(i+ch.length)}i+=ch.length}return{out,at,end}};
+const paint=(el,text,q)=>{const n=norm(text);let from=0;let last=0;for(;;){const a=n.out.indexOf(q,from);if(a<0)break;const s=n.at[a];const e=n.end[a+q.length-1];if(s>=last){if(s>last)el.append(text.slice(last,s));const m=document.createElement("mark");m.textContent=text.slice(s,e);el.append(m);last=e}from=a+q.length}if(last<text.length)el.append(text.slice(last))};
+const textOf=(el)=>el?el.textContent.replace(/\\s+/g," ").trim():"";
+const sxGroups=[];
+if(sx)for(const topic of document.querySelectorAll(".pg-main .pg-topic")){const items=[];
+for(const sec of topic.querySelectorAll(".pg-sec")){const short=menu?[...menu.querySelectorAll("a.pg-menu-q")].find((a)=>idOf(a)===sec.id):null;const name=textOf(sec.querySelector(".pg-sec-title"));const answer=textOf(sec.querySelector(":scope>.pg-answer"));items.push({id:sec.id,name,sub:answer,keys:[name,textOf(short&&short.querySelector(".pg-menu-name")),answer].map((k)=>norm(k).out)})}
+for(const card of topic.querySelectorAll(".pg-gl")){const name=textOf(card.querySelector(".pg-gl-n"));const meaning=textOf(card.querySelector(".pg-gl-t"));items.push({id:card.id,name,sub:meaning,keys:[name,meaning].map((k)=>norm(k).out)})}
+if(items.length>0)sxGroups.push({name:textOf(topic.querySelector(":scope>.pg-topic-title")),style:topic.getAttribute("style")||"",kind:topic.querySelector(".pg-gl")?"t":"q",items})}
+let sxRows=[];let sxAt=-1;
+const sxPlace=()=>{if(!sxMenu||!sxList||sxList.hidden)return;const r=sxIn.getBoundingClientRect();sxList.style.left=r.left+"px";sxList.style.top=(r.bottom+6)+"px";sxList.style.width=Math.max(0,Math.min(440,innerWidth-r.left-16))+"px"};
+const sxShow=(on)=>{sxList.hidden=!on;sxIn.setAttribute("aria-expanded",String(on));if(on)sxPlace();else{sxAt=-1;sxIn.removeAttribute("aria-activedescendant")}};
+const sxPick=(i)=>{sxAt=i;sxRows.forEach((r,k)=>r.setAttribute("aria-selected",String(k===i)));const r=sxRows[i];if(!r)return;sxIn.setAttribute("aria-activedescendant",r.id);r.scrollIntoView({block:"nearest"})};
+const sxFind=()=>{const word=sxIn.value.trim();const q=norm(word).out;sxList.replaceChildren();sxRows=[];if(!q){sxShow(false);return}
+let g=0;for(const group of sxGroups){const hits=group.items.filter((it)=>it.keys.some((k)=>k.includes(q)));if(hits.length===0)continue;
+const box=document.createElement("div");box.className="pg-sx-g";box.setAttribute("role","group");box.dataset.kind=group.kind;if(group.style)box.setAttribute("style",group.style);
+const h=document.createElement("div");h.className="pg-sx-h";h.id="pg-sx-h"+g;g+=1;box.setAttribute("aria-labelledby",h.id);const name=document.createElement("span");name.textContent=group.name;h.append(name," "+hits.length);box.append(h);
+for(const it of hits){const a=document.createElement("a");a.className="pg-sx-r";a.setAttribute("role","option");a.id="pg-sx-o"+sxRows.length;a.href="#"+it.id;a.tabIndex=-1;const n=document.createElement("span");n.className="pg-sx-n";paint(n,it.name,q);a.append(n);if(it.sub){const d=document.createElement("span");d.className="pg-sx-s";paint(d,it.sub,q);a.append(d)}box.append(a);sxRows.push(a)}
+sxList.append(box)}
+if(sxRows.length===0){const none=document.createElement("p");none.className="pg-sx-none";none.textContent=sx.dataset.none.replace("{}",()=>word);sxList.append(none)}
+sxShow(true);sxPick(sxRows.length>0?0:-1)};
+const sxFold=(on)=>{head.toggleAttribute("data-search",!on);sxOpen.setAttribute("aria-expanded",String(!on));layoutHead();if(!on)sxIn.focus()};
+if(sxIn){sxIn.addEventListener("input",sxFind);sxIn.addEventListener("focus",()=>{if(sxIn.value.trim())sxFind()});
+sxIn.addEventListener("keydown",(event)=>{const k=event.key;
+if(k==="ArrowDown"||k==="ArrowUp"){event.preventDefault();if(sxList.hidden){sxFind();return}if(sxRows.length>0)sxPick(k==="ArrowDown"?Math.min(sxAt+1,sxRows.length-1):Math.max(sxAt-1,0));return}
+if(k==="Enter"){event.preventDefault();const r=sxRows[sxAt];if(r&&!sxList.hidden)r.click();return}
+if(k==="Escape"){event.preventDefault();event.stopPropagation();if(!sxList.hidden)sxShow(false);else if(phone.matches&&!sxMenu)sxFold(true)}})}
+if(sxMenu)menu.addEventListener("scroll",sxPlace,{passive:true});
 document.addEventListener("click",(event)=>{const t=event.target;
+if(sx){const pick=t.closest?.(".pg-sx-r");if(pick){sxShow(false);if(phone.matches&&!sxMenu)sxFold(true);if(idOf(pick)===decode(location.hash.slice(1))){event.preventDefault();go()}}
+else if(t.closest?.(".pg-sx-open")){sxFold(head.hasAttribute("data-search"));return}
+else if(!t.closest?.(".pg-sx"))sxShow(false)}
 const term=t.closest?.(".pg-term");if(term){open(term);return}
 if(opened&&(t.closest?.(".pg-tc-x")||!opened.card.contains(t)))close();
 const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;return}
@@ -638,6 +706,29 @@ function termCards(terms: readonly RenderedTerm[], lang: PageLang): string {
 }
 
 /** 携帯の幅で目次を開け閉めする釦の矢印 (24の升の中の下向きの折れ線) */
+/** 検索の欄と、携帯の幅で欄を開く釦の虫眼鏡 (#3897) */
+const SEARCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>';
+
+/**
+ * 説明の頁の検索の欄 (#3897)。欄 (`role="combobox"`) と、欄に打った語で頁の script が組む一覧 (`role="listbox"`)。
+ * 当たる物が無い時の字は`data-none`に持ち、`{}`を打った語に置き換える
+ */
+function searchHtml(lang: PageLang): string {
+  const words = WORDS[lang];
+  const label = escapeHtml(words.search);
+  return (
+    `<div class="pg-sx" id="pg-sx" data-none="${escapeHtml(words.searchNone)}"><div class="pg-sx-box">${SEARCH_ICON}` +
+    `<input type="search" class="pg-sx-in" placeholder="${label}" aria-label="${label}" role="combobox" aria-expanded="false" aria-controls="pg-sx-list" aria-autocomplete="list" autocomplete="off" spellcheck="false"></div>` +
+    `<div class="pg-sx-list" id="pg-sx-list" role="listbox" aria-label="${label}" hidden></div></div>`
+  );
+}
+
+/** 携帯の幅で、ヘッダーの題の右に置いて検索の欄を開く釦 (#3897) */
+const searchOpenHtml = (lang: PageLang): string => {
+  const label = escapeHtml(WORDS[lang].search);
+  return `<button type="button" class="pg-sx-open" aria-label="${label}" title="${label}" aria-expanded="false" aria-controls="pg-sx">${SEARCH_ICON}</button>`;
+};
+
 const FOLD_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>';
 
 /** 字の飾りだけを残し、link と下線の釦を外した HTML。一覧の行は link なので、中に押せる物を入れない */
@@ -739,7 +830,7 @@ function menuHtml(page: RenderedPage, guide: RenderedGuide, split: boolean): str
   return (
     `<nav class="pg-menu" aria-label="${label}">${title}` +
     `<button type="button" class="pg-menu-toggle" aria-expanded="false" aria-controls="pg-menu-list"><span>${label}</span>${FOLD_ICON}</button>` +
-    `<div class="pg-menu-list" id="pg-menu-list">${over}${groups}</div></nav>`
+    `<div class="pg-menu-list" id="pg-menu-list">${split ? "" : searchHtml(page.lang)}${over}${groups}</div></nav>`
   );
 }
 
@@ -821,7 +912,8 @@ function guideLayout(page: RenderedPage): string {
   // 頁に分けた頁は、題と全体像と話題のタブを頁の上のヘッダーに並べる (#4024)。全体像は目次を出さないので、目次を出さない印を付けて始める
   const header = split
     ? `<header class="pg-head"><a class="pg-head-title" href="#${escapeHtml(head.id)}">${withoutLinks(page.title)}</a>` +
-      `<nav class="pg-head-tabs" aria-label="${escapeHtml(WORDS[page.lang].chapters)}">${[head, ...pages].map((tab) => `<a href="#${escapeHtml(tab.id)}">${tab.name}</a>`).join("")}</nav></header>`
+      `<nav class="pg-head-tabs" aria-label="${escapeHtml(WORDS[page.lang].chapters)}">${[head, ...pages].map((tab) => `<a href="#${escapeHtml(tab.id)}">${tab.name}</a>`).join("")}</nav>` +
+      `${searchHtml(page.lang)}${searchOpenHtml(page.lang)}</header>`
     : "";
   return `${header}<div class="pg-wrap pg-guide${menu ? " pg-has-menu" : ""}${split ? " pg-split" : ""}"${split ? " data-bare" : ""}>${menu}<header class="pg-top"><h1>${page.title}</h1>${lead}</header>${start}${main}</div>`;
 }

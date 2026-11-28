@@ -6,6 +6,10 @@ The same record in Japanese is in [`CHANGELOG.ja.md`](CHANGELOG.ja.md).
 
 ## [Unreleased]
 
+### Added
+
+- A guide page (`layout: guide`) with two or more topics has a search box at the right end of its header. Typing a word lists, under the box, the questions whose title, menu name, or one-sentence answer holds the word, grouped by topic, and then the terms whose name or meaning holds it, with every place of the word marked. The search ignores case and full-width letters. Clicking a question opens its page, clicking a term opens the `Terms` topic at its card and outlines the card in blue, the arrow keys and Enter pick a row, and Escape or a click outside closes the list. When nothing matches, the list says so. On a phone a magnifier button right of the title opens the box, and a page with one topic and no terms puts the box at the top of the menu. The dragon skill's `page` reference describes it and the skill raises the version of its `page` content to 1.1.0 (#3897)
+
 ## [0.90.0] - 2026-11-28
 
 ### Added
