@@ -277,4 +277,22 @@ describe("向きの印 (#4060)", () => {
       for (const word of words) expect(unreleased, `${file} の Unreleased が ${word} を書かない`).toMatch(word);
     }
   });
+
+  it("player-step-icons-docs", () => {
+    // 再生の帯の前へと次へのボタンも向きの印の決まりに入り、段送りの印で描くことを、見た目の決まりと変更の記録に書く (#4074)
+    const root = join(PACKAGE, "..", "..");
+    const grammar = readFileSync(join(root, "docs/design/base/GRAMMAR.md"), "utf8");
+    const placing = grammar.split(/^## /mu).find((s) => s.startsWith("置き方")) ?? "";
+    const rule = placing.split("\n").find((l) => l.startsWith("- ") && l.includes("向きの印")) ?? "";
+    expect(rule, "置き方の節に向きの印の決まりの行が無い").not.toBe("");
+    for (const word of ["再生の帯", "段送りの印", "縦の棒"]) expect(rule, `向きの印の決まりの行が「${word}」を書かない`).toContain(word);
+    for (const [file, words] of [
+      ["CHANGELOG.md", [/previous and next buttons/iu, /skip mark/iu]],
+      ["CHANGELOG.ja.md", [/前へと次へのボタン/u, /段送りの印/u]],
+    ] as const) {
+      const unreleased = readFileSync(join(root, file), "utf8").split(/^## /mu).find((s) => s.startsWith("[Unreleased]")) ?? "";
+      expect(unreleased, `${file} に Unreleased の節が無い`).not.toBe("");
+      for (const word of words) expect(unreleased, `${file} の Unreleased が ${word} を書かない`).toMatch(word);
+    }
+  });
 });
