@@ -357,6 +357,18 @@ body{font-size:16px}
 .pg-quiz-h{font-size:14px;font-weight:700;margin:0 0 4px}
 .pg-q{display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap;font-size:14px;padding:6px 0;border-top:1px solid var(--pg-hair)}
 .pg-quiz-h+.pg-q{border-top:0}
+.pg-q{position:relative;padding-left:30px}
+.pg-q::before{content:"";position:absolute;left:0;top:9px;width:20px;height:20px;box-sizing:border-box;border:2px solid var(--pg-line);border-radius:50%}
+.pg-q[data-done]::before{border-color:var(--pg-t-green);background:var(--pg-t-green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/13px no-repeat}
+.pg-map-list a[data-quiz]{position:relative;padding-right:52px}
+.pg-map-list a[data-quiz]::after{content:"";position:absolute;right:16px;top:50%;width:22px;height:22px;margin-top:-11px;box-sizing:border-box;border:2px solid var(--pg-line);border-radius:50%}
+.pg-menu a.pg-menu-q[data-quiz]{position:relative;padding-right:38px}
+.pg-menu a.pg-menu-q[data-quiz]::after{content:"";position:absolute;right:10px;top:50%;width:18px;height:18px;margin-top:-9px;box-sizing:border-box;border:2px solid var(--pg-line);border-radius:50%}
+.pg-map-list a[data-done]::after,.pg-menu a.pg-menu-q[data-done]::after{border-color:var(--pg-t-green);background:var(--pg-t-green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/62% no-repeat}
+.pg-checks-clear{display:flex;justify-content:flex-end;margin:10px 0 0}
+.pg-checks-clear button{font:inherit;font-size:13px;line-height:1.6;border:1px solid var(--pg-hair);background:var(--pg-surf);color:var(--pg-ink2);border-radius:999px;padding:4px 14px;cursor:pointer}
+.pg-checks-clear button:hover{border-color:var(--pg-line);color:var(--pg-ink)}
+.pg-checks-clear button:focus-visible{outline:2px solid var(--pg-t-blue);outline-offset:2px}
 .pg-q-text{margin:0;flex:1 1 12em;min-width:0}
 .pg-q-btn{font:inherit;font-size:12.5px;border:1px solid var(--pg-hair);background:var(--pg-sunk);color:var(--pg-ink);border-radius:999px;padding:1px 12px;cursor:pointer}
 .pg-q-a{flex-basis:100%;color:var(--pg-t-green);font-weight:600}
@@ -445,6 +457,8 @@ body:has(.pg-split){background:var(--pg-surf)}
 .pg-tc-x,.pg-q-btn,.pg-pager,.pg-tabs{display:none}
 .pg-q-a[hidden]{display:block!important}
 .pg-menu,.pg-menu-toggle,.pg-head,.pg-sx,.pg-sx-open{display:none!important}
+.pg-q{padding-left:0}
+.pg-q::before,.pg-map-list a::after,.pg-menu a::after,.pg-checks-clear{display:none!important}
 .pg-has-menu{display:block}
 .pg-topic+.pg-topic{break-before:page}
 .pg-topic-title,.pg-sec-title,.pg-answer,.pg-sec p:has(+.pg-figure){break-after:avoid}
@@ -467,7 +481,10 @@ body:has(.pg-split){background:var(--pg-surf)}
  * 開いた時はブラウザがURLの場所の要素まで送るので、読み込みが終わった時にもう一度場所へ移る。
  * 検索の欄 (`pg-sx`、#3897) に語を打つと、問いの題と目次の短い名前と1文の答え、用語の名前と説明を、大文字と小文字、全角と半角を区別せずに探し、
  * 当たった問いと用語を話題ごとにまとめた一覧を欄の下に組んで、打った語の全ての所に印 (`mark`) を付ける。行を押すかEnterでその問いか用語の札へ移り、
- * ↓と↑で選ぶ行を移し、Escか欄の外を押すと一覧を閉じる。携帯の幅ではヘッダーの虫眼鏡の釦で欄を開け閉めし、欄の高さの分だけヘッダーの高さを書き直す
+ * ↓と↑で選ぶ行を移し、Escか欄の外を押すと一覧を閉じる。携帯の幅ではヘッダーの虫眼鏡の釦で欄を開け閉めし、欄の高さの分だけヘッダーの高さを書き直す。
+ * 確かめる問いの答えを開くと、その問いを節の場所の名前と問いの字の組で覚えて印 (`data-done`) を付け、頁の置き場ごとに端末の頁の記録 (`localStorage`) に残す (#3898)。
+ * 確かめる問いを持つ節の一覧と目次の行には`data-quiz`を付け、節の全ての問いに印が付くとその行にも印を付ける。印が1つでも在る時だけ印を消す釦を出し、押すと全ての印を消す。
+ * 頁の記録を読み書きできない時は、印をその頁を開いている間だけ持つ
  */
 const RUNTIME_GUIDE = `(()=>{
 const decode=(h)=>{try{return decodeURIComponent(h)}catch(e){return h}};
@@ -540,13 +557,24 @@ if(k==="ArrowDown"||k==="ArrowUp"){event.preventDefault();if(sxList.hidden){sxFi
 if(k==="Enter"){event.preventDefault();const r=sxRows[sxAt];if(r&&!sxList.hidden)r.click();return}
 if(k==="Escape"){event.preventDefault();event.stopPropagation();if(!sxList.hidden)sxShow(false);else if(phone.matches&&!sxMenu)sxFold(true)}})}
 if(sxMenu)menu.addEventListener("scroll",sxPlace,{passive:true});
+const store="dragon-guide-checks:"+location.pathname;
+const quizRows=[...document.querySelectorAll(".pg-q")];
+const quizKey=(row)=>{const home=row.closest(".pg-sec,.pg-topic");return (home?home.id:"")+"\\n"+textOf(row.querySelector(".pg-q-text"))};
+const checks=(()=>{let saved=[];try{const v=JSON.parse(localStorage.getItem(store)||"[]");if(Array.isArray(v))saved=v}catch(e){}const known=new Set(quizRows.map(quizKey));return new Set(saved.filter((k)=>known.has(k)))})();
+const saveChecks=()=>{try{if(checks.size>0)localStorage.setItem(store,JSON.stringify([...checks]));else localStorage.removeItem(store)}catch(e){}};
+const paintChecks=()=>{for(const row of quizRows)row.toggleAttribute("data-done",checks.has(quizKey(row)));
+const rows=[...document.querySelectorAll(".pg-map-list a,.pg-menu a.pg-menu-q")];
+for(const sec of document.querySelectorAll(".pg-sec")){const qs=[...sec.querySelectorAll(".pg-q")];if(qs.length===0)continue;const done=qs.every((q)=>q.hasAttribute("data-done"));for(const a of rows)if(idOf(a)===sec.id){a.setAttribute("data-quiz","");a.toggleAttribute("data-done",done)}}
+for(const c of document.querySelectorAll(".pg-checks-clear"))c.hidden=checks.size===0};
+paintChecks();
 document.addEventListener("click",(event)=>{const t=event.target;
 if(sx){const pick=t.closest?.(".pg-sx-r");if(pick){sxShow(false);if(phone.matches&&!sxMenu)sxFold(true);if(idOf(pick)===decode(location.hash.slice(1))){event.preventDefault();go()}}
 else if(t.closest?.(".pg-sx-open")){sxFold(head.hasAttribute("data-search"));return}
 else if(!t.closest?.(".pg-sx"))sxShow(false)}
 const term=t.closest?.(".pg-term");if(term){open(term);return}
 if(opened&&(t.closest?.(".pg-tc-x")||!opened.card.contains(t)))close();
-const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;return}
+const q=t.closest?.(".pg-q-btn");if(q){const a=document.getElementById(q.getAttribute("aria-controls"));const on=a.hidden;a.hidden=!on;q.setAttribute("aria-expanded",String(on));q.textContent=on?q.dataset.hide:q.dataset.show;const row=q.closest(".pg-q");if(on&&row){checks.add(quizKey(row));saveChecks();paintChecks()}return}
+if(t.closest?.(".pg-checks-clear button")){checks.clear();saveChecks();paintChecks();return}
 if(t.closest?.(".pg-menu-toggle")){fold(toggle.getAttribute("aria-expanded")==="true");return}
 if(t.closest?.(".pg-menu a"))fold(true)});
 document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){close();fold(true)}});
@@ -760,7 +788,8 @@ function mapHtml(topic: RenderedTopic, lang: PageLang, overview: string): string
         `${section.answer === undefined ? "" : `<span class="pg-map-answer">${plainInline(section.answer)}</span>`}</a></li>`,
     )
     .join("");
-  return `<div class="pg-map">${still}<ol class="pg-map-list" aria-label="${escapeHtml(WORDS[lang].questions)}">${rows}</ol></div>`;
+  const clear = `<div class="pg-checks-clear" hidden><button type="button">${escapeHtml(WORDS[lang].clearChecks)}</button></div>`;
+  return `<div class="pg-map">${still}<ol class="pg-map-list" aria-label="${escapeHtml(WORDS[lang].questions)}">${rows}</ol>${clear}</div>`;
 }
 
 /**

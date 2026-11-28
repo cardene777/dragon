@@ -425,6 +425,13 @@ A quote (`>`) right after a `###` title is shown under the title as the one-sent
 Other quotes stay quotes.
 A `<details>` block with a `<summary>` line becomes a check question.
 Its answer stays hidden until the button is clicked, and a second click hides it again.
+Each check question has a ring on its left, and opening its answer fills the ring with a green check.
+The mark stays when the answer is hidden again.
+A question section with check questions has the same ring at the right end of its row in the topic's question list and in the menu.
+The ring gets the check when every check question of the section has been opened.
+The browser keeps the marks for that page, so they stay when the page is opened again.
+A `Clear marks` button under the question list removes every mark, and it shows only while there is a mark.
+A browser that cannot keep them still shows the marks until the page is closed, and the printed form shows no marks.
 Other raw HTML is still shown as text.
 
 Each heading level has its own shape.

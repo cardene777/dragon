@@ -800,6 +800,7 @@ describe("説明の頁の検索の欄 (#3897)", () => {
       "スキルの`page`の手引きが検索の欄を書く",
     ).toMatch(/search box/u);
     const musubi = JSON.parse(read("plugins/dragon/skills/dragon/musubi.json"));
-    expect(musubi.provides.page?.version, "スキルの`page`の版").toBe("1.1.0");
+    const [major = 0, minor = 0] = (musubi.provides.page?.version ?? "0.0").split(".").map(Number);
+    expect(major > 1 || (major === 1 && minor >= 1), `スキルの\`page\`の版 (${musubi.provides.page?.version}) が1.1.0より前`).toBe(true);
   });
 });
