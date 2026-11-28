@@ -163,7 +163,7 @@ The block turns into a diagram that plays.
 There is nothing to install or build.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <pre class="dragon">
 sequence Ask to sign in
@@ -489,7 +489,7 @@ A new notation word gets its element with the next release, so `dragon convert d
 HTML does not close `<dg-box/>`, so close every element with its end tag.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <dg-sequence title="Take an order">
   <dg-box id="shop">Shop</dg-box>
@@ -654,7 +654,7 @@ Custom buttons need a click handler, so they cannot go here.
 If the settings block is not valid JSON or names an unknown button, every `data-header` block shows that error instead.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.89/dist/cdn/dragon.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@cardenelabs/dragon@0.90/dist/cdn/dragon.js"></script>
 
 <pre class="dragon" data-header>
 sequence Take an order
