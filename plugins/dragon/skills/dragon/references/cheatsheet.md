@@ -462,6 +462,7 @@ end
 
 `gauge` before the first `step`, under its `on` box. `set <gauge>: <total>` in a step moves the bar.
 `set <gauge>: <confirmed> [hold: <held>]` paints the held amount in a pale shade after the confirmed one and lists both under the bar. A `set` without `hold` clears it.
+With `[note: pop]` on the first line of a flow diagram, clicking a gauge opens a card that lists each step's change and value, up to the step on screen.
 A total over `limit` grows in red and shows the `over` text.
 
 ```dragon

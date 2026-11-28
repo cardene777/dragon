@@ -10,7 +10,7 @@
  * 判断から同じ段に書いた 2 本の線は、先に書いた線が本筋を進み、後に書いた線の先の箱は本筋に無い箱と同じ所へ置く。段で辿り着くので点線の縁と薄い字にはしない (#3579)。
  */
 import { type MainWalk, walkLine } from "../../blocks/choice/block";
-import { planGauges, roomUnder, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
+import { gaugeNotes, planGauges, roomUnder, stackHeight, topBand, underBox, widest, withGauges } from "../../blocks/gauge/layout";
 import { FIGURE_TEXT } from "../../figure-text";
 import { type ColorKey, LOOK, TYPE } from "../../look/values";
 import type { Box, DiagramModel } from "../../schema";
@@ -128,7 +128,7 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
   // 量の目盛り (#3880)。箱の下に積む目盛りの高さを箱の後ろの間に足し、図の上の帯の目盛りの高さを最初の箱の上に空ける。
   // 箱の下の目盛りは、箱の真ん中から下りる線と線の上の段の番号の丸に掛けないよう、真ん中から `clear` だけ右から始める
   const G = LOOK.gauge;
-  const plans = planGauges(diagram, all.boxes.map((b) => b.id), lang);
+  const plans = planGauges(diagram, all.boxes.map((b) => b.id), lang, diagram.note === "pop");
   const under = (id: string): number => roomUnder(plans.under.get(id));
   const band = plans.top.length > 0 ? stackHeight(plans.top) + G.band : 0;
 
@@ -403,6 +403,9 @@ export function layoutFlow(diagram: DiagramModel, lang: NotationLang): Layout {
       g.y += drop;
     }
   }
+  // 札で見せる図の、値を書いた目盛りの内訳の札 (#3896)。寄せた後の目盛りから作る
+  const gaugeCards = gaugeNotes(diagram, gauges, lang);
+  if (gaugeCards.length > 0) layout.noteCards = gaugeCards;
   const endRight = (e: SceneEnd): number => e.x + (e.text === "" ? e.r : T.text + textWidth(e.text, TYPE.regionNote));
   const seats = carrierSeats(sceneEdges);
   const rights = [

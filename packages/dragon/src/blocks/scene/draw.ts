@@ -193,7 +193,7 @@ export function renderScenes(given: DiagramModel, options: DrawOptions, lang: No
     const color: ColorKey = SC.colors[k % SC.colors.length] ?? "blue";
     const laid = withoutEmptyAheads(layouts[k] as Layout);
     const shown = stack ? marked(laid, scene, common, color, list.length > 1, lang) : laid;
-    const placed = placeNotes(notes, shown.boxes);
+    const placed = [...(shown.noteCards ?? []), ...placeNotes(notes, shown.boxes)];
     const layout = placed.length > 0 ? { ...shown, noteCards: placed } : shown;
     return { ...drawLaid(model, layout, options, lang), name: scene.name, ...(scene.stop !== undefined ? { stop: scene.stop } : {}), color, common };
   });
