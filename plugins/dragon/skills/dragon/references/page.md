@@ -90,6 +90,7 @@ dragon embed page.html
 
 - `dragon check` and `dragon check --layout` read every `dragon` fence in the page. Fix every line they print, as for a single figure.
 - `dragon export page.md` writes `page.html` next to it (`--out <dir>` picks the folder, `--lang ja|en` the language of the words the page adds).
+- `dragon export guide.md guide.en.md` takes a Japanese and an English guide page and writes one `guide.html` with a globe button that switches between them in place. Give both files the same number of topics, question sections, `####` headings and check questions in each section, and terms; the export names the file and line of every difference.
 - `dragon embed page.html` writes `page.offline.html`, which carries the scripts and opens offline.
 
 ## Look at it

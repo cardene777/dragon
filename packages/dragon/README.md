@@ -454,6 +454,17 @@ A term written twice, or a link to a term the file does not have, stops the expo
 When the page is printed, the header and the menu are left out, and the sections of every topic follow in written order.
 Each topic after the first starts on a new sheet, with its name at the top.
 Every term card and check answer is drawn open, and box cards are listed below their diagram with their box names instead of over it.
+
+Pass a Japanese and an English guide page together, as in `dragon export guide.md guide.en.md`, to write one page that reads in both languages.
+The page is named after the first file.
+A globe button right of the search box shows the language on screen and opens a list of `日本語` and `English`.
+Picking a language keeps the open topic, question, `####` heading, figure, or term card, and does not reload the page.
+The page first opens in the language of the section its link points to, then in the language picked last, and otherwise in the browser's language.
+A check question opened in one language is marked in the other language too, and `Clear marks` clears both.
+On a phone the button shrinks to the globe, and a page without a header puts it right of the search box in the menu.
+The two files need the same number of topics, question sections, `####` headings and check questions in each section, and terms.
+When a number differs, the export stops and names the file and line of each difference.
+The search box and the printed page show only the language on screen.
 The worked example is in [`examples/guide/`](https://github.com/cardene777/dragon/blob/main/packages/dragon/examples/guide/guide.en.md).
 
 ````md

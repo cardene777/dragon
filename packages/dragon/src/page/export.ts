@@ -14,6 +14,10 @@
  * 説明の頁 (`layout: guide`、#3876) は、頁の頭で読み込んだ用語の file の `###` の見出しを用語、続く段落を説明、引用を例として読む。
  * 本文の用語の file への link (`[用語](glossary.md#用語)`) は押すと札が開く下線にし、札は link を持つ節の終わりに置く。
  * 同じ用語を 2 度書いた用語の file と、用語の file に無い用語への link は、file と行を名指して断る。
+ *
+ * 日本語と英語の説明の頁のmdを1組で渡すと (#3899)、2つの言葉の中身を持つ頁を1つ書き、頁の名前は先に渡したmdから付ける。
+ * 頁の言葉はmdごとに本文から決め、誤りの文は`lang`か先に渡したmdの言葉で書く。
+ * 2つが説明の頁でない時、同じ言葉の時、話題、問いの節、`####`の見出し、用語、確かめる問いの数が違う時は、違う所を名指して書かない。
  */
 import { readFileSync, realpathSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -22,12 +26,12 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } 
 import "../kinds/all";
 import { parseNotation } from "../parser";
 import { DEFAULT_LANG, hasKanaKanji } from "../words";
-import { pageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedHead, type RenderedItem, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
+import { pageHtml, pairPageHtml, type RenderedFigure, type RenderedGroup, type RenderedGuide, type RenderedHead, type RenderedItem, type RenderedPage, type RenderedPart, type RenderedTab, type RenderedTerm, withoutLinks } from "./html";
 import { codeHtml, escapeHtml, fenceCloses, fenceOpen, figureHtml, headingOf, joinLines, type Line, linesOf, linksIn, quoteOf, type RenderHooks, renderBlocks, renderInline } from "./markdown";
-import { type Guide, type Part, placeExists, readOutline, type Tab } from "./read";
+import { type Guide, type Layout, type Part, placeExists, readOutline, type Tab } from "./read";
 import { slugger, slugOf } from "./slug";
 import { type SectionFigure, sceneLinkErrors } from "./scene-links";
-import { MESSAGES, type PageLang, WORDS } from "./text";
+import { LANG_NAMES, MESSAGES, type PageLang, type PageMessages, type PairPart, WORDS } from "./text";
 
 /** 書き出せなかった訳。mdか載せたfileの名前と行と文 */
 export interface PageError {
@@ -123,22 +127,123 @@ function summaryOf(lines: readonly Line[], hooks: Pick<RenderHooks, "image">): s
   return withoutLinks(renderInline(joinLines(paragraph), hooks));
 }
 
-/** 書き出す。誤りがあれば頁を書かない */
-export async function exportPage(file: string, options: PageExportOptions = {}): Promise<PageExport> {
+/**
+ * 1組で数を突き合わせる形 (#3899)。話題ごとの行、話題の中の問いの節ごとの行、節の中の`####`の見出しと確かめる問いの行、
+ * 頭で読み込んだ用語の file ごとの読み込みの行と file の名前と用語の行
+ */
+interface Shape {
+  topics: { line: number; sections: { line: number; heads: number[]; quizzes: number[] }[] }[];
+  glossaries: { line: number; file: string; terms: number[] }[];
+}
+
+/** 1つのmdを描いた形。書く前の頁と、頁の言葉と組み立てと数の形。描けない時は訳と、誤りの文に使った言葉 */
+type Rendered = { ok: true; page: RenderedPage; lang: PageLang; layout: Layout; shape: Shape } | { ok: false; errors: PageError[]; lang: PageLang };
+
+/** `lines` のうち囲みの外で `test` に当たる行の番号 */
+function linesWhere(lines: readonly Line[], test: (text: string) => boolean): number[] {
+  const found: number[] = [];
+  let fence: string | undefined;
+  for (const line of lines) {
+    if (fence !== undefined) {
+      if (fenceCloses(line.text, fence)) fence = undefined;
+      continue;
+    }
+    fence = fenceOpen(line.text)?.mark;
+    if (fence === undefined && test(line.text)) found.push(line.line);
+  }
+  return found;
+}
+
+/** 確かめる問いの開きの行 (`markdown.ts` の `DETAILS` と同じ頭) */
+const QUIZ_OPEN = /^ {0,3}<details>/iu;
+
+/**
+ * 1組の2つのmdで数が違う所 (#3899)。違う所ごとに、多い側の file と、少ない側に無い最初の物の行を名指し、文に少ない側の file と親の行を書く。
+ * 話題が揃う所だけ節を、節が揃う所だけ見出しと確かめる問いを比べる
+ */
+function shapeErrors(a: { file: string; shape: Shape }, b: { file: string; shape: Shape }, m: PageMessages): PageError[] {
+  const errors: PageError[] = [];
+  const compare = (what: PairPart, xs: readonly number[], ys: readonly number[], x: { file: string; parent: number }, y: { file: string; parent: number }): boolean => {
+    if (xs.length === ys.length) return true;
+    const [long, short, longSide, shortSide] = xs.length > ys.length ? [xs, ys, x, y] : [ys, xs, y, x];
+    errors.push({ file: longSide.file, line: long[short.length] ?? 1, message: m.pairCount(what, long.length, `${shortSide.file}:${shortSide.parent}`, short.length) });
+    return false;
+  };
+  const top = (file: string) => ({ file, parent: 1 });
+  compare("topics", a.shape.topics.map((t) => t.line), b.shape.topics.map((t) => t.line), top(a.file), top(b.file));
+  a.shape.topics.forEach((ta, i) => {
+    const tb = b.shape.topics[i];
+    if (!tb) return;
+    if (!compare("sections", ta.sections.map((s) => s.line), tb.sections.map((s) => s.line), { file: a.file, parent: ta.line }, { file: b.file, parent: tb.line })) return;
+    ta.sections.forEach((sa, j) => {
+      const sb = tb.sections[j];
+      if (!sb) return;
+      compare("heads", sa.heads, sb.heads, { file: a.file, parent: sa.line }, { file: b.file, parent: sb.line });
+      compare("quizzes", sa.quizzes, sb.quizzes, { file: a.file, parent: sa.line }, { file: b.file, parent: sb.line });
+    });
+  });
+  if (!compare("glossaries", a.shape.glossaries.map((g) => g.line), b.shape.glossaries.map((g) => g.line), top(a.file), top(b.file))) return errors;
+  a.shape.glossaries.forEach((ga, i) => {
+    const gb = b.shape.glossaries[i];
+    if (gb) compare("terms", ga.terms, gb.terms, top(ga.file), top(gb.file));
+  });
+  return errors;
+}
+
+/**
+ * 書き出す。誤りがあれば頁を書かない。
+ * `files` に日本語と英語の説明の頁のmdを1組で渡すと、言葉を替えて読める頁を1つ書く (#3899)
+ */
+export async function exportPage(files: string | readonly string[], options: PageExportOptions = {}): Promise<PageExport> {
+  const [file = "", second, ...extra] = typeof files === "string" ? [files] : files;
+  const outDir = resolve(options.outDir ?? dirname(resolve(file)));
+  if (extra.length > 0) {
+    const m = MESSAGES[options.lang ?? DEFAULT_LANG];
+    return { ok: false, errors: extra.map((name) => ({ file: name, line: 1, message: m.tooManyPages(name) })) };
+  }
+  let html: string;
+  if (second === undefined) {
+    const one = await renderPage(file, outDir, options.lang);
+    if (!one.ok) return { ok: false, errors: one.errors };
+    html = pageHtml(one.page);
+  } else {
+    // 頁の言葉はmdごとに本文から決め、誤りの文は渡した言葉か先に渡したmdの言葉で揃える
+    const a = await renderPage(file, outDir, undefined, options.lang);
+    const b = await renderPage(second, outDir, undefined, options.lang ?? a.lang);
+    const m = MESSAGES[options.lang ?? a.lang];
+    const errors = [...(a.ok ? [] : a.errors), ...(b.ok ? [] : b.errors)];
+    if (!a.ok || !b.ok) return { ok: false, errors };
+    for (const [one, name] of [[a, file], [b, second]] as const) if (one.layout !== "guide") errors.push({ file: name, line: 1, message: m.pairNotGuide });
+    if (errors.length === 0 && a.lang === b.lang) errors.push({ file: second, line: 1, message: m.pairSameLang(file, LANG_NAMES[a.lang]) });
+    if (errors.length === 0) errors.push(...shapeErrors({ file, shape: a.shape }, { file: second, shape: b.shape }, m));
+    if (errors.length > 0) return { ok: false, errors };
+    html = pairPageHtml(a.page, b.page);
+  }
+  const out = join(outDir, `${basename(file, extname(file))}.html`);
+  await mkdir(outDir, { recursive: true });
+  await writeFile(out, html);
+  return { ok: true, path: out };
+}
+
+/**
+ * 1つのmdを読んで頁の中身を描く。書く先は `outDir` で、画像の path をそこから見た path にする。
+ * 頁の言葉は `lang` か本文から決め、誤りの文は `say` か頁の言葉で書く
+ */
+async function renderPage(file: string, outDir: string, lang?: PageLang, say?: PageLang): Promise<Rendered> {
   const path = resolve(file);
   let text: string;
   try {
     text = await readFile(path, "utf8");
   } catch (error) {
-    return { ok: false, errors: [{ file, line: 1, message: MESSAGES[options.lang ?? DEFAULT_LANG].unreadable(detail(error)) }] };
+    const fallback = say ?? lang ?? DEFAULT_LANG;
+    return { ok: false, lang: fallback, errors: [{ file, line: 1, message: MESSAGES[fallback].unreadable(detail(error)) }] };
   }
-  const lang: PageLang = options.lang ?? (hasKanaKanji(text) ? "ja" : "en");
-  const m = MESSAGES[lang];
+  const pageLang: PageLang = lang ?? (hasKanaKanji(text) ? "ja" : "en");
+  const m = MESSAGES[say ?? pageLang];
   const read = readOutline(linesOf(text), m);
-  if (!read.ok) return { ok: false, errors: read.errors.map((error) => ({ file, ...error })) };
+  if (!read.ok) return { ok: false, lang: pageLang, errors: read.errors.map((error) => ({ file, ...error })) };
   const outline = read.outline;
   const root = realpathSync(dirname(path));
-  const outDir = resolve(options.outDir ?? dirname(path));
   const errors: PageError[] = [];
 
   /** 頭の `note: pop` (#3877)。1 行目に `note` を書かない図を札で見せる既定として、図を読む時と頁の図の塊に渡す */
@@ -147,7 +252,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   let sectionFigures: SectionFigure[] | undefined;
   /** 図の記法を読み、誤りと頁に無い場所を指す飛び先を残す */
   const checkDiagram = (source: Source, notation: string, first: number): void => {
-    const parsed = parseNotation(notation, { lang, ...(note ? { note } : {}) });
+    const parsed = parseNotation(notation, { lang: pageLang, ...(note ? { note } : {}) });
     if (!parsed.ok) {
       for (const error of parsed.errors) errors.push({ file: source.name, line: first + error.line - 1, message: error.message });
       return;
@@ -195,7 +300,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   const terms = new Map<string, Term>();
   /** 用語の file の実の path と、その用語の話題の場所の名前 */
   const glossaryTabs = new Map<string, string>();
-  const glossaryLists: { name: string; id: string; terms: Term[] }[] = [];
+  const glossaryLists: { name: string; id: string; terms: Term[]; line: number; file: string }[] = [];
   const entryId = slugger(guide?.ids ?? []);
   for (const g of guide?.glossaries ?? []) {
     const read = readText({ name: file, path }, g.target, g.line);
@@ -213,7 +318,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
       terms.set(key, term);
       list.push(term);
     }
-    glossaryLists.push({ name: g.name, id: g.id, terms: list });
+    glossaryLists.push({ name: g.name, id: g.id, terms: list, line: g.line, file: read.shown.name });
   }
 
   /** link の行き先が用語の file を指すなら、その用語の話題と、`#` の後ろの名前と、名前に当たる用語。用語の file でなければ `undefined` */
@@ -282,7 +387,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
     };
   /** 確かめる問いの答えの要素に配る番号 */
   let answers = 0;
-  const words = WORDS[lang];
+  const words = WORDS[pageLang];
   const quiz = { heading: words.quiz, show: words.answer, hide: words.close, next: () => ++answers };
 
   /** 1行だけの `![名前](path)` の中身。画像として出す時は `undefined` */
@@ -312,7 +417,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   };
 
   const hooksFor = (source: Source, stack: readonly string[]): RenderHooks => ({
-    alerts: WORDS[lang].alerts,
+    alerts: WORDS[pageLang].alerts,
     ...(note ? { note } : {}),
     ...(guide ? { link: termLink(source), quiz } : {}),
     image: (src) => imageOf(source, src),
@@ -356,7 +461,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   const figuresOf = (html: string, id: string): { html: string; figures: RenderedFigure[] } => {
     const figures: RenderedFigure[] = [];
     const named = html.replace(/<div class="pg-figure([^"]*)"><pre class="dragon"([^>]*)>([\s\S]*?)<\/pre>/gu, (whole, kind: string, attrs: string, escaped: string) => {
-      const parsed = parseNotation(unescapeHtml(escaped), { lang, ...(note ? { note } : {}) });
+      const parsed = parseNotation(unescapeHtml(escaped), { lang: pageLang, ...(note ? { note } : {}) });
       const title = parsed.ok ? parsed.diagram.title.trim() : "";
       if (title === "") return whole;
       const place = `${id}-fig-${figures.length + 1}`;
@@ -400,7 +505,7 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
             return blocks(section.body);
           });
           // 判定の表の例の行が名指す場面が、同じ問いの節の場面の図に 1 つだけ在るか (#3892)
-          for (const error of sceneLinkErrors(sectionFigures, lang)) errors.push({ file: error.file, line: error.line, message: error.message });
+          for (const error of sceneLinkErrors(sectionFigures, pageLang)) errors.push({ file: error.file, line: error.line, message: error.message });
           sectionFigures = undefined;
           const titled = headsOf(body.html, section.id);
           const named = figuresOf(titled.html, section.id);
@@ -430,14 +535,22 @@ export async function exportPage(file: string, options: PageExportOptions = {}):
   }));
   const entry = part(outline.entry);
   const guided = guide ? guideOf(guide) : undefined;
-  if (errors.length > 0) return { ok: false, errors };
+  if (errors.length > 0) return { ok: false, lang: pageLang, errors };
 
   const title = outline.title ?? basename(path, extname(path));
-  const html = pageHtml({ title: renderInline(title, main), titleText: titleText(title), layout: outline.layout, ...(outline.header ? { header: outline.header } : {}), lang, entry, groups, ...(guided ? { guide: guided } : {}) });
-  const out = join(outDir, `${basename(path, extname(path))}.html`);
-  await mkdir(outDir, { recursive: true });
-  await writeFile(out, html);
-  return { ok: true, path: out };
+  const page: RenderedPage = { title: renderInline(title, main), titleText: titleText(title), layout: outline.layout, ...(outline.header ? { header: outline.header } : {}), lang: pageLang, entry, groups, ...(guided ? { guide: guided } : {}) };
+  const shape: Shape = {
+    topics: (guide?.topics ?? []).map((topic) => ({
+      line: topic.line,
+      sections: topic.sections.map((section) => ({
+        line: section.line,
+        heads: linesWhere(section.body, (t) => headingOf(t)?.level === 4),
+        quizzes: linesWhere(section.body, (t) => QUIZ_OPEN.test(t)),
+      })),
+    })),
+    glossaries: glossaryLists.map((list) => ({ line: list.line, file: list.file, terms: list.terms.map((term) => term.line) })),
+  };
+  return { ok: true, page, lang: pageLang, layout: outline.layout, shape };
 }
 
 /** `<title>` に書く字。字の中の書き方の印を外す */
