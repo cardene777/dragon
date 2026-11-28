@@ -123,9 +123,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 判定の表の札の検査 (`judge-note.test.ts`、#3890) は説明の頁の部品 (`page-blocks`) と頁の書き出しを読み、それがどの種類の記法も読むので、どの種類を変えても選ぶ。上限を1つ上げた (#4012)
   // 説明の頁の検索 (`page-search.test.ts`、#3897) と確かめる問いの印 (`page-quiz-marks.test.ts`、#3898) と日本語と英語の組 (`page-lang-pair.test.ts`、#3899) の検査も、
   // Node の入口で説明の頁を書き出し、入口がどの種類の記法も読むので、どの種類を変えても選ぶ。上限を3つ上げた (#4061)
-  it("related-pipe-draw-picks-at-most-145", () => {
+  // 列の図の目盛りの札の検査 (`lineup-gauge-card.test.ts`、#4040) も、Markdown の頁の`note: pop`を確かめるために Node の入口で頁を書き出すので、どの種類を変えても選ぶ。上限を1つ上げた (#4066)
+  it("related-pipe-draw-picks-at-most-146", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/pipe.ts`);
-    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(145);
+    expect(chosen.length, `render/pipe.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(146);
   });
 
   // 全ての種類の全体図の部品を数える検査 (`overview-all-kinds.test.ts`、#3852) は、どの種類を変えても選ぶので、ベン図と順の図の上限を 1 つずつ上げた。
@@ -143,9 +144,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 寄って追う図の検査 (#3871) と印刷の検査 (#3956) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた、#3966)
   // 判定の表の札の検査 (#3890) も選ぶので、上限を1つ上げた (理由は配管の図の上限の上に書いた、#4012)
   // 説明の頁の検索と確かめる問いの印と日本語と英語の組の検査 (#3897、#3898、#3899) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#4061)
-  it("related-venn-draw-picks-at-most-127", () => {
+  // 列の図の目盛りの札の検査 (#4040) も選ぶので、上限を1つ上げた (#4066)
+  it("related-venn-draw-picks-at-most-128", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/render/venn.ts`);
-    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(127);
+    expect(chosen.length, `render/venn.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(128);
   });
 
   // jsDelivr の入口を読む検査 (`pipe-ahead.test.ts`、#3753) は、入口が読む軽い入口が時系列図の登録を最初から読むので選ばれる
@@ -158,9 +160,10 @@ describe("図の種類の描く所を変えた時に選ぶ検査の数 (#3763)",
   // 寄って追う図の検査 (#3871) と印刷の検査 (#3956) も選ぶので、上限を2つ上げた (理由は配管の図の上限の上に書いた、#3966)
   // 判定の表の札の検査 (#3890) も選ぶので、上限を1つ上げた (理由は配管の図の上限の上に書いた、#4012)
   // 説明の頁の検索と確かめる問いの印と日本語と英語の組の検査 (#3897、#3898、#3899) も選ぶので、上限を3つ上げた (理由は配管の図の上限の上に書いた、#4061)
-  it("related-sequence-layout-picks-at-most-175", () => {
+  // 列の図の目盛りの札の検査 (#4040) も選ぶので、上限を1つ上げた (#4066)
+  it("related-sequence-layout-picks-at-most-176", () => {
     const chosen = pick(`${PACKAGE_DIR}/src/kinds/sequence/layout.ts`);
-    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(175);
+    expect(chosen.length, `kinds/sequence/layout.ts で選んだ検査の file が ${chosen.length}`).toBeLessThanOrEqual(176);
   });
 
   it("related-pipe-draw-skips-other-kind-tests", () => {
