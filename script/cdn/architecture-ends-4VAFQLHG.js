@@ -1,0 +1,2 @@
+import{a as o,b as E}from"./chunk-YASVAYME.js";import"./chunk-XXS337RB.js";import"./chunk-W62MMDSP.js";import"./chunk-NFW23Y7L.js";import"./chunk-SW6UXDP7.js";import"./chunk-ROCYL5LH.js";import"./chunk-HMLH25HK.js";import"./chunk-WUBOLYUJ.js";import"./chunk-KFQF7JLE.js";import"./chunk-UAACR62P.js";import"./chunk-M4ENUNU5.js";import"./chunk-AQPBCXBX.js";var a=E((d,e,r)=>o(d,r));export{a as ARCHITECTURE_ENDS};
+//# sourceMappingURL=architecture-ends-4VAFQLHG.js.map
